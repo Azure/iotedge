@@ -8,36 +8,10 @@ namespace LoadGen
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Converters;
-    using Newtonsoft.Json.Serialization;
 
     class Settings
     {
-        static readonly Lazy<Settings> DefaultSettings = new Lazy<Settings>(
-            () =>
-            {
-                IConfiguration configuration = new ConfigurationBuilder()
-                    .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile("config/settings.json", optional: true)
-                    .AddEnvironmentVariables()
-                    .Build();
-
-                string testResultCoordinatorUrl = string.IsNullOrWhiteSpace(configuration.GetValue<string>("testResultCoordinatorUrl"))
-                    ? null
-                    : configuration.GetValue<string>("testResultCoordinatorUrl");
-
-                return new Settings(
-                    configuration.GetValue("messageFrequency", TimeSpan.FromMilliseconds(20)),
-                    configuration.GetValue<ulong>("messageSizeInBytes", 1024),
-                    configuration.GetValue("transportType", TransportType.Amqp_Tcp_Only),
-                    configuration.GetValue("outputName", "output1"),
-                    configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
-                    configuration.GetValue("testDuration", TimeSpan.Zero),
-                    configuration.GetValue("trackingId", string.Empty),
-                    Option.Maybe(testResultCoordinatorUrl),
-                    configuration.GetValue<string>("IOTEDGE_MODULEID"));
-            });
+        internal static Settings Current = Create();
 
         Settings(
             TimeSpan messageFrequency,
@@ -66,7 +40,29 @@ namespace LoadGen
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
         }
 
-        public static Settings Current => DefaultSettings.Value;
+        static Settings Create()
+        {
+            IConfiguration configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("config/settings.json", optional: true)
+                .AddEnvironmentVariables()
+                .Build();
+
+            string testResultCoordinatorUrl = string.IsNullOrWhiteSpace(configuration.GetValue<string>("testResultCoordinatorUrl"))
+                ? null
+                : configuration.GetValue<string>("testResultCoordinatorUrl");
+
+            return new Settings(
+                configuration.GetValue("messageFrequency", TimeSpan.FromMilliseconds(20)),
+                configuration.GetValue<ulong>("messageSizeInBytes", 1024),
+                configuration.GetValue("transportType", TransportType.Amqp_Tcp_Only),
+                configuration.GetValue("outputName", "output1"),
+                configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
+                configuration.GetValue("testDuration", TimeSpan.Zero),
+                configuration.GetValue("trackingId", string.Empty),
+                Option.Maybe(testResultCoordinatorUrl),
+                configuration.GetValue<string>("IOTEDGE_MODULEID"));
+        }
 
         public TimeSpan MessageFrequency { get; }
 

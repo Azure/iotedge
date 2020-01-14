@@ -19,29 +19,7 @@ namespace NetworkController
         const string ModuleIdPropertyName = "IOTEDGE_MODULEID";
         const string IotHubHostnamePropertyName = "IOTEDGE_IOTHUBHOSTNAME";
 
-        static readonly Lazy<Settings> Setting = new Lazy<Settings>(
-            () =>
-            {
-                IConfiguration configuration = new ConfigurationBuilder()
-                    .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile("config/settings.json")
-                    .AddEnvironmentVariables()
-                    .Build();
-
-                var result = new List<Frequency>();
-                configuration.GetSection(FrequencyPropertyName).Bind(result);
-
-                return new Settings(
-                    configuration.GetValue<TimeSpan>(StartAfterPropertyName),
-                    configuration.GetValue<string>(DockerUriPropertyName),
-                    configuration.GetValue<string>(NetworkIdPropertyName),
-                    result,
-                    configuration.GetValue<NetworkControllerMode>(NetworkControllerModePropertyName),
-                    configuration.GetValue<Uri>(TestResultCoordinatorEndpointPropertyName),
-                    configuration.GetValue<string>(TrackingIdPropertyName),
-                    configuration.GetValue<string>(ModuleIdPropertyName),
-                    configuration.GetValue<string>(IotHubHostnamePropertyName));
-            });
+        internal static Settings Current = Create();
 
         Settings(
             TimeSpan startAfter,
@@ -65,7 +43,28 @@ namespace NetworkController
             this.IotHubHostname = Preconditions.CheckNonWhiteSpace(iothubHostname, nameof(iothubHostname));
         }
 
-        public static Settings Current => Setting.Value;
+        static Settings Create()
+        {
+            IConfiguration configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("config/settings.json")
+                .AddEnvironmentVariables()
+                .Build();
+
+            var result = new List<Frequency>();
+            configuration.GetSection(FrequencyPropertyName).Bind(result);
+
+            return new Settings(
+                configuration.GetValue<TimeSpan>(StartAfterPropertyName),
+                configuration.GetValue<string>(DockerUriPropertyName),
+                configuration.GetValue<string>(NetworkIdPropertyName),
+                result,
+                configuration.GetValue<NetworkControllerMode>(NetworkControllerModePropertyName),
+                configuration.GetValue<Uri>(TestResultCoordinatorEndpointPropertyName),
+                configuration.GetValue<string>(TrackingIdPropertyName),
+                configuration.GetValue<string>(ModuleIdPropertyName),
+                configuration.GetValue<string>(IotHubHostnamePropertyName));
+        }
 
         public TimeSpan StartAfter { get; }
 
