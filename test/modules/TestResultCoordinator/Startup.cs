@@ -42,7 +42,7 @@ namespace TestResultCoordinator
                         Settings.Current.OptimizeForPerformance,
                         Option.None<ulong>()),
                     this.GetStoragePath(Settings.Current.StoragePath),
-                    Settings.Current.ResultSources);
+                    Settings.Current.GetResultSources());
 
                 storeProvider = new StoreProvider(dbStoreprovider);
             }
@@ -53,9 +53,9 @@ namespace TestResultCoordinator
             }
 
             services.AddSingleton<ITestOperationResultStorage>(
-                TestOperationResultStorage.Create(
+                TestOperationResultStorage.CreateAsync(
                     storeProvider,
-                    Settings.Current.ResultSources).Result);
+                    Settings.Current.GetResultSources()).Result);
 
             services.AddHostedService<TestResultReportingService>();
             services.AddHostedService<TestResultEventReceivingService>();

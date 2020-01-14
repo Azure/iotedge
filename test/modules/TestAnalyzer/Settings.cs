@@ -15,31 +15,7 @@ namespace TestAnalyzer
         const double DefaultToleranceInMilliseconds = 1000 * 60;
         const string DefaultStoragePath = "";
 
-        static readonly Lazy<Settings> Setting = new Lazy<Settings>(
-            () =>
-            {
-                IConfiguration configuration = new ConfigurationBuilder()
-                    .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile("config/settings.json")
-                    .AddEnvironmentVariables()
-                    .Build();
-
-                IList<string> excludedModules = configuration.GetSection("ExcludeModules:Ids").Get<List<string>>() ?? new List<string>();
-
-                return new Settings(
-                    configuration.GetValue<string>("eventHubConnectionString"),
-                    configuration.GetValue("ConsumerGroupId", DefaultConsumerGroupId),
-                    configuration.GetValue<string>("IOTEDGE_DEVICEID"),
-                    excludedModules,
-                    configuration.GetValue("WebhostPort", DefaultWebhostPort),
-                    configuration.GetValue("ToleranceInMilliseconds", DefaultToleranceInMilliseconds),
-                    configuration.GetValue<bool>("LogAnalyticsEnabled"),
-                    configuration.GetValue<string>("LogAnalyticsWorkspaceId"),
-                    configuration.GetValue<string>("LogAnalyticsSharedKey"),
-                    configuration.GetValue<string>("LogAnalyticsLogType"),
-                    configuration.GetValue<string>("storagePath", DefaultStoragePath),
-                    configuration.GetValue<bool>("StorageOptimizeForPerformance", true));
-            });
+        internal static Settings Current = Create();
 
         Settings(string eventHubConnectionString, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance, bool logAnalyticsEnabled, string logAnalyticsWorkspaceIdName, string logAnalyticsSharedKeyName, string logAnalyticsLogTypeName, string storagePath, bool storageOptimizeForPerformance)
         {
@@ -57,7 +33,30 @@ namespace TestAnalyzer
             this.LogAnalyticsLogType = logAnalyticsLogTypeName;
         }
 
-        internal static Settings Current => Setting.Value;
+        static Settings Create()
+        {
+            IConfiguration configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("config/settings.json")
+                .AddEnvironmentVariables()
+                .Build();
+
+            IList<string> excludedModules = configuration.GetSection("ExcludeModules:Ids").Get<List<string>>() ?? new List<string>();
+
+            return new Settings(
+                configuration.GetValue<string>("eventHubConnectionString"),
+                configuration.GetValue("ConsumerGroupId", DefaultConsumerGroupId),
+                configuration.GetValue<string>("IOTEDGE_DEVICEID"),
+                excludedModules,
+                configuration.GetValue("WebhostPort", DefaultWebhostPort),
+                configuration.GetValue("ToleranceInMilliseconds", DefaultToleranceInMilliseconds),
+                configuration.GetValue<bool>("LogAnalyticsEnabled"),
+                configuration.GetValue<string>("LogAnalyticsWorkspaceId"),
+                configuration.GetValue<string>("LogAnalyticsSharedKey"),
+                configuration.GetValue<string>("LogAnalyticsLogType"),
+                configuration.GetValue<string>("storagePath", DefaultStoragePath),
+                configuration.GetValue<bool>("StorageOptimizeForPerformance", true));
+        }
 
         public string EventHubConnectionString { get; }
 
