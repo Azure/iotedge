@@ -7,6 +7,7 @@ namespace MetricsValidator
     using System.IO;
     using System.Linq;
     using System.Text;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -61,34 +62,26 @@ namespace MetricsValidator
             }
         }
 
+        static readonly Regex Matcher = new Regex(@"`(\w*)`", RegexOptions.Compiled);
+
         Dictionary<string, string[]> GetExpectedMetrics()
         {
-            // read documented metrics
-            IEnumerable<string> lines = Enumerable.Empty<string>();
             try
             {
-                var agent = File.ReadAllLines(Path.Combine("doc", "EdgeAgentMetrics.md")).Skip(2);
-                var hub = File.ReadAllLines(Path.Combine("doc", "EdgeHubMetrics.md")).Skip(2);
-
-                lines = agent.Concat(hub);
+                return File.ReadAllLines(Path.Combine("doc", "EdgeAgentMetrics.md"))
+                    .Select(line => line.Split('|'))
+                    .Where(rows => rows.Length == 6)
+                    .Select(line => (Matcher.Match(line[1]), Matcher.Matches(line[2])))
+                    .Where(matches => matches.Item1.Success)
+                    .ToDictionary(
+                        matches => matches.Item1.Groups[1].Value,
+                        matches => matches.Item2.Select(match => match.Groups[1].Value).ToArray());
             }
             catch (Exception ex)
             {
                 this.testReporter.Assert("Read metrics docs", false, ex.Message);
+                return new Dictionary<string, string[]>();
             }
-
-            Dictionary<string, string[]> expected = lines.Select(line => line.Split('|')).Where(rows => rows.Length == 4).ToDictionary(rows => rows[0].Trim(), rows =>
-            {
-                if (rows[1].Trim() == string.Empty)
-                {
-                    return new string[] { };
-                }
-
-                return rows[1].Split(',').Select(tag => tag.Trim()).ToArray();
-            });
-            expected.Remove(string.Empty);
-
-            return expected;
         }
     }
 }
