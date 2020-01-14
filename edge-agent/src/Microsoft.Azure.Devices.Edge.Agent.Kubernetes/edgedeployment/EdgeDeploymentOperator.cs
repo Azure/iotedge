@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             HttpOperationResponse<object> response = await task;
 
             this.operatorWatch = Option.Some(
-                response.Watch<EdgeDeploymentDefinition>(
+                response.Watch<EdgeDeploymentDefinition, object>(
                     onEvent: async (type, item) => await this.EdgeDeploymentOnEventHandlerAsync(type, item),
                     onClosed: () =>
                     {

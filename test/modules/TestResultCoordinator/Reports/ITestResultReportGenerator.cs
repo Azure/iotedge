@@ -6,7 +6,7 @@ namespace TestResultCoordinator.Reports
     /// <summary>
     /// This defines methods for a test result report generator.
     /// </summary>
-    interface ITestResultReportGenerator
+    public interface ITestResultReportGenerator
     {
         Task<ITestResultReport> CreateReportAsync();
     }
