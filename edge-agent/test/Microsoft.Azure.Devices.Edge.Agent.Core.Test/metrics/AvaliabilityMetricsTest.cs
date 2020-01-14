@@ -9,9 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
     using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
-    using Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Extensions.Logging.Abstractions;
     using Moq;
     using Xunit;
 
@@ -47,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             metricsProvider.Setup(x => x.CreateGauge(
                     "total_time_running_correctly_seconds",
                     It.IsAny<string>(),
-                    new List<string> { "module_name" }))
+                    new List<string> { "module_name", MetricsConstants.MsTelemetry }))
                 .Returns(runningTimeGauge.Object);
 
             var expectedTimeGauge = new Mock<IMetricsGauge>();
@@ -55,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             metricsProvider.Setup(x => x.CreateGauge(
                     "total_time_expected_running_seconds",
                     It.IsAny<string>(),
-                    new List<string> { "module_name" }))
+                    new List<string> { "module_name", MetricsConstants.MsTelemetry }))
                 .Returns(expectedTimeGauge.Object);
 
             var systemTime = new Mock<ISystemTime>();

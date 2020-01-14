@@ -33,6 +33,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<Container_Registry>@$CONTAINER_REGISTRY@g" "$deployment_working_file"
     sed -i -e "s@<CR.Username>@$CONTAINER_REGISTRY_USERNAME@g" "$deployment_working_file"
     sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
+    sed -i -e "s@<IoTHubConnectionString>@$IOT_HUB_CONNECTION_STRING@g" "$deployment_working_file"
 
     local tracking_Id=$(cat /proc/sys/kernel/random/uuid)
 
@@ -52,6 +53,9 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<NetworkController.OnlineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[1]}@g" "$deployment_working_file"
     sed -i -e "s@<NetworkController.RunsCount0>@${NETWORK_CONTROLLER_FREQUENCIES[2]}@g" "$deployment_working_file"
     sed -i -e "s@<NetworkController.Mode>@$NETWORK_CONTROLLER_MODE@g" "$deployment_working_file"
+    
+    sed -i -e "s@<DeploymentTester1.DeploymentUpdatePeriod>@$DEPLOYMENT_TEST_UPDATE_PERIOD@g" "$deployment_working_file"
+    
 }
 
 function print_logs() {
@@ -107,7 +111,7 @@ function process_args() {
             CONTAINER_REGISTRY_PASSWORD="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 7 ]; then
-            IOTHUB_CONNECTION_STRING="$arg"
+            IOT_HUB_CONNECTION_STRING="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 8 ]; then
             EVENTHUB_CONNECTION_STRING="$arg"
@@ -145,6 +149,9 @@ function process_args() {
         elif [ $saveNextArg -eq 19 ]; then
             UPSTREAM_PROTOCOL="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 20 ]; then
+            DEPLOYMENT_TEST_UPDATE_PERIOD="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -167,6 +174,7 @@ function process_args() {
                 '-logAnalyticsLogType' ) saveNextArg=17;;
                 '-verificationDelay' ) saveNextArg=18;;
                 '-upstreamProtocol' ) saveNextArg=19;;
+                '-deploymentTestUpdatePeriod' ) saveNextArg=20;;
 
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
@@ -179,7 +187,7 @@ function process_args() {
     [[ -z "$ARTIFACT_IMAGE_BUILD_NUMBER" ]] && { print_error 'Artifact image build number is required'; exit 1; }
     [[ -z "$CONTAINER_REGISTRY_USERNAME" ]] && { print_error 'Container registry username is required'; exit 1; }
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
-    [[ -z "$IOTHUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
+    [[ -z "$IOT_HUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
     [[ -z "$LOG_ANALYTICS_WORKSPACEID" ]] && { print_error 'Log analytics workspace id is required'; exit 1; }
     [[ -z "$LOG_ANALYTICS_SHAREDKEY" ]] && { print_error 'Log analytics shared key is required'; exit 1; }
 
@@ -202,7 +210,7 @@ function run_connectivity_test() {
     "$quickstart_working_folder/IotEdgeQuickstart" \
         -d "$device_id" \
         -a "$iotedge_package" \
-        -c "$IOTHUB_CONNECTION_STRING" \
+        -c "$IOT_HUB_CONNECTION_STRING" \
         -e "$EVENTHUB_CONNECTION_STRING" \
         -r "$CONTAINER_REGISTRY" \
         -u "$CONTAINER_REGISTRY_USERNAME" \
@@ -293,6 +301,7 @@ function usage() {
     echo ' -logAnalyticsLogType            Log Analytics log type'
     echo ' -verificationDelay              Delay before starting the verification after test finished'
     echo ' -upstreamProtocol               Upstream protocol used to connect to IoT Hub'
+    echo ' -deploymentTestUpdatePeriod     duration of updating deployment of target module in deployment test'
 
     echo ' -cleanAll                       Do docker prune for containers, logs and volumes.'
     exit 1;
@@ -303,6 +312,7 @@ process_args "$@"
 CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
 TEST_DURATION="${TEST_DURATION:-01:00:00}"
+DEPLOYMENT_TEST_UPDATE_PERIOD="${DEPLOYMENT_TEST_UPDATE_PERIOD:-00:03:00}"
 EVENT_HUB_CONSUMER_GROUP_ID=${EVENT_HUB_CONSUMER_GROUP_ID:-\$Default}
 LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:01}"
 NETWORK_CONTROLLER_FREQUENCIES=${NETWORK_CONTROLLER_FREQUENCIES:(null)}

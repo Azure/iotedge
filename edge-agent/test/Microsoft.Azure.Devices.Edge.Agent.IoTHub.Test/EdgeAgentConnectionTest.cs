@@ -553,11 +553,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         [InlineData(UpstreamProtocol.AmqpWs, ConnectionStatusChangeReason.Device_Disabled, true)]
         [InlineData(UpstreamProtocol.Mqtt, ConnectionStatusChangeReason.Bad_Credential, true)]
         [InlineData(UpstreamProtocol.MqttWs, ConnectionStatusChangeReason.Bad_Credential, true)]
+        [InlineData(UpstreamProtocol.Amqp, ConnectionStatusChangeReason.Bad_Credential, true)]
+        [InlineData(UpstreamProtocol.AmqpWs, ConnectionStatusChangeReason.Bad_Credential, true)]
         [InlineData(UpstreamProtocol.Amqp, ConnectionStatusChangeReason.Communication_Error, false)]
         [InlineData(UpstreamProtocol.AmqpWs, ConnectionStatusChangeReason.Communication_Error, false)]
         [InlineData(UpstreamProtocol.Mqtt, ConnectionStatusChangeReason.Communication_Error, false)]
         [InlineData(UpstreamProtocol.MqttWs, ConnectionStatusChangeReason.Communication_Error, false)]
-        internal async Task ConnectionStatusChangeReasonToDeviceNotFoundReprovisionsDevice(
+        internal async Task ConnectionStatusChangeReasonReprovisionsDevice(
             UpstreamProtocol protocol, ConnectionStatusChangeReason connectionStatusChangeReason, bool shouldReprovision)
         {
             // Arrange

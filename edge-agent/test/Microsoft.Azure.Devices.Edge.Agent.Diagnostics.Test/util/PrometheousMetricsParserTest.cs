@@ -30,11 +30,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
                 Assert.Equal(fakeScrape[i].value, parsedMetrics[i].Value);
                 Assert.Equal(dateTime, parsedMetrics[i].TimeGeneratedUtc);
 
-                var tags = JsonConvert.DeserializeObject<Dictionary<string, string>>(parsedMetrics[i].Tags);
-                Assert.Equal("fakeHub", tags["iothub"]);
-                Assert.Equal("fakeDevice", tags["edge_device"]);
-                Assert.Equal("1", tags["instance_number"]);
-                Assert.Equal(fakeScrape[i].module, tags["module_name"]);
+                Assert.Equal("fakeHub", parsedMetrics[i].Tags["iothub"]);
+                Assert.Equal("fakeDevice", parsedMetrics[i].Tags["edge_device"]);
+                Assert.Equal("1", parsedMetrics[i].Tags["instance_number"]);
+                Assert.Equal(fakeScrape[i].module, parsedMetrics[i].Tags["module_name"]);
             }
         }
 
