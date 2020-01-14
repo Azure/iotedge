@@ -272,11 +272,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 {
                     Assert.True(false, $"Missing module {i.Name} in validation");
                 }
-
-                if (i is ModuleRuntimeInfo<DockerReportedConfig> d)
-                {
-                    Assert.NotEqual("unknown:unknown", d.Config.Image);
-                }
             }
 
             string agentTerminatedReason = "Segmentation Fault";
