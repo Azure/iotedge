@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     { "App", "Mongo" }
                 },
                 Content = GetBaseConfigurationContent(),
-                Priority = priority + 1,
+                Priority = priority,
                 TargetCondition = targetCondition
             };
 
@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     { "Addon", "Stream Analytics" }
                 },
                 Content = GetAddOnConfigurationContent(),
-                Priority = priority,
+                Priority = priority + 1,
                 TargetCondition = targetCondition
             };
 
