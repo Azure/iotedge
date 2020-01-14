@@ -55,7 +55,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                                 return containerStatus.Map(c =>
                                 {
                                     if (c.State.Waiting != null)
+                                    {
                                         return new ReportedModuleStatus(ModuleStatus.Backoff, $"Module in Back-off because of the reason: {c.State.Waiting.Reason}");
+                                    }
                                     else if (c.State.Terminated != null)
                                     {
                                         if (c.State.Terminated.ExitCode != 0)
@@ -64,9 +66,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                                             return new ReportedModuleStatus(ModuleStatus.Stopped, $"Module Stopped becasue of the reason: {c.State.Terminated.Reason}");
                                     }
                                     else
+                                    {
                                         return new ReportedModuleStatus(ModuleStatus.Running, $"Started at {status.StartTime}");
+                                    }
                                 }).GetOrElse(() => new ReportedModuleStatus(ModuleStatus.Failed, $"Module's container state unknown"));
                             }
+
                         case "Failed":
                             return new ReportedModuleStatus(ModuleStatus.Failed, status.Reason);
                         case "Pending":
@@ -86,6 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                                         return new ReportedModuleStatus(ModuleStatus.Backoff, $"Started at {status.StartTime}");
                                 }).GetOrElse(() => new ReportedModuleStatus(ModuleStatus.Failed, $"Module's container state unknown"));
                             }
+
                         case "Unknown":
                             return new ReportedModuleStatus(ModuleStatus.Unknown, status.Reason);
                         case "Succeeded":
