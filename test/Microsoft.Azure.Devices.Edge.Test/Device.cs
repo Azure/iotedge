@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
     class Device : SasManualProvisioningFixture
     {
+        [Test]
         public async Task QuickstartCerts()
         {
             CancellationToken token = this.TestToken;

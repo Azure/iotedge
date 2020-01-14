@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
     class DeviceWithCustomCertificates : CustomCertificatesFixture
     {
+        [Test]
         public async Task TransparentGateway(
             [Values] TestAuthenticationType testAuth,
             [Values(Protocol.Mqtt, Protocol.Amqp)] Protocol protocol)

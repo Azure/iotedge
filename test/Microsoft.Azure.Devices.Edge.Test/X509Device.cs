@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
     class X509Device : X509ManualProvisioningFixture
     {
+        [Test]
         public async Task X509ManualProvision()
         {
             CancellationToken token = this.TestToken;
