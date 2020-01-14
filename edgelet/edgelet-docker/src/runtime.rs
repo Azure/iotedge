@@ -17,7 +17,10 @@ use url::Url;
 
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
-use docker::models::{ContainerCreateBody, ContainerCreateBodyNetworkingConfig, EndpointSettings, InlineResponse200, Ipam, NetworkConfig};
+use docker::models::{
+    ContainerCreateBody, ContainerCreateBodyNetworkingConfig, EndpointSettings, InlineResponse200,
+    Ipam, NetworkConfig,
+};
 use edgelet_core::{
     AuthId, Authenticator, GetTrustBundle, Ipam as CoreIpam, LogOptions, MakeModuleRuntime,
     MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
