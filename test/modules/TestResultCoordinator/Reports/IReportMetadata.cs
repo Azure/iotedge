@@ -3,7 +3,7 @@ namespace TestResultCoordinator.Reports
 {
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
 
-    interface IReportMetadata
+    public interface IReportMetadata
     {
         string ExpectedSource { get; }
 
