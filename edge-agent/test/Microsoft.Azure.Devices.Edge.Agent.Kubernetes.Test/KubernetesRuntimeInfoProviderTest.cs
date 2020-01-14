@@ -173,45 +173,47 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             Dictionary<string, V1Pod> modified = BuildPodList();
 
-            DateTime agentStartTime = new DateTime(2019, 6, 11);
+            string agentWaitingReason = "CrashBackLoopOff";
             modified["edgeagent"].Status.Phase = "Running";
-            modified["edgeagent"].Status.StartTime = agentStartTime;
+            modified["edgeagent"].Status.ContainerStatuses[0].State.Running = null;
+            modified["edgeagent"].Status.ContainerStatuses[0].State.Terminated = null;
+            modified["edgeagent"].Status.ContainerStatuses[0].State.Waiting = new V1ContainerStateWaiting("Waiting", agentWaitingReason);
 
-            modified["edgehub"].Status.Phase = "Pending";
+            string edgehubTerminatedReason = "Completed";
+            modified["edgehub"].Status.Phase = "Running";
+            modified["edgehub"].Status.ContainerStatuses[0].State.Running = null;
+            modified["edgehub"].Status.ContainerStatuses[0].State.Waiting = null;
+            modified["edgehub"].Status.ContainerStatuses[0].State.Terminated = new V1ContainerStateTerminated(0, finishedAt: DateTime.Parse("2019-06-12T16:13:07Z"), startedAt: DateTime.Parse("2019-06-12T16:11:22Z"), reason: edgehubTerminatedReason);
 
-            string finishedDescription = "Pod finished";
-            modified["simulatedtemperaturesensor"].Status.Phase = "Succeeded";
-            modified["simulatedtemperaturesensor"].Status.Reason = finishedDescription;
-            modified["simulatedtemperaturesensor"].Status.ContainerStatuses[1].State.Running = null;
-            modified["simulatedtemperaturesensor"].Status.ContainerStatuses[1].State.Terminated = new V1ContainerStateTerminated(139, finishedAt: DateTime.Parse("2019-06-12T16:13:07Z"), startedAt: DateTime.Parse("2019-06-12T16:11:22Z"));
+            modified["simulatedtemperaturesensor"].Status.Phase = "Running";
+            modified["simulatedtemperaturesensor"].Status.ContainerStatuses[1].State.Running = new V1ContainerStateRunning(startedAt: DateTime.Parse("2019-06-12T16:11:22Z"));
+            modified["simulatedtemperaturesensor"].Status.ContainerStatuses[1].State.Waiting = null;
+            modified["simulatedtemperaturesensor"].Status.ContainerStatuses[1].State.Terminated = null;
 
             foreach (V1Pod pod in modified.Values)
             {
                 runtimeInfo.CreateOrUpdateAddPodInfo(pod);
             }
 
-            var modules = (await runtimeInfo.GetModules(CancellationToken.None)).ToList();
-            Assert.Equal(3, modules.Count);
+            var runningPhaseModules = (await runtimeInfo.GetModules(CancellationToken.None)).ToList();
+            Assert.Equal(3, runningPhaseModules.Count);
 
-            // Normal operation statuses
-            foreach (var i in modules)
+            foreach (var i in runningPhaseModules)
             {
                 if (string.Equals("edgeAgent", i.Name))
                 {
-                    Assert.Equal(ModuleStatus.Running, i.ModuleStatus);
-                    Assert.Equal($"Started at {agentStartTime.ToString()}", i.Description);
+                    Assert.Equal(ModuleStatus.Backoff, i.ModuleStatus);
+                    Assert.Equal($"Module in Back-off because of the reason: {agentWaitingReason}", i.Description);
                 }
                 else if (string.Equals("edgeHub", i.Name))
                 {
-                    Assert.Equal(ModuleStatus.Backoff, i.ModuleStatus);
-                    Assert.Equal(Option.None<DateTime>(), i.ExitTime);
+                    Assert.Equal(ModuleStatus.Stopped, i.ModuleStatus);
+                    Assert.Equal($"Module Stopped becasue of the reason: {edgehubTerminatedReason}", i.Description);
                 }
                 else if (string.Equals("SimulatedTemperatureSensor", i.Name))
                 {
-                    Assert.Equal(ModuleStatus.Stopped, i.ModuleStatus);
-                    Assert.Equal(finishedDescription, i.Description);
+                    Assert.Equal(ModuleStatus.Running, i.ModuleStatus);
                     Assert.Equal(new DateTime(2019, 6, 12), i.StartTime.OrDefault().Date);
-                    Assert.Equal(new DateTime(2019, 6, 12), i.ExitTime.OrDefault().Date);
                 }
                 else
                 {
@@ -224,15 +226,115 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 }
             }
 
-            string unknownDescription = "Could not reach pod";
+            agentWaitingReason = "ErrImagePull";
+            modified["edgeagent"].Status.Phase = "Pending";
+            modified["edgeagent"].Status.ContainerStatuses[0].State.Running = null;
+            modified["edgeagent"].Status.ContainerStatuses[0].State.Terminated = null;
+            modified["edgeagent"].Status.ContainerStatuses[0].State.Waiting = new V1ContainerStateWaiting("Waiting", agentWaitingReason); 
+
+            edgehubTerminatedReason = "Completed";
+            modified["edgehub"].Status.Phase = "Pending";
+            modified["edgehub"].Status.ContainerStatuses[0].State.Running = null;
+            modified["edgehub"].Status.ContainerStatuses[0].State.Waiting = null;
+            modified["edgehub"].Status.ContainerStatuses[0].State.Terminated = new V1ContainerStateTerminated(0, finishedAt: DateTime.Parse("2019-06-12T16:13:07Z"), startedAt: DateTime.Parse("2019-06-12T16:11:22Z"), reason: edgehubTerminatedReason);
+
+            modified["simulatedtemperaturesensor"].Status.Phase = "Pending";
+            modified["simulatedtemperaturesensor"].Status.ContainerStatuses[1].State.Running = new V1ContainerStateRunning(startedAt: DateTime.Parse("2019-06-12T16:11:22Z"));
+            modified["simulatedtemperaturesensor"].Status.ContainerStatuses[1].State.Waiting = null;
+            modified["simulatedtemperaturesensor"].Status.ContainerStatuses[1].State.Terminated = null;
+
+            foreach (V1Pod pod in modified.Values)
+            {
+                runtimeInfo.CreateOrUpdateAddPodInfo(pod);
+            }
+
+            var pendingPhaseModules = (await runtimeInfo.GetModules(CancellationToken.None)).ToList();
+            Assert.Equal(3, pendingPhaseModules.Count);
+
+            foreach (var i in pendingPhaseModules)
+            {
+                if (string.Equals("edgeAgent", i.Name))
+                {
+                    Assert.Equal(ModuleStatus.Backoff, i.ModuleStatus);
+                    Assert.Equal($"Module in Back-off because of the reason: {agentWaitingReason}", i.Description);
+                }
+                else if (string.Equals("edgeHub", i.Name))
+                {
+                    Assert.Equal(ModuleStatus.Stopped, i.ModuleStatus);
+                    Assert.Equal($"Module Stopped becasue of the reason: {edgehubTerminatedReason}", i.Description);
+                }
+                else if (string.Equals("SimulatedTemperatureSensor", i.Name))
+                {
+                    Assert.Equal(ModuleStatus.Backoff, i.ModuleStatus);
+                    Assert.Equal(new DateTime(2019, 6, 12), i.StartTime.OrDefault().Date);
+                }
+                else
+                {
+                    Assert.True(false, $"Missing module {i.Name} in validation");
+                }
+
+                if (i is ModuleRuntimeInfo<DockerReportedConfig> d)
+                {
+                    Assert.NotEqual("unknown:unknown", d.Config.Image);
+                }
+            }
+
+            string agentTerminatedReason = "Segmentation Fault";
+            modified["edgeagent"].Status.Phase = "Running";
+            modified["edgeagent"].Status.ContainerStatuses[0].State.Running = null;
+            modified["edgeagent"].Status.ContainerStatuses[0].State.Terminated = new V1ContainerStateTerminated(139, finishedAt: DateTime.Parse("2019-06-12T16:13:07Z"), startedAt: DateTime.Parse("2019-06-12T16:11:22Z"), reason: agentTerminatedReason); ;
+            modified["edgeagent"].Status.ContainerStatuses[0].State.Waiting = null;
+
+            edgehubTerminatedReason = "Segmentation fault";
+            modified["edgehub"].Status.Phase = "Pending";
+            modified["edgehub"].Status.ContainerStatuses[0].State.Running = null;
+            modified["edgehub"].Status.ContainerStatuses[0].State.Waiting = null;
+            modified["edgehub"].Status.ContainerStatuses[0].State.Terminated = new V1ContainerStateTerminated(139, finishedAt: DateTime.Parse("2019-06-12T16:13:07Z"), startedAt: DateTime.Parse("2019-06-12T16:11:22Z"), reason: edgehubTerminatedReason);
+
+            modified["simulatedtemperaturesensor"].Status.Phase = "Running";
+            modified["simulatedtemperaturesensor"].Status.ContainerStatuses = null;
+
+            foreach (V1Pod pod in modified.Values)
+            {
+                runtimeInfo.CreateOrUpdateAddPodInfo(pod);
+            }
+
+            var failedModules = (await runtimeInfo.GetModules(CancellationToken.None)).ToList();
+            Assert.Equal(3, failedModules.Count);
+
+            foreach (var i in failedModules)
+            {
+                if (string.Equals("edgeAgent", i.Name))
+                {
+                    Assert.Equal(ModuleStatus.Failed, i.ModuleStatus);
+                    Assert.Equal($"Module Failed becasue of the reason: {agentTerminatedReason}", i.Description);
+                }
+                else if (string.Equals("edgeHub", i.Name))
+                {
+                    Assert.Equal(ModuleStatus.Failed, i.ModuleStatus);
+                    Assert.Equal($"Module Failed becasue of the reason: {edgehubTerminatedReason}", i.Description);
+                }
+                else if (string.Equals("SimulatedTemperatureSensor", i.Name))
+                {
+                    Assert.Equal(ModuleStatus.Failed, i.ModuleStatus);
+                    Assert.Equal($"Module's container state unknown", i.Description);
+                }
+                else
+                {
+                    Assert.True(false, $"Missing module {i.Name} in validation");
+                }
+            }
+            string agentPhaseReason = "Unable to get pod status";
             modified["edgeagent"].Status.Phase = "Unknown";
-            modified["edgeagent"].Status.Reason = unknownDescription;
+            modified["edgeagent"].Status.Reason = agentPhaseReason;
 
-            modified["edgehub"].Status = null;
+            string edgehubPhaseReason = "Module completed with zero-exit code";
+            modified["edgehub"].Status.Phase = "Succeeded";
+            modified["edgehub"].Status.Reason = edgehubPhaseReason;
 
+            string sensorPhaseReason = "Module terminated with non-zero exit code";
             modified["simulatedtemperaturesensor"].Status.Phase = "Failed";
-            string failedDescription = "Pod failed as it terminated with non-zero exit code";
-            modified["simulatedtemperaturesensor"].Status.Reason = failedDescription;
+            modified["simulatedtemperaturesensor"].Status.Reason = sensorPhaseReason;
 
             foreach (V1Pod pod in modified.Values)
             {
@@ -240,7 +342,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             }
 
             var abnormalModules = (await runtimeInfo.GetModules(CancellationToken.None)).ToList();
-            Assert.Equal(3, modules.Count);
+            Assert.Equal(3, abnormalModules.Count);
 
             // Abnormal operation statuses
             foreach (var i in abnormalModules)
@@ -248,17 +350,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 if (string.Equals("edgeAgent", i.Name))
                 {
                     Assert.Equal(ModuleStatus.Unknown, i.ModuleStatus);
-                    Assert.Equal(unknownDescription, i.Description);
+                    Assert.Equal(agentPhaseReason, i.Description);
                 }
                 else if (string.Equals("edgeHub", i.Name))
                 {
-                    Assert.Equal(ModuleStatus.Unknown, i.ModuleStatus);
-                    Assert.Equal("Unable to get pod status", i.Description);
+                    Assert.Equal(ModuleStatus.Stopped, i.ModuleStatus);
+                    Assert.Equal(edgehubPhaseReason, i.Description);
                 }
                 else if (string.Equals("SimulatedTemperatureSensor", i.Name))
                 {
                     Assert.Equal(ModuleStatus.Failed, i.ModuleStatus);
-                    Assert.Equal(failedDescription, i.Description);
+                    Assert.Equal(sensorPhaseReason, i.Description);
                 }
                 else
                 {
