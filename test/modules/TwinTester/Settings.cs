@@ -11,35 +11,36 @@ namespace TwinTester
 
     class Settings
     {
-        static readonly Lazy<Settings> DefaultSettings = new Lazy<Settings>(
-            () =>
-            {
-                IConfiguration configuration = new ConfigurationBuilder()
-                    .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile("config/settings.json", optional: true)
-                    .AddEnvironmentVariables()
-                    .Build();
+        internal static Settings Current = Create();
 
-                string moduleId = configuration.GetValue<string>("IOTEDGE_MODULEID");
+        static Settings Create()
+        {
+            IConfiguration configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("config/settings.json", optional: true)
+                .AddEnvironmentVariables()
+                .Build();
 
-                return new Settings(
-                    configuration.GetValue<string>("IOTEDGE_DEVICEID"),
-                    moduleId,
-                    configuration.GetValue<string>("TargetModuleId", moduleId),
-                    configuration.GetValue<int>("TwinUpdateSize", 1),
-                    configuration.GetValue<TimeSpan>("TwinUpdateFrequency", TimeSpan.FromSeconds(10)),
-                    configuration.GetValue<TimeSpan>("TwinUpdateFailureThreshold", TimeSpan.FromMinutes(1)),
-                    configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
-                    configuration.GetValue<string>("AnalyzerUrl", "http://analyzer:15000"),
-                    configuration.GetValue<string>("TestResultCoordinatorUrl"),
-                    configuration.GetValue<string>("ServiceClientConnectionString"),
-                    configuration.GetValue<string>("StoragePath"),
-                    configuration.GetValue<bool>("StorageOptimizeForPerformance", true),
-                    configuration.GetValue<TwinTestMode>("TwinTestMode", TwinTestMode.TwinAllOperations),
-                    Option.Maybe(configuration.GetValue<string>("trackingId")),
-                    configuration.GetValue("TestStartDelay", TimeSpan.Zero),
-                    configuration.GetValue("TestDuration", TimeSpan.FromMilliseconds(-1)));
-            });
+            string moduleId = configuration.GetValue<string>("IOTEDGE_MODULEID");
+
+            return new Settings(
+                configuration.GetValue<string>("IOTEDGE_DEVICEID"),
+                moduleId,
+                configuration.GetValue<string>("TargetModuleId", moduleId),
+                configuration.GetValue<int>("TwinUpdateSize", 1),
+                configuration.GetValue<TimeSpan>("TwinUpdateFrequency", TimeSpan.FromSeconds(10)),
+                configuration.GetValue<TimeSpan>("TwinUpdateFailureThreshold", TimeSpan.FromMinutes(1)),
+                configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
+                configuration.GetValue<string>("AnalyzerUrl", "http://analyzer:15000"),
+                configuration.GetValue<string>("TestResultCoordinatorUrl"),
+                configuration.GetValue<string>("ServiceClientConnectionString"),
+                configuration.GetValue<string>("StoragePath"),
+                configuration.GetValue<bool>("StorageOptimizeForPerformance", true),
+                configuration.GetValue<TwinTestMode>("TwinTestMode", TwinTestMode.TwinAllOperations),
+                Option.Maybe(configuration.GetValue<string>("trackingId")),
+                configuration.GetValue("TestStartDelay", TimeSpan.Zero),
+                configuration.GetValue("TestDuration", TimeSpan.FromMilliseconds(-1)));
+        }
 
         Settings(
             string deviceId,
@@ -84,8 +85,6 @@ namespace TwinTester
                 this.ReporterUrl = new Uri(Preconditions.CheckNonWhiteSpace(analyzerUrl, nameof(analyzerUrl)));
             }
         }
-
-        internal static Settings Current => DefaultSettings.Value;
 
         public string DeviceId { get; }
 

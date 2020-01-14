@@ -58,7 +58,8 @@ namespace TestResultCoordinator.Services
 
         async void DoWorkAsync(object state)
         {
-            ITestResultReport[] testResultReports = await TestReportHelper.GenerateTestResultReports(this.storage, this.logger);
+            var tesReportGeneratorFactory = new TestReportGeneratorFactory(this.storage);
+            ITestResultReport[] testResultReports = await TestReportHelper.GenerateTestResultReportsAsync(Settings.Current.TrackingId, Settings.Current.GetReportMetadataList(), tesReportGeneratorFactory, this.logger);
 
             if (testResultReports.Length == 0)
             {

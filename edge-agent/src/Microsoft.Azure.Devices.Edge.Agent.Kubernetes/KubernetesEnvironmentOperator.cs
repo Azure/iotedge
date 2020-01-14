@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             HttpOperationResponse<V1PodList> podListResp = await task;
 
             this.podWatch = Option.Some(
-                podListResp.Watch<V1Pod>(
+                podListResp.Watch<V1Pod, V1PodList>(
                     onEvent: (type, item) =>
                     {
                         try
