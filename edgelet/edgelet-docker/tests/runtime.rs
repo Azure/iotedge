@@ -775,6 +775,13 @@ fn container_create_handler(req: Request<Body>) -> ResponseFuture {
                         .unwrap()
                 );
 
+                assert!(create_options
+                    .networking_config()
+                    .unwrap()
+                    .endpoints_config()
+                    .unwrap()
+                    .contains_key(&"test-network-id".to_string()));
+
                 let volumes = create_options.volumes().unwrap();
                 let mut expected = ::std::collections::HashMap::new();
                 expected.insert("test1".to_string(), json!({}));
@@ -821,6 +828,7 @@ fn container_create_succeeds() {
             env.insert("k1".to_string(), "v1".to_string());
             env.insert("k2".to_string(), "v2".to_string());
             env.insert("k3".to_string(), "v3".to_string());
+            env.insert("NetworkId".to_string(), "test-network-id".to_string());
 
             // add some create options
             let mut port_bindings = HashMap::new();
