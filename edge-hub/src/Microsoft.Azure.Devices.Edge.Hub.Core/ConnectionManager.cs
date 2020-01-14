@@ -284,6 +284,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             using (await this.connectToCloudLock.LockAsync())
             {
                 KeyValuePair<string, ConnectedDevice>[] snapshot = this.devices.ToArray();
+                Events.CloudConnectionLostClosingAllClients();
                 foreach (var item in snapshot)
                 {
                     await item.Value.CloudConnection.Filter(cp => cp.IsActive).ForEachAsync(
@@ -472,7 +473,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 InvokingCloudConnectionLostEvent,
                 InvokingCloudConnectionEstablishedEvent,
                 HandlingConnectionStatusChangedHandler,
-                CloudConnectionLostClosingClient
+                CloudConnectionLostClosingClient,
+                CloudConnectionLostClosingAllClients
             }
 
             public static void NewCloudConnection(IIdentity identity, Try<ICloudConnection> cloudConnection)
@@ -532,6 +534,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     Log.LogInformation((int)EventIds.ObtainCloudConnectionError, cloudConnection.Exception, Invariant($"Error getting cloud connection for device {identity.Id}"));
                 }
+            }
+
+            public static void CloudConnectionLostClosingAllClients()
+            {
+                Log.LogDebug((int)EventIds.CloudConnectionLostClosingAllClients, Invariant($"Cloud connection lost, closing all clients."));
             }
         }
 
