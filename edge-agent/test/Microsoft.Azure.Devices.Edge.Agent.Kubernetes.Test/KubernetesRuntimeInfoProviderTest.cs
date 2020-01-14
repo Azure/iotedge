@@ -230,7 +230,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             modified["edgeagent"].Status.Phase = "Pending";
             modified["edgeagent"].Status.ContainerStatuses[0].State.Running = null;
             modified["edgeagent"].Status.ContainerStatuses[0].State.Terminated = null;
-            modified["edgeagent"].Status.ContainerStatuses[0].State.Waiting = new V1ContainerStateWaiting("Waiting", agentWaitingReason); 
+            modified["edgeagent"].Status.ContainerStatuses[0].State.Waiting = new V1ContainerStateWaiting("Waiting", agentWaitingReason);
 
             edgehubTerminatedReason = "Completed";
             modified["edgehub"].Status.Phase = "Pending";
@@ -277,7 +277,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             string agentTerminatedReason = "Segmentation Fault";
             modified["edgeagent"].Status.Phase = "Running";
             modified["edgeagent"].Status.ContainerStatuses[0].State.Running = null;
-            modified["edgeagent"].Status.ContainerStatuses[0].State.Terminated = new V1ContainerStateTerminated(139, finishedAt: DateTime.Parse("2019-06-12T16:13:07Z"), startedAt: DateTime.Parse("2019-06-12T16:11:22Z"), reason: agentTerminatedReason); ;
+            modified["edgeagent"].Status.ContainerStatuses[0].State.Terminated = new V1ContainerStateTerminated(139, finishedAt: DateTime.Parse("2019-06-12T16:13:07Z"), startedAt: DateTime.Parse("2019-06-12T16:11:22Z"), reason: agentTerminatedReason);
             modified["edgeagent"].Status.ContainerStatuses[0].State.Waiting = null;
 
             edgehubTerminatedReason = "Segmentation fault";
@@ -319,6 +319,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                     Assert.True(false, $"Missing module {i.Name} in validation");
                 }
             }
+
             string agentPhaseReason = "Unable to get pod status";
             modified["edgeagent"].Status.Phase = "Unknown";
             modified["edgeagent"].Status.Reason = agentPhaseReason;
