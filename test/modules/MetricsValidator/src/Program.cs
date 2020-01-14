@@ -26,7 +26,7 @@ namespace MetricsValidator
         {
             try
             {
-                Logger.LogInformation("DirectMethodReceiver Main() started.");
+                Logger.LogInformation("Validate Metrics Main() started.");
 
                 (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
@@ -41,7 +41,7 @@ namespace MetricsValidator
                 {
                     await moduleClient.OpenAsync();
                     await moduleClient.SetMethodHandlerAsync(
-                        Constants.DirectMethodName,
+                        "ValidateMetrics",
                         async (MethodRequest methodRequest, object _) =>
                         {
                             Console.WriteLine("Validating metrics");
@@ -64,7 +64,7 @@ namespace MetricsValidator
 
                 completed.Set();
                 handler.ForEach(h => GC.KeepAlive(h));
-                Logger.LogInformation("DirectMethodReceiver Main() finished.");
+                Logger.LogInformation("Validate Metrics Main() finished.");
             }
             catch (Exception e)
             {

@@ -12,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Newtonsoft.Json;
     using NUnit.Framework;
-    using Serilog;
 
     public class Metrics : SasManualProvisioningFixture
     {
@@ -28,12 +27,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(this.BaseConfig, token);
 
             // System resource metrics wait 1 minute to start collecting.
-            Log.Information("Pausing to let metrics load");
-            await Task.Delay(TimeSpan.FromMinutes(2), token);
+            await Task.Delay(TimeSpan.FromMinutes(1.1), token);
 
-            Log.Information("Calling direct method");
             var result = await this.iotHub.InvokeMethodAsync(Context.Current.DeviceId, this.moduleName, new CloudToDeviceMethod("ValidateMetrics"), CancellationToken.None);
-            Log.Information($"Got result {result.GetPayloadAsJson()}");
             Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
 
             string body = result.GetPayloadAsJson();
@@ -51,23 +47,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             builder.AddModule(this.moduleName, this.imageName);
             builder.GetModule("$edgeHub")
-                .WithDesiredProperties(new Dictionary<string, object>
-                {
-                    ["routes"] = new
-                    {
-                        MetricsValidatorToCloud = "FROM /messages/modules/" + this.moduleName + "/* INTO $upstream",
-                    },
-                })
                 .WithEnvironment(new[]
                 {
-                            ("experimentalfeatures__enabled", "true"),
-                            ("experimentalfeatures__enableMetrics", "true")
+                    ("experimentalfeatures__enabled", "true"),
+                    ("experimentalfeatures__enableMetrics", "true")
                 });
             builder.GetModule("$edgeAgent")
                 .WithEnvironment(new[]
                 {
-                            ("experimentalfeatures__enabled", "true"),
-                            ("experimentalfeatures__enableMetrics", "true")
+                    ("experimentalfeatures__enabled", "true"),
+                    ("experimentalfeatures__enableMetrics", "true")
                 });
         }
     }

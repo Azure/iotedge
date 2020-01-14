@@ -93,7 +93,7 @@ jobs:
 
       # Metrics Validator - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
-        displayName: Build Image - Direct Method Receiver - aarch64
+        displayName: Build Image - Metrics Validator - aarch64
         inputs:
            filePath: scripts/linux/buildImage.sh
            arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-metrics-validator -n microsoft -P MetricsValidator --target-arch aarch64
