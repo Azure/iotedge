@@ -15,30 +15,10 @@ namespace TestResultCoordinator
         const string DefaultStoragePath = "";
         const ushort DefaultWebHostPort = 5001;
 
-        static readonly Lazy<Settings> DefaultSettings = new Lazy<Settings>(
-            () =>
-            {
-                IConfiguration configuration = new ConfigurationBuilder()
-                    .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile("config/settings.json")
-                    .AddEnvironmentVariables()
-                    .Build();
+        internal static Settings Current = Create();
 
-                return new Settings(
-                    configuration.GetValue<string>("trackingId"),
-                    configuration.GetValue<string>("eventHubConnectionString"),
-                    configuration.GetValue<string>("ServiceClientConnectionString"),
-                    configuration.GetValue<string>("IOTEDGE_DEVICEID"),
-                    configuration.GetValue("webhostPort", DefaultWebHostPort),
-                    configuration.GetValue<string>("logAnalyticsWorkspaceId"),
-                    configuration.GetValue<string>("logAnalyticsSharedKey"),
-                    configuration.GetValue<string>("logAnalyticsLogType"),
-                    configuration.GetValue("storagePath", DefaultStoragePath),
-                    configuration.GetValue<bool>("optimizeForPerformance", true),
-                    configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
-                    configuration.GetValue("testDuration", TimeSpan.FromHours(1)),
-                    configuration.GetValue("verificationDelay", TimeSpan.FromMinutes(15)));
-            });
+        HashSet<string> resultSources = null;
+        List<IReportMetadata> reportMetadatas = null;
 
         Settings(
             string trackingId,
@@ -69,13 +49,33 @@ namespace TestResultCoordinator
             this.OptimizeForPerformance = Preconditions.CheckNotNull(optimizeForPerformance);
             this.TestDuration = testDuration;
             this.TestStartDelay = testStartDelay;
-            this.ResultSources = this.GetResultSources();
             this.DurationBeforeVerification = verificationDelay;
             this.ConsumerGroupName = "$Default";
-            this.ReportMetadataList = this.InitializeReportMetadataList();
         }
 
-        internal static Settings Current => DefaultSettings.Value;
+        static Settings Create()
+        {
+            IConfiguration configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("config/settings.json")
+                .AddEnvironmentVariables()
+                .Build();
+
+            return new Settings(
+                configuration.GetValue<string>("trackingId"),
+                configuration.GetValue<string>("eventHubConnectionString"),
+                configuration.GetValue<string>("ServiceClientConnectionString"),
+                configuration.GetValue<string>("IOTEDGE_DEVICEID"),
+                configuration.GetValue("webhostPort", DefaultWebHostPort),
+                configuration.GetValue<string>("logAnalyticsWorkspaceId"),
+                configuration.GetValue<string>("logAnalyticsSharedKey"),
+                configuration.GetValue<string>("logAnalyticsLogType"),
+                configuration.GetValue("storagePath", DefaultStoragePath),
+                configuration.GetValue<bool>("optimizeForPerformance", true),
+                configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
+                configuration.GetValue("testDuration", TimeSpan.FromHours(1)),
+                configuration.GetValue("verificationDelay", TimeSpan.FromMinutes(15)));
+        }
 
         public string EventHubConnectionString { get; }
 
@@ -103,13 +103,9 @@ namespace TestResultCoordinator
 
         public TimeSpan TestStartDelay { get; }
 
-        public List<string> ResultSources { get; }
-
         public TimeSpan DurationBeforeVerification { get; }
 
         public string ConsumerGroupName { get; }
-
-        public List<IReportMetadata> ReportMetadataList { get; }
 
         public override string ToString()
         {
@@ -123,66 +119,63 @@ namespace TestResultCoordinator
                 { nameof(this.OptimizeForPerformance), this.OptimizeForPerformance.ToString() },
                 { nameof(this.TestStartDelay), this.TestDuration.ToString() },
                 { nameof(this.TestDuration), this.TestDuration.ToString() },
-                { nameof(this.ResultSources), string.Join("\n", this.ResultSources) },
                 { nameof(this.DurationBeforeVerification), this.DurationBeforeVerification.ToString() },
                 { nameof(this.ConsumerGroupName), this.ConsumerGroupName },
-                { nameof(this.ReportMetadataList), this.ReportMetadataList.ToString() }
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
         }
 
-        List<IReportMetadata> InitializeReportMetadataList()
+        internal List<IReportMetadata> GetReportMetadataList()
         {
-            // TODO: Remove this hardcoded list and use twin update instead
-            return new List<IReportMetadata>
+            if (this.reportMetadatas == null)
             {
-                new CountingReportMetadata("loadGen1.send", "relayer1.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
-                new CountingReportMetadata("relayer1.send", "relayer1.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
-                new CountingReportMetadata("loadGen2.send", "relayer2.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
-                new CountingReportMetadata("relayer2.send", "relayer2.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
+                // TODO: initialize list of report metadata by getting from GetTwin method; and update to become Async method.
+                return new List<IReportMetadata>
+                {
+                    new CountingReportMetadata("loadGen1.send", "relayer1.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
+                    new CountingReportMetadata("relayer1.send", "relayer1.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
+                    new CountingReportMetadata("loadGen2.send", "relayer2.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
+                    new CountingReportMetadata("relayer2.send", "relayer2.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
                 // TODO: Enable Direct Method Cloud-to-Module and Cloud-to-EdgeAgent once the verification scheme is finalized.
                 // new CountingReportMetadata("directMethodSender1.send", "directMethodReceiver1.receive", TestOperationResultType.DirectMethod, TestReportType.CountingReport),
                 // new CountingReportMetadata("directMethodSender2.send", "directMethodReceiver2.receive", TestOperationResultType.DirectMethod, TestReportType.CountingReport),
                 // new CountingReportMetadata("directMethodSender3.send", "directMethodSender3.send", TestOperationResultType.DirectMethod, TestReportType.CountingReport),
-                new TwinCountingReportMetadata("twinTester1.desiredUpdated", "twinTester2.desiredReceived", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired),
-                new TwinCountingReportMetadata("twinTester2.reportedReceived", "twinTester2.reportedUpdated", TestReportType.TwinCountingReport, TwinTestPropertyType.Reported),
-                new TwinCountingReportMetadata("twinTester3.desiredUpdated", "twinTester4.desiredReceived", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired),
-                new TwinCountingReportMetadata("twinTester4.reportedReceived", "twinTester4.reportedUpdated", TestReportType.TwinCountingReport, TwinTestPropertyType.Reported),
-                new DeploymentTestReportMetadata("deploymentTester1.send",  "deploymentTester2.receive")
-            };
+                    new TwinCountingReportMetadata("twinTester1.desiredUpdated", "twinTester2.desiredReceived", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired),
+                    new TwinCountingReportMetadata("twinTester2.reportedReceived", "twinTester2.reportedUpdated", TestReportType.TwinCountingReport, TwinTestPropertyType.Reported),
+                    new TwinCountingReportMetadata("twinTester3.desiredUpdated", "twinTester4.desiredReceived", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired),
+                    new TwinCountingReportMetadata("twinTester4.reportedReceived", "twinTester4.reportedUpdated", TestReportType.TwinCountingReport, TwinTestPropertyType.Reported),
+                    new DeploymentTestReportMetadata("deploymentTester1.send",  "deploymentTester2.receive")
+                };
+            }
+
+            return this.reportMetadatas;
         }
 
-        List<string> GetResultSources()
+        internal HashSet<string> GetResultSources()
         {
-            // TODO: Remove this hardcoded list and use environment variables once we've decided on how exactly to set the configuration
-            return new List<string>
+            if (this.resultSources == null)
             {
-                "loadGen1.send",
-                "relayer1.receive",
-                "relayer1.send",
-                "relayer1.eventHub",
-                "loadGen2.send",
-                "relayer2.receive",
-                "relayer2.send",
-                "relayer2.eventHub",
-                "directMethodSender1.send",
-                "directMethodSender2.send",
-                "directMethodSender3.send",
-                "directMethodReceiver1.receive",
-                "directMethodReceiver2.receive",
-                "twinTester1.desiredUpdated",
-                "twinTester2.desiredReceived",
-                "twinTester2.reportedUpdated",
-                "twinTester2.reportedReceived",
-                "twinTester3.desiredUpdated",
-                "twinTester4.desiredReceived",
-                "twinTester4.reportedUpdated",
-                "twinTester4.reportedReceived",
-                "networkController",
-                "deploymentTester1.send",
-                "deploymentTester2.receive"
-            };
+                HashSet<string> sources = GetReportMetadataList().SelectMany(r => new string[] { r.ExpectedSource, r.ActualSource }).ToHashSet();
+                string[] additionalResultSources = new string[] {
+                    "networkController",
+                    "directMethodSender1.send",
+                    "directMethodReceiver1.receive",
+                    "directMethodSender2.send",
+                    "directMethodReceiver2.receive",
+                    "directMethodSender3.send",
+                    "directMethodSender3.send"
+                };
+
+                foreach (string rs in additionalResultSources)
+                {
+                    sources.Add(rs);
+                }
+                
+                this.resultSources = sources;
+            }
+
+            return this.resultSources;
         }
     }
 }

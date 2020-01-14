@@ -11,13 +11,13 @@ namespace TestResultCoordinator.Reports
     {
         internal static async Task<ITestResultReport[]> GenerateTestResultReports(ITestOperationResultStorage storage, ILogger logger)
         {
-            logger.LogInformation($"Starting report generation for {Settings.Current.ReportMetadataList.Count} reports");
+            logger.LogInformation($"Starting report generation for {Settings.Current.GetReportMetadataList().Count} reports");
 
             try
             {
                 var testReportGeneratorFactory = new TestReportGeneratorFactory(storage);
                 var testResultReportList = new List<Task<ITestResultReport>>();
-                foreach (IReportMetadata reportMetadata in Settings.Current.ReportMetadataList)
+                foreach (IReportMetadata reportMetadata in Settings.Current.GetReportMetadataList())
                 {
                     ITestResultReportGenerator testResultReportGenerator = testReportGeneratorFactory.Create(Settings.Current.TrackingId, reportMetadata);
                     testResultReportList.Add(testResultReportGenerator.CreateReportAsync());
