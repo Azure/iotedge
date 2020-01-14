@@ -9,7 +9,7 @@ namespace TestResultCoordinator.Reports
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    class TwinCountingReportGenerator : ITestResultReportGenerator
+    sealed class TwinCountingReportGenerator : ITestResultReportGenerator
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TwinCountingReportGenerator));
         readonly string trackingId;
@@ -20,7 +20,7 @@ namespace TestResultCoordinator.Reports
         readonly string resultType;
         SimpleTestOperationResultComparer testResultComparer;
 
-        public TwinCountingReportGenerator(string trackingId, string expectedSource, ITestResultCollection<TestOperationResult> expectedTestResults, string actualSource, ITestResultCollection<TestOperationResult> actualTestResults, string testOperationResultType, SimpleTestOperationResultComparer testResultComparer)
+        internal TwinCountingReportGenerator(string trackingId, string expectedSource, ITestResultCollection<TestOperationResult> expectedTestResults, string actualSource, ITestResultCollection<TestOperationResult> actualTestResults, string testOperationResultType, SimpleTestOperationResultComparer testResultComparer)
         {
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.expectedTestResults = Preconditions.CheckNotNull(expectedTestResults, nameof(expectedTestResults));
