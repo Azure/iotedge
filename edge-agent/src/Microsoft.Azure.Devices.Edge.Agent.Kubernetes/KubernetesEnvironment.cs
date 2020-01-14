@@ -123,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 modules.Add(module);
             }
 
-            return new ModuleSet(modules.ToDictionary(m => m.Name, m => m));
+            return ModuleSet.Create(modules.ToArray());
         }
 
         public Task<IRuntimeInfo> GetRuntimeInfoAsync()
