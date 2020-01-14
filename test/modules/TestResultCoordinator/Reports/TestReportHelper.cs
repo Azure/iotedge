@@ -4,34 +4,56 @@ namespace TestResultCoordinator.Reports
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using TestResultCoordinator.Storage;
 
     static class TestReportHelper
     {
-        internal static async Task<ITestResultReport[]> GenerateTestResultReports(ITestOperationResultStorage storage, ILogger logger)
+        internal static async Task<ITestResultReport[]> GenerateTestResultReportsAsync(
+            string trackingId,
+            List<IReportMetadata> reportMetadatalist,
+            ITestReportGeneratorFactory testReportGeneratorFactory,
+            ILogger logger)
         {
-            logger.LogInformation($"Starting report generation for {Settings.Current.GetReportMetadataList().Count} reports");
+            Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
+            Preconditions.CheckNotNull(reportMetadatalist, nameof(reportMetadatalist));
+
+            logger.LogInformation($"Starting report generation for {reportMetadatalist.Count} reports");
+
+            var testResultReportTasks = new List<Task<ITestResultReport>>();
 
             try
             {
-                var testReportGeneratorFactory = new TestReportGeneratorFactory(storage);
-                var testResultReportList = new List<Task<ITestResultReport>>();
-                foreach (IReportMetadata reportMetadata in Settings.Current.GetReportMetadataList())
+                foreach (IReportMetadata reportMetadata in reportMetadatalist)
                 {
-                    ITestResultReportGenerator testResultReportGenerator = testReportGeneratorFactory.Create(Settings.Current.TrackingId, reportMetadata);
-                    testResultReportList.Add(testResultReportGenerator.CreateReportAsync());
+                    ITestResultReportGenerator testResultReportGenerator = testReportGeneratorFactory.Create(trackingId, reportMetadata);
+                    testResultReportTasks.Add(testResultReportGenerator.CreateReportAsync());
                 }
 
-                ITestResultReport[] testResultReports = await Task.WhenAll(testResultReportList);
+                ITestResultReport[] testResultReports = await Task.WhenAll(testResultReportTasks);
                 logger.LogInformation("Successfully generated all reports");
 
                 return testResultReports;
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "TestResultCoordinator failed during report generation");
-                return new ITestResultReport[] { };
+                logger.LogError(ex, "At least 1 report generation is failed.");
+                var reports = new List<ITestResultReport>();
+
+                foreach (Task<ITestResultReport> reportTask in testResultReportTasks)
+                {
+                    if (reportTask.IsFaulted)
+                    {
+                        logger.LogError(reportTask.Exception, "Error in report generation task");
+                    }
+                    else
+                    {
+                        reports.Add(reportTask.Result);
+                    }
+                }
+
+                return reports.ToArray();
             }
         }
     }
