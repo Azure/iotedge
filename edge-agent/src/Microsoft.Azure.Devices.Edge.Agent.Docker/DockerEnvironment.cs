@@ -61,6 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
                 if (!moduleSet.Modules.TryGetValue(dockerRuntimeInfo.Name, out IModule configModule) || !(configModule is DockerModule dockerModule))
                 {
+                    // This is given the highest priority so that it's removal is prioritized first before other known modules are processed.
                     dockerModule = new DockerModule(dockerRuntimeInfo.Name, string.Empty, ModuleStatus.Unknown, Core.RestartPolicy.Unknown, new DockerConfig(Constants.UnknownImage, new CreateContainerParameters()), ImagePullPolicy.OnCreate, Core.Constants.HighestPriority, new ConfigurationInfo(), null);
                 }
 

@@ -4,7 +4,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.Diagnostics;
     using System.Linq;
+    using System.Runtime.CompilerServices;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
     using Microsoft.Azure.Devices.Edge.Storage;
@@ -12,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Nito.AsyncEx;
+    using Org.BouncyCastle.Math.EC.Rfc7748;
     using DiffState = System.ValueTuple<
         // added modules
         System.Collections.Generic.IList<Microsoft.Azure.Devices.Edge.Agent.Core.IModule>,
@@ -73,95 +76,106 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
 
             List<ICommand> commands = new List<ICommand>();
 
-            // Create a grouping of modules based on their priority.
+            // Create a grouping of desired and current modules based on their priority.
             // We want to process all the modules in the deployment (desired modules) and also include the modules
             // that are not specified in the deployment but are currently running on the device. This is so that
             // their processing is done in the right priority order.
-            var priorityGroups = desired.Modules.Union(
-                current.Modules.Where(y => !desired.Modules.ContainsKey(y.Key))).ToLookup(x => x.Value.Priority).OrderBy(x => x.Key);
+            ILookup<uint, KeyValuePair<string, IModule>> desiredPriorityGroups = desired.Modules.ToLookup(x => x.Value.Priority);
+            ILookup<uint, KeyValuePair<string, IModule>> currentPriorityGroups = current.Modules.ToLookup(x => x.Value.Priority);
+            ImmutableSortedSet<uint> orderedPriorities = desiredPriorityGroups.Select(x => x.Key).Union(currentPriorityGroups.Select(x => x.Key)).ToImmutableSortedSet();
+            HashSet<string> processedDesiredMatchingCurrentModules = new HashSet<string>();
 
-            foreach (IGrouping<uint, KeyValuePair<string, IModule>> priorityGroup in priorityGroups)
+            foreach (uint priority in orderedPriorities)
             {
                 // The desired set is all the desired modules that have the priority of the current priority group being evaluated.
-                ModuleSet priorityBasedDesiredSet = ModuleSet.Create(
-                    desired.Modules.Where(x => priorityGroup.Any(y => y.Key.Equals(x.Key, StringComparison.OrdinalIgnoreCase))).Select(x => x.Value).ToArray());
+                ModuleSet priorityBasedDesiredSet = ModuleSet.Create(desiredPriorityGroups[priority].Select(x => x.Value).ToArray());
 
                 // The current set is:
                 // - All the current modules that correspond to the desired modules present in the current priority group.
-                // - All the current modules that have the priority of the current priority group being evaluated and were not specified in the desired deployment config.
+                // - All the current modules that have the priority of the current priority group being evaluated which were not specified in the desired deployment config
+                //   -and- have not already been processed yet.
                 //   These are included so that they can be stopped and removed in the right priority order.
+                IEnumerable<KeyValuePair<string, IModule>> desiredMatchingCurrentModules = current.Modules.Where(x => priorityBasedDesiredSet.Modules.ContainsKey(x.Key));
                 ModuleSet priorityBasedCurrentSet = ModuleSet.Create(
-                    current.Modules.Where(x => priorityBasedDesiredSet.Modules.ContainsKey(x.Key) ||
-                    priorityGroup.Any(y => y.Key.Equals(x.Key, StringComparison.OrdinalIgnoreCase)))
+                    desiredMatchingCurrentModules
+                    .Union(currentPriorityGroups[priority].Where(x => !processedDesiredMatchingCurrentModules.Contains(x.Key)))
                     .Select(y => y.Value)
                     .ToArray());
+                processedDesiredMatchingCurrentModules.UnionWith(desiredMatchingCurrentModules.Select(x => x.Key));
 
-                // extract list of modules that need attention
-                (IList<IModule> added, IList<IModule> updateDeployed, IList<IModule> desiredStatusChanged, IList<IRuntimeModule> updateStateChanged, IList<IRuntimeModule> removed, IList<IRuntimeModule> runningGreat) = this.ProcessDiff(priorityBasedDesiredSet, priorityBasedCurrentSet);
-
-                List<ICommand> updateRuntimeCommands = await this.GetUpdateRuntimeCommands(updateDeployed, moduleIdentities, runtimeInfo);
-
-                // create "stop" commands for modules that have been removed
-                IEnumerable<Task<ICommand>> stopTasks = removed
-                    .Select(m => this.commandFactory.StopAsync(m));
-                IEnumerable<ICommand> stop = await Task.WhenAll(stopTasks);
-
-                // create "remove" commands for modules that are being deleted in this deployment
-                IEnumerable<Task<ICommand>> removeTasks = removed.Select(m => this.commandFactory.RemoveAsync(m));
-                IEnumerable<ICommand> remove = await Task.WhenAll(removeTasks);
-
-                // create pull, create, update and start commands for added/updated modules
-                IEnumerable<ICommand> addedCommands = await this.ProcessAddedUpdatedModules(
-                    added,
-                    moduleIdentities,
-                    m => this.commandFactory.CreateAsync(m, runtimeInfo));
-
-                IEnumerable<ICommand> updatedCommands = await this.ProcessAddedUpdatedModules(
-                    updateDeployed,
-                    moduleIdentities,
-                    m =>
-                    {
-                        current.TryGetModule(m.Module.Name, out IModule currentModule);
-                        return this.commandFactory.UpdateAsync(
-                            currentModule,
-                            m,
-                            runtimeInfo);
-                    });
-
-                // Get commands to start / stop modules whose desired status has changed.
-                IList<(ICommand command, string module)> desiredStatedChangedCommands = await this.ProcessDesiredStatusChangedModules(desiredStatusChanged, current);
-
-                // Get commands for modules that have stopped/failed
-                IEnumerable<ICommand> stateChangedCommands = await this.ProcessStateChangedModules(updateStateChanged.Where(m => !m.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase)).ToList());
-
-                // remove any saved state we might have for modules that are being removed or
-                // are being updated because of a deployment
-                IEnumerable<Task<ICommand>> removeStateTasks = removed
-                    .Concat(updateDeployed)
-                    .Select(m => m.Name)
-                    .Concat(desiredStatedChangedCommands.Select(d => d.module))
-                    .Select(m => this.commandFactory.WrapAsync(new RemoveFromStoreCommand<ModuleState>(this.store, m)));
-                IEnumerable<ICommand> removeState = await Task.WhenAll(removeStateTasks);
-
-                // clear the "restartCount" and "lastRestartTime" values for running modules that have been up
-                // for more than "IntensiveCareTime" & still have an entry for them in the store
-                IEnumerable<ICommand> resetHealthStatus = await this.ResetStatsForHealthyModulesAsync(runningGreat);
-
-                var newCommands = updateRuntimeCommands
-                    .Concat(stop)
-                    .Concat(remove)
-                    .Concat(removeState)
-                    .Concat(addedCommands)
-                    .Concat(updatedCommands)
-                    .Concat(stateChangedCommands)
-                    .Concat(desiredStatedChangedCommands.Select(d => d.command))
-                    .Concat(resetHealthStatus);
-
-                commands.AddRange(newCommands);
+                commands.AddRange(await this.ProcessDesiredAndCurrentSets(priorityBasedDesiredSet, priorityBasedCurrentSet, runtimeInfo, moduleIdentities));
             }
 
             Events.PlanCreated(commands);
             return new Plan(commands);
+        }
+
+        async Task<IEnumerable<ICommand>> ProcessDesiredAndCurrentSets(
+            ModuleSet desired,
+            ModuleSet current,
+            IRuntimeInfo runtimeInfo,
+            IImmutableDictionary<string, IModuleIdentity> moduleIdentities)
+        {
+            // extract list of modules that need attention
+            (IList<IModule> added, IList<IModule> updateDeployed, IList<IModule> desiredStatusChanged, IList<IRuntimeModule> updateStateChanged, IList<IRuntimeModule> removed, IList<IRuntimeModule> runningGreat) = this.ProcessDiff(desired, current);
+
+            List<ICommand> updateRuntimeCommands = await this.GetUpdateRuntimeCommands(updateDeployed, moduleIdentities, runtimeInfo);
+
+            // create "stop" commands for modules that have been removed
+            IEnumerable<Task<ICommand>> stopTasks = removed
+                .Select(m => this.commandFactory.StopAsync(m));
+            IEnumerable<ICommand> stop = await Task.WhenAll(stopTasks);
+
+            // create "remove" commands for modules that are being deleted in this deployment
+            IEnumerable<Task<ICommand>> removeTasks = removed.Select(m => this.commandFactory.RemoveAsync(m));
+            IEnumerable<ICommand> remove = await Task.WhenAll(removeTasks);
+
+            // create pull, create, update and start commands for added/updated modules
+            IEnumerable<ICommand> addedCommands = await this.ProcessAddedUpdatedModules(
+                added,
+                moduleIdentities,
+                m => this.commandFactory.CreateAsync(m, runtimeInfo));
+
+            IEnumerable<ICommand> updatedCommands = await this.ProcessAddedUpdatedModules(
+                updateDeployed,
+                moduleIdentities,
+                m =>
+                {
+                    current.TryGetModule(m.Module.Name, out IModule currentModule);
+                    return this.commandFactory.UpdateAsync(
+                        currentModule,
+                        m,
+                        runtimeInfo);
+                });
+
+            // Get commands to start / stop modules whose desired status has changed.
+            IList<(ICommand command, string module)> desiredStatedChangedCommands = await this.ProcessDesiredStatusChangedModules(desiredStatusChanged, current);
+
+            // Get commands for modules that have stopped/failed
+            IEnumerable<ICommand> stateChangedCommands = await this.ProcessStateChangedModules(updateStateChanged.Where(m => !m.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase)).ToList());
+
+            // remove any saved state we might have for modules that are being removed or
+            // are being updated because of a deployment
+            IEnumerable<Task<ICommand>> removeStateTasks = removed
+                .Concat(updateDeployed)
+                .Select(m => m.Name)
+                .Concat(desiredStatedChangedCommands.Select(d => d.module))
+                .Select(m => this.commandFactory.WrapAsync(new RemoveFromStoreCommand<ModuleState>(this.store, m)));
+            IEnumerable<ICommand> removeState = await Task.WhenAll(removeStateTasks);
+
+            // clear the "restartCount" and "lastRestartTime" values for running modules that have been up
+            // for more than "IntensiveCareTime" & still have an entry for them in the store
+            IEnumerable<ICommand> resetHealthStatus = await this.ResetStatsForHealthyModulesAsync(runningGreat);
+
+            return updateRuntimeCommands
+                .Concat(stop)
+                .Concat(remove)
+                .Concat(removeState)
+                .Concat(addedCommands)
+                .Concat(updatedCommands)
+                .Concat(stateChangedCommands)
+                .Concat(desiredStatedChangedCommands.Select(d => d.command))
+                .Concat(resetHealthStatus);
         }
 
         async Task<IList<(ICommand command, string module)>> ProcessDesiredStatusChangedModules(IList<IModule> desiredStatusChanged, ModuleSet current)
