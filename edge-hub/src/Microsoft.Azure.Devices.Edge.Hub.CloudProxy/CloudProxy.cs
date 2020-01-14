@@ -367,7 +367,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Preconditions.CheckNotNull(methodrequest, nameof(methodrequest));
 
                 Events.Log.LogInformation("Cloud DM received");
-                Events.Log.LogInformation(methodrequest.DataAsJson, Formatting.Indented);
+                Events.Log.LogInformation(JsonConvert.SerializeObject(methodrequest.DataAsJson, Formatting.Indented));
+                Events.Log.LogInformation(JsonConvert.SerializeObject(usercontext, Formatting.Indented));
 
                 Events.MethodCallReceived(this.cloudProxy.clientId);
                 var direceMethodRequest = new DirectMethodRequest(this.cloudProxy.clientId, methodrequest.Name, methodrequest.Data, DeviceMethodMaxResponseTimeout);
