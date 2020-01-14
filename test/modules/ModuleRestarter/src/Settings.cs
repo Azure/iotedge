@@ -10,21 +10,7 @@ namespace ModuleRestarter
 
     class Settings
     {
-        static readonly Lazy<Settings> DefaultSettings = new Lazy<Settings>(
-            () =>
-            {
-                IConfiguration configuration = new ConfigurationBuilder()
-                    .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile("config/settings.json", optional: true)
-                    .AddEnvironmentVariables()
-                    .Build();
-
-                return new Settings(
-                    configuration.GetValue<string>("ServiceClientConnectionString", string.Empty),
-                    configuration.GetValue<string>("IOTEDGE_DEVICEID", string.Empty),
-                    configuration.GetValue<string>("DesiredModulesToRestartCSV", string.Empty),
-                    configuration.GetValue<int>("RestartIntervalInMins", 10));
-            });
+        internal static Settings Current = Create();
 
         Settings(
             string serviceClientConnectionString,
@@ -47,7 +33,20 @@ namespace ModuleRestarter
             }
         }
 
-        internal static Settings Current => DefaultSettings.Value;
+        static Settings Create()
+        {
+            IConfiguration configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("config/settings.json", optional: true)
+                .AddEnvironmentVariables()
+                .Build();
+
+            return new Settings(
+                configuration.GetValue<string>("ServiceClientConnectionString", string.Empty),
+                configuration.GetValue<string>("IOTEDGE_DEVICEID", string.Empty),
+                configuration.GetValue<string>("DesiredModulesToRestartCSV", string.Empty),
+                configuration.GetValue<int>("RestartIntervalInMins", 10));
+        }
 
         public string ServiceClientConnectionString { get; }
 

@@ -11,7 +11,7 @@ namespace TestResultCoordinator.Reports
         const int BatchSize = 500;
         readonly ITestOperationResultStorage storage;
 
-        public TestReportGeneratorFactory(ITestOperationResultStorage storage)
+        internal TestReportGeneratorFactory(ITestOperationResultStorage storage)
         {
             this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
         }
