@@ -16,8 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     public class Metrics : SasManualProvisioningFixture
     {
         string moduleName = "MetricsValidator";
-        string imageName = " edgebuilds.azurecr.io/microsoft/azureiotedge-metrics-validator:20200111.6-linux-amd64";
-        /* string imageName = "lefitchereg1.azurecr.io/metrics_validator_test:0.0.1-amd64"; */
 
         [Test]
         public async Task ValidateMetrics()
@@ -45,7 +43,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         void BaseConfig(EdgeConfigBuilder builder)
         {
-            builder.AddModule(this.moduleName, this.imageName);
+            Assert.IsTrue(Context.Current.MetricsValidatorImage.HasValue, "Metrics validator image must be provided in context.json");
+
+            builder.AddModule(this.moduleName, Context.Current.MetricsValidatorImage.OrDefault());
             builder.GetModule("$edgeHub")
                 .WithEnvironment(new[]
                 {
