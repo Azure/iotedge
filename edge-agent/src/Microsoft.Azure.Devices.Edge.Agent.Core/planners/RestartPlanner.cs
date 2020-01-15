@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             ILookup<uint, KeyValuePair<string, IModule>> desiredPriorityGroups = desired.Modules.ToLookup(x => x.Value.Priority);
             ILookup<uint, KeyValuePair<string, IModule>> currentPriorityGroups = current.Modules.ToLookup(x => x.Value.Priority);
             ImmutableSortedSet<uint> orderedPriorities = desiredPriorityGroups.Select(x => x.Key).Union(currentPriorityGroups.Select(x => x.Key)).ToImmutableSortedSet();
-            HashSet<string> processedDesiredMatchingCurrentModules = new HashSet<string>();
+            var processedDesiredMatchingCurrentModules = new HashSet<string>();
 
             foreach (uint priority in orderedPriorities)
             {
