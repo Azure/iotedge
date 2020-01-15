@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Serv
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
     using DockerEmptyStruct = global::Docker.DotNet.Models.EmptyStruct;
-    using KubernetesConstants = Constants;
+    using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
     [Unit]
     public class KubernetesServiceMapperTest

@@ -269,7 +269,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     {
                         IEdgeDeploymentController watchOperator = new EdgeDeploymentController(
                             this.resourceName,
-                            deviceSelector,
+                            this.deviceSelector,
                             this.deviceNamespace,
                             c.Resolve<IKubernetes>(),
                             c.Resolve<IModuleIdentityLifecycleManager>(),

@@ -25,9 +25,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     [Unit]
     public class EdgeDeploymentCommandTest
     {
-        static readonly ResourceName ResourceName = new ResourceName("hostname", "deviceId");
         const string Selector = "selector";
         const string Namespace = "namespace";
+        static readonly ResourceName ResourceName = new ResourceName("hostname", "deviceId");
         static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
         static readonly global::Docker.DotNet.Models.AuthConfig DockerAuth = new global::Docker.DotNet.Models.AuthConfig { Username = "username", Password = "password", ServerAddress = "docker.io" };
         static readonly ImagePullSecret ImagePullSecret = new ImagePullSecret(DockerAuth);
@@ -344,8 +344,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                     It.IsAny<bool?>(),
                     It.IsAny<string>(),
                     It.IsAny<Dictionary<string, List<string>>>(),
-                    It.IsAny<CancellationToken>()
-                ));
+                    It.IsAny<CancellationToken>()));
 
         public static ISetup<IKubernetes, Task<HttpOperationResponse<V1Secret>>> SetupCreateSecret(this Mock<IKubernetes> client) =>
             client.Setup(
@@ -381,6 +380,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                     It.IsAny<string>(),
                     It.IsAny<Dictionary<string, List<string>>>(),
                     It.IsAny<CancellationToken>()));
-
     }
 }

@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 },
                 Data = new Dictionary<string, byte[]>
                 {
-                    [KubernetesConstants.K8sPullSecretData] = new byte[]{1}
+                    [KubernetesConstants.K8sPullSecretData] = new byte[] { 1 }
                 }
             };
             var y = new V1Secret
@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 },
                 Data = new Dictionary<string, byte[]>
                 {
-                    [KubernetesConstants.K8sPullSecretData] = new byte[]{1}
+                    [KubernetesConstants.K8sPullSecretData] = new byte[] { 1 }
                 }
             };
             Assert.True(Comparer.Equals(x, y));
