@@ -27,7 +27,8 @@ namespace TestResultCoordinator.Controllers
         [HttpGet]
         public async Task<ContentResult> GetReportsAsync()
         {
-            ITestResultReport[] testResultReports = await TestReportHelper.GenerateTestResultReports(this.storage, Logger);
+            var testReportGeneratorFactory = new TestReportGeneratorFactory(this.storage);
+            ITestResultReport[] testResultReports = await TestReportHelper.GenerateTestResultReportsAsync(Settings.Current.TrackingId, Settings.Current.GetReportMetadataList(), testReportGeneratorFactory, Logger);
 
             if (testResultReports.Length == 0)
             {

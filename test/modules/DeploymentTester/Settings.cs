@@ -10,29 +10,9 @@ namespace DeploymentTester
 
     class Settings
     {
-        public const string EnvironmentVariablePrefix = "IOTEDGE_DT";
+        internal const string EnvironmentVariablePrefix = "IOTEDGE_DT";
 
-        static readonly Lazy<Settings> DefaultSettings = new Lazy<Settings>(
-            () =>
-            {
-                IConfiguration configuration = new ConfigurationBuilder()
-                    .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile("config/settings.json", optional: true)
-                    .AddEnvironmentVariables()
-                    .Build();
-
-                return new Settings(
-                    configuration.GetValue<string>("IOTEDGE_DEVICEID"),
-                    configuration.GetValue<string>("IOTEDGE_MODULEID"),
-                    configuration.GetValue("DEPLOYMENT_TESTER_MODE", DeploymentTesterMode.Receiver),
-                    Option.Maybe(configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING")),
-                    configuration.GetValue("testResultCoordinatorUrl", new Uri("http://testresultcoordinator:5001")),
-                    configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
-                    configuration.GetValue("testDuration", TimeSpan.FromHours(1)),
-                    configuration.GetValue<string>("trackingId"),
-                    Option.Maybe(configuration.GetValue<string>("targetModuleId")),
-                    configuration.GetValue("DEPLOYMENT_UPDATE_PERIOD", TimeSpan.FromMinutes(3)));
-            });
+        internal static Settings Current = Create();
 
         Settings(
             string deviceId,
@@ -66,7 +46,26 @@ namespace DeploymentTester
             this.DeploymentUpdatePeriod = deploymentUpdatePeriod;
         }
 
-        internal static Settings Current => DefaultSettings.Value;
+        static Settings Create()
+        {
+            IConfiguration configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("config/settings.json")
+                .AddEnvironmentVariables()
+                .Build();
+
+            return new Settings(
+                configuration.GetValue<string>("IOTEDGE_DEVICEID"),
+                configuration.GetValue<string>("IOTEDGE_MODULEID"),
+                configuration.GetValue("DEPLOYMENT_TESTER_MODE", DeploymentTesterMode.Receiver),
+                Option.Maybe(configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING")),
+                configuration.GetValue("testResultCoordinatorUrl", new Uri("http://testresultcoordinator:5001")),
+                configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
+                configuration.GetValue("testDuration", TimeSpan.FromHours(1)),
+                configuration.GetValue<string>("trackingId"),
+                Option.Maybe(configuration.GetValue<string>("targetModuleId")),
+                configuration.GetValue("DEPLOYMENT_UPDATE_PERIOD", TimeSpan.FromMinutes(3)));
+        }
 
         public string DeviceId { get; }
 
