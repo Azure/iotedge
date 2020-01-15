@@ -171,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 {
                     ["$edgeAgent"] = new Dictionary<string, object>
                     {
-                        ["properties.desired"] = GetEdgeAgentConfiguration()
+                        ["properties.desired"] = GetEdgeAgentBaseConfiguration()
                     },
                     ["$edgeHub"] = new Dictionary<string, object>
                     {
@@ -1895,6 +1895,73 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         }
 
         static object GetEdgeAgentConfiguration()
+        {
+            var desiredProperties = new
+            {
+                schemaVersion = "1.0",
+                runtime = new
+                {
+                    type = "docker",
+                    settings = new
+                    {
+                        loggingOptions = string.Empty
+                    }
+                },
+                systemModules = new
+                {
+                    edgeAgent = new
+                    {
+                        type = "docker",
+                        settings = new
+                        {
+                            image = "edgeAgent",
+                            createOptions = string.Empty
+                        }
+                    },
+                    edgeHub = new
+                    {
+                        type = "docker",
+                        status = "running",
+                        restartPolicy = "always",
+                        settings = new
+                        {
+                            image = "edgeHub",
+                            createOptions = string.Empty
+                        }
+                    }
+                },
+                modules = new
+                {
+                    mongoserver = new
+                    {
+                        version = "1.0",
+                        type = "docker",
+                        status = "running",
+                        restartPolicy = "on-failure",
+                        settings = new
+                        {
+                            image = "mongo",
+                            createOptions = string.Empty
+                        }
+                    },
+                    asa = new
+                    {
+                        version = "1.0",
+                        type = "docker",
+                        status = "running",
+                        restartPolicy = "on-failure",
+                        settings = new
+                        {
+                            image = "asa",
+                            createOptions = string.Empty
+                        }
+                    }
+                }
+            };
+            return desiredProperties;
+        }
+
+        static object GetEdgeAgentBaseConfiguration()
         {
             var desiredProperties = new
             {
