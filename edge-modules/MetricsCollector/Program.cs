@@ -32,6 +32,8 @@ namespace MetricsCollector
             try
             {
                 moduleClient = await ModuleClient.CreateFromEnvironmentAsync(transportSettings);
+                Dictionary<string, string> testSpecificTags = await GetTestSpecificTagsFromTwin(moduleClient);
+
                 MetricsScraper scraper = new MetricsScraper(Settings.Current.Endpoints);
                 IMetricsPublisher publisher;
                 if (Settings.Current.UploadTarget == UploadTarget.AzureLogAnalytics)
@@ -43,7 +45,6 @@ namespace MetricsCollector
                     publisher = new EventHubMetricsUpload(moduleClient);
                 }
 
-                Dictionary<string, string> testSpecificTags = await GetTestSpecificTagsFromTwin(moduleClient);
                 using (MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher, testSpecificTags, Guid.NewGuid()))
                 {
                     TimeSpan scrapeAndUploadInterval = TimeSpan.FromSeconds(Settings.Current.ScrapeFrequencySecs);
