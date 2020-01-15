@@ -11,30 +11,7 @@ namespace DirectMethodSender
 
     class Settings
     {
-        static readonly Lazy<Settings> DefaultSettings = new Lazy<Settings>(
-            () =>
-            {
-                IConfiguration configuration = new ConfigurationBuilder()
-                    .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile("config/settings.json", optional: true)
-                    .AddEnvironmentVariables()
-                    .Build();
-
-                return new Settings(
-                    configuration.GetValue<string>("IOTEDGE_DEVICEID"),
-                    configuration.GetValue<string>("TargetModuleId", "DirectMethodReceiver"),
-                    configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
-                    configuration.GetValue<TimeSpan>("DirectMethodDelay", TimeSpan.FromSeconds(5)),
-                    Option.Maybe(configuration.GetValue<Uri>("ReportingEndpointUrl")),
-                    configuration.GetValue<InvocationSource>("InvocationSource", InvocationSource.Local),
-                    Option.Maybe<string>(configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING")),
-                    configuration.GetValue<string>("IOTEDGE_MODULEID"),
-                    configuration.GetValue("testDuration", TimeSpan.Zero),
-                    configuration.GetValue("testStartDelay", TimeSpan.Zero),
-                    Option.Maybe(configuration.GetValue<string>("DirectMethodName")),
-                    Option.Maybe(configuration.GetValue<string>("trackingId")),
-                    Option.Maybe(configuration.GetValue<string>("DirectMethodResultType")));
-            });
+        internal static Settings Current = Create();
 
         Settings(
             string deviceId,
@@ -70,7 +47,29 @@ namespace DirectMethodSender
             this.DirectMethodResultType = (DirectMethodResultType)Enum.Parse(typeof(DirectMethodResultType), directMethodResultType.GetOrElse("LegacyDirectMethodTestResult"));
         }
 
-        internal static Settings Current => DefaultSettings.Value;
+        static Settings Create()
+        {
+            IConfiguration configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("config/settings.json", optional: true)
+                .AddEnvironmentVariables()
+                .Build();
+
+            return new Settings(
+                configuration.GetValue<string>("IOTEDGE_DEVICEID"),
+                configuration.GetValue<string>("TargetModuleId", "DirectMethodReceiver"),
+                configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
+                configuration.GetValue<TimeSpan>("DirectMethodDelay", TimeSpan.FromSeconds(5)),
+                Option.Maybe(configuration.GetValue<Uri>("ReportingEndpointUrl")),
+                configuration.GetValue<InvocationSource>("InvocationSource", InvocationSource.Local),
+                Option.Maybe<string>(configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING")),
+                configuration.GetValue<string>("IOTEDGE_MODULEID"),
+                configuration.GetValue("testDuration", TimeSpan.Zero),
+                configuration.GetValue("testStartDelay", TimeSpan.Zero),
+                Option.Maybe(configuration.GetValue<string>("DirectMethodName")),
+                Option.Maybe(configuration.GetValue<string>("trackingId")),
+                Option.Maybe(configuration.GetValue<string>("DirectMethodResultType")));
+        }
 
         internal string DeviceId { get; }
 

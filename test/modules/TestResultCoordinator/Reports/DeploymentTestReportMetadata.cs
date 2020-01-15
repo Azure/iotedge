@@ -3,7 +3,7 @@ namespace TestResultCoordinator.Reports
 {
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
 
-    class DeploymentTestReportMetadata : IReportMetadata
+    class DeploymentTestReportMetadata : ITestReportMetadata
     {
         public DeploymentTestReportMetadata(string expectedSource, string actualSource)
         {
@@ -18,6 +18,8 @@ namespace TestResultCoordinator.Reports
         public TestReportType TestReportType => TestReportType.DeploymentTestReport;
 
         public TestOperationResultType TestOperationResultType => TestOperationResultType.Deployment;
+
+        public string[] ResultSources => new string[] { this.ExpectedSource, this.ActualSource };
 
         public override string ToString()
         {

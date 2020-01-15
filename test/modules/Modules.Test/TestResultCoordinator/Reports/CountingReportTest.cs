@@ -28,7 +28,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             Assert.Equal("trackingId123", report.TrackingId);
             Assert.Equal("actualSource", report.ActualSource);
-            Assert.Equal("expectedSource", report.ExpectSource);
+            Assert.Equal("expectedSource", report.ExpectedSource);
             Assert.Equal("resultType1", report.ResultType);
             Assert.Equal(945UL, report.TotalExpectCount);
             Assert.Equal(923UL, report.TotalMatchCount);
