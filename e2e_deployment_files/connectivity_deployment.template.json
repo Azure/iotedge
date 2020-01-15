@@ -583,7 +583,7 @@
           "metricsCollector": {
             "settings": {
                 "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
-                "createOptions": ""
+                "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             },
             "type": "docker",
             "version": "1.0",
