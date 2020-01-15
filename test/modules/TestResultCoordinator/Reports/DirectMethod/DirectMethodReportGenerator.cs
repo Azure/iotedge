@@ -36,7 +36,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
             this.ActualTestResults = Preconditions.CheckNotNull(actualTestResults, nameof(actualTestResults));
             this.ResultType = Preconditions.CheckNonWhiteSpace(resultType, nameof(resultType));
             this.TestResultComparer = Preconditions.CheckNotNull(testResultComparer, nameof(testResultComparer));
-            this.NetworkStatusTimeline = Preconditions.CheckNotNull(networkStatusTimeline);
+            this.NetworkStatusTimeline = Preconditions.CheckNotNull(networkStatusTimeline, nameof(networkStatusTimeline));
         }
 
         internal string ActualSource { get; }
