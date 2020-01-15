@@ -13,6 +13,7 @@ namespace MetricsValidator
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
+    using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
     public class ValidateDocumentedMetrics : TestBase
@@ -28,7 +29,7 @@ namespace MetricsValidator
 
         public override async Task Start(CancellationToken cancellationToken)
         {
-            Console.WriteLine($"Starting {nameof(ValidateDocumentedMetrics)}");
+            log.LogInformation($"Starting {nameof(ValidateDocumentedMetrics)}");
 
             await this.moduleClient.SendEventAsync(new Message(Encoding.UTF8.GetBytes("Test message to seed metrics")));
 
@@ -39,7 +40,7 @@ namespace MetricsValidator
             var expected = this.GetExpectedMetrics();
             HashSet<string> unreturnedMetrics = new HashSet<string>(expected.Keys);
 
-            Console.WriteLine("Got expected metrics");
+            log.LogInformation("Got expected metrics");
             foreach (Metric metric in metrics)
             {
                 unreturnedMetrics.Remove(metric.Name);
@@ -52,7 +53,7 @@ namespace MetricsValidator
                 }
                 else
                 {
-                    // Console.WriteLine($"{metricId} not documented");
+                    this.testReporter.Assert(metricId, false, "Metric is not documented.");
                 }
             }
 

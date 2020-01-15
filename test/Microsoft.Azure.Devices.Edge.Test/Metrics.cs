@@ -43,9 +43,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         void BaseConfig(EdgeConfigBuilder builder)
         {
-            Assert.IsTrue(Context.Current.MetricsValidatorImage.HasValue, "Metrics validator image must be provided in context.json");
+            string metricsValidatorImage = Context.Current.MetricsValidatorImage.Expect(() => new InvalidOperationException("Missing Metrics Validator image"));
 
-            builder.AddModule(this.moduleName, Context.Current.MetricsValidatorImage.OrDefault());
+            builder.AddModule(this.moduleName, metricsValidatorImage);
             builder.GetModule("$edgeHub")
                 .WithEnvironment(new[]
                 {

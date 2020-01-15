@@ -10,6 +10,7 @@ namespace MetricsValidator
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
+    using Microsoft.Extensions.Logging;
 
     public class ValidateNumberOfMessagesSent : TestBase
     {
@@ -22,7 +23,7 @@ namespace MetricsValidator
 
         public override async Task Start(CancellationToken cancellationToken)
         {
-            Console.WriteLine($"Starting {nameof(ValidateNumberOfMessagesSent)}");
+            log.LogInformation($"Starting {nameof(ValidateNumberOfMessagesSent)}");
             await this.TestNumberSent(10, cancellationToken);
             await this.TestNumberSent(100, cancellationToken);
 
@@ -50,7 +51,7 @@ namespace MetricsValidator
 
         async Task<int> GetNumberOfMessagesSent(CancellationToken cancellationToken)
         {
-            Console.WriteLine("Getting number of messages sent");
+            log.LogInformation("Getting number of messages sent");
             var metrics = (await this.scraper.ScrapeEndpointsAsync(cancellationToken)).ToArray();
             Metric metric = metrics.FirstOrDefault(m => m.Name == "edgehub_messages_received_total" && m.Tags.TryGetValue("route_output", out string output) && output == this.endpoint);
 

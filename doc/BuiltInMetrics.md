@@ -4,7 +4,7 @@ The IoT Edge Hub and Edge Agent module expose a number of metrics in the Prometh
 
 ## How to enable
 
-As of release 1.0.9, metrics are exposed as an experimental feature available at http port **9600** of the Edge Hub and Edge Agent module. To enable, the following environment variables should be set for the module (make note of the double underscores):
+As of release 1.0.9, metrics are exposed as an experimental feature available at http port **9600** of the Edge Hub and Edge Agent module. To enable, the following environment variables should be set for each module (make note of the double underscores):
 
 | Environment Variable Name                | value  |
 |------------------------------------------|--------|
