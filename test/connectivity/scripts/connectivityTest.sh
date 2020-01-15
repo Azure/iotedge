@@ -156,6 +156,15 @@ function process_args() {
         elif [ $saveNextArg -eq 20 ]; then
             DEPLOYMENT_TEST_UPDATE_PERIOD="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 21 ]; then
+            METRICS_ENDPOINTS_CSV="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 22 ]; then
+            METRICS_SCRAPE_FREQUENCY_IN_SECS="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 23 ]; then
+            METRICS_UPLOAD_TARGET="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -179,6 +188,9 @@ function process_args() {
                 '-verificationDelay' ) saveNextArg=18;;
                 '-upstreamProtocol' ) saveNextArg=19;;
                 '-deploymentTestUpdatePeriod' ) saveNextArg=20;;
+                '-metricsEndpointsCSV' ) saveNextArg=21;;
+                '-metricsScrapeFrequencyInSecs' ) saveNextArg=22;;
+                '-metricsUploadTarget' ) saveNextArg=23;;
 
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
@@ -306,6 +318,9 @@ function usage() {
     echo ' -verificationDelay              Delay before starting the verification after test finished'
     echo ' -upstreamProtocol               Upstream protocol used to connect to IoT Hub'
     echo ' -deploymentTestUpdatePeriod     duration of updating deployment of target module in deployment test'
+    echo ' -metricsEndpointsCSV            Optional csv of exposed endpoints for which to scrape metrics.'
+    echo ' -metricsScrapeFrequencyInSecs   Optional frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
+    echo ' -metricsUploadTarget            Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
 
     echo ' -cleanAll                       Do docker prune for containers, logs and volumes.'
     exit 1;
