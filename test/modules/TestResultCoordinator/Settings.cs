@@ -18,13 +18,14 @@ namespace TestResultCoordinator
         internal static Settings Current = Create();
 
         HashSet<string> resultSources = null;
-        List<IReportMetadata> reportMetadatas = null;
+        List<ITestReportMetadata> reportMetadatas = null;
 
         Settings(
             string trackingId,
             string eventHubConnectionString,
-            string serviceClientConnectionString,
+            string iotHubConnectionString,
             string deviceId,
+            string moduleId,
             ushort webHostPort,
             string logAnalyticsWorkspaceId,
             string logAnalyticsSharedKey,
@@ -39,8 +40,9 @@ namespace TestResultCoordinator
 
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.EventHubConnectionString = Preconditions.CheckNonWhiteSpace(eventHubConnectionString, nameof(eventHubConnectionString));
-            this.ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, nameof(serviceClientConnectionString));
+            this.IoTHubConnectionString = Preconditions.CheckNonWhiteSpace(iotHubConnectionString, nameof(iotHubConnectionString));
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.WebHostPort = Preconditions.CheckNotNull(webHostPort, nameof(webHostPort));
             this.LogAnalyticsWorkspaceId = Preconditions.CheckNonWhiteSpace(logAnalyticsWorkspaceId, nameof(logAnalyticsWorkspaceId));
             this.LogAnalyticsSharedKey = Preconditions.CheckNonWhiteSpace(logAnalyticsSharedKey, nameof(logAnalyticsSharedKey));
@@ -64,8 +66,9 @@ namespace TestResultCoordinator
             return new Settings(
                 configuration.GetValue<string>("trackingId"),
                 configuration.GetValue<string>("eventHubConnectionString"),
-                configuration.GetValue<string>("ServiceClientConnectionString"),
+                configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING"),
                 configuration.GetValue<string>("IOTEDGE_DEVICEID"),
+                configuration.GetValue<string>("IOTEDGE_MODULEID"),
                 configuration.GetValue("webhostPort", DefaultWebHostPort),
                 configuration.GetValue<string>("logAnalyticsWorkspaceId"),
                 configuration.GetValue<string>("logAnalyticsSharedKey"),
@@ -79,7 +82,7 @@ namespace TestResultCoordinator
 
         public string EventHubConnectionString { get; }
 
-        public string ServiceClientConnectionString { get; }
+        public string IoTHubConnectionString { get; }
 
         public string DeviceId { get; }
 
@@ -114,6 +117,7 @@ namespace TestResultCoordinator
             {
                 { nameof(this.TrackingId), this.TrackingId },
                 { nameof(this.DeviceId), this.DeviceId },
+                { nameof(this.ModuleId), this.ModuleId },
                 { nameof(this.WebHostPort), this.WebHostPort.ToString() },
                 { nameof(this.StoragePath), this.StoragePath },
                 { nameof(this.OptimizeForPerformance), this.OptimizeForPerformance.ToString() },
@@ -126,12 +130,12 @@ namespace TestResultCoordinator
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
         }
 
-        internal List<IReportMetadata> GetReportMetadataList()
+        internal List<ITestReportMetadata> GetReportMetadataList()
         {
             if (this.reportMetadatas == null)
             {
                 // TODO: initialize list of report metadata by getting from GetTwin method; and update to become Async method.
-                return new List<IReportMetadata>
+                return new List<ITestReportMetadata>
                 {
                     new CountingReportMetadata("loadGen1.send", "relayer1.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
                     new CountingReportMetadata("relayer1.send", "relayer1.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
@@ -156,8 +160,9 @@ namespace TestResultCoordinator
         {
             if (this.resultSources == null)
             {
-                HashSet<string> sources = GetReportMetadataList().SelectMany(r => new string[] { r.ExpectedSource, r.ActualSource }).ToHashSet();
-                string[] additionalResultSources = new string[] {
+                HashSet<string> sources = this.GetReportMetadataList().SelectMany(r => r.ResultSources).ToHashSet();
+                string[] additionalResultSources = new string[]
+                {
                     "networkController",
                     "directMethodSender1.send",
                     "directMethodReceiver1.receive",
@@ -171,7 +176,7 @@ namespace TestResultCoordinator
                 {
                     sources.Add(rs);
                 }
-                
+
                 this.resultSources = sources;
             }
 
