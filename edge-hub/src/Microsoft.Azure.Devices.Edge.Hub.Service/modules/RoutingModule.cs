@@ -240,12 +240,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         var cloudConnectionProviderTask = c.Resolve<Task<ICloudConnectionProvider>>();
                         var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
                         var identityProvider = c.Resolve<IIdentityProvider>();
+                        var deviceConnectivityManager = c.Resolve<IDeviceConnectivityManager>();
                         ICloudConnectionProvider cloudConnectionProvider = await cloudConnectionProviderTask;
                         ICredentialsCache credentialsCache = await credentialsCacheTask;
                         IConnectionManager connectionManager = new ConnectionManager(
                             cloudConnectionProvider,
                             credentialsCache,
                             identityProvider,
+                            deviceConnectivityManager,
                             this.maxConnectedClients);
                         return connectionManager;
                     })
