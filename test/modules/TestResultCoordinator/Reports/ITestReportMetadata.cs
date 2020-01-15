@@ -3,11 +3,9 @@ namespace TestResultCoordinator.Reports
 {
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
 
-    public interface IReportMetadata
+    public interface ITestReportMetadata
     {
-        string ExpectedSource { get; }
-
-        string ActualSource { get; }
+        string[] ResultSources { get; }
 
         TestReportType TestReportType { get; }
 

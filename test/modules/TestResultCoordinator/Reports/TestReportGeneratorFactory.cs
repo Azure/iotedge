@@ -18,90 +18,88 @@ namespace TestResultCoordinator.Reports
 
         public ITestResultReportGenerator Create(
             string trackingId,
-            IReportMetadata reportMetadata)
+            ITestReportMetadata testReportMetadata)
         {
-            switch (reportMetadata.TestReportType)
+            Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
+            Preconditions.CheckNotNull(testReportMetadata, nameof(testReportMetadata));
+
+            switch (testReportMetadata.TestReportType)
             {
                 case TestReportType.CountingReport:
                 {
-                    var expectedTestResults = this.GetExpectedResults(reportMetadata);
-                    var actualTestResults = this.GetActualResults(reportMetadata);
+                    var metadata = (CountingReportMetadata)testReportMetadata;
+                    var expectedTestResults = this.GetResults(metadata.ExpectedSource);
+                    var actualTestResults = this.GetResults(metadata.ActualSource);
 
                     return new CountingReportGenerator(
                         trackingId,
-                        reportMetadata.ExpectedSource,
+                        metadata.ExpectedSource,
                         expectedTestResults,
-                        reportMetadata.ActualSource,
+                        metadata.ActualSource,
                         actualTestResults,
-                        reportMetadata.TestOperationResultType.ToString(),
+                        testReportMetadata.TestOperationResultType.ToString(),
                         new SimpleTestOperationResultComparer());
                 }
 
                 case TestReportType.TwinCountingReport:
                 {
-                    var expectedTestResults = this.GetTwinExpectedResults(reportMetadata);
-                    var actualTestResults = this.GetActualResults(reportMetadata);
+                    var metadata = (TwinCountingReportMetadata)testReportMetadata;
+                    var expectedTestResults = this.GetTwinExpectedResults(metadata);
+                    var actualTestResults = this.GetResults(metadata.ActualSource);
 
                     return new TwinCountingReportGenerator(
                         trackingId,
-                        reportMetadata.ExpectedSource,
+                        metadata.ExpectedSource,
                         expectedTestResults,
-                        reportMetadata.ActualSource,
+                        metadata.ActualSource,
                         actualTestResults,
-                        reportMetadata.TestOperationResultType.ToString(),
+                        testReportMetadata.TestOperationResultType.ToString(),
                         new SimpleTestOperationResultComparer());
                 }
 
                 case TestReportType.DeploymentTestReport:
                 {
-                    var expectedTestResults = this.GetExpectedResults(reportMetadata);
-                    var actualTestResults = this.GetActualResults(reportMetadata);
+                        var metadata = (DeploymentTestReportMetadata)testReportMetadata;
+                        var expectedTestResults = this.GetResults(metadata.ExpectedSource);
+                        var actualTestResults = this.GetResults(metadata.ActualSource);
 
-                    return new DeploymentTestReportGenerator(
+                        return new DeploymentTestReportGenerator(
                         trackingId,
-                        reportMetadata.ExpectedSource,
+                        metadata.ExpectedSource,
                         expectedTestResults,
-                        reportMetadata.ActualSource,
+                        metadata.ActualSource,
                         actualTestResults);
                 }
 
                 default:
                 {
-                    throw new NotSupportedException($"Report type {reportMetadata.TestReportType} is not supported.");
+                    throw new NotSupportedException($"Report type {testReportMetadata.TestReportType} is not supported.");
                 }
             }
         }
 
-        ITestResultCollection<TestOperationResult> GetActualResults(IReportMetadata reportMetadata)
+        ITestResultCollection<TestOperationResult> GetResults(string resultSource)
         {
             return new StoreTestResultCollection<TestOperationResult>(
-                this.storage.GetStoreFromSource(reportMetadata.ActualSource),
+                this.storage.GetStoreFromSource(resultSource),
                 BatchSize);
         }
 
-        ITestResultCollection<TestOperationResult> GetExpectedResults(IReportMetadata reportMetadata)
+        ITestResultCollection<TestOperationResult> GetTwinExpectedResults(TwinCountingReportMetadata reportMetadata)
         {
-            return new StoreTestResultCollection<TestOperationResult>(
-                this.storage.GetStoreFromSource(reportMetadata.ExpectedSource),
-                BatchSize);
-        }
-
-        ITestResultCollection<TestOperationResult> GetTwinExpectedResults(IReportMetadata reportMetadata)
-        {
-            TwinCountingReportMetadata twinMetadata = reportMetadata as TwinCountingReportMetadata;
-            if (twinMetadata == null)
+            if (reportMetadata == null)
             {
                 throw new NotSupportedException($"Report type {reportMetadata.TestReportType} requires TwinReportMetadata instead of {reportMetadata.GetType()}");
             }
 
-            if (twinMetadata.TwinTestPropertyType == TwinTestPropertyType.Desired)
+            if (reportMetadata.TwinTestPropertyType == TwinTestPropertyType.Desired)
             {
-                return this.GetExpectedResults(reportMetadata);
+                return this.GetResults(reportMetadata.ExpectedSource);
             }
 
             string[] sources = reportMetadata.ExpectedSource.Split('.');
             string moduleId = sources.Length > 0 ? sources[0] : Settings.Current.ModuleId;
-            return new CloudTwinTestResultCollection(reportMetadata.ExpectedSource, Settings.Current.ServiceClientConnectionString, moduleId, Settings.Current.TrackingId);
+            return new CloudTwinTestResultCollection(reportMetadata.ExpectedSource, Settings.Current.IoTHubConnectionString, moduleId, Settings.Current.TrackingId);
         }
     }
 }
