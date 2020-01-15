@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::path::Path;
 use std::collections::HashMap;
+use std::path::Path;
 
 use config::{Config, Environment};
 use docker::models::{ContainerCreateBodyNetworkingConfig, EndpointSettings, HostConfig};
