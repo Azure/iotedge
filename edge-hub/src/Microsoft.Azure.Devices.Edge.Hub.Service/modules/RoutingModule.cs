@@ -178,7 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
                         IDeviceConnectivityManager deviceConnectivityManager = this.experimentalFeatures.DisableConnectivityCheck
                             ? new NullDeviceConnectivityManager()
-                            : new DeviceConnectivityManager(this.connectivityCheckFrequency, TimeSpan.FromMinutes(2), edgeHubCredentials.Identity) as IDeviceConnectivityManager;
+                            : new DeviceConnectivityManager(this.connectivityCheckFrequency, TimeSpan.FromMinutes(1), edgeHubCredentials.Identity) as IDeviceConnectivityManager;
                         return deviceConnectivityManager;
                     })
                 .As<IDeviceConnectivityManager>()
