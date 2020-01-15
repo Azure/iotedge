@@ -8,29 +8,10 @@ namespace Relayer
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Converters;
-    using Newtonsoft.Json.Serialization;
 
-    [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
-    public class Settings
+    class Settings
     {
-        static readonly Lazy<Settings> DefaultSettings = new Lazy<Settings>(
-            () =>
-            {
-                IConfiguration configuration = new ConfigurationBuilder()
-                    .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile("config/settings.json", optional: true)
-                    .AddEnvironmentVariables()
-                    .Build();
-
-                return new Settings(
-                    configuration.GetValue("transportType", TransportType.Amqp_Tcp_Only),
-                    configuration.GetValue("inputName", "input1"),
-                    configuration.GetValue("outputName", "output1"),
-                    configuration.GetValue<Uri>("testResultCoordinatorUrl", new Uri("http://testresultcoordinator:5001")),
-                    configuration.GetValue<string>("IOTEDGE_MODULEID"));
-            });
+        internal static Settings Current = Create();
 
         Settings(
             TransportType transportType,
@@ -46,9 +27,22 @@ namespace Relayer
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
         }
 
-        public static Settings Current => DefaultSettings.Value;
+        static Settings Create()
+        {
+            IConfiguration configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("config/settings.json", optional: true)
+                .AddEnvironmentVariables()
+                .Build();
 
-        [JsonConverter(typeof(StringEnumConverter))]
+            return new Settings(
+                configuration.GetValue("transportType", TransportType.Amqp_Tcp_Only),
+                configuration.GetValue("inputName", "input1"),
+                configuration.GetValue("outputName", "output1"),
+                configuration.GetValue<Uri>("testResultCoordinatorUrl", new Uri("http://testresultcoordinator:5001")),
+                configuration.GetValue<string>("IOTEDGE_MODULEID"));
+        }
+
         public TransportType TransportType { get; }
 
         public string InputName { get; }

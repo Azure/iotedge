@@ -505,6 +505,7 @@ where
             }),
             spec: api_auth::TokenReviewSpec {
                 token: Some(token.to_string()),
+                ..api_auth::TokenReviewSpec::default()
             },
             ..api_auth::TokenReview::default()
         };

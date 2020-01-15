@@ -5,11 +5,12 @@ namespace TestResultCoordinator.Storage
     using System.Collections.Generic;
     using System.IO;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class TestOperationResultStorage : ITestOperationResultStorage
+    class TestOperationResultStorage : ITestOperationResultStorage
     {
         static readonly ILogger Logger = Microsoft.Azure.Devices.Edge.ModuleUtil.ModuleUtil.CreateLogger(nameof(TestOperationResultStorage));
         readonly Dictionary<string, ISequentialStore<TestOperationResult>> resultStores;
@@ -19,7 +20,7 @@ namespace TestResultCoordinator.Storage
             this.resultStores = resultStores;
         }
 
-        public static async Task<TestOperationResultStorage> Create(IStoreProvider storeProvider, List<string> resultSources)
+        public static async Task<TestOperationResultStorage> CreateAsync(IStoreProvider storeProvider, HashSet<string> resultSources)
         {
             Preconditions.CheckNotNull(storeProvider, nameof(storeProvider));
             var resultSourcesToStores = new Dictionary<string, ISequentialStore<TestOperationResult>>();

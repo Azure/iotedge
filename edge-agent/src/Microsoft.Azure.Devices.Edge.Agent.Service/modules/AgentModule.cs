@@ -203,8 +203,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             // IEntityStore<string, ModuleState>
             builder.Register(async c =>
                 {
-                IStoreProvider storeProvider = await c.Resolve<Task<IStoreProvider>>();
-                return storeProvider.GetEntityStore<string, ModuleState>("moduleState");
+                    IStoreProvider storeProvider = await c.Resolve<Task<IStoreProvider>>();
+                    return storeProvider.GetEntityStore<string, ModuleState>("moduleState");
                 })
                 .As<Task<IEntityStore<string, ModuleState>>>()
                 .SingleInstance();
@@ -212,8 +212,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             // IEntityStore<string, DeploymentConfigInfo>
             builder.Register(async c =>
                 {
-                IStoreProvider storeProvider = await c.Resolve<Task<IStoreProvider>>();
-                return storeProvider.GetEntityStore<string, string>("deploymentConfig");
+                    IStoreProvider storeProvider = await c.Resolve<Task<IStoreProvider>>();
+                    return storeProvider.GetEntityStore<string, string>("deploymentConfig");
                 })
                 .As<Task<IEntityStore<string, string>>>()
                 .SingleInstance();
@@ -225,11 +225,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // IPlanner
             builder.Register(
-                    async c => new HealthRestartPlanner(
-                        await c.Resolve<Task<ICommandFactory>>(),
-                        await c.Resolve<Task<IEntityStore<string, ModuleState>>>(),
-                        this.intensiveCareTime,
-                        c.Resolve<IRestartPolicyManager>()) as IPlanner)
+                    async c =>
+                    {
+                        var commandFactory = c.Resolve<Task<ICommandFactory>>();
+                        var entityStore = c.Resolve<Task<IEntityStore<string, ModuleState>>>();
+                        var policyManager = c.Resolve<IRestartPolicyManager>();
+
+                        return new HealthRestartPlanner(await commandFactory, await entityStore, this.intensiveCareTime, policyManager) as IPlanner;
+                    })
                 .As<Task<IPlanner>>()
                 .SingleInstance();
 

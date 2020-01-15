@@ -9,7 +9,7 @@ namespace DirectMethodSender
     using Microsoft.Extensions.Logging;
     using TransportType = Microsoft.Azure.Devices.TransportType;
 
-    public sealed class DirectMethodCloudSender : DirectMethodSenderBase
+    sealed class DirectMethodCloudSender : DirectMethodSenderBase
     {
         readonly ServiceClient serviceClient;
 
@@ -38,9 +38,14 @@ namespace DirectMethodSender
                 logger);
         }
 
-        internal override async Task<int> InvokeDeviceMethodAsync(string deviceId, string targetModuleId, CancellationToken none)
+        internal override async Task<int> InvokeDeviceMethodAsync(
+            string deviceId,
+            string targetModuleId,
+            string methodName,
+            long directMethodCount,
+            CancellationToken none)
         {
-            CloudToDeviceMethod cloudToDeviceMethod = new CloudToDeviceMethod("HelloWorldMethod").SetPayloadJson("{ \"Message\": \"Hello\" }");
+            CloudToDeviceMethod cloudToDeviceMethod = new CloudToDeviceMethod(methodName).SetPayloadJson($"{{ \"Message\": \"Hello\", \"DirectMethodCount\": \"{directMethodCount.ToString()}\" }}");
             CloudToDeviceMethodResult result = await this.serviceClient.InvokeDeviceMethodAsync(deviceId, targetModuleId, cloudToDeviceMethod, CancellationToken.None);
             return result.Status;
         }
