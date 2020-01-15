@@ -1017,7 +1017,7 @@ Function RunLongHaulTest
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             --leave-running=All ``
             -l `"$DeploymentWorkingFilePath`" ``
-            --runtime-log-level `"Info`" ``
+            --runtime-log-level `"Debug`" ``
             --no-verify ``
             $BypassInstallationFlag"
     $testCommand = AppendInstallationOption($testCommand)
