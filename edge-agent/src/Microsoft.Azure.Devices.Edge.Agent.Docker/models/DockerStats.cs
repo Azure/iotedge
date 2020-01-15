@@ -14,10 +14,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
     public class DockerStats
     {
         [JsonConstructor]
-        public DockerStats(string name, Dictionary<string, DiskIO[]> block_io_stats, DockerCpuStats cpu_stats, MemoryStats memory_stats, Dictionary<string, NetworkInfo> networks, int? num_procs, PidsStats pids_stats, DateTime? read)
+        public DockerStats(string name, Dictionary<string, DiskIO[]> blkio_stats, DockerCpuStats cpu_stats, MemoryStats memory_stats, Dictionary<string, NetworkInfo> networks, int? num_procs, PidsStats pids_stats, DateTime? read)
         {
             this.Name = Option.Maybe(name);
-            this.BlockIoStats = Option.Maybe(block_io_stats);
+            this.BlockIoStats = Option.Maybe(blkio_stats);
             this.CpuStats = Option.Maybe(cpu_stats);
             this.MemoryStats = Option.Maybe(memory_stats);
             this.Networks = Option.Maybe(networks);
