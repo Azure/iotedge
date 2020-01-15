@@ -129,25 +129,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     name =>
                     {
                         Events.DeleteImagePullSecret(name);
-                        return this.client.DeleteNamespacedServiceAsync(name, this.deviceNamespace, cancellationToken: token);
+                        return this.client.DeleteNamespacedSecretAsync(name, this.deviceNamespace, cancellationToken: token);
                     });
             await Task.WhenAll(removingTasks);
 
             // Create new desired image pull secrets
             var addingTasks = diff.Added
                 .Select(
-                    service =>
+                    secret =>
                     {
-                        Events.CreateImagePullSecret(service);
-                        return this.client.CreateNamespacedSecretAsync(service, this.deviceNamespace, cancellationToken: token);
+                        Events.CreateImagePullSecret(secret);
+                        return this.client.CreateNamespacedSecretAsync(secret, this.deviceNamespace, cancellationToken: token);
                     });
             await Task.WhenAll(addingTasks);
         }
 
         static Diff<V1Secret> FindImagePullSecretDiff(IEnumerable<V1Secret> desired, IEnumerable<V1Secret> existing)
         {
-            var desiredSet = new Set<V1Secret>(desired.ToDictionary(service => service.Metadata.Name));
-            var existingSet = new Set<V1Secret>(existing.ToDictionary(service => service.Metadata.Name));
+            var desiredSet = new Set<V1Secret>(desired.ToDictionary(secret => secret.Metadata.Name));
+            var existingSet = new Set<V1Secret>(existing.ToDictionary(secret => secret.Metadata.Name));
 
             return desiredSet.Diff(existingSet, ImagePullSecretBySecretDataEqualityComparer);
         }
@@ -209,7 +209,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
         public Task UndoAsync(CancellationToken token) => Task.CompletedTask;
 
-        public string Show() => $"Create an EdgeDeployment with modules: ({string.Join(", ", this.modules.Select(m => m.Name))}\n)";
+        public string Show() => $"Create an EdgeDeployment with modules: [{string.Join(", ", this.modules.Select(m => m.Name))}]";
 
         public override string ToString() => this.Show();
 
@@ -221,8 +221,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             enum EventIds
             {
                 CreateDeployment = IdStart,
-                FailedToFindSecret,
-                SecretCreateUpdateFailed,
                 ReplaceDeployment,
                 CreateImagePullSecret,
                 DeleteImagePullSecret,

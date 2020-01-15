@@ -123,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
             }
             catch (Exception parseException)
             {
-                Events.UnableToListDeployments(this.deviceNamespace, parseException);
+                Events.UnableToGetEdgeDeploymentDefinition(this.deviceNamespace, this.resourceName, parseException);
                 activeDeployment = Option.None<EdgeDeploymentDefinition>();
             }
 
@@ -152,17 +152,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
 
             public static void LogDesired(ModuleSet desired)
             {
-                Log.LogDebug((int)EventIds.DesiredModules, $"List of desired modules is - {string.Join(", ", desired.Modules.Keys)}");
+                Log.LogDebug((int)EventIds.DesiredModules, $"List of desired modules is: [{string.Join(", ", desired.Modules.Keys)}]");
             }
 
             public static void LogCurrent(ModuleSet current)
             {
-                Log.LogDebug((int)EventIds.CurrentModules, $"List of current modules is - {string.Join(", ", current.Modules.Keys)}");
+                Log.LogDebug((int)EventIds.CurrentModules, $"List of current modules is: [{string.Join(", ", current.Modules.Keys)}]");
             }
 
-            public static void UnableToListDeployments(string deviceNamespace, Exception exception)
+            public static void UnableToGetEdgeDeploymentDefinition(string deviceNamespace, ResourceName name, Exception exception)
             {
-                Log.LogDebug((int)EventIds.ListModules, exception, $"Unable to list deployments in namespace {deviceNamespace}");
+                Log.LogDebug((int)EventIds.ListModules, exception, $"Unable to get edge deployment definition: {name} in namespace {deviceNamespace}");
             }
         }
     }
