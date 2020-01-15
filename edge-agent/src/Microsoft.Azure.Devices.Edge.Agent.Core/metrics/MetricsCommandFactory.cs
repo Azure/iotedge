@@ -117,13 +117,13 @@ public class FactoryMetrics
         {
             string commandName = Enum.GetName(typeof(ModuleCommandMetric), command).ToLower();
             return metricsProvider.CreateCounter(
-                $"module_{commandName}_total",
+                $"module_{commandName}",
                 "Command sent to module",
                 new List<string> { "module_name", "module_version", MetricsConstants.MsTelemetry });
         });
 
         this.commandTiming = metricsProvider.CreateDuration(
-            $"command_latency_seconds",
+            $"command_latency",
             "Command sent to module",
             new List<string> { "command", MetricsConstants.MsTelemetry });
     }
