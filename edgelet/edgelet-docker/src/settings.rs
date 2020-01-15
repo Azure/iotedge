@@ -1,9 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::path::Path;
+use std::collections::HashMap;
 
 use config::{Config, Environment};
-use docker::models::HostConfig;
+use docker::models::{ContainerCreateBodyNetworkingConfig, EndpointSettings, HostConfig};
 use edgelet_core::{
     Certificates, Connect, Listen, MobyNetwork, ModuleSpec, Provisioning, RuntimeSettings,
     Settings as BaseSettings, UrlExt, WatchdogSettings,
@@ -121,6 +122,9 @@ fn init_agent_spec(settings: &mut Settings) -> Result<(), LoadSettingsError> {
     // setup environment variables that are moby/docker specific
     agent_env(settings);
 
+    // setup moby/docker specific networking config
+    agent_networking(settings)?;
+
     Ok(())
 }
 
@@ -177,6 +181,35 @@ fn agent_env(settings: &mut Settings) {
         .agent_mut()
         .env_mut()
         .insert(EDGE_NETWORKID_KEY.to_string(), network_id);
+}
+
+fn agent_networking(settings: &mut Settings) -> Result<(), LoadSettingsError> {
+    let network_id = settings.moby_runtime().network().name().to_string();
+
+    let create_options = settings.agent().config().clone_create_options()?;
+
+    let mut network_config = create_options
+        .networking_config()
+        .cloned()
+        .unwrap_or_else(ContainerCreateBodyNetworkingConfig::new);
+
+    let mut endpoints_config = network_config
+        .endpoints_config()
+        .cloned()
+        .unwrap_or_else(HashMap::new);
+
+    if !endpoints_config.contains_key(network_id.as_str()) {
+        endpoints_config.insert(network_id, EndpointSettings::new());
+        network_config = network_config.with_endpoints_config(endpoints_config);
+        let create_options = create_options.with_networking_config(network_config);
+
+        settings
+            .agent_mut()
+            .config_mut()
+            .set_create_options(create_options);
+    }
+
+    Ok(())
 }
 
 #[derive(Debug, Fail)]
