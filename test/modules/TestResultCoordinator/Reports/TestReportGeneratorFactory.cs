@@ -95,19 +95,11 @@ namespace TestResultCoordinator.Reports
             }
         }
 
-        async Task<Option<NetworkStatusTimeline>> GetNetworkStatusTimelineAsync(TimeSpan tolerancePeriod)
+        async Task<NetworkStatusTimeline> GetNetworkStatusTimelineAsync(TimeSpan tolerancePeriod)
         {
-            try
-            {
-                return Option.Some(
-                    await NetworkStatusTimeline.CreateAsync(
-                        new StoreTestResultCollection<TestOperationResult>(this.storage.GetStoreFromSource("networkController"), BatchSize),
-                        tolerancePeriod));
-            }
-            catch (Exception)
-            {
-                return Option.None<NetworkStatusTimeline>();
-            }
+            return await NetworkStatusTimeline.CreateAsync(
+                new StoreTestResultCollection<TestOperationResult>(this.storage.GetStoreFromSource("networkController"), BatchSize),
+                tolerancePeriod);
         }
 
         ITestResultCollection<TestOperationResult> GetActualResults(IReportMetadata reportMetadata)

@@ -149,7 +149,6 @@ namespace TestResultCoordinator
                 new TwinCountingReportMetadata("twinTester3.desiredUpdated", "twinTester4.desiredReceived", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired),
                 new TwinCountingReportMetadata("twinTester4.reportedReceived", "twinTester4.reportedUpdated", TestReportType.TwinCountingReport, TwinTestPropertyType.Reported),
                 new DeploymentTestReportMetadata("deploymentTester1.send",  "deploymentTester2.receive"),
-                new DirectMethodReportMetadata("directMethodSender1.send", "directMethodReceiver1.receive", TestReportType.DirectMethodReport, new TimeSpan(0, 0, 0, 0, 5))
             };
         }
 
