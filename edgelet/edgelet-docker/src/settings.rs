@@ -47,8 +47,9 @@ impl MobyRuntime {
 
 /// This struct is the same as the Settings type from the `edgelet_core` crate
 /// except that it also sets up the volume mounting of workload & management
-/// UDS sockets for the edge agent container and also injects the docker
-/// network name as an environment variable for edge agent.
+/// UDS sockets for the edge agent container and injects the docker network
+/// name both as an environment variable and as an endpoint setting in the
+/// docker create options for edge agent.
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Settings {
     #[serde(flatten)]
@@ -1077,5 +1078,17 @@ mod tests {
             settings.listen().min_tls_version(),
             edgelet_core::Protocol::Tls10
         );
+    }
+
+    #[test]
+    fn networking_config_is_set() {
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
+        let create_options = settings.agent().config().create_options();
+        assert!(create_options
+            .networking_config()
+            .unwrap()
+            .endpoints_config()
+            .unwrap()
+            .contains_key("azure-iot-edge"));
     }
 }
