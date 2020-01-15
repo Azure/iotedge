@@ -37,9 +37,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             {
                 Labels = new Dictionary<string, string>
                 {
-                    { "App", "Stream Analytics" }
+                    { "App", "Mongo" }
                 },
-                Content = GetDefaultConfigurationContent(),
+                Content = GetBaseConfigurationContent(),
                 Priority = priority,
                 TargetCondition = targetCondition
             };
@@ -135,32 +135,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             string patch = JsonConvert.SerializeObject(reportedProperties);
             return new TwinCollection(patch);
-        }
-
-        public static ConfigurationContent GetDefaultConfigurationContent()
-        {
-            return new ConfigurationContent
-            {
-                ModulesContent = new Dictionary<string, IDictionary<string, object>>
-                {
-                    ["$edgeAgent"] = new Dictionary<string, object>
-                    {
-                        ["properties.desired"] = GetEdgeAgentConfiguration()
-                    },
-                    ["$edgeHub"] = new Dictionary<string, object>
-                    {
-                        ["properties.desired"] = GetEdgeHubConfiguration()
-                    },
-                    ["mongoserver"] = new Dictionary<string, object>
-                    {
-                        ["properties.desired"] = GetTwinConfiguration("mongoserver")
-                    },
-                    ["asa"] = new Dictionary<string, object>
-                    {
-                        ["properties.desired"] = GetTwinConfiguration("asa")
-                    }
-                }
-            };
         }
 
         public static ConfigurationContent GetBaseConfigurationContent()
@@ -405,9 +379,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Assert.NotNull(deploymentConfig.Runtime);
                 Assert.NotNull(deploymentConfig.SystemModules);
                 Assert.Equal(EdgeAgentConnection.ExpectedSchemaVersion.ToString(), deploymentConfig.SchemaVersion);
-                Assert.Equal(2, deploymentConfig.Modules.Count);
+                Assert.Equal(1, deploymentConfig.Modules.Count);
                 Assert.NotNull(deploymentConfig.Modules["mongoserver"]);
-                Assert.NotNull(deploymentConfig.Modules["asa"]);
 
                 TwinCollection reportedPatch = GetEdgeAgentReportedProperties(deploymentConfigInfo.OrDefault());
                 await edgeAgentConnection.UpdateReportedPropertiesAsync(reportedPatch);
