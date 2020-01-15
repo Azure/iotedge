@@ -48,14 +48,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
         static async Task<Option<NetworkStatusTimeline>> GetNetworkStatusTimeline(StoreTestResultCollection<TestOperationResult> results, TimeSpan tolerancePeriod)
         {
-            try
-            {
-                return Option.Some(await NetworkStatusTimeline.Create(results, tolerancePeriod));
-            }
-            catch (Exception)
-            {
-                return Option.None<NetworkStatusTimeline>();
-            }
+            return Option.Some(await NetworkStatusTimeline.CreateAsync(results, tolerancePeriod));
         }
 
         static StoreTestResultCollection<TestOperationResult> GetNetworkControllerStoreTestResultCollection(

@@ -18,10 +18,13 @@ namespace TestResultCoordinator.Reports
             this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
         }
 
-        public async Task<ITestResultReportGenerator> Create(
+        public async Task<ITestResultReportGenerator> CreateAsync(
             string trackingId,
             IReportMetadata reportMetadata)
         {
+            Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
+            Preconditions.CheckNotNull(reportMetadata);
+
             switch (reportMetadata.TestReportType)
             {
                 case TestReportType.CountingReport:
@@ -72,7 +75,7 @@ namespace TestResultCoordinator.Reports
                     var expectedTestResults = this.GetExpectedResults(reportMetadata);
                     var actualTestResults = this.GetActualResults(reportMetadata);
                     var tolerancePeriod = ((DirectMethodReportMetadata)reportMetadata).TolerancePeriod;
-                    var networkStatusTimeline = await this.GetNetworkStatusTimeline(tolerancePeriod);
+                    var networkStatusTimeline = await this.GetNetworkStatusTimelineAsync(tolerancePeriod);
 
                     return new DirectMethodReportGenerator(
                         trackingId,
@@ -92,12 +95,12 @@ namespace TestResultCoordinator.Reports
             }
         }
 
-        async Task<Option<NetworkStatusTimeline>> GetNetworkStatusTimeline(TimeSpan tolerancePeriod)
+        async Task<Option<NetworkStatusTimeline>> GetNetworkStatusTimelineAsync(TimeSpan tolerancePeriod)
         {
             try
             {
                 return Option.Some(
-                    await NetworkStatusTimeline.Create(
+                    await NetworkStatusTimeline.CreateAsync(
                         new StoreTestResultCollection<TestOperationResult>(this.storage.GetStoreFromSource("networkController"), BatchSize),
                         tolerancePeriod));
             }

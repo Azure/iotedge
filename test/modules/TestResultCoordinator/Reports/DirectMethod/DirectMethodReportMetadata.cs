@@ -11,7 +11,6 @@ namespace TestResultCoordinator.Reports.DirectMethod
         {
             this.ExpectedSource = expectedSource;
             this.ActualSource = actualSource;
-            this.TestOperationResultType = TestOperationResultType.DirectMethod;
             this.TestReportType = testReportType;
             this.TolerancePeriod = tolerancePeriod;
         }
@@ -24,6 +23,6 @@ namespace TestResultCoordinator.Reports.DirectMethod
 
         public TestReportType TestReportType { get; }
 
-        public TestOperationResultType TestOperationResultType { get; }
+        public TestOperationResultType TestOperationResultType => TestOperationResultType.DirectMethod;
     }
 }

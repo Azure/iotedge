@@ -21,7 +21,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
         bool testResultsValidated = false;
         NetworkControllerStatus initialNetworkControllerStatus;
 
-        public static async Task<NetworkStatusTimeline> Create(
+        public static async Task<NetworkStatusTimeline> CreateAsync(
             ITestResultCollection<TestOperationResult> networkControllerTestOperationResults,
             TimeSpan tolerancePeriod,
             NetworkControllerStatus initialNetworkControllerStatus = NetworkControllerStatus.Disabled)

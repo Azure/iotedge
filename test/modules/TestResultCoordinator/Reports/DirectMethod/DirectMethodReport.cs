@@ -33,20 +33,28 @@ namespace TestResultCoordinator.Reports.DirectMethod
             this.MismatchFailure = mismatchFailure;
         }
 
+        // NetworkOnSuccess is when the network is online and the DirectMethod call succeeds.
         public ulong NetworkOnSuccess { get; }
 
+        // NetworkOffSuccess is when the network is off and the DM call fails.
         public ulong NetworkOffSuccess { get; }
 
+        // NetworkOnToleratedSuccess is when the network is on and the DM call fails, but it is within the tolerance period.
         public ulong NetworkOnToleratedSuccess { get; }
 
+        // NetworkOffToleratedSuccess is when the network is off, and the DM call succeeds, but it is within the tolerance period.
         public ulong NetworkOffToleratedSuccess { get; }
 
+        // NetworkOnFailure is when the network is on, but the DM call fails (not in tolerance period).
         public ulong NetworkOnFailure { get; }
 
+        // NetworkOffFailure is when the network is off, but the DM call succeeds (not in tolerance period).
         public ulong NetworkOffFailure { get; }
 
+        // MismatchSuccess is when the DM call succeeds, but there is no result reported from ActualStore (DMReceiver).
         public ulong MismatchSuccess { get; }
 
+        // MismatchFailure is when the there is a result in ActualStore but no result in ExpectedStore. This should never happen.
         public ulong MismatchFailure { get; }
 
         public override bool IsPassed =>

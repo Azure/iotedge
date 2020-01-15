@@ -13,13 +13,13 @@ namespace TestResultCoordinator.Reports.DirectMethod
     using Newtonsoft.Json;
     using TestResultCoordinator.Reports;
 
-    class DirectMethodReportGenerator : ITestResultReportGenerator
+    sealed class DirectMethodReportGenerator : ITestResultReportGenerator
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(DirectMethodReportGenerator));
 
         readonly string trackingId;
 
-        public DirectMethodReportGenerator(
+        internal DirectMethodReportGenerator(
             string trackingId,
             string expectedSource,
             ITestResultCollection<TestOperationResult> expectedTestResults,
@@ -30,13 +30,13 @@ namespace TestResultCoordinator.Reports.DirectMethod
             Option<NetworkStatusTimeline> networkStatusTimeline)
         {
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
-            this.ExpectedTestResults = Preconditions.CheckNotNull(expectedTestResults, nameof(expectedTestResults));
             this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
+            this.ExpectedTestResults = Preconditions.CheckNotNull(expectedTestResults, nameof(expectedTestResults));
             this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
             this.ActualTestResults = Preconditions.CheckNotNull(actualTestResults, nameof(actualTestResults));
-            this.TestResultComparer = Preconditions.CheckNotNull(testResultComparer, nameof(testResultComparer));
             this.ResultType = Preconditions.CheckNonWhiteSpace(resultType, nameof(resultType));
-            this.NetworkStatusTimeline = Preconditions.CheckNotNull(networkStatusTimeline, nameof(networkStatusTimeline));
+            this.TestResultComparer = Preconditions.CheckNotNull(testResultComparer, nameof(testResultComparer));
+            this.NetworkStatusTimeline = networkStatusTimeline;
         }
 
         internal string ActualSource { get; }
@@ -78,6 +78,11 @@ namespace TestResultCoordinator.Reports.DirectMethod
                         this.NetworkStatusTimeline.Expect<InvalidOperationException>(
                             () => throw new InvalidOperationException("Results are present, but NetworkStatusTimeline is empty."))
                         .GetNetworkControllerStatusAndWithinToleranceAt(this.ExpectedTestResults.Current.CreatedAt);
+                if (!NetworkControllerStatus.Enabled.Equals(networkControllerStatus) &&
+                    !NetworkControllerStatus.Disabled.Equals(networkControllerStatus))
+                {
+                    throw new InvalidOperationException($"Unexpected Result. NetworkControllerStatus was {networkControllerStatus}");
+                }
 
                 if (this.TestResultComparer.Matches(this.ExpectedTestResults.Current, this.ActualTestResults.Current))
                 {
@@ -99,18 +104,18 @@ namespace TestResultCoordinator.Reports.DirectMethod
                             networkOffFailure++;
                         }
                     }
-                    else
-                    {
-                        throw new InvalidOperationException($"Unexpected Result. NetworkControllerStatus was {networkControllerStatus}");
-                    }
 
                     hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
                     hasActualResult = await this.ActualTestResults.MoveNextAsync();
                 }
                 else // If the expected and actual don't match, we assume actual will be higher sequence # than expected
                 {
-                    (networkOffSuccess, networkOnToleratedSuccess, networkOnFailure, mismatchSuccess) =
-                        this.CheckUnmatchedResult(this.ExpectedTestResults.Current, networkControllerStatus, isWithinTolerancePeriod, networkOffSuccess, networkOnToleratedSuccess, networkOnFailure, mismatchSuccess);
+                    UnmatchedResultLongs unmatchedResultLongs =
+                        this.CheckUnmatchedResult(this.ExpectedTestResults.Current, networkControllerStatus, isWithinTolerancePeriod);
+                    networkOffSuccess += unmatchedResultLongs.NetworkOffSuccess;
+                    networkOnToleratedSuccess += unmatchedResultLongs.NetworkOnToleratedSuccess;
+                    networkOnFailure += unmatchedResultLongs.NetworkOnFailure;
+                    mismatchSuccess += unmatchedResultLongs.MismatchSuccess;
                     hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
                 }
             }
@@ -122,12 +127,12 @@ namespace TestResultCoordinator.Reports.DirectMethod
                         () => throw new InvalidOperationException("Results are present, but NetworkStatusTimeline is empty."))
                     .GetNetworkControllerStatusAndWithinToleranceAt(this.ExpectedTestResults.Current.CreatedAt);
 
-                (ulong addNetOffSuccess, ulong addNetOnTolSuccess, ulong addNetOnFailure, ulong addMismatchSuccess) =
-                        this.CheckUnmatchedResult(this.ExpectedTestResults.Current, networkControllerStatus, isWithinTolerancePeriod, networkOffSuccess, networkOnToleratedSuccess, networkOnFailure, mismatchSuccess);
-                networkOffSuccess += addNetOffSuccess;
-                networkOnToleratedSuccess += addNetOnTolSuccess;
-                networkOnFailure += addNetOnFailure;
-                mismatchSuccess += addMismatchSuccess;
+                UnmatchedResultLongs unmatchedResultLongs =
+                        this.CheckUnmatchedResult(this.ExpectedTestResults.Current, networkControllerStatus, isWithinTolerancePeriod);
+                networkOffSuccess += unmatchedResultLongs.NetworkOffSuccess;
+                networkOnToleratedSuccess += unmatchedResultLongs.NetworkOnToleratedSuccess;
+                networkOnFailure += unmatchedResultLongs.NetworkOnFailure;
+                mismatchSuccess += unmatchedResultLongs.MismatchSuccess;
                 hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
             }
 
@@ -159,15 +164,17 @@ namespace TestResultCoordinator.Reports.DirectMethod
                 mismatchFailure);
         }
 
-        (ulong networkOffSuccess, ulong networkOnToleratedSuccess, ulong networkOnFailure, ulong mismatchSuccess) CheckUnmatchedResult(
+        UnmatchedResultLongs CheckUnmatchedResult(
             TestOperationResult testOperationResult,
             NetworkControllerStatus networkControllerStatus,
-            bool isWithinTolerancePeriod,
-            ulong networkOffSuccess,
-            ulong networkOnToleratedSuccess,
-            ulong networkOnFailure,
-            ulong mismatchSuccess)
+            bool isWithinTolerancePeriod)
         {
+            ulong networkOffSuccess = 0;
+            ulong networkOnToleratedSuccess = 0;
+            ulong networkOnFailure = 0;
+            ulong mismatchSuccess = 0;
+            // int statusCodeInt = Int32.Parse(testOperationResult.Result.Split(";")[3]);
+            // HttpStatusCode statusCode = (HttpStatusCode)statusCodeInt;
             DirectMethodTestResult dmTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(testOperationResult.Result);
             HttpStatusCode statusCode = JsonConvert.DeserializeObject<HttpStatusCode>(dmTestResult.Result);
             if (HttpStatusCode.InternalServerError.Equals(statusCode))
@@ -200,7 +207,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
                 mismatchSuccess++;
             }
 
-            return (networkOffSuccess, networkOnToleratedSuccess, networkOnFailure, mismatchSuccess);
+            return new UnmatchedResultLongs(networkOffSuccess, networkOnToleratedSuccess, networkOnFailure, mismatchSuccess);
         }
 
         void ValidateDataSource(TestOperationResult current, string expectedSource)
@@ -208,6 +215,22 @@ namespace TestResultCoordinator.Reports.DirectMethod
             if (!current.Source.Equals(expectedSource, StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidDataException($"Result source is '{current.Source}' but expected should be '{expectedSource}'.");
+            }
+        }
+
+        struct UnmatchedResultLongs
+        {
+            public ulong NetworkOffSuccess { get; set; }
+            public ulong NetworkOnToleratedSuccess { get; set; }
+            public ulong NetworkOnFailure { get; set; }
+            public ulong MismatchSuccess { get; set; }
+
+            public UnmatchedResultLongs(ulong networkOffSuccess, ulong networkOnToleratedSuccess, ulong networkOnFailure, ulong mismatchSuccess)
+            {
+                this.NetworkOffSuccess = networkOffSuccess;
+                this.NetworkOnToleratedSuccess = networkOnToleratedSuccess;
+                this.NetworkOnFailure = networkOnFailure;
+                this.MismatchSuccess = mismatchSuccess;
             }
         }
     }

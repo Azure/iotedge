@@ -7,7 +7,7 @@ namespace TestResultCoordinator.Reports
     /// </summary>
     interface ITestReportGeneratorFactory
     {
-        Task<ITestResultReportGenerator> Create(
+        Task<ITestResultReportGenerator> CreateAsync(
             string trackingId,
             IReportMetadata reportMetadata);
     }
