@@ -5,11 +5,13 @@ namespace TestResultCoordinator
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Logging;
     using TestResultCoordinator.Reports;
-    using TestResultCoordinator.Reports.DirectMethod;
 
     class Settings
     {
@@ -18,7 +20,6 @@ namespace TestResultCoordinator
 
         internal static Settings Current = Create();
 
-        HashSet<string> resultSources = null;
         List<ITestReportMetadata> reportMetadatas = null;
 
         Settings(
@@ -131,51 +132,34 @@ namespace TestResultCoordinator
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
         }
 
-        internal List<ITestReportMetadata> GetReportMetadataList()
+        internal async Task<List<ITestReportMetadata>> GetReportMetadataListAsync(ILogger logger)
         {
             if (this.reportMetadatas == null)
             {
-                // TODO: initialize list of report metadata by getting from GetTwin method; and update to become Async method.
-                return new List<ITestReportMetadata>
-                {
-                    new CountingReportMetadata("loadGen1.send", "relayer1.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
-                    new CountingReportMetadata("relayer1.send", "relayer1.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
-                    new CountingReportMetadata("loadGen2.send", "relayer2.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
-                    new CountingReportMetadata("relayer2.send", "relayer2.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
-                    new DirectMethodReportMetadata("directMethodSender1.send", "directMethodReceiver1.receive", TestReportType.DirectMethodReport, new TimeSpan(0, 0, 0, 0, 5)),
-                    new DirectMethodReportMetadata("directMethodSender2.send", "directMethodReceiver2.receive", TestReportType.DirectMethodReport, new TimeSpan(0, 0, 0, 0, 5)),
-                    new TwinCountingReportMetadata("twinTester1.desiredUpdated", "twinTester2.desiredReceived", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired),
-                    new TwinCountingReportMetadata("twinTester2.reportedReceived", "twinTester2.reportedUpdated", TestReportType.TwinCountingReport, TwinTestPropertyType.Reported),
-                    new TwinCountingReportMetadata("twinTester3.desiredUpdated", "twinTester4.desiredReceived", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired),
-                    new TwinCountingReportMetadata("twinTester4.reportedReceived", "twinTester4.reportedUpdated", TestReportType.TwinCountingReport, TwinTestPropertyType.Reported),
-                    new DeploymentTestReportMetadata("deploymentTester1.send",  "deploymentTester2.receive")
-                };
+                RegistryManager rm = RegistryManager.CreateFromConnectionString(this.IoTHubConnectionString);
+                Twin moduleTwin = await rm.GetTwinAsync(this.DeviceId, this.ModuleId);
+                this.reportMetadatas = TestReportUtil.ParseReportMetadataJson(moduleTwin.Properties.Desired["reportMetadataList"].ToString(), logger);
             }
 
             return this.reportMetadatas;
         }
 
-        internal HashSet<string> GetResultSources()
+        internal async Task<HashSet<string>> GetResultSourcesAsync(ILogger logger)
         {
-            if (this.resultSources == null)
+            HashSet<string> sources = (await this.GetReportMetadataListAsync(logger)).SelectMany(r => r.ResultSources).ToHashSet();
+            string[] additionalResultSources = new string[]
             {
-                HashSet<string> sources = this.GetReportMetadataList().SelectMany(r => r.ResultSources).ToHashSet();
-                string[] additionalResultSources = new string[]
-                {
-                    "networkController",
-                    "directMethodSender3.send",
-                    "directMethodSender3.send"
-                };
+                "networkController",
+                "directMethodSender3.send",
+                "directMethodSender3.send"
+            };
 
-                foreach (string rs in additionalResultSources)
-                {
-                    sources.Add(rs);
-                }
-
-                this.resultSources = sources;
+            foreach (string rs in additionalResultSources)
+            {
+                sources.Add(rs);
             }
 
-            return this.resultSources;
+            return sources;
         }
     }
 }
