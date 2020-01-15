@@ -21,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
     {
         readonly IKubernetes client;
         readonly ICommandFactory commandFactory;
+        readonly string deviceSelector;
         readonly string deviceNamespace;
         readonly ResourceName resourceName;
         readonly ICombinedConfigProvider<CombinedKubernetesConfig> configProvider;
@@ -29,14 +30,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
         readonly KubernetesModuleOwner moduleOwner;
 
         public KubernetesPlanner(
-            string deviceNamespace,
             ResourceName resourceName,
+            string deviceSelector,
+            string deviceNamespace,
             IKubernetes client,
             ICommandFactory commandFactory,
             ICombinedConfigProvider<CombinedKubernetesConfig> configProvider,
             KubernetesModuleOwner moduleOwner)
         {
             this.resourceName = Preconditions.CheckNotNull(resourceName, nameof(resourceName));
+            this.deviceSelector = Preconditions.CheckNonWhiteSpace(deviceSelector, nameof(deviceSelector));
             this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace));
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.commandFactory = Preconditions.CheckNotNull(commandFactory, nameof(commandFactory));
@@ -86,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
             if (!moduleDifference.IsEmpty)
             {
                 // The "Plan" here is very simple - if we have any change, publish all desired modules to a EdgeDeployment CRD.
-                var crdCommand = new EdgeDeploymentCommand(this.deviceNamespace, this.resourceName, this.client, desired.Modules.Values, activeDeployment, runtimeInfo, this.configProvider, this.moduleOwner);
+                var crdCommand = new EdgeDeploymentCommand(this.resourceName, this.deviceSelector, this.deviceNamespace, this.client, desired.Modules.Values, activeDeployment, runtimeInfo, this.configProvider, this.moduleOwner);
                 var planCommand = await this.commandFactory.WrapAsync(crdCommand);
                 var planList = new List<ICommand>
                 {
