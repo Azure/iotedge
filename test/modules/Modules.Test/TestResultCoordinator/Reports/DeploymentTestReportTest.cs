@@ -33,7 +33,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             Assert.Equal("trackingId123", report.TrackingId);
             Assert.Equal("actualSource", report.ActualSource);
-            Assert.Equal("expectedSource", report.ExpectSource);
+            Assert.Equal("expectedSource", report.ExpectedSource);
             Assert.Equal("resultType1", report.ResultType);
             Assert.Equal(15UL, report.TotalExpectedDeployments);
             Assert.Equal(10UL, report.TotalActualDeployments);
