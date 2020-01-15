@@ -2,7 +2,7 @@
 
 The IoT Edge Hub and Edge Agent module expose a number of metrics in the Prometheus exposition format that provide insights into its operational state.
 
-### How to enable
+## How to enable
 
 As of release 1.0.9, metrics are exposed as an experimental feature available at http port **9600** of the Edge Hub and Edge Agent module. To enable, the following environment variables should be set for the module (make note of the double underscores):
 
@@ -11,19 +11,31 @@ As of release 1.0.9, metrics are exposed as an experimental feature available at
 | `ExperimentalFeatures__Enabled`          | `true` |
 | `ExperimentalFeatures__EnableMetrics`    | `true` |
 
-### Metrics
+## Metrics
 
+Note: All metrics contain the following tags
+
+Tag | Description
+---|---
+iothub | The hub the device is talking to
+edge_device | The device id of the current device
+instance_number | A Guid representing the current runtime. On restart, all metrics will be reset. This Guid makes it easier to reconcile restarts. 
+
+### EdgeHub
 | Name                                                        | Dimensions                                                                                                                                                                           | Description                                                                                                                                                                                              | Type    |
 |-------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
-| `edgehub_gettwin_total`                                     | `iothub` (IoT Hub Name)<br> `edge_device` (IoT Edge device name)<br> `source` (Operation source)<br> `id` (Module ID)                                                                | Total number of GetTwin calls                                                                                                                                                                                           | counter |
-| `edgehub_messages_received_total`                           | `iothub` (IoT Hub Name)<br> `edge_device` (IoT Edge device name)<br>  `protocol` (Protocol received on)<br> `id` (Module ID)                                                         | Total number of messages received from clients                                                                                                                                                                           | counter |
-| `edgehub_messages_sent_total`                               | `iothub` (IoT Hub Name)<br> `edge_device` (IoT Edge device name)<br> `from` (Message source)<br> `to` (Message destination)                                                          | Total number of messages sent to clients or upstream                                                                                                                                                                        | counter |
-| `edgehub_reported_properties_total`                         | `iothub` (IoT Hub Name)<br> `edge_device` (IoT Edge device name)<br> `target`(Update target)<br> `id` (Module ID)                                                                    | Total reported property updates calls                                                                                                                                                                    | counter |
-| `edgehub_message_size_bytes`                                | `iothub` (IoT Hub Name)<br> `edge_device` (IoT Edge device name)<br> `id` (Module ID)<br> `quantile`(Percentile [50, 90, 95, 99, 99.9, 99.99])                                       | P50, P90, P95, P99, P99.9 and P99.99 message size from clients. Values may be reported as `NaN` if no new measurements are reported for a certain period of time  (currently 10 minutes). As this is `summary` type, corresponding `_count` and `_sum` counters will be emitted.                 | summary |
-| `edgehub_gettwin_duration_seconds`                          | `iothub` (IoT Hub Name)<br> `edge_device` (IoT Edge device name)<br> `source` (Operation source)<br> `id` (Module ID)<br> `quantile`(Percentile [50, 90, 95, 99, 99.9, 99.99])       | P50, P90, P95, P99, P99.9 and P99.99  time taken for get twin operations.  Values may be reported as `NaN` if no  new measurements are reported for a certain  period of time (currently 10 minutes). As this is `summary` type, corresponding `_count` and `_sum` counters will be emitted.     | summary |
-| `edgehub_message_send_duration_seconds`                     | `iothub` (IoT Hub Name)<br> `edge_device` (IoT Edge device name)<br> `from` (Message source)<br> `to` (Message destination)<br> `quantile`(Percentile [50, 90, 95, 99, 99.9, 99.99]) | P50, P90, P95, P99, P99.9 and P99.99 time taken to send a message. Values may be reported as `NaN`  if no new measurements are reported for a  certain period of time (currently 10 minutes). As this is `summary` type, corresponding `_count` and `_sum` counters will be emitted.              | summary |
-| `edgehub_reported_properties_update_duration_seconds`       | `iothub` (IoT Hub Name)<br> `edge_device` (IoT Edge device name)<br> `target` (Operation target)<br> `id` (Module ID)<br> `quantile`(Percentile [50, 90, 95, 99, 99.9, 99.99])       | P50, P90, P95, P99, P99.9 and P99.99 time taken to update reported properties. Values may be reported as `NaN`  if no new measurements are reported for a certain  period of time (currently 10 minutes). As this is `summary` type, corresponding `_count` and `_sum` counters will be emitted. | summary |
-|||
+| `edgehub_gettwin_total`                                     |  `source` (Operation source)<br> `id` (Module ID)                                                                | Total number of GetTwin calls                                                                                                                                                                                           | counter |
+| `edgehub_messages_received_total`                           |   `protocol` (Protocol received on)<br> `id` (Module ID)                                                         | Total number of messages received from clients                                                                                                                                                                           | counter |
+| `edgehub_messages_sent_total`                               |  `from` (Message source)<br> `to` (Message destination)                                                          | Total number of messages sent to clients or upstream                                                                                                                                                                        | counter |
+| `edgehub_reported_properties_total`                         |  `target`(Update target)<br> `id` (Module ID)                                                                    | Total reported property updates calls                                                                                                                                                                    | counter |
+| `edgehub_message_size_bytes`                                |  `id` (Module ID)<br> `quantile`(Percentile [50, 90, 95, 99, 99.9, 99.99])                                       | P50, P90, P95, P99, P99.9 and P99.99 message size from clients. Values may be reported as `NaN` if no new measurements are reported for a certain period of time  (currently 10 minutes). As this is `summary` type, corresponding `_count` and `_sum` counters will be emitted.                 | summary |
+| `edgehub_gettwin_duration_seconds`                          |  `source` (Operation source)<br> `id` (Module ID)<br> `quantile`(Percentile [50, 90, 95, 99, 99.9, 99.99])       | P50, P90, P95, P99, P99.9 and P99.99  time taken for get twin operations.  Values may be reported as `NaN` if no  new measurements are reported for a certain  period of time (currently 10 minutes). As this is `summary` type, corresponding `_count` and `_sum` counters will be emitted.     | summary |
+| `edgehub_message_send_duration_seconds`                     |  `from` (Message source)<br> `to` (Message destination)<br> `quantile`(Percentile [50, 90, 95, 99, 99.9, 99.99]) | P50, P90, P95, P99, P99.9 and P99.99 time taken to send a message. Values may be reported as `NaN`  if no new measurements are reported for a  certain period of time (currently 10 minutes). As this is `summary` type, corresponding `_count` and `_sum` counters will be emitted.              | summary |
+| `edgehub_reported_properties_update_duration_seconds`       |  `target` (Operation target)<br> `id` (Module ID)<br> `quantile`(Percentile [50, 90, 95, 99, 99.9, 99.99])       | P50, P90, P95, P99, P99.9 and P99.99 time taken to update reported properties. Values may be reported as `NaN`  if no new measurements are reported for a certain  period of time (currently 10 minutes). As this is `summary` type, corresponding `_count` and `_sum` counters will be emitted. | summary |
+
+### EdgeAgent
+| Name                                                        | Dimensions                                                                                                                                                                           | Description                                                                                                                                                                                              | Type    |
+|-------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
 | `edgeAgent_total_time_running_correctly_seconds` | `module_name` | The amount of time the module was specified in the deployment and was in the  running state. | Gauge |
 | `edgeAgent_total_time_expected_running_seconds` | `module_name` | The amount of time the module was specified in the deployment | Gauge |
 | `edgeAgent_module_start_total` | `module_name`, `module_version` | Number of times edgeAgent asked docker to start the module.  | Counter |
@@ -42,13 +54,6 @@ As of release 1.0.9, metrics are exposed as an experimental feature available at
 | `edgeAgent_total_network_out_bytes` | `module` | The amount of bytes sent to network | Gauge |
 | `edgeAgent_total_disk_read_bytes` | `module` | The amount of bytes read from the disk | Gauge |
 | `edgeAgent_total_disk_write_bytes` | `module` | The amount of bytes written to disk | Gauge |
-
-Note: All metrics contain the following tags
-Tag | Description
----|---
-iothub | The hub the device is talking to
-edge_device | The device id of the current device
-instance_number | A Guid representing the current runtime. On restart, all metrics will be reset. This Guid makes it easier to reconcile restarts. 
 
 ### Collecting
 
