@@ -75,10 +75,10 @@ namespace TestResultCoordinator.Reports
 
                 case TestReportType.DirectMethodReport:
                 {
-                    var metadata = (DirectMethodReportMetadata)testReportMetadata
+                    var metadata = (DirectMethodReportMetadata)testReportMetadata;
                     var expectedTestResults = this.GetResults(metadata.ExpectedSource);
-                    var actualTestResults = this.GetActualResults(metadata.ActualSource);
-                    var tolerancePeriod = ((DirectMethodReportMetadata)reportMetadata).TolerancePeriod;
+                    var actualTestResults = this.GetResults(metadata.ActualSource);
+                    var tolerancePeriod = metadata.TolerancePeriod;
                     var networkStatusTimeline = await this.GetNetworkStatusTimelineAsync(tolerancePeriod);
 
                     return new DirectMethodReportGenerator(
@@ -87,14 +87,14 @@ namespace TestResultCoordinator.Reports
                         expectedTestResults,
                         metadata.ActualSource,
                         actualTestResults,
-                        reportMetadata.TestOperationResultType.ToString(),
+                        metadata.TestOperationResultType.ToString(),
                         new DirectMethodTestOperationResultComparer(),
                         networkStatusTimeline);
                 }
 
                 default:
                 {
-                    throw new NotSupportedException($"Report type {reportMetadata.TestReportType} is not supported.");
+                    throw new NotSupportedException($"Report type {testReportMetadata.TestReportType} is not supported.");
                 }
             }
         }
@@ -105,7 +105,6 @@ namespace TestResultCoordinator.Reports
                 new StoreTestResultCollection<TestOperationResult>(this.storage.GetStoreFromSource("networkController"), BatchSize),
                 tolerancePeriod);
         }
-
 
         ITestResultCollection<TestOperationResult> GetResults(string resultSource)
         {

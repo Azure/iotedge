@@ -5,7 +5,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using TestResultCoordinator.Reports;
 
-    class DirectMethodReportMetadata : IReportMetadata
+    class DirectMethodReportMetadata : ITestReportMetadata
     {
         public DirectMethodReportMetadata(string expectedSource, string actualSource, TestReportType testReportType, TimeSpan tolerancePeriod)
         {
@@ -20,6 +20,8 @@ namespace TestResultCoordinator.Reports.DirectMethod
         public string ExpectedSource { get; }
 
         public string ActualSource { get; }
+
+        public string[] ResultSources => new string[] { this.ExpectedSource, this.ActualSource };
 
         public TestReportType TestReportType { get; }
 

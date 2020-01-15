@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace TestResultCoordinator.Reports.DirectMethod
 {
+    using Microsoft.Azure.Devices.Edge.Util;
     using TestResultCoordinator.Reports;
 
     /// <summary>
@@ -21,8 +22,10 @@ namespace TestResultCoordinator.Reports.DirectMethod
             ulong networkOffFailure,
             ulong mismatchSuccess,
             ulong mismatchFailure)
-            : base(trackingId, expectedSource, actualSource, resultType)
+            : base(trackingId, resultType)
         {
+            this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
+            this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
             this.NetworkOnSuccess = networkOnSuccess;
             this.NetworkOffSuccess = networkOffSuccess;
             this.NetworkOnToleratedSuccess = networkOnToleratedSuccess;
@@ -32,6 +35,10 @@ namespace TestResultCoordinator.Reports.DirectMethod
             this.MismatchSuccess = mismatchSuccess;
             this.MismatchFailure = mismatchFailure;
         }
+
+        public string ExpectedSource { get; }
+
+        public string ActualSource { get; }
 
         // NetworkOnSuccess is when the network is online and the DirectMethod call succeeds.
         public ulong NetworkOnSuccess { get; }
@@ -56,6 +63,8 @@ namespace TestResultCoordinator.Reports.DirectMethod
 
         // MismatchFailure is when the there is a result in ActualStore but no result in ExpectedStore. This should never happen.
         public ulong MismatchFailure { get; }
+
+        public override string Title => $"DirectMethod Report ({this.ResultType}) for [{this.ExpectedSource}] and [{this.ActualSource}]";
 
         public override bool IsPassed =>
             this.MismatchFailure == 0 && this.NetworkOffFailure == 0 && this.NetworkOnFailure == 0;

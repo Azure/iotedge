@@ -26,7 +26,7 @@ namespace TestResultCoordinator.Reports
             {
                 foreach (ITestReportMetadata reportMetadata in reportMetadatalist)
                 {
-                    ITestResultReportGenerator testResultReportGenerator = await testReportGeneratorFactory.CreateAsync(tackingId, reportMetadata);
+                    ITestResultReportGenerator testResultReportGenerator = await testReportGeneratorFactory.CreateAsync(trackingId, reportMetadata);
                     testResultReportTasks.Add(testResultReportGenerator.CreateReportAsync());
                 }
 
