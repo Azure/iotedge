@@ -11,24 +11,7 @@ namespace MetricsCollector
 
     public class Settings
     {
-        static readonly Lazy<Settings> DefaultSettings = new Lazy<Settings>(
-            () =>
-            {
-                IConfiguration configuration = new ConfigurationBuilder()
-                    .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile("config/settings.json")
-                    .AddEnvironmentVariables()
-                    .Build();
-
-                return new Settings(
-                    configuration.GetValue<string>("AzMonWorkspaceId"),
-                    configuration.GetValue<string>("AzMonWorkspaceKey"),
-                    configuration.GetValue<string>("AzMonLogType", "testMetrics"),
-                    configuration.GetValue<string>("MetricsEndpointsCSV", "http://edgeHub:9600/metrics,http://edgeAgent:9600/metrics"),
-                    configuration.GetValue<int>("ScrapeFrequencyInSecs", 300),
-                    configuration.GetValue<string>("TestType"),
-                    configuration.GetValue<UploadTarget>("UploadTarget", UploadTarget.AzureLogAnalytics));
-                });
+        internal static Settings Current = Create();
 
         Settings(
             string azMonWorkspaceId,
@@ -62,7 +45,23 @@ namespace MetricsCollector
             this.UploadTarget = uploadTarget;
         }
 
-        public static Settings Current => DefaultSettings.Value;
+        static Settings Create()
+        {
+            IConfiguration configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("config/settings.json")
+                .AddEnvironmentVariables()
+                .Build();
+
+            return new Settings(
+                configuration.GetValue<string>("AzMonWorkspaceId"),
+                configuration.GetValue<string>("AzMonWorkspaceKey"),
+                configuration.GetValue<string>("AzMonLogType", "testMetrics"),
+                configuration.GetValue<string>("MetricsEndpointsCSV", "http://edgeHub:9600/metrics,http://edgeAgent:9600/metrics"),
+                configuration.GetValue<int>("ScrapeFrequencyInSecs", 300),
+                configuration.GetValue<string>("TestType"),
+                configuration.GetValue<UploadTarget>("UploadTarget", UploadTarget.AzureLogAnalytics));
+        }
 
         public string AzMonWorkspaceId { get; }
 

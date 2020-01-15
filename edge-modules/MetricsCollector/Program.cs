@@ -2,6 +2,7 @@
 namespace MetricsCollector
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -9,7 +10,9 @@ namespace MetricsCollector
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
 
     internal class Program
     {
@@ -17,7 +20,7 @@ namespace MetricsCollector
 
         public static int Main() => MainAsync().Result;
 
-        private static async Task<int> MainAsync()
+        static async Task<int> MainAsync()
         {
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
@@ -40,7 +43,8 @@ namespace MetricsCollector
                     publisher = new EventHubMetricsUpload(moduleClient);
                 }
 
-                using (MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher, Guid.NewGuid()))
+                Dictionary<string, string> testSpecificTags = await GetTestSpecificTagsFromTwin(moduleClient);
+                using (MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher, testSpecificTags, Guid.NewGuid()))
                 {
                     TimeSpan scrapeAndUploadInterval = TimeSpan.FromSeconds(Settings.Current.ScrapeFrequencySecs);
                     metricsScrapeAndUpload.Start(scrapeAndUploadInterval);
@@ -57,6 +61,12 @@ namespace MetricsCollector
 
             Logger.LogInformation("MetricsCollector Main() finished.");
             return 0;
+        }
+
+        static async Task<Dictionary<string, string>> GetTestSpecificTagsFromTwin(ModuleClient moduleClient)
+        {
+            Twin twin = await moduleClient.GetTwinAsync();
+            return JsonConvert.DeserializeObject<Dictionary<string, string>>(twin.Properties.Desired.ToJson());
         }
     }
 }
