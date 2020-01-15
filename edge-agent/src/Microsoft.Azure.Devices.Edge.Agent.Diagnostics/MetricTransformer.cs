@@ -14,13 +14,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     /// It will exclude metrics based on a list of allowed tags.
     /// After filtering, it will add or remove tags.
     /// </summary>
-    public class MetricFilter
+    public class MetricTransformer
     {
         Option<List<KeyValuePair<string, string>>> allowedTags = Option.None<List<KeyValuePair<string, string>>>();
         Option<List<KeyValuePair<string, string>>> tagsToAdd = Option.None<List<KeyValuePair<string, string>>>();
         Option<List<string>> tagsToRemove = Option.None<List<string>>();
+        Option<List<string>> tagsToHash = Option.None<List<string>>();
 
-        public IEnumerable<Metric> FilterMetrics(IEnumerable<Metric> metrics)
+        public IEnumerable<Metric> TransformMetrics(IEnumerable<Metric> metrics)
         {
             foreach (Metric metric in metrics)
             {
@@ -30,13 +31,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                     continue;
                 }
 
-                // Add or remove tags if needed.
+                // Modify tags if needed.
                 if (this.tagsToAdd.HasValue || this.tagsToRemove.HasValue)
                 {
                     Dictionary<string, string> newTags = metric.Tags.ToDictionary(t => t.Key, t => t.Value);
 
                     this.tagsToAdd.ForEach(tta => tta.ForEach(toAdd => newTags.Add(toAdd.Key, toAdd.Value)));
                     this.tagsToRemove.ForEach(ttr => ttr.ForEach(toRemove => newTags.Remove(toRemove)));
+                    this.tagsToHash.ForEach(tth => tth.ForEach(toHash =>
+                    {
+                        if (newTags.TryGetValue(toHash, out string value))
+                        {
+                            newTags[toHash] = value.CreateSha256();
+                        }
+                    }));
 
                     yield return new Metric(metric.TimeGeneratedUtc, metric.Name, metric.Value, newTags);
                 }
@@ -47,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             }
         }
 
-        public MetricFilter AddAllowedTags(params KeyValuePair<string, string>[] pairs)
+        public MetricTransformer AddAllowedTags(params KeyValuePair<string, string>[] pairs)
         {
             if (this.allowedTags.HasValue)
             {
@@ -61,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             return this;
         }
 
-        public MetricFilter AddTagsToAdd(params KeyValuePair<string, string>[] pairs)
+        public MetricTransformer AddTagsToAdd(params KeyValuePair<string, string>[] pairs)
         {
             if (this.tagsToAdd.HasValue)
             {
@@ -75,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             return this;
         }
 
-        public MetricFilter AddTagsToRemove(params string[] keys)
+        public MetricTransformer AddTagsToRemove(params string[] keys)
         {
             if (this.tagsToRemove.HasValue)
             {
@@ -84,6 +92,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             else
             {
                 this.tagsToRemove = Option.Some(new List<string>(keys));
+            }
+
+            return this;
+        }
+
+        public MetricTransformer AddTagsToHash(params string[] keys)
+        {
+            if (this.tagsToHash.HasValue)
+            {
+                this.tagsToHash.ForEach(wl => wl.AddRange(keys));
+            }
+            else
+            {
+                this.tagsToHash = Option.Some(new List<string>(keys));
             }
 
             return this;
