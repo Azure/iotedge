@@ -190,7 +190,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 }
             };
 
-        static NetworkStatusTimeline NetworkStatusTimeline => MockNetworkStatusTimeline.GetMock(new TimeSpan(0, 0, 0, 0, 5)).Result;
+        static NetworkStatusTimeline NetworkStatusTimeline => MockNetworkStatusTimeline.GetMockAsync(new TimeSpan(0, 0, 0, 0, 5)).Result;
 
         [Fact]
         public void TestConstructorSuccess()

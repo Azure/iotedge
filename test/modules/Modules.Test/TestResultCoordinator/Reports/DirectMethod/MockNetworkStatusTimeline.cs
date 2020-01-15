@@ -20,9 +20,9 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
     /// </summary>
     class MockNetworkStatusTimeline
     {
-        public static async Task<NetworkStatusTimeline> GetMock(TimeSpan tolerancePeriod)
+        public static async Task<NetworkStatusTimeline> GetMockAsync(TimeSpan tolerancePeriod)
         {
-            return await GetNetworkStatusTimeline(
+            return await GetNetworkStatusTimelineAsync(
                 GetNetworkControllerStoreTestResultCollection(
                     NetworkControllerStatusArray,
                     DateTimeArray,
@@ -46,7 +46,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
         static string[] NetworkControllerOperationArray => new[] { "SettingRule", "RuleSet", "SettingRule", "RuleSet", "SettingRule", "RuleSet", "SettingRule", "RuleSet" };
 
-        static async Task<NetworkStatusTimeline> GetNetworkStatusTimeline(StoreTestResultCollection<TestOperationResult> results, TimeSpan tolerancePeriod)
+        static async Task<NetworkStatusTimeline> GetNetworkStatusTimelineAsync(StoreTestResultCollection<TestOperationResult> results, TimeSpan tolerancePeriod)
         {
             return await NetworkStatusTimeline.CreateAsync(results, tolerancePeriod);
         }
