@@ -19,7 +19,7 @@ namespace TestResultCoordinator.Reports
 
         readonly string trackingId;
 
-        public CountingReportGenerator(
+        internal CountingReportGenerator(
             string trackingId,
             string expectedSource,
             ITestResultCollection<TestOperationResult> expectedTestResults,

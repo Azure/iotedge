@@ -31,9 +31,9 @@ namespace DirectMethodSender
         {
             ILogger logger = this.logger;
             logger.LogDebug("Invoke DirectMethod: started.");
-            logger.LogInformation($"{this.GetType().ToString()} : Calling Direct Method on device {this.deviceId} targeting module [{this.targetModuleId}] with count {this.directMethodCount}.");
 
             this.directMethodCount++;
+            logger.LogInformation($"{this.GetType().ToString()} : Calling Direct Method on device {this.deviceId} targeting module [{this.targetModuleId}] with count {this.directMethodCount}.");
             try
             {
                 int resultStatus = await this.InvokeDeviceMethodAsync(this.deviceId, this.targetModuleId, methodName, this.directMethodCount, CancellationToken.None);
