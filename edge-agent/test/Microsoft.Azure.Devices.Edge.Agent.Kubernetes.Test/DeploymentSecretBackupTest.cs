@@ -193,7 +193,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 Response = new HttpResponseMessage(HttpStatusCode.OK)
             };
 
-            byte[] receivedData = default;
+            byte[] receivedData = default(byte[]);
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
             client.Setup(c => c.ReadNamespacedSecretWithHttpMessagesAsync(DefaultSecretName, DefaultNamespace, It.IsAny<bool?>(), It.IsAny<bool?>(), null, null, It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new HttpOperationException("Not Found"));
@@ -241,7 +241,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 Response = new HttpResponseMessage(HttpStatusCode.OK)
             };
 
-            byte[] receivedData = default;
+            byte[] receivedData = default(byte[]);
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
             client.Setup(c => c.ReadNamespacedSecretWithHttpMessagesAsync(DefaultSecretName, DefaultNamespace, It.IsAny<bool?>(), It.IsAny<bool?>(), null, null, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(readResponse);
