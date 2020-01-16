@@ -30,6 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("microsoft/edgeHub:1.0"),
             RestartPolicy.Always,
             ImagePullPolicy.OnCreate,
+            Constants.DefaultPriority,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -40,6 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("microsoft/edgeHub:1.0"),
             RestartPolicy.Always,
             ImagePullPolicy.OnCreate,
+            Constants.DefaultPriority,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -51,6 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("mod1:v0"),
             RestartPolicy.Always,
             ImagePullPolicy.OnCreate,
+            Constants.DefaultPriority,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -62,6 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("mod1:v0"),
             RestartPolicy.Always,
             ImagePullPolicy.OnCreate,
+            Constants.DefaultPriority,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -73,6 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("mod2:v0"),
             RestartPolicy.Always,
             ImagePullPolicy.Never,
+            Constants.HighestPriority,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -84,6 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("mod2:v0"),
             RestartPolicy.Always,
             ImagePullPolicy.Never,
+            Constants.HighestPriority,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
