@@ -41,6 +41,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public const string K8sPullSecretData = ".dockerconfigjson";
 
+        public const string K8sBackupSecretType = "Opaque";
+
+        public const string EdgeAgentBackupName = "edgeagent-backup-config";
+
         public const string PortMappingServiceType = "PortMappingServiceType";
 
         public const string EnableK8sServiceCallTracingName = "EnableK8sServiceCallTracing";

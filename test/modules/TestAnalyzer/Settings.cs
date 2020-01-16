@@ -4,12 +4,10 @@ namespace TestAnalyzer
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Serialization;
 
-    [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
     class Settings
     {
         const string DefaultConsumerGroupId = "$Default";
@@ -17,31 +15,7 @@ namespace TestAnalyzer
         const double DefaultToleranceInMilliseconds = 1000 * 60;
         const string DefaultStoragePath = "";
 
-        static readonly Lazy<Settings> Setting = new Lazy<Settings>(
-            () =>
-            {
-                IConfiguration configuration = new ConfigurationBuilder()
-                    .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile("config/settings.json")
-                    .AddEnvironmentVariables()
-                    .Build();
-
-                IList<string> excludedModules = configuration.GetSection("ExcludeModules:Ids").Get<List<string>>() ?? new List<string>();
-
-                return new Settings(
-                    configuration.GetValue<string>("eventHubConnectionString"),
-                    configuration.GetValue("ConsumerGroupId", DefaultConsumerGroupId),
-                    configuration.GetValue<string>("IOTEDGE_DEVICEID"),
-                    excludedModules,
-                    configuration.GetValue("WebhostPort", DefaultWebhostPort),
-                    configuration.GetValue("ToleranceInMilliseconds", DefaultToleranceInMilliseconds),
-                    configuration.GetValue<bool>("LogAnalyticsEnabled"),
-                    configuration.GetValue<string>("LogAnalyticsWorkspaceId"),
-                    configuration.GetValue<string>("LogAnalyticsSharedKey"),
-                    configuration.GetValue<string>("LogAnalyticsLogType"),
-                    configuration.GetValue<string>("storagePath", DefaultStoragePath),
-                    configuration.GetValue<bool>("StorageOptimizeForPerformance", true));
-            });
+        internal static Settings Current = Create();
 
         Settings(string eventHubConnectionString, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance, bool logAnalyticsEnabled, string logAnalyticsWorkspaceIdName, string logAnalyticsSharedKeyName, string logAnalyticsLogTypeName, string storagePath, bool storageOptimizeForPerformance)
         {
@@ -59,9 +33,31 @@ namespace TestAnalyzer
             this.LogAnalyticsLogType = logAnalyticsLogTypeName;
         }
 
-        public static Settings Current => Setting.Value;
+        static Settings Create()
+        {
+            IConfiguration configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("config/settings.json")
+                .AddEnvironmentVariables()
+                .Build();
 
-        [JsonIgnore]
+            IList<string> excludedModules = configuration.GetSection("ExcludeModules:Ids").Get<List<string>>() ?? new List<string>();
+
+            return new Settings(
+                configuration.GetValue<string>("eventHubConnectionString"),
+                configuration.GetValue("ConsumerGroupId", DefaultConsumerGroupId),
+                configuration.GetValue<string>("IOTEDGE_DEVICEID"),
+                excludedModules,
+                configuration.GetValue("WebhostPort", DefaultWebhostPort),
+                configuration.GetValue("ToleranceInMilliseconds", DefaultToleranceInMilliseconds),
+                configuration.GetValue<bool>("LogAnalyticsEnabled"),
+                configuration.GetValue<string>("LogAnalyticsWorkspaceId"),
+                configuration.GetValue<string>("LogAnalyticsSharedKey"),
+                configuration.GetValue<string>("LogAnalyticsLogType"),
+                configuration.GetValue<string>("storagePath", DefaultStoragePath),
+                configuration.GetValue<bool>("StorageOptimizeForPerformance", true));
+        }
+
         public string EventHubConnectionString { get; }
 
         public string ConsumerGroupId { get; }
@@ -82,14 +78,27 @@ namespace TestAnalyzer
 
         public string LogAnalyticsWorkspaceId { get; }
 
-        [JsonIgnore]
         public string LogAnalyticsSharedKey { get; }
 
         public string LogAnalyticsLogType { get; }
 
         public override string ToString()
         {
-            return JsonConvert.SerializeObject(this, Formatting.Indented);
+            // serializing in this pattern so that secrets don't accidentally get added anywhere in the future
+            var fields = new Dictionary<string, string>
+            {
+                { nameof(this.ConsumerGroupId), this.ConsumerGroupId },
+                { nameof(this.ExcludedModuleIds), string.Join(",", this.ExcludedModuleIds) },
+                { nameof(this.DeviceId), this.DeviceId },
+                { nameof(this.WebhostPort), this.WebhostPort },
+                { nameof(this.ToleranceInMilliseconds), this.ToleranceInMilliseconds.ToString() },
+                { nameof(this.OptimizeForPerformance), this.OptimizeForPerformance.ToString() },
+                { nameof(this.LogAnalyticsEnabled), this.LogAnalyticsEnabled.ToString() },
+                { nameof(this.LogAnalyticsWorkspaceId), this.LogAnalyticsWorkspaceId },
+                { nameof(this.LogAnalyticsLogType), this.LogAnalyticsLogType },
+            };
+
+            return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
         }
     }
 }

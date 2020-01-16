@@ -38,7 +38,7 @@ namespace TwinTester
             }
         }
 
-        public async Task HandleDesiredPropertyUpdateAsync(string status)
+        public async Task HandleDesiredPropertyUpdateAsync(string status, string value)
         {
             try
             {
@@ -50,7 +50,7 @@ namespace TwinTester
             }
         }
 
-        public async Task HandleReportedPropertyUpdateAsync(string status)
+        public async Task HandleReportedPropertyUpdateAsync(string status, string value)
         {
             try
             {

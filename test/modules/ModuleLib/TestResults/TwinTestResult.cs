@@ -8,8 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
 
     public class TwinTestResult : TestResultBase
     {
-        public TwinTestResult(string source, DateTime createdAt) :
-            base(source, TestOperationResultType.Twin, createdAt)
+        public TwinTestResult(string source, DateTime createdAt)
+            : base(source, TestOperationResultType.Twin, createdAt)
         {
         }
 

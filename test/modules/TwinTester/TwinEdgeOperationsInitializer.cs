@@ -2,6 +2,7 @@
 namespace TwinTester
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
@@ -17,27 +18,27 @@ namespace TwinTester
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TwinCloudOperationsInitializer));
         readonly ReportedPropertyUpdater reportedPropertyUpdater;
         readonly DesiredPropertyReceiver desiredPropertiesReceiver;
+        readonly RegistryManager registryManager;
         PeriodicTask periodicUpdate;
 
-        TwinEdgeOperationsInitializer(RegistryManager registryManager, ModuleClient moduleClient, ITwinTestResultHandler reporter, TwinState initializedState)
+        TwinEdgeOperationsInitializer(RegistryManager registryManager, ModuleClient moduleClient, ITwinTestResultHandler reporter, int reportedPropertyUpdateCounter)
         {
-            this.reportedPropertyUpdater = new ReportedPropertyUpdater(registryManager, moduleClient, reporter, initializedState);
-            this.desiredPropertiesReceiver = new DesiredPropertyReceiver(registryManager, moduleClient, reporter);
+            this.registryManager = registryManager;
+            this.reportedPropertyUpdater = new ReportedPropertyUpdater(moduleClient, reporter, reportedPropertyUpdateCounter);
+            this.desiredPropertiesReceiver = new DesiredPropertyReceiver(moduleClient, reporter);
         }
 
         public static async Task<TwinEdgeOperationsInitializer> CreateAsync(RegistryManager registryManager, ModuleClient moduleClient, ITwinTestResultHandler reporter)
         {
             try
             {
-                TwinState initializedState;
-                Twin twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
+                Twin twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId);
 
-                // reset properties
-                Twin desiredPropertyResetTwin = await registryManager.ReplaceTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, new Twin(), twin.ETag);
-                initializedState = new TwinState { TwinETag = desiredPropertyResetTwin.ETag };
+                // reset reported properties
+                await TwinTesterUtil.ResetTwinReportedPropertiesAsync(moduleClient, twin);
+                
 
-                Logger.LogInformation($"Start state of module twin: {JsonConvert.SerializeObject(twin, Formatting.Indented)}");
-                return new TwinEdgeOperationsInitializer(registryManager, moduleClient, reporter, initializedState);
+                return new TwinEdgeOperationsInitializer(registryManager, moduleClient, reporter, 0);
             }
             catch (Exception e)
             {
@@ -45,15 +46,30 @@ namespace TwinTester
             }
         }
 
-        public async Task Start()
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
+            await Task.Delay(Settings.Current.TestStartDelay, cancellationToken);
+            await this.LogEdgeDeviceTwin();
             this.periodicUpdate = new PeriodicTask(this.UpdateAsync, Settings.Current.TwinUpdateFrequency, Settings.Current.TwinUpdateFrequency, Logger, "TwinReportedPropertiesUpdate");
             await this.desiredPropertiesReceiver.UpdateAsync();
         }
 
-        public void Dispose()
+        async Task LogEdgeDeviceTwin()
         {
-            this.periodicUpdate.Dispose();
+            try
+            {
+                Twin twin = await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId);
+                Logger.LogInformation($"Start state of module twin: {JsonConvert.SerializeObject(twin, Formatting.Indented)}");
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e, $"Failure to get twin");
+            }
+        }
+
+        public void Stop()
+        {
+            this.periodicUpdate?.Dispose();
         }
 
         async Task UpdateAsync(CancellationToken cancellationToken)
