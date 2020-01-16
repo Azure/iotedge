@@ -9,7 +9,7 @@ namespace MetricsCollector
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
 
-    public class Settings
+    class Settings
     {
         internal static Settings Current = Create();
 

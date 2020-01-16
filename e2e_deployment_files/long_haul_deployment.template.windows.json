@@ -444,7 +444,7 @@
     },
     "metricsCollector": {
       "properties.desired": {
-        "testType": "long_haul",
+        "testType": "longhaul",
         "testId": "<TrackingId>"
       }
     }
