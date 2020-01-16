@@ -22,7 +22,7 @@ namespace Modules.Test.TestResultCoordinator
             ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(() =>
                  TestReportHelper.GenerateTestResultReportsAsync(
                      string.Empty,
-                     new List<IReportMetadata>(),
+                     new List<ITestReportMetadata>(),
                      mockTestReportGeneratorFactory.Object,
                      mockLogger.Object));
 
@@ -75,7 +75,7 @@ namespace Modules.Test.TestResultCoordinator
 
             ITestResultReport[] reports = await TestReportHelper.GenerateTestResultReportsAsync(
                 trackingId,
-                new List<IReportMetadata>
+                new List<ITestReportMetadata>
                 {
                     countingReportMetadata,
                     twinCountingReportMetadata,
