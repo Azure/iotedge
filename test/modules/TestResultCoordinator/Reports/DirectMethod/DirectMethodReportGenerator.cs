@@ -21,31 +21,31 @@ namespace TestResultCoordinator.Reports.DirectMethod
 
         internal DirectMethodReportGenerator(
             string trackingId,
-            string expectedSource,
-            ITestResultCollection<TestOperationResult> expectedTestResults,
-            string actualSource,
-            ITestResultCollection<TestOperationResult> actualTestResults,
+            string senderSource,
+            ITestResultCollection<TestOperationResult> senderTestResults,
+            string receiverSource,
+            ITestResultCollection<TestOperationResult> ReceiverTestResults,
             string resultType,
             ITestResultComparer<TestOperationResult> testResultComparer,
             NetworkStatusTimeline networkStatusTimeline)
         {
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
-            this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
-            this.ExpectedTestResults = Preconditions.CheckNotNull(expectedTestResults, nameof(expectedTestResults));
-            this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
-            this.ActualTestResults = Preconditions.CheckNotNull(actualTestResults, nameof(actualTestResults));
+            this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
+            this.SenderTestResults = Preconditions.CheckNotNull(senderTestResults, nameof(senderTestResults));
+            this.ReceiverSource = Preconditions.CheckNonWhiteSpace(receiverSource, nameof(receiverSource));
+            this.ReceiverTestResults = Preconditions.CheckNotNull(ReceiverTestResults, nameof(ReceiverTestResults));
             this.ResultType = Preconditions.CheckNonWhiteSpace(resultType, nameof(resultType));
             this.TestResultComparer = Preconditions.CheckNotNull(testResultComparer, nameof(testResultComparer));
             this.NetworkStatusTimeline = Preconditions.CheckNotNull(networkStatusTimeline, nameof(networkStatusTimeline));
         }
 
-        internal string ActualSource { get; }
+        internal string ReceiverSource { get; }
 
-        internal ITestResultCollection<TestOperationResult> ActualTestResults { get; }
+        internal ITestResultCollection<TestOperationResult> ReceiverTestResults { get; }
 
-        internal string ExpectedSource { get; }
+        internal string SenderSource { get; }
 
-        internal ITestResultCollection<TestOperationResult> ExpectedTestResults { get; }
+        internal ITestResultCollection<TestOperationResult> SenderTestResults { get; }
 
         internal string ResultType { get; }
 
@@ -55,7 +55,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
 
         public async Task<ITestResultReport> CreateReportAsync()
         {
-            Logger.LogInformation($"Start to generate report by {nameof(DirectMethodReportGenerator)} for Sources [{this.ExpectedSource}] and [{this.ActualSource}]");
+            Logger.LogInformation($"Start to generate report by {nameof(DirectMethodReportGenerator)} for Sources [{this.SenderSource}] and [{this.ReceiverSource}]");
 
             ulong networkOnSuccess = 0;
             ulong networkOffSuccess = 0;
@@ -66,23 +66,23 @@ namespace TestResultCoordinator.Reports.DirectMethod
             ulong mismatchSuccess = 0;
             ulong mismatchFailure = 0;
 
-            bool hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
-            bool hasActualResult = await this.ActualTestResults.MoveNextAsync();
+            bool hasSenderResult = await this.SenderTestResults.MoveNextAsync();
+            bool hasReceiverResult = await this.ReceiverTestResults.MoveNextAsync();
 
-            while (hasExpectedResult && hasActualResult)
+            while (hasSenderResult && hasReceiverResult)
             {
-                this.ValidateDataSource(this.ExpectedTestResults.Current, this.ExpectedSource);
-                this.ValidateDataSource(this.ActualTestResults.Current, this.ActualSource);
+                this.ValidateDataSource(this.SenderTestResults.Current, this.SenderSource);
+                this.ValidateDataSource(this.ReceiverTestResults.Current, this.ReceiverSource);
 
                 (NetworkControllerStatus networkControllerStatus, bool isWithinTolerancePeriod) =
-                        this.NetworkStatusTimeline.GetNetworkControllerStatusAndWithinToleranceAt(this.ExpectedTestResults.Current.CreatedAt);
+                        this.NetworkStatusTimeline.GetNetworkControllerStatusAndWithinToleranceAt(this.SenderTestResults.Current.CreatedAt);
                 if (!NetworkControllerStatus.Enabled.Equals(networkControllerStatus) &&
                     !NetworkControllerStatus.Disabled.Equals(networkControllerStatus))
                 {
                     throw new InvalidOperationException($"Unexpected Result. NetworkControllerStatus was {networkControllerStatus}");
                 }
 
-                if (this.TestResultComparer.Matches(this.ExpectedTestResults.Current, this.ActualTestResults.Current))
+                if (this.TestResultComparer.Matches(this.SenderTestResults.Current, this.ReceiverTestResults.Current))
                 {
                     // Found same message in both stores.
                     if (NetworkControllerStatus.Disabled.Equals(networkControllerStatus))
@@ -103,52 +103,52 @@ namespace TestResultCoordinator.Reports.DirectMethod
                         }
                     }
 
-                    hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
-                    hasActualResult = await this.ActualTestResults.MoveNextAsync();
+                    hasSenderResult = await this.SenderTestResults.MoveNextAsync();
+                    hasReceiverResult = await this.ReceiverTestResults.MoveNextAsync();
                 }
-                else // If the expected and actual don't match, we assume actual will be higher sequence # than expected
+                else // If the sender and receiver don't match, we assume receiver will be higher sequence # than sender
                 {
                     UnmatchedResultCounts unmatchedResultCounts =
-                        this.CheckUnmatchedResult(this.ExpectedTestResults.Current, networkControllerStatus, isWithinTolerancePeriod);
+                        this.CheckUnmatchedResult(this.SenderTestResults.Current, networkControllerStatus, isWithinTolerancePeriod);
                     networkOffSuccess += unmatchedResultCounts.NetworkOffSuccess;
                     networkOnToleratedSuccess += unmatchedResultCounts.NetworkOnToleratedSuccess;
                     networkOnFailure += unmatchedResultCounts.NetworkOnFailure;
                     mismatchSuccess += unmatchedResultCounts.MismatchSuccess;
-                    hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
+                    hasSenderResult = await this.SenderTestResults.MoveNextAsync();
                 }
             }
 
-            while (hasExpectedResult)
+            while (hasSenderResult)
             {
                 (NetworkControllerStatus networkControllerStatus, bool isWithinTolerancePeriod) =
-                    this.NetworkStatusTimeline.GetNetworkControllerStatusAndWithinToleranceAt(this.ExpectedTestResults.Current.CreatedAt);
+                    this.NetworkStatusTimeline.GetNetworkControllerStatusAndWithinToleranceAt(this.SenderTestResults.Current.CreatedAt);
 
                 UnmatchedResultCounts unmatchedResultCounts =
-                        this.CheckUnmatchedResult(this.ExpectedTestResults.Current, networkControllerStatus, isWithinTolerancePeriod);
+                        this.CheckUnmatchedResult(this.SenderTestResults.Current, networkControllerStatus, isWithinTolerancePeriod);
                 networkOffSuccess += unmatchedResultCounts.NetworkOffSuccess;
                 networkOnToleratedSuccess += unmatchedResultCounts.NetworkOnToleratedSuccess;
                 networkOnFailure += unmatchedResultCounts.NetworkOnFailure;
                 mismatchSuccess += unmatchedResultCounts.MismatchSuccess;
-                hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
+                hasSenderResult = await this.SenderTestResults.MoveNextAsync();
             }
 
-            while (hasActualResult)
+            while (hasReceiverResult)
             {
                 // Log message for unexpected case.
-                Logger.LogError($"[{nameof(DirectMethodReportGenerator)}] Actual test result source has unexpected results.");
+                Logger.LogError($"[{nameof(DirectMethodReportGenerator)}] Receiver test result source has unexpected results.");
 
                 mismatchFailure++;
 
-                // Log actual queue items
-                Logger.LogError($"Unexpected actual test result: {this.ActualTestResults.Current.Source}, {this.ActualTestResults.Current.Type}, {this.ActualTestResults.Current.Result} at {this.ActualTestResults.Current.CreatedAt}");
+                // Log Receiver queue items
+                Logger.LogError($"Unexpected receiver test result: {this.ReceiverTestResults.Current.Source}, {this.ReceiverTestResults.Current.Type}, {this.ReceiverTestResults.Current.Result} at {this.ReceiverTestResults.Current.CreatedAt}");
 
-                hasActualResult = await this.ActualTestResults.MoveNextAsync();
+                hasReceiverResult = await this.ReceiverTestResults.MoveNextAsync();
             }
 
             return new DirectMethodReport(
                 this.trackingId,
-                this.ExpectedSource,
-                this.ActualSource,
+                this.SenderSource,
+                this.ReceiverSource,
                 this.ResultType,
                 networkOnSuccess,
                 networkOffSuccess,
@@ -199,7 +199,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
             }
             else
             {
-                // Success, but no matching report from Actual store, means mismatch
+                // Success, but no matching report from receiver store, means mismatch
                 mismatchSuccess++;
             }
 
@@ -210,7 +210,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
         {
             if (!current.Source.Equals(expectedSource, StringComparison.OrdinalIgnoreCase))
             {
-                throw new InvalidDataException($"Result source is '{current.Source}' but expected should be '{expectedSource}'.");
+                throw new InvalidDataException($"Result source is '{current.Source}' but expected it to be '{expectedSource}'.");
             }
         }
 
