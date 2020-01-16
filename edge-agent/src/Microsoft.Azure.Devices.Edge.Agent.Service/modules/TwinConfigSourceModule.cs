@@ -26,7 +26,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     public class TwinConfigSourceModule : Module
     {
         const string DockerType = "docker";
-        readonly string backupConfigFilePath;
         readonly IConfiguration configuration;
         readonly VersionInfo versionInfo;
         readonly TimeSpan configRefreshFrequency;
@@ -39,7 +38,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         public TwinConfigSourceModule(
             string iotHubHostname,
             string deviceId,
-            string backupConfigFilePath,
             IConfiguration config,
             VersionInfo versionInfo,
             TimeSpan configRefreshFrequency,
@@ -49,7 +47,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
             this.configuration = Preconditions.CheckNotNull(config, nameof(config));
             this.versionInfo = Preconditions.CheckNotNull(versionInfo, nameof(versionInfo));
             this.configRefreshFrequency = configRefreshFrequency;
@@ -184,11 +181,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                 async c =>
                 {
-                    var serde = c.Resolve<ISerde<DeploymentConfigInfo>>();
                     var edgeAgentConnection = c.Resolve<IEdgeAgentConnection>();
-                    IEncryptionProvider encryptionProvider = await c.Resolve<Task<IEncryptionProvider>>();
                     var twinConfigSource = new TwinConfigSource(edgeAgentConnection, this.configuration);
-                    IConfigSource backupConfigSource = new FileBackupConfigSource(this.backupConfigFilePath, twinConfigSource, serde, encryptionProvider);
+                    var backupSourceTask = c.Resolve<Task<IDeploymentBackupSource>>();
+                    IConfigSource backupConfigSource = new BackupConfigSource(await backupSourceTask, twinConfigSource);
                     return backupConfigSource;
                 })
                 .As<Task<IConfigSource>>()
