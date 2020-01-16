@@ -20,14 +20,20 @@ namespace TestResultCoordinator.Reports
             ulong totalMatchedDeployments,
             Option<TestOperationResult> lastActualDeploymentTestResult,
             IReadOnlyList<TestOperationResult> unmatchedResults)
-            : base(trackingId, expectedSource, actualSource, resultType)
+            : base(trackingId, resultType)
         {
+            this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
+            this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
             this.TotalExpectedDeployments = totalExpectedDeployments;
             this.TotalActualDeployments = totalActualDeployments;
             this.TotalMatchedDeployments = totalMatchedDeployments;
             this.LastActualDeploymentTestResult = lastActualDeploymentTestResult;
             this.UnmatchedResults = unmatchedResults ?? new List<TestOperationResult>();
         }
+
+        public string ExpectedSource { get; }
+
+        public string ActualSource { get; }
 
         public ulong TotalExpectedDeployments { get; }
 
@@ -40,5 +46,7 @@ namespace TestResultCoordinator.Reports
         public IReadOnlyList<TestOperationResult> UnmatchedResults { get; }
 
         public override bool IsPassed => this.TotalExpectedDeployments == this.TotalMatchedDeployments;
+
+        public override string Title => $"Deployment Test Report ({this.ResultType}) between [{this.ExpectedSource}] and [{this.ActualSource}]";
     }
 }

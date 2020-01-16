@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace TestResultCoordinator.Report.DirectMethodReport
+namespace TestResultCoordinator.Reports.DirectMethod
 {
     using System;
     using System.Collections.Generic;
@@ -21,7 +21,7 @@ namespace TestResultCoordinator.Report.DirectMethodReport
         bool testResultsValidated = false;
         NetworkControllerStatus initialNetworkControllerStatus;
 
-        public static async Task<NetworkStatusTimeline> Create(
+        public static async Task<NetworkStatusTimeline> CreateAsync(
             ITestResultCollection<TestOperationResult> networkControllerTestOperationResults,
             TimeSpan tolerancePeriod,
             NetworkControllerStatus initialNetworkControllerStatus = NetworkControllerStatus.Disabled)
