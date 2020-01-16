@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -15,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Diff;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Rest;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
@@ -134,14 +136,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             await Task.WhenAll(removingTasks);
 
             // Create new desired image pull secrets
-            var addingTasks = diff.Added
-                .Select(
-                    secret =>
-                    {
-                        Events.CreateImagePullSecret(secret);
-                        return this.client.CreateNamespacedSecretAsync(secret, this.deviceNamespace, cancellationToken: token);
-                    });
-            await Task.WhenAll(addingTasks);
+            foreach (V1Secret secret in diff.Added)
+            {
+                // Allow user to override image pull secrets even if they were created not by agent (e.g. during installation and/or iotedged)
+                try
+                {
+                    Events.CreateImagePullSecret(secret);
+                    await this.client.CreateNamespacedSecretAsync(secret, this.deviceNamespace, cancellationToken: token);
+                }
+                catch (HttpOperationException e) when (e.Response.StatusCode == HttpStatusCode.Conflict)
+                {
+                    Events.UpdateExistingImagePullSecret(secret);
+
+                    V1Secret conflictedSecret = await this.client.ReadNamespacedSecretAsync(secret.Metadata.Name, secret.Metadata.NamespaceProperty, cancellationToken: token);
+                    conflictedSecret.Data = secret.Data;
+
+                    await this.client.ReplaceNamespacedSecretAsync(conflictedSecret, conflictedSecret.Metadata.Name, conflictedSecret.Metadata.NamespaceProperty, cancellationToken: token);
+                }
+            }
         }
 
         static Diff<V1Secret> FindImagePullSecretDiff(IEnumerable<V1Secret> desired, IEnumerable<V1Secret> existing)
@@ -224,7 +236,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 ReplaceDeployment,
                 CreateImagePullSecret,
                 DeleteImagePullSecret,
-                UpdateImagePullSecret
+                UpdateImagePullSecret,
+                UpdateExistingImagePullSecret
             }
 
             public static void CreateEdgeDeployment(EdgeDeploymentDefinition deployment) => Log.LogDebug((int)EventIds.CreateDeployment, $"Create edge deployment: {deployment.Metadata.Name}");
@@ -236,6 +249,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             internal static void DeleteImagePullSecret(string name) => Log.LogDebug((int)EventIds.DeleteImagePullSecret, $"Delete Image Pull Secret {name}");
 
             internal static void UpdateImagePullSecret(V1Secret secret) => Log.LogDebug((int)EventIds.UpdateImagePullSecret, $"Update Image Pull Secret {secret.Metadata.Name}");
+
+            internal static void UpdateExistingImagePullSecret(V1Secret secret) => Log.LogWarning((int)EventIds.UpdateExistingImagePullSecret, $"Update existing Image Pull Secret {secret.Metadata.Name}");
         }
     }
 }
