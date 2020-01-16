@@ -85,9 +85,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                                     else if (c.State.Terminated != null)
                                     {
                                         if (c.State.Terminated.ExitCode != 0)
-                                            return new ReportedModuleStatus(ModuleStatus.Failed, $"Module Failed becasue of the reason: {c.State.Terminated.Reason}");
+                                            return new ReportedModuleStatus(ModuleStatus.Failed, $"Module Failed because of the reason: {c.State.Terminated.Reason}");
                                         else
-                                            return new ReportedModuleStatus(ModuleStatus.Stopped, $"Module Stopped becasue of the reason: {c.State.Terminated.Reason}");
+                                            return new ReportedModuleStatus(ModuleStatus.Stopped, $"Module Stopped because of the reason: {c.State.Terminated.Reason}");
                                     }
                                     else
                                     {
