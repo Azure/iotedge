@@ -94,7 +94,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             }
             catch (Exception)
             {
-                amqpMessage?.Dispose();
                 throw;
             }
             finally
