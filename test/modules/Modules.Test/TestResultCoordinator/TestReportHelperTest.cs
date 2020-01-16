@@ -22,7 +22,7 @@ namespace Modules.Test.TestResultCoordinator
             ArgumentException ex = await Assert.ThrowsAsync<ArgumentException>(() =>
                  TestReportHelper.GenerateTestResultReportsAsync(
                      string.Empty,
-                     new List<IReportMetadata>(),
+                     new List<ITestReportMetadata>(),
                      mockTestReportGeneratorFactory.Object,
                      mockLogger.Object));
 
@@ -69,13 +69,13 @@ namespace Modules.Test.TestResultCoordinator
             var mockTestReportGenerator3 = new Mock<ITestResultReportGenerator>();
             mockTestReportGenerator3.Setup(g => g.CreateReportAsync()).Returns(this.MockTestResultReport(throwExceptionForTestReport3));
 
-            mockTestReportGeneratorFactory.Setup(f => f.Create(trackingId, countingReportMetadata)).Returns(mockTestReportGenerator1.Object);
-            mockTestReportGeneratorFactory.Setup(f => f.Create(trackingId, twinCountingReportMetadata)).Returns(mockTestReportGenerator2.Object);
-            mockTestReportGeneratorFactory.Setup(f => f.Create(trackingId, deploymentReportMetadata)).Returns(mockTestReportGenerator3.Object);
+            mockTestReportGeneratorFactory.Setup(f => f.CreateAsync(trackingId, countingReportMetadata)).Returns(Task.FromResult(mockTestReportGenerator1.Object));
+            mockTestReportGeneratorFactory.Setup(f => f.CreateAsync(trackingId, twinCountingReportMetadata)).Returns(Task.FromResult(mockTestReportGenerator2.Object));
+            mockTestReportGeneratorFactory.Setup(f => f.CreateAsync(trackingId, deploymentReportMetadata)).Returns(Task.FromResult(mockTestReportGenerator3.Object));
 
             ITestResultReport[] reports = await TestReportHelper.GenerateTestResultReportsAsync(
                 trackingId,
-                new List<IReportMetadata>
+                new List<ITestReportMetadata>
                 {
                     countingReportMetadata,
                     twinCountingReportMetadata,
