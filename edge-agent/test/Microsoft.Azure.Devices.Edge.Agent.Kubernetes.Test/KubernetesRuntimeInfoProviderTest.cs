@@ -208,7 +208,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 else if (string.Equals("edgeHub", i.Name))
                 {
                     Assert.Equal(ModuleStatus.Stopped, i.ModuleStatus);
-                    Assert.Equal($"Module Stopped becasue of the reason: {edgehubTerminatedReason}", i.Description);
+                    Assert.Equal($"Module Stopped because of the reason: {edgehubTerminatedReason}", i.Description);
                 }
                 else if (string.Equals("SimulatedTemperatureSensor", i.Name))
                 {
