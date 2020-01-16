@@ -69,6 +69,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             {
                 this.HandleException(e, amqpMessage, messages);
             }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         internal static IList<AmqpMessage> ExpandBatchedMessage(AmqpMessage message)

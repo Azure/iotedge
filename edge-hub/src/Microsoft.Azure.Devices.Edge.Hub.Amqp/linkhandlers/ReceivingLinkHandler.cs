@@ -92,9 +92,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                 Events.ErrorProcessingMessage(e, this);
                 ((IReceivingAmqpLink)this.Link).DisposeMessage(amqpMessage, AmqpConstants.RejectedOutcome, true, true);
             }
+            catch (Exception)
+            {
+                amqpMessage?.Dispose();
+                throw;
+            }
             finally
             {
-                amqpMessage.Dispose();
+                amqpMessage?.Dispose();
             }
         }
 
