@@ -50,7 +50,7 @@ namespace NetworkController
 
         static void RetryingReportTestResult(RetryingEventArgs retryingEventArgs)
         {
-            Log.LogDebug($"Retrying device scope api call {retryingEventArgs.CurrentRetryCount} times because of error - {retryingEventArgs.LastException}");
+            Log.LogDebug($"Retrying ReportTestResult {retryingEventArgs.CurrentRetryCount} times because of error - {retryingEventArgs.LastException}");
         }
 
     }
