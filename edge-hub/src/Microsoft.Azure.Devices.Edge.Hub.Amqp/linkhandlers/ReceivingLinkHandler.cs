@@ -76,6 +76,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 
         internal async Task ProcessMessageAsync(AmqpMessage amqpMessage)
         {
+            // BEARWASHERE -- Testing
+            if (amqpMessage != null)
+                throw new OutOfMemoryException();
+
             if (this.Link.State != AmqpObjectState.Opened)
             {
                 Events.InvalidLinkState(this);
