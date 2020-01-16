@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         const string DockerType = "docker";
         static readonly TimeSpan DefaultRequestTimeout = TimeSpan.FromSeconds(60);
 
-        public static async Task<Configuration> CreateConfigurationAsync(RegistryManager registryMananger, string configurationId, string targetCondition, int priority)
+        private static async Task CreateConfigurationAsync(RegistryManager registryManager, string configurationId, string targetCondition, int priority)
         {
             var configuration = new Configuration(configurationId)
             {
@@ -39,15 +39,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 {
                     { "App", "Stream Analytics" }
                 },
-                Content = GetDefaultConfigurationContent(),
+                Content = GetCombinedConfigurationContent(),
                 Priority = priority,
                 TargetCondition = targetCondition
             };
 
-            return await registryMananger.AddConfigurationAsync(configuration);
+            await registryManager.AddConfigurationAsync(configuration);
         }
 
-        public static async Task<Configuration> CreateBaseAddOnConfigurationsAsync(RegistryManager registryMananger, string configurationId, string addOnConfigurationId, string targetCondition, int priority)
+        private static async Task CreateBaseAddOnConfigurationsAsync(RegistryManager registryManager, string configurationId, string addOnConfigurationId, string targetCondition, int priority)
         {
             var configuration = new Configuration(configurationId)
             {
@@ -71,11 +71,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 TargetCondition = targetCondition
             };
 
-            await registryMananger.AddConfigurationAsync(configuration);
-            return await registryMananger.AddConfigurationAsync(addonConfiguration);
+            await registryManager.AddConfigurationAsync(configuration);
+            await registryManager.AddConfigurationAsync(addonConfiguration);
         }
 
-        public static TwinCollection GetEdgeAgentReportedProperties(DeploymentConfigInfo deploymentConfigInfo)
+        private static TwinCollection GetEdgeAgentReportedProperties(DeploymentConfigInfo deploymentConfigInfo)
         {
             DeploymentConfig deploymentConfig = deploymentConfigInfo.DeploymentConfig;
             var reportedProperties = new
@@ -137,9 +137,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             return new TwinCollection(patch);
         }
 
-        public static ConfigurationContent GetDefaultConfigurationContent()
-        {
-            return new ConfigurationContent
+        private static ConfigurationContent GetCombinedConfigurationContent() =>
+            new ConfigurationContent
             {
                 ModulesContent = new Dictionary<string, IDictionary<string, object>>
                 {
@@ -161,11 +160,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     }
                 }
             };
-        }
 
-        public static ConfigurationContent GetBaseConfigurationContent()
-        {
-            return new ConfigurationContent
+        private static ConfigurationContent GetBaseConfigurationContent() =>
+            new ConfigurationContent
             {
                 ModulesContent = new Dictionary<string, IDictionary<string, object>>
                 {
@@ -183,11 +180,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     }
                 }
             };
-        }
 
-        public static ConfigurationContent GetAddOnConfigurationContent()
-        {
-            return new ConfigurationContent
+        private static ConfigurationContent GetAddOnConfigurationContent() =>
+            new ConfigurationContent
             {
                 ModulesContent = new Dictionary<string, IDictionary<string, object>>
                 {
@@ -205,7 +200,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     }
                 }
             };
-        }
 
         [Integration]
         [Fact]
@@ -1742,10 +1736,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             await rm.ApplyConfigurationContentOnDeviceAsync(deviceId, cc);
         }
 
-        static async Task DeleteConfigurationAsync(RegistryManager registryManager, string configurationId)
-        {
-            await registryManager.RemoveConfigurationAsync(configurationId);
-        }
+        static async Task DeleteConfigurationAsync(RegistryManager registryManager, string configurationId) => await registryManager.RemoveConfigurationAsync(configurationId);
 
         static async Task UpdateAgentDesiredProperties(RegistryManager rm, string deviceId)
         {
