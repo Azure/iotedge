@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
+namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
 {
     using System;
     using Newtonsoft.Json.Serialization;
@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
     /// property to indicate what object to deserialize the object into. Taken from:
     ///     http://james.newtonking.com/archive/2011/11/19/json-net-4-0-release-4-bug-fixes
     /// </summary>
-    class TypeNameSerializationBinder : ISerializationBinder
+    public class TypeNameSerializationBinder : ISerializationBinder
     {
         public readonly string TypeFormat;
 
