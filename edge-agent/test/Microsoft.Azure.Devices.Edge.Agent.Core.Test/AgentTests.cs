@@ -113,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 new SystemModules(null, null),
                 new Dictionary<string, IModule>
                 {
-                    { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, new ConfigurationInfo("1"), null) }
+                    { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo("1"), null) }
                 });
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
             ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
@@ -271,7 +271,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 new SystemModules(null, null),
                 new Dictionary<string, IModule>
                 {
-                    { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, new ConfigurationInfo("1"), null) }
+                    { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo("1"), null) }
                 });
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
             ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
@@ -316,9 +316,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 new SystemModules(null, null),
                 new Dictionary<string, IModule>
                 {
-                    { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, new ConfigurationInfo("1"), null) }
+                    { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo("1"), null) }
                 });
-            var desiredModule = new TestModule("desired", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, new ConfigurationInfo("1"), null);
+            var desiredModule = new TestModule("desired", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo("1"), null);
             var recordKeeper = Option.Some(new TestPlanRecorder());
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
             ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
@@ -357,8 +357,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Fact]
         public async void ReconcileAsyncOnSetPlan()
         {
-            var desiredModule = new TestModule("desired", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, new ConfigurationInfo("1"), null);
-            var currentModule = new TestModule("current", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, new ConfigurationInfo("1"), null);
+            var desiredModule = new TestModule("desired", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo("1"), null);
+            var currentModule = new TestModule("current", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo("1"), null);
             var recordKeeper = Option.Some(new TestPlanRecorder());
             var moduleExecutionList = new List<TestRecordType>
             {
@@ -416,8 +416,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Fact]
         public async void ReconcileAsyncWithNoDeploymentChange()
         {
-            var desiredModule = new TestModule("CustomModule", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, new ConfigurationInfo("1"), null);
-            var currentModule = new TestModule("CustomModule", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, new ConfigurationInfo("1"), null);
+            var desiredModule = new TestModule("CustomModule", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo("1"), null);
+            var currentModule = new TestModule("CustomModule", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo("1"), null);
 
             var testPlan = new Plan(new List<ICommand>());
             var token = default(CancellationToken);
@@ -545,7 +545,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 new SystemModules(null, null),
                 new Dictionary<string, IModule>
                 {
-                    { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, new ConfigurationInfo("1"), null) }
+                    { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo("1"), null) }
                 });
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
             var token = default(CancellationToken);
@@ -568,8 +568,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             // Arrange
             var mockConfigSource = new Mock<IConfigSource>();
 
-            IModule mod1 = new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, new ConfigurationInfo("1"), null);
-            IModule mod2 = new TestModule("mod2", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, new ConfigurationInfo("1"), null);
+            IModule mod1 = new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo("1"), null);
+            IModule mod2 = new TestModule("mod2", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo("1"), null);
             var modules = new Dictionary<string, IModule>
             {
                 [mod1.Name] = mod1,

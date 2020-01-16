@@ -8,6 +8,6 @@ namespace TestResultCoordinator.Reports
     {
         ITestResultReportGenerator Create(
             string trackingId,
-            IReportMetadata reportMetadata);
+            ITestReportMetadata reportMetadata);
     }
 }
