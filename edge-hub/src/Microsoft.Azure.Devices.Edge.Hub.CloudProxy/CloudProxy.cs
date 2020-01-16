@@ -656,14 +656,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void MessageProcessingLatency(string id, IMessage message)
             {
+                Events.Log.LogInformation("DEBUG: Processing conditions...");
+                bool areSystemPropertiesNullDebug = message.SystemProperties != null;
+                string enqueuedTimeStringDebug = message.SystemProperties[SystemProperties.EnqueuedTime];
+                DateTime enqueuedTimeDebug = DateTime.Parse(enqueuedTimeStringDebug);
+
+                Events.Log.LogInformation("DEBUG: Done processing conditions...");
+                Events.Log.LogInformation(areSystemPropertiesNullDebug.ToString());
+                Events.Log.LogInformation(enqueuedTimeStringDebug);
+                Events.Log.LogInformation(enqueuedTimeDebug.ToString());
+
+                Events.Log.LogInformation("Evaluating conditions...");
                 if (message.SystemProperties != null
                     && message.SystemProperties.TryGetValue(SystemProperties.EnqueuedTime, out string enqueuedTimeString)
                     && DateTime.TryParse(enqueuedTimeString, out DateTime enqueuedTime))
                 {
+                    Events.Log.LogInformation("Successfully evaluated conditions");
                     TimeSpan duration = DateTime.UtcNow - enqueuedTime.ToUniversalTime();
                     MessagesProcessLatency.Set(
                         duration.TotalSeconds,
                         new[] { id, "upstream" });
+                }
+                else
+                {
+                    Events.Log.LogInformation("Failed to eval conditions");
                 }
             }
         }
