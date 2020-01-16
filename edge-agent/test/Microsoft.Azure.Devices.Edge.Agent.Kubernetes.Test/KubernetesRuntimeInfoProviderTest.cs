@@ -161,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         [Fact]
-        public async Task ReturnsLastKnowModuleState()
+        public async Task ReturnModuleStatusWhenPodisRunning()
         {
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
             var moduleManager = new Mock<IModuleManager>(MockBehavior.Strict);
@@ -225,14 +225,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                     Assert.NotEqual("unknown:unknown", d.Config.Image);
                 }
             }
+        }
 
-            agentWaitingReason = "ErrImagePull";
+        [Fact]
+        public async Task ReturnModuleStatusWhenPodisPending()
+        {
+            var client = new Mock<IKubernetes>(MockBehavior.Strict);
+            var moduleManager = new Mock<IModuleManager>(MockBehavior.Strict);
+            var runtimeInfo = new KubernetesRuntimeInfoProvider(Namespace, client.Object, moduleManager.Object);
+            foreach (V1Pod pod in BuildPodList().Values)
+            {
+                runtimeInfo.CreateOrUpdateAddPodInfo(pod);
+            }
+
+            Dictionary<string, V1Pod> modified = BuildPodList();
+
+            string agentWaitingReason = "ErrImagePull";
             modified["edgeagent"].Status.Phase = "Pending";
             modified["edgeagent"].Status.ContainerStatuses[0].State.Running = null;
             modified["edgeagent"].Status.ContainerStatuses[0].State.Terminated = null;
             modified["edgeagent"].Status.ContainerStatuses[0].State.Waiting = new V1ContainerStateWaiting("Waiting", agentWaitingReason);
 
-            edgehubTerminatedReason = "Completed";
+            string edgehubTerminatedReason = "Completed";
             modified["edgehub"].Status.Phase = "Pending";
             modified["edgehub"].Status.ContainerStatuses[0].State.Running = null;
             modified["edgehub"].Status.ContainerStatuses[0].State.Waiting = null;
@@ -273,14 +287,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                     Assert.True(false, $"Missing module {i.Name} in validation");
                 }
             }
+        }
 
+        [Fact]
+        public async Task ReturnModuleStatusWhenContainerGetsTerminated()
+        {
+            var client = new Mock<IKubernetes>(MockBehavior.Strict);
+            var moduleManager = new Mock<IModuleManager>(MockBehavior.Strict);
+            var runtimeInfo = new KubernetesRuntimeInfoProvider(Namespace, client.Object, moduleManager.Object);
+            foreach (V1Pod pod in BuildPodList().Values)
+            {
+                runtimeInfo.CreateOrUpdateAddPodInfo(pod);
+            }
+
+            Dictionary<string, V1Pod> modified = BuildPodList();
             string agentTerminatedReason = "Segmentation Fault";
             modified["edgeagent"].Status.Phase = "Running";
             modified["edgeagent"].Status.ContainerStatuses[0].State.Running = null;
             modified["edgeagent"].Status.ContainerStatuses[0].State.Terminated = new V1ContainerStateTerminated(139, finishedAt: DateTime.Parse("2019-06-12T16:13:07Z"), startedAt: DateTime.Parse("2019-06-12T16:11:22Z"), reason: agentTerminatedReason);
             modified["edgeagent"].Status.ContainerStatuses[0].State.Waiting = null;
 
-            edgehubTerminatedReason = "Segmentation fault";
+            string edgehubTerminatedReason = "Segmentation fault";
             modified["edgehub"].Status.Phase = "Pending";
             modified["edgehub"].Status.ContainerStatuses[0].State.Running = null;
             modified["edgehub"].Status.ContainerStatuses[0].State.Waiting = null;
@@ -319,7 +346,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                     Assert.True(false, $"Missing module {i.Name} in validation");
                 }
             }
+        }
 
+        [Fact]
+        public async Task ReturnModuleStatusWithOtherPodPhase()
+        {
+            var client = new Mock<IKubernetes>(MockBehavior.Strict);
+            var moduleManager = new Mock<IModuleManager>(MockBehavior.Strict);
+            var runtimeInfo = new KubernetesRuntimeInfoProvider(Namespace, client.Object, moduleManager.Object);
+            foreach (V1Pod pod in BuildPodList().Values)
+            {
+                runtimeInfo.CreateOrUpdateAddPodInfo(pod);
+            }
+
+            Dictionary<string, V1Pod> modified = BuildPodList();
             string agentPhaseReason = "Unable to get pod status";
             modified["edgeagent"].Status.Phase = "Unknown";
             modified["edgeagent"].Status.Reason = agentPhaseReason;
@@ -340,7 +380,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var abnormalModules = (await runtimeInfo.GetModules(CancellationToken.None)).ToList();
             Assert.Equal(3, abnormalModules.Count);
 
-            // Abnormal operation statuses
             foreach (var i in abnormalModules)
             {
                 if (string.Equals("edgeAgent", i.Name))
