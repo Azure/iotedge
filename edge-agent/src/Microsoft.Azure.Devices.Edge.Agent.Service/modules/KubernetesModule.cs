@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using k8s;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
@@ -221,6 +222,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(c => new KubernetesRuntimeInfoProvider(this.deviceNamespace, c.Resolve<IKubernetes>(), c.Resolve<IModuleManager>()))
                 .As<IRuntimeInfoProvider>()
                 .As<IRuntimeInfoSource>()
+                .SingleInstance();
+
+            // Task<IBackupSource>
+            builder.Register(
+                c =>
+                {
+                    var serde = c.Resolve<ISerde<DeploymentConfigInfo>>();
+                    IDeploymentBackupSource backupSource = new DeploymentSecretBackup(Constants.EdgeAgentBackupName, this.deviceNamespace, this.moduleOwner, serde, c.Resolve<IKubernetes>());
+                    return Task.FromResult(backupSource);
+                })
+                .As<Task<IDeploymentBackupSource>>()
                 .SingleInstance();
 
             // KubernetesDeploymentProvider
