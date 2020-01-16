@@ -9,6 +9,7 @@ namespace TestResultCoordinator
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using TestResultCoordinator.Reports;
+    using TestResultCoordinator.Reports.DirectMethod;
 
     class Settings
     {
@@ -141,10 +142,8 @@ namespace TestResultCoordinator
                     new CountingReportMetadata("relayer1.send", "relayer1.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
                     new CountingReportMetadata("loadGen2.send", "relayer2.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
                     new CountingReportMetadata("relayer2.send", "relayer2.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
-                // TODO: Enable Direct Method Cloud-to-Module and Cloud-to-EdgeAgent once the verification scheme is finalized.
-                // new CountingReportMetadata("directMethodSender1.send", "directMethodReceiver1.receive", TestOperationResultType.DirectMethod, TestReportType.CountingReport),
-                // new CountingReportMetadata("directMethodSender2.send", "directMethodReceiver2.receive", TestOperationResultType.DirectMethod, TestReportType.CountingReport),
-                // new CountingReportMetadata("directMethodSender3.send", "directMethodSender3.send", TestOperationResultType.DirectMethod, TestReportType.CountingReport),
+                    new DirectMethodReportMetadata("directMethodSender1.send", "directMethodReceiver1.receive", TestReportType.DirectMethodReport, new TimeSpan(0, 0, 0, 0, 5)),
+                    new DirectMethodReportMetadata("directMethodSender2.send", "directMethodReceiver2.receive", TestReportType.DirectMethodReport, new TimeSpan(0, 0, 0, 0, 5)),
                     new TwinCountingReportMetadata("twinTester1.desiredUpdated", "twinTester2.desiredReceived", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired),
                     new TwinCountingReportMetadata("twinTester2.reportedReceived", "twinTester2.reportedUpdated", TestReportType.TwinCountingReport, TwinTestPropertyType.Reported),
                     new TwinCountingReportMetadata("twinTester3.desiredUpdated", "twinTester4.desiredReceived", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired),
@@ -164,10 +163,6 @@ namespace TestResultCoordinator
                 string[] additionalResultSources = new string[]
                 {
                     "networkController",
-                    "directMethodSender1.send",
-                    "directMethodReceiver1.receive",
-                    "directMethodSender2.send",
-                    "directMethodReceiver2.receive",
                     "directMethodSender3.send",
                     "directMethodSender3.send"
                 };
