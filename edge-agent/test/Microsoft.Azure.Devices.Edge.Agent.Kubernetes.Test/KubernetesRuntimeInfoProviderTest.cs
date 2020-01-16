@@ -161,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         [Fact]
-        public async Task ReturnModuleStatusWhenPodisRunning()
+        public async Task ReturnModuleStatusWhenPodIsRunning()
         {
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
             var moduleManager = new Mock<IModuleManager>(MockBehavior.Strict);
@@ -228,7 +228,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         [Fact]
-        public async Task ReturnModuleStatusWhenPodisPending()
+        public async Task ReturnModuleStatusWhenPodIsPending()
         {
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
             var moduleManager = new Mock<IModuleManager>(MockBehavior.Strict);
