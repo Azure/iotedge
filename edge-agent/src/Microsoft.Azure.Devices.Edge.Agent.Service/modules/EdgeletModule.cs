@@ -9,7 +9,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Autofac;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker;
@@ -41,6 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
         readonly TimeSpan performanceMetricsUpdateFrequency;
+        readonly string backupConfigFilePath;
 
         public EdgeletModule(
             string iotHubHostname,
@@ -55,7 +58,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string productInfo,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
-            TimeSpan performanceMetricsUpdateFrequency)
+            TimeSpan performanceMetricsUpdateFrequency,
+            string backupConfigFilePath)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
@@ -70,6 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
             this.performanceMetricsUpdateFrequency = performanceMetricsUpdateFrequency;
+            this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -143,6 +148,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         return dockerEnvironmentProvider;
                     })
                 .As<Task<IEnvironmentProvider>>()
+                .SingleInstance();
+
+            // Task<IBackupSource>
+            builder.Register(
+                async c =>
+                {
+                    var serde = c.Resolve<ISerde<DeploymentConfigInfo>>();
+                    var encryptionProviderTask = c.Resolve<Task<IEncryptionProvider>>();
+                    IDeploymentBackupSource backupSource = new DeploymentFileBackup(this.backupConfigFilePath, serde, await encryptionProviderTask);
+                    return backupSource;
+                })
+                .As<Task<IDeploymentBackupSource>>()
                 .SingleInstance();
 
             // SystemResourcesMetrics

@@ -3,7 +3,7 @@ namespace TestResultCoordinator.Reports
 {
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
 
-    class CountingReportMetadata : IReportMetadata
+    class CountingReportMetadata : ITestReportMetadata
     {
         public CountingReportMetadata(string expectedSource, string actualSource, TestOperationResultType testOperationResultType, TestReportType testReportType)
         {
@@ -20,6 +20,8 @@ namespace TestResultCoordinator.Reports
         public TestOperationResultType TestOperationResultType { get; }
 
         public TestReportType TestReportType { get; }
+
+        public string[] ResultSources => new string[] { this.ExpectedSource, this.ActualSource };
 
         public override string ToString()
         {

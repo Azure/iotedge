@@ -6,13 +6,12 @@ namespace TestResultCoordinator.Reports
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using TestResultCoordinator.Storage;
 
     static class TestReportHelper
     {
         internal static async Task<ITestResultReport[]> GenerateTestResultReportsAsync(
             string trackingId,
-            List<IReportMetadata> reportMetadatalist,
+            List<ITestReportMetadata> reportMetadatalist,
             ITestReportGeneratorFactory testReportGeneratorFactory,
             ILogger logger)
         {
@@ -25,7 +24,7 @@ namespace TestResultCoordinator.Reports
 
             try
             {
-                foreach (IReportMetadata reportMetadata in reportMetadatalist)
+                foreach (ITestReportMetadata reportMetadata in reportMetadatalist)
                 {
                     ITestResultReportGenerator testResultReportGenerator = testReportGeneratorFactory.Create(trackingId, reportMetadata);
                     testResultReportTasks.Add(testResultReportGenerator.CreateReportAsync());
