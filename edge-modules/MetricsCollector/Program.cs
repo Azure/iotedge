@@ -38,14 +38,14 @@ namespace MetricsCollector
                 IMetricsPublisher publisher;
                 if (Settings.Current.UploadTarget == UploadTarget.AzureLogAnalytics)
                 {
-                    publisher = new LogAnalyticsUpload(Settings.Current.AzMonWorkspaceId, Settings.Current.AzMonWorkspaceKey, Settings.Current.AzMonLogType);
+                    publisher = new LogAnalyticsUpload(Settings.Current.LogAnalyticsWorkspaceId, Settings.Current.LogAnalyticsWorkspaceKey, Settings.Current.LogAnalyticsLogType);
                 }
                 else
                 {
                     publisher = new EventHubMetricsUpload(moduleClient);
                 }
 
-                using (MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher, testSpecificTags, Guid.NewGuid()))
+                using (MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher, testSpecificTags))
                 {
                     TimeSpan scrapeAndUploadInterval = TimeSpan.FromSeconds(Settings.Current.ScrapeFrequencySecs);
                     metricsScrapeAndUpload.Start(scrapeAndUploadInterval);

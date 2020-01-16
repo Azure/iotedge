@@ -581,18 +581,19 @@
             }
           },
           "metricsCollector": {
-            "settings": {
-                "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
-                "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
-            },
-            "type": "docker",
             "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
             "env": {
-                "AzMonWorkspaceId": {
+                "logAnalyticsWorkspaceId": {
                     "value": "<LogAnalyticsWorkspaceId>"
                 },
-                "AzMonWorkspaceKey": {
+                "logAnalyticsSharedKey": {
                     "value": "<LogAnalyticsSharedKey>"
+                },
+                "logAnalyticsLogType": {
+                  "value": "testMetrics"
                 },
                 "MetricsEndpointsCSV": {
                   "value": "<MetricsCollector.MetricsEndpointsCSV>"
@@ -600,15 +601,14 @@
                 "ScrapeFrequencyInSecs": {
                     "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
                 },
-                "TestType": {
-                  "value": "connectivity"
-                },
                 "UploadTarget": {
                   "value": "<MetricsCollector.UploadTarget>"
                 }
             },
-            "status": "running",
-            "restartPolicy": "always"
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
+                "createOptions": ""
+            }
           }
         }
       }
@@ -629,10 +629,12 @@
     },
     "metricsCollector": {
       "properties.desired": {
+        "testType": "connectivity",
+        "testId": "<TrackingId>",
         "upstreamProtocol": "<UpstreamProtocol>",
-        "offlineFrequency": "<NetworkController.OfflineFrequency0>",
-        "onlineFrequency": "<NetworkController.OnlineFrequency0>",
-        "runsCount": "<NetworkController.RunsCount0>",
+        "networkControllerOfflineFrequency": "<NetworkController.OfflineFrequency0>",
+        "networkControllerOnlineFrequency": "<NetworkController.OnlineFrequency0>",
+        "networkControllerRunsCount": "<NetworkController.RunsCount0>",
         "testDuration": "<TestDuration>"
       }
     }

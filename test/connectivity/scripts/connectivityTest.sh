@@ -35,12 +35,12 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
     sed -i -e "s@<IoTHubConnectionString>@$IOT_HUB_CONNECTION_STRING@g" "$deployment_working_file"
 
-    local tracking_Id=$(cat /proc/sys/kernel/random/uuid)
+    local tracking_id=$(cat /proc/sys/kernel/random/uuid)
 
     sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
     sed -i -e "s@<TestDuration>@$TEST_DURATION@g" "$deployment_working_file"
     sed -i -e "s@<TestStartDelay>@$TEST_START_DELAY@g" "$deployment_working_file"
-    sed -i -e "s@<TrackingId>@$tracking_Id@g" "$deployment_working_file"
+    sed -i -e "s@<TrackingId>@$tracking_id@g" "$deployment_working_file"
     sed -i -e "s@<UpstreamProtocol>@$UPSTREAM_PROTOCOL@g" "$deployment_working_file"
 
     sed -i -e "s@<TestResultCoordinator.VerificationDelay>@$VERIFICATION_DELAY@g" "$deployment_working_file"
