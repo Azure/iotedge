@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
@@ -10,7 +11,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using global::Docker.DotNet;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient;
@@ -32,6 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string productInfo;
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
+        readonly string backupConfigFilePath;
 
         public DockerModule(
             string edgeDeviceConnectionString,
@@ -42,7 +46,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             Option<IWebProxy> proxy,
             string productInfo,
             bool closeOnIdleTimeout,
-            TimeSpan idleTimeout)
+            TimeSpan idleTimeout,
+            string backupConfigFilePath)
         {
             this.edgeDeviceConnectionString = Preconditions.CheckNonWhiteSpace(edgeDeviceConnectionString, nameof(edgeDeviceConnectionString));
             this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
@@ -56,6 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.productInfo = Preconditions.CheckNotNull(productInfo, nameof(productInfo));
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
+            this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -131,6 +137,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         return dockerEnvironmentProvider;
                     })
                 .As<Task<IEnvironmentProvider>>()
+                .SingleInstance();
+
+            // Task<IBackupSource>
+            builder.Register(
+                async c =>
+                {
+                    var serde = c.Resolve<ISerde<DeploymentConfigInfo>>();
+                    var encryptionProviderTask = c.Resolve<Task<IEncryptionProvider>>();
+                    IDeploymentBackupSource backupSource = new DeploymentFileBackup(this.backupConfigFilePath, serde, await encryptionProviderTask);
+                    return backupSource;
+                })
+                .As<Task<IDeploymentBackupSource>>()
                 .SingleInstance();
 
             // IDeviceManager
