@@ -12,10 +12,10 @@ function examine_test_result() {
     found_test_passed="$(docker logs testResultCoordinator | grep -Pzo 'Test result report\n{\n.*"IsPassed": true')"
 
     if [[ $found_test_passed -ne "" ]]; then
-        return 0
+        echo 0
     fi
 
-    return 1
+    echo 1
 }
 
 function prepare_test_from_artifacts() {
@@ -308,7 +308,7 @@ function run_connectivity_test() {
 
         test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"
         print_highlighted_message "Connectivity test should be completed at $test_end_time."
-        $testResult=examine_test_result
+        testResult=$(examine_test_result)
         print_test_run_logs $testResult
 
         # stop IoT Edge service after test complete to prevent sending metrics
