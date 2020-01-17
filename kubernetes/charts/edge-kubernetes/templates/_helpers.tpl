@@ -20,12 +20,24 @@ provisioning:
   {{- if eq $key "attestation"}}
   attestation:
     {{- range $atkey, $atval := $val }}
+    {{- if eq $atKey "identityCert" }}
+    identity_cert: "file:///etc/edge-attestation/identity_cert"
+    {{- else if eq $atKey "identityPk") }}
+    identity_pk: "file:///etc/edge-attestation/identity_pk"
+    {{- else }}
     {{ $atkey | snakecase }}: {{$atval | quote }}
+    {{- end }}
     {{- end }}
   {{- else if eq $key "authentication" }}
   authentication:
     {{- range $aukey, $auval := $val }}
-    {{ $aukey | snakecase }}: {{$auval | quote }}
+    {{- if eq $atKey "identityCert" }}
+    identity_cert: "file:///etc/edge-authentication/identity_cert"
+    {{- else if eq $atKey "identityPk") }}
+    identity_pk: "file:///etc/edge-authentication/identity_pk"
+    {{- else }}
+    {{ $atkey | snakecase }}: {{$atval | quote }}
+    {{- end }}
     {{- end }}
   {{- else }}
   {{ $key | snakecase }}: {{- if or (kindIs "float64" $val) (kindIs "bool" $val) }} {{ $val }} {{- else }} {{ $val | quote }}

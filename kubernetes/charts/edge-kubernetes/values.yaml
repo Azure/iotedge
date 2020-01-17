@@ -180,23 +180,33 @@ edge-kubernetes-crd:
 #                                Ex. "HostName=<hub-name>.azure-devices.net;DeviceId=<device-id>;SharedAccessKey=<key>
 #
 # Manual authentication settings when using an X.509 identity certificate
+#   Please create a secret containing 2 items, the Edge device identity X.509 certificate, and the 
+#   Edge device identity private key. Then give the chart the secret name and the item names. 
+#   For example, if a secret is created like this:
+#   `kubectl create secret generic -n device-namespace edge-authentication --from-file=certs/identity_certificate.pem --from-file=private/identity_key.pem
+#   The YAML would look like:
+#     identitySecret: "edge-authentication"
+#     identityCert: "identity_certificate.pem"
+#     identityPk: "identity_key.pem"
+#
 #     iothubHostname - Required. The Azure Iot Hub hostname.
 #                       Ex. <hub-name>.azure-devices.net
 #     deviceId       - Required. The Edge device id.
-#     identityCert   - Required. The Edge device identity X.509 certificate
-#                       entry should only be specified when provisioning
-#                       an Edge device configured for X.509 attestation.
-#                       The value should be specified as a URI.
-#                       Ex. when specifying a PEM encoded certificate file, the URI
-#                       should be specified as file:///path/identity_certificate.pem
-#     identityPk     - Required. The Edge device identity private key
-#                       entry should only be specified when provisioning
-#                       an Edge device configured for X.509 attestation.
-#                       The value should be specified as a URI.
-#                       Ex. when specifying a PEM encoded private key file, the URI
-#                       should be specified as file:///path/identity_key.pem
+#     identitySecret - Required. The secret name.
+#     identityCert   - Required. The secret item name for Edge device identity X.509 certificate.
+#     identityPk     - Required. The secret item name forEdge device identity private key.
 #
 # DPS Settings
+#   If configuring for configured for X.509 authentication, please create a secret containing 2 
+#   items, the Edge device identity X.509 certificate, and the Edge device identity private key. 
+#   Then give the chart the secret name and the item names. For example, if a secret is created like 
+#   this:
+#   `kubectl create secret generic -n device-namespace edge-authentication --from-file=certs/identity_certificate.pem --from-file=private/identity_key.pem
+#   The YAML would look like:
+#     identitySecret: "edge-authentication"
+#     identityCert: "identity_certificate.pem"
+#     identityPk: "identity_key.pem"
+#
 #     scopeId        - Required. Value of a specific DPS instance's ID scope
 #     registrationId - Required for TPM and symmetric key provisioning flows.
 #                       Optional for X.509 provisioning. Registration ID of a
@@ -206,18 +216,9 @@ edge-kubernetes-crd:
 #     symmetricKey   - Optional. This entry should only be specified when
 #                       provisioning devices configured for symmetric key
 #                       attestation. Device specific symmetric key.
-#     identityCert   - Optional. The Edge device identity X.509 certificate
-#                       entry should only be specified when an Edge device
-#                       is configured for X.509 authentication.
-#                       The value should be specified as a URI.
-#                       Ex. when specifying a PEM encoded certificate file, the URI
-#                       should be specified as file:///path/identity_certificate.pem
-#     identityPk     - Optional. The Edge device identity private key
-#                       entry should only be specified when an Edge device
-#                       is configured for X.509 authentication.
-#                       The value should be specified as a URI.
-#                       Ex. when specifying a PEM encoded private key file, the URI
-#                       should be specified as file:///path/identity_key.pem
+#     identitySecret - Optional. The secret name.
+#     identityCert   - Optional. The secret item name for Edge device identity X.509 certificate.
+#     identityPk     - Optional. The secret item name forEdge device identity private key.
 #
 # External Settings
 #     endpoint - Required. Value of the endpoint used to retrieve device specific
@@ -247,8 +248,9 @@ provisioning:
 #     method: "x509"
 #     iothubHostname: "<REQUIRED IOTHUB HOSTNAME>"
 #     deviceId: "<REQUIRED DEVICE ID PROVISIONED IN IOTHUB>"
-#     identityCert: "<REQUIRED URI TO DEVICE IDENTITY CERTIFICATE>"
-#     identityPk: "<REQUIRED URI TO DEVICE IDENTITY PRIVATE KEY>"
+#     identitySecret: "<REQUIRED SECRET CONTAINING IDENTITY CERTIFICATE>"
+#     identityCert: "<REQUIRED SECRET ITEM NAME FOR DEVICE IDENTITY CERTIFICATE>"
+#     identityPk: "<REQUIRED SECRET ITEM NAME FOR DEVICE IDENTITY PRIVATE KEY>"
 #   dynamicReprovisioning: false
 
 # DPS symmetric key provisioning configuration
@@ -270,8 +272,9 @@ provisioning:
 #   attestation:
 #     method: "x509"
 #     registrationId: "<OPTIONAL REGISTRATION ID. IF UNSPECIFIED CAN BE OBTAINED FROM CN OF identity_cert"
-#     identityCert: "<REQUIRED URI TO DEVICE IDENTITY CERTIFICATE>"
-#     identityPk: "<REQUIRED URI TO DEVICE IDENTITY PRIVATE KEY>"
+#     identitySecret: "<REQUIRED SECRET CONTAINING IDENTITY CERTIFICATE>"
+#     identityCert: "<REQUIRED SECRET ITEM NAME FOR DEVICE IDENTITY CERTIFICATE>"
+#     identityPk: "<REQUIRED SECRET ITEM NAME FOR DEVICE IDENTITY PRIVATE KEY>"
 #   dynamicReprovisioning: false
 
 # External provisioning configuration

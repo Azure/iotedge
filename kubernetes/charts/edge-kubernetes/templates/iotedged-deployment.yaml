@@ -40,6 +40,16 @@ spec:
             mountPath: "/etc/edgecerts"
             readOnly: true
           {{end}}
+          {{- if .Values.provisioning.authentication.identitySecret }}
+          - name: edge-certs
+            mountPath: "/etc/edge-authentication"
+            readOnly: true
+          {{end}}
+          {{- if .Values.provisioning.attestation.identitySecret }}
+          - name: edge-certs
+            mountPath: "/etc/edge-attestation"
+            readOnly: true
+          {{end}}
           ports:
             - name: management
               containerPort: {{ .Values.iotedged.ports.management }}
@@ -70,6 +80,32 @@ spec:
       - name: config
         secret:
           secretName: iotedged-config
+      {{- if .Values.provisioning.authentication.identitySecret }}
+      {{- /*
+      NOTE: This sets up iotedged with a volume "/etc/edge-authentication" populated with authentication certs.
+    */}}
+      - name: edge-authentication
+        secret:
+          secretName: {{ .Values.provisioning.authentication.identitySecret }}
+          items:
+          - key: {{ .Values.provisioning.authentication.identityCert | default "identity_certificate.pem" }}
+            path: identity_cert
+          - key: {{ .Values.provisioning.authentication.identityPk | default "identity_key.pem" }}
+            path: identity_pk
+      {{end}}
+      {{- if .Values.provisioning.attestation.identitySecret }}
+      {{- /*
+      NOTE: This sets up iotedged with a volume "/etc/edge-attestation" populated with the attestation certs.
+    */}}
+      - name: edge-attestation
+        secret:
+          secretName: {{ .Values.provisioning.attestation.identitySecret }}
+          items:
+          - key: {{ .Values.provisioning.attestation.identityCert | default "identity_certificate.pem" }}
+            path: identity_cert
+          - key: {{ .Values.provisioning.attestation.identityPk | default "identity_key.pem" }}
+            path: identity_pk
+      {{end}}
       {{- if .Values.iotedged.certificates }}
       {{- /*
         NOTE: This sets up iotedged with a volume "/etc/edgecerts" populated with the given CA certs.
