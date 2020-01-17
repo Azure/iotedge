@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
+namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Pvc
 {
     using System.Collections.Generic;
     using k8s.Models;
@@ -12,16 +12,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
     [Unit]
     public class KubernetesPvcByValueComparerTest
     {
-        static KubernetesPvcByValueEqualityComparer comparer = new KubernetesPvcByValueEqualityComparer();
+        static readonly KubernetesPvcByValueEqualityComparer Comparer = new KubernetesPvcByValueEqualityComparer();
 
         [Fact]
         public void ReferenceComparisonTest()
         {
             var pvc1 = new V1PersistentVolumeClaim();
             var pvc2 = pvc1;
-            Assert.True(comparer.Equals(pvc1, pvc2));
-            Assert.False(comparer.Equals(null, pvc2));
-            Assert.False(comparer.Equals(pvc1, null));
+            Assert.True(Comparer.Equals(pvc1, pvc2));
+            Assert.False(Comparer.Equals(null, pvc2));
+            Assert.False(Comparer.Equals(pvc1, null));
         }
 
         [Fact]
@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
                     Resources = new V1ResourceRequirements { Requests = new Dictionary<string, ResourceQuantity> { ["storage"] = new ResourceQuantity("10M") } }
                 }
             };
-            Assert.False(comparer.Equals(x, y));
+            Assert.False(Comparer.Equals(x, y));
         }
 
         [Fact]
@@ -98,42 +98,42 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
                 }
             };
             x.Metadata.Name = "pvc2";
-            Assert.False(comparer.Equals(x, y));
+            Assert.False(Comparer.Equals(x, y));
             x.Metadata.Name = "pvc1";
-            Assert.True(comparer.Equals(x, y));
+            Assert.True(Comparer.Equals(x, y));
 
             x.Metadata.Labels[KubernetesConstants.K8sEdgeDeviceLabel] = "device2";
-            Assert.False(comparer.Equals(x, y));
+            Assert.False(Comparer.Equals(x, y));
             x.Metadata.Labels[KubernetesConstants.K8sEdgeDeviceLabel] = "device1";
-            Assert.True(comparer.Equals(x, y));
+            Assert.True(Comparer.Equals(x, y));
 
             // Match Either VolumeName or StorageClassName
             x.Spec.VolumeName = "artemus";
-            Assert.True(comparer.Equals(x, y));
+            Assert.True(Comparer.Equals(x, y));
             x.Spec.VolumeName = "steve";
             x.Spec.StorageClassName = "dakota";
-            Assert.True(comparer.Equals(x, y));
+            Assert.True(Comparer.Equals(x, y));
 
             // Both VolumeName and StorageClassName differ
             x.Spec.VolumeName = "artemus";
             x.Spec.StorageClassName = "dakota";
-            Assert.False(comparer.Equals(x, y));
+            Assert.False(Comparer.Equals(x, y));
             x.Spec.VolumeName = "steve";
             x.Spec.StorageClassName = "angela";
-            Assert.True(comparer.Equals(x, y));
+            Assert.True(Comparer.Equals(x, y));
 
             x.Spec.Resources.Requests = null;
-            Assert.False(comparer.Equals(x, y));
+            Assert.False(Comparer.Equals(x, y));
             x.Spec.Resources.Requests = new Dictionary<string, ResourceQuantity>
             {
                 ["storage"] = new ResourceQuantity("10M")
             };
-            Assert.True(comparer.Equals(x, y));
+            Assert.True(Comparer.Equals(x, y));
 
             x.Spec.AccessModes = new List<string> { "ReadOnlyMany" };
-            Assert.False(comparer.Equals(x, y));
+            Assert.False(Comparer.Equals(x, y));
             x.Spec.AccessModes = new List<string> { "ReadOnce" };
-            Assert.True(comparer.Equals(x, y));
+            Assert.True(Comparer.Equals(x, y));
         }
 
         [Fact]
@@ -171,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
                     Resources = new V1ResourceRequirements { Requests = new Dictionary<string, ResourceQuantity> { ["storage"] = new ResourceQuantity("10M") } }
                 }
             };
-            Assert.True(comparer.Equals(x, y));
+            Assert.True(Comparer.Equals(x, y));
         }
 
         [Fact]
@@ -211,7 +211,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
                     Resources = new V1ResourceRequirements { Requests = new Dictionary<string, ResourceQuantity> { ["storage"] = new ResourceQuantity("10M") } }
                 }
             };
-            Assert.False(comparer.Equals(pvcWithOwnerRefMetadata, pvcWithoutOwnerRefMetadata));
+            Assert.False(Comparer.Equals(pvcWithOwnerRefMetadata, pvcWithoutOwnerRefMetadata));
         }
     }
 }

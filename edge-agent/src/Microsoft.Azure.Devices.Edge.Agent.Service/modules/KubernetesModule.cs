@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using k8s;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
@@ -45,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string proxyTrustBundleConfigMapName;
         readonly string apiVersion;
         readonly string deviceNamespace;
+        readonly string deviceSelector;
         readonly Uri managementUri;
         readonly Uri workloadUri;
         readonly IEnumerable<global::Docker.DotNet.Models.AuthConfig> dockerAuthConfig;
@@ -104,6 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.proxyTrustBundleVolumeName = Preconditions.CheckNonWhiteSpace(proxyTrustBundleVolumeName, nameof(proxyTrustBundleVolumeName));
             this.proxyTrustBundleConfigMapName = Preconditions.CheckNonWhiteSpace(proxyTrustBundleConfigMapName, nameof(proxyTrustBundleConfigMapName));
             this.apiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
+            this.deviceSelector = $"{Constants.K8sEdgeDeviceLabel}={KubeUtils.SanitizeK8sValue(this.resourceName.DeviceId)},{Constants.K8sEdgeHubNameLabel}={KubeUtils.SanitizeK8sValue(this.resourceName.Hostname)}";
             this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace));
             this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
@@ -206,12 +209,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var configProvider = c.Resolve<ICombinedConfigProvider<CombinedKubernetesConfig>>();
                         ICommandFactory commandFactory = await c.Resolve<Task<ICommandFactory>>();
                         IPlanner planner = new KubernetesPlanner(
-                                    this.deviceNamespace,
-                                    this.resourceName,
-                                    c.Resolve<IKubernetes>(),
-                                    commandFactory,
-                                    configProvider,
-                                    this.moduleOwner);
+                            this.resourceName,
+                            this.deviceSelector,
+                            this.deviceNamespace,
+                            c.Resolve<IKubernetes>(),
+                            commandFactory,
+                            configProvider,
+                            this.moduleOwner);
                         return planner;
                     })
                 .As<Task<IPlanner>>()
@@ -221,6 +225,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(c => new KubernetesRuntimeInfoProvider(this.deviceNamespace, c.Resolve<IKubernetes>(), c.Resolve<IModuleManager>()))
                 .As<IRuntimeInfoProvider>()
                 .As<IRuntimeInfoSource>()
+                .SingleInstance();
+
+            // Task<IBackupSource>
+            builder.Register(
+                c =>
+                {
+                    var serde = c.Resolve<ISerde<DeploymentConfigInfo>>();
+                    IDeploymentBackupSource backupSource = new DeploymentSecretBackup(Constants.EdgeAgentBackupName, this.deviceNamespace, this.moduleOwner, serde, c.Resolve<IKubernetes>());
+                    return Task.FromResult(backupSource);
+                })
+                .As<Task<IDeploymentBackupSource>>()
                 .SingleInstance();
 
             // KubernetesDeploymentProvider
@@ -264,10 +279,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     c =>
                     {
-                        var deploymentSelector = $"{Constants.K8sEdgeDeviceLabel}={KubeUtils.SanitizeK8sValue(this.resourceName.DeviceId)},{Constants.K8sEdgeHubNameLabel}={KubeUtils.SanitizeK8sValue(this.resourceName.Hostname)}";
                         IEdgeDeploymentController watchOperator = new EdgeDeploymentController(
                             this.resourceName,
-                            deploymentSelector,
+                            this.deviceSelector,
                             this.deviceNamespace,
                             c.Resolve<IKubernetes>(),
                             c.Resolve<IModuleIdentityLifecycleManager>(),

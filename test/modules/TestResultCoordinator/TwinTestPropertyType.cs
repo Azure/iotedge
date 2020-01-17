@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace TestResultCoordinator
 {
-    enum TwinTestPropertyType
+    public enum TwinTestPropertyType
     {
         Desired,
         Reported
