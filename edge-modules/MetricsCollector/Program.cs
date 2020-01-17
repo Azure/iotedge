@@ -71,6 +71,9 @@ namespace MetricsCollector
         static async Task<Dictionary<string, string>> GetAdditionalTagsFromTwin(ModuleClient moduleClient)
         {
             Twin twin = await moduleClient.GetTwinAsync();
+            TwinCollection desiredProperties = twin.Properties.Desired;
+            Logger.LogInformation($"Received {desiredProperties.Count} tags from module twin's desired properties that will be added to scraped metrics");
+
             return JsonConvert.DeserializeObject<Dictionary<string, string>>(twin.Properties.Desired.ToJson());
         }
     }
