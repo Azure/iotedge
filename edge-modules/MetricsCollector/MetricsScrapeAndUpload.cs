@@ -16,14 +16,14 @@ namespace MetricsCollector
         static readonly ILogger Logger = MetricsUtil.CreateLogger("MetricsCollector");
         readonly IMetricsScraper scraper;
         readonly IMetricsPublisher publisher;
-        readonly Dictionary<string, string> testSpecificTags;
+        readonly Dictionary<string, string> additionalTags;
         PeriodicTask periodicScrapeAndUpload;
 
-        public MetricsScrapeAndUpload(IMetricsScraper scraper, IMetricsPublisher publisher, Dictionary<string, string> testSpecificTags)
+        public MetricsScrapeAndUpload(IMetricsScraper scraper, IMetricsPublisher publisher, Dictionary<string, string> additionalTags)
         {
             this.scraper = Preconditions.CheckNotNull(scraper);
             this.publisher = Preconditions.CheckNotNull(publisher);
-            this.testSpecificTags = Preconditions.CheckNotNull(testSpecificTags);
+            this.additionalTags = Preconditions.CheckNotNull(additionalTags);
         }
 
         public void Start(TimeSpan scrapeAndUploadInterval)
@@ -55,7 +55,7 @@ namespace MetricsCollector
             foreach (Metric metric in metrics)
             {
                 Dictionary<string, string> metricTags = new Dictionary<string, string>(metric.Tags);
-                foreach (KeyValuePair<string, string> pair in this.testSpecificTags)
+                foreach (KeyValuePair<string, string> pair in this.additionalTags)
                 {
                     metricTags[pair.Key] = pair.Value;
                 }
