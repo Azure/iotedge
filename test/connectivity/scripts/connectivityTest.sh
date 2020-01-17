@@ -255,7 +255,7 @@ function run_connectivity_test() {
     test_setup && funcRet=$? || funcRet=$?
     if [ $funcRet -ne 0 ]; then return $funcRet; fi
 
-    local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-connect"
+    local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-connect-$(get_hash 8)"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run connectivity test with -d '$device_id' started at $test_start_time"
