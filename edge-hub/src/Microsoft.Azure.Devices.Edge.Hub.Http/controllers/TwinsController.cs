@@ -135,7 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             static readonly IMetricsTimer DirectMethodsTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "direct_method_duration_seconds",
                 "Time taken to call direct method",
-                new List<string> { "to", "from" });
+                new List<string> { "from", "to" });
 
             public static IDisposable TimeDirectMethod(string fromId, string toId) => DirectMethodsTimer.GetTimer(new[] { fromId, toId });
         }
