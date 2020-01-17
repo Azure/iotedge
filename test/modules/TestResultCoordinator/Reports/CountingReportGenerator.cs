@@ -70,8 +70,8 @@ namespace TestResultCoordinator.Reports
 
             while (hasExpectedResult && hasActualResult)
             {
-                this.ValidateDataSource(this.ExpectedTestResults.Current, this.ExpectedSource);
-                this.ValidateDataSource(this.ActualTestResults.Current, this.ActualSource);
+                this.ValidateResult(this.ExpectedTestResults.Current, this.ExpectedSource);
+                this.ValidateResult(this.ActualTestResults.Current, this.ActualSource);
 
                 // Skip any duplicate actual value
                 while (hasActualResult && this.TestResultComparer.Matches(lastLoadedResult, this.ActualTestResults.Current))
@@ -133,11 +133,16 @@ namespace TestResultCoordinator.Reports
                 unmatchedResults.AsReadOnly());
         }
 
-        void ValidateDataSource(TestOperationResult current, string expectedSource)
+        void ValidateResult(TestOperationResult current, string expectedSource)
         {
             if (!current.Source.Equals(expectedSource, StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidDataException($"Result source is '{current.Source}' but expected should be '{expectedSource}'.");
+            }
+
+            if (!current.Type.Equals(this.ResultType, StringComparison.Ordinal))
+            {
+                throw new InvalidDataException($"Result type is '{current.Type}' but expected should be '{this.ResultType}'.");
             }
         }
     }

@@ -92,6 +92,18 @@ namespace TestResultCoordinator.Reports
                         networkStatusTimeline);
                 }
 
+                case TestReportType.NetworkControllerReport:
+                    {
+                        var metadata = (NetworkControllerReportMetadata)testReportMetadata;
+                        var testResults = this.GetResults(metadata.Source);
+
+                        return new NetworkControllerReportGenerator(
+                            trackingId,
+                            metadata.Source,
+                            testResults);
+                    }
+
+
                 default:
                 {
                     throw new NotSupportedException($"Report type {testReportMetadata.TestReportType} is not supported.");
