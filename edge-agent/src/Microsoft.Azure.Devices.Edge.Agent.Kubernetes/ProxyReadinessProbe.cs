@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 HttpResponseMessage response = await this.client.GetAsync($"/systeminfo?api-version={this.apiVersion}", token);
                 return response.StatusCode == HttpStatusCode.OK ? ProxyReadiness.Ready : ProxyReadiness.Failed;
             }
-            catch (OperationCanceledException)
+            catch
             {
                 return ProxyReadiness.NotReady;
             }
