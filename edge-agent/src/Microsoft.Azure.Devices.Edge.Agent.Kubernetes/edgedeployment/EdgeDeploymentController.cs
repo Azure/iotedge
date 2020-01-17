@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     {
         readonly IKubernetes client;
         readonly ResourceName resourceName;
-        readonly string deploymentSelector;
+        readonly string deviceSelector;
         readonly string deviceNamespace;
         readonly IModuleIdentityLifecycleManager moduleIdentityLifecycleManager;
         readonly IKubernetesServiceMapper serviceMapper;
@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
         public EdgeDeploymentController(
             ResourceName resourceName,
-            string deploymentSelector,
+            string deviceSelector,
             string deviceNamespace,
             IKubernetes client,
             IModuleIdentityLifecycleManager moduleIdentityLifecycleManager,
@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             IKubernetesServiceAccountMapper serviceAccountMapper)
         {
             this.resourceName = resourceName;
-            this.deploymentSelector = deploymentSelector;
+            this.deviceSelector = deviceSelector;
             this.deviceNamespace = deviceNamespace;
             this.moduleIdentityLifecycleManager = moduleIdentityLifecycleManager;
             this.client = client;
@@ -87,14 +87,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     .FilterMap()
                     .ToList();
 
-                V1ServiceList currentServices = await this.client.ListNamespacedServiceAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
+                V1ServiceList currentServices = await this.client.ListNamespacedServiceAsync(this.deviceNamespace, labelSelector: this.deviceSelector);
                 await this.ManageServices(currentServices, desiredServices);
 
                 var desiredDeployments = desiredModules.Modules
                     .Select(module => this.deploymentMapper.CreateDeployment(moduleIdentities[module.Key], (KubernetesModule)module.Value, labels[module.Key]))
                     .ToList();
 
-                V1DeploymentList currentDeployments = await this.client.ListNamespacedDeploymentAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
+                V1DeploymentList currentDeployments = await this.client.ListNamespacedDeploymentAsync(this.deviceNamespace, labelSelector: this.deviceSelector);
                 await this.ManageDeployments(currentDeployments, desiredDeployments);
 
                 var desiredPvcs = desiredModules.Modules
@@ -111,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     .Select(module => this.serviceAccountMapper.CreateServiceAccount((KubernetesModule)module.Value, moduleIdentities[module.Key], labels[module.Key]))
                     .ToList();
 
-                V1ServiceAccountList currentServiceAccounts = await this.client.ListNamespacedServiceAccountAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
+                V1ServiceAccountList currentServiceAccounts = await this.client.ListNamespacedServiceAccountAsync(this.deviceNamespace, labelSelector: this.deviceSelector);
                 await this.ManageServiceAccounts(currentServiceAccounts, desiredServiceAccounts);
 
                 return EdgeDeploymentStatus.Success("Successfully deployed");
