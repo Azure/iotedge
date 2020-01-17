@@ -15,6 +15,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "hub", "hub", "{5037265C-7AB
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "util", "util", "{F7D7DD5B-42E1-4E62-8951-514A8711F96D}"
 	ProjectSection(SolutionItems) = preProject
+		test\modules\TestResultCoordinator\Reports\DirectMethod\DirectMethodReportGenerator.cs = test\modules\TestResultCoordinator\Reports\DirectMethod\DirectMethodReportGenerator.cs
 		edge-util\README.md = edge-util\README.md
 	EndProjectSection
 EndProject
@@ -213,7 +214,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TwinTester", "test\modules\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeploymentTester", "test\modules\DeploymentTester\DeploymentTester.csproj", "{1C1C8203-CD73-4CC1-9112-7315F9DE1AB6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Agent.Integration.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Integration.Test\Microsoft.Azure.Devices.Edge.Agent.Integration.Test.csproj", "{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Integration.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Integration.Test\Microsoft.Azure.Devices.Edge.Agent.Integration.Test.csproj", "{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -623,14 +624,6 @@ Global
 		{4B0F95CF-E696-450F-B7F6-35E361C91777}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4B0F95CF-E696-450F-B7F6-35E361C91777}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4B0F95CF-E696-450F-B7F6-35E361C91777}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.CheckInBuild|Any CPU.ActiveCfg = Debug|Any CPU
-		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.CheckInBuild|Any CPU.Build.0 = Debug|Any CPU
-		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
-		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
-		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.Release|Any CPU.Build.0 = Release|Any CPU
 		{8C964A2F-A163-421C-B262-BE9C81B555BC}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
 		{8C964A2F-A163-421C-B262-BE9C81B555BC}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
 		{8C964A2F-A163-421C-B262-BE9C81B555BC}.CodeCoverage|Any CPU.ActiveCfg = CodeCoverage|Any CPU
@@ -711,6 +704,14 @@ Global
 		{1C1C8203-CD73-4CC1-9112-7315F9DE1AB6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1C1C8203-CD73-4CC1-9112-7315F9DE1AB6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1C1C8203-CD73-4CC1-9112-7315F9DE1AB6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.CheckInBuild|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.CheckInBuild|Any CPU.Build.0 = Debug|Any CPU
+		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
+		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

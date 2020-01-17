@@ -10,7 +10,6 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Storage;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Moq;
     using Newtonsoft.Json;
     using Xunit;
@@ -187,7 +186,28 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                         // MismatchFailure is the presence of 11 in the actualStoreValues
                     },
                     10, 3, 2, 1, 1, 1, 1, 1, 1, false
-                }
+                },
+                new object[]
+                {
+                    Enumerable.Range(1, 10).Select(v => v.ToString()),
+                    new string[] { },
+                    new int[] { 200, 200, 200, 500, 500, 500, 500, 200, 200, 200 },
+                    new DateTime[]
+                    {
+                        // Smoke test for mixed results for edgeAgent scenario (aka when there are no receiverResults)
+                        new DateTime(2020, 1, 1, 9, 10, 12, 10), // NetworkOnSuccess
+                        new DateTime(2020, 1, 1, 9, 10, 13, 10), // NetworkOnSuccess
+                        new DateTime(2020, 1, 1, 9, 10, 15, 11), // NetworkOffToleratedSuccess
+                        new DateTime(2020, 1, 1, 9, 10, 17, 10), // NetworkOffSuccess
+                        new DateTime(2020, 1, 1, 9, 10, 18, 10), // NetworkOffSuccess
+                        new DateTime(2020, 1, 1, 9, 10, 20, 12), // NetworkOnToleratedSuccess
+                        new DateTime(2020, 1, 1, 9, 10, 21, 15), // NetworkOnFailure
+                        new DateTime(2020, 1, 1, 9, 10, 24, 15), // NetworkOnSuccess
+                        new DateTime(2020, 1, 1, 9, 10, 24, 17), // NetworkOnSuccess
+                        new DateTime(2020, 1, 1, 9, 10, 25, 20) // NetworkOffFailure
+                    },
+                    10, 4, 2, 1, 1, 1, 1, 0, 0, false
+                },
             };
 
         static NetworkStatusTimeline NetworkStatusTimeline => MockNetworkStatusTimeline.GetMockAsync(new TimeSpan(0, 0, 0, 0, 5)).Result;
@@ -195,30 +215,30 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         [Fact]
         public void TestConstructorSuccess()
         {
-            string expectedSource = "expectedSource";
-            string actualSource = "actualSource";
+            string senderSource = "senderSource";
+            string receiverSource = "receiverSource";
             int batchSize = 10;
             string resultType = "resultType1";
 
-            var mockExpectedStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var expectedResults = new StoreTestResultCollection<TestOperationResult>(mockExpectedStore.Object, batchSize);
-            var mockActualStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
+            var mockSenderStore = new Mock<ISequentialStore<TestOperationResult>>();
+            var senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
+            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
+            var receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
 
             var reportGenerator = new DirectMethodReportGenerator(
                 Guid.NewGuid().ToString(),
-                expectedSource,
-                expectedResults,
-                actualSource,
-                actualResults,
+                senderSource,
+                senderResults,
+                receiverSource,
+                receiverResults,
                 resultType,
                 new DirectMethodTestOperationResultComparer(),
                 NetworkStatusTimeline);
 
-            Assert.Equal(actualSource, reportGenerator.ActualSource);
-            Assert.Equal(actualResults, reportGenerator.ActualTestResults);
-            Assert.Equal(expectedSource, reportGenerator.ExpectedSource);
-            Assert.Equal(expectedResults, reportGenerator.ExpectedTestResults);
+            Assert.Equal(receiverSource, reportGenerator.ReceiverSource);
+            Assert.Equal(senderResults, reportGenerator.SenderTestResults);
+            Assert.Equal(senderSource, reportGenerator.SenderSource);
+            Assert.Equal(receiverResults, reportGenerator.ReceiverTestResults);
             Assert.Equal(resultType, reportGenerator.ResultType);
             Assert.Equal(typeof(DirectMethodTestOperationResultComparer), reportGenerator.TestResultComparer.GetType());
         }
@@ -229,17 +249,17 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         public void TestConstructorThrowsWhenTrackingIdIsNotProvided(string trackingId)
         {
             int batchSize = 10;
-            var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();
-            var mockActualStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
+            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
+            var receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodReportGenerator(
                     trackingId,
-                    "expectedSource",
-                    mockExpectedResults.Object,
-                    "actualSource",
-                    actualResults,
+                    "senderSource",
+                    mockSenderResults.Object,
+                    "receiverSource",
+                    receiverResults,
                     "resultType1",
                     new DirectMethodTestOperationResultComparer(),
                     NetworkStatusTimeline));
@@ -250,92 +270,89 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         [Theory]
         [InlineData(null)]
         [InlineData("")]
-        public void TestConstructorThrowsWhenExpectedSourceIsNotProvided(string expectedSource)
+        public void TestConstructorThrowsWhenSenderSourceIsNotProvided(string senderSource)
         {
             int batchSize = 10;
-            var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();
-            var mockActualStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
+            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
+            var receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodReportGenerator(
                     Guid.NewGuid().ToString(),
-                    expectedSource,
-                    mockExpectedResults.Object,
-                    "actualSource",
-                    actualResults,
+                    senderSource,
+                    mockSenderResults.Object,
+                    "receiverSource",
+                    receiverResults,
                     "resultType1",
                     new DirectMethodTestOperationResultComparer(),
                     NetworkStatusTimeline));
 
-            Assert.StartsWith("expectedSource", ex.Message);
+            Assert.StartsWith("senderSource", ex.Message);
         }
 
         [Fact]
-        public void TestConstructorThrowsWhenExpectedStoreIsNotProvided()
+        public void TestConstructorThrowsWhenSenderStoreIsNotProvided()
         {
             int batchSize = 10;
-            var mockActualStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
+            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
+            var receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new DirectMethodReportGenerator(
                     Guid.NewGuid().ToString(),
-                    "expectedSource",
+                    "senderSource",
                     null,
-                    "actualSource",
-                    actualResults,
+                    "receiverSource",
+                    receiverResults,
                     "resultType1",
                     new DirectMethodTestOperationResultComparer(),
                     NetworkStatusTimeline));
 
-            Assert.Equal("expectedTestResults", ex.ParamName);
+            Assert.Equal("senderTestResults", ex.ParamName);
         }
 
         [Theory]
         [InlineData(null)]
         [InlineData("")]
-        public void TestConstructorThrowsWhenActualSourceIsNotProvided(string actualSource)
+        public void TestConstructorThrowsWhenActualSourceIsNotProvided(string receiverSource)
         {
             int batchSize = 10;
-            var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();
-            var mockActualStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
+            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
+            var receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodReportGenerator(
                     Guid.NewGuid().ToString(),
-                    "expectedSource",
-                    mockExpectedResults.Object,
-                    actualSource,
-                    actualResults,
+                    "senderSource",
+                    mockSenderResults.Object,
+                    receiverSource,
+                    receiverResults,
                     "resultType1",
                     new DirectMethodTestOperationResultComparer(),
                     NetworkStatusTimeline));
 
-            Assert.StartsWith("actualSource", ex.Message);
+            Assert.StartsWith("receiverSource", ex.Message);
         }
 
         [Fact]
         public void TestConstructorThrowsWhenActualStoreIsNotProvided()
         {
-            int batchSize = 10;
-            var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();
-            var mockActualStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
+            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new DirectMethodReportGenerator(
                     Guid.NewGuid().ToString(),
-                    "expectedSource",
-                    mockExpectedResults.Object,
-                    "actualSource",
+                    "senderSource",
+                    mockSenderResults.Object,
+                    "receiverSource",
                     null,
                     "resultType1",
                     new DirectMethodTestOperationResultComparer(),
                     NetworkStatusTimeline));
 
-            Assert.Equal("actualTestResults", ex.ParamName);
+            Assert.Equal("ReceiverTestResults", ex.ParamName);
         }
 
         [Theory]
@@ -344,17 +361,17 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         public void TestConstructorThrowsWhenResultTypeIsNotProvided(string resultType)
         {
             int batchSize = 10;
-            var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();
-            var mockActualStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
+            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
+            var receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodReportGenerator(
                     Guid.NewGuid().ToString(),
-                    "expectedSource",
-                    mockExpectedResults.Object,
-                    "actualSource",
-                    actualResults,
+                    "senderSource",
+                    mockSenderResults.Object,
+                    "receiverSource",
+                    receiverResults,
                     resultType,
                     new DirectMethodTestOperationResultComparer(),
                     NetworkStatusTimeline));
@@ -366,17 +383,17 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         public void TestConstructorThrowsWhenTestResultComparerIsNotProvided()
         {
             int batchSize = 10;
-            var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();
-            var mockActualStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
+            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
+            var receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new DirectMethodReportGenerator(
                     Guid.NewGuid().ToString(),
-                    "expectedSource",
-                    mockExpectedResults.Object,
-                    "actualSource",
-                    actualResults,
+                    "senderSource",
+                    mockSenderResults.Object,
+                    "receiverSource",
+                    receiverResults,
                     "resultType1",
                     null,
                     NetworkStatusTimeline));
@@ -387,21 +404,21 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         [Fact]
         public async Task TestCreateReportAsyncWithEmptyResults()
         {
-            string expectedSource = "expectedSource";
-            string actualSource = "actualSource";
+            string senderSource = "senderSource";
+            string receiverSource = "receiverSource";
             int batchSize = 10;
 
-            var mockExpectedStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var expectedResults = new StoreTestResultCollection<TestOperationResult>(mockExpectedStore.Object, batchSize);
-            var mockActualStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
+            var mockSenderStore = new Mock<ISequentialStore<TestOperationResult>>();
+            var senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
+            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
+            var receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
 
             var reportGenerator = new DirectMethodReportGenerator(
                 Guid.NewGuid().ToString(),
-                expectedSource,
-                expectedResults,
-                actualSource,
-                actualResults,
+                senderSource,
+                senderResults,
+                receiverSource,
+                receiverResults,
                 "resultType1",
                 new DirectMethodTestOperationResultComparer(),
                 NetworkStatusTimeline);
@@ -421,8 +438,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         [Theory]
         [MemberData(nameof(GetCreateReportData))]
         public async Task TestCreateReportAsync(
-            IEnumerable<string> expectedStoreValues,
-            IEnumerable<string> actualStoreValues,
+            IEnumerable<string> senderStoreValues,
+            IEnumerable<string> receiverStoreValues,
             IEnumerable<int> statusCodes,
             IEnumerable<DateTime> timestamps,
             int batchSize,
@@ -436,37 +453,37 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             ulong expectedMismatchFailure,
             bool expectedIsPassed)
         {
-            string expectedSource = "expectedSource";
-            string actualSource = "actualSource";
+            string senderSource = "senderSource";
+            string receiverSource = "receiverSource";
             string resultType = TestOperationResultType.DirectMethod.ToString();
 
-            var mockExpectedStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var expectedResults = new StoreTestResultCollection<TestOperationResult>(mockExpectedStore.Object, batchSize);
-            var mockActualStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
+            var mockSenderStore = new Mock<ISequentialStore<TestOperationResult>>();
+            var senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
+            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
+            var receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
 
             var reportGenerator = new DirectMethodReportGenerator(
                 Guid.NewGuid().ToString(),
-                expectedSource,
-                expectedResults,
-                actualSource,
-                actualResults,
+                senderSource,
+                senderResults,
+                receiverSource,
+                receiverResults,
                 resultType,
                 new DirectMethodTestOperationResultComparer(),
                 NetworkStatusTimeline);
 
-            var expectedStoreData = GetExpectedStoreData(expectedSource, resultType, expectedStoreValues, statusCodes, timestamps);
-            for (int i = 0; i < expectedStoreData.Count; i += batchSize)
+            var senderStoreData = GetSenderStoreData(senderSource, resultType, senderStoreValues, statusCodes, timestamps);
+            for (int i = 0; i < senderStoreData.Count; i += batchSize)
             {
                 int startingOffset = i;
-                mockExpectedStore.Setup(s => s.GetBatch(startingOffset, batchSize)).ReturnsAsync(expectedStoreData.Skip(startingOffset).Take(batchSize));
+                mockSenderStore.Setup(s => s.GetBatch(startingOffset, batchSize)).ReturnsAsync(senderStoreData.Skip(startingOffset).Take(batchSize));
             }
 
-            var actualStoreData = GetActualStoreData(actualSource, resultType, actualStoreValues, timestamps);
-            for (int j = 0; j < expectedStoreData.Count; j += batchSize)
+            var receiverStoreData = GetReceiverStoreData(receiverSource, resultType, receiverStoreValues, timestamps);
+            for (int j = 0; j < senderStoreData.Count; j += batchSize)
             {
                 int startingOffset = j;
-                mockActualStore.Setup(s => s.GetBatch(startingOffset, batchSize)).ReturnsAsync(actualStoreData.Skip(startingOffset).Take(batchSize));
+                mockReceiverStore.Setup(s => s.GetBatch(startingOffset, batchSize)).ReturnsAsync(receiverStoreData.Skip(startingOffset).Take(batchSize));
             }
 
             var report = (DirectMethodReport)await reportGenerator.CreateReportAsync();
@@ -482,7 +499,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             Assert.Equal(expectedIsPassed, report.IsPassed);
         }
 
-        static List<(long, TestOperationResult)> GetExpectedStoreData(
+        static List<(long, TestOperationResult)> GetSenderStoreData(
             string source,
             string resultType,
             IEnumerable<string> resultValues,
@@ -509,7 +526,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             return storeData;
         }
 
-        static List<(long, TestOperationResult)> GetActualStoreData(
+        static List<(long, TestOperationResult)> GetReceiverStoreData(
             string source,
             string resultType,
             IEnumerable<string> resultValues,
