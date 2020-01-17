@@ -21,9 +21,12 @@ namespace MetricsCollector
             int scrapeFrequencySecs,
             UploadTarget uploadTarget)
         {
-            this.LogAnalyticsWorkspaceId = Preconditions.CheckNonWhiteSpace(logAnalyticsWorkspaceId, nameof(logAnalyticsWorkspaceId));
-            this.LogAnalyticsWorkspaceKey = Preconditions.CheckNonWhiteSpace(logAnalyticsWorkspaceKey, nameof(logAnalyticsWorkspaceKey));
-            this.LogAnalyticsLogType = Preconditions.CheckNonWhiteSpace(logAnalyticsLogType, nameof(logAnalyticsLogType));
+            if (uploadTarget == UploadTarget.AzureLogAnalytics)
+            {
+                this.LogAnalyticsWorkspaceId = Preconditions.CheckNonWhiteSpace(logAnalyticsWorkspaceId, nameof(logAnalyticsWorkspaceId));
+                this.LogAnalyticsWorkspaceKey = Preconditions.CheckNonWhiteSpace(logAnalyticsWorkspaceKey, nameof(logAnalyticsWorkspaceKey));
+                this.LogAnalyticsLogType = Preconditions.CheckNonWhiteSpace(logAnalyticsLogType, nameof(logAnalyticsLogType));
+            }
 
             this.Endpoints = new List<string>();
             foreach (string endpoint in endpoints.Split(","))
@@ -36,7 +39,7 @@ namespace MetricsCollector
 
             if (this.Endpoints.Count == 0)
             {
-                throw new ArgumentException("No endpoints specified to scrape metrics");
+                throw new ArgumentException("No endpoints specified for which to scrape metrics");
             }
 
             this.ScrapeFrequencySecs = Preconditions.CheckRange(scrapeFrequencySecs, 1);
