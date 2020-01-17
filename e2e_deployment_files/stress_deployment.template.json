@@ -362,7 +362,8 @@
     "metricsCollector": {
       "properties.desired": {
         "testType": "stress",
-        "testId": "<TrackingId>"
+        "testId": "<TrackingId>",
+        "upstreamProtocol": "amqp"
       }
     }
   }

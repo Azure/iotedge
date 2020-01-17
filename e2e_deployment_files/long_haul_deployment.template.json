@@ -442,7 +442,8 @@
     "metricsCollector": {
       "properties.desired": {
         "testType": "longhaul",
-        "testId": "<TrackingId>"
+        "testId": "<TrackingId>",
+        "upstreamProtocol": "amqp"
       }
     }
   }
