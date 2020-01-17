@@ -285,7 +285,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 string managementUri = configuration.GetValue<string>(Constants.EdgeletManagementUriVariableName);
                 string apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
                 ProxyReadinessProbe probe = new ProxyReadinessProbe(new Uri(managementUri), apiVersion);
-                await probe.WaitUntilProxyIsReady();
+
+                CancellationTokenSource tokenSource = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+                await probe.WaitUntilProxyIsReady(tokenSource.Token);
 
                 // Start environment operator
                 IKubernetesEnvironmentOperator environmentOperator = container.Resolve<IKubernetesEnvironmentOperator>();

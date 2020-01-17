@@ -34,10 +34,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
         }
 
-        public async Task WaitUntilProxyIsReady()
+        public async Task WaitUntilProxyIsReady(CancellationToken token)
         {
             while (true)
             {
+                if (token.IsCancellationRequested)
+                {
+                    throw new ProxyReadinessProbeException("All proxy readiness attempts exhausted.");
+                }
+
                 CancellationTokenSource tokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(5));
                 ProxyReadiness readiness = await this.CheckAsync(tokenSource.Token);
                 Events.CheckHealth(readiness);
@@ -68,6 +73,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
             internal static void CheckHealth(ProxyReadiness readiness)
                 => Log.LogDebug((int)EventIds.CheckHealth, $"Proxy container readiness state: {readiness}");
+        }
+    }
+
+    public class ProxyReadinessProbeException : Exception
+    {
+        public ProxyReadinessProbeException(string message)
+            : base(message)
+        {
         }
     }
 }
