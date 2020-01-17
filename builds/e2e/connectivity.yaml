@@ -11,6 +11,7 @@ jobs:
 ################################################################################
     displayName: Linux AMD64 Moby
     condition: and(eq(variables['run.linux.amd64.moby'], 'true'), ne(variables['agent.group'], ''))
+    timeoutInMinutes: 120
     pool:
       name: $(pool.name)
       demands:
@@ -81,6 +82,7 @@ jobs:
 ################################################################################
     displayName: Linux ARM32v7 Moby
     condition: and(eq(variables['run.linux.arm32v7.moby'], 'true'), ne(variables['agent.group'], ''))
+    timeoutInMinutes: 120
     pool:
       name: $(pool.name)
       demands:
