@@ -79,8 +79,8 @@ namespace MetricsCollector
         {
             var fields = new Dictionary<string, string>()
             {
-                { nameof(this.LogAnalyticsWorkspaceId), this.LogAnalyticsWorkspaceId },
-                { nameof(this.LogAnalyticsLogType), this.LogAnalyticsLogType },
+                { nameof(this.LogAnalyticsWorkspaceId), this.LogAnalyticsWorkspaceId ?? string.Empty },
+                { nameof(this.LogAnalyticsLogType), this.LogAnalyticsLogType ?? string.Empty },
                 { nameof(this.Endpoints), JsonConvert.SerializeObject(this.Endpoints, Formatting.Indented) },
                 { nameof(this.ScrapeFrequencySecs), this.ScrapeFrequencySecs.ToString() },
                 { nameof(this.UploadTarget), Enum.GetName(typeof(UploadTarget), this.UploadTarget) }
