@@ -1,34 +1,32 @@
 // Copyright (c) Microsoft. All rights reserved.
-
-namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.ServiceAccount
+namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
 {
     using System.Collections.Generic;
     using k8s.Models;
-    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.ServiceAccount;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Xunit;
-
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
-    [Unit]
-    public class KubernetesServiceAccountByValueComparerTest
+    public class KubernetesImagePullSecretBySecretDataEqualityComparerTest
     {
-        static readonly KubernetesServiceAccountByValueEqualityComparer Comparer = new KubernetesServiceAccountByValueEqualityComparer();
+        static readonly KubernetesImagePullSecretBySecretDataEqualityComparer Comparer = new KubernetesImagePullSecretBySecretDataEqualityComparer();
 
         [Fact]
         public void ReferenceComparisonTest()
         {
-            var pvc1 = new V1ServiceAccount();
-            var pvc2 = pvc1;
-            Assert.True(Comparer.Equals(pvc1, pvc2));
-            Assert.False(Comparer.Equals(null, pvc2));
-            Assert.False(Comparer.Equals(pvc1, null));
+            var secret1 = new V1Secret();
+            var secret2 = secret1;
+
+            Assert.True(Comparer.Equals(secret1, secret2));
+
+            Assert.False(Comparer.Equals(null, secret2));
+            Assert.False(Comparer.Equals(secret1, null));
         }
 
         [Fact]
         public void ReturnsFalseIfFieldsAreDifferent()
         {
-            var x = new V1ServiceAccount
+            var x = new V1Secret
             {
                 Metadata = new V1ObjectMeta
                 {
@@ -42,9 +40,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Serv
                         [KubernetesConstants.K8sEdgeHubNameLabel] = "hostname"
                     },
                     Name = "object1"
+                },
+                Data = new Dictionary<string, byte[]>
+                {
+                    [KubernetesConstants.K8sPullSecretData] = new byte[] { 1 }
                 }
             };
-            var y = new V1ServiceAccount
+            var y = new V1Secret
             {
                 Metadata = new V1ObjectMeta
                 {
@@ -58,6 +60,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Serv
                         [KubernetesConstants.K8sEdgeHubNameLabel] = "hostname"
                     },
                     Name = "object1"
+                },
+                Data = new Dictionary<string, byte[]>
+                {
+                    [KubernetesConstants.K8sPullSecretData] = new byte[] { 1 }
                 }
             };
             Assert.True(Comparer.Equals(x, y));
@@ -66,18 +72,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Serv
             Assert.False(Comparer.Equals(x, y));
 
             y.Metadata.Name = "object1";
-            Assert.True(Comparer.Equals(x, y));
-
-            y.Metadata.Annotations = new Dictionary<string, string>
-            {
-                ["newkey"] = "Object1"
-            };
-            Assert.False(Comparer.Equals(x, y));
-
-            y.Metadata.Annotations = new Dictionary<string, string>
-            {
-                [KubernetesConstants.K8sEdgeOriginalModuleId] = "Object1"
-            };
             Assert.True(Comparer.Equals(x, y));
 
             y.Metadata.Labels = new Dictionary<string, string>
@@ -90,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Serv
         [Fact]
         public void IgnoreOtherMetadataTest()
         {
-            var saWithOwnerRef = new V1ServiceAccount
+            var saWithOwnerRef = new V1Secret
             {
                 Metadata = new V1ObjectMeta
                 {
@@ -110,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Serv
                     }
                 }
             };
-            var saWithoutOwnerRef = new V1ServiceAccount
+            var saWithoutOwnerRef = new V1Secret
             {
                 Metadata = new V1ObjectMeta
                 {

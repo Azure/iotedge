@@ -21,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
     {
         readonly IKubernetes client;
         readonly ICommandFactory commandFactory;
+        readonly string deviceSelector;
         readonly string deviceNamespace;
         readonly ResourceName resourceName;
         readonly ICombinedConfigProvider<CombinedKubernetesConfig> configProvider;
@@ -29,14 +30,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
         readonly KubernetesModuleOwner moduleOwner;
 
         public KubernetesPlanner(
-            string deviceNamespace,
             ResourceName resourceName,
+            string deviceSelector,
+            string deviceNamespace,
             IKubernetes client,
             ICommandFactory commandFactory,
             ICombinedConfigProvider<CombinedKubernetesConfig> configProvider,
             KubernetesModuleOwner moduleOwner)
         {
             this.resourceName = Preconditions.CheckNotNull(resourceName, nameof(resourceName));
+            this.deviceSelector = Preconditions.CheckNonWhiteSpace(deviceSelector, nameof(deviceSelector));
             this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace));
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.commandFactory = Preconditions.CheckNotNull(commandFactory, nameof(commandFactory));
@@ -86,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
             if (!moduleDifference.IsEmpty)
             {
                 // The "Plan" here is very simple - if we have any change, publish all desired modules to a EdgeDeployment CRD.
-                var crdCommand = new EdgeDeploymentCommand(this.deviceNamespace, this.resourceName, this.client, desired.Modules.Values, activeDeployment, runtimeInfo, this.configProvider, this.moduleOwner);
+                var crdCommand = new EdgeDeploymentCommand(this.resourceName, this.deviceSelector, this.deviceNamespace, this.client, desired.Modules.Values, activeDeployment, runtimeInfo, this.configProvider, this.moduleOwner);
                 var planCommand = await this.commandFactory.WrapAsync(crdCommand);
                 var planList = new List<ICommand>
                 {
@@ -120,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
             }
             catch (Exception parseException)
             {
-                Events.UnableToListDeployments(this.deviceNamespace, parseException);
+                Events.UnableToGetEdgeDeploymentDefinition(this.deviceNamespace, this.resourceName, parseException);
                 activeDeployment = Option.None<EdgeDeploymentDefinition>();
             }
 
@@ -149,17 +152,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
 
             public static void LogDesired(ModuleSet desired)
             {
-                Log.LogDebug((int)EventIds.DesiredModules, $"List of desired modules is - {string.Join(", ", desired.Modules.Keys)}");
+                Log.LogDebug((int)EventIds.DesiredModules, $"List of desired modules is: [{string.Join(", ", desired.Modules.Keys)}]");
             }
 
             public static void LogCurrent(ModuleSet current)
             {
-                Log.LogDebug((int)EventIds.CurrentModules, $"List of current modules is - {string.Join(", ", current.Modules.Keys)}");
+                Log.LogDebug((int)EventIds.CurrentModules, $"List of current modules is: [{string.Join(", ", current.Modules.Keys)}]");
             }
 
-            public static void UnableToListDeployments(string deviceNamespace, Exception exception)
+            public static void UnableToGetEdgeDeploymentDefinition(string deviceNamespace, ResourceName name, Exception exception)
             {
-                Log.LogDebug((int)EventIds.ListModules, exception, $"Unable to list deployments in namespace {deviceNamespace}");
+                Log.LogDebug((int)EventIds.ListModules, exception, $"Unable to get edge deployment definition: {name} in namespace {deviceNamespace}");
             }
         }
     }
