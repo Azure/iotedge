@@ -216,6 +216,7 @@ function process_args() {
             saveNextArg=0
         elif [ $saveNextArg -eq 24 ]; then
             METRICS_UPLOAD_TARGET="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
