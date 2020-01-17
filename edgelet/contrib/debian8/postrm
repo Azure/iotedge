@@ -2,23 +2,20 @@
 set -e
 
 case "$1" in
-    remove|deconfigure)
+    purge)
         if [ -f /etc/iotedge/config.yaml ]; then
             rm /etc/iotedge/config.yaml
         fi
     ;;
-
-    upgrade)
-    ;;
-
-    failed-upgrade)
+    remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
     ;;
 
     *)
-        echo "prerm called with unknown argument \`$1'" >&2
+        echo "postrm called with unknown argument \`$1'" >&2
         exit 1
     ;;
 esac
+
 
 #DEBHELPER#
 

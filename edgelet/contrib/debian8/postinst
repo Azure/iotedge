@@ -9,7 +9,7 @@ case "$1" in
         if id -u $USER > /dev/null 2>&1; then
             chown ${USER}:${GROUP} /var/lib/iotedge
             chown ${USER}:${GROUP} /var/log/iotedge
-            chown ${USER}:${GROUP} /etc/iotedge/config.yaml
+            chown ${USER}:${GROUP} /etc/iotedge/config.yaml.template
             if [ ! -f /etc/iotedge/config.yaml ]; then
                 cp -a /etc/iotedge/config.yaml.template /etc/iotedge/config.yaml
             fi
