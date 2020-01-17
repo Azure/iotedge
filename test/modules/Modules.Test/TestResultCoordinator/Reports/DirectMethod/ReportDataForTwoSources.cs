@@ -177,28 +177,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                         // MismatchFailure is the presence of 11 in the actualStoreValues
                     },
                     10, 3, 2, 1, 1, 1, 1, 1, 1, false
-                },
-                new object[]
-                {
-                    Enumerable.Range(1, 10).Select(v => v.ToString()),
-                    new string[] { },
-                    new int[] { 200, 200, 200, 500, 500, 500, 500, 200, 200, 200 },
-                    new DateTime[]
-                    {
-                        // Smoke test for mixed results for edgeAgent scenario (aka when there are no receiverResults)
-                        new DateTime(2020, 1, 1, 9, 10, 12, 10), // NetworkOnSuccess
-                        new DateTime(2020, 1, 1, 9, 10, 13, 10), // NetworkOnSuccess
-                        new DateTime(2020, 1, 1, 9, 10, 15, 11), // NetworkOffToleratedSuccess
-                        new DateTime(2020, 1, 1, 9, 10, 17, 10), // NetworkOffSuccess
-                        new DateTime(2020, 1, 1, 9, 10, 18, 10), // NetworkOffSuccess
-                        new DateTime(2020, 1, 1, 9, 10, 20, 12), // NetworkOnToleratedSuccess
-                        new DateTime(2020, 1, 1, 9, 10, 21, 15), // NetworkOnFailure
-                        new DateTime(2020, 1, 1, 9, 10, 24, 15), // NetworkOnSuccess
-                        new DateTime(2020, 1, 1, 9, 10, 24, 17), // NetworkOnSuccess
-                        new DateTime(2020, 1, 1, 9, 10, 25, 20) // NetworkOffFailure
-                    },
-                    10, 4, 2, 1, 1, 1, 1, 0, 0, false
-                },
+                }
             };
     }
 }
