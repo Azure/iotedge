@@ -2,8 +2,10 @@
 namespace TestResultCoordinator.Reports
 {
     using System;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
+    using TestResultCoordinator.Reports.DirectMethod;
     using TestResultCoordinator.Storage;
 
     class TestReportGeneratorFactory : ITestReportGeneratorFactory
@@ -16,7 +18,7 @@ namespace TestResultCoordinator.Reports
             this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
         }
 
-        public ITestResultReportGenerator Create(
+        public async Task<ITestResultReportGenerator> CreateAsync(
             string trackingId,
             ITestReportMetadata testReportMetadata)
         {
@@ -71,11 +73,37 @@ namespace TestResultCoordinator.Reports
                         actualTestResults);
                 }
 
+                case TestReportType.DirectMethodReport:
+                {
+                    var metadata = (DirectMethodReportMetadata)testReportMetadata;
+                    var expectedTestResults = this.GetResults(metadata.ExpectedSource);
+                    var actualTestResults = this.GetResults(metadata.ActualSource);
+                    var tolerancePeriod = metadata.TolerancePeriod;
+                    var networkStatusTimeline = await this.GetNetworkStatusTimelineAsync(tolerancePeriod);
+
+                    return new DirectMethodReportGenerator(
+                        trackingId,
+                        metadata.ExpectedSource,
+                        expectedTestResults,
+                        metadata.ActualSource,
+                        actualTestResults,
+                        metadata.TestOperationResultType.ToString(),
+                        new DirectMethodTestOperationResultComparer(),
+                        networkStatusTimeline);
+                }
+
                 default:
                 {
                     throw new NotSupportedException($"Report type {testReportMetadata.TestReportType} is not supported.");
                 }
             }
+        }
+
+        async Task<NetworkStatusTimeline> GetNetworkStatusTimelineAsync(TimeSpan tolerancePeriod)
+        {
+            return await NetworkStatusTimeline.CreateAsync(
+                new StoreTestResultCollection<TestOperationResult>(this.storage.GetStoreFromSource("networkController"), BatchSize),
+                tolerancePeriod);
         }
 
         ITestResultCollection<TestOperationResult> GetResults(string resultSource)

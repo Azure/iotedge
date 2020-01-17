@@ -318,7 +318,7 @@
             "env": {
               "Logging:LogLevel:Microsoft": {
                 "value": "Error"
-              },            
+              },
               "trackingId": {
                 "value": "<TrackingId>"
               },
@@ -349,7 +349,7 @@
               "logAnalyticsLogType": {
                 "value": "<TestResultCoordinator.LogAnalyticsLogType>"
               },
-              "ServiceClientConnectionString": {
+              "IOT_HUB_CONNECTION_STRING": {
                 "value": "<IoTHubConnectionString>"
               }
             },

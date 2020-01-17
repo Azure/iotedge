@@ -91,6 +91,7 @@ namespace NetworkController
         static async Task RemoveAllControllingRules(IList<INetworkController> controllerList, CancellationToken cancellationToken)
         {
             var reporter = new NetworkStatusReporter(Settings.Current.TestResultCoordinatorEndpoint, Settings.Current.ModuleId, Settings.Current.TrackingId);
+            await reporter.ReportNetworkStatusAsync(NetworkControllerOperation.SettingRule, NetworkControllerStatus.Disabled, NetworkControllerType.All);
 
             foreach (var controller in controllerList)
             {
