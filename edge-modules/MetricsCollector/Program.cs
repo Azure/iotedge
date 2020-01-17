@@ -32,7 +32,7 @@ namespace MetricsCollector
             try
             {
                 moduleClient = await ModuleClient.CreateFromEnvironmentAsync(transportSettings);
-                Dictionary<string, string> testSpecificTags = await GetTestSpecificTagsFromTwin(moduleClient);
+                Dictionary<string, string> additionalTags = await GetAdditionalTagsFromTwin(moduleClient);
 
                 MetricsScraper scraper = new MetricsScraper(Settings.Current.Endpoints);
                 IMetricsPublisher publisher;
@@ -45,12 +45,16 @@ namespace MetricsCollector
                     publisher = new EventHubMetricsUpload(moduleClient);
                 }
 
-                using (MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher, testSpecificTags))
+                using (MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher, additionalTags))
                 {
                     TimeSpan scrapeAndUploadInterval = TimeSpan.FromSeconds(Settings.Current.ScrapeFrequencySecs);
                     metricsScrapeAndUpload.Start(scrapeAndUploadInterval);
                     await cts.Token.WhenCanceled();
                 }
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e, "Error occurred during metrics collection setup.");
             }
             finally
             {
@@ -64,7 +68,7 @@ namespace MetricsCollector
             return 0;
         }
 
-        static async Task<Dictionary<string, string>> GetTestSpecificTagsFromTwin(ModuleClient moduleClient)
+        static async Task<Dictionary<string, string>> GetAdditionalTagsFromTwin(ModuleClient moduleClient)
         {
             Twin twin = await moduleClient.GetTwinAsync();
             return JsonConvert.DeserializeObject<Dictionary<string, string>>(twin.Properties.Desired.ToJson());
