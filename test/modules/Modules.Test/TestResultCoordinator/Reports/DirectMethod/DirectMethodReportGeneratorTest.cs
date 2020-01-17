@@ -291,14 +291,14 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 new DirectMethodTestOperationResultComparer(),
                 NetworkStatusTimeline);
 
-            var senderStoreData = GetSenderStoreData(senderSource, resultType, senderStoreValues, statusCodes, timestamps);
+            var senderStoreData = GetSenderStoreData(senderSource, resultType, senderStoreValues, statusCodes, timestamps, new Guid());
             for (int i = 0; i < senderStoreData.Count; i += batchSize)
             {
                 int startingOffset = i;
                 mockSenderStore.Setup(s => s.GetBatch(startingOffset, batchSize)).ReturnsAsync(senderStoreData.Skip(startingOffset).Take(batchSize));
             }
 
-            var receiverStoreData = GetReceiverStoreData(receiverSource, resultType, receiverStoreValues, timestamps);
+            var receiverStoreData = GetReceiverStoreData(receiverSource, resultType, receiverStoreValues, timestamps, new Guid());
             for (int j = 0; j < senderStoreData.Count; j += batchSize)
             {
                 int startingOffset = j;
@@ -353,7 +353,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 new DirectMethodTestOperationResultComparer(),
                 NetworkStatusTimeline);
 
-            var senderStoreData = GetSenderStoreData(senderSource, resultType, senderStoreValues, statusCodes, timestamps);
+            var senderStoreData = GetSenderStoreData(senderSource, resultType, senderStoreValues, statusCodes, timestamps, new Guid());
             for (int i = 0; i < senderStoreData.Count; i += batchSize)
             {
                 int startingOffset = i;
@@ -379,6 +379,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             IEnumerable<string> resultValues,
             IEnumerable<int> statusCodes,
             IEnumerable<DateTime> timestamps,
+            Guid guid,
             int start = 0)
         {
             var storeData = new List<(long, TestOperationResult)>();
@@ -390,7 +391,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     source,
                     timestamps.ElementAt(i),
                     "1",
-                    Guid.NewGuid(),
+                    guid,
                     resultValues.ElementAt(i),
                     statusCodes.ElementAt(i).ToString());
                 storeData.Add((count, new TestOperationResult(source, resultType, JsonConvert.SerializeObject(directMethodTestResult, Formatting.Indented), timestamps.ElementAt(i))));
@@ -405,6 +406,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             string resultType,
             IEnumerable<string> resultValues,
             IEnumerable<DateTime> timestamps,
+            Guid guid,
             int start = 0)
         {
             var storeData = new List<(long, TestOperationResult)>();
@@ -416,7 +418,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     source,
                     timestamps.ElementAt(i),
                     "1",
-                    Guid.NewGuid(),
+                    guid,
                     resultValues.ElementAt(i),
                     "fakeResult");
                 storeData.Add((count, new TestOperationResult(source, resultType, JsonConvert.SerializeObject(directMethodTestResult, Formatting.Indented), timestamps.ElementAt(i))));

@@ -123,6 +123,11 @@ namespace TestResultCoordinator.Reports.DirectMethod
                                 continue;
                             }
                         }
+                        else
+                        {
+                            throw new InvalidDataException($"Sequence numbers should not match if the testResults didn't match. SenderTestResult: " +
+                                $"{dmSenderTestResult.GetFormattedResult()}. ReceiverTestResult: {dmReceiverTestResult.GetFormattedResult()}");
+                        }
                     }
                     else
                     {
@@ -130,9 +135,10 @@ namespace TestResultCoordinator.Reports.DirectMethod
                     }
                 }
 
+                HttpStatusCode statusCode = (HttpStatusCode)int.Parse(dmSenderTestResult.Result);
                 if (NetworkControllerStatus.Disabled.Equals(networkControllerStatus))
                 {
-                    if (HttpStatusCode.OK.Equals((HttpStatusCode)int.Parse(dmSenderTestResult.Result)))
+                    if (HttpStatusCode.OK.Equals(statusCode))
                     {
                         networkOnSuccess++;
                     }
@@ -150,7 +156,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
                 }
                 else if (NetworkControllerStatus.Enabled.Equals(networkControllerStatus))
                 {
-                    if (HttpStatusCode.InternalServerError.Equals((HttpStatusCode)int.Parse(dmSenderTestResult.Result)))
+                    if (HttpStatusCode.InternalServerError.Equals(statusCode))
                     {
                         networkOffSuccess++;
                     }
@@ -164,6 +170,10 @@ namespace TestResultCoordinator.Reports.DirectMethod
                         {
                             networkOffFailure++;
                         }
+                    }
+                    else
+                    {
+                        throw new InvalidDataException($"Unexpected HttpStatusCode of {statusCode}");
                     }
                 }
 
