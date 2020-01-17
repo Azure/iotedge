@@ -53,7 +53,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                 string from = message.GetSenderId();
                 string to = identity.Id;
 
-                // Note these are switched, because the message's output is edgeHub's input and vice-versa
                 string fromRouteOutput = message.GetOutput();
                 string toRouteInput = message.GetInput();
                 MessagesMeter.Increment(1, new[] { from, to, fromRouteOutput, toRouteInput });
