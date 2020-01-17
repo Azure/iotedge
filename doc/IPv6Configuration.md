@@ -1,17 +1,12 @@
 # IPv6 support in IoT Edge (Linux only)
 
-IoT Edge can be configured to work on Linux devices that are on IPv6 networks. On Linux devices, IoT Edge creates modules in two different docker networks:
-
-1. Default 'bridge' network: This network is created by docker. The Edge Agent module is deployed to this network.
-
-2. Custom 'azure-iot-edge' network: This network is created by `iotedged`. All user defined modules along with Edge Hub are deployed to this network.
+IoT Edge can be configured to work on Linux devices that are on IPv6 networks. On Linux devices, a user-defined network named 'azure-iot-edge' is created by `iotedged`. All modules, including Edge Agent and Edge Hub, are deployed to this network.
 
 To learn more about IoT Edge networking, please refer to the [networking](./networking.md) documentation.
 
 # Device specific configuration
 
-Firstly, to configure docker to create container networks with IPv4/IPv6 dual-stack enabled, the following changes are required on the device:
-(The following steps are based on the [Docker IPv6][1] documentation. Please refer to it for guidance)
+Firstly, to configure docker to create container networks with IPv4/IPv6 dual-stack enabled, the following changes are required on the device (see the [Docker IPv6][1] documentation for further guidance):
 
 ## Configure docker for IPv4/IPv6 dual-stack support
 
@@ -33,13 +28,13 @@ IPv4/IPv6 dual stack support can be enabled on docker using either of the follow
 dockerd --ipv6 --fixed-cidr-v6 "2021:ffff:e0:3b1:0::/80" --dns ["2021:ffff:0:4:fe::6464","10.55.40.50"]
 ```
 
-The value of fixed-cidr-v6 defines the subnet for the docker0 bridge network that gets created on the device. The Edge Agent module is deployed to the bridge network. This subnet can be obtained from your IaaS provider.
+The value of fixed-cidr-v6 defines the subnet for the docker0 bridge network that gets created on the device. This subnet can be obtained from your IaaS provider.
 
 ## Configure the public network interface
 
 As per the [docker IPv6 documentation][1]:
 
-* IPv6 forwarding may interfere with your existing IPv6 configuration. If you are using Router Advertisements to get IPv6 settings for your host’s interfaces, set accept_ra to 2. Otherwise IPv6 enabled forwarding will result in rejecting Router Advertisements. To enable router advertisements, execute the following command:
+* IPv6 forwarding may interfere with your existing IPv6 configuration. If you are using Router Advertisements to get IPv6 settings for your host's interfaces, set accept_ra to 2. Otherwise IPv6 enabled forwarding will result in rejecting router advertisements. To enable router advertisements, execute the following command:
 
 ```bash
 sysctl -w net.ipv6.conf.eth0.accept_ra=2
@@ -78,11 +73,7 @@ This can be achieved by either of the following two methods:
       sudo apt-get install ndppd
       ```
 
-   * Create /etc/ndppd.conf. You will need to define two rule sections for the eth0 network interface (or the public network interface on your device) for the two subnets:
-
-      a. 'docker0' bridge network: This is the network with subnet defined in the daemon.json file.
-
-      b. 'azure-iot-edge' user defined network: The subnet configuration for this network is specified in the config.yaml file of IoT Edge later.
+   * Create /etc/ndppd.conf:
 
       ```conf
       route-ttl 5000
