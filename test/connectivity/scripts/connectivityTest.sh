@@ -8,6 +8,16 @@ set -e
 # Import test-related functions
 . $(dirname "$0")/testHelper.sh
 
+function examine_test_result() {
+    found_test_passed="$(docker logs testResultCoordinator | grep -Pzo 'Test result report\n{\n.*"IsPassed": true')"
+
+    if [[ $found_test_passed -ne "" ]]; then
+        return 0
+    fi
+
+    return 1
+}
+
 function prepare_test_from_artifacts() {
     print_highlighted_message 'Prepare test from artifacts'
 
@@ -55,36 +65,75 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<NetworkController.Mode>@$NETWORK_CONTROLLER_MODE@g" "$deployment_working_file"
     
     sed -i -e "s@<DeploymentTester1.DeploymentUpdatePeriod>@$DEPLOYMENT_TEST_UPDATE_PERIOD@g" "$deployment_working_file"
-    
 }
 
-function print_logs() {
-    local ret=$1
-    local test_end_time=$2
-    local elapsed_seconds=$3
+function print_deployment_logs() {
+    print_highlighted_message 'LOGS FROM IOTEDGED'
+    journalctl -u iotedge -u docker --since "$test_start_time" --no-pager || true
 
-    elapsed_time="$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$elapsed_seconds")"
-    print_highlighted_message "Test completed at $test_end_time, took $elapsed_time."
+    print_highlighted_message 'edgeAgent LOGS'
+    docker logs edgeAgent || true
+}
+
+function print_test_run_logs() {
+    local ret=$1
+
+    print_highlighted_message 'test run exit code=$ret'
+    print_highlighted_message 'Print logs'
+    print_highlighted_message 'testResultCoordinator LOGS'
+    docker logs testResultCoordinator || true
 
     if (( ret < 1 )); then
         return;
     fi
 
-    print_highlighted_message 'Print logs'
     print_highlighted_message 'LOGS FROM IOTEDGED'
     journalctl -u iotedge -u docker --since "$test_start_time" --no-pager || true
 
-    print_highlighted_message 'EDGE AGENT LOGS'
+    print_highlighted_message 'edgeAgent LOGS'
     docker logs edgeAgent || true
 
-    print_highlighted_message 'EDGE HUB LOGS'
+    print_highlighted_message 'edgeHub LOGS'
     docker logs edgeHub || true
-    
-    print_highlighted_message 'LoadGen1 LOGS'
+
+    print_highlighted_message 'loadGen1 LOGS'
     docker logs loadGen1 || true
-    
-    print_highlighted_message 'LoadGen2 LOGS'
+
+    print_highlighted_message 'loadGen2 LOGS'
     docker logs loadGen2 || true
+
+    print_highlighted_message 'relayer1 LOGS'
+    docker logs relayer1 || true
+
+    print_highlighted_message 'relayer2 LOGS'
+    docker logs relayer2 || true
+
+    print_highlighted_message 'directMethodSender1 LOGS'
+    docker logs directMethodSender1 || true
+
+    print_highlighted_message 'directMethodReceiver1 LOGS'
+    docker logs directMethodReceiver1 || true
+
+    print_highlighted_message 'directMethodSender2 LOGS'
+    docker logs directMethodSender2 || true
+
+    print_highlighted_message 'directMethodReceiver2 LOGS'
+    docker logs directMethodReceiver2 || true
+
+    print_highlighted_message 'twinTester1 LOGS'
+    docker logs twinTester1 || true
+
+    print_highlighted_message 'twinTester2 LOGS'
+    docker logs twinTester2 || true
+
+    print_highlighted_message 'twinTester3 LOGS'
+    docker logs twinTester3 || true
+
+    print_highlighted_message 'twinTester4 LOGS'
+    docker logs twinTester4 || true
+
+    print_highlighted_message 'networkController LOGS'
+    docker logs networkController || true
 }
 
 function process_args() {
@@ -152,6 +201,9 @@ function process_args() {
         elif [ $saveNextArg -eq 20 ]; then
             DEPLOYMENT_TEST_UPDATE_PERIOD="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 21 ]; then
+            TIME_FOR_REPORT_GENERATION="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -175,6 +227,8 @@ function process_args() {
                 '-verificationDelay' ) saveNextArg=18;;
                 '-upstreamProtocol' ) saveNextArg=19;;
                 '-deploymentTestUpdatePeriod' ) saveNextArg=20;;
+                '-timeForReportingGeneration' ) saveNextArg=21;;
+                '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
 
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
@@ -222,11 +276,46 @@ function run_connectivity_test() {
         --runtime-log-level "Debug" \
         --no-verify && funcRet=$? || funcRet=$?
 
-    local elapsed_seconds=$SECONDS
-    test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"
-    print_logs $funcRet "$test_end_time" $elapsed_seconds
+    local elapsed_time="$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$SECONDS")"
+    print_highlighted_message "Deploy connectivity test with -d '$device_id' completed in $elapsed_time"
+    
+    if [ $funcRet -ne 0 ]; then
+        print_highlighted_message "Deploy connectivity test failed."
+        print_deployment_logs
+        return $funcRet
+    fi
 
-    return $funcRet
+    print_highlighted_message "Deploy connectivity test succeeded."
+
+    # Delay for (buffer for module download + test start delay + test duration + verification delay + report generation)
+    local module_download_buffer=300
+    local time_for_test_to_complete=$(($module_download_buffer + \
+                                    $(echo $TEST_START_DELAY | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
+                                    $(echo $TEST_DURATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
+                                    $(echo $VERIFICATION_DELAY | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
+                                    $(echo $TIME_FOR_REPORT_GENERATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }')))
+
+    if [ $WAIT_FOR_TEST_COMPLETE -eq 1 ]; then
+        local sleep_frequency_secs=300
+        local total_wait=0
+
+        while [ $total_wait -lt $time_for_test_to_complete ]
+        do
+            sleep "$sleep_frequency_secs"s
+            total_wait=$((total_wait+sleep_frequency_secs))
+            echo "total wait time=$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$total_wait")"
+        done
+
+        test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"
+        print_highlighted_message "Connectivity test should be completed at $test_end_time."
+        $testResult=examine_test_result
+        print_test_run_logs $testResult
+
+        # stop IoT Edge service after test complete to prevent sending metrics
+        sudo systemctl stop iotedge
+    fi
+
+    return $testResult
 }
 
 function test_setup() {
@@ -282,28 +371,30 @@ function usage() {
     echo "$SCRIPT_NAME [options]"
     echo ''
     echo 'options'
-    echo ' -testDir                        Path of E2E test directory which contains artifacts and certs folders; defaul to current directory.'
-    echo ' -releaseLabel                   Release label is used as part of Edge device id to make it unique.'
-    echo ' -artifactImageBuildNumber       Artifact image build number is used to construct path of docker images, pulling from docker registry. E.g. 20190101.1.'
-    echo " -containerRegistry              Host address of container registry."
-    echo " -containerRegistryUsername      Username of container registry."
-    echo ' -containerRegistryPassword      Password of given username for container registory.'
-    echo ' -iotHubConnectionString         IoT hub connection string for creating edge device.'
-    echo ' -eventHubConnectionString       Event hub connection string for receive D2C messages.'
-    echo ' -eventHubConsumerGroupId        Event hub consumer group for receive D2C messages.'
-    echo ' -testDuration                   Connectivity test duration'
-    echo ' -testStartDelay                 Connectivity test start after delay'
-    echo ' -loadGenMessageFrequency        Message frequency sent by load gen' 
-    echo ' -networkControllerFrequency     Frequency for controlling the network with offlineFrequence, onlineFrequence, runsCount. Example "00:05:00 00:05:00 6"' 
-    echo ' -networkControllerMode          OfflineNetworkInterface, OfflineTrafficController or SatelliteTrafficController' 
-    echo ' -logAnalyticsWorkspaceId        Log Analytics Workspace Id'
-    echo ' -logAnalyticsSharedKey          Log Analytics shared key'
-    echo ' -logAnalyticsLogType            Log Analytics log type'
-    echo ' -verificationDelay              Delay before starting the verification after test finished'
-    echo ' -upstreamProtocol               Upstream protocol used to connect to IoT Hub'
-    echo ' -deploymentTestUpdatePeriod     duration of updating deployment of target module in deployment test'
+    echo ' -testDir                         Path of E2E test directory which contains artifacts and certs folders; defaul to current directory.'
+    echo ' -releaseLabel                    Release label is used as part of Edge device id to make it unique.'
+    echo ' -artifactImageBuildNumber        Artifact image build number is used to construct path of docker images, pulling from docker registry. E.g. 20190101.1.'
+    echo " -containerRegistry               Host address of container registry."
+    echo " -containerRegistryUsername       Username of container registry."
+    echo ' -containerRegistryPassword       Password of given username for container registory.'
+    echo ' -iotHubConnectionString          IoT hub connection string for creating edge device.'
+    echo ' -eventHubConnectionString        Event hub connection string for receive D2C messages.'
+    echo ' -eventHubConsumerGroupId         Event hub consumer group for receive D2C messages.'
+    echo ' -testDuration                    Connectivity test duration'
+    echo ' -testStartDelay                  Connectivity test start after delay'
+    echo ' -loadGenMessageFrequency         Message frequency sent by load gen' 
+    echo ' -networkControllerFrequency      Frequency for controlling the network with offlineFrequence, onlineFrequence, runsCount. Example "00:05:00 00:05:00 6"' 
+    echo ' -networkControllerMode           OfflineNetworkInterface, OfflineTrafficController or SatelliteTrafficController' 
+    echo ' -logAnalyticsWorkspaceId         Log Analytics Workspace Id'
+    echo ' -logAnalyticsSharedKey           Log Analytics shared key'
+    echo ' -logAnalyticsLogType             Log Analytics log type'
+    echo ' -verificationDelay               Delay before starting the verification after test finished'
+    echo ' -upstreamProtocol                Upstream protocol used to connect to IoT Hub'
+    echo ' -deploymentTestUpdatePeriod      duration of updating deployment of target module in deployment test'
+    echo ' -timeForReportingGeneration      Time reserved for report generation'
+    echo ' -waitForTestComplete             Wait for test to complete if this parameter is provided.  Otherwise it will finish once deployment is done.'
 
-    echo ' -cleanAll                       Do docker prune for containers, logs and volumes.'
+    echo ' -cleanAll                        Do docker prune for containers, logs and volumes.'
     exit 1;
 }
 
@@ -321,6 +412,7 @@ TEST_START_DELAY="${TEST_START_DELAY:-00:02:00}"
 LOG_ANALYTICS_LOGTYPE="${LOG_ANALYTICS_LOGTYPE:-connectivity}"
 VERIFICATION_DELAY="${VERIFICATION_DELAY:-00:15:00}"
 UPSTREAM_PROTOCOL="${UPSTREAM_PROTOCOL:-Amqp}"
+TIME_FOR_REPORT_GENERATION="${TIME_FOR_REPORT_GENERATION:-00:10:00}"
 
 working_folder="$E2E_TEST_DIR/working"
 quickstart_working_folder="$working_folder/quickstart"
