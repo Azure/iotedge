@@ -291,14 +291,15 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 new DirectMethodTestOperationResultComparer(),
                 NetworkStatusTimeline);
 
-            var senderStoreData = GetSenderStoreData(senderSource, resultType, senderStoreValues, statusCodes, timestamps, default);
+            Guid guid = Guid.NewGuid();
+            var senderStoreData = GetSenderStoreData(senderSource, resultType, senderStoreValues, statusCodes, timestamps, guid);
             for (int i = 0; i < senderStoreData.Count; i += batchSize)
             {
                 int startingOffset = i;
                 mockSenderStore.Setup(s => s.GetBatch(startingOffset, batchSize)).ReturnsAsync(senderStoreData.Skip(startingOffset).Take(batchSize));
             }
 
-            var receiverStoreData = GetReceiverStoreData(receiverSource, resultType, receiverStoreValues, timestamps, default);
+            var receiverStoreData = GetReceiverStoreData(receiverSource, resultType, receiverStoreValues, timestamps, guid);
             for (int j = 0; j < senderStoreData.Count; j += batchSize)
             {
                 int startingOffset = j;
@@ -353,7 +354,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 new DirectMethodTestOperationResultComparer(),
                 NetworkStatusTimeline);
 
-            var senderStoreData = GetSenderStoreData(senderSource, resultType, senderStoreValues, statusCodes, timestamps, default);
+            var senderStoreData = GetSenderStoreData(senderSource, resultType, senderStoreValues, statusCodes, timestamps, Guid.NewGuid());
             for (int i = 0; i < senderStoreData.Count; i += batchSize)
             {
                 int startingOffset = i;
