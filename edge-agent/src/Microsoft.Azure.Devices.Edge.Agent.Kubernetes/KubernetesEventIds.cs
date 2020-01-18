@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public const int KubernetesEnvironmentOperator = EventIdStart + 500;
         public const int KubernetesExperimentalCreateOptions = EventIdStart + 600;
         public const int KubernetesModelValidation = EventIdStart + 700;
-        public const int KubernetesServiceBuilder = EventIdStart + 800;
+        public const int KubernetesProxyHealthProbe = EventIdStart + 800;
         public const int SecretBackup = EventIdStart + 900;
         const int EventIdStart = 200000;
     }
