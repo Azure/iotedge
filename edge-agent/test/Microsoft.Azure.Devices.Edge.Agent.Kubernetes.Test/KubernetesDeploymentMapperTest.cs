@@ -162,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         [Fact]
-        public void EmptyDirMappingForVolume()
+        public void PvcMappingByDefault()
         {
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "ModuleId", Mock.Of<ICredentials>());
             var labels = new Dictionary<string, string>();
@@ -176,7 +176,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             Assert.True(pod != null);
             var podVolume = pod.Spec.Volumes.Single(v => v.Name == "a-volume");
-            Assert.NotNull(podVolume.EmptyDir);
+            Assert.NotNull(podVolume.PersistentVolumeClaim);
+            Assert.Equal("module1-a-volume", podVolume.PersistentVolumeClaim.ClaimName);
+            Assert.True(podVolume.PersistentVolumeClaim.ReadOnlyProperty);
             var podVolumeMount = pod.Spec.Containers.Single(p => p.Name != "proxy").VolumeMounts.Single(vm => vm.Name == "a-volume");
             Assert.Equal("/tmp/volume", podVolumeMount.MountPath);
             Assert.True(podVolumeMount.ReadOnlyProperty);
@@ -214,7 +216,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.True(pod != null);
             var podVolume = pod.Spec.Volumes.Single(v => v.Name == "a-volume");
             Assert.NotNull(podVolume.PersistentVolumeClaim);
-
             Assert.Equal("module1-a-volume", podVolume.PersistentVolumeClaim.ClaimName);
             Assert.True(podVolume.PersistentVolumeClaim.ReadOnlyProperty);
             var podVolumeMount = pod.Spec.Containers.Single(p => p.Name != "proxy").VolumeMounts.Single(vm => vm.Name == "a-volume");
@@ -280,23 +281,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var experimental = new Dictionary<string, JToken>
             {
                 ["k8s-experimental"] = JToken.Parse(
-                    @"{ 
+                    @"{
                         ""volumes"": [
                           {
                             ""volume"": {
                               ""name"": ""module-config"",
                             },
-                         
+
                           ""volumeMounts"": [
                             {
                               ""name"": ""module-config"",
                               ""mountPath"": ""/etc/module"",
                               ""mountPropagation"": ""None"",
                               ""readOnly"": ""true"",
-                              ""subPath"": """" 
+                              ""subPath"": """"
                             }
                           ]
-                        }  
+                        }
                     ]}")
             };
 
