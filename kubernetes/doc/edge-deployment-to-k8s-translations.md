@@ -165,11 +165,11 @@ Each IoT Edge Module will create one Deployment. This will run the module's spec
             - type = "DirectoryOrCreate".
     - volume mounts from `settings.createOptions.HostConfig.Mounts`
         - name = mount.Source
-        - persistentVolumeClaim is assigned if edge runtime is started with `persistentVolumeName` 
-          or `storageClassName` set.
+        - persistentVolumeClaim is always assigned
+            - if edge runtime is started with `persistentVolumeName` or `storageClassName` set it will create a [Persistent Volume Claim](#PersistentVolumeClaim)
+            - if neither is set Pod will be created but stuck in `Pending` phase not been able to make any progress
             - claimName = module name + mount.Source
             - readOnlyProperty = mount.ReadOnly
-        - emptyDir is assigned otherwise.
     - volume mounts from `settings.k8s-extensions.volumes[*].volume`. Placed in spec as provided.
 - **serviceAccountName** = The module name, sanitized to be a K8s identifier. See [Module Authentication](rbac.md#module-authentication) for details.
 - **nodeSelector** = `settings.k8s-extensions.nodeSelector` Placed in spec as provided.
