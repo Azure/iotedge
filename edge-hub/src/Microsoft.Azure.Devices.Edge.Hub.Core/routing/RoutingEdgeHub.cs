@@ -59,6 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             {
                 IRoutingMessage routingMessage = this.ProcessMessageInternal(message, true);
                 Metrics.AddMessageSize(routingMessage.Size(), identity.Id);
+                Metrics.AddReceivedMessage(identity.Id, message.GetOutput());
                 return this.router.RouteAsync(routingMessage);
             }
         }
@@ -76,6 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     {
                         IRoutingMessage routingMessage = this.ProcessMessageInternal(m, true);
                         Metrics.AddMessageSize(routingMessage.Size(), identity.Id);
+                        Metrics.AddReceivedMessage(identity.Id, m.GetOutput());
                         return routingMessage;
                     });
             return this.router.RouteAsync(routingMessages);
@@ -266,7 +268,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 "Size of messages received by EdgeHub",
                 new List<string> { "id" });
 
+            static readonly IMetricsCounter ReceivedMessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
+                "messages_received",
+                "Number of messages received from client",
+                new List<string> { "id", "route_output" });
+
             public static void AddMessageSize(long size, string id) => MessagesHistogram.Update(size, new[] { id });
+
+            public static void AddReceivedMessage(string id, string output) => ReceivedMessagesCounter.Increment(1, new[] { id, output });
         }
 
         static class MetricsV0
