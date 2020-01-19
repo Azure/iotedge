@@ -23,11 +23,19 @@ function clean_up() {
     fi
 }
 
-function create_iotedge_service_config {
+function create_iotedge_service_config() {
     print_highlighted_message 'Create IoT Edge service config'
     mkdir /etc/systemd/system/iotedge.service.d/ || true
     bash -c "echo '[Service]
 Environment=IOTEDGE_LOG=edgelet=debug' > /etc/systemd/system/iotedge.service.d/override.conf"
+}
+
+function is_build_canceled() {
+    if [ "$AGENT_JOBSTATUS" = "Canceled" ]; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 function get_connectivity_deployment_artifact_file() {
@@ -96,8 +104,7 @@ function get_leafdevice_artifact_file() {
     echo "$path"
 }
 
-function get_hash()
-{
+function get_hash() {
     local length=$1
     local hash=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c $length)
     

@@ -78,7 +78,7 @@ function print_deployment_logs() {
 function print_test_run_logs() {
     local ret=$1
 
-    print_highlighted_message 'test run exit code=$ret'
+    print_highlighted_message "test run exit code=$ret"
     print_highlighted_message 'Print logs'
     print_highlighted_message 'testResultCoordinator LOGS'
     docker logs testResultCoordinator || true
@@ -296,14 +296,19 @@ function run_connectivity_test() {
                                     $(echo $TIME_FOR_REPORT_GENERATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }')))
 
     if [ $WAIT_FOR_TEST_COMPLETE -eq 1 ]; then
+        print_highlighted_message "Time for test to complete=$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$time_for_test_to_complete")"
         local sleep_frequency_secs=300
         local total_wait=0
 
-        while [ $total_wait -lt $time_for_test_to_complete ]
+        printenv | sort
+        echo "Check job status=$AGENT_JOBSTATUS"
+
+        while [ $total_wait -lt $time_for_test_to_complete ] && [ ! $(is_build_canceled) ]
         do
             sleep "$sleep_frequency_secs"s
             total_wait=$((total_wait+sleep_frequency_secs))
             echo "total wait time=$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$total_wait")"
+            echo "Check job status=$AGENT_JOBSTATUS"
         done
 
         test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"
