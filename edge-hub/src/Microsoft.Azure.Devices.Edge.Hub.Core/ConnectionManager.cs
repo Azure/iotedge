@@ -13,11 +13,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
-    using static System.FormattableString;
     using Nito.AsyncEx;
-    using AsyncLock = Util.Concurrency.AsyncLock;
+    using static System.FormattableString;
+    using AsyncLock = Microsoft.Azure.Devices.Edge.Util.Concurrency.AsyncLock;
 
     public class ConnectionManager : IConnectionManager
     {

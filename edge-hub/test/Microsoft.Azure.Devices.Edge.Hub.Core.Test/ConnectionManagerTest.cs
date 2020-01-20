@@ -190,8 +190,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .ReturnsAsync(() => Try.Success(GetCloudConnectionMock()));
 
             var credentialsManager = Mock.Of<ICredentialsCache>();
+            var deviceConnectivityManager = new DeviceConnectivityManager();
 
-            var connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsManager, GetIdentityProvider());
+            var connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsManager, GetIdentityProvider(), deviceConnectivityManager);
             Try<ICloudProxy> module1CloudProxy = await connectionManager.CreateCloudConnectionAsync(module1Credentials);
             Assert.True(module1CloudProxy.Success);
             Assert.NotNull(module1CloudProxy.Value);
@@ -203,7 +204,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Try<ICloudProxy> device1CloudProxy = await connectionManager.CreateCloudConnectionAsync(device1Credentials);
             Assert.True(device1CloudProxy.Success);
 
-            callback?.Invoke(edgeDeviceId, CloudConnectionStatus.Disconnected);
+            deviceConnectivityManager.InvokeDeviceDisconnected();
             Assert.False(module1CloudProxy.Value.IsActive);
             Assert.False(module2CloudProxy.Value.IsActive);
             Assert.False(device1CloudProxy.Value.IsActive);
@@ -946,8 +947,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                     {
                         cloudConnectionMock.SetupGet(dp => dp.IsActive).Returns(false);
                         await cloudProxyMock.CloseAsync();
-                        //cloudConnectionMock.SetupGet(dp => dp.CloudProxy)
-                        //.Callback(async () => { await cloudProxyMock.CloseAsync(); }).Returns(Option.None<ICloudProxy>());
                     });
 
             return cloudConnectionMock.Object;
@@ -975,5 +974,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         static IIdentityProvider GetIdentityProvider() => new IdentityProvider(IotHubHostName);
+
+        class DeviceConnectivityManager : IDeviceConnectivityManager
+        {
+            public event EventHandler DeviceConnected;
+
+            public event EventHandler DeviceDisconnected;
+
+            public Task CallSucceeded() => Task.CompletedTask;
+
+            public Task CallTimedOut() => Task.CompletedTask;
+
+            public void InvokeDeviceConnected() => this.DeviceConnected?.Invoke(null, null);
+
+            public void InvokeDeviceDisconnected() => this.DeviceDisconnected?.Invoke(null, null);
+        }
     }
 }
