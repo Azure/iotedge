@@ -5,8 +5,10 @@ namespace TestResultCoordinator.Reports.DirectMethod
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json;
     using TestResultCoordinator.Reports;
 
+    [JsonConverter(typeof(DirectMethodMetadataJsonConverter))]
     class DirectMethodReportMetadata : ITestReportMetadata
     {
         public DirectMethodReportMetadata(string senderSource, TestReportType testReportType, TimeSpan tolerancePeriod)
