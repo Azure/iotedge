@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
 {
     using System;
     using System.Collections.Generic;
+    using System.Runtime.CompilerServices;
     using System.Threading.Tasks;
     using Microsoft.Azure.Amqp;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -45,13 +46,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             static readonly IMetricsCounter MessagesMeter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "messages_sent",
                 "Messages sent to module",
-                new List<string> { "protocol", "from", "to" });
+                new List<string> { "from", "to", "from_route_output", "to_route_input" });
 
             public static void AddMessage(IIdentity identity, IMessage message)
             {
                 string from = message.GetSenderId();
                 string to = identity.Id;
-                MessagesMeter.Increment(1, new[] { "amqp", from, to });
+
+                string fromRouteOutput = message.GetOutput();
+                string toRouteInput = message.GetInput();
+                MessagesMeter.Increment(1, new[] { from, to, fromRouteOutput, toRouteInput });
             }
         }
     }
