@@ -135,7 +135,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
                     }
                 }
 
-                HttpStatusCode statusCode = (HttpStatusCode)int.Parse(dmSenderTestResult.Result);
+                HttpStatusCode statusCode = (HttpStatusCode)Enum.Parse(typeof(HttpStatusCode), dmSenderTestResult.Result);
                 if (NetworkControllerStatus.Disabled.Equals(networkControllerStatus))
                 {
                     if (HttpStatusCode.OK.Equals(statusCode))
@@ -199,6 +199,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
                 hasReceiverResult = await receiverTestResults.MoveNextAsync();
             }
 
+            Logger.LogInformation($"Successfully finished creating DirectMethodReport for Sources [{this.SenderSource}] and [{this.ReceiverSource}]");
             return new DirectMethodReport(
                 this.trackingId,
                 this.SenderSource,
@@ -228,22 +229,6 @@ namespace TestResultCoordinator.Reports.DirectMethod
             if (!current.Source.Equals(expectedSource, StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidDataException($"Result source is '{current.Source}' but expected it to be '{expectedSource}'.");
-            }
-        }
-
-        struct UnmatchedResultCounts
-        {
-            public ulong NetworkOffSuccess { get; set; }
-            public ulong NetworkOnToleratedSuccess { get; set; }
-            public ulong NetworkOnFailure { get; set; }
-            public ulong MismatchSuccess { get; set; }
-
-            public UnmatchedResultCounts(ulong networkOffSuccess, ulong networkOnToleratedSuccess, ulong networkOnFailure, ulong mismatchSuccess)
-            {
-                this.NetworkOffSuccess = networkOffSuccess;
-                this.NetworkOnToleratedSuccess = networkOnToleratedSuccess;
-                this.NetworkOnFailure = networkOnFailure;
-                this.MismatchSuccess = mismatchSuccess;
             }
         }
     }
