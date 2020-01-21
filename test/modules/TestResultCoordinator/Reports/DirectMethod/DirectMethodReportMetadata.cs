@@ -8,23 +8,21 @@ namespace TestResultCoordinator.Reports.DirectMethod
     using Newtonsoft.Json;
     using TestResultCoordinator.Reports;
 
-    [JsonConverter(typeof(DirectMethodMetadataJsonConverter))]
     class DirectMethodReportMetadata : ITestReportMetadata
     {
-        public DirectMethodReportMetadata(string senderSource, TestReportType testReportType, TimeSpan tolerancePeriod)
+        public DirectMethodReportMetadata(string senderSource, TestReportType testReportType, TimeSpan tolerancePeriod, string receiverSource = "")
         {
             this.SenderSource = senderSource;
-            this.ReceiverSource = Option.None<string>();
             this.TestReportType = testReportType;
             this.TolerancePeriod = tolerancePeriod;
-        }
-
-        public DirectMethodReportMetadata(string senderSource, string receiverSource, TestReportType testReportType, TimeSpan tolerancePeriod)
-        {
-            this.SenderSource = senderSource;
-            this.ReceiverSource = Option.Some(receiverSource);
-            this.TestReportType = testReportType;
-            this.TolerancePeriod = tolerancePeriod;
+            if (receiverSource is null || string.Empty.Equals(receiverSource))
+            {
+                this.ReceiverSource = Option.None<string>();
+            }
+            else
+            {
+                this.ReceiverSource = Option.Some(receiverSource);
+            }
         }
 
         public TimeSpan TolerancePeriod { get; }
