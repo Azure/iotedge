@@ -596,6 +596,78 @@
           "timeToLiveSecs": 86400
         }
       }
+    },
+    "testResultCoordinator": {
+      "properties.desired": {
+        "schemaVersion": "1.0",
+        "reportMetadataList": {
+          "reportMetadata1": {
+              "TestReportType": "CountingReport",
+              "TestOperationResultType": "Messages",
+              "ExpectedSource": "loadGen1.send",
+              "ActualSource": "relayer1.receive"
+          },
+          "reportMetadata2": {
+              "TestReportType": "CountingReport",
+              "TestOperationResultType": "Messages",
+              "ExpectedSource": "relayer1.send",
+              "ActualSource": "relayer1.eventHub"
+          },
+          "reportMetadata3": {
+              "TestReportType": "CountingReport",
+              "TestOperationResultType": "Messages",
+              "ExpectedSource": "loadGen2.send",
+              "ActualSource": "relayer2.receive"
+          },
+          "reportMetadata4": {
+              "TestReportType": "CountingReport",
+              "TestOperationResultType": "Messages",
+              "ExpectedSource": "relayer2.send",
+              "ActualSource": "relayer2.eventHub"
+          },
+          "reportMetadata5": {
+              "TestReportType": "TwinCountingReport",
+              "TwinTestPropertyType": "Desired",
+              "ExpectedSource": "twinTester1.desiredUpdated",
+              "ActualSource": "twinTester2.desiredReceived"
+          },
+          "reportMetadata6": {
+              "TestReportType": "TwinCountingReport",
+              "TwinTestPropertyType": "Reported",
+              "ExpectedSource": "twinTester2.reportedReceived",
+              "ActualSource": "twinTester2.reportedUpdated"
+          },
+          "reportMetadata7": {
+              "TestReportType": "TwinCountingReport",
+              "TwinTestPropertyType": "Desired",
+              "ExpectedSource": "twinTester3.desiredUpdated",
+              "ActualSource": "twinTester4.desiredReceived"
+          },
+          "reportMetadata8": {
+              "TestReportType": "TwinCountingReport",
+              "TwinTestPropertyType": "Reported",
+              "ExpectedSource": "twinTester4.reportedReceived",
+              "ActualSource": "twinTester4.reportedUpdated"
+          },
+          "reportMetadata9": {
+              "TestReportType": "DeploymentTestReport",
+              "ExpectedSource": "deploymentTester1.send",
+              "ActualSource": "deploymentTester2.receive"
+          },
+          "reportMetadata10": {
+              "TestReportType": "DirectMethodReport",
+              "ExpectedSource": "directMethodSender1.send",
+              "ActualSource": "directMethodReceiver1.receive",
+              "TolerancePeriod": "00:00:00.005"
+          },
+          "reportMetadata11": {
+              "TestReportType": "DirectMethodReport",
+              "ExpectedSource": "directMethodSender2.send",
+              "ActualSource": "directMethodReceiver2.receive",
+              "TolerancePeriod": "00:00:00.005"
+          }
+        }
+      }
     }
   }
 }
