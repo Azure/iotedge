@@ -2,7 +2,9 @@
 namespace TestResultCoordinator
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
@@ -33,7 +35,11 @@ namespace TestResultCoordinator
 
             services.AddMvc();
 
+            HashSet<string> sources = Settings.Current.GetResultSourcesAsync(Logger).Result;
+            Logger.LogInformation($"Result sources defined:{Environment.NewLine} {string.Join(Environment.NewLine + Enumerable.Repeat(" ", 5), sources)}");
+
             IStoreProvider storeProvider;
+
             try
             {
                 IDbStoreProvider dbStoreprovider = DbStoreProvider.Create(
@@ -42,7 +48,7 @@ namespace TestResultCoordinator
                         Settings.Current.OptimizeForPerformance,
                         Option.None<ulong>()),
                     this.GetStoragePath(Settings.Current.StoragePath),
-                    Settings.Current.GetResultSources());
+                    sources);
 
                 storeProvider = new StoreProvider(dbStoreprovider);
             }
@@ -55,7 +61,7 @@ namespace TestResultCoordinator
             services.AddSingleton<ITestOperationResultStorage>(
                 TestOperationResultStorage.CreateAsync(
                     storeProvider,
-                    Settings.Current.GetResultSources()).Result);
+                    sources).Result);
 
             services.AddHostedService<TestResultReportingService>();
             services.AddHostedService<TestResultEventReceivingService>();

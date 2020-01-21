@@ -96,6 +96,14 @@ function get_leafdevice_artifact_file() {
     echo "$path"
 }
 
+function get_hash()
+{
+    local length=$1
+    local hash=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c $length)
+    
+    echo "$hash"
+}
+
 function print_error() {
     local message=$1
     local red='\033[0;31m'
