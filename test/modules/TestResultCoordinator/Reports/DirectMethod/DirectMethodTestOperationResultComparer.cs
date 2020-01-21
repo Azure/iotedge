@@ -34,7 +34,6 @@ namespace TestResultCoordinator.Reports.DirectMethod
             DirectMethodTestResult dmtr2 = JsonConvert.DeserializeObject<DirectMethodTestResult>(value2.Result);
 
             return string.Equals(dmtr1.SequenceNumber, dmtr2.SequenceNumber, StringComparison.OrdinalIgnoreCase)
-                && string.Equals(dmtr1.BatchId, dmtr2.BatchId)
                 && string.Equals(dmtr1.TrackingId, dmtr2.TrackingId);
         }
     }
