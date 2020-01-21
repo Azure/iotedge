@@ -196,8 +196,8 @@ namespace Modules.Test.TestResultCoordinator
                 @"{
                     ""reportMetadata"": {
                         ""TestReportType"": ""DirectMethodReport"",
-                        ""ExpectedSource"": ""directMethodSender1.send"",
-                        ""ActualSource"": ""directMethodReceiver1.receive"",
+                        ""SenderSource"": ""directMethodSender1.send"",
+                        ""ReceiverSource"": ""directMethodReceiver1.receive"",
                         ""TolerancePeriod"": ""00:00:00.005""
                     }
                 }";
@@ -209,8 +209,9 @@ namespace Modules.Test.TestResultCoordinator
             Assert.NotNull(reportMetadata);
             Assert.Equal(TestOperationResultType.DirectMethod, reportMetadata.TestOperationResultType);
             Assert.Equal(TestReportType.DirectMethodReport, reportMetadata.TestReportType);
-            Assert.Equal("directMethodSender1.send", reportMetadata.ExpectedSource);
-            Assert.Equal("directMethodReceiver1.receive", reportMetadata.ActualSource);
+            Assert.Equal("directMethodSender1.send", reportMetadata.SenderSource);
+            Assert.True(reportMetadata.ReceiverSource.HasValue);
+            reportMetadata.ReceiverSource.ForEach(x => Assert.Equal("directMethodReceiver1.receive", x));
             Assert.Equal(new TimeSpan(0, 0, 0, 0, 5), reportMetadata.TolerancePeriod);
         }
 
