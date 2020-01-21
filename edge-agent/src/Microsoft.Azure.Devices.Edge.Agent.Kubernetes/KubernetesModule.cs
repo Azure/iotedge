@@ -25,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.ConfigurationInfo = module.ConfigurationInfo ?? new ConfigurationInfo(string.Empty);
             this.Env = module.Env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
             this.ImagePullPolicy = module.ImagePullPolicy;
+            this.Priority = Core.Constants.DefaultPriority;
             this.Config = config;
             this.Owner = owner;
         }
@@ -51,6 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.Env = env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
             this.Config = settings;
             this.ImagePullPolicy = imagePullPolicy;
+            this.Priority = Core.Constants.DefaultPriority;
             this.Owner = owner;
         }
 
@@ -71,6 +73,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         [JsonProperty(PropertyName = "imagePullPolicy")]
         public ImagePullPolicy ImagePullPolicy { get; }
+
+        [JsonIgnore]
+        public uint Priority { get; }
 
         [JsonIgnore]
         public ConfigurationInfo ConfigurationInfo { get; }
@@ -113,6 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 ConfigComparer.Equals(this.Config, other.Config) &&
                 this.RestartPolicy == other.RestartPolicy &&
                 this.ImagePullPolicy == other.ImagePullPolicy &&
+                this.Priority == other.Priority &&
                 EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 
@@ -130,6 +136,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 hashCode = (hashCode * 397) ^ (int)this.DesiredStatus;
                 hashCode = (hashCode * 397) ^ (this.Config != null ? this.Config.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ this.RestartPolicy.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.ImagePullPolicy.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.Priority.GetHashCode();
                 hashCode = (hashCode * 397) ^ EnvDictionaryComparer.GetHashCode(this.Env);
                 return hashCode;
             }
@@ -145,6 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 ConfigComparer.Equals(this.Config, (other as KubernetesModule).Config) &&
                 this.RestartPolicy == other.RestartPolicy &&
                 this.ImagePullPolicy == other.ImagePullPolicy &&
+                this.Priority == other.Priority &&
                 EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 

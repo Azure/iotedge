@@ -15,7 +15,7 @@ namespace TestResultCoordinator.Reports
 
         readonly string trackingId;
 
-        public DeploymentTestReportGenerator(
+        internal DeploymentTestReportGenerator(
             string trackingId,
             string expectedSource,
             ITestResultCollection<TestOperationResult> expectedTestResults,

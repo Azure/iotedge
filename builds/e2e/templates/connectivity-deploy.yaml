@@ -57,5 +57,6 @@ steps:
           -logAnalyticsSharedKey "${{ parameters['testResultCoordinator.logAnalyticsSharedKey'] }}" \
           -logAnalyticsLogType "${{ parameters['testResultCoordinator.logAnalyticsLogType'] }}" \
           -verificationDelay "${{ parameters['testResultCoordinator.verificationDelay'] }}" \
+          -waitForTestComplete \
           -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."

@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.ServiceAccount
+namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.ServiceAccount
 {
     using System.Collections.Generic;
     using k8s.Models;
@@ -13,16 +13,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Serv
     [Unit]
     public class KubernetesServiceAccountByValueComparerTest
     {
-        static KubernetesServiceAccountByValueEqualityComparer comparer = new KubernetesServiceAccountByValueEqualityComparer();
+        static readonly KubernetesServiceAccountByValueEqualityComparer Comparer = new KubernetesServiceAccountByValueEqualityComparer();
 
         [Fact]
         public void ReferenceComparisonTest()
         {
             var pvc1 = new V1ServiceAccount();
             var pvc2 = pvc1;
-            Assert.True(comparer.Equals(pvc1, pvc2));
-            Assert.False(comparer.Equals(null, pvc2));
-            Assert.False(comparer.Equals(pvc1, null));
+            Assert.True(Comparer.Equals(pvc1, pvc2));
+            Assert.False(Comparer.Equals(null, pvc2));
+            Assert.False(Comparer.Equals(pvc1, null));
         }
 
         [Fact]
@@ -60,31 +60,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Serv
                     Name = "object1"
                 }
             };
-            Assert.True(comparer.Equals(x, y));
+            Assert.True(Comparer.Equals(x, y));
 
             y.Metadata.Name = "object2";
-            Assert.False(comparer.Equals(x, y));
+            Assert.False(Comparer.Equals(x, y));
 
             y.Metadata.Name = "object1";
-            Assert.True(comparer.Equals(x, y));
+            Assert.True(Comparer.Equals(x, y));
 
             y.Metadata.Annotations = new Dictionary<string, string>
             {
                 ["newkey"] = "Object1"
             };
-            Assert.False(comparer.Equals(x, y));
+            Assert.False(Comparer.Equals(x, y));
 
             y.Metadata.Annotations = new Dictionary<string, string>
             {
                 [KubernetesConstants.K8sEdgeOriginalModuleId] = "Object1"
             };
-            Assert.True(comparer.Equals(x, y));
+            Assert.True(Comparer.Equals(x, y));
 
             y.Metadata.Labels = new Dictionary<string, string>
             {
                 ["newkey2"] = "Object1"
             };
-            Assert.False(comparer.Equals(x, y));
+            Assert.False(Comparer.Equals(x, y));
         }
 
         [Fact]
@@ -126,7 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Serv
                     Name = "object1"
                 }
             };
-            Assert.True(comparer.Equals(saWithOwnerRef, saWithoutOwnerRef));
+            Assert.True(Comparer.Equals(saWithOwnerRef, saWithoutOwnerRef));
         }
     }
 }

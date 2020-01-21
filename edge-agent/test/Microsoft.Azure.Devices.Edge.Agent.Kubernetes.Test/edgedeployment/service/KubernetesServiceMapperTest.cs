@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Service
+namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Service
 {
     using System.Collections.Generic;
     using System.Linq;
@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Serv
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
-
     using DockerEmptyStruct = global::Docker.DotNet.Models.EmptyStruct;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
@@ -27,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Serv
         static readonly Dictionary<string, DockerEmptyStruct> ExposedPorts = new Dictionary<string, DockerEmptyStruct>
             {
                 ["80/tcp"] = default(DockerEmptyStruct),
-                ["5000/udp"] = default(DockerEmptyStruct),
+                ["5000/udp"] = default(DockerEmptyStruct)
             };
 
         static readonly HostConfig HostPorts = new HostConfig
@@ -36,12 +35,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Serv
             {
                 ["80/tcp"] = new List<PortBinding>
                     {
-                        new PortBinding() { HostPort = "8080" },
+                        new PortBinding { HostPort = "8080" }
                     },
                 ["5000/udp"] = new List<PortBinding>
                     {
-                        new PortBinding() { HostPort = "5050" },
-                    },
+                        new PortBinding { HostPort = "5050" }
+                    }
             }
         };
 
@@ -56,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Serv
         static KubernetesModule CreateKubernetesModule(CreatePodParameters podParameters)
         {
             var config = new KubernetesConfig("image", podParameters, Option.None<AuthConfig>());
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVarsDict);
             var owner = new KubernetesModuleOwner("v1", "Owner", "an-owner", "a-uid");
             return new KubernetesModule(docker, config, owner);
         }

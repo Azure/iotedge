@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace TestResultCoordinator.Reports
 {
-    enum TestReportType
+    public enum TestReportType
     {
         CountingReport,
         TwinCountingReport,
-        DeploymentTestReport
+        DeploymentTestReport,
+        DirectMethodReport
     }
 }

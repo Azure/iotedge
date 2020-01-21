@@ -19,7 +19,7 @@ namespace TestResultCoordinator.Reports
 
         readonly string trackingId;
 
-        public CountingReportGenerator(
+        internal CountingReportGenerator(
             string trackingId,
             string expectedSource,
             ITestResultCollection<TestOperationResult> expectedTestResults,
@@ -119,7 +119,6 @@ namespace TestResultCoordinator.Reports
 
                 hasActualResult = await this.ActualTestResults.MoveNextAsync();
                 // Log actual queue items
-
                 Logger.LogError($"Unexpected actual test result: {this.ActualTestResults.Current.Source}, {this.ActualTestResults.Current.Type}, {this.ActualTestResults.Current.Result} at {this.ActualTestResults.Current.CreatedAt}");
             }
 
