@@ -15,6 +15,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.Password = Preconditions.CheckNonWhiteSpace(password, nameof(password));
         }
 
+        public RegistryCredentials(string address, string username, string password, string rootKey)
+        {
+            this.Address = Preconditions.CheckNonWhiteSpace(address, nameof(address));
+            this.Username = Preconditions.CheckNonWhiteSpace(username, nameof(username));
+            this.Password = Preconditions.CheckNonWhiteSpace(password, nameof(password));
+            this.RootKey = Preconditions.CheckNonWhiteSpace(rootKey, nameof(rootKey));
+        }
+
         [JsonProperty(Required = Required.Always, PropertyName = "address")]
         public string Address { get; }
 
@@ -23,6 +31,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         [JsonProperty(Required = Required.Always, PropertyName = "password")]
         public string Password { get; }
+
+        [JsonProperty(PropertyName = "rootKey")]
+        public string RootKey { get; }
 
         public override bool Equals(object obj) => this.Equals(obj as RegistryCredentials);
 

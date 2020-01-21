@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
             // Convert registry credentials from config to AuthConfig objects
             List<AuthConfig> deploymentAuthConfigs = dockerRuntimeConfig.Config.RegistryCredentials
-                .Select(c => new AuthConfig { ServerAddress = c.Value.Address, Username = c.Value.Username, Password = c.Value.Password })
+                .Select(c => new AuthConfig { ServerAddress = c.Value.Address, Username = c.Value.Username, Password = c.Value.Password, RegistryToken = c.Value.RootKey})
                 .ToList();
 
             // First try to get matching auth config from the runtime info. If no match is found,

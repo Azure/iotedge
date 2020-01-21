@@ -4,6 +4,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
     using System;
     using System.Collections.Generic;
     using System.Runtime.InteropServices;
+    using System.Threading;
+    using System.Threading.Tasks;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
@@ -11,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
     using Microsoft.Extensions.Configuration;
     using Moq;
     using Xunit;
+
 
     [Unit]
     public class CombinedEdgeletConfigProviderTest
@@ -68,6 +71,49 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
                 Assert.Equal("/path/to/workload.sock:/path/to/workload.sock", config.CreateOptions.HostConfig.Binds[0]);
                 Assert.Equal("/path/to/mgmt.sock:/path/to/mgmt.sock", config.CreateOptions.HostConfig.Binds[1]);
             }
+        }
+
+        [Fact]
+        public void TestAddNewRootKeyRegistryCredential()
+        {
+            var runtimeConfig = new DockerRuntimeConfig(
+                                    "1.0",
+                                    new Dictionary<string, RegistryCredentials>
+                                    {
+                                        ["r1"] = new RegistryCredentials("mcr.microsoft.com", "foo", "foo", "credential")
+                                    });
+
+            var runtimeInfo = new DockerRuntimeInfo("docker", runtimeConfig);
+
+            var module = new Mock<IModule<DockerConfig>>();
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("mcr.microsoft.com/windows/nanoserver:1809"));
+            module.SetupGet(m => m.Name).Returns(Constants.EdgeAgentModuleName);
+
+            var unixUris = new Dictionary<string, string>
+            {
+                { Constants.EdgeletWorkloadUriVariableName, "unix:///path/to/workload.sock" },
+                { Constants.EdgeletManagementUriVariableName, "unix:///path/to/mgmt.sock" }
+            };
+
+            var windowsUris = new Dictionary<string, string>
+            {
+                { Constants.EdgeletWorkloadUriVariableName, "unix:///C:/path/to/workload/sock" },
+                { Constants.EdgeletManagementUriVariableName, "unix:///C:/path/to/mgmt/sock" }
+            };
+
+            IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
+                RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? windowsUris : unixUris).Build();
+            var configSource = Mock.Of<IConfigSource>(s => s.Configuration == configRoot);
+            var authConfig = new AuthConfig { ServerAddress = "mcr.microsoft.com" };
+            ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedEdgeletConfigProvider(new[] { authConfig }, configSource);
+
+            var systemInfoSample = new SystemInfo("linux", "x86", "1");
+            var moduleManager = Mock.Of<IModuleManager>(m => m.GetSystemInfoAsync(CancellationToken.None) == Task.FromResult(systemInfoSample));
+            ICommandFactory factory = new EdgeletCommandFactory<CombinedDockerConfig>(moduleManager, configSource, provider);
+            // Act
+            CombinedDockerConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo);
+            // Assert
+            Assert.Equal("credential", config.AuthConfig.OrDefault().RegistryToken);
         }
 
         [Fact]
