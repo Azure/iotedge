@@ -149,9 +149,7 @@ namespace TestResultCoordinator
             HashSet<string> sources = (await this.GetReportMetadataListAsync(logger)).SelectMany(r => r.ResultSources).ToHashSet();
             string[] additionalResultSources = new string[]
             {
-                "networkController",
-                "directMethodSender3.send",
-                "directMethodSender3.send"
+                "networkController"
             };
 
             foreach (string rs in additionalResultSources)
