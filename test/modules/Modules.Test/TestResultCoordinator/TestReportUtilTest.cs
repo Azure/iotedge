@@ -118,7 +118,7 @@ namespace Modules.Test.TestResultCoordinator
         }
 
         [Fact]
-        public void ParseReportMetadataList_ParseCountingReport()
+        public void ParseReportMetadataList_ParseCountingReportMetadata()
         {
             const string testDataJson =
                 @"{
@@ -142,7 +142,7 @@ namespace Modules.Test.TestResultCoordinator
         }
 
         [Fact]
-        public void ParseReportMetadataList_ParseTwinCountingReport()
+        public void ParseReportMetadataList_ParseTwinCountingReportMetadata()
         {
             const string testDataJson =
                 @"{
@@ -167,7 +167,7 @@ namespace Modules.Test.TestResultCoordinator
         }
 
         [Fact]
-        public void ParseReportMetadataList_ParseDeploymentTestReport()
+        public void ParseReportMetadataList_ParseDeploymentTestReportMetadata()
         {
             const string testDataJson =
                 @"{
@@ -190,7 +190,7 @@ namespace Modules.Test.TestResultCoordinator
         }
 
         [Fact]
-        public void ParseReportMetadataList_ParseDirectMethodTestReport()
+        public void ParseReportMetadataList_ParseDirectMethodTestReportMetadata()
         {
             const string testDataJson =
                 @"{
@@ -212,6 +212,27 @@ namespace Modules.Test.TestResultCoordinator
             Assert.Equal("directMethodSender1.send", reportMetadata.ExpectedSource);
             Assert.Equal("directMethodReceiver1.receive", reportMetadata.ActualSource);
             Assert.Equal(new TimeSpan(0, 0, 0, 0, 5), reportMetadata.TolerancePeriod);
+        }
+
+        [Fact]
+        public void ParseReportMetadataList_ParseNetworkControllerReportMetadata()
+        {
+            const string testDataJson =
+                @"{
+                    ""reportMetadata"": {
+                        ""TestReportType"": ""NetworkControllerReport"",
+                        ""Source"": ""networkController""
+                    }
+                }";
+
+            List<ITestReportMetadata> results = TestReportUtil.ParseReportMetadataJson(testDataJson, new Mock<ILogger>().Object);
+
+            Assert.Single(results);
+            var reportMetadata = results[0] as NetworkControllerReportMetadata;
+            Assert.NotNull(reportMetadata);
+            Assert.Equal(TestOperationResultType.Network, reportMetadata.TestOperationResultType);
+            Assert.Equal(TestReportType.NetworkControllerReport, reportMetadata.TestReportType);
+            Assert.Equal("networkController", reportMetadata.Source);
         }
 
         [Fact]

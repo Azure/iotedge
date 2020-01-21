@@ -28,39 +28,39 @@ namespace TestResultCoordinator.Reports
             switch (testReportMetadata.TestReportType)
             {
                 case TestReportType.CountingReport:
-                {
-                    var metadata = (CountingReportMetadata)testReportMetadata;
-                    var expectedTestResults = this.GetResults(metadata.ExpectedSource);
-                    var actualTestResults = this.GetResults(metadata.ActualSource);
+                    {
+                        var metadata = (CountingReportMetadata)testReportMetadata;
+                        var expectedTestResults = this.GetResults(metadata.ExpectedSource);
+                        var actualTestResults = this.GetResults(metadata.ActualSource);
 
-                    return new CountingReportGenerator(
-                        trackingId,
-                        metadata.ExpectedSource,
-                        expectedTestResults,
-                        metadata.ActualSource,
-                        actualTestResults,
-                        testReportMetadata.TestOperationResultType.ToString(),
-                        new SimpleTestOperationResultComparer());
-                }
+                        return new CountingReportGenerator(
+                            trackingId,
+                            metadata.ExpectedSource,
+                            expectedTestResults,
+                            metadata.ActualSource,
+                            actualTestResults,
+                            testReportMetadata.TestOperationResultType.ToString(),
+                            new SimpleTestOperationResultComparer());
+                    }
 
                 case TestReportType.TwinCountingReport:
-                {
-                    var metadata = (TwinCountingReportMetadata)testReportMetadata;
-                    var expectedTestResults = this.GetTwinExpectedResults(metadata);
-                    var actualTestResults = this.GetResults(metadata.ActualSource);
+                    {
+                        var metadata = (TwinCountingReportMetadata)testReportMetadata;
+                        var expectedTestResults = this.GetTwinExpectedResults(metadata);
+                        var actualTestResults = this.GetResults(metadata.ActualSource);
 
-                    return new TwinCountingReportGenerator(
-                        trackingId,
-                        metadata.ExpectedSource,
-                        expectedTestResults,
-                        metadata.ActualSource,
-                        actualTestResults,
-                        testReportMetadata.TestOperationResultType.ToString(),
-                        new SimpleTestOperationResultComparer());
-                }
+                        return new TwinCountingReportGenerator(
+                            trackingId,
+                            metadata.ExpectedSource,
+                            expectedTestResults,
+                            metadata.ActualSource,
+                            actualTestResults,
+                            testReportMetadata.TestOperationResultType.ToString(),
+                            new SimpleTestOperationResultComparer());
+                    }
 
                 case TestReportType.DeploymentTestReport:
-                {
+                    {
                         var metadata = (DeploymentTestReportMetadata)testReportMetadata;
                         var expectedTestResults = this.GetResults(metadata.ExpectedSource);
                         var actualTestResults = this.GetResults(metadata.ActualSource);
@@ -71,26 +71,26 @@ namespace TestResultCoordinator.Reports
                         expectedTestResults,
                         metadata.ActualSource,
                         actualTestResults);
-                }
+                    }
 
                 case TestReportType.DirectMethodReport:
-                {
-                    var metadata = (DirectMethodReportMetadata)testReportMetadata;
-                    var expectedTestResults = this.GetResults(metadata.ExpectedSource);
-                    var actualTestResults = this.GetResults(metadata.ActualSource);
-                    var tolerancePeriod = metadata.TolerancePeriod;
-                    var networkStatusTimeline = await this.GetNetworkStatusTimelineAsync(tolerancePeriod);
+                    {
+                        var metadata = (DirectMethodReportMetadata)testReportMetadata;
+                        var expectedTestResults = this.GetResults(metadata.ExpectedSource);
+                        var actualTestResults = this.GetResults(metadata.ActualSource);
+                        var tolerancePeriod = metadata.TolerancePeriod;
+                        var networkStatusTimeline = await this.GetNetworkStatusTimelineAsync(tolerancePeriod);
 
-                    return new DirectMethodReportGenerator(
-                        trackingId,
-                        metadata.ExpectedSource,
-                        expectedTestResults,
-                        metadata.ActualSource,
-                        actualTestResults,
-                        metadata.TestOperationResultType.ToString(),
-                        new DirectMethodTestOperationResultComparer(),
-                        networkStatusTimeline);
-                }
+                        return new DirectMethodReportGenerator(
+                            trackingId,
+                            metadata.ExpectedSource,
+                            expectedTestResults,
+                            metadata.ActualSource,
+                            actualTestResults,
+                            metadata.TestOperationResultType.ToString(),
+                            new DirectMethodTestOperationResultComparer(),
+                            networkStatusTimeline);
+                    }
 
                 case TestReportType.NetworkControllerReport:
                     {
@@ -103,11 +103,10 @@ namespace TestResultCoordinator.Reports
                             testResults);
                     }
 
-
                 default:
-                {
-                    throw new NotSupportedException($"Report type {testReportMetadata.TestReportType} is not supported.");
-                }
+                    {
+                        throw new NotSupportedException($"Report type {testReportMetadata.TestReportType} is not supported.");
+                    }
             }
         }
 

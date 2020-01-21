@@ -38,13 +38,11 @@ namespace TestResultCoordinator.Reports
             Logger.LogInformation($"Start to generate report by {nameof(NetworkControllerReportGenerator)} for Source [{this.Source}].");
 
             var results = new List<TestOperationResult>();
-            bool hasResult = await this.TestResults.MoveNextAsync();
 
-            while (hasResult)
+            while (await this.TestResults.MoveNextAsync())
             {
                 this.ValidateResult(this.TestResults.Current);
                 results.Add(this.TestResults.Current);
-                hasResult = await this.TestResults.MoveNextAsync();
             }
 
             return new NetworkControllerReport(
@@ -53,7 +51,6 @@ namespace TestResultCoordinator.Reports
                 this.ResultType,
                 results.AsReadOnly());
         }
-
 
         void ValidateResult(TestOperationResult current)
         {
