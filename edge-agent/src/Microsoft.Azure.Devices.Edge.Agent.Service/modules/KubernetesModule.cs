@@ -227,17 +227,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<IRuntimeInfoSource>()
                 .SingleInstance();
 
-            // Task<IBackupSource>
-            builder.Register(
-                c =>
-                {
-                    var serde = c.Resolve<ISerde<DeploymentConfigInfo>>();
-                    IDeploymentBackupSource backupSource = new DeploymentSecretBackup(Constants.EdgeAgentBackupName, this.deviceNamespace, this.moduleOwner, serde, c.Resolve<IKubernetes>());
-                    return Task.FromResult(backupSource);
-                })
-                .As<Task<IDeploymentBackupSource>>()
-                .SingleInstance();
-
             // KubernetesDeploymentProvider
             builder.Register(
                     c => new KubernetesDeploymentMapper(
@@ -330,10 +319,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     {
                         CancellationTokenSource tokenSource = new CancellationTokenSource(SystemInfoTimeout);
                         var moduleStateStore = await c.Resolve<Task<IEntityStore<string, ModuleState>>>();
-                        var restartPolicyManager = c.Resolve<IRestartPolicyManager>();
                         IRuntimeInfoProvider runtimeInfoProvider = c.Resolve<IRuntimeInfoProvider>();
-                        IEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, restartPolicyManager, tokenSource.Token);
-                        return dockerEnvironmentProvider;
+                        IEnvironmentProvider kubernetesEnvironmentProvider = await KubernetesEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, tokenSource.Token);
+                        return kubernetesEnvironmentProvider;
                     })
                 .As<Task<IEnvironmentProvider>>()
                 .SingleInstance();

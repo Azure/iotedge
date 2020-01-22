@@ -3,14 +3,15 @@ namespace TestResultCoordinator.Reports.DirectMethod
 {
     using System;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.Util;
     using TestResultCoordinator.Reports;
 
     class DirectMethodReportMetadata : ITestReportMetadata
     {
         public DirectMethodReportMetadata(string expectedSource, string actualSource, TestReportType testReportType, TimeSpan tolerancePeriod)
         {
-            this.ExpectedSource = expectedSource;
-            this.ActualSource = actualSource;
+            this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
+            this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
             this.TestReportType = testReportType;
             this.TolerancePeriod = tolerancePeriod;
         }

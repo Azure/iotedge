@@ -665,6 +665,10 @@
               "ExpectedSource": "directMethodSender2.send",
               "ActualSource": "directMethodReceiver2.receive",
               "TolerancePeriod": "00:00:00.005"
+          },
+          "reportMetadata12": {
+              "TestReportType": "NetworkControllerReport",
+              "Source": "networkController"
           }
         }
       }

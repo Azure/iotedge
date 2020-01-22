@@ -43,6 +43,6 @@ namespace TestResultCoordinator.Reports
 
         public override bool IsPassed => this.TotalExpectCount == this.TotalMatchCount;
 
-        public override string Title => $"Counting Report ({this.ResultType}) between [{this.ExpectedSource}] and [{this.ActualSource}]";
+        public override string Title => $"Counting Report between [{this.ExpectedSource}] and [{this.ActualSource}] ({this.ResultType})";
     }
 }
