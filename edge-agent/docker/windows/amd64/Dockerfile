@@ -11,7 +11,4 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-# Expose metrics ports
-EXPOSE 9600/tcp
-
 CMD ["dotnet", "Microsoft.Azure.Devices.Edge.Agent.Service.dll"]

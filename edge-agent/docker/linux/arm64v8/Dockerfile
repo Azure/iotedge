@@ -8,8 +8,5 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-# Expose metrics ports
-EXPOSE 9600/tcp
-
 CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Agent" && \
     exec /usr/bin/dotnet Microsoft.Azure.Devices.Edge.Agent.Service.dll

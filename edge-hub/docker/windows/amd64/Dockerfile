@@ -7,10 +7,9 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-# Expose MQTT, AMQP, HTTPS, and metrics ports
+# Expose MQTT, AMQP, HTTPS ports
 EXPOSE 8883/tcp
 EXPOSE 5671/tcp
 EXPOSE 443/tcp
-EXPOSE 9600/tcp
 
 CMD ["dotnet", "Microsoft.Azure.Devices.Edge.Hub.Service.dll"]
