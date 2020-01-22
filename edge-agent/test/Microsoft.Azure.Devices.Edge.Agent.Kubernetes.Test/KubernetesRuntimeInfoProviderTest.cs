@@ -232,20 +232,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 },
                 new object[]
                 {
-                    CreatePodInPhaseWithContainerStatus("Running", new V1ContainerState(terminated: new V1ContainerStateTerminated(0, finishedAt: DateTime.Parse("2019-06-12T16:13:07Z"), startedAt: DateTime.Parse("2019-06-12T16:11:22Z"), reason: "Completed"))),
+                    CreatePodInPhaseWithContainerStatus("Running", new V1ContainerState(terminated: new V1ContainerStateTerminated(0, reason: "Completed"))),
                     $"Module Stopped reason: Completed",
                     ModuleStatus.Stopped
                 },
                 new object[]
                 {
-                    CreatePodInPhaseWithContainerStatus("Running", new V1ContainerState(terminated: new V1ContainerStateTerminated(139, finishedAt: DateTime.Parse("2019-06-12T16:13:07Z"), startedAt: DateTime.Parse("2019-06-12T16:11:22Z"), reason: "Segmentation Fault"))),
+                    CreatePodInPhaseWithContainerStatus("Running", new V1ContainerState(terminated: new V1ContainerStateTerminated(139, reason: "Segmentation Fault"))),
                     $"Module Failed reason: Segmentation Fault",
                     ModuleStatus.Failed
                 },
                 new object[]
                 {
                     CreatePodInPhaseWithContainerStatus("Running", new V1ContainerState(running: new V1ContainerStateRunning(startedAt: DateTime.Parse("2019-06-12T16:11:22Z")))),
-                    $"Started at 6/12/2019 9:11:22 AM",
+                    $"Started at " + DateTime.Parse("2019-06-12T16:11:22Z"),
                     ModuleStatus.Running
                 }
             };
@@ -278,20 +278,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 },
                 new object[]
                 {
-                    CreatePodInPhaseWithContainerStatus("Pending", new V1ContainerState(terminated: new V1ContainerStateTerminated(0, finishedAt: DateTime.Parse("2019-06-12T16:13:07Z"), startedAt: DateTime.Parse("2019-06-12T16:11:22Z"), reason: "Completed"))),
+                    CreatePodInPhaseWithContainerStatus("Pending", new V1ContainerState(terminated: new V1ContainerStateTerminated(0, reason: "Completed"))),
                     $"Module Stopped reason: Completed",
                     ModuleStatus.Stopped
                 },
                 new object[]
                 {
-                    CreatePodInPhaseWithContainerStatus("Pending", new V1ContainerState(terminated: new V1ContainerStateTerminated(139, finishedAt: DateTime.Parse("2019-06-12T16:13:07Z"), startedAt: DateTime.Parse("2019-06-12T16:11:22Z"), reason: "Segmentation Fault"))),
+                    CreatePodInPhaseWithContainerStatus("Pending", new V1ContainerState(terminated: new V1ContainerStateTerminated(139, reason: "Segmentation Fault"))),
                     $"Module Failed reason: Segmentation Fault",
                     ModuleStatus.Failed
                 },
                 new object[]
                 {
                     CreatePodInPhaseWithContainerStatus("Pending", new V1ContainerState(running: new V1ContainerStateRunning(startedAt: DateTime.Parse("2019-06-12T16:11:22Z")))),
-                    $"Started at 6/12/2019 9:11:22 AM",
+                    $"Started at " + DateTime.Parse("2019-06-12T16:11:22Z"),
                     ModuleStatus.Backoff
                 }
             };
