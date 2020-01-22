@@ -68,6 +68,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
         {
             get
             {
+                this.ReceiverSource.ToString();
                 return this.ReceiverSource.Match<string>(
                     x => $"DirectMethod Report ({this.ResultType}) for [{this.SenderSource}] and [{x}]",
                     () => $"DirectMethod Report ({this.ResultType}) for [{this.SenderSource}]");

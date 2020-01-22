@@ -29,14 +29,9 @@ namespace TestResultCoordinator.Reports.DirectMethod
             ITestResultComparer<TestOperationResult> testResultComparer,
             NetworkStatusTimeline networkStatusTimeline)
         {
-            if (receiverSource.HasValue && !receiverTestResults.HasValue)
+            if ((receiverSource.HasValue && !receiverTestResults.HasValue) || (!receiverSource.HasValue && receiverTestResults.HasValue))
             {
-                throw new ArgumentException("Can't have receiverSource without receiverTestResults.");
-            }
-
-            if (!receiverSource.HasValue && receiverTestResults.HasValue)
-            {
-                throw new ArgumentException("Can't have receiverTestResults without receiverSource.");
+                throw new ArgumentException("Provide both receiverSource and receiverTestResults or neither.");
             }
 
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
@@ -86,24 +81,31 @@ namespace TestResultCoordinator.Reports.DirectMethod
                     this.NetworkStatusTimeline.GetNetworkControllerStatusAndWithinToleranceAt(this.SenderTestResults.Current.CreatedAt);
                 this.ValidateNetworkControllerStatus(networkControllerStatus);
                 DirectMethodTestResult dmSenderTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(this.SenderTestResults.Current.Result);
+
                 if (hasReceiverResult)
                 {
-                    string receiverSource = this.ReceiverSource.Expect<ArgumentException>(
-                        () => throw new ArgumentException("There must be a receiver source if there are receiver test results"));
-                    ITestResultCollection<TestOperationResult> receiverTestResults = this.ReceiverTestResults.Expect<ArgumentException>(
-                        () => throw new ArgumentException("Previous check for receiver source passed"));
+                    string receiverSource = this.ReceiverSource.OrDefault();
+                    ITestResultCollection<TestOperationResult> receiverTestResults = this.ReceiverTestResults.OrDefault();
                     this.ValidateDataSource(receiverTestResults.Current, receiverSource);
-                    if (!this.TestResultComparer.Matches(receiverTestResults.Current, this.SenderTestResults.Current))
+                    DirectMethodTestResult dmReceiverTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(receiverTestResults.Current.Result);
+
+                    if (!string.Equals(dmSenderTestResult.TrackingId, dmReceiverTestResult.TrackingId, StringComparison.OrdinalIgnoreCase))
                     {
-                        DirectMethodTestResult dmReceiverTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(receiverTestResults.Current.Result);
+                        throw new InvalidDataException($"Sequence numbers should not match if the testResults didn't match. SenderTestResult: " +
+                            $"{dmSenderTestResult.GetFormattedResult()}. ReceiverTestResult: {dmReceiverTestResult.GetFormattedResult()}");
+                    }
+
+                    if (string.Equals(dmSenderTestResult.SequenceNumber, dmReceiverTestResult.SequenceNumber, StringComparison.OrdinalIgnoreCase))
+                    {
+                        hasReceiverResult = await receiverTestResults.MoveNextAsync();
+                    }
+                    else
+                    {
                         if (int.Parse(dmSenderTestResult.SequenceNumber) > int.Parse(dmReceiverTestResult.SequenceNumber))
                         {
-                            // Log message for unexpected case.
-                            Logger.LogError($"[{nameof(DirectMethodReportGenerator)}] Receiver test result source has unexpected results.");
-
                             mismatchFailure++;
 
-                            // Log actual queue items
+                            // Log unexpected case
                             Logger.LogError($"Unexpected Receiver test result:" +
                                 $" {receiverTestResults.Current.Source}," +
                                 $" {receiverTestResults.Current.Type}, " +
@@ -114,7 +116,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
                         }
                         else if (int.Parse(dmSenderTestResult.SequenceNumber) < int.Parse(dmReceiverTestResult.SequenceNumber))
                         {
-                            if (HttpStatusCode.OK.Equals((HttpStatusCode)int.Parse(dmSenderTestResult.Result)) &&
+                            if (HttpStatusCode.OK.Equals(dmSenderTestResult.Result) &&
                                 (NetworkControllerStatus.Disabled.Equals(networkControllerStatus)
                                 || (NetworkControllerStatus.Enabled.Equals(networkControllerStatus) && isWithinTolerancePeriod)))
                             {
@@ -123,19 +125,10 @@ namespace TestResultCoordinator.Reports.DirectMethod
                                 continue;
                             }
                         }
-                        else
-                        {
-                            throw new InvalidDataException($"Sequence numbers should not match if the testResults didn't match. SenderTestResult: " +
-                                $"{dmSenderTestResult.GetFormattedResult()}. ReceiverTestResult: {dmReceiverTestResult.GetFormattedResult()}");
-                        }
-                    }
-                    else
-                    {
-                        hasReceiverResult = await receiverTestResults.MoveNextAsync();
                     }
                 }
 
-                HttpStatusCode statusCode = (HttpStatusCode)Enum.Parse(typeof(HttpStatusCode), dmSenderTestResult.Result);
+                HttpStatusCode statusCode = dmSenderTestResult.Result;
                 if (NetworkControllerStatus.Disabled.Equals(networkControllerStatus))
                 {
                     if (HttpStatusCode.OK.Equals(statusCode))
@@ -160,7 +153,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
                     {
                         networkOffSuccess++;
                     }
-                    else if (HttpStatusCode.OK.Equals((HttpStatusCode)int.Parse(dmSenderTestResult.Result)))
+                    else if (HttpStatusCode.OK.Equals(dmSenderTestResult.Result))
                     {
                         if (isWithinTolerancePeriod)
                         {
@@ -182,10 +175,8 @@ namespace TestResultCoordinator.Reports.DirectMethod
 
             while (hasReceiverResult)
             {
-                string receiverSource = this.ReceiverSource.Expect<ArgumentException>(
-                    () => throw new ArgumentException("There must be a receiver source if there are receiver test results"));
-                ITestResultCollection<TestOperationResult> receiverTestResults =
-                    this.ReceiverTestResults.Expect<ArgumentException>(() => throw new ArgumentException("Previous check for receiver source passed"));
+                string receiverSource = this.ReceiverSource.OrDefault();
+                ITestResultCollection<TestOperationResult> receiverTestResults = this.ReceiverTestResults.OrDefault();
 
                 Logger.LogError($"[{nameof(DirectMethodReportGenerator)}] Receiver test result source has unexpected results.");
 

@@ -3,13 +3,16 @@ namespace Modules.Test.TestResultCoordinator
 {
     using System;
     using System.Collections.Generic;
+    using System.Net;
     using System.Threading.Tasks;
     using global::TestResultCoordinator;
     using global::TestResultCoordinator.Reports;
     using global::TestResultCoordinator.Reports.DirectMethod;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Extensions.Logging;
     using Moq;
+    using Newtonsoft.Json;
     using Xunit;
 
     public class TestReportUtilTest
@@ -239,6 +242,49 @@ namespace Modules.Test.TestResultCoordinator
             }
 
             Assert.True(exceptionThrown);
+        }
+
+        [Fact]
+        public void DirectMethodReportMetadataJsonDeserializeWithReceiverSourceTest()
+        {
+            const string SerializedTestJsonWithReceiverSource = "{ \"TestReportType\": \"DirectMethodReport\", \"SenderSource\": \"directMethodSender1.send\"," +
+            " \"ReceiverSource\": \"directMethodReceiver1.receive\", \"TolerancePeriod\": \"00:00:00.005\" }";
+            DirectMethodReportMetadata directMethodReportMetadata =
+                JsonConvert.DeserializeObject<DirectMethodReportMetadata>(SerializedTestJsonWithReceiverSource);
+            Assert.Equal("directMethodSender1.send", directMethodReportMetadata.SenderSource);
+            Assert.Equal(new TimeSpan(0, 0, 0, 0, 5), directMethodReportMetadata.TolerancePeriod);
+            Assert.Equal(TestReportType.DirectMethodReport, directMethodReportMetadata.TestReportType);
+            Assert.True(directMethodReportMetadata.ReceiverSource.HasValue);
+            directMethodReportMetadata.ReceiverSource.ForEach(x => Assert.Equal("directMethodReceiver1.receive", x));
+        }
+
+        [Fact]
+        public void DirectMethodReportMetadataJsonDeserializeWithoutReceiverSourceTest()
+        {
+            const string SerializedTestJsonWithoutReceiverSource = "{ \"TestReportType\": \"DirectMethodReport\", \"SenderSource\": \"directMethodSender1.send\", " +
+                "\"TolerancePeriod\": \"00:00:00.005\" }";
+            DirectMethodReportMetadata directMethodReportMetadata =
+                JsonConvert.DeserializeObject<DirectMethodReportMetadata>(SerializedTestJsonWithoutReceiverSource);
+            Assert.Equal("directMethodSender1.send", directMethodReportMetadata.SenderSource);
+            Assert.Equal(new TimeSpan(0, 0, 0, 0, 5), directMethodReportMetadata.TolerancePeriod);
+            Assert.Equal(TestReportType.DirectMethodReport, directMethodReportMetadata.TestReportType);
+            Assert.True(!directMethodReportMetadata.ReceiverSource.HasValue);
+        }
+
+
+        [Fact]
+        public void DirectMethodTestResultJsonSerializeTest()
+        {
+            DirectMethodTestResult directMethodTestResult = new DirectMethodTestResult(
+                "source",
+                DateTime.UtcNow,
+                "trackingId",
+                Guid.NewGuid(),
+                "sequenceNumber",
+                HttpStatusCode.OK);
+            string jsonString = JsonConvert.SerializeObject(directMethodTestResult, Formatting.Indented);
+            DirectMethodTestResult dmtr = JsonConvert.DeserializeObject<DirectMethodTestResult>(jsonString);
+            Assert.Equal(dmtr.Result, directMethodTestResult.Result);
         }
 
         private Task<ITestResultReport> MockTestResultReport(bool throwException)

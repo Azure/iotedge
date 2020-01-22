@@ -4,6 +4,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using System.Threading.Tasks;
     using global::TestResultCoordinator.Reports;
     using global::TestResultCoordinator.Reports.DirectMethod;
@@ -17,9 +18,9 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
     public class DirectMethodReportGeneratorTest
     {
-        public static IEnumerable<object[]> GetCreateReportDataForTwoSources => ReportDataForTwoSources.GetCreateReportData;
+        public static IEnumerable<object[]> GetCreateReportDataForTwoSources => DirectMethodReportDataWithSenderAndReceiverSource.GetCreateReportData;
 
-        public static IEnumerable<object[]> GetCreateReportDataForOneSource => ReportDataForOneSource.GetCreateReportData;
+        public static IEnumerable<object[]> GetCreateReportDataForOneSource => DirectMethodReportDataWithSenderSourceOnly.GetCreateReportData;
 
         static NetworkStatusTimeline NetworkStatusTimeline => MockNetworkStatusTimeline.GetMockAsync(new TimeSpan(0, 0, 0, 0, 5)).Result;
 
@@ -192,7 +193,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     null,
                     NetworkStatusTimeline));
 
-            Assert.Equal("Can't have receiverSource without receiverTestResults.", ex.Message);
+            Assert.Equal("Provide both receiverSource and receiverTestResults or neither.", ex.Message);
         }
 
         [Fact]
@@ -215,7 +216,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     null,
                     NetworkStatusTimeline));
 
-            Assert.Equal("Can't have receiverTestResults without receiverSource.", ex.Message);
+            Assert.Equal("Provide both receiverSource and receiverTestResults or neither.", ex.Message);
         }
 
         [Fact]
@@ -394,7 +395,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     "1",
                     guid,
                     resultValues.ElementAt(i),
-                    statusCodes.ElementAt(i).ToString());
+                    (HttpStatusCode)statusCodes.ElementAt(i));
                 storeData.Add((count, new TestOperationResult(source, resultType, JsonConvert.SerializeObject(directMethodTestResult, Formatting.Indented), timestamps.ElementAt(i))));
                 count++;
             }
@@ -421,7 +422,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     "1",
                     guid,
                     resultValues.ElementAt(i),
-                    "fakeResult");
+                    HttpStatusCode.OK);
                 storeData.Add((count, new TestOperationResult(source, resultType, JsonConvert.SerializeObject(directMethodTestResult, Formatting.Indented), timestamps.ElementAt(i))));
                 count++;
             }
