@@ -89,6 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Preconditions.CheckNotNull(methodRequest, nameof(methodRequest));
 
             Events.MethodCallReceived(id, methodRequest.Id, methodRequest.CorrelationId);
+            Metrics.AddDirectMethod(id, methodRequest.Id);
             return this.invokeMethodHandler.InvokeMethod(methodRequest);
         }
 
@@ -268,12 +269,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 "Size of messages received by EdgeHub",
                 new List<string> { "id" });
 
+            static readonly IMetricsCounter DirectMethodsCounter = Util.Metrics.Metrics.Instance.CreateCounter(
+                "direct_methods",
+                "Direct methods routed through EdgeHub",
+                new List<string> { "from", "to" });
+
             static readonly IMetricsCounter ReceivedMessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "messages_received",
                 "Number of messages received from client",
                 new List<string> { "id", "route_output" });
 
             public static void AddMessageSize(long size, string id) => MessagesHistogram.Update(size, new[] { id });
+
+            public static void AddDirectMethod(string fromId, string toId) => DirectMethodsCounter.Increment(1, new[] { fromId, toId });
 
             public static void AddReceivedMessage(string id, string output) => ReceivedMessagesCounter.Increment(1, new[] { id, output });
         }

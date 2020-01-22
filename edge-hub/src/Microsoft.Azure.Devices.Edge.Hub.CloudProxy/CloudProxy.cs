@@ -370,9 +370,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
                 Events.MethodCallReceived(this.cloudProxy.clientId);
                 var direceMethodRequest = new DirectMethodRequest(this.cloudProxy.clientId, methodrequest.Name, methodrequest.Data, DeviceMethodMaxResponseTimeout);
-                DirectMethodResponse directMethodResponse = await this.cloudListener.CallMethodAsync(direceMethodRequest);
-                MethodResponse methodResponse = directMethodResponse.Data == null ? new MethodResponse(directMethodResponse.Status) : new MethodResponse(directMethodResponse.Data, directMethodResponse.Status);
-                return methodResponse;
+
+                using (Metrics.TimeDirectMethod(this.cloudProxy.clientId))
+                {
+                    DirectMethodResponse directMethodResponse = await this.cloudListener.CallMethodAsync(direceMethodRequest);
+                    MethodResponse methodResponse = directMethodResponse.Data == null ? new MethodResponse(directMethodResponse.Status) : new MethodResponse(directMethodResponse.Data, directMethodResponse.Status);
+                    return methodResponse;
+                }
             }
 
             static Task OnDesiredPropertyUpdates(TwinCollection desiredProperties, object userContext)
@@ -639,6 +643,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 "Reported properties update calls",
                 new List<string> { "target", "id" });
 
+            static readonly IMetricsTimer DirectMethodsTimer = Util.Metrics.Metrics.Instance.CreateTimer(
+                "direct_method_duration_seconds",
+                "Time taken to call direct method",
+                new List<string> { "from", "to" });
+
             static readonly IMetricsDuration MessagesProcessLatency = Util.Metrics.Metrics.Instance.CreateDuration(
                 "message_process_duration",
                 "Time taken to process message in EdgeHub",
@@ -655,6 +664,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public static IDisposable TimeReportedPropertiesUpdate(string id) => ReportedPropertiesTimer.GetTimer(new[] { "upstream", id });
 
             public static void AddUpdateReportedProperties(string id) => ReportedPropertiesCounter.Increment(1, new[] { "upstream", id });
+
+            public static IDisposable TimeDirectMethod(string id) => DirectMethodsTimer.GetTimer(new[] { "upstream", id });
 
             public static void MessageProcessingLatency(string id, IMessage message)
             {
