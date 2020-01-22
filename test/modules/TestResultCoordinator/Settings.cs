@@ -5,9 +5,12 @@ namespace TestResultCoordinator
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Logging;
     using TestResultCoordinator.Reports;
 
     class Settings
@@ -17,14 +20,14 @@ namespace TestResultCoordinator
 
         internal static Settings Current = Create();
 
-        HashSet<string> resultSources = null;
-        List<IReportMetadata> reportMetadatas = null;
+        List<ITestReportMetadata> reportMetadatas = null;
 
         Settings(
             string trackingId,
             string eventHubConnectionString,
-            string serviceClientConnectionString,
+            string iotHubConnectionString,
             string deviceId,
+            string moduleId,
             ushort webHostPort,
             string logAnalyticsWorkspaceId,
             string logAnalyticsSharedKey,
@@ -39,8 +42,9 @@ namespace TestResultCoordinator
 
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.EventHubConnectionString = Preconditions.CheckNonWhiteSpace(eventHubConnectionString, nameof(eventHubConnectionString));
-            this.ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, nameof(serviceClientConnectionString));
+            this.IoTHubConnectionString = Preconditions.CheckNonWhiteSpace(iotHubConnectionString, nameof(iotHubConnectionString));
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.WebHostPort = Preconditions.CheckNotNull(webHostPort, nameof(webHostPort));
             this.LogAnalyticsWorkspaceId = Preconditions.CheckNonWhiteSpace(logAnalyticsWorkspaceId, nameof(logAnalyticsWorkspaceId));
             this.LogAnalyticsSharedKey = Preconditions.CheckNonWhiteSpace(logAnalyticsSharedKey, nameof(logAnalyticsSharedKey));
@@ -64,8 +68,9 @@ namespace TestResultCoordinator
             return new Settings(
                 configuration.GetValue<string>("trackingId"),
                 configuration.GetValue<string>("eventHubConnectionString"),
-                configuration.GetValue<string>("ServiceClientConnectionString"),
+                configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING"),
                 configuration.GetValue<string>("IOTEDGE_DEVICEID"),
+                configuration.GetValue<string>("IOTEDGE_MODULEID"),
                 configuration.GetValue("webhostPort", DefaultWebHostPort),
                 configuration.GetValue<string>("logAnalyticsWorkspaceId"),
                 configuration.GetValue<string>("logAnalyticsSharedKey"),
@@ -79,7 +84,7 @@ namespace TestResultCoordinator
 
         public string EventHubConnectionString { get; }
 
-        public string ServiceClientConnectionString { get; }
+        public string IoTHubConnectionString { get; }
 
         public string DeviceId { get; }
 
@@ -114,6 +119,7 @@ namespace TestResultCoordinator
             {
                 { nameof(this.TrackingId), this.TrackingId },
                 { nameof(this.DeviceId), this.DeviceId },
+                { nameof(this.ModuleId), this.ModuleId },
                 { nameof(this.WebHostPort), this.WebHostPort.ToString() },
                 { nameof(this.StoragePath), this.StoragePath },
                 { nameof(this.OptimizeForPerformance), this.OptimizeForPerformance.ToString() },
@@ -126,56 +132,33 @@ namespace TestResultCoordinator
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
         }
 
-        internal List<IReportMetadata> GetReportMetadataList()
+        internal async Task<List<ITestReportMetadata>> GetReportMetadataListAsync(ILogger logger)
         {
             if (this.reportMetadatas == null)
             {
-                // TODO: initialize list of report metadata by getting from GetTwin method; and update to become Async method.
-                return new List<IReportMetadata>
-                {
-                    new CountingReportMetadata("loadGen1.send", "relayer1.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
-                    new CountingReportMetadata("relayer1.send", "relayer1.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
-                    new CountingReportMetadata("loadGen2.send", "relayer2.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
-                    new CountingReportMetadata("relayer2.send", "relayer2.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
-                // TODO: Enable Direct Method Cloud-to-Module and Cloud-to-EdgeAgent once the verification scheme is finalized.
-                // new CountingReportMetadata("directMethodSender1.send", "directMethodReceiver1.receive", TestOperationResultType.DirectMethod, TestReportType.CountingReport),
-                // new CountingReportMetadata("directMethodSender2.send", "directMethodReceiver2.receive", TestOperationResultType.DirectMethod, TestReportType.CountingReport),
-                // new CountingReportMetadata("directMethodSender3.send", "directMethodSender3.send", TestOperationResultType.DirectMethod, TestReportType.CountingReport),
-                    new TwinCountingReportMetadata("twinTester1.desiredUpdated", "twinTester2.desiredReceived", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired),
-                    new TwinCountingReportMetadata("twinTester2.reportedReceived", "twinTester2.reportedUpdated", TestReportType.TwinCountingReport, TwinTestPropertyType.Reported),
-                    new TwinCountingReportMetadata("twinTester3.desiredUpdated", "twinTester4.desiredReceived", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired),
-                    new TwinCountingReportMetadata("twinTester4.reportedReceived", "twinTester4.reportedUpdated", TestReportType.TwinCountingReport, TwinTestPropertyType.Reported),
-                    new DeploymentTestReportMetadata("deploymentTester1.send",  "deploymentTester2.receive")
-                };
+                RegistryManager rm = RegistryManager.CreateFromConnectionString(this.IoTHubConnectionString);
+                Twin moduleTwin = await rm.GetTwinAsync(this.DeviceId, this.ModuleId);
+                this.reportMetadatas = TestReportUtil.ParseReportMetadataJson(moduleTwin.Properties.Desired["reportMetadataList"].ToString(), logger);
             }
 
             return this.reportMetadatas;
         }
 
-        internal HashSet<string> GetResultSources()
+        internal async Task<HashSet<string>> GetResultSourcesAsync(ILogger logger)
         {
-            if (this.resultSources == null)
+            HashSet<string> sources = (await this.GetReportMetadataListAsync(logger)).SelectMany(r => r.ResultSources).ToHashSet();
+            string[] additionalResultSources = new string[]
             {
-                HashSet<string> sources = GetReportMetadataList().SelectMany(r => new string[] { r.ExpectedSource, r.ActualSource }).ToHashSet();
-                string[] additionalResultSources = new string[] {
-                    "networkController",
-                    "directMethodSender1.send",
-                    "directMethodReceiver1.receive",
-                    "directMethodSender2.send",
-                    "directMethodReceiver2.receive",
-                    "directMethodSender3.send",
-                    "directMethodSender3.send"
-                };
+                "directMethodSender3.send",
+                "directMethodSender3.send"
+            };
 
-                foreach (string rs in additionalResultSources)
-                {
-                    sources.Add(rs);
-                }
-                
-                this.resultSources = sources;
+            foreach (string rs in additionalResultSources)
+            {
+                sources.Add(rs);
             }
 
-            return this.resultSources;
+            return sources;
         }
     }
 }

@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
 {
     using System;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json;
 
     public class DirectMethodTestResult : TestResultBase
     {
@@ -31,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
 
         public override string GetFormattedResult()
         {
-            return $"{this.TrackingId};{this.BatchId};{this.SequenceNumber};{this.Result}";
+            return JsonConvert.SerializeObject(this);
         }
     }
 }

@@ -259,7 +259,7 @@ namespace IotEdgeQuickstart.Details
 
                     return new DeviceProvisioningMethod(connectionString);
                 });
-            return this.bootstrapper.Configure(method, this.EdgeAgentImage(), this.hostname, this.deviceCaCert, this.deviceCaPk, this.deviceCaCerts, this.runtimeLogLevel);
+            return this.bootstrapper.Configure(method, this.hostname, this.deviceCaCert, this.deviceCaPk, this.deviceCaCerts, this.runtimeLogLevel);
         }
 
         protected Task StartBootstrapper()

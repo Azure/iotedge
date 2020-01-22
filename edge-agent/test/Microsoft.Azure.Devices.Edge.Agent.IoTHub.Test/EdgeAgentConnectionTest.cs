@@ -1154,6 +1154,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 RestartPolicy.Always,
                 new DockerConfig("image", string.Empty),
                 ImagePullPolicy.OnCreate,
+                Constants.DefaultPriority,
                 null,
                 null);
             var deploymentConfig = new DeploymentConfig(
@@ -1228,6 +1229,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 RestartPolicy.Always,
                 new DockerConfig("image", string.Empty),
                 ImagePullPolicy.OnCreate,
+                Constants.DefaultPriority,
                 null,
                 null);
             var deploymentConfig = new DeploymentConfig(
@@ -1321,6 +1323,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 RestartPolicy.Always,
                 new DockerConfig("image", string.Empty),
                 ImagePullPolicy.OnCreate,
+                Constants.DefaultPriority,
                 null,
                 null);
             var deploymentConfig = new DeploymentConfig(
@@ -1337,6 +1340,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 RestartPolicy.Always,
                 new DockerConfig("image2", string.Empty),
                 ImagePullPolicy.OnCreate,
+                Constants.DefaultPriority,
                 null,
                 null);
             var deploymentConfig2 = new DeploymentConfig(
