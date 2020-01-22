@@ -160,108 +160,189 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             }
         }
 
-        [Fact]
-        public async Task ReturnsLastKnowModuleState()
+        public static V1Pod CreatePodInPhaseWithContainerStatus(string podPhase, V1ContainerState containerState)
+            => new V1Pod
+            {
+                Metadata = new V1ObjectMeta
+                {
+                    Name = "module-a-abc123",
+                    Labels = new Dictionary<string, string>
+                    {
+                        [KubernetesConstants.K8sEdgeModuleLabel] = "module-a"
+                    },
+                    Annotations = new Dictionary<string, string>
+                    {
+                        [KubernetesConstants.K8sEdgeOriginalModuleId] = "Module-A"
+                    }
+                },
+                Status = new V1PodStatus
+                {
+                    Phase = podPhase,
+                    ContainerStatuses = new List<V1ContainerStatus>()
+                    {
+                        new V1ContainerStatus
+                        {
+                            Name = "module-a",
+                            State = containerState,
+                        }
+                    }
+                }
+            };
+
+        public static V1Pod CreatePodWithPodParametersOnly(string podPhase, string podReason, string podMessage)
+            => new V1Pod
+            {
+                Metadata = new V1ObjectMeta
+                {
+                    Name = "module-a-abc123",
+                    Labels = new Dictionary<string, string>
+                    {
+                        [KubernetesConstants.K8sEdgeModuleLabel] = "module-a"
+                    },
+                    Annotations = new Dictionary<string, string>
+                    {
+                        [KubernetesConstants.K8sEdgeOriginalModuleId] = "Module-A"
+                    }
+                },
+                Status = new V1PodStatus { Phase = podPhase, Reason = podReason, Message = podMessage },
+            };
+
+        public static IEnumerable<object[]> GetListOfPodsInRunningPhase()
+        {
+            return new[]
+            {
+                new object[]
+                {
+                    CreatePodInPhaseWithContainerStatus("Running", new V1ContainerState(waiting: new V1ContainerStateWaiting("Waiting", "CrashBackLoopOff"))),
+                    "Module in Back-off reason: CrashBackLoopOff",
+                    ModuleStatus.Backoff
+                },
+                new object[]
+                {
+                    CreatePodInPhaseWithContainerStatus("Running", new V1ContainerState(terminated: new V1ContainerStateTerminated(0, reason: "Completed"))),
+                    "Module Stopped reason: Completed",
+                    ModuleStatus.Stopped
+                },
+                new object[]
+                {
+                    CreatePodInPhaseWithContainerStatus("Running", new V1ContainerState(terminated: new V1ContainerStateTerminated(139, reason: "Segmentation Fault"))),
+                    "Module Failed reason: Segmentation Fault",
+                    ModuleStatus.Failed
+                },
+                new object[]
+                {
+                    CreatePodInPhaseWithContainerStatus("Running", new V1ContainerState(running: new V1ContainerStateRunning(startedAt: DateTime.Parse("2019-06-12T16:11:22Z")))),
+                    "Started at " + DateTime.Parse("2019-06-12T16:11:22Z"),
+                    ModuleStatus.Running
+                }
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(GetListOfPodsInRunningPhase))]
+        public async Task ReturnModuleStatusWhenPodIsRunning(V1Pod pod, string description, ModuleStatus status)
         {
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
             var moduleManager = new Mock<IModuleManager>(MockBehavior.Strict);
             var runtimeInfo = new KubernetesRuntimeInfoProvider(Namespace, client.Object, moduleManager.Object);
-            foreach (V1Pod pod in BuildPodList().Values)
+            runtimeInfo.CreateOrUpdateAddPodInfo(pod);
+
+            ModuleRuntimeInfo info = (await runtimeInfo.GetModules(CancellationToken.None)).Single();
+
+            Assert.Equal(status, info.ModuleStatus);
+            Assert.Equal(description, info.Description);
+        }
+
+        public static IEnumerable<object[]> GetListOfPodsInPendingPhase()
+        {
+            return new[]
             {
-                runtimeInfo.CreateOrUpdateAddPodInfo(pod);
-            }
+                new object[]
+                {
+                    CreatePodInPhaseWithContainerStatus("Pending", new V1ContainerState(waiting: new V1ContainerStateWaiting("Waiting", "CrashBackLoopOff"))),
+                    "Module in Back-off reason: CrashBackLoopOff",
+                    ModuleStatus.Backoff
+                },
+                new object[]
+                {
+                    CreatePodInPhaseWithContainerStatus("Pending", new V1ContainerState(terminated: new V1ContainerStateTerminated(0, reason: "Completed"))),
+                    "Module Stopped reason: Completed",
+                    ModuleStatus.Stopped
+                },
+                new object[]
+                {
+                    CreatePodInPhaseWithContainerStatus("Pending", new V1ContainerState(terminated: new V1ContainerStateTerminated(139, reason: "Segmentation Fault"))),
+                    "Module Failed reason: Segmentation Fault",
+                    ModuleStatus.Failed
+                },
+                new object[]
+                {
+                    CreatePodInPhaseWithContainerStatus("Pending", new V1ContainerState(running: new V1ContainerStateRunning(startedAt: DateTime.Parse("2019-06-12T16:11:22Z")))),
+                    "Started at " + DateTime.Parse("2019-06-12T16:11:22Z"),
+                    ModuleStatus.Backoff
+                }
+            };
+        }
 
-            Dictionary<string, V1Pod> modified = BuildPodList();
+        [Theory]
+        [MemberData(nameof(GetListOfPodsInPendingPhase))]
+        public async Task ReturnModuleStatusWhenPodIsPending(V1Pod pod, string description, ModuleStatus status)
+        {
+            var client = new Mock<IKubernetes>(MockBehavior.Strict);
+            var moduleManager = new Mock<IModuleManager>(MockBehavior.Strict);
+            var runtimeInfo = new KubernetesRuntimeInfoProvider(Namespace, client.Object, moduleManager.Object);
+            runtimeInfo.CreateOrUpdateAddPodInfo(pod);
 
-            DateTime agentStartTime = new DateTime(2019, 6, 11);
-            modified["edgeagent"].Status.Phase = "Running";
-            modified["edgeagent"].Status.StartTime = agentStartTime;
+            ModuleRuntimeInfo info = (await runtimeInfo.GetModules(CancellationToken.None)).Single();
 
-            string pendingDescription = "0/1 node available";
-            modified["edgehub"].Status.Phase = "Pending";
-            modified["edgehub"].Status.Reason = pendingDescription;
+            Assert.Equal(status, info.ModuleStatus);
+            Assert.Equal(description, info.Description);
+        }
 
-            string finishedDescription = "Pod finished";
-            modified["simulatedtemperaturesensor"].Status.Phase = "Succeeded";
-            modified["simulatedtemperaturesensor"].Status.Reason = finishedDescription;
-            modified["simulatedtemperaturesensor"].Status.ContainerStatuses[1].State.Running = null;
-            modified["simulatedtemperaturesensor"].Status.ContainerStatuses[1].State.Terminated = new V1ContainerStateTerminated(139, finishedAt: DateTime.Parse("2019-06-12T16:13:07Z"), startedAt: DateTime.Parse("2019-06-12T16:11:22Z"));
-
-            foreach (V1Pod pod in modified.Values)
+        public static IEnumerable<object[]> GetListOfPodsInAbnormalPhase()
+        {
+            return new[]
             {
-                runtimeInfo.CreateOrUpdateAddPodInfo(pod);
-            }
+                new object[]
+                {
+                    CreatePodWithPodParametersOnly("Running", "Unschedulable", "persistentvolumeclaim module-a-pvc not found"),
+                    "Module Failed with container status Unknown More Info: K8s reason: Unschedulable with message: persistentvolumeclaim module-a-pvc not found",
+                    ModuleStatus.Failed
+                },
+                new object[]
+                {
+                    CreatePodWithPodParametersOnly("Unknown", "Unknown", "Unknown"),
+                    "Module status Unknown reason: Unknown",
+                    ModuleStatus.Unknown
+                },
+                new object[]
+                {
+                    CreatePodWithPodParametersOnly("Failed", "Terminated", "Non-zero exit code"),
+                    "Module Failed reason: Terminated with message: Non-zero exit code",
+                    ModuleStatus.Failed
+                },
+                new object[]
+                {
+                    CreatePodWithPodParametersOnly("Succeeded", "Completed", "Zero exit code"),
+                    "Module Stopped reason: Completed with message: Zero exit code",
+                    ModuleStatus.Stopped
+                }
+            };
+        }
 
-            var modules = (await runtimeInfo.GetModules(CancellationToken.None)).ToList();
-            Assert.Equal(3, modules.Count);
+        [Theory]
+        [MemberData(nameof(GetListOfPodsInAbnormalPhase))]
+        public async Task ReturnModuleStatusWhenPodIsAbnormal(V1Pod pod, string description, ModuleStatus status)
+        {
+            var client = new Mock<IKubernetes>(MockBehavior.Strict);
+            var moduleManager = new Mock<IModuleManager>(MockBehavior.Strict);
+            var runtimeInfo = new KubernetesRuntimeInfoProvider(Namespace, client.Object, moduleManager.Object);
+            runtimeInfo.CreateOrUpdateAddPodInfo(pod);
 
-            // Normal operation statuses
-            foreach (var i in modules)
-            {
-                if (string.Equals("edgeAgent", i.Name))
-                {
-                    Assert.Equal(ModuleStatus.Running, i.ModuleStatus);
-                    Assert.Equal($"Started at {agentStartTime.ToString()}", i.Description);
-                }
-                else if (string.Equals("edgeHub", i.Name))
-                {
-                    Assert.Equal(ModuleStatus.Failed, i.ModuleStatus);
-                    Assert.Equal(pendingDescription, i.Description);
-                    Assert.Equal(Option.None<DateTime>(), i.ExitTime);
-                }
-                else if (string.Equals("SimulatedTemperatureSensor", i.Name))
-                {
-                    Assert.Equal(ModuleStatus.Stopped, i.ModuleStatus);
-                    Assert.Equal(finishedDescription, i.Description);
-                    Assert.Equal(new DateTime(2019, 6, 12), i.StartTime.OrDefault().Date);
-                    Assert.Equal(new DateTime(2019, 6, 12), i.ExitTime.OrDefault().Date);
-                }
-                else
-                {
-                    Assert.True(false, $"Missing module {i.Name} in validation");
-                }
+            ModuleRuntimeInfo info = (await runtimeInfo.GetModules(CancellationToken.None)).Single();
 
-                if (i is ModuleRuntimeInfo<DockerReportedConfig> d)
-                {
-                    Assert.NotEqual("unknown:unknown", d.Config.Image);
-                }
-            }
-
-            string unknownDescription = "Could not reach pod";
-            modified["edgeagent"].Status.Phase = "Unknown";
-            modified["edgeagent"].Status.Reason = unknownDescription;
-
-            modified["edgehub"].Status = null;
-
-            foreach (V1Pod pod in modified.Values)
-            {
-                runtimeInfo.CreateOrUpdateAddPodInfo(pod);
-            }
-
-            var abnormalModules = (await runtimeInfo.GetModules(CancellationToken.None)).ToList();
-            Assert.Equal(3, modules.Count);
-
-            // Abnormal operation statuses
-            foreach (var i in abnormalModules)
-            {
-                if (string.Equals("edgeAgent", i.Name))
-                {
-                    Assert.Equal(ModuleStatus.Failed, i.ModuleStatus);
-                    Assert.Equal(unknownDescription, i.Description);
-                }
-                else if (string.Equals("edgeHub", i.Name))
-                {
-                    Assert.Equal(ModuleStatus.Failed, i.ModuleStatus);
-                    Assert.Equal("Unable to get pod status", i.Description);
-                }
-                else if (string.Equals("SimulatedTemperatureSensor", i.Name))
-                {
-                }
-                else
-                {
-                    Assert.True(false, $"Missing module {i.Name} in validation");
-                }
-            }
+            Assert.Equal(status, info.ModuleStatus);
+            Assert.Equal(description, info.Description);
         }
 
         static Dictionary<string, V1Pod> BuildPodList()
