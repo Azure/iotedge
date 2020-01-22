@@ -84,110 +84,34 @@ namespace TestResultCoordinator.Reports.DirectMethod
 
                 if (hasReceiverResult)
                 {
-                    string receiverSource = this.ReceiverSource.OrDefault();
-                    ITestResultCollection<TestOperationResult> receiverTestResults = this.ReceiverTestResults.OrDefault();
-                    this.ValidateDataSource(receiverTestResults.Current, receiverSource);
-                    DirectMethodTestResult dmReceiverTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(receiverTestResults.Current.Result);
-
-                    if (!string.Equals(dmSenderTestResult.TrackingId, dmReceiverTestResult.TrackingId, StringComparison.OrdinalIgnoreCase))
+                    AdditionalCountsAndHasResults additionalCountsAndHasResults =
+                        await this.ReceiverOnlyLogicAsync(dmSenderTestResult, hasSenderResult, hasReceiverResult, networkControllerStatus, isWithinTolerancePeriod);
+                    mismatchSuccess += additionalCountsAndHasResults.MismatchSuccess;
+                    mismatchFailure += additionalCountsAndHasResults.MismatchFailure;
+                    hasSenderResult = additionalCountsAndHasResults.HasSenderResult;
+                    hasReceiverResult = additionalCountsAndHasResults.HasReceiverResult;
+                    if (additionalCountsAndHasResults.MismatchFailure > 0 || additionalCountsAndHasResults.MismatchSuccess > 0)
                     {
-                        throw new InvalidDataException($"Sequence numbers should not match if the testResults didn't match. SenderTestResult: " +
-                            $"{dmSenderTestResult.GetFormattedResult()}. ReceiverTestResult: {dmReceiverTestResult.GetFormattedResult()}");
-                    }
-
-                    if (string.Equals(dmSenderTestResult.SequenceNumber, dmReceiverTestResult.SequenceNumber, StringComparison.OrdinalIgnoreCase))
-                    {
-                        hasReceiverResult = await receiverTestResults.MoveNextAsync();
-                    }
-                    else
-                    {
-                        if (int.Parse(dmSenderTestResult.SequenceNumber) > int.Parse(dmReceiverTestResult.SequenceNumber))
-                        {
-                            mismatchFailure++;
-
-                            // Log unexpected case
-                            Logger.LogError($"Unexpected Receiver test result:" +
-                                $" {receiverTestResults.Current.Source}," +
-                                $" {receiverTestResults.Current.Type}, " +
-                                $"{receiverTestResults.Current.Result} at " +
-                                $"{receiverTestResults.Current.CreatedAt}");
-                            hasReceiverResult = await receiverTestResults.MoveNextAsync();
-                            continue;
-                        }
-                        else if (int.Parse(dmSenderTestResult.SequenceNumber) < int.Parse(dmReceiverTestResult.SequenceNumber))
-                        {
-                            if (HttpStatusCode.OK.Equals(dmSenderTestResult.Result) &&
-                                (NetworkControllerStatus.Disabled.Equals(networkControllerStatus)
-                                || (NetworkControllerStatus.Enabled.Equals(networkControllerStatus) && isWithinTolerancePeriod)))
-                            {
-                                mismatchSuccess++;
-                                hasSenderResult = await this.SenderTestResults.MoveNextAsync();
-                                continue;
-                            }
-                        }
+                        continue;
                     }
                 }
 
-                HttpStatusCode statusCode = dmSenderTestResult.Result;
-                if (NetworkControllerStatus.Disabled.Equals(networkControllerStatus))
-                {
-                    if (HttpStatusCode.OK.Equals(statusCode))
-                    {
-                        networkOnSuccess++;
-                    }
-                    else
-                    {
-                        if (isWithinTolerancePeriod)
-                        {
-                            networkOnToleratedSuccess++;
-                        }
-                        else
-                        {
-                            networkOnFailure++;
-                        }
-                    }
-                }
-                else if (NetworkControllerStatus.Enabled.Equals(networkControllerStatus))
-                {
-                    if (HttpStatusCode.InternalServerError.Equals(statusCode))
-                    {
-                        networkOffSuccess++;
-                    }
-                    else if (HttpStatusCode.OK.Equals(dmSenderTestResult.Result))
-                    {
-                        if (isWithinTolerancePeriod)
-                        {
-                            networkOffToleratedSuccess++;
-                        }
-                        else
-                        {
-                            networkOffFailure++;
-                        }
-                    }
-                    else
-                    {
-                        throw new InvalidDataException($"Unexpected HttpStatusCode of {statusCode}");
-                    }
-                }
-
-                hasSenderResult = await this.SenderTestResults.MoveNextAsync();
+                AdditionalCountsAndHasResults additionalCountsAndHasResultsSendery =
+                    await this.SenderOnlyLogic(dmSenderTestResult, networkControllerStatus, isWithinTolerancePeriod);
+                networkOnSuccess += additionalCountsAndHasResultsSendery.NetworkOnSuccess;
+                networkOffSuccess += additionalCountsAndHasResultsSendery.NetworkOffSuccess;
+                networkOnToleratedSuccess += additionalCountsAndHasResultsSendery.NetworkOnToleratedSuccess;
+                networkOffToleratedSuccess += additionalCountsAndHasResultsSendery.NetworkOffToleratedSuccess;
+                networkOnFailure += additionalCountsAndHasResultsSendery.NetworkOnFailure;
+                networkOffFailure += additionalCountsAndHasResultsSendery.NetworkOffFailure;
+                hasSenderResult = additionalCountsAndHasResultsSendery.HasSenderResult;
             }
 
             while (hasReceiverResult)
             {
-                string receiverSource = this.ReceiverSource.OrDefault();
-                ITestResultCollection<TestOperationResult> receiverTestResults = this.ReceiverTestResults.OrDefault();
-
-                Logger.LogError($"[{nameof(DirectMethodReportGenerator)}] Receiver test result source has unexpected results.");
-
-                mismatchFailure++;
-
-                // Log actual queue items
-                Logger.LogError($"Unexpected Receiver test result: {receiverTestResults.Current.Source}, " +
-                    $"{receiverTestResults.Current.Type}, " +
-                    $"{receiverTestResults.Current.Result} at " +
-                    $"{receiverTestResults.Current.CreatedAt}");
-                hasReceiverResult = await receiverTestResults.MoveNextAsync();
+                AdditionalCountsAndHasResults additionalCountsAndHasResultsForMismatchFailure = await this.MismatchFailureCase();
+                mismatchFailure += additionalCountsAndHasResultsForMismatchFailure.MismatchFailure;
+                hasReceiverResult = additionalCountsAndHasResultsForMismatchFailure.HasReceiverResult;
             }
 
             Logger.LogInformation($"Successfully finished creating DirectMethodReport for Sources [{this.SenderSource}] and [{this.ReceiverSource}]");
@@ -206,6 +130,133 @@ namespace TestResultCoordinator.Reports.DirectMethod
                 mismatchFailure);
         }
 
+        async Task<AdditionalCountsAndHasResults> ReceiverOnlyLogicAsync(
+            DirectMethodTestResult dmSenderTestResult,
+            bool hasSenderResult,
+            bool hasReceiverResult,
+            NetworkControllerStatus networkControllerStatus,
+            bool isWithinTolerancePeriod)
+        {
+            ulong mismatchSuccess = 0;
+            string receiverSource = this.ReceiverSource.OrDefault();
+            ITestResultCollection<TestOperationResult> receiverTestResults = this.ReceiverTestResults.OrDefault();
+            this.ValidateDataSource(receiverTestResults.Current, receiverSource);
+            DirectMethodTestResult dmReceiverTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(receiverTestResults.Current.Result);
+
+            if (!string.Equals(dmSenderTestResult.TrackingId, dmReceiverTestResult.TrackingId, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException($"Sequence numbers should not match if the testResults didn't match. SenderTestResult: " +
+                    $"{dmSenderTestResult.GetFormattedResult()}. ReceiverTestResult: {dmReceiverTestResult.GetFormattedResult()}");
+            }
+
+            if (string.Equals(dmSenderTestResult.SequenceNumber, dmReceiverTestResult.SequenceNumber, StringComparison.OrdinalIgnoreCase))
+            {
+                hasReceiverResult = await receiverTestResults.MoveNextAsync();
+            }
+            else
+            {
+                if (int.Parse(dmSenderTestResult.SequenceNumber) > int.Parse(dmReceiverTestResult.SequenceNumber))
+                {
+                    return await this.MismatchFailureCase();
+                }
+                else if (int.Parse(dmSenderTestResult.SequenceNumber) < int.Parse(dmReceiverTestResult.SequenceNumber))
+                {
+                    if (HttpStatusCode.OK.Equals(dmSenderTestResult.Result) &&
+                        (NetworkControllerStatus.Disabled.Equals(networkControllerStatus)
+                        || (NetworkControllerStatus.Enabled.Equals(networkControllerStatus) && isWithinTolerancePeriod)))
+                    {
+                        mismatchSuccess++;
+                        hasSenderResult = await this.SenderTestResults.MoveNextAsync();
+                        return new AdditionalCountsAndHasResults { MismatchSuccess = mismatchSuccess, HasReceiverResult = hasReceiverResult, HasSenderResult = hasSenderResult };
+                    }
+                }
+            }
+
+            return new AdditionalCountsAndHasResults { HasSenderResult = hasSenderResult, HasReceiverResult = hasReceiverResult };
+        }
+
+        async Task<AdditionalCountsAndHasResults> MismatchFailureCase()
+        {
+            ulong mismatchFailure = 0;
+            ITestResultCollection<TestOperationResult> receiverTestResults = this.ReceiverTestResults.OrDefault();
+
+            Logger.LogError($"[{nameof(DirectMethodReportGenerator)}] Receiver test result source has unexpected results.");
+
+            mismatchFailure++;
+
+            // Log actual queue items
+            Logger.LogError($"Unexpected Receiver test result: {receiverTestResults.Current.Source}, " +
+                $"{receiverTestResults.Current.Type}, " +
+                $"{receiverTestResults.Current.Result} at " +
+                $"{receiverTestResults.Current.CreatedAt}");
+            bool hasReceiverResult = await receiverTestResults.MoveNextAsync();
+
+            return new AdditionalCountsAndHasResults { MismatchFailure = mismatchFailure, HasReceiverResult = hasReceiverResult };
+        }
+
+        async Task<AdditionalCountsAndHasResults> SenderOnlyLogic(DirectMethodTestResult dmSenderTestResult, NetworkControllerStatus networkControllerStatus, bool isWithinTolerancePeriod)
+        {
+            ulong networkOnSuccess = 0;
+            ulong networkOffSuccess = 0;
+            ulong networkOnToleratedSuccess = 0;
+            ulong networkOffToleratedSuccess = 0;
+            ulong networkOnFailure = 0;
+            ulong networkOffFailure = 0;
+            HttpStatusCode statusCode = dmSenderTestResult.Result;
+            if (NetworkControllerStatus.Disabled.Equals(networkControllerStatus))
+            {
+                if (HttpStatusCode.OK.Equals(statusCode))
+                {
+                    networkOnSuccess++;
+                }
+                else
+                {
+                    if (isWithinTolerancePeriod)
+                    {
+                        networkOnToleratedSuccess++;
+                    }
+                    else
+                    {
+                        networkOnFailure++;
+                    }
+                }
+            }
+            else if (NetworkControllerStatus.Enabled.Equals(networkControllerStatus))
+            {
+                if (HttpStatusCode.InternalServerError.Equals(statusCode))
+                {
+                    networkOffSuccess++;
+                }
+                else if (HttpStatusCode.OK.Equals(dmSenderTestResult.Result))
+                {
+                    if (isWithinTolerancePeriod)
+                    {
+                        networkOffToleratedSuccess++;
+                    }
+                    else
+                    {
+                        networkOffFailure++;
+                    }
+                }
+                else
+                {
+                    throw new InvalidDataException($"Unexpected HttpStatusCode of {statusCode}");
+                }
+            }
+
+            bool hasSenderResult = await this.SenderTestResults.MoveNextAsync();
+            return new AdditionalCountsAndHasResults
+            {
+                NetworkOnSuccess = networkOnSuccess,
+                NetworkOffSuccess = networkOffSuccess,
+                NetworkOnToleratedSuccess = networkOnToleratedSuccess,
+                NetworkOffToleratedSuccess = networkOffToleratedSuccess,
+                NetworkOnFailure = networkOnFailure,
+                NetworkOffFailure = networkOffFailure,
+                HasSenderResult = hasSenderResult
+            };
+        }
+
         void ValidateNetworkControllerStatus(NetworkControllerStatus networkControllerStatus)
         {
             if (!NetworkControllerStatus.Enabled.Equals(networkControllerStatus) &&
@@ -221,6 +272,20 @@ namespace TestResultCoordinator.Reports.DirectMethod
             {
                 throw new InvalidDataException($"Result source is '{current.Source}' but expected it to be '{expectedSource}'.");
             }
+        }
+
+        struct AdditionalCountsAndHasResults
+        {
+            public ulong NetworkOnSuccess;
+            public ulong NetworkOffSuccess;
+            public ulong NetworkOnToleratedSuccess;
+            public ulong NetworkOffToleratedSuccess;
+            public ulong NetworkOnFailure;
+            public ulong NetworkOffFailure;
+            public ulong MismatchSuccess;
+            public ulong MismatchFailure;
+            public bool HasReceiverResult;
+            public bool HasSenderResult;
         }
     }
 }

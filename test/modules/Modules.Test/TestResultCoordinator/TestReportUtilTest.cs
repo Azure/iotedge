@@ -271,7 +271,6 @@ namespace Modules.Test.TestResultCoordinator
             Assert.True(!directMethodReportMetadata.ReceiverSource.HasValue);
         }
 
-
         [Fact]
         public void DirectMethodTestResultJsonSerializeTest()
         {
