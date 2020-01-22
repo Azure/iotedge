@@ -2,6 +2,7 @@
 namespace TestResultCoordinator.Services
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
@@ -59,7 +60,8 @@ namespace TestResultCoordinator.Services
         async void DoWorkAsync(object state)
         {
             var tesReportGeneratorFactory = new TestReportGeneratorFactory(this.storage);
-            ITestResultReport[] testResultReports = await TestReportHelper.GenerateTestResultReportsAsync(Settings.Current.TrackingId, Settings.Current.GetReportMetadataList(), tesReportGeneratorFactory, this.logger);
+            List<ITestReportMetadata> reportMetadataList = await Settings.Current.GetReportMetadataListAsync(this.logger);
+            ITestResultReport[] testResultReports = await TestReportUtil.GenerateTestResultReportsAsync(Settings.Current.TrackingId, reportMetadataList, tesReportGeneratorFactory, this.logger);
 
             if (testResultReports.Length == 0)
             {
