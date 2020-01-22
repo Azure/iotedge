@@ -16,6 +16,14 @@ function Get-OpenSSL
         {
             Throw "Failed to clone vcpkg repo with exit code $LastExitCode"
         }
+
+        # TODO: vcpkg updated openssl from 1.0.2 to 1.1.1, but some of our libiothsm tests fail with it.
+        #       Revert to the version of vcpkg before that commit to fix our build for now,
+        #       until we fix the tests to work with 1.1.1.
+        Push-Location $env:HOMEDRIVE\vcpkg
+        git checkout 'bdae0904c41a0ee2c5204d6449038d3b5d551726~1'
+        Pop-Location
+
         Write-Host "Bootstrapping vcpkg..."
         & "$env:HOMEDRIVE\vcpkg\bootstrap-vcpkg.bat"
         if ($LastExitCode)
