@@ -45,7 +45,6 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 receiverSource,
                 receiverResults,
                 resultType,
-                new DirectMethodTestOperationResultComparer(),
                 NetworkStatusTimeline);
 
             Assert.Equal(receiverSource, reportGenerator.ReceiverSource);
@@ -53,7 +52,6 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             Assert.Equal(senderSource, reportGenerator.SenderSource);
             Assert.Equal(receiverResults, reportGenerator.ReceiverTestResults);
             Assert.Equal(resultType, reportGenerator.ResultType);
-            Assert.Equal(typeof(DirectMethodTestOperationResultComparer), reportGenerator.TestResultComparer.GetType());
         }
 
         [Theory]
@@ -75,7 +73,6 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     Option.Some("receiverSource"),
                     receiverResults,
                     "resultType1",
-                    new DirectMethodTestOperationResultComparer(),
                     NetworkStatusTimeline));
 
             Assert.StartsWith("trackingId", ex.Message);
@@ -100,7 +97,6 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     Option.Some("receiverSource"),
                     receiverResults,
                     "resultType1",
-                    new DirectMethodTestOperationResultComparer(),
                     NetworkStatusTimeline));
 
             Assert.StartsWith("senderSource", ex.Message);
@@ -122,7 +118,6 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     Option.Some("receiverSource"),
                     receiverResults,
                     "resultType1",
-                    new DirectMethodTestOperationResultComparer(),
                     NetworkStatusTimeline));
 
             Assert.Equal("senderTestResults", ex.ParamName);
@@ -147,33 +142,9 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     Option.Some("receiverSource"),
                     receiverResults,
                     resultType,
-                    new DirectMethodTestOperationResultComparer(),
                     NetworkStatusTimeline));
 
             Assert.StartsWith("resultType", ex.Message);
-        }
-
-        [Fact]
-        public void TestConstructorThrowsWhenTestResultComparerIsNotProvided()
-        {
-            int batchSize = 10;
-            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
-            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
-                new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
-
-            ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
-                () => new DirectMethodReportGenerator(
-                    Guid.NewGuid().ToString(),
-                    "senderSource",
-                    mockSenderResults.Object,
-                    Option.Some("receiverSource"),
-                    receiverResults,
-                    "resultType1",
-                    null,
-                    NetworkStatusTimeline));
-
-            Assert.Equal("testResultComparer", ex.ParamName);
         }
 
         [Fact]
@@ -190,7 +161,6 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     Option.Some("receiverSource"),
                     Option.None<ITestResultCollection<TestOperationResult>>(),
                     "resultType1",
-                    null,
                     NetworkStatusTimeline));
 
             Assert.Equal("Provide both receiverSource and receiverTestResults or neither.", ex.Message);
@@ -213,7 +183,6 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     Option.None<string>(),
                     receiverResults,
                     "resultType1",
-                    null,
                     NetworkStatusTimeline));
 
             Assert.Equal("Provide both receiverSource and receiverTestResults or neither.", ex.Message);
@@ -239,7 +208,6 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 Option.Some(receiverSource),
                 receiverResults,
                 "resultType1",
-                new DirectMethodTestOperationResultComparer(),
                 NetworkStatusTimeline);
 
             var report = (DirectMethodReport)await reportGenerator.CreateReportAsync();
@@ -289,7 +257,6 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 Option.Some(receiverSource),
                 receiverResults,
                 resultType,
-                new DirectMethodTestOperationResultComparer(),
                 NetworkStatusTimeline);
 
             Guid guid = Guid.NewGuid();
@@ -352,7 +319,6 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 Option.None<string>(),
                 receiverResults,
                 resultType,
-                new DirectMethodTestOperationResultComparer(),
                 NetworkStatusTimeline);
 
             var senderStoreData = GetSenderStoreData(senderSource, resultType, senderStoreValues, statusCodes, timestamps, Guid.NewGuid());

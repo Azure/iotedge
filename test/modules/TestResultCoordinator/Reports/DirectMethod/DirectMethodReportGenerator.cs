@@ -26,7 +26,6 @@ namespace TestResultCoordinator.Reports.DirectMethod
             Option<string> receiverSource,
             Option<ITestResultCollection<TestOperationResult>> receiverTestResults,
             string resultType,
-            ITestResultComparer<TestOperationResult> testResultComparer,
             NetworkStatusTimeline networkStatusTimeline)
         {
             if ((receiverSource.HasValue && !receiverTestResults.HasValue) || (!receiverSource.HasValue && receiverTestResults.HasValue))
@@ -40,7 +39,6 @@ namespace TestResultCoordinator.Reports.DirectMethod
             this.ReceiverSource = receiverSource;
             this.ReceiverTestResults = receiverTestResults;
             this.ResultType = Preconditions.CheckNonWhiteSpace(resultType, nameof(resultType));
-            this.TestResultComparer = Preconditions.CheckNotNull(testResultComparer, nameof(testResultComparer));
             this.NetworkStatusTimeline = Preconditions.CheckNotNull(networkStatusTimeline, nameof(networkStatusTimeline));
         }
 
@@ -97,7 +95,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
                 }
 
                 AdditionalCountsAndHasResults additionalCountsAndHasResultsSendery =
-                    await this.SenderOnlyLogic(dmSenderTestResult, networkControllerStatus, isWithinTolerancePeriod);
+                    await this.SenderOnlyLogic(dmSenderTestResult, networkControllerStatus, isWithinTolerancePeriod, this.SenderTestResults);
                 networkOnSuccess += additionalCountsAndHasResultsSendery.NetworkOnSuccess;
                 networkOffSuccess += additionalCountsAndHasResultsSendery.NetworkOffSuccess;
                 networkOnToleratedSuccess += additionalCountsAndHasResultsSendery.NetworkOnToleratedSuccess;
@@ -194,7 +192,11 @@ namespace TestResultCoordinator.Reports.DirectMethod
             return new AdditionalCountsAndHasResults { MismatchFailure = mismatchFailure, HasReceiverResult = hasReceiverResult };
         }
 
-        async Task<AdditionalCountsAndHasResults> SenderOnlyLogic(DirectMethodTestResult dmSenderTestResult, NetworkControllerStatus networkControllerStatus, bool isWithinTolerancePeriod)
+        async Task<AdditionalCountsAndHasResults> SenderOnlyLogic(
+            DirectMethodTestResult dmSenderTestResult,
+            NetworkControllerStatus networkControllerStatus,
+            bool isWithinTolerancePeriod,
+            ITestResultCollection<TestOperationResult> senderTestResults)
         {
             ulong networkOnSuccess = 0;
             ulong networkOffSuccess = 0;
@@ -244,7 +246,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
                 }
             }
 
-            bool hasSenderResult = await this.SenderTestResults.MoveNextAsync();
+            bool hasSenderResult = await senderTestResults.MoveNextAsync();
             return new AdditionalCountsAndHasResults
             {
                 NetworkOnSuccess = networkOnSuccess,

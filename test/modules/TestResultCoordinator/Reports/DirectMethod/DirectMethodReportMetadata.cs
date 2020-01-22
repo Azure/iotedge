@@ -4,6 +4,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
     using System;
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.Util;
     using TestResultCoordinator.Reports;
 
     class DirectMethodReportMetadata : ITestReportMetadata

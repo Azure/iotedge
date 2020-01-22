@@ -88,7 +88,6 @@ namespace TestResultCoordinator.Reports
                         metadata.ReceiverSource,
                         receiverTestResults,
                         metadata.TestOperationResultType.ToString(),
-                        new DirectMethodTestOperationResultComparer(),
                         networkStatusTimeline);
                 }
 
