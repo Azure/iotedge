@@ -227,7 +227,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<IRuntimeInfoSource>()
                 .SingleInstance();
 
-            // Task<IBackupSource>
+            // Task<IDeploymentBackupSource>
             builder.Register(
                 c =>
                 {
