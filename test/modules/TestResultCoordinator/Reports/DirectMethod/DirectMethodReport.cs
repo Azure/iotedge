@@ -64,16 +64,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
         // MismatchFailure is when the there is a result in ActualStore but no result in ExpectedStore. This should never happen.
         public ulong MismatchFailure { get; }
 
-        public override string Title
-        {
-            get
-            {
-                this.ReceiverSource.ToString();
-                return this.ReceiverSource.Match<string>(
-                    x => $"DirectMethod Report ({this.ResultType}) for [{this.SenderSource}] and [{x}]",
-                    () => $"DirectMethod Report ({this.ResultType}) for [{this.SenderSource}]");
-            }
-        }
+        public override string Title => this.ReceiverSource.HasValue ? $"DirectMethod Report ({this.ResultType}) for [{this.SenderSource}] and [{x}]" : $"DirectMethod Report ({this.ResultType}) for [{this.SenderSource}]";
 
         public override bool IsPassed =>
             this.MismatchFailure == 0 && this.NetworkOffFailure == 0 && this.NetworkOnFailure == 0;

@@ -670,6 +670,10 @@
             "TestReportType": "DirectMethodReport",
             "SenderSource": "directMethodSender3.send",
             "TolerancePeriod": "00:00:00.005"
+          },
+          "reportMetadata12": {
+            "TestReportType": "NetworkControllerReport",
+            "Source": "networkController"
           }
         }
       }

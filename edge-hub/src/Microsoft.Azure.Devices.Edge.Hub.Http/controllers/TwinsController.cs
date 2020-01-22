@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 {
+    using System;
+    using System.Collections.Generic;
     using System.Net;
     using System.Text;
     using System.Threading.Tasks;
@@ -9,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
@@ -81,12 +84,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
         {
             Events.ReceivedMethodCall(directMethodRequest, this.identity);
             IEdgeHub edgeHub = await this.edgeHubGetter;
-            DirectMethodResponse directMethodResponse = await edgeHub.InvokeMethodAsync(this.identity.Id, directMethodRequest);
-            Events.ReceivedMethodCallResponse(directMethodRequest, this.identity);
 
-            MethodResult methodResult = GetMethodResult(directMethodResponse);
+            using (Metrics.TimeDirectMethod(this.identity.Id, directMethodRequest.Id))
+            {
+                DirectMethodResponse directMethodResponse = await edgeHub.InvokeMethodAsync(this.identity.Id, directMethodRequest);
+                Events.ReceivedMethodCallResponse(directMethodRequest, this.identity);
 
-            return methodResult;
+                MethodResult methodResult = GetMethodResult(directMethodResponse);
+
+                return methodResult;
+            }
         }
 
         async Task SendResponse(MethodResult methodResult)
@@ -121,6 +128,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             {
                 Log.LogDebug((int)EventIds.ReceivedMethodResponse, $"Received response from call to method {methodRequest.Name} from device or module {methodRequest.Id}. Method invoked by module {identity.Id}");
             }
+        }
+
+        static class Metrics
+        {
+            static readonly IMetricsTimer DirectMethodsTimer = Util.Metrics.Metrics.Instance.CreateTimer(
+                "direct_method_duration_seconds",
+                "Time taken to call direct method",
+                new List<string> { "from", "to" });
+
+            public static IDisposable TimeDirectMethod(string fromId, string toId) => DirectMethodsTimer.GetTimer(new[] { fromId, toId });
         }
     }
 }
