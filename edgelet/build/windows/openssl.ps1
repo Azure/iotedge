@@ -36,10 +36,6 @@ function Get-OpenSSL
         New-Item -Type Directory "$env:HOMEDRIVE\vcpkg\Downloads" | Out-Null
     }
 
-    $strawberryPerlUri = "https://edgebuild.blob.core.windows.net/strawberry-perl/strawberry-perl-5.24.1.1-32bit-portable.zip"
-    $strawberryPerlPath = "$env:HOMEDRIVE\vcpkg\Downloads\strawberry-perl-5.24.1.1-32bit-portable.zip"
-    Invoke-WebRequest -Uri $strawberryPerlUri -OutFile $strawberryPerlPath
-
     Write-Host "Installing OpenSSL for $(if ($Arm) { 'arm' } else { 'x64' })..."
     & $env:HOMEDRIVE\vcpkg\vcpkg.exe install $(if ($Arm) { 'openssl-windows:arm-windows' } else { 'openssl:x64-windows' } )
     if ($LastExitCode)
