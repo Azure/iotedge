@@ -39,6 +39,11 @@ namespace MetricsValidator
 
             var expected = this.GetExpectedMetrics();
             HashSet<string> unreturnedMetrics = new HashSet<string>(expected.Keys);
+            if (expected.Count == 0)
+            {
+                this.testReporter.Assert("No documented metrics", false, string.Empty);
+                return;
+            }
 
             log.LogInformation("Got expected metrics");
             foreach (Metric metric in metrics)
@@ -69,7 +74,7 @@ namespace MetricsValidator
         {
             try
             {
-                return File.ReadAllLines(Path.Combine("doc", "EdgeAgentMetrics.md"))
+                return File.ReadAllLines(Path.Combine("doc", "BuiltInMetrics.md"))
                     .Select(line => line.Split('|'))
                     .Where(rows => rows.Length == 6)
                     .Select(line => (Matcher.Match(line[1]), Matcher.Matches(line[2])))
