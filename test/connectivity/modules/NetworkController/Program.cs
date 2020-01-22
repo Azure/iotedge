@@ -68,7 +68,7 @@ namespace NetworkController
                         await SetNetworkControllerStatus(controller, NetworkControllerStatus.Disabled, reporter, cs);
                     },
                     delay,
-                    item.OfflineFrequency,
+                    item.OnlineFrequency,
                     item.RunsCount,
                     Log,
                     "restrict/default");
