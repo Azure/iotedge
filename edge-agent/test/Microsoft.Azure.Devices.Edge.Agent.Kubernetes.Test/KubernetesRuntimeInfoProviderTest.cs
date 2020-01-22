@@ -3,25 +3,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 {
     using System;
     using System.Collections.Generic;
-    using System.ComponentModel;
     using System.IO;
     using System.Linq;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    using Akka.Streams.Implementation;
     using k8s;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
-    using Microsoft.Azure.Devices.Edge.Agent.Docker.Commands;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Rest;
     using Moq;
     using Newtonsoft.Json;
-    using Org.BouncyCastle.Asn1.X509;
     using Xunit;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
@@ -165,11 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         public static V1Pod CreatePodInPhaseWithContainerStatus(string podPhase, V1ContainerState containerState)
-        {
-            // module name "module-a"
-            // pod name "module-a-abc123"
-            // original module name "Module-A"
-            V1Pod pod = new V1Pod
+            => new V1Pod
             {
                 Metadata = new V1ObjectMeta
                 {
@@ -196,12 +188,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                     }
                 }
             };
-            return pod;
-        }
 
         public static V1Pod CreatePodWithPodParametersOnly(string podPhase, string podReason, string podMessage)
-        {
-            V1Pod pod = new V1Pod
+            => new V1Pod
             {
                 Metadata = new V1ObjectMeta
                 {
@@ -217,8 +206,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 },
                 Status = new V1PodStatus { Phase = podPhase, Reason = podReason, Message = podMessage },
             };
-            return pod;
-        }
 
         public static IEnumerable<object[]> GetListOfPodsInRunningPhase()
         {
@@ -227,25 +214,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 new object[]
                 {
                     CreatePodInPhaseWithContainerStatus("Running", new V1ContainerState(waiting: new V1ContainerStateWaiting("Waiting", "CrashBackLoopOff"))),
-                    $"Module in Back-off reason: CrashBackLoopOff",
+                    "Module in Back-off reason: CrashBackLoopOff",
                     ModuleStatus.Backoff
                 },
                 new object[]
                 {
                     CreatePodInPhaseWithContainerStatus("Running", new V1ContainerState(terminated: new V1ContainerStateTerminated(0, reason: "Completed"))),
-                    $"Module Stopped reason: Completed",
+                    "Module Stopped reason: Completed",
                     ModuleStatus.Stopped
                 },
                 new object[]
                 {
                     CreatePodInPhaseWithContainerStatus("Running", new V1ContainerState(terminated: new V1ContainerStateTerminated(139, reason: "Segmentation Fault"))),
-                    $"Module Failed reason: Segmentation Fault",
+                    "Module Failed reason: Segmentation Fault",
                     ModuleStatus.Failed
                 },
                 new object[]
                 {
                     CreatePodInPhaseWithContainerStatus("Running", new V1ContainerState(running: new V1ContainerStateRunning(startedAt: DateTime.Parse("2019-06-12T16:11:22Z")))),
-                    $"Started at " + DateTime.Parse("2019-06-12T16:11:22Z"),
+                    "Started at " + DateTime.Parse("2019-06-12T16:11:22Z"),
                     ModuleStatus.Running
                 }
             };
@@ -273,25 +260,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 new object[]
                 {
                     CreatePodInPhaseWithContainerStatus("Pending", new V1ContainerState(waiting: new V1ContainerStateWaiting("Waiting", "CrashBackLoopOff"))),
-                    $"Module in Back-off reason: CrashBackLoopOff",
+                    "Module in Back-off reason: CrashBackLoopOff",
                     ModuleStatus.Backoff
                 },
                 new object[]
                 {
                     CreatePodInPhaseWithContainerStatus("Pending", new V1ContainerState(terminated: new V1ContainerStateTerminated(0, reason: "Completed"))),
-                    $"Module Stopped reason: Completed",
+                    "Module Stopped reason: Completed",
                     ModuleStatus.Stopped
                 },
                 new object[]
                 {
                     CreatePodInPhaseWithContainerStatus("Pending", new V1ContainerState(terminated: new V1ContainerStateTerminated(139, reason: "Segmentation Fault"))),
-                    $"Module Failed reason: Segmentation Fault",
+                    "Module Failed reason: Segmentation Fault",
                     ModuleStatus.Failed
                 },
                 new object[]
                 {
                     CreatePodInPhaseWithContainerStatus("Pending", new V1ContainerState(running: new V1ContainerStateRunning(startedAt: DateTime.Parse("2019-06-12T16:11:22Z")))),
-                    $"Started at " + DateTime.Parse("2019-06-12T16:11:22Z"),
+                    "Started at " + DateTime.Parse("2019-06-12T16:11:22Z"),
                     ModuleStatus.Backoff
                 }
             };
@@ -319,25 +306,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 new object[]
                 {
                     CreatePodWithPodParametersOnly("Running", "Unschedulable", "persistentvolumeclaim module-a-pvc not found"),
-                    $"Module Failed with container status Unknown More Info: K8s reason: Unschedulable with message: persistentvolumeclaim module-a-pvc not found",
+                    "Module Failed with container status Unknown More Info: K8s reason: Unschedulable with message: persistentvolumeclaim module-a-pvc not found",
                     ModuleStatus.Failed
                 },
                 new object[]
                 {
                     CreatePodWithPodParametersOnly("Unknown", "Unknown", "Unknown"),
-                    $"Module status Unknown reason: Unknown",
+                    "Module status Unknown reason: Unknown",
                     ModuleStatus.Unknown
                 },
                 new object[]
                 {
                     CreatePodWithPodParametersOnly("Failed", "Terminated", "Non-zero exit code"),
-                    $"Module Failed reason: Terminated with message: Non-zero exit code",
+                    "Module Failed reason: Terminated with message: Non-zero exit code",
                     ModuleStatus.Failed
                 },
                 new object[]
                 {
                     CreatePodWithPodParametersOnly("Succeeded", "Completed", "Zero exit code"),
-                    $"Module Stopped reason: Completed with message: Zero exit code",
+                    "Module Stopped reason: Completed with message: Zero exit code",
                     ModuleStatus.Stopped
                 }
             };
