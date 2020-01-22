@@ -3,7 +3,7 @@ FROM mcr.microsoft.com/dotnet/core/runtime:${base_tag}
 
 ARG EXE_DIR=.
 
-ENV MODULE_NAME "ModuleRestarter.dll"
+ENV MODULE_NAME "EdgeHubRestartTester.dll"
 
 WORKDIR /app
 
@@ -14,4 +14,4 @@ RUN adduser -Ds /bin/sh moduleuser
 USER moduleuser
 
 CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Module" && \
-    exec /usr/bin/dotnet ModuleRestarter.dll
+    exec /usr/bin/dotnet EdgeHubRestartTester.dll

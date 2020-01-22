@@ -8,4 +8,4 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-CMD ["dotnet", "ModuleRestarter.dll"]
+CMD ["dotnet", "EdgeHubRestartTester.dll"]
