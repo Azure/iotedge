@@ -44,13 +44,15 @@ provisioning:
   {{- end }}
   {{- end }}
   {{- end }}
-{{- if .Values.iotedged.certificates }}
+{{- with .Values.iotedged.certificates }}
 certificates:
+  {{- if .secret }}
   device_ca_cert: "/etc/edgecerts/device_ca_cert"
   device_ca_pk: "/etc/edgecerts/device_ca_pk"
   trusted_ca_certs: "/etc/edgecerts/trusted_ca_certs"
-  {{- if .Values.iotedged.certificates.auto_generated_ca_lifetime_days }}
-  auto_generated_ca_lifetime_days: {{ .Values.iotedged.certificates.auto_generated_ca_lifetime_days }}
+  {{- end }}
+  {{- if .auto_generated_ca_lifetime_days }}
+  auto_generated_ca_lifetime_days: {{ .auto_generated_ca_lifetime_days }}
   {{- end }}
 {{ end }}
 agent:
