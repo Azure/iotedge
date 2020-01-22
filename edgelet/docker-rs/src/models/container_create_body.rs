@@ -112,8 +112,8 @@ pub struct ContainerCreateBody {
     // shell: Option<Vec<String>>,
     #[serde(rename = "HostConfig", skip_serializing_if = "Option::is_none")]
     host_config: Option<crate::models::HostConfig>,
-    // #[serde(rename = "NetworkingConfig", skip_serializing_if = "Option::is_none")]
-    // networking_config: Option<crate::models::ContainerCreateBodyNetworkingConfig>,
+    #[serde(rename = "NetworkingConfig", skip_serializing_if = "Option::is_none")]
+    networking_config: Option<crate::models::ContainerCreateBodyNetworkingConfig>,
     #[serde(flatten)]
     other_properties: std::collections::HashMap<String, serde_json::Value>,
 }
@@ -147,7 +147,7 @@ impl ContainerCreateBody {
             // stop_timeout: None,
             // shell: None,
             host_config: None,
-            // networking_config: None,
+            networking_config: None,
             other_properties: Default::default(),
         }
     }
@@ -597,26 +597,26 @@ impl ContainerCreateBody {
         self.host_config = None;
     }
 
-    // pub fn set_networking_config(
-    //     &mut self,
-    //     networking_config: crate::models::ContainerCreateBodyNetworkingConfig,
-    // ) {
-    //     self.networking_config = Some(networking_config);
-    // }
+    pub fn set_networking_config(
+        &mut self,
+        networking_config: crate::models::ContainerCreateBodyNetworkingConfig,
+    ) {
+        self.networking_config = Some(networking_config);
+    }
 
-    // pub fn with_networking_config(
-    //     mut self,
-    //     networking_config: crate::models::ContainerCreateBodyNetworkingConfig,
-    // ) -> Self {
-    //     self.networking_config = Some(networking_config);
-    //     self
-    // }
+    pub fn with_networking_config(
+        mut self,
+        networking_config: crate::models::ContainerCreateBodyNetworkingConfig,
+    ) -> Self {
+        self.networking_config = Some(networking_config);
+        self
+    }
 
-    // pub fn networking_config(&self) -> Option<&crate::models::ContainerCreateBodyNetworkingConfig> {
-    //     self.networking_config.as_ref()
-    // }
+    pub fn networking_config(&self) -> Option<&crate::models::ContainerCreateBodyNetworkingConfig> {
+        self.networking_config.as_ref()
+    }
 
-    // pub fn reset_networking_config(&mut self) {
-    //     self.networking_config = None;
-    // }
+    pub fn reset_networking_config(&mut self) {
+        self.networking_config = None;
+    }
 }
