@@ -51,6 +51,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                                         SslProtocols = sslProtocols
                                     });
                             });
+
+                        options.Listen(!Socket.OSSupportsIPv6 ? IPAddress.Any : IPAddress.IPv6Any, 9600);
                     })
                 .UseSockets()
                 .ConfigureServices(
