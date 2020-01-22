@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     public static class MessageHelper
@@ -10,6 +11,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 return message.SystemProperties.TryGetValue(SystemProperties.ConnectionModuleId, out string moduleId)
                     ? $"{deviceId}/{moduleId}"
                     : deviceId;
+            }
+
+            return string.Empty;
+        }
+
+        public static string GetOutput(this IMessage message)
+        {
+            if (message.SystemProperties.TryGetValue(SystemProperties.OutputName, out string outputName))
+            {
+                return outputName;
+            }
+
+            return string.Empty;
+        }
+
+        public static string GetInput(this IMessage message)
+        {
+            if (message.SystemProperties.TryGetValue(SystemProperties.InputName, out string outputName))
+            {
+                return outputName;
             }
 
             return string.Empty;

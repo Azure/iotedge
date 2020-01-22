@@ -2,6 +2,7 @@
 namespace TestResultCoordinator.Controllers
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
@@ -28,7 +29,8 @@ namespace TestResultCoordinator.Controllers
         public async Task<ContentResult> GetReportsAsync()
         {
             var testReportGeneratorFactory = new TestReportGeneratorFactory(this.storage);
-            ITestResultReport[] testResultReports = await TestReportHelper.GenerateTestResultReportsAsync(Settings.Current.TrackingId, Settings.Current.GetReportMetadataList(), testReportGeneratorFactory, Logger);
+            List<ITestReportMetadata> reportMetadataList = await Settings.Current.GetReportMetadataListAsync(Logger);
+            ITestResultReport[] testResultReports = await TestReportUtil.GenerateTestResultReportsAsync(Settings.Current.TrackingId, reportMetadataList, testReportGeneratorFactory, Logger);
 
             if (testResultReports.Length == 0)
             {
