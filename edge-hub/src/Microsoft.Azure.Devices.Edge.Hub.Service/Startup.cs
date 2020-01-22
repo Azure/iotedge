@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             // Seperate metrics endpoint from https authentication
             app.Map("/metrics", metricsApp =>
             {
-                metricsApp.UseMetricServer("");
+                metricsApp.UseMetricServer(string.Empty);
             });
 
             app.UseWebSockets();
