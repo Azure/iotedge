@@ -29,6 +29,10 @@ spec:
           env:
           - name: "IOTEDGE_LOG"
             value: "debug"
+          {{- if .Values.iotedged.data.httpsProxy }}
+          - name: "https_proxy"
+            value: {{ .Values.iotedged.data.targetPath | quote}}
+          {{end}}
           volumeMounts:
           - name: config
             mountPath: "/etc/iotedged"
@@ -40,15 +44,19 @@ spec:
             mountPath: "/etc/edgecerts"
             readOnly: true
           {{end}}
+          {{- if .Values.provisioning.authentication }}
           {{- if .Values.provisioning.authentication.identitySecret }}
           - name: edge-certs
             mountPath: "/etc/edge-authentication"
             readOnly: true
           {{end}}
+          {{end}}
+          {{- if .Values.provisioning.attestation }}
           {{- if .Values.provisioning.attestation.identitySecret }}
           - name: edge-certs
             mountPath: "/etc/edge-attestation"
             readOnly: true
+          {{end}}
           {{end}}
           ports:
             - name: management
@@ -80,6 +88,7 @@ spec:
       - name: config
         secret:
           secretName: iotedged-config
+      {{- if .Values.provisioning.authentication }}
       {{- if .Values.provisioning.authentication.identitySecret }}
       {{- /*
       NOTE: This sets up iotedged with a volume "/etc/edge-authentication" populated with authentication certs.
@@ -93,6 +102,8 @@ spec:
           - key: {{ .Values.provisioning.authentication.identityPk | default "identity_key.pem" }}
             path: identity_pk
       {{end}}
+      {{end}}
+      {{- if .Values.provisioning.attestation }}
       {{- if .Values.provisioning.attestation.identitySecret }}
       {{- /*
       NOTE: This sets up iotedged with a volume "/etc/edge-attestation" populated with the attestation certs.
@@ -105,6 +116,7 @@ spec:
             path: identity_cert
           - key: {{ .Values.provisioning.attestation.identityPk | default "identity_key.pem" }}
             path: identity_pk
+      {{end}}
       {{end}}
       {{- if .Values.iotedged.certificates }}
       {{- /*

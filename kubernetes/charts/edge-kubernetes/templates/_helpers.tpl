@@ -20,9 +20,9 @@ provisioning:
   {{- if eq $key "attestation"}}
   attestation:
     {{- range $atkey, $atval := $val }}
-    {{- if eq $atKey "identityCert" }}
+    {{- if eq $atkey "identityCert" }}
     identity_cert: "file:///etc/edge-attestation/identity_cert"
-    {{- else if eq $atKey "identityPk") }}
+    {{- else if eq $atkey "identityPk" }}
     identity_pk: "file:///etc/edge-attestation/identity_pk"
     {{- else }}
     {{ $atkey | snakecase }}: {{$atval | quote }}
@@ -31,12 +31,12 @@ provisioning:
   {{- else if eq $key "authentication" }}
   authentication:
     {{- range $aukey, $auval := $val }}
-    {{- if eq $atKey "identityCert" }}
+    {{- if eq $aukey "identityCert" }}
     identity_cert: "file:///etc/edge-authentication/identity_cert"
-    {{- else if eq $atKey "identityPk") }}
+    {{- else if eq $aukey "identityPk" }}
     identity_pk: "file:///etc/edge-authentication/identity_pk"
     {{- else }}
-    {{ $atkey | snakecase }}: {{$atval | quote }}
+    {{ $aukey | snakecase }}: {{$auval | quote }}
     {{- end }}
     {{- end }}
   {{- else }}
@@ -76,6 +76,9 @@ agent:
     {{- if .Values.edgeAgent.env.upstreamProtocol}}
     UpstreamProtocol: {{ .Values.edgeAgent.env.upstreamProtocol | quote }}
     {{- end }}
+    {{- if .Values.iotedged.data.httpsProxy }}
+    https_proxy: {{ .Values.iotedged.data.httpsProxy | quote }}
+    {{- end}}
     {{- if .Values.edgeAgent.env.persistentVolumeName}}
     PersistentVolumeName: {{ .Values.edgeAgent.env.persistentVolumeName | quote }}
     {{- end }}

@@ -26,6 +26,12 @@ iotedged:
     #   name: <CLAIM NAME HERE>
     #   storageClassName: <STORAGE CLASS NAME HERE>
     #   size: 100Mi
+    #
+    ###############################################################################
+    # Proxy settings
+    ###############################################################################
+    # Set the following if an HTTPS proxy is needed
+    # httpsProxy: "<proxy URL>"
     ###############################################################################
     # Watchdog settings
     ###############################################################################
@@ -238,7 +244,7 @@ edge-kubernetes-crd:
 # Manual provisioning configuration using a connection string
 provisioning:
   source: "manual"
-  deviceConnectionString: "<ADD DEVICE CONNECTION STRING HERE>"
+  #deviceConnectionString: "<ADD DEVICE CONNECTION STRING HERE>"
   dynamicReprovisioning: false
 
 # Manual provisioning configuration using an X.509 identity certificate
