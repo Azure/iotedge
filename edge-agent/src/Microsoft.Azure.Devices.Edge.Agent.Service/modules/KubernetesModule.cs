@@ -227,6 +227,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<IRuntimeInfoSource>()
                 .SingleInstance();
 
+            // Task<IDeploymentBackupSource>
+            builder.Register(
+                c =>
+                {
+                    var serde = c.Resolve<ISerde<DeploymentConfigInfo>>();
+                    IDeploymentBackupSource backupSource = new DeploymentSecretBackup(Constants.EdgeAgentBackupName, this.deviceNamespace, this.moduleOwner, serde, c.Resolve<IKubernetes>());
+                    return Task.FromResult(backupSource);
+                })
+                .As<Task<IDeploymentBackupSource>>()
+                .SingleInstance();
+
             // KubernetesDeploymentProvider
             builder.Register(
                     c => new KubernetesDeploymentMapper(
