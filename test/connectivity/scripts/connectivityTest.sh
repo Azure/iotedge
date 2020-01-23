@@ -9,9 +9,9 @@ set -e
 . $(dirname "$0")/testHelper.sh
 
 function examine_test_result() {
-    found_test_passed="$(docker logs testResultCoordinator | grep -Pzo 'Test result report\n{\n.*"IsPassed": true')"
+    found_test_passed="$(docker logs testResultCoordinator 2>&1 | grep -Pzo 'Test result report\n{\n.*"IsPassed": true')"
 
-    if [[ $found_test_passed -ne "" ]]; then
+    if [[ "$found_test_passed" -ne "" ]]; then
         echo 0
     fi
 
