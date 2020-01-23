@@ -77,7 +77,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 TimeSpan.FromSeconds(20),
                 Option.None<IWebProxy>(),
                 productInfoStore);
-            var connectionManager = new ConnectionManager(cloudConnectionProvider, Mock.Of<ICredentialsCache>(), identityProvider);
+            var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
+            var connectionManager = new ConnectionManager(cloudConnectionProvider, Mock.Of<ICredentialsCache>(), identityProvider, deviceConnectivityManager);
 
             try
             {
@@ -102,7 +103,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 var endpointExecutorFactory = new SyncEndpointExecutorFactory(new EndpointExecutorConfig(defaultTimeout, new FixedInterval(0, TimeSpan.FromSeconds(1)), defaultTimeout, true));
                 Router router = await Router.CreateAsync(Guid.NewGuid().ToString(), iothubHostName, routerConfig, endpointExecutorFactory);
                 IInvokeMethodHandler invokeMethodHandler = new InvokeMethodHandler(connectionManager);
-                var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
                 var subscriptionProcessor = new SubscriptionProcessor(connectionManager, invokeMethodHandler, deviceConnectivityManager);
                 IEdgeHub edgeHub = new RoutingEdgeHub(router, new RoutingMessageConverter(), connectionManager, twinManager, edgeDeviceId, invokeMethodHandler, subscriptionProcessor);
                 cloudConnectionProvider.BindEdgeHub(edgeHub);
