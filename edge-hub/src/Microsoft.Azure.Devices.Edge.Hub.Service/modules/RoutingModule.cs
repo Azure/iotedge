@@ -512,8 +512,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     {
                         IMessageStore messageStore = this.isStoreAndForwardEnabled ? await c.Resolve<Task<IMessageStore>>() : null;
                         var storageSpaceChecker = c.Resolve<IStorageSpaceChecker>();
+                        var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
+                        RouteFactory routeFactory = await c.Resolve<Task<RouteFactory>>();
                         Router router = await c.Resolve<Task<Router>>();
-                        var configUpdater = new ConfigUpdater(router, messageStore, this.configUpdateFrequency, storageSpaceChecker);
+                        var twinManagerTask = c.Resolve<Task<ITwinManager>>();
+                        var twinMessageConverter = c.Resolve<Core.IMessageConverter<Twin>>();
+                        var twinManager = await twinManagerTask;
+                        Option<EdgeHubConfig> prefetchConfig;
+                        if (this.useTwinConfig)
+                        {
+                            var localConfigSource = new LocalTwinConfigSource(edgeHubCredentials.Identity.Id, twinManager, twinMessageConverter, routeFactory);
+                            prefetchConfig = await localConfigSource.GetConfig();
+                        }
+                        else
+                        {
+                            prefetchConfig = Option.None<EdgeHubConfig>();
+                        }
+
+                        var configUpdater = await ConfigUpdater.Create(router, messageStore, this.configUpdateFrequency, storageSpaceChecker, prefetchConfig);
                         return configUpdater;
                     })
                 .As<Task<ConfigUpdater>>()

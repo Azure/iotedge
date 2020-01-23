@@ -98,18 +98,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         }
 
         /// <summary>
-        /// If called multiple times, this will currently overwrite the existing callback
+        /// If called multiple times, this will currently overwrite the existing callback.
         /// </summary>
         public void SetConfigUpdatedCallback(Func<EdgeHubConfig, Task> callback) =>
             this.configUpdateCallback = Preconditions.CheckNotNull(callback, nameof(callback));
-
-        internal static void ValidateSchemaVersion(string schemaVersion)
-        {
-            if (Constants.ConfigSchemaVersion.CompareMajorVersion(schemaVersion, "desired properties schema") != 0)
-            {
-                Events.MismatchedMinorVersions(schemaVersion, Constants.ConfigSchemaVersion);
-            }
-        }
 
         internal async void DeviceDisconnected(object sender, IIdentity device)
         {
@@ -193,8 +185,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 this.lastDesiredProperties = Option.Some(twin.Properties.Desired);
                 try
                 {
-                    var desiredProperties = JsonConvert.DeserializeObject<DesiredProperties>(twin.Properties.Desired.ToJson());
-                    edgeHubConfig = Option.Some(this.GetEdgeHubConfig(desiredProperties));
+                    var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(twin.Properties.Desired.ToJson());
+                    edgeHubConfig = Option.Some(EdgeHubConfigParser.GetEdgeHubConfig(desiredProperties, this.routeFactory));
                     await this.UpdateReportedProperties(twin.Properties.Desired.Version, new LastDesiredStatus(200, string.Empty));
                     Events.GetConfigSuccess();
                 }
@@ -211,35 +203,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
 
             return edgeHubConfig;
-        }
-
-        EdgeHubConfig GetEdgeHubConfig(DesiredProperties desiredProperties)
-        {
-            Preconditions.CheckNotNull(desiredProperties, nameof(desiredProperties));
-
-            ValidateSchemaVersion(desiredProperties.SchemaVersion);
-
-            var routes = new Dictionary<string, RouteConfig>();
-            if (desiredProperties.Routes != null)
-            {
-                foreach (KeyValuePair<string, string> inputRoute in desiredProperties.Routes)
-                {
-                    try
-                    {
-                        if (!string.IsNullOrWhiteSpace(inputRoute.Value))
-                        {
-                            Route route = this.routeFactory.Create(inputRoute.Value);
-                            routes.Add(inputRoute.Key, new RouteConfig(inputRoute.Key, inputRoute.Value, route));
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new InvalidOperationException($"Error parsing route {inputRoute.Key} - {ex.Message}", ex);
-                    }
-                }
-            }
-
-            return new EdgeHubConfig(desiredProperties.SchemaVersion, new ReadOnlyDictionary<string, RouteConfig>(routes), desiredProperties.StoreAndForwardConfiguration);
         }
 
         async Task HandleDesiredPropertiesUpdate(IMessage desiredPropertiesUpdate)
@@ -278,8 +241,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 string desiredPropertiesJson = JsonEx.Merge(baseline, patch, true);
                 this.lastDesiredProperties = Option.Some(new TwinCollection(desiredPropertiesJson));
-                var desiredPropertiesPatch = JsonConvert.DeserializeObject<DesiredProperties>(desiredPropertiesJson);
-                edgeHubConfig = Option.Some(this.GetEdgeHubConfig(desiredPropertiesPatch));
+                var desiredPropertiesPatch = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(desiredPropertiesJson);
+                edgeHubConfig = Option.Some(EdgeHubConfigParser.GetEdgeHubConfig(desiredPropertiesPatch, this.routeFactory));
                 lastDesiredStatus = new LastDesiredStatus(200, string.Empty);
                 Events.PatchConfigSuccess();
             }
@@ -434,23 +397,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public VersionInfo VersionInfo { get; }
         }
 
-        class DesiredProperties
-        {
-            [JsonConstructor]
-            public DesiredProperties(string schemaVersion, IDictionary<string, string> routes, StoreAndForwardConfiguration storeAndForwardConfiguration)
-            {
-                this.SchemaVersion = schemaVersion;
-                this.Routes = routes;
-                this.StoreAndForwardConfiguration = storeAndForwardConfiguration;
-            }
-
-            public string SchemaVersion { get; }
-
-            public IDictionary<string, string> Routes { get; }
-
-            public StoreAndForwardConfiguration StoreAndForwardConfiguration { get; }
-        }
-
         /// <summary>
         /// The Edge hub device proxy, that receives communication for the EdgeHub from the cloud.
         /// Currently only receives DesiredProperties updates.
@@ -516,7 +462,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 PatchConfigSuccess,
                 ErrorClearingDeviceConnectionStatuses,
                 UpdatingDeviceConnectionStatus,
-                MismatchedSchemaVersion,
                 ErrorParsingMethodRequest,
                 ErrorRefreshingServiceIdentities,
                 RefreshedServiceIdentities,
@@ -531,13 +476,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     (int)EventIds.ErrorPatchingDesiredProperties,
                     ex,
                     Invariant($"Error getting edge hub config from twin desired properties"));
-            }
-
-            public static void MismatchedMinorVersions(string receivedVersion, Version expectedVersion)
-            {
-                Log.LogWarning(
-                    (int)EventIds.MismatchedSchemaVersion,
-                    Invariant($"Desired properties schema version {receivedVersion} does not match expected schema version {expectedVersion}. Some settings may not be supported."));
             }
 
             public static void ErrorParsingMethodRequest(Exception ex)
