@@ -172,7 +172,7 @@ namespace EdgeHubRestartTester
                         trackingId,
                         Guid.Parse(batchId),
                         sequenceNumber.ToString(),
-                        completedStatus.ToString());
+                        completedStatus);
                     break;
 
                 default:
