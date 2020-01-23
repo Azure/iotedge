@@ -513,36 +513,28 @@ namespace IotEdgeQuickstart.Details
 
         string PredeploymentEdgeAgentImage()
         {
-            return this.BuildImageName("azureiotedge-agent", true);
+            return this.BuildImageName("azureiotedge-agent", "1.0");
         }
 
         string EdgeAgentImage()
         {
-            return this.BuildImageName("azureiotedge-agent", false);
+            return this.BuildImageName("azureiotedge-agent", this.imageTag);
         }
 
         string EdgeHubImage()
         {
-            return this.BuildImageName("azureiotedge-hub", false);
+            return this.BuildImageName("azureiotedge-hub", this.imageTag);
         }
 
         string TempSensorImage()
         {
-            return this.BuildImageName("azureiotedge-simulated-temperature-sensor", false);
+            return this.BuildImageName("azureiotedge-simulated-temperature-sensor", this.imageTag);
         }
 
-        string BuildImageName(string name, bool isPredeploymentImage)
+        string BuildImageName(string name, string customImageTag)
         {
             string prefix = this.credentials.Match(c => $"{c.Address}/microsoft", () => "mcr.microsoft.com");
-            string nameWithoutTag = $"{prefix}/{name}";
-            if (isPredeploymentImage)
-            {
-                return nameWithoutTag + ":1.0";
-            }
-            else
-            {
-                return nameWithoutTag + $":{this.imageTag}";
-            }
+            return $"{prefix}/{name}:{customImageTag}";
         }
 
         (string, string[]) DeploymentJson()
