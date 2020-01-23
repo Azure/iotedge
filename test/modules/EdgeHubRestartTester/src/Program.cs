@@ -33,13 +33,20 @@ namespace EdgeHubRestartTester
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
-            ModuleClient moduleClient = null;
+            ModuleClient msgModuleClient = null;
+            ModuleClient dmModuleClient = null;
             try
             {
                 ServiceClient iotHubServiceClient = ServiceClient.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString);
                 TestResultReportingClient reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
 
-                moduleClient = await ModuleUtil.CreateModuleClientAsync(
+                msgModuleClient = await ModuleUtil.CreateModuleClientAsync(
+                    Settings.Current.MessageTransportType,
+                    ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
+                    ModuleUtil.DefaultTransientRetryStrategy,
+                    Logger);
+
+                dmModuleClient = await ModuleUtil.CreateModuleClientAsync(
                     Settings.Current.MessageTransportType,
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
@@ -52,11 +59,12 @@ namespace EdgeHubRestartTester
                     DateTime eachTestExpirationTime = testStart.AddMinutes(Settings.Current.RestartIntervalInMins);
                     (DateTime restartTime, HttpStatusCode restartStatus) = await RestartModules(iotHubServiceClient, cts);
 
-                    // BEARWASHERE -- Send DM until it passes, task it
+                    // BEARWASHERE -- Send DM until it passes, task it: TODO -- Implement the function
+                    Task<DateTime> SendDirectMethodTask = SendDirectMethodAsync();
 
                     // BEARWASHERE -- Send Msg until it passes, task it
-                    Task<DateTime> SendMessageTask = SendMessageAsync(
-                        moduleClient,
+                    Task <DateTime> SendMessageTask = SendMessageAsync(
+                        msgModuleClient,
                         Settings.Current.TrackingId,
                         batchId,
                         eachTestExpirationTime,
@@ -80,13 +88,45 @@ namespace EdgeHubRestartTester
             }
             finally
             {
-                moduleClient?.Dispose();
+                dmModuleClient?.Dispose();
+                msgModuleClient?.Dispose();
             }
 
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
             Logger.LogInformation("EdgeHubRestartTester Main() finished.");
             return 0;
+        }
+
+        static async Task<DateTime> SendDirectMethodAsync(
+            )
+        {
+            while ((!cts.Token.IsCancellationRequested) && (DateTime.UtcNow < testExpirationTime))
+            {
+                // BEARWASHERE -- TODO: Implement this
+                try
+                {
+                    int resultStatus = await this.InvokeDeviceMethodAsync(this.deviceId, this.targetModuleId, methodName, this.directMethodCount, CancellationToken.None);
+
+                    string statusMessage = $"Calling Direct Method with count {this.directMethodCount} returned with status code {resultStatus}";
+                    if (resultStatus == (int)HttpStatusCode.OK)
+                    {
+                        logger.LogDebug(statusMessage);
+                    }
+                    else
+                    {
+                        logger.LogError(statusMessage);
+                    }
+
+                    logger.LogInformation($"Invoke DirectMethod with count {this.directMethodCount}: finished.");
+                    return new Tuple<HttpStatusCode, long>((HttpStatusCode)resultStatus, this.directMethodCount);
+                }
+                catch (Exception e)
+                {
+                    logger.LogError(e, $"Exception caught with count {this.directMethodCount}");
+                    return new Tuple<HttpStatusCode, long>(HttpStatusCode.InternalServerError, this.directMethodCount);
+                }
+            }
         }
 
         static async Task<DateTime> SendMessageAsync(
