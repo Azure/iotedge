@@ -2192,14 +2192,8 @@ mod tests {
     static GOOD_SETTINGS_DPS_DEFAULT: &str =
         "../edgelet-docker/test/linux/sample_settings.dps.default.yaml";
     #[cfg(unix)]
-    static EMPTY_CONNECTION_STRING_SETTINGS: &str =
-        "../edgelet-docker/test/linux/bad_sample_settings.cs.3.yaml";
-    #[cfg(unix)]
-    static DEFAULT_CONNECTION_STRING_SETTINGS: &str =
-        "../edgelet-docker/test/linux/bad_sample_settings.cs.4.yaml";
-    #[cfg(unix)]
-    static GOOD_SETTINGS_EXTERNAL: &str =
-        "../edgelet-docker/test/linux/sample_settings.external.1.yaml";
+    static SETTINGS_DEFAULT_CERT: &str =
+        "../edgelet-docker/test/linux/sample_settings_default_cert.yaml";
 
     #[cfg(windows)]
     static GOOD_SETTINGS: &str = "../edgelet-docker/test/windows/sample_settings.yaml";
@@ -2215,14 +2209,8 @@ mod tests {
     static GOOD_SETTINGS_DPS_DEFAULT: &str =
         "../edgelet-docker/test/windows/sample_settings.dps.default.yaml";
     #[cfg(windows)]
-    static EMPTY_CONNECTION_STRING_SETTINGS: &str =
-        "../edgelet-docker/test/windows/bad_sample_settings.cs.3.yaml";
-    #[cfg(windows)]
-    static DEFAULT_CONNECTION_STRING_SETTINGS: &str =
-        "../edgelet-docker/test/windows/bad_sample_settings.cs.4.yaml";
-    #[cfg(windows)]
-    static GOOD_SETTINGS_EXTERNAL: &str =
-        "../edgelet-docker/test/windows/sample_settings.external.1.yaml";
+    static SETTINGS_DEFAULT_CERT: &str =
+        "../edgelet-docker/test/windows/sample_settings_default_cert.yaml";
 
     #[derive(Clone, Copy, Debug, Fail)]
     pub struct Error;
@@ -2374,6 +2362,15 @@ mod tests {
             ErrorKind::Initialize(InitializeErrorReason::LoadSettings) => (),
             kind => panic!("Expected `LoadSettings` but got {:?}", kind),
         }
+    }
+
+    #[test]
+    fn settings_manual_without_cert_uses_default() {
+        let settings = Settings::new(Some(Path::new(SETTINGS_DEFAULT_CERT))).unwrap();
+        assert_eq!(
+            u64::from(DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS) * 86_400,
+            settings.certificates().auto_generated_ca_lifetime_seconds()
+        );
     }
 
     #[test]
