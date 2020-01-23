@@ -361,10 +361,7 @@
     },
     "metricsCollector": {
       "properties.desired": {
-<<<<<<< HEAD
         "hostPlatform": "<MetricsCollector.HostPlatform>",
-=======
->>>>>>> 6410d6d0d2b19957ce3d508f1cb155499a14d1e9
         "testType": "stress",
         "testId": "<TrackingId>",
         "upstreamProtocol": "amqp"
