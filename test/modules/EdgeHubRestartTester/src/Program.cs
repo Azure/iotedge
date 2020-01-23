@@ -10,6 +10,7 @@ namespace EdgeHubRestartTester
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -34,11 +35,12 @@ namespace EdgeHubRestartTester
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
+            ServiceClient iotHubServiceClient = null;
             ModuleClient msgModuleClient = null;
             ModuleClient dmModuleClient = null;
             try
             {
-                ServiceClient iotHubServiceClient = ServiceClient.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString);
+                iotHubServiceClient = ServiceClient.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString);
                 TestResultReportingClient reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
 
                 msgModuleClient = await ModuleUtil.CreateModuleClientAsync(
@@ -60,7 +62,7 @@ namespace EdgeHubRestartTester
                     DateTime eachTestExpirationTime = testStart.AddMinutes(Settings.Current.RestartIntervalInMins);
                     (DateTime restartTime, HttpStatusCode restartStatus) = await RestartModules(iotHubServiceClient, cts);
 
-                    // BEARWASHERE -- Send DM until it passes, task it: TODO -- Implement the function
+                    // Setup Direct Method Task
                     Task<Tuple<DateTime, HttpStatusCode>> SendDirectMethodTask = SendDirectMethodAsync(
                         Settings.Current.DeviceId,
                         Settings.Current.DirectMethodTargetModuleId,
@@ -69,7 +71,7 @@ namespace EdgeHubRestartTester
                         testExpirationTime,
                         cts);
 
-                    // BEARWASHERE -- Send Msg until it passes, task it
+                    // Setup Message Task
                     Task <Tuple<DateTime, HttpStatusCode>> SendMessageTask = SendMessageAsync(
                         msgModuleClient,
                         Settings.Current.TrackingId,
@@ -78,15 +80,39 @@ namespace EdgeHubRestartTester
                         eachTestExpirationTime,
                         cts);
 
+                    // Each task gets its own thread from a threadpool
                     SendDirectMethodTask.Start();
                     SendMessageTask.Start();
 
-                    // BEARWASHERE -- Wait for DM
+                    // Wait for treads to be done
                     Task.WaitAll(SendDirectMethodTask, SendMessageTask);
 
-                    // BEARWASHERE -- Send the "pass" response
+                    // Get the result and report it to TRC
                     (DateTime msgCompletedTime, HttpStatusCode msgStatusCode) = SendMessageTask.Result;
                     (DateTime dmCompletedTime, HttpStatusCode dmStatusCode) = SendDirectMethodTask.Result;
+
+                    // Generate reports, the new report type
+                    EdgeHubRestartTestResult msgTestResult = CreateEdgeHubRestartTestResult(
+                        TestOperationResultType.Messages,
+                        restartTime,
+                        msgCompletedTime,
+                        restartStatus,
+                        msgStatusCode,
+                        batchId.ToString(),
+                        Interlocked.Read(ref messageCount));
+
+                    EdgeHubRestartTestResult dmTestResult = CreateEdgeHubRestartTestResult(
+                        TestOperationResultType.DirectMethod,
+                        restartTime,
+                        dmCompletedTime,
+                        restartStatus,
+                        dmStatusCode,
+                        batchId.ToString(),
+                        Interlocked.Read(ref directMethodCount),
+                        Settings.Current.TrackingId);
+
+                    // BEARWASHERE -- Send to TRC
+
 
                     // Wait to do another restart
                     await Task.Delay((int)(eachTestExpirationTime - DateTime.UtcNow).TotalMilliseconds, cts.Token);
@@ -99,6 +125,7 @@ namespace EdgeHubRestartTester
             }
             finally
             {
+                iotHubServiceClient?.Dispose();
                 dmModuleClient?.Dispose();
                 msgModuleClient?.Dispose();
             }
@@ -107,6 +134,57 @@ namespace EdgeHubRestartTester
             handler.ForEach(h => GC.KeepAlive(h));
             Logger.LogInformation("EdgeHubRestartTester Main() finished.");
             return 0;
+        }
+
+        static EdgeHubRestartTestResult CreateEdgeHubRestartTestResult(
+            TestOperationResultType testOperationResultType,
+            DateTime restartTime,
+            DateTime completedTime,
+            HttpStatusCode restartStatus,
+            HttpStatusCode completedStatus,
+            string batchId = "",
+            long sequenceNumber = 0,
+            string trackingId = "")
+        {
+            TestResultBase attachedTestResult = null;
+            switch (testOperationResultType)
+            {
+                case TestOperationResultType.Messages:
+                    attachedTestResult = new MessageTestResult(
+                        Settings.Current.ModuleId + ".send",
+                        completedTime)
+                    {
+                        TrackingId = Settings.Current.TrackingId,
+                        BatchId = batchId,
+                        SequenceNumber = sequenceNumber.ToString()
+                    };
+                    break;
+
+                case TestOperationResultType.DirectMethod:
+                    attachedTestResult = new DirectMethodTestResult(
+                        Settings.Current.ModuleId + ".send",
+                        completedTime,
+                        trackingId,
+                        Guid.Parse(batchId),
+                        sequenceNumber.ToString(),
+                        completedStatus.ToString());
+                    break;
+
+                default:
+                    throw new NotSupportedException($"{testOperationResultType} is not supported in CreateEdgeHubRestartTestResult()");
+            }
+
+            return new EdgeHubRestartTestResult(
+                Settings.Current.ModuleId + testOperationResultType.ToString(),
+                testOperationResultType,
+                DateTime.UtcNow)
+            {
+                TestResult = attachedTestResult,
+                EdgeHubRestartTime = restartTime,
+                EdgeHubUplinkTime = completedTime,
+                RestartHttpStatusCode = restartStatus,
+                UplinkHttpStatusCode = completedStatus
+            };
         }
 
         static async Task<Tuple<DateTime, HttpStatusCode>> SendDirectMethodAsync(
@@ -169,7 +247,7 @@ namespace EdgeHubRestartTester
                 {
                     // Sending the result via edgeHub
                     await moduleClient.SendEventAsync(msgOutputEndpoint, message);
-                    return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)HttpStatusCode.OK);
+                    return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.OK);
                 }
                 catch (OperationCanceledException ex)
                 {
@@ -178,7 +256,7 @@ namespace EdgeHubRestartTester
                     Interlocked.Decrement(ref messageCount);
                 }
             }
-            return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)HttpStatusCode.InternalServerError);
+            return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.InternalServerError);
         }
 
         static async Task<Tuple<DateTime, HttpStatusCode>> RestartModules(ServiceClient iotHubServiceClient, CancellationTokenSource cts)
@@ -202,7 +280,7 @@ namespace EdgeHubRestartTester
             {
                 Logger.LogError($"Exception caught for payload {payload}: {e}");
             }
-            return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)HttpStatusCode.InternalServerError);
+            return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.InternalServerError);
         }
     }
 }

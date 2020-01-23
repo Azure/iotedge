@@ -24,6 +24,7 @@ namespace EdgeHubRestartTester
             string directMethodTargetModuleId,
             string messageOutputEndpoint,
             TransportType messageTransportType,
+            string moduleId,
             string trackingId
             )
         {
@@ -35,6 +36,7 @@ namespace EdgeHubRestartTester
             this.DirectMethodTargetModuleId = Preconditions.CheckNonWhiteSpace(directMethodTargetModuleId, nameof(directMethodTargetModuleId));
             this.MessageOutputEndpoint = Preconditions.CheckNonWhiteSpace(messageOutputEndpoint, nameof(messageOutputEndpoint));
             this.MessageTransportType = messageTransportType;
+            this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.ReportingEndpointUrl = new Uri(Preconditions.CheckNonWhiteSpace(reportingEndpointUrl, nameof(reportingEndpointUrl)));
             this.RestartIntervalInMins = Preconditions.CheckRange(restartIntervalInMins, 0);
             this.ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, nameof(serviceClientConnectionString));
@@ -62,6 +64,7 @@ namespace EdgeHubRestartTester
                 configuration.GetValue<string>("directMethodTargetModuleId", "DirectMethodReceiver"),
                 configuration.GetValue("messageOutputEndpoint", "output1"),
                 configuration.GetValue("messageTransportType", TransportType.Amqp_Tcp_Only),
+                configuration.GetValue<string>("IOTEDGE_MODULEID"),
                 configuration.GetValue("trackingId", string.Empty));
         }
 
@@ -76,6 +79,8 @@ namespace EdgeHubRestartTester
         public string MessageOutputEndpoint { get; }
 
         public TransportType MessageTransportType { get; }
+
+        public string ModuleId { get; }
 
         public Uri ReportingEndpointUrl { get; }
 
@@ -93,14 +98,16 @@ namespace EdgeHubRestartTester
             var fields = new Dictionary<string, string>
             {
                 { nameof(this.DeviceId), this.DeviceId },
-                { nameof(this.DirectMethodName), this.DirectMethodName.ToString() },
-                { nameof(this.DirectMethodTargetModuleId), this.DirectMethodTargetModuleId.ToString() },
+                { nameof(this.DirectMethodName), this.DirectMethodName },
+                { nameof(this.DirectMethodTargetModuleId), this.DirectMethodTargetModuleId },
+                { nameof(this.MessageOutputEndpoint), this.MessageOutputEndpoint },
                 { nameof(this.MessageTransportType), this.MessageTransportType.ToString() },
+                { nameof(this.ModuleId), this.ModuleId },
                 { nameof(this.ReportingEndpointUrl), this.ReportingEndpointUrl.ToString() },
                 { nameof(this.RestartIntervalInMins), this.RestartIntervalInMins.ToString() },
                 { nameof(this.TestStartDelay), this.TestStartDelay.ToString() },
                 { nameof(this.TestDuration), this.TestDuration.ToString() },
-                { nameof(this.TrackingId), this.TrackingId.ToString() }
+                { nameof(this.TrackingId), this.TrackingId }
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
