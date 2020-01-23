@@ -58,7 +58,11 @@ namespace MetricsValidator
                 }
                 else
                 {
-                    this.testReporter.Assert(metricId, false, "Metric is not documented.");
+                    // Histogram added metrics. If histogram metric doesn't exist, it will fail earlier
+                    if (!(metric.Name.EndsWith("_seconds_sum") || metric.Name.EndsWith("_seconds_count")))
+                    {
+                        this.testReporter.Assert(metricId, false, "Metric is not documented.");
+                    }
                 }
             }
 
