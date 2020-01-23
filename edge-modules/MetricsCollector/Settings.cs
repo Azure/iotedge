@@ -9,37 +9,24 @@ namespace MetricsCollector
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
 
-    public class Settings
+    class Settings
     {
-        static readonly Lazy<Settings> DefaultSettings = new Lazy<Settings>(
-            () =>
-            {
-                IConfiguration configuration = new ConfigurationBuilder()
-                    .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile("config/settings.json")
-                    .AddEnvironmentVariables()
-                    .Build();
-
-                return new Settings(
-                    configuration.GetValue<string>("AzMonWorkspaceId"),
-                    configuration.GetValue<string>("AzMonWorkspaceKey"),
-                    configuration.GetValue<string>("AzMonLogType", "testMetrics"),
-                    configuration.GetValue<string>("MetricsEndpointsCSV", "http://edgeHub:9600/metrics,http://edgeAgent:9600/metrics"),
-                    configuration.GetValue<int>("ScrapeFrequencyInSecs", 300),
-                    configuration.GetValue<UploadTarget>("UploadTarget", UploadTarget.AzureLogAnalytics));
-                });
+        internal static Settings Current = Create();
 
         Settings(
-            string azMonWorkspaceId,
-            string azMonWorkspaceKey,
-            string azMonLogType,
+            string logAnalyticsWorkspaceId,
+            string logAnalyticsWorkspaceKey,
+            string logAnalyticsLogType,
             string endpoints,
             int scrapeFrequencySecs,
             UploadTarget uploadTarget)
         {
-            this.AzMonWorkspaceId = Preconditions.CheckNonWhiteSpace(azMonWorkspaceId, nameof(azMonWorkspaceId));
-            this.AzMonWorkspaceKey = Preconditions.CheckNonWhiteSpace(azMonWorkspaceKey, nameof(azMonWorkspaceKey));
-            this.AzMonLogType = Preconditions.CheckNonWhiteSpace(azMonLogType, nameof(azMonLogType));
+            if (uploadTarget == UploadTarget.AzureLogAnalytics)
+            {
+                this.LogAnalyticsWorkspaceId = Preconditions.CheckNonWhiteSpace(logAnalyticsWorkspaceId, nameof(logAnalyticsWorkspaceId));
+                this.LogAnalyticsWorkspaceKey = Preconditions.CheckNonWhiteSpace(logAnalyticsWorkspaceKey, nameof(logAnalyticsWorkspaceKey));
+                this.LogAnalyticsLogType = Preconditions.CheckNonWhiteSpace(logAnalyticsLogType, nameof(logAnalyticsLogType));
+            }
 
             this.Endpoints = new List<string>();
             foreach (string endpoint in endpoints.Split(","))
@@ -52,20 +39,35 @@ namespace MetricsCollector
 
             if (this.Endpoints.Count == 0)
             {
-                throw new ArgumentException("No endpoints specified to scrape metrics");
+                throw new ArgumentException("No endpoints specified for which to scrape metrics");
             }
 
             this.ScrapeFrequencySecs = Preconditions.CheckRange(scrapeFrequencySecs, 1);
             this.UploadTarget = uploadTarget;
         }
 
-        public static Settings Current => DefaultSettings.Value;
+        static Settings Create()
+        {
+            IConfiguration configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("config/settings.json")
+                .AddEnvironmentVariables()
+                .Build();
 
-        public string AzMonWorkspaceId { get; }
+            return new Settings(
+                configuration.GetValue<string>("logAnalyticsWorkspaceId"),
+                configuration.GetValue<string>("logAnalyticsSharedKey"),
+                configuration.GetValue<string>("logAnalyticsLogType"),
+                configuration.GetValue<string>("MetricsEndpointsCSV", "http://edgeHub:9600/metrics,http://edgeAgent:9600/metrics"),
+                configuration.GetValue<int>("ScrapeFrequencyInSecs", 300),
+                configuration.GetValue<UploadTarget>("UploadTarget", UploadTarget.AzureLogAnalytics));
+        }
 
-        public string AzMonWorkspaceKey { get; }
+        public string LogAnalyticsWorkspaceId { get; }
 
-        public string AzMonLogType { get; }
+        public string LogAnalyticsWorkspaceKey { get; }
+
+        public string LogAnalyticsLogType { get; }
 
         public List<string> Endpoints { get; }
 
@@ -77,8 +79,8 @@ namespace MetricsCollector
         {
             var fields = new Dictionary<string, string>()
             {
-                { nameof(this.AzMonWorkspaceId), this.AzMonWorkspaceId },
-                { nameof(this.AzMonLogType), this.AzMonLogType },
+                { nameof(this.LogAnalyticsWorkspaceId), this.LogAnalyticsWorkspaceId ?? string.Empty },
+                { nameof(this.LogAnalyticsLogType), this.LogAnalyticsLogType ?? string.Empty },
                 { nameof(this.Endpoints), JsonConvert.SerializeObject(this.Endpoints, Formatting.Indented) },
                 { nameof(this.ScrapeFrequencySecs), this.ScrapeFrequencySecs.ToString() },
                 { nameof(this.UploadTarget), Enum.GetName(typeof(UploadTarget), this.UploadTarget) }

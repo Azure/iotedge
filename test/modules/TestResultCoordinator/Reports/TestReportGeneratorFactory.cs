@@ -76,19 +76,18 @@ namespace TestResultCoordinator.Reports
                 case TestReportType.DirectMethodReport:
                     {
                         var metadata = (DirectMethodReportMetadata)testReportMetadata;
-                        var expectedTestResults = this.GetResults(metadata.ExpectedSource);
-                        var actualTestResults = this.GetResults(metadata.ActualSource);
+                        var senderTestResults = this.GetResults(metadata.SenderSource);
+                        var receiverTestResults = metadata.ReceiverSource.Map(x => this.GetResults(x));
                         var tolerancePeriod = metadata.TolerancePeriod;
                         var networkStatusTimeline = await this.GetNetworkStatusTimelineAsync(tolerancePeriod);
 
                         return new DirectMethodReportGenerator(
                             trackingId,
-                            metadata.ExpectedSource,
-                            expectedTestResults,
-                            metadata.ActualSource,
-                            actualTestResults,
+                            metadata.SenderSource,
+                            senderTestResults,
+                            metadata.ReceiverSource,
+                            receiverTestResults,
                             metadata.TestOperationResultType.ToString(),
-                            new DirectMethodTestOperationResultComparer(),
                             networkStatusTimeline);
                     }
 
