@@ -259,7 +259,7 @@ namespace IotEdgeQuickstart.Details
 
                     return new DeviceProvisioningMethod(connectionString);
                 });
-            return this.bootstrapper.Configure(method, this.hostname, this.deviceCaCert, this.deviceCaPk, this.deviceCaCerts, this.runtimeLogLevel);
+            return this.bootstrapper.Configure(method, this.EdgeAgentImage(), this.hostname, this.deviceCaCert, this.deviceCaPk, this.deviceCaCerts, this.runtimeLogLevel);
         }
 
         protected Task StartBootstrapper()
@@ -511,25 +511,37 @@ namespace IotEdgeQuickstart.Details
             this.context = new DeviceContext(device, builder.ToString(), rm, true);
         }
 
+        string PredeploymentEdgeAgentImage()
+        {
+            return this.BuildImageName("azureiotedge-agent", true);
+        }
+
         string EdgeAgentImage()
         {
-            return this.BuildImageName("azureiotedge-agent");
+            return this.BuildImageName("azureiotedge-agent", false);
         }
 
         string EdgeHubImage()
         {
-            return this.BuildImageName("azureiotedge-hub");
+            return this.BuildImageName("azureiotedge-hub", false);
         }
 
         string TempSensorImage()
         {
-            return this.BuildImageName("azureiotedge-simulated-temperature-sensor");
+            return this.BuildImageName("azureiotedge-simulated-temperature-sensor", false);
         }
 
-        string BuildImageName(string name)
+        string BuildImageName(string name, bool isPredeploymentImage)
         {
             string prefix = this.credentials.Match(c => $"{c.Address}/microsoft", () => "mcr.microsoft.com");
-            return $"{prefix}/{name}:{this.imageTag}";
+            if (isPredeploymentImage)
+            {
+                return $"{prefix}/{name}:1.0";
+            }
+            else
+            {
+                return $"{prefix}/{name}:{this.imageTag}";
+            }
         }
 
         (string, string[]) DeploymentJson()
