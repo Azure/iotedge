@@ -3,6 +3,7 @@ namespace MetricsCollector
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
@@ -17,6 +18,7 @@ namespace MetricsCollector
         readonly IMetricsScraper scraper;
         readonly IMetricsPublisher publisher;
         readonly Dictionary<string, string> additionalTags;
+        readonly List<Metric> failedUploadMetrics;
         PeriodicTask periodicScrapeAndUpload;
 
         public MetricsScrapeAndUpload(IMetricsScraper scraper, IMetricsPublisher publisher, Dictionary<string, string> additionalTags)
@@ -24,6 +26,7 @@ namespace MetricsCollector
             this.scraper = Preconditions.CheckNotNull(scraper);
             this.publisher = Preconditions.CheckNotNull(publisher);
             this.additionalTags = Preconditions.CheckNotNull(additionalTags);
+            this.failedUploadMetrics = new List<Metric>();
         }
 
         public void Start(TimeSpan scrapeAndUploadInterval)
@@ -38,16 +41,42 @@ namespace MetricsCollector
 
         async Task ScrapeAndUploadMetricsAsync(CancellationToken cancellationToken)
         {
+            IEnumerable<Metric> scrapedMetrics = Enumerable.Empty<Metric>();
             try
             {
-                IEnumerable<Metric> metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
-                await this.publisher.PublishAsync(this.GetGuidTaggedMetrics(metrics), cancellationToken);
+                await this.PublishPreviouslyFailedMetricsAsync(cancellationToken);
+
+                scrapedMetrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
+                scrapedMetrics = this.GetGuidTaggedMetrics(scrapedMetrics);
+                await this.publisher.PublishAsync(scrapedMetrics, cancellationToken);
                 Logger.LogInformation("Successfully scraped and uploaded metrics");
             }
             catch (Exception e)
             {
                 Logger.LogError(e, "Error scraping and uploading metrics");
+                this.failedUploadMetrics.AddRange(scrapedMetrics);
             }
+        }
+
+        async Task PublishPreviouslyFailedMetricsAsync(CancellationToken cancellationToken)
+        {
+            int processedCount = 0;
+            int batchSize = 200;
+            foreach (IEnumerable<Metric> batch in this.failedUploadMetrics.Batch(batchSize))
+            {
+                try
+                {
+                    await this.publisher.PublishAsync(batch, cancellationToken);
+                    processedCount += batchSize;
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError(e, "Error uploading metrics from prior scrape");
+                    break;
+                }
+            }
+
+            this.failedUploadMetrics.RemoveRange(0, processedCount);
         }
 
         IEnumerable<Metric> GetGuidTaggedMetrics(IEnumerable<Metric> metrics)
