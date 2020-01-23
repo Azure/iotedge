@@ -321,6 +321,7 @@ impl Listen {
 pub struct Certificates {
     #[serde(flatten)]
     device_cert: Option<DeviceCertificate>,
+    #[serde(default = "default_auto_generated_ca_lifetime_days")]
     auto_generated_ca_lifetime_days: u16,
 }
 
@@ -329,6 +330,10 @@ pub struct DeviceCertificate {
     device_ca_cert: String,
     device_ca_pk: String,
     trusted_ca_certs: String,
+}
+
+fn default_auto_generated_ca_lifetime_days() -> u16 {
+    90
 }
 
 fn is_supported_uri(uri: &Url) -> bool {
