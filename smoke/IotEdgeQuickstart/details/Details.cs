@@ -531,10 +531,10 @@ namespace IotEdgeQuickstart.Details
             return this.BuildImageName("azureiotedge-simulated-temperature-sensor", this.imageTag);
         }
 
-        string BuildImageName(string name, string customImageTag)
+        string BuildImageName(string name, string imageTag)
         {
             string prefix = this.credentials.Match(c => $"{c.Address}/microsoft", () => "mcr.microsoft.com");
-            return $"{prefix}/{name}:{customImageTag}";
+            return $"{prefix}/{name}:{imageTag}";
         }
 
         (string, string[]) DeploymentJson()
