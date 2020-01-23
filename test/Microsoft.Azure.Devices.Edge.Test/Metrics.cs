@@ -15,19 +15,19 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
     public class Metrics : SasManualProvisioningFixture
     {
-        string moduleName = "MetricsValidator";
+        const string ModuleName = "MetricsValidator";
+        const string EdgeAgentBaseImage = "mcr.microsoft.com/azureiotedge-agent:1.0";
 
         [Test]
         public async Task ValidateMetrics()
         {
             CancellationToken token = this.TestToken;
-
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(this.BaseConfig, token);
+            await this.Deploy(token);
 
             // System resource metrics wait 1 minute to start collecting.
             await Task.Delay(TimeSpan.FromMinutes(1.1), token);
 
-            var result = await this.iotHub.InvokeMethodAsync(Context.Current.DeviceId, this.moduleName, new CloudToDeviceMethod("ValidateMetrics"), CancellationToken.None);
+            var result = await this.iotHub.InvokeMethodAsync(Context.Current.DeviceId, ModuleName, new CloudToDeviceMethod("ValidateMetrics"), CancellationToken.None);
             Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
 
             string body = result.GetPayloadAsJson();
@@ -41,23 +41,21 @@ namespace Microsoft.Azure.Devices.Edge.Test
             public int Failed { get; set; }
         }
 
-        void BaseConfig(EdgeConfigBuilder builder)
+        async Task Deploy(CancellationToken token)
         {
-            string metricsValidatorImage = Context.Current.MetricsValidatorImage.Expect(() => new InvalidOperationException("Missing Metrics Validator image"));
+            // First deploy different agent image. This will force agent to update environment variables
+            await this.runtime.DeployConfigurationAsync(builder => builder.GetModule("$edgeAgent").WithSettings(("image", EdgeAgentBaseImage)), token);
 
-            builder.AddModule(this.moduleName, metricsValidatorImage);
-            builder.GetModule("$edgeHub")
-                .WithEnvironment(new[]
-                {
-                    ("experimentalfeatures__enabled", "true"),
-                    ("experimentalfeatures__enableMetrics", "true")
-                });
-            builder.GetModule("$edgeAgent")
-                .WithEnvironment(new[]
-                {
-                    ("experimentalfeatures__enabled", "true"),
-                    ("experimentalfeatures__enableMetrics", "true")
-                });
+            string metricsValidatorImage = Context.Current.MetricsValidatorImage.Expect(() => new InvalidOperationException("Missing Metrics Validator image"));
+            await this.runtime.DeployConfigurationAsync(
+                builder =>
+                    {
+                        builder.AddModule(ModuleName, metricsValidatorImage);
+                        builder.GetModule("$edgeHub")
+                            .WithEnvironment(("experimentalfeatures__enabled", "true"), ("experimentalfeatures__enableMetrics", "true"));
+                        builder.GetModule("$edgeAgent")
+                            .WithEnvironment(("experimentalfeatures__enabled", "true"), ("experimentalfeatures__enableMetrics", "true"));
+                    }, token);
         }
     }
 }
