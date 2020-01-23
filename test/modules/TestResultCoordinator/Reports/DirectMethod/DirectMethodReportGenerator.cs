@@ -70,7 +70,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
             ulong mismatchFailure = 0;
 
             bool hasSenderResult = await this.SenderTestResults.MoveNextAsync();
-            bool hasReceiverResult = await this.ReceiverTestResults.Match(async x => await x.MoveNextAsync(), () => Task.FromResult(false));
+            bool hasReceiverResult = false;
 
             while (hasSenderResult)
             {
@@ -80,22 +80,28 @@ namespace TestResultCoordinator.Reports.DirectMethod
                 this.ValidateNetworkControllerStatus(networkControllerStatus);
                 DirectMethodTestResult dmSenderTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(this.SenderTestResults.Current.Result);
 
-                if (hasReceiverResult)
+                if (this.ReceiverTestResults.HasValue)
                 {
-                    AdditionalCountsAndHasResults additionalCountsAndHasResults =
-                        await this.ReceiverOnlyLogicAsync(dmSenderTestResult, hasSenderResult, hasReceiverResult, networkControllerStatus, isWithinTolerancePeriod);
-                    mismatchSuccess += additionalCountsAndHasResults.MismatchSuccess;
-                    mismatchFailure += additionalCountsAndHasResults.MismatchFailure;
-                    hasSenderResult = additionalCountsAndHasResults.HasSenderResult;
-                    hasReceiverResult = additionalCountsAndHasResults.HasReceiverResult;
-                    if (additionalCountsAndHasResults.MismatchFailure > 0 || additionalCountsAndHasResults.MismatchSuccess > 0)
+                    hasReceiverResult = await this.ReceiverTestResults.Match(async x => await x.MoveNextAsync(), () => Task.FromResult(false));
+
+                    if (hasReceiverResult)
                     {
-                        continue;
+                        DirectMethodReportGeneratorMetadata additionalCountsAndHasResults =
+                            await this.ProcessSenderAndReceiverTestResults(dmSenderTestResult, hasSenderResult, hasReceiverResult, networkControllerStatus, isWithinTolerancePeriod);
+                        mismatchSuccess += additionalCountsAndHasResults.MismatchSuccess;
+                        mismatchFailure += additionalCountsAndHasResults.MismatchFailure;
+                        hasSenderResult = additionalCountsAndHasResults.HasSenderResult;
+                        hasReceiverResult = additionalCountsAndHasResults.HasReceiverResult;
+
+                        if (additionalCountsAndHasResults.MismatchFailure > 0 || additionalCountsAndHasResults.MismatchSuccess > 0)
+                        {
+                            continue;
+                        }
                     }
                 }
 
-                AdditionalCountsAndHasResults additionalCountsAndHasResultsSendery =
-                    await this.SenderOnlyLogic(dmSenderTestResult, networkControllerStatus, isWithinTolerancePeriod, this.SenderTestResults);
+                DirectMethodReportGeneratorMetadata additionalCountsAndHasResultsSendery =
+                    await this.ProcessSenderTestResults(dmSenderTestResult, networkControllerStatus, isWithinTolerancePeriod, this.SenderTestResults);
                 networkOnSuccess += additionalCountsAndHasResultsSendery.NetworkOnSuccess;
                 networkOffSuccess += additionalCountsAndHasResultsSendery.NetworkOffSuccess;
                 networkOnToleratedSuccess += additionalCountsAndHasResultsSendery.NetworkOnToleratedSuccess;
@@ -107,7 +113,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
 
             while (hasReceiverResult)
             {
-                AdditionalCountsAndHasResults additionalCountsAndHasResultsForMismatchFailure = await this.MismatchFailureCase();
+                DirectMethodReportGeneratorMetadata additionalCountsAndHasResultsForMismatchFailure = await this.MismatchFailureCase();
                 mismatchFailure += additionalCountsAndHasResultsForMismatchFailure.MismatchFailure;
                 hasReceiverResult = additionalCountsAndHasResultsForMismatchFailure.HasReceiverResult;
             }
@@ -128,7 +134,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
                 mismatchFailure);
         }
 
-        async Task<AdditionalCountsAndHasResults> ReceiverOnlyLogicAsync(
+        async Task<DirectMethodReportGeneratorMetadata> ProcessSenderAndReceiverTestResults(
             DirectMethodTestResult dmSenderTestResult,
             bool hasSenderResult,
             bool hasReceiverResult,
@@ -165,15 +171,15 @@ namespace TestResultCoordinator.Reports.DirectMethod
                     {
                         mismatchSuccess++;
                         hasSenderResult = await this.SenderTestResults.MoveNextAsync();
-                        return new AdditionalCountsAndHasResults { MismatchSuccess = mismatchSuccess, HasReceiverResult = hasReceiverResult, HasSenderResult = hasSenderResult };
+                        return new DirectMethodReportGeneratorMetadata { MismatchSuccess = mismatchSuccess, HasReceiverResult = hasReceiverResult, HasSenderResult = hasSenderResult };
                     }
                 }
             }
 
-            return new AdditionalCountsAndHasResults { HasSenderResult = hasSenderResult, HasReceiverResult = hasReceiverResult };
+            return new DirectMethodReportGeneratorMetadata { HasSenderResult = hasSenderResult, HasReceiverResult = hasReceiverResult };
         }
 
-        async Task<AdditionalCountsAndHasResults> MismatchFailureCase()
+        async Task<DirectMethodReportGeneratorMetadata> MismatchFailureCase()
         {
             ulong mismatchFailure = 0;
             ITestResultCollection<TestOperationResult> receiverTestResults = this.ReceiverTestResults.OrDefault();
@@ -189,10 +195,10 @@ namespace TestResultCoordinator.Reports.DirectMethod
                 $"{receiverTestResults.Current.CreatedAt}");
             bool hasReceiverResult = await receiverTestResults.MoveNextAsync();
 
-            return new AdditionalCountsAndHasResults { MismatchFailure = mismatchFailure, HasReceiverResult = hasReceiverResult };
+            return new DirectMethodReportGeneratorMetadata { MismatchFailure = mismatchFailure, HasReceiverResult = hasReceiverResult };
         }
 
-        async Task<AdditionalCountsAndHasResults> SenderOnlyLogic(
+        async Task<DirectMethodReportGeneratorMetadata> ProcessSenderTestResults(
             DirectMethodTestResult dmSenderTestResult,
             NetworkControllerStatus networkControllerStatus,
             bool isWithinTolerancePeriod,
@@ -247,7 +253,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
             }
 
             bool hasSenderResult = await senderTestResults.MoveNextAsync();
-            return new AdditionalCountsAndHasResults
+            return new DirectMethodReportGeneratorMetadata
             {
                 NetworkOnSuccess = networkOnSuccess,
                 NetworkOffSuccess = networkOffSuccess,
@@ -276,7 +282,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
             }
         }
 
-        struct AdditionalCountsAndHasResults
+        struct DirectMethodReportGeneratorMetadata
         {
             public ulong NetworkOnSuccess;
             public ulong NetworkOffSuccess;
