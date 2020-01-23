@@ -1,0 +1,1 @@
+Remove-AzScheduledQueryRule -ResourceGroupName "EdgeBuilds" -Name "lh1-Linux-amd64-message-rate"
