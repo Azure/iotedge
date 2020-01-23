@@ -111,7 +111,7 @@ namespace IotEdgeQuickstart.Details
             return Task.CompletedTask;
         }
 
-        public async Task Configure(DeviceProvisioningMethod method, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
+        public async Task Configure(DeviceProvisioningMethod method, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
         {
             const string HidePowerShellProgressBar = "$ProgressPreference='SilentlyContinue'";
 
@@ -139,7 +139,7 @@ namespace IotEdgeQuickstart.Details
                 {
                     Console.WriteLine("Installing iotedge...");
                     args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Install-SecurityDaemon " +
-                           $"-ContainerOs Windows";
+                           $"-ContainerOs Windows -AgentImage '{image}'";
 
                     this.proxy.ForEach(proxy => { args += $" -Proxy '{proxy}'"; });
 
@@ -152,7 +152,7 @@ namespace IotEdgeQuickstart.Details
                 {
                     Console.WriteLine("Initializing iotedge...");
                     args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Initialize-IoTEdge " +
-                           $"-ContainerOs Windows";
+                           $"-ContainerOs Windows -AgentImage '{image}'";
                 }
 
                 args += method.Dps.Map(
