@@ -45,18 +45,18 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
     sed -i -e "s@<IoTHubConnectionString>@$IOT_HUB_CONNECTION_STRING@g" "$deployment_working_file"
 
-    local tracking_Id=$(cat /proc/sys/kernel/random/uuid)
+    local tracking_id=$(cat /proc/sys/kernel/random/uuid)
 
     sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
     sed -i -e "s@<TestDuration>@$TEST_DURATION@g" "$deployment_working_file"
     sed -i -e "s@<TestStartDelay>@$TEST_START_DELAY@g" "$deployment_working_file"
-    sed -i -e "s@<TrackingId>@$tracking_Id@g" "$deployment_working_file"
+    sed -i -e "s@<TrackingId>@$tracking_id@g" "$deployment_working_file"
     sed -i -e "s@<UpstreamProtocol>@$UPSTREAM_PROTOCOL@g" "$deployment_working_file"
 
     sed -i -e "s@<TestResultCoordinator.VerificationDelay>@$VERIFICATION_DELAY@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.OptimizeForPerformance>@$optimize_for_performance@g" "$deployment_working_file"
-    sed -i -e "s@<TestResultCoordinator.LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACEID@g" "$deployment_working_file"
-    sed -i -e "s@<TestResultCoordinator.LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHAREDKEY@g" "$deployment_working_file"
+    sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACEID@g" "$deployment_working_file"
+    sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHAREDKEY@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.LogAnalyticsLogType>@$LOG_ANALYTICS_LOGTYPE@g" "$deployment_working_file"
 
     sed -i -e "s@<NetworkController.OfflineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[0]}@g" "$deployment_working_file"
@@ -65,6 +65,10 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<NetworkController.Mode>@$NETWORK_CONTROLLER_MODE@g" "$deployment_working_file"
     
     sed -i -e "s@<DeploymentTester1.DeploymentUpdatePeriod>@$DEPLOYMENT_TEST_UPDATE_PERIOD@g" "$deployment_working_file"
+
+    sed -i -e "s@<MetricsCollector.MetricsEndpointsCSV>@$METRICS_ENDPOINTS_CSV@g" "$deployment_working_file"
+    sed -i -e "s@<MetricsCollector.ScrapeFrequencyInSecs>@$METRICS_SCRAPE_FREQUENCY_IN_SECS@g" "$deployment_working_file"
+    sed -i -e "s@<MetricsCollector.UploadTarget>@$METRICS_UPLOAD_TARGET@g" "$deployment_working_file"
 }
 
 function print_deployment_logs() {
@@ -204,6 +208,15 @@ function process_args() {
         elif [ $saveNextArg -eq 21 ]; then
             TIME_FOR_REPORT_GENERATION="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 22 ]; then
+            METRICS_ENDPOINTS_CSV="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 23 ]; then
+            METRICS_SCRAPE_FREQUENCY_IN_SECS="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 24 ]; then
+            METRICS_UPLOAD_TARGET="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -228,6 +241,9 @@ function process_args() {
                 '-upstreamProtocol' ) saveNextArg=19;;
                 '-deploymentTestUpdatePeriod' ) saveNextArg=20;;
                 '-timeForReportingGeneration' ) saveNextArg=21;;
+                '-metricsEndpointsCSV' ) saveNextArg=22;;
+                '-metricsScrapeFrequencyInSecs' ) saveNextArg=23;;
+                '-metricsUploadTarget' ) saveNextArg=24;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
 
                 '-cleanAll' ) CLEAN_ALL=1;;
@@ -241,6 +257,7 @@ function process_args() {
     [[ -z "$ARTIFACT_IMAGE_BUILD_NUMBER" ]] && { print_error 'Artifact image build number is required'; exit 1; }
     [[ -z "$CONTAINER_REGISTRY_USERNAME" ]] && { print_error 'Container registry username is required'; exit 1; }
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
+    [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
     [[ -z "$IOT_HUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
     [[ -z "$LOG_ANALYTICS_WORKSPACEID" ]] && { print_error 'Log analytics workspace id is required'; exit 1; }
     [[ -z "$LOG_ANALYTICS_SHAREDKEY" ]] && { print_error 'Log analytics shared key is required'; exit 1; }
@@ -371,30 +388,33 @@ function usage() {
     echo "$SCRIPT_NAME [options]"
     echo ''
     echo 'options'
-    echo ' -testDir                         Path of E2E test directory which contains artifacts and certs folders; defaul to current directory.'
-    echo ' -releaseLabel                    Release label is used as part of Edge device id to make it unique.'
-    echo ' -artifactImageBuildNumber        Artifact image build number is used to construct path of docker images, pulling from docker registry. E.g. 20190101.1.'
-    echo " -containerRegistry               Host address of container registry."
-    echo " -containerRegistryUsername       Username of container registry."
-    echo ' -containerRegistryPassword       Password of given username for container registory.'
-    echo ' -iotHubConnectionString          IoT hub connection string for creating edge device.'
-    echo ' -eventHubConnectionString        Event hub connection string for receive D2C messages.'
-    echo ' -eventHubConsumerGroupId         Event hub consumer group for receive D2C messages.'
-    echo ' -testDuration                    Connectivity test duration'
-    echo ' -testStartDelay                  Connectivity test start after delay'
-    echo ' -loadGenMessageFrequency         Message frequency sent by load gen' 
-    echo ' -networkControllerFrequency      Frequency for controlling the network with offlineFrequence, onlineFrequence, runsCount. Example "00:05:00 00:05:00 6"' 
-    echo ' -networkControllerMode           OfflineNetworkInterface, OfflineTrafficController or SatelliteTrafficController' 
-    echo ' -logAnalyticsWorkspaceId         Log Analytics Workspace Id'
-    echo ' -logAnalyticsSharedKey           Log Analytics shared key'
-    echo ' -logAnalyticsLogType             Log Analytics log type'
-    echo ' -verificationDelay               Delay before starting the verification after test finished'
-    echo ' -upstreamProtocol                Upstream protocol used to connect to IoT Hub'
-    echo ' -deploymentTestUpdatePeriod      duration of updating deployment of target module in deployment test'
-    echo ' -timeForReportingGeneration      Time reserved for report generation'
-    echo ' -waitForTestComplete             Wait for test to complete if this parameter is provided.  Otherwise it will finish once deployment is done.'
+    echo ' -testDir                        Path of E2E test directory which contains artifacts and certs folders; defaul to current directory.'
+    echo ' -releaseLabel                   Release label is used as part of Edge device id to make it unique.'
+    echo ' -artifactImageBuildNumber       Artifact image build number is used to construct path of docker images, pulling from docker registry. E.g. 20190101.1.'
+    echo " -containerRegistry              Host address of container registry."
+    echo " -containerRegistryUsername      Username of container registry."
+    echo ' -containerRegistryPassword      Password of given username for container registory.'
+    echo ' -iotHubConnectionString         IoT hub connection string for creating edge device.'
+    echo ' -eventHubConnectionString       Event hub connection string for receive D2C messages.'
+    echo ' -eventHubConsumerGroupId        Event hub consumer group for receive D2C messages.'
+    echo ' -testDuration                   Connectivity test duration'
+    echo ' -testStartDelay                 Connectivity test start after delay'
+    echo ' -loadGenMessageFrequency        Message frequency sent by load gen' 
+    echo ' -networkControllerFrequency     Frequency for controlling the network with offlineFrequence, onlineFrequence, runsCount. Example "00:05:00 00:05:00 6"' 
+    echo ' -networkControllerMode          OfflineNetworkInterface, OfflineTrafficController or SatelliteTrafficController' 
+    echo ' -logAnalyticsWorkspaceId        Log Analytics Workspace Id'
+    echo ' -logAnalyticsSharedKey          Log Analytics shared key'
+    echo ' -logAnalyticsLogType            Log Analytics log type'
+    echo ' -verificationDelay              Delay before starting the verification after test finished'
+    echo ' -upstreamProtocol               Upstream protocol used to connect to IoT Hub'
+    echo ' -deploymentTestUpdatePeriod     duration of updating deployment of target module in deployment test'
+    echo ' -timeForReportingGeneration     Time reserved for report generation'
+    echo ' -waitForTestComplete            Wait for test to complete if this parameter is provided.  Otherwise it will finish once deployment is done.'
+    echo ' -metricsEndpointsCSV            Optional csv of exposed endpoints for which to scrape metrics.'
+    echo ' -metricsScrapeFrequencyInSecs   Optional frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
+    echo ' -metricsUploadTarget            Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
 
-    echo ' -cleanAll                        Do docker prune for containers, logs and volumes.'
+    echo ' -cleanAll                       Do docker prune for containers, logs and volumes.'
     exit 1;
 }
 
