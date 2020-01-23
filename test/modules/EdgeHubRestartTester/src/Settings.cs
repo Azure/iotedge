@@ -16,12 +16,17 @@ namespace EdgeHubRestartTester
             string serviceClientConnectionString,
             string deviceId,
             string reportingEndpointUrl,
-            int restartIntervalInMins)
+            int restartIntervalInMins,
+            TransportType messageTransportType,
+            string trackingId
+            )
         {
             this.ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, nameof(serviceClientConnectionString));
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            this.MessageTransportType = messageTransportType;
             this.ReportingEndpointUrl = Uri(Preconditions.CheckNonWhiteSpace(reportingEndpointUrl, nameof(reportingEndpointUrl)));
             this.RestartIntervalInMins = Preconditions.CheckRange(restartIntervalInMins, 0);
+            this.TrackingId = trackingId;
         }
 
         static Settings Create()
@@ -36,18 +41,22 @@ namespace EdgeHubRestartTester
                 configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING", string.Empty),
                 configuration.GetValue<string>("IOTEDGE_DEVICEID", string.Empty),
                 configuration.GetValue<string>("ReportingEndpointUrl"),
-                configuration.GetValue<int>("RestartIntervalInMins", 5));
+                configuration.GetValue<int>("RestartIntervalInMins", 5),
+                configuration.GetValue("transportType", TransportType.Amqp_Tcp_Only),
+                configuration.GetValue("trackingId", string.Empty));
         }
 
         public string ServiceClientConnectionString { get; }
 
         public string DeviceId { get; }
 
+        public TransportType MessageTransportType { get; }
+
         public Uri ReportingEndpointUrl { get; }
 
         public int RestartIntervalInMins { get; }
 
-        public string MessageTransportType { get; }
+        public string TrackingId { get; }
 
         public override string ToString()
         {
