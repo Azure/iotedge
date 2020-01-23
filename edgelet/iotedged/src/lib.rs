@@ -1920,8 +1920,6 @@ mod tests {
 
     #[test]
     fn settings_manual_without_cert_uses_default() {
-        let _guard = LOCK.lock().unwrap();
-
         let settings = Settings::new(Some(Path::new(SETTINGS_DEFAULT_CERT))).unwrap();
         assert_eq!(
             u64::from(DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS) * 86_400,
