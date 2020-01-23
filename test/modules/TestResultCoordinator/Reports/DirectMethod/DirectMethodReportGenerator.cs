@@ -71,7 +71,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
 
             bool hasSenderResult = await this.SenderTestResults.MoveNextAsync();
             bool hasReceiverResult = await this.ReceiverTestResults.Match(async x => await x.MoveNextAsync(), () => Task.FromResult(false));
-            DirectMethodReportGeneratorMetadata metadata;
+            DirectMethodReportGeneratorMetadata reportGeneratorMetadata;
 
             while (hasSenderResult)
             {
@@ -83,33 +83,33 @@ namespace TestResultCoordinator.Reports.DirectMethod
 
                 if (hasReceiverResult)
                 {
-                    metadata = await this.ProcessSenderAndReceiverResults(dmSenderTestResult, hasSenderResult, hasReceiverResult, networkControllerStatus, isWithinTolerancePeriod);
-                    mismatchSuccess += metadata.MismatchSuccess;
-                    mismatchFailure += metadata.MismatchFailure;
-                    hasSenderResult = metadata.HasSenderResult;
-                    hasReceiverResult = metadata.HasReceiverResult;
+                    reportGeneratorMetadata = await this.ProcessSenderAndReceiverResults(dmSenderTestResult, hasSenderResult, hasReceiverResult, networkControllerStatus, isWithinTolerancePeriod);
+                    mismatchSuccess += reportGeneratorMetadata.MismatchSuccess;
+                    mismatchFailure += reportGeneratorMetadata.MismatchFailure;
+                    hasSenderResult = reportGeneratorMetadata.HasSenderResult;
+                    hasReceiverResult = reportGeneratorMetadata.HasReceiverResult;
 
-                    if (metadata.MismatchFailure > 0 || metadata.MismatchSuccess > 0)
+                    if (reportGeneratorMetadata.MismatchFailure > 0 || reportGeneratorMetadata.MismatchSuccess > 0)
                     {
                         continue;
                     }
                 }
 
-                metadata = await this.ProcessSenderTestResults(dmSenderTestResult, networkControllerStatus, isWithinTolerancePeriod, this.SenderTestResults);
-                networkOnSuccess += metadata.NetworkOnSuccess;
-                networkOffSuccess += metadata.NetworkOffSuccess;
-                networkOnToleratedSuccess += metadata.NetworkOnToleratedSuccess;
-                networkOffToleratedSuccess += metadata.NetworkOffToleratedSuccess;
-                networkOnFailure += metadata.NetworkOnFailure;
-                networkOffFailure += metadata.NetworkOffFailure;
-                hasSenderResult = metadata.HasSenderResult;
+                reportGeneratorMetadata = await this.ProcessSenderTestResults(dmSenderTestResult, networkControllerStatus, isWithinTolerancePeriod, this.SenderTestResults);
+                networkOnSuccess += reportGeneratorMetadata.NetworkOnSuccess;
+                networkOffSuccess += reportGeneratorMetadata.NetworkOffSuccess;
+                networkOnToleratedSuccess += reportGeneratorMetadata.NetworkOnToleratedSuccess;
+                networkOffToleratedSuccess += reportGeneratorMetadata.NetworkOffToleratedSuccess;
+                networkOnFailure += reportGeneratorMetadata.NetworkOnFailure;
+                networkOffFailure += reportGeneratorMetadata.NetworkOffFailure;
+                hasSenderResult = reportGeneratorMetadata.HasSenderResult;
             }
 
             while (hasReceiverResult)
             {
-                metadata = await this.MismatchFailureCase();
-                mismatchFailure += metadata.MismatchFailure;
-                hasReceiverResult = metadata.HasReceiverResult;
+                reportGeneratorMetadata = await this.ProcessMismatchFailureCase();
+                mismatchFailure += reportGeneratorMetadata.MismatchFailure;
+                hasReceiverResult = reportGeneratorMetadata.HasReceiverResult;
             }
 
             Logger.LogInformation($"Successfully finished creating DirectMethodReport for Sources [{this.SenderSource}] and [{this.ReceiverSource}]");
@@ -155,7 +155,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
             {
                 if (int.Parse(dmSenderTestResult.SequenceNumber) > int.Parse(dmReceiverTestResult.SequenceNumber))
                 {
-                    return await this.MismatchFailureCase();
+                    return await this.ProcessMismatchFailureCase();
                 }
                 else if (int.Parse(dmSenderTestResult.SequenceNumber) < int.Parse(dmReceiverTestResult.SequenceNumber))
                 {
@@ -173,7 +173,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
             return new DirectMethodReportGeneratorMetadata { HasSenderResult = hasSenderResult, HasReceiverResult = hasReceiverResult };
         }
 
-        async Task<DirectMethodReportGeneratorMetadata> MismatchFailureCase()
+        async Task<DirectMethodReportGeneratorMetadata> ProcessMismatchFailureCase()
         {
             ulong mismatchFailure = 0;
             ITestResultCollection<TestOperationResult> receiverTestResults = this.ReceiverTestResults.OrDefault();

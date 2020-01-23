@@ -20,9 +20,6 @@ namespace TwinTester
 
             Logger.LogInformation($"Starting twin tester with the following settings:\r\n{Settings.Current}");
 
-            Logger.LogInformation($"Load gen delay start for {Settings.Current.TestStartDelay}.");
-            await Task.Delay(Settings.Current.TestStartDelay);
-
             ITwinTestInitializer twinOperator = null;
             try
             {
