@@ -534,13 +534,14 @@ namespace IotEdgeQuickstart.Details
         string BuildImageName(string name, bool isPredeploymentImage)
         {
             string prefix = this.credentials.Match(c => $"{c.Address}/microsoft", () => "mcr.microsoft.com");
+            string nameWithoutTag = $"{prefix}/{name}";
             if (isPredeploymentImage)
             {
-                return $"{prefix}/{name}:1.0";
+                return nameWithoutTag + ":1.0";
             }
             else
             {
-                return $"{prefix}/{name}:{this.imageTag}";
+                return nameWithoutTag + $":{this.imageTag}";
             }
         }
 
