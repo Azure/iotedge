@@ -333,7 +333,7 @@ pub struct DeviceCertificate {
 }
 
 fn default_auto_generated_ca_lifetime_days() -> u16 {
-    90
+    DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS
 }
 
 fn is_supported_uri(uri: &Url) -> bool {
