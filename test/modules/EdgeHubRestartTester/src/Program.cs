@@ -111,9 +111,13 @@ namespace EdgeHubRestartTester
                         Interlocked.Read(ref directMethodCount),
                         Settings.Current.TrackingId);
 
-                    // BEARWASHERE -- Send to TRC
+                    // Send results to TRC
                     await ModuleUtil.ReportTestResultAsync(reportClient, Logger, msgTestResult);
                     await ModuleUtil.ReportTestResultAsync(reportClient, Logger, dmTestResult);
+
+                    // BEARWASHERE -- TODO: update the TRC
+                    //  1. Update the MetaData
+                    //  2. Use the MetaData in the deployment
 
                     // Wait to do another restart
                     await Task.Delay((int)(eachTestExpirationTime - DateTime.UtcNow).TotalMilliseconds, cts.Token);

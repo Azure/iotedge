@@ -103,6 +103,11 @@ namespace TestResultCoordinator.Reports
                             testResults);
                     }
 
+                case TestReportType.EdgeHubRestartReport:
+                    {
+                        // BEARWASHERE -- TODO
+                    }
+
                 default:
                     {
                         throw new NotSupportedException($"Report type {testReportMetadata.TestReportType} is not supported.");
