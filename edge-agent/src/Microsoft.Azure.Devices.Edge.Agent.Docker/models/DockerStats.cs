@@ -142,28 +142,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
     public class NetworkInfo
     {
         [JsonConstructor]
-        public NetworkInfo(int? rx_bytes, int? tx_bytes)
+        public NetworkInfo(ulong? rx_bytes, ulong? tx_bytes)
         {
             this.RxBytes = Option.Maybe(rx_bytes);
             this.TxBytes = Option.Maybe(tx_bytes);
         }
 
         [JsonProperty("rx_bytes", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public Option<int> RxBytes { get; }
+        public Option<ulong> RxBytes { get; }
 
         [JsonProperty("tx_bytes", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public Option<int> TxBytes { get; }
+        public Option<ulong> TxBytes { get; }
     }
 
     public class PidsStats
     {
         [JsonConstructor]
-        public PidsStats(int? current)
+        public PidsStats(ulong? current)
         {
             this.Current = Option.Maybe(current);
         }
 
         [JsonProperty("current", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public Option<int> Current { get; }
+        public Option<ulong> Current { get; }
     }
 }
