@@ -112,7 +112,8 @@ namespace EdgeHubRestartTester
                         Settings.Current.TrackingId);
 
                     // BEARWASHERE -- Send to TRC
-
+                    await ModuleUtil.ReportTestResultAsync(reportClient, Logger, msgTestResult);
+                    await ModuleUtil.ReportTestResultAsync(reportClient, Logger, dmTestResult);
 
                     // Wait to do another restart
                     await Task.Delay((int)(eachTestExpirationTime - DateTime.UtcNow).TotalMilliseconds, cts.Token);

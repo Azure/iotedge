@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
 {
     using System;
     using System.Net;
+    using Newtonsoft.Json;
 
     public class EdgeHubRestartTestResult : TestResultBase
     {
@@ -25,6 +26,11 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
         public HttpStatusCode UplinkHttpStatusCode { get; set; }
 
         public override string GetFormattedResult()
+        {
+            return JsonConvert.SerializeObject(this);
+        }
+
+        public string GetAttachedTestResult()
         {
             return this.TestResult.GetFormattedResult();
         }
