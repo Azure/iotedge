@@ -172,6 +172,44 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.NotEqual(edgeDeviceCloudProxy.Value, device1CloudProxy.Value);
         }
 
+        [Fact]
+        [Integration]
+        public async Task AllClientAreClosedWhenNetworkDisconnectTest()
+        {
+            string iotHubHostName = "iotHubName";
+            string edgeDeviceId = "edge";
+            var module1Credentials = new TokenCredentials(new ModuleIdentity(iotHubHostName, edgeDeviceId, "module1"), "xyz", DummyProductInfo, false);
+            var module2Credentials = new TokenCredentials(new ModuleIdentity(iotHubHostName, edgeDeviceId, "module2"), "xyz", DummyProductInfo, false);
+            var device1Credentials = new TokenCredentials(new DeviceIdentity(iotHubHostName, edgeDeviceId), "pqr", DummyProductInfo, false);
+
+            var cloudConnectionProvider = Mock.Of<ICloudConnectionProvider>();
+            Action<string, CloudConnectionStatus> callback = null;
+            Mock.Get(cloudConnectionProvider)
+                .Setup(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>()))
+                .Callback<IClientCredentials, Action<string, CloudConnectionStatus>>((i, c) => callback = c)
+                .ReturnsAsync(() => Try.Success(GetCloudConnectionMock()));
+
+            var credentialsManager = Mock.Of<ICredentialsCache>();
+            var deviceConnectivityManager = new DeviceConnectivityManager();
+
+            var connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsManager, GetIdentityProvider(), deviceConnectivityManager);
+            Try<ICloudProxy> module1CloudProxy = await connectionManager.CreateCloudConnectionAsync(module1Credentials);
+            Assert.True(module1CloudProxy.Success);
+            Assert.NotNull(module1CloudProxy.Value);
+
+            Try<ICloudProxy> module2CloudProxy = await connectionManager.CreateCloudConnectionAsync(module2Credentials);
+            Assert.True(module2CloudProxy.Success);
+            Assert.NotEqual(module1CloudProxy.Value, module2CloudProxy.Value);
+
+            Try<ICloudProxy> device1CloudProxy = await connectionManager.CreateCloudConnectionAsync(device1Credentials);
+            Assert.True(device1CloudProxy.Success);
+
+            deviceConnectivityManager.InvokeDeviceDisconnected();
+            Assert.False(module1CloudProxy.Value.IsActive);
+            Assert.False(module2CloudProxy.Value.IsActive);
+            Assert.False(device1CloudProxy.Value.IsActive);
+        }
+
         /// <summary>
         /// Tests that a device can connect and disconnect properly.
         /// 0. A cloud connection is established.
@@ -905,10 +943,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .ReturnsAsync(cloudProxyMock);
             cloudConnectionMock.Setup(dp => dp.CloseAsync()).Returns(Task.FromResult(true))
                 .Callback(
-                    () =>
+                    async () =>
                     {
                         cloudConnectionMock.SetupGet(dp => dp.IsActive).Returns(false);
-                        cloudConnectionMock.SetupGet(dp => dp.CloudProxy).Returns(Option.None<ICloudProxy>());
+                        await cloudProxyMock.CloseAsync();
                     });
 
             return cloudConnectionMock.Object;
@@ -918,6 +956,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             var cloudProxyMock = new Mock<ICloudProxy>();
             cloudProxyMock.SetupGet(cp => cp.IsActive).Returns(true);
+            cloudProxyMock.Setup(cp => cp.CloseAsync())
+                .Callback(() => cloudProxyMock.SetupGet(d => d.IsActive).Returns(false))
+                .Returns(Task.FromResult(true));
             return cloudProxyMock.Object;
         }
 
@@ -933,5 +974,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         static IIdentityProvider GetIdentityProvider() => new IdentityProvider(IotHubHostName);
+
+        class DeviceConnectivityManager : IDeviceConnectivityManager
+        {
+            public event EventHandler DeviceConnected;
+
+            public event EventHandler DeviceDisconnected;
+
+            public Task CallSucceeded() => Task.CompletedTask;
+
+            public Task CallTimedOut() => Task.CompletedTask;
+
+            public void InvokeDeviceConnected() => this.DeviceConnected?.Invoke(null, null);
+
+            public void InvokeDeviceDisconnected() => this.DeviceDisconnected?.Invoke(null, null);
+        }
     }
 }

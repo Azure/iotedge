@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -359,39 +360,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         V1Volume GetVolume(KubernetesModule module, Mount mount)
         {
             string volumeName = KubeUtils.SanitizeK8sValue(mount.Source);
+
+            // verify PV name is the same as desired volume name
+            this.persistentVolumeName.ForEach(
+                pvName =>
+                {
+                    if (pvName != volumeName)
+                    {
+                        throw new InvalidModuleException($"The mount name {volumeName} has to be the same as the PV name {pvName}");
+                    }
+                });
+
+            // PVC name will be module name + volume name
             string pvcName = KubernetesModule.PvcName(module, mount);
-
-            // PVC name will be modulename + volume name
-            // Volume name will be customer defined name or modulename + mount.source
-            if (this.persistentVolumeName.HasValue)
-            {
-                string pvName = this.persistentVolumeName.OrDefault();
-
-                if (pvName != volumeName)
-                {
-                    throw new InvalidModuleException(string.Format("The mount name {0} has to be the same as the PV name {1}", volumeName, pvName));
-                }
-
-                return new V1Volume
-                {
-                    Name = volumeName,
-                    PersistentVolumeClaim = new V1PersistentVolumeClaimVolumeSource(pvcName, mount.ReadOnly)
-                };
-            }
-
-            if (this.storageClassName.HasValue)
-            {
-                return new V1Volume
-                {
-                    Name = volumeName,
-                    PersistentVolumeClaim = new V1PersistentVolumeClaimVolumeSource(pvcName, mount.ReadOnly)
-                };
-            }
-
             return new V1Volume
             {
                 Name = volumeName,
-                EmptyDir = new V1EmptyDirVolumeSource()
+                PersistentVolumeClaim = new V1PersistentVolumeClaimVolumeSource(pvcName, mount.ReadOnly)
             };
         }
     }
