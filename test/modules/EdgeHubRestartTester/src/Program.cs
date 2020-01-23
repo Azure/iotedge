@@ -27,6 +27,10 @@ namespace EdgeHubRestartTester
         {
             Guid batchId = Guid.NewGuid();
             Logger.LogInformation($"Starting Edge Hub Restart Tester ({batchId}) with the following settings:\r\n{Settings.Current}");
+
+            Logger.LogInformation($"Load gen delay start for {Settings.Current.TestStartDelay}.");
+            await Task.Delay(Settings.Current.TestStartDelay);
+
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
             ModuleClient moduleClient = null;
@@ -34,37 +38,39 @@ namespace EdgeHubRestartTester
             {
                 ServiceClient iotHubServiceClient = ServiceClient.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString);
                 TestResultReportingClient reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
-                DateTime testExpirationTime = DateTime.UtcNow.AddMinutes(Settings.Current.RestartIntervalInMins);
 
                 moduleClient = await ModuleUtil.CreateModuleClientAsync(
                     Settings.Current.MessageTransportType,
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger);
-                Task<DateTime> SendMessageTask = SendMessageAsync(
-                    moduleClient,
-                    Settings.Current.TrackingId,
-                    batchId,
-                    testExpirationTime,
-                    cts);
 
+                DateTime testStart = DateTime.UtcNow;
+                DateTime testExpirationTime = testStart + Settings.Current.TestDuration;
                 while ((!cts.IsCancellationRequested) && (DateTime.UtcNow < testExpirationTime))
                 {
+                    DateTime eachTestExpirationTime = testStart.AddMinutes(Settings.Current.RestartIntervalInMins);
                     (DateTime restartTime, HttpStatusCode restartStatus) = await RestartModules(iotHubServiceClient, cts);
 
                     // BEARWASHERE -- Send DM until it passes, task it
-                    // BEARWASHERE -- Send Msg until it passes, task it
 
-                    // BEARWASHERE -- Send the "pass" response
+                    // BEARWASHERE -- Send Msg until it passes, task it
+                    Task<DateTime> SendMessageTask = SendMessageAsync(
+                        moduleClient,
+                        Settings.Current.TrackingId,
+                        batchId,
+                        eachTestExpirationTime,
+                        cts);
                     SendMessageTask.Start();
 
-                    // BEARWASHERE -- FIgureout how to much delay I should have.
+                    // BEARWASHERE -- Wait for DM
                     Task.WaitAll(SendMessageTask);
 
+                    // BEARWASHERE -- Send the "pass" response
                     DateTime msgCompletedTime = SendMessageTask.Result;
 
-                    DateTime.UtcNow - testStart;
-                    await Task.Delay(Settings.Current.RestartIntervalInMins * 60 * 1000, cts.Token);
+                    // Wait to do another restart
+                    await Task.Delay((int)(eachTestExpirationTime - DateTime.UtcNow).TotalMilliseconds, cts.Token);
                 }
             }
             catch (Exception e)
