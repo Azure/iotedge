@@ -646,6 +646,7 @@
     },
     "metricsCollector": {
       "properties.desired": {
+        "hostPlatform": "<MetricsCollector.HostPlatform>",
         "testType": "connectivity",
         "testId": "<TrackingId>",
         "upstreamProtocol": "<UpstreamProtocol>",
