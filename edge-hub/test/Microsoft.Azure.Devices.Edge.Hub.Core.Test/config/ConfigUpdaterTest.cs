@@ -25,6 +25,118 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
         };
 
         [Fact]
+        public async Task TestInitialConfigUpdate_NoWaitForInit()
+        {
+            // Arrange
+            string id = "id";
+            string iotHub = "foo.azure-devices.net";
+            var routerConfig = new RouterConfig(Enumerable.Empty<Route>());
+
+            var messageStore = new Mock<IMessageStore>();
+            messageStore.Setup(m => m.SetTimeToLive(It.IsAny<TimeSpan>()));
+
+            var storageSpaceChecker = new Mock<IStorageSpaceChecker>();
+            storageSpaceChecker.Setup(m => m.SetMaxSizeBytes(It.IsAny<Option<long>>()));
+
+            TimeSpan updateFrequency = TimeSpan.FromMinutes(10);
+
+            Endpoint GetEndpoint() => new ModuleEndpoint("id", Guid.NewGuid().ToString(), "in1", Mock.Of<IConnectionManager>(), Mock.Of<Core.IMessageConverter<IMessage>>());
+            var endpointFactory = new Mock<IEndpointFactory>();
+            endpointFactory.Setup(e => e.CreateSystemEndpoint($"$upstream")).Returns(GetEndpoint);
+            var routeFactory = new EdgeRouteFactory(endpointFactory.Object);
+
+            var endpointExecutorFactory = new Mock<IEndpointExecutorFactory>();
+            endpointExecutorFactory.Setup(e => e.CreateAsync(It.IsAny<Endpoint>()))
+                    .Returns<Endpoint>(endpoint => Task.FromResult(Mock.Of<IEndpointExecutor>(e => e.Endpoint == endpoint)));
+            Router router = await Router.CreateAsync(id, iotHub, routerConfig, endpointExecutorFactory.Object);
+
+            var routes1 = Routes.Take(2)
+                .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
+            var storeAndForwardConfiguration1 = new StoreAndForwardConfiguration(7200);
+            var edgeHubConfig1 = new EdgeHubConfig("1.0", routes1, storeAndForwardConfiguration1);
+
+            var routes2 = Routes.Take(3)
+                .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
+            var storeAndForwardConfiguration2 = new StoreAndForwardConfiguration(7200);
+            var edgeHubConfig2 = new EdgeHubConfig("1.0", routes2, storeAndForwardConfiguration2);
+
+            var configProvider = new Mock<IConfigSource>();
+            configProvider.SetupSequence(c => c.GetConfig())
+                .Returns(async () =>
+                {
+                    await Task.Delay(5000);
+                    return Option.Some(edgeHubConfig2);
+                });
+
+            configProvider.Setup(c => c.SetConfigUpdatedCallback(It.IsAny<Func<EdgeHubConfig, Task>>()));
+
+            // Act
+            var configUpdater = await ConfigUpdater.Create(router, messageStore.Object, updateFrequency, storageSpaceChecker.Object, Option.Some(edgeHubConfig1));
+            await configUpdater.Init(configProvider.Object);
+
+            // Assert
+            // First only has updated from prefeched config
+            Assert.Equal(2, router.Routes.Count);
+
+            // After 10 seconds updates from init received
+            await Task.Delay(TimeSpan.FromSeconds(10));
+            Assert.Equal(3, router.Routes.Count);
+        }
+
+        [Fact]
+        public async Task TestInitialConfigUpdate_WaitForInit()
+        {
+            // Arrange
+            string id = "id";
+            string iotHub = "foo.azure-devices.net";
+            var routerConfig = new RouterConfig(Enumerable.Empty<Route>());
+
+            var messageStore = new Mock<IMessageStore>();
+            messageStore.Setup(m => m.SetTimeToLive(It.IsAny<TimeSpan>()));
+
+            var storageSpaceChecker = new Mock<IStorageSpaceChecker>();
+            storageSpaceChecker.Setup(m => m.SetMaxSizeBytes(It.IsAny<Option<long>>()));
+
+            TimeSpan updateFrequency = TimeSpan.FromSeconds(10);
+
+            Endpoint GetEndpoint() => new ModuleEndpoint("id", Guid.NewGuid().ToString(), "in1", Mock.Of<IConnectionManager>(), Mock.Of<Core.IMessageConverter<IMessage>>());
+            var endpointFactory = new Mock<IEndpointFactory>();
+            endpointFactory.Setup(e => e.CreateSystemEndpoint($"$upstream")).Returns(GetEndpoint);
+            var routeFactory = new EdgeRouteFactory(endpointFactory.Object);
+
+            var endpointExecutorFactory = new Mock<IEndpointExecutorFactory>();
+            endpointExecutorFactory.Setup(e => e.CreateAsync(It.IsAny<Endpoint>()))
+                    .Returns<Endpoint>(endpoint => Task.FromResult(Mock.Of<IEndpointExecutor>(e => e.Endpoint == endpoint)));
+            Router router = await Router.CreateAsync(id, iotHub, routerConfig, endpointExecutorFactory.Object);
+
+            var routes1 = Routes.Take(2)
+                .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
+            var storeAndForwardConfiguration1 = new StoreAndForwardConfiguration(7200);
+            var edgeHubConfig1 = new EdgeHubConfig("1.0", routes1, storeAndForwardConfiguration1);
+
+            var configProvider = new Mock<IConfigSource>();
+            configProvider.SetupSequence(c => c.GetConfig())
+                .Returns(async () =>
+                {
+                    await Task.Delay(5000);
+                    return Option.Some(edgeHubConfig1);
+                });
+
+            configProvider.Setup(c => c.SetConfigUpdatedCallback(It.IsAny<Func<EdgeHubConfig, Task>>()));
+
+            // Act
+            var configUpdater = await ConfigUpdater.Create(router, messageStore.Object, updateFrequency, storageSpaceChecker.Object, Option.None<EdgeHubConfig>());
+            await configUpdater.Init(configProvider.Object);
+
+            // Assert
+            Assert.Equal(2, router.Routes.Count);
+
+            // After 5 seconds no updates
+            await Task.Delay(TimeSpan.FromSeconds(5));
+            Assert.Equal(2, router.Routes.Count);
+        }
+
+        [Fact]
         public async Task TestPeriodicConfigUpdate()
         {
             // Arrange
@@ -88,7 +200,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             configProvider.Setup(c => c.SetConfigUpdatedCallback(It.IsAny<Func<EdgeHubConfig, Task>>()));
 
             // Act
-            var configUpdater = new ConfigUpdater(router, messageStore.Object, updateFrequency);
+            var configUpdater = await ConfigUpdater.Create(router, messageStore.Object, updateFrequency, sOption.None<EdgeHubConfig>());
             await configUpdater.Init(configProvider.Object);
 
             // Assert

@@ -82,6 +82,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 });
         }
 
+        public async Task<Option<IMessage>> GetLocalTwinAsync(string id)
+        {
+            return await this.TwinStore.Match(
+                async (store) =>
+                {
+                    Option<TwinInfo> cached = await this.TwinStore.Match(s => s.Get(id), () => Task.FromResult(Option.None<TwinInfo>()));
+                    Option<IMessage> twinInfo = cached.FlatMap((t) =>
+                    {
+                        return t.Twin != null
+                            ? Option.Some(this.twinConverter.ToMessage(t.Twin))
+                            : Option.None<IMessage>();
+                    });
+                    return twinInfo;
+                },
+                () =>
+                {
+                    return Task.FromResult(Option.None<IMessage>());
+                });
+        }
+
         public async Task UpdateDesiredPropertiesAsync(string id, IMessage desiredProperties)
         {
             await this.TwinStore.Map(
