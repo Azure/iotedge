@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         const string DockerType = "docker";
         static readonly TimeSpan DefaultRequestTimeout = TimeSpan.FromSeconds(60);
 
-        private static async Task CreateConfigurationAsync(RegistryManager registryManager, string configurationId, string targetCondition, int priority)
+        static async Task CreateConfigurationAsync(RegistryManager registryManager, string configurationId, string targetCondition, int priority)
         {
             var configuration = new Configuration(configurationId)
             {
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             await registryManager.AddConfigurationAsync(configuration);
         }
 
-        private static async Task CreateBaseAddOnConfigurationsAsync(RegistryManager registryManager, string configurationId, string addOnConfigurationId, string targetCondition, int priority)
+        static async Task CreateBaseAddOnConfigurationsAsync(RegistryManager registryManager, string configurationId, string addOnConfigurationId, string targetCondition, int priority)
         {
             var configuration = new Configuration(configurationId)
             {
@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             await registryManager.AddConfigurationAsync(addonConfiguration);
         }
 
-        private static TwinCollection GetEdgeAgentReportedProperties(DeploymentConfigInfo deploymentConfigInfo)
+        static TwinCollection GetEdgeAgentReportedProperties(DeploymentConfigInfo deploymentConfigInfo)
         {
             DeploymentConfig deploymentConfig = deploymentConfigInfo.DeploymentConfig;
             var reportedProperties = new
@@ -137,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             return new TwinCollection(patch);
         }
 
-        private static ConfigurationContent GetCombinedConfigurationContent() =>
+        static ConfigurationContent GetCombinedConfigurationContent() =>
             new ConfigurationContent
             {
                 ModulesContent = new Dictionary<string, IDictionary<string, object>>
@@ -161,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 }
             };
 
-        private static ConfigurationContent GetBaseConfigurationContent() =>
+        static ConfigurationContent GetBaseConfigurationContent() =>
             new ConfigurationContent
             {
                 ModulesContent = new Dictionary<string, IDictionary<string, object>>
@@ -181,7 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 }
             };
 
-        private static ConfigurationContent GetAddOnConfigurationContent() =>
+        static ConfigurationContent GetAddOnConfigurationContent() =>
             new ConfigurationContent
             {
                 ModulesContent = new Dictionary<string, IDictionary<string, object>>
@@ -201,7 +201,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 }
             };
 
-        private static IEdgeAgentConnection CreateEdgeAgentConnection(IotHubConnectionStringBuilder iotHubConnectionStringBuilder, string edgeDeviceId, Device edgeDevice)
+        static IEdgeAgentConnection CreateEdgeAgentConnection(IotHubConnectionStringBuilder iotHubConnectionStringBuilder, string edgeDeviceId, Device edgeDevice)
         {
             string edgeAgentConnectionString = $"HostName={iotHubConnectionStringBuilder.HostName};DeviceId={edgeDeviceId};ModuleId=$edgeAgent;SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
             IModuleClientProvider moduleClientProvider = new ModuleClientProvider(
@@ -319,7 +319,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             }
         }
 
-        private static async Task<Device> CreateEdgeDeviceWithCondition(string edgeDeviceId, RegistryManager registryManager, string conditionPropertyName, string conditionPropertyValue)
+        static async Task<Device> CreateEdgeDeviceWithCondition(string edgeDeviceId, RegistryManager registryManager, string conditionPropertyName, string conditionPropertyValue)
         {
             var edgeDevice = new Device(edgeDeviceId)
             {
