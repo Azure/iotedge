@@ -1766,6 +1766,9 @@ mod tests {
     #[cfg(unix)]
     static GOOD_SETTINGS_DPS_DEFAULT: &str =
         "../edgelet-docker/test/linux/sample_settings.dps.default.yaml";
+    #[cfg(unix)]
+    static SETTINGS_DEFAULT_CERT: &str =
+        "../edgelet-docker/test/linux/sample_settings_default_cert.yaml";
 
     #[cfg(windows)]
     static GOOD_SETTINGS: &str = "../edgelet-docker/test/windows/sample_settings.yaml";
@@ -1780,6 +1783,9 @@ mod tests {
     #[cfg(windows)]
     static GOOD_SETTINGS_DPS_DEFAULT: &str =
         "../edgelet-docker/test/windows/sample_settings.dps.default.yaml";
+    #[cfg(windows)]
+    static SETTINGS_DEFAULT_CERT: &str =
+        "../edgelet-docker/test/windows/sample_settings_default_cert.yaml";
 
     #[derive(Clone, Copy, Debug, Fail)]
     pub struct Error;
@@ -1910,6 +1916,15 @@ mod tests {
             ErrorKind::Initialize(InitializeErrorReason::NotConfigured) => (),
             kind => panic!("Expected `NotConfigured` but got {:?}", kind),
         }
+    }
+
+    #[test]
+    fn settings_manual_without_cert_uses_default() {
+        let settings = Settings::new(Some(Path::new(SETTINGS_DEFAULT_CERT))).unwrap();
+        assert_eq!(
+            u64::from(DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS) * 86_400,
+            settings.certificates().auto_generated_ca_lifetime_seconds()
+        );
     }
 
     #[test]
