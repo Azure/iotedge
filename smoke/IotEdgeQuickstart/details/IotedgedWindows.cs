@@ -115,7 +115,7 @@ namespace IotEdgeQuickstart.Details
         {
             const string HidePowerShellProgressBar = "$ProgressPreference='SilentlyContinue'";
 
-            Console.WriteLine($"Setting up iotedged with agent image '{image}'");
+            Console.WriteLine($"Setting up iotedged with agent image 1.0");
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
             {
