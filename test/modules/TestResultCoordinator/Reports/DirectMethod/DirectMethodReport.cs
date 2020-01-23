@@ -65,7 +65,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
         public ulong MismatchFailure { get; }
 
         public override string Title => this.ReceiverSource.HasValue ?
-            $"DirectMethod Report ({this.ResultType}) for [{this.SenderSource}] and [{this.ReceiverSource.OrDefault()}]" : $"DirectMethod Report ({this.ResultType}) for [{this.SenderSource}]";
+            $"DirectMethod Report for [{this.SenderSource}] and [{this.ReceiverSource.OrDefault()}] ({this.ResultType})" : $"DirectMethod Report for [{this.SenderSource}] ({this.ResultType})";
 
         public override bool IsPassed =>
             this.MismatchFailure == 0 && this.NetworkOffFailure == 0 && this.NetworkOnFailure == 0;

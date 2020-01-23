@@ -74,22 +74,22 @@ namespace TestResultCoordinator.Reports
                     }
 
                 case TestReportType.DirectMethodReport:
-                {
-                    var metadata = (DirectMethodReportMetadata)testReportMetadata;
-                    var senderTestResults = this.GetResults(metadata.SenderSource);
-                    var receiverTestResults = metadata.ReceiverSource.Map(x => this.GetResults(x));
-                    var tolerancePeriod = metadata.TolerancePeriod;
-                    var networkStatusTimeline = await this.GetNetworkStatusTimelineAsync(tolerancePeriod);
+                    {
+                        var metadata = (DirectMethodReportMetadata)testReportMetadata;
+                        var senderTestResults = this.GetResults(metadata.SenderSource);
+                        var receiverTestResults = metadata.ReceiverSource.Map(x => this.GetResults(x));
+                        var tolerancePeriod = metadata.TolerancePeriod;
+                        var networkStatusTimeline = await this.GetNetworkStatusTimelineAsync(tolerancePeriod);
 
-                    return new DirectMethodReportGenerator(
-                        trackingId,
-                        metadata.SenderSource,
-                        senderTestResults,
-                        metadata.ReceiverSource,
-                        receiverTestResults,
-                        metadata.TestOperationResultType.ToString(),
-                        networkStatusTimeline);
-                }
+                        return new DirectMethodReportGenerator(
+                            trackingId,
+                            metadata.SenderSource,
+                            senderTestResults,
+                            metadata.ReceiverSource,
+                            receiverTestResults,
+                            metadata.TestOperationResultType.ToString(),
+                            networkStatusTimeline);
+                    }
 
                 case TestReportType.NetworkControllerReport:
                     {

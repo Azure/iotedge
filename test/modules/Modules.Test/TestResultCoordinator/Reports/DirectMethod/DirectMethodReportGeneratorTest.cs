@@ -18,10 +18,6 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
     public class DirectMethodReportGeneratorTest
     {
-        public static IEnumerable<object[]> GetCreateReportDataForTwoSources => DirectMethodReportDataWithSenderAndReceiverSource.GetCreateReportData;
-
-        public static IEnumerable<object[]> GetCreateReportDataForOneSource => DirectMethodReportDataWithSenderSourceOnly.GetCreateReportData;
-
         static NetworkStatusTimeline NetworkStatusTimeline => MockNetworkStatusTimeline.GetMockAsync(new TimeSpan(0, 0, 0, 0, 5)).Result;
 
         [Fact]
@@ -223,11 +219,11 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         }
 
         [Theory]
-        [MemberData(nameof(GetCreateReportDataForTwoSources))]
+        [MemberData(nameof(DirectMethodReportDataWithSenderAndReceiverSource.GetCreateReportData), MemberType = typeof(DirectMethodReportDataWithSenderAndReceiverSource))]
         public async Task TestCreateReportAsync(
             IEnumerable<string> senderStoreValues,
             IEnumerable<string> receiverStoreValues,
-            IEnumerable<int> statusCodes,
+            IEnumerable<HttpStatusCode> statusCodes,
             IEnumerable<DateTime> timestamps,
             int batchSize,
             ulong expectedNetworkOnSuccess,
@@ -288,10 +284,10 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         }
 
         [Theory]
-        [MemberData(nameof(GetCreateReportDataForOneSource))]
-        public async Task TestCreateReportWithNoReceiverResultsAsync(
+        [MemberData(nameof(DirectMethodReportDataWithSenderSourceOnly.GetCreateReportData), MemberType = typeof(DirectMethodReportDataWithSenderSourceOnly))]
+        public async Task TestCreateReportWithSenderResultsOnlyAsync(
             IEnumerable<string> senderStoreValues,
-            IEnumerable<int> statusCodes,
+            IEnumerable<HttpStatusCode> statusCodes,
             IEnumerable<DateTime> timestamps,
             int batchSize,
             ulong expectedNetworkOnSuccess,
@@ -345,7 +341,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             string source,
             string resultType,
             IEnumerable<string> resultValues,
-            IEnumerable<int> statusCodes,
+            IEnumerable<HttpStatusCode> statusCodes,
             IEnumerable<DateTime> timestamps,
             Guid guid,
             int start = 0)
@@ -361,7 +357,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     "1",
                     guid,
                     resultValues.ElementAt(i),
-                    (HttpStatusCode)statusCodes.ElementAt(i));
+                    statusCodes.ElementAt(i));
                 storeData.Add((count, new TestOperationResult(source, resultType, JsonConvert.SerializeObject(directMethodTestResult, Formatting.Indented), timestamps.ElementAt(i))));
                 count++;
             }

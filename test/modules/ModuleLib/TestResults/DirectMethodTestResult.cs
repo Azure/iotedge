@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
             this.TrackingId = trackingId ?? string.Empty;
             this.BatchId = Preconditions.CheckNotNull(batchId, nameof(batchId)).ToString();
             this.SequenceNumber = Preconditions.CheckNonWhiteSpace(sequenceNumber, nameof(sequenceNumber));
-            this.Result = Preconditions.CheckNotNull(result, nameof(result));
+            this.HttpStatusCode = result;
         }
 
         public string TrackingId { get; set; }
@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
 
         public string SequenceNumber { get; set; }
 
-        public HttpStatusCode Result { get; set; }
+        public HttpStatusCode HttpStatusCode { get; set; }
 
         public override string GetFormattedResult()
         {

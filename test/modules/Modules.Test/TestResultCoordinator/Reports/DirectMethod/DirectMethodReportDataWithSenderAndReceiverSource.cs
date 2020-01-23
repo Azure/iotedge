@@ -4,6 +4,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
 
     class DirectMethodReportDataWithSenderAndReceiverSource
     {
@@ -16,7 +17,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     // NetworkOnSuccess test
                     Enumerable.Range(1, 7).Select(v => v.ToString()),
                     Enumerable.Range(1, 7).Select(v => v.ToString()),
-                    new int[] { 200, 200, 200, 200, 200, 200, 200 },
+                    new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
                     {
                         new DateTime(2020, 1, 1, 9, 10, 12, 10),
@@ -34,7 +35,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     // NetworkOffSuccess test
                     Enumerable.Range(1, 7).Select(v => v.ToString()),
                     new[] { "1", "2", "4", "5", "6", "7" },
-                    new int[] { 200, 200, 500, 200, 200, 200, 200 },
+                    new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.InternalServerError, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
                     {
                         new DateTime(2020, 1, 1, 9, 10, 12, 10),
@@ -52,7 +53,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     // NetworkOnToleratedSuccess test
                     Enumerable.Range(1, 7).Select(v => v.ToString()),
                     new[] { "1", "2", "4", "5", "6", "7" },
-                    new int[] { 200, 200, 500, 200, 200, 200, 200 },
+                    new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.InternalServerError, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
                     {
                         new DateTime(2020, 1, 1, 9, 10, 12, 10),
@@ -70,7 +71,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     // NetworkOffToleratedSuccess test
                     Enumerable.Range(1, 7).Select(v => v.ToString()),
                     new[] { "1", "2", "3", "4", "5", "6", "7" },
-                    new int[] { 200, 200, 200, 200, 200, 200, 200 },
+                    new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
                     {
                         new DateTime(2020, 1, 1, 9, 10, 12, 10),
@@ -88,7 +89,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     // NetworkOnFailure test
                     Enumerable.Range(1, 7).Select(v => v.ToString()),
                     new[] { "1", "2", "3", "5", "6", "7" },
-                    new int[] { 200, 200, 200, 500, 200, 200, 200 },
+                    new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.InternalServerError, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
                     {
                         new DateTime(2020, 1, 1, 9, 10, 12, 10),
@@ -106,7 +107,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     // NetworkOffFailure test
                     Enumerable.Range(1, 7).Select(v => v.ToString()),
                     new[] { "1", "2", "3", "4", "5", "6", "7" },
-                    new int[] { 200, 200, 200, 200, 200, 200, 200 },
+                    new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
                     {
                         new DateTime(2020, 1, 1, 9, 10, 12, 10),
@@ -124,7 +125,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     // MismatchSuccess test
                     Enumerable.Range(1, 7).Select(v => v.ToString()),
                     new[] { "1", "2", "3", "5", "6", "7" },
-                    new int[] { 200, 200, 200, 200, 200, 200, 200 },
+                    new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
                     {
                         new DateTime(2020, 1, 1, 9, 10, 12, 10),
@@ -142,7 +143,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     // MismatchFailure test
                     Enumerable.Range(1, 6).Select(v => v.ToString()),
                     new[] { "1", "2", "3", "4", "5", "6", "7" },
-                    new int[] { 200, 200, 200, 200, 200, 200, 200 },
+                    new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
                     {
                         new DateTime(2020, 1, 1, 9, 10, 12, 10),
@@ -159,7 +160,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 {
                     Enumerable.Range(1, 10).Select(v => v.ToString()),
                     new[] { "1", "2", "3", "8", "10", "11" },
-                    new int[] { 200, 200, 200, 500, 500, 500, 500, 200, 200, 200 },
+                    new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.InternalServerError, HttpStatusCode.InternalServerError, HttpStatusCode.InternalServerError, HttpStatusCode.InternalServerError, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
                     {
                         // Smoke test for mixed results

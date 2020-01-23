@@ -3,16 +3,13 @@ namespace Modules.Test.TestResultCoordinator
 {
     using System;
     using System.Collections.Generic;
-    using System.Net;
     using System.Threading.Tasks;
     using global::TestResultCoordinator;
     using global::TestResultCoordinator.Reports;
     using global::TestResultCoordinator.Reports.DirectMethod;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Extensions.Logging;
     using Moq;
-    using Newtonsoft.Json;
     using Xunit;
 
     public class TestReportUtilTest
@@ -50,11 +47,18 @@ namespace Modules.Test.TestResultCoordinator
         }
 
         [Theory]
-        [InlineData(false, false, false, 3)]
-        [InlineData(true, false, true, 1)]
-        [InlineData(true, false, false, 2)]
-        [InlineData(true, true, true, 0)]
-        public async Task TestGenerateTestResultReportsAsync_ReportGeneration(bool throwExceptionForTestReport1, bool throwExceptionForTestReport2, bool throwExceptionForTestReport3, int expectedReportCount)
+        [InlineData(false, false, false, false, false, 5)]
+        [InlineData(true, false, true, false, false, 3)]
+        [InlineData(true, false, false, false, false, 4)]
+        [InlineData(false, false, true, true, true, 2)]
+        [InlineData(true, true, true, true, false, 1)]
+        public async Task TestGenerateTestResultReportsAsync_ReportGeneration(
+            bool throwExceptionForTestReport1,
+            bool throwExceptionForTestReport2,
+            bool throwExceptionForTestReport3,
+            bool throwExceptionForTestReport4,
+            bool throwExceptionForTestReport5,
+            int expectedReportCount)
         {
             var mockLogger = new Mock<ILogger>();
             var mockTestReportGeneratorFactory = new Mock<ITestReportGeneratorFactory>();
@@ -63,6 +67,8 @@ namespace Modules.Test.TestResultCoordinator
             var countingReportMetadata = new CountingReportMetadata("CountingExpectedSource", "CountingAcutalSource", TestOperationResultType.Messages, TestReportType.CountingReport);
             var twinCountingReportMetadata = new TwinCountingReportMetadata("TwinExpectedSource", "TwinActualSource", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired);
             var deploymentReportMetadata = new DeploymentTestReportMetadata("DeploymentExpectedSource", "DeploymentActualSource");
+            var directMethodReportMetadata = new DirectMethodReportMetadata("DirectMethodSenderSource", new TimeSpan(0, 0, 0, 0, 5), "DirectMethodReceiverSource");
+            var directMethodReportMetadataWithoutReceiverSource = new DirectMethodReportMetadata("DirectMethodSenderSource", new TimeSpan(0, 0, 0, 0, 5), "DirectMethodReceiverSource");
 
             var mockTestReportGenerator1 = new Mock<ITestResultReportGenerator>();
             mockTestReportGenerator1.Setup(g => g.CreateReportAsync()).Returns(this.MockTestResultReport(throwExceptionForTestReport1));
@@ -73,9 +79,17 @@ namespace Modules.Test.TestResultCoordinator
             var mockTestReportGenerator3 = new Mock<ITestResultReportGenerator>();
             mockTestReportGenerator3.Setup(g => g.CreateReportAsync()).Returns(this.MockTestResultReport(throwExceptionForTestReport3));
 
+            var mockTestReportGenerator4 = new Mock<ITestResultReportGenerator>();
+            mockTestReportGenerator4.Setup(g => g.CreateReportAsync()).Returns(this.MockTestResultReport(throwExceptionForTestReport4));
+
+            var mockTestReportGenerator5 = new Mock<ITestResultReportGenerator>();
+            mockTestReportGenerator5.Setup(g => g.CreateReportAsync()).Returns(this.MockTestResultReport(throwExceptionForTestReport5));
+
             mockTestReportGeneratorFactory.Setup(f => f.CreateAsync(trackingId, countingReportMetadata)).Returns(Task.FromResult(mockTestReportGenerator1.Object));
             mockTestReportGeneratorFactory.Setup(f => f.CreateAsync(trackingId, twinCountingReportMetadata)).Returns(Task.FromResult(mockTestReportGenerator2.Object));
             mockTestReportGeneratorFactory.Setup(f => f.CreateAsync(trackingId, deploymentReportMetadata)).Returns(Task.FromResult(mockTestReportGenerator3.Object));
+            mockTestReportGeneratorFactory.Setup(f => f.CreateAsync(trackingId, directMethodReportMetadata)).Returns(Task.FromResult(mockTestReportGenerator4.Object));
+            mockTestReportGeneratorFactory.Setup(f => f.CreateAsync(trackingId, directMethodReportMetadataWithoutReceiverSource)).Returns(Task.FromResult(mockTestReportGenerator5.Object));
 
             ITestResultReport[] reports = await TestReportUtil.GenerateTestResultReportsAsync(
                 trackingId,
@@ -83,7 +97,9 @@ namespace Modules.Test.TestResultCoordinator
                 {
                     countingReportMetadata,
                     twinCountingReportMetadata,
-                    deploymentReportMetadata
+                    deploymentReportMetadata,
+                    directMethodReportMetadata,
+                    directMethodReportMetadataWithoutReceiverSource
                 },
                 mockTestReportGeneratorFactory.Object,
                 mockLogger.Object);
@@ -112,12 +128,23 @@ namespace Modules.Test.TestResultCoordinator
                         ""TestReportType"": ""DeploymentTestReport"",
                         ""ExpectedSource"": ""deploymentTester1.send"",
                         ""ActualSource"": ""deploymentTester2.receive""
+                    },
+                    ""reportMetadata4"": {
+                        ""TestReportType"": ""DirectMethodReport"",
+                        ""SenderSource"": ""senderSource1.send"",
+                        ""ReceiverSource"": ""receiverSource1.receive"",
+                        ""TolerancePeriod"": ""00:00:00.005""
+                    },
+                    ""reportMetadata5"": {
+                        ""TestReportType"": ""DirectMethodReport"",
+                        ""SenderSource"": ""senderSource1.send"",
+                        ""TolerancePeriod"": ""00:00:00.005""
                     }
                 }";
 
             List<ITestReportMetadata> results = TestReportUtil.ParseReportMetadataJson(testDataJson, new Mock<ILogger>().Object);
 
-            Assert.Equal(3, results.Count);
+            Assert.Equal(5, results.Count);
         }
 
         [Fact]
@@ -219,6 +246,30 @@ namespace Modules.Test.TestResultCoordinator
         }
 
         [Fact]
+        public void ParseReportMetadataList_ParseDirectMethodTestReportMetadataWithoutReceiverSource()
+        {
+            const string testDataJson =
+                @"{
+                    ""reportMetadata"": {
+                        ""TestReportType"": ""DirectMethodReport"",
+                        ""SenderSource"": ""directMethodSender1.send"",
+                        ""TolerancePeriod"": ""00:00:00.005""
+                    }
+                }";
+
+            List<ITestReportMetadata> results = TestReportUtil.ParseReportMetadataJson(testDataJson, new Mock<ILogger>().Object);
+
+            Assert.Single(results);
+            var reportMetadata = results[0] as DirectMethodReportMetadata;
+            Assert.NotNull(reportMetadata);
+            Assert.Equal(TestOperationResultType.DirectMethod, reportMetadata.TestOperationResultType);
+            Assert.Equal(TestReportType.DirectMethodReport, reportMetadata.TestReportType);
+            Assert.Equal("directMethodSender1.send", reportMetadata.SenderSource);
+            Assert.False(reportMetadata.ReceiverSource.HasValue);
+            Assert.Equal(new TimeSpan(0, 0, 0, 0, 5), reportMetadata.TolerancePeriod);
+        }
+
+        [Fact]
         public void ParseReportMetadataList_ParseNetworkControllerReportMetadata()
         {
             const string testDataJson =
@@ -263,48 +314,6 @@ namespace Modules.Test.TestResultCoordinator
             }
 
             Assert.True(exceptionThrown);
-        }
-
-        [Fact]
-        public void DirectMethodReportMetadataJsonDeserializeWithReceiverSourceTest()
-        {
-            const string SerializedTestJsonWithReceiverSource = "{ \"TestReportType\": \"DirectMethodReport\", \"SenderSource\": \"directMethodSender1.send\"," +
-            " \"ReceiverSource\": \"directMethodReceiver1.receive\", \"TolerancePeriod\": \"00:00:00.005\" }";
-            DirectMethodReportMetadata directMethodReportMetadata =
-                JsonConvert.DeserializeObject<DirectMethodReportMetadata>(SerializedTestJsonWithReceiverSource);
-            Assert.Equal("directMethodSender1.send", directMethodReportMetadata.SenderSource);
-            Assert.Equal(new TimeSpan(0, 0, 0, 0, 5), directMethodReportMetadata.TolerancePeriod);
-            Assert.Equal(TestReportType.DirectMethodReport, directMethodReportMetadata.TestReportType);
-            Assert.True(directMethodReportMetadata.ReceiverSource.HasValue);
-            directMethodReportMetadata.ReceiverSource.ForEach(x => Assert.Equal("directMethodReceiver1.receive", x));
-        }
-
-        [Fact]
-        public void DirectMethodReportMetadataJsonDeserializeWithoutReceiverSourceTest()
-        {
-            const string SerializedTestJsonWithoutReceiverSource = "{ \"TestReportType\": \"DirectMethodReport\", \"SenderSource\": \"directMethodSender1.send\", " +
-                "\"TolerancePeriod\": \"00:00:00.005\" }";
-            DirectMethodReportMetadata directMethodReportMetadata =
-                JsonConvert.DeserializeObject<DirectMethodReportMetadata>(SerializedTestJsonWithoutReceiverSource);
-            Assert.Equal("directMethodSender1.send", directMethodReportMetadata.SenderSource);
-            Assert.Equal(new TimeSpan(0, 0, 0, 0, 5), directMethodReportMetadata.TolerancePeriod);
-            Assert.Equal(TestReportType.DirectMethodReport, directMethodReportMetadata.TestReportType);
-            Assert.True(!directMethodReportMetadata.ReceiverSource.HasValue);
-        }
-
-        [Fact]
-        public void DirectMethodTestResultJsonSerializeTest()
-        {
-            DirectMethodTestResult directMethodTestResult = new DirectMethodTestResult(
-                "source",
-                DateTime.UtcNow,
-                "trackingId",
-                Guid.NewGuid(),
-                "sequenceNumber",
-                HttpStatusCode.OK);
-            string jsonString = JsonConvert.SerializeObject(directMethodTestResult, Formatting.Indented);
-            DirectMethodTestResult dmtr = JsonConvert.DeserializeObject<DirectMethodTestResult>(jsonString);
-            Assert.Equal(dmtr.Result, directMethodTestResult.Result);
         }
 
         private Task<ITestResultReport> MockTestResultReport(bool throwException)

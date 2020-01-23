@@ -159,7 +159,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
                 }
                 else if (int.Parse(dmSenderTestResult.SequenceNumber) < int.Parse(dmReceiverTestResult.SequenceNumber))
                 {
-                    if (HttpStatusCode.OK.Equals(dmSenderTestResult.Result) &&
+                    if (HttpStatusCode.OK.Equals(dmSenderTestResult.HttpStatusCode) &&
                         (NetworkControllerStatus.Disabled.Equals(networkControllerStatus)
                         || (NetworkControllerStatus.Enabled.Equals(networkControllerStatus) && isWithinTolerancePeriod)))
                     {
@@ -204,7 +204,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
             ulong networkOffToleratedSuccess = 0;
             ulong networkOnFailure = 0;
             ulong networkOffFailure = 0;
-            HttpStatusCode statusCode = dmSenderTestResult.Result;
+            HttpStatusCode statusCode = dmSenderTestResult.HttpStatusCode;
             if (NetworkControllerStatus.Disabled.Equals(networkControllerStatus))
             {
                 if (HttpStatusCode.OK.Equals(statusCode))
@@ -229,7 +229,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
                 {
                     networkOffSuccess++;
                 }
-                else if (HttpStatusCode.OK.Equals(dmSenderTestResult.Result))
+                else if (HttpStatusCode.OK.Equals(dmSenderTestResult.HttpStatusCode))
                 {
                     if (isWithinTolerancePeriod)
                     {
