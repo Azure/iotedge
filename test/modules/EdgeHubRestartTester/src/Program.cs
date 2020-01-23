@@ -18,8 +18,9 @@ namespace EdgeHubRestartTester
     class Program
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("EdgeHubRestartTester");
+
         static long messageCount = 0;
-        const string outputEndpoint = "output1";
+        static long directMethodCount = 0;
 
         public static int Main() => MainAsync().Result;
 
@@ -60,22 +61,32 @@ namespace EdgeHubRestartTester
                     (DateTime restartTime, HttpStatusCode restartStatus) = await RestartModules(iotHubServiceClient, cts);
 
                     // BEARWASHERE -- Send DM until it passes, task it: TODO -- Implement the function
-                    Task<DateTime> SendDirectMethodTask = SendDirectMethodAsync();
+                    Task<Tuple<DateTime, HttpStatusCode>> SendDirectMethodTask = SendDirectMethodAsync(
+                        Settings.Current.DeviceId,
+                        Settings.Current.DirectMethodTargetModuleId,
+                        dmModuleClient,
+                        Settings.Current.DirectMethodName,
+                        testExpirationTime,
+                        cts);
 
                     // BEARWASHERE -- Send Msg until it passes, task it
-                    Task <DateTime> SendMessageTask = SendMessageAsync(
+                    Task <Tuple<DateTime, HttpStatusCode>> SendMessageTask = SendMessageAsync(
                         msgModuleClient,
                         Settings.Current.TrackingId,
                         batchId,
+                        Settings.Current.MessageOutputEndpoint,
                         eachTestExpirationTime,
                         cts);
+
+                    SendDirectMethodTask.Start();
                     SendMessageTask.Start();
 
                     // BEARWASHERE -- Wait for DM
-                    Task.WaitAll(SendMessageTask);
+                    Task.WaitAll(SendDirectMethodTask, SendMessageTask);
 
                     // BEARWASHERE -- Send the "pass" response
-                    DateTime msgCompletedTime = SendMessageTask.Result;
+                    (DateTime msgCompletedTime, HttpStatusCode msgStatusCode) = SendMessageTask.Result;
+                    (DateTime dmCompletedTime, HttpStatusCode dmStatusCode) = SendDirectMethodTask.Result;
 
                     // Wait to do another restart
                     await Task.Delay((int)(eachTestExpirationTime - DateTime.UtcNow).TotalMilliseconds, cts.Token);
@@ -98,41 +109,50 @@ namespace EdgeHubRestartTester
             return 0;
         }
 
-        static async Task<DateTime> SendDirectMethodAsync(
-            )
+        static async Task<Tuple<DateTime, HttpStatusCode>> SendDirectMethodAsync(
+            string deviceId,
+            string targetModuleId,
+            ModuleClient moduleClient,
+            string directMethodName,
+            DateTime testExpirationTime,
+            CancellationTokenSource cts)
         {
             while ((!cts.Token.IsCancellationRequested) && (DateTime.UtcNow < testExpirationTime))
             {
-                // BEARWASHERE -- TODO: Implement this
+                // BEARWASHERE -- TODO: Test this
                 try
                 {
-                    int resultStatus = await this.InvokeDeviceMethodAsync(this.deviceId, this.targetModuleId, methodName, this.directMethodCount, CancellationToken.None);
-
-                    string statusMessage = $"Calling Direct Method with count {this.directMethodCount} returned with status code {resultStatus}";
-                    if (resultStatus == (int)HttpStatusCode.OK)
+                    // Direct Method sequence number is always increasing regardless of sending result.
+                    Interlocked.Increment(ref directMethodCount);
+                    MethodRequest request = new MethodRequest(
+                        directMethodName,
+                        Encoding.UTF8.GetBytes($"{{ \"Message\": \"Hello\", \"DirectMethodCount\": \"{Interlocked.Read(ref directMethodCount).ToString()}\" }}"));
+                    MethodResponse result = await moduleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
+                    if ((HttpStatusCode)result.Status == HttpStatusCode.OK)
                     {
-                        logger.LogDebug(statusMessage);
+                        Logger.LogDebug(result.ResultAsJson);
                     }
                     else
                     {
-                        logger.LogError(statusMessage);
+                        Logger.LogError(result.ResultAsJson);
                     }
 
-                    logger.LogInformation($"Invoke DirectMethod with count {this.directMethodCount}: finished.");
-                    return new Tuple<HttpStatusCode, long>((HttpStatusCode)resultStatus, this.directMethodCount);
+                    Logger.LogInformation($"Invoke DirectMethod with count {Interlocked.Read(ref directMethodCount).ToString()}: finished.");
+                    return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)result.Status);
                 }
                 catch (Exception e)
                 {
-                    logger.LogError(e, $"Exception caught with count {this.directMethodCount}");
-                    return new Tuple<HttpStatusCode, long>(HttpStatusCode.InternalServerError, this.directMethodCount);
+                    Logger.LogError(e, $"Exception caught with count {Interlocked.Read(ref directMethodCount).ToString()}");
                 }
             }
+            return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.InternalServerError);
         }
 
-        static async Task<DateTime> SendMessageAsync(
+        static async Task<Tuple<DateTime, HttpStatusCode>> SendMessageAsync(
             ModuleClient moduleClient,
             string trackingId,
             Guid batchId,
+            string msgOutputEndpoint,
             DateTime testExpirationTime,
             CancellationTokenSource cts)
         {
@@ -147,16 +167,18 @@ namespace EdgeHubRestartTester
 
                 try
                 {
-                    // sending the result via edgeHub
-                    await moduleClient.SendEventAsync(outputEndpoint, message);
-                    return DateTime.UtcNow;
+                    // Sending the result via edgeHub
+                    await moduleClient.SendEventAsync(msgOutputEndpoint, message);
+                    return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)HttpStatusCode.OK);
                 }
                 catch (OperationCanceledException ex)
                 {
+                    // The message sequence number is not incrementing if the send failed.
                     Logger.LogError(ex, $"[SendEventAsync] Sequence number {messageCount}, BatchId: {batchId.ToString()};");
                     Interlocked.Decrement(ref messageCount);
                 }
             }
+            return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)HttpStatusCode.InternalServerError);
         }
 
         static async Task<Tuple<DateTime, HttpStatusCode>> RestartModules(ServiceClient iotHubServiceClient, CancellationTokenSource cts)
