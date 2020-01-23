@@ -25,8 +25,7 @@ namespace EdgeHubRestartTester
             string messageOutputEndpoint,
             TransportType messageTransportType,
             string moduleId,
-            string trackingId
-            )
+            string trackingId)
         {
             Preconditions.CheckRange(testStartDelay.Ticks, 0);
             Preconditions.CheckRange(testDuration.Ticks, 0);

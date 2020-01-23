@@ -63,7 +63,7 @@ namespace EdgeHubRestartTester
                     (DateTime restartTime, HttpStatusCode restartStatus) = await RestartModules(iotHubServiceClient, cts);
 
                     // Setup Direct Method Task
-                    Task<Tuple<DateTime, HttpStatusCode>> SendDirectMethodTask = SendDirectMethodAsync(
+                    Task<Tuple<DateTime, HttpStatusCode>> sendDirectMethodTask = SendDirectMethodAsync(
                         Settings.Current.DeviceId,
                         Settings.Current.DirectMethodTargetModuleId,
                         dmModuleClient,
@@ -72,7 +72,7 @@ namespace EdgeHubRestartTester
                         cts);
 
                     // Setup Message Task
-                    Task <Tuple<DateTime, HttpStatusCode>> SendMessageTask = SendMessageAsync(
+                    Task<Tuple<DateTime, HttpStatusCode>> sendMessageTask = SendMessageAsync(
                         msgModuleClient,
                         Settings.Current.TrackingId,
                         batchId,
@@ -81,15 +81,15 @@ namespace EdgeHubRestartTester
                         cts);
 
                     // Each task gets its own thread from a threadpool
-                    SendDirectMethodTask.Start();
-                    SendMessageTask.Start();
+                    sendDirectMethodTask.Start();
+                    sendMessageTask.Start();
 
                     // Wait for treads to be done
-                    Task.WaitAll(SendDirectMethodTask, SendMessageTask);
+                    Task.WaitAll(sendDirectMethodTask, sendMessageTask);
 
                     // Get the result and report it to TRC
-                    (DateTime msgCompletedTime, HttpStatusCode msgStatusCode) = SendMessageTask.Result;
-                    (DateTime dmCompletedTime, HttpStatusCode dmStatusCode) = SendDirectMethodTask.Result;
+                    (DateTime msgCompletedTime, HttpStatusCode msgStatusCode) = sendMessageTask.Result;
+                    (DateTime dmCompletedTime, HttpStatusCode dmStatusCode) = sendDirectMethodTask.Result;
 
                     // Generate reports, the new report type
                     EdgeHubRestartTestResult msgTestResult = CreateEdgeHubRestartTestResult(
@@ -228,6 +228,7 @@ namespace EdgeHubRestartTester
                     Logger.LogError(e, $"Exception caught with count {Interlocked.Read(ref directMethodCount).ToString()}");
                 }
             }
+
             return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.InternalServerError);
         }
 
@@ -242,7 +243,7 @@ namespace EdgeHubRestartTester
             while ((!cts.Token.IsCancellationRequested) && (DateTime.UtcNow < testExpirationTime))
             {
                 // BEARWASHERE -- TODO: Test this
-                Message message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new {data = DateTime.UtcNow.ToString()})));
+                Message message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new { data = DateTime.UtcNow.ToString() })));
                 Interlocked.Increment(ref messageCount);
                 message.Properties.Add("sequenceNumber", Interlocked.Read(ref messageCount).ToString());
                 message.Properties.Add("batchId", batchId.ToString());
@@ -261,6 +262,7 @@ namespace EdgeHubRestartTester
                     Interlocked.Decrement(ref messageCount);
                 }
             }
+
             return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.InternalServerError);
         }
 
@@ -279,12 +281,14 @@ namespace EdgeHubRestartTester
                 {
                     Logger.LogError($"Calling Direct Method failed with status code {response.Status}.");
                 }
+
                 return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)response.Status);
             }
             catch (Exception e)
             {
                 Logger.LogError($"Exception caught for payload {payload}: {e}");
             }
+
             return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.InternalServerError);
         }
     }
