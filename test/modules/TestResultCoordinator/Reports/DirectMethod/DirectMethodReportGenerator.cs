@@ -70,7 +70,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
             ulong mismatchFailure = 0;
 
             bool hasSenderResult = await this.SenderTestResults.MoveNextAsync();
-            bool hasReceiverResult = false;
+            bool hasReceiverResult = await this.ReceiverTestResults.Match(async x => await x.MoveNextAsync(), () => Task.FromResult(false));
 
             while (hasSenderResult)
             {
@@ -80,35 +80,30 @@ namespace TestResultCoordinator.Reports.DirectMethod
                 this.ValidateNetworkControllerStatus(networkControllerStatus);
                 DirectMethodTestResult dmSenderTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(this.SenderTestResults.Current.Result);
 
-                if (this.ReceiverTestResults.HasValue)
+                if (hasReceiverResult)
                 {
-                    hasReceiverResult = await this.ReceiverTestResults.Match(async x => await x.MoveNextAsync(), () => Task.FromResult(false));
+                    DirectMethodReportGeneratorMetadata directMethodReportGeneratorMetadataForSenderAndReceiver =
+                        await this.ProcessSenderAndReceiverResults(dmSenderTestResult, hasSenderResult, hasReceiverResult, networkControllerStatus, isWithinTolerancePeriod);
+                    mismatchSuccess += directMethodReportGeneratorMetadataForSenderAndReceiver.MismatchSuccess;
+                    mismatchFailure += directMethodReportGeneratorMetadataForSenderAndReceiver.MismatchFailure;
+                    hasSenderResult = directMethodReportGeneratorMetadataForSenderAndReceiver.HasSenderResult;
+                    hasReceiverResult = directMethodReportGeneratorMetadataForSenderAndReceiver.HasReceiverResult;
 
-                    if (hasReceiverResult)
+                    if (directMethodReportGeneratorMetadataForSenderAndReceiver.MismatchFailure > 0 || directMethodReportGeneratorMetadataForSenderAndReceiver.MismatchSuccess > 0)
                     {
-                        DirectMethodReportGeneratorMetadata additionalCountsAndHasResults =
-                            await this.ProcessSenderAndReceiverTestResults(dmSenderTestResult, hasSenderResult, hasReceiverResult, networkControllerStatus, isWithinTolerancePeriod);
-                        mismatchSuccess += additionalCountsAndHasResults.MismatchSuccess;
-                        mismatchFailure += additionalCountsAndHasResults.MismatchFailure;
-                        hasSenderResult = additionalCountsAndHasResults.HasSenderResult;
-                        hasReceiverResult = additionalCountsAndHasResults.HasReceiverResult;
-
-                        if (additionalCountsAndHasResults.MismatchFailure > 0 || additionalCountsAndHasResults.MismatchSuccess > 0)
-                        {
-                            continue;
-                        }
+                        continue;
                     }
                 }
 
-                DirectMethodReportGeneratorMetadata additionalCountsAndHasResultsSendery =
+                DirectMethodReportGeneratorMetadata directMethodReportGeneratorMetadataForSenderTestResults =
                     await this.ProcessSenderTestResults(dmSenderTestResult, networkControllerStatus, isWithinTolerancePeriod, this.SenderTestResults);
-                networkOnSuccess += additionalCountsAndHasResultsSendery.NetworkOnSuccess;
-                networkOffSuccess += additionalCountsAndHasResultsSendery.NetworkOffSuccess;
-                networkOnToleratedSuccess += additionalCountsAndHasResultsSendery.NetworkOnToleratedSuccess;
-                networkOffToleratedSuccess += additionalCountsAndHasResultsSendery.NetworkOffToleratedSuccess;
-                networkOnFailure += additionalCountsAndHasResultsSendery.NetworkOnFailure;
-                networkOffFailure += additionalCountsAndHasResultsSendery.NetworkOffFailure;
-                hasSenderResult = additionalCountsAndHasResultsSendery.HasSenderResult;
+                networkOnSuccess += directMethodReportGeneratorMetadataForSenderTestResults.NetworkOnSuccess;
+                networkOffSuccess += directMethodReportGeneratorMetadataForSenderTestResults.NetworkOffSuccess;
+                networkOnToleratedSuccess += directMethodReportGeneratorMetadataForSenderTestResults.NetworkOnToleratedSuccess;
+                networkOffToleratedSuccess += directMethodReportGeneratorMetadataForSenderTestResults.NetworkOffToleratedSuccess;
+                networkOnFailure += directMethodReportGeneratorMetadataForSenderTestResults.NetworkOnFailure;
+                networkOffFailure += directMethodReportGeneratorMetadataForSenderTestResults.NetworkOffFailure;
+                hasSenderResult = directMethodReportGeneratorMetadataForSenderTestResults.HasSenderResult;
             }
 
             while (hasReceiverResult)
@@ -134,7 +129,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
                 mismatchFailure);
         }
 
-        async Task<DirectMethodReportGeneratorMetadata> ProcessSenderAndReceiverTestResults(
+        async Task<DirectMethodReportGeneratorMetadata> ProcessSenderAndReceiverResults(
             DirectMethodTestResult dmSenderTestResult,
             bool hasSenderResult,
             bool hasReceiverResult,
