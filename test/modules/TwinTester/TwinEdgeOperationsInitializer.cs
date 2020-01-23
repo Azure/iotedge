@@ -36,8 +36,6 @@ namespace TwinTester
 
                 // reset reported properties
                 await TwinTesterUtil.ResetTwinReportedPropertiesAsync(moduleClient, twin);
-                
-
                 return new TwinEdgeOperationsInitializer(registryManager, moduleClient, reporter, 0);
             }
             catch (Exception e)
