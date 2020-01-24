@@ -140,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     Metrics.MessageProcessingLatency(this.clientId, inputMessage);
                     await this.client.SendEventAsync(message);
                     Events.SendMessage(this);
-                    Metrics.AddSentMessages(this.clientId, 1);
+                    Metrics.AddSentMessages(this.clientId, 1, inputMessage.GetOutput());
                 }
             }
             catch (Exception ex)
@@ -154,9 +154,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public async Task SendMessageBatchAsync(IEnumerable<IMessage> inputMessages)
         {
             IMessageConverter<Message> converter = this.messageConverterProvider.Get<Message>();
+            string metricOutputRoute = null;
             IList<Message> messages = Preconditions.CheckNotNull(inputMessages, nameof(inputMessages))
                 .Select(inputMessage =>
                 {
+                    metricOutputRoute = metricOutputRoute ?? inputMessage.GetOutput();
                     Metrics.MessageProcessingLatency(this.clientId, inputMessage);
                     return converter.FromMessage(inputMessage);
                 })
@@ -168,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 {
                     await this.client.SendEventBatchAsync(messages);
                     Events.SendMessage(this);
-                    Metrics.AddSentMessages(this.clientId, messages.Count);
+                    Metrics.AddSentMessages(this.clientId, messages.Count, metricOutputRoute);
                 }
             }
             catch (Exception ex)
@@ -368,9 +370,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
                 Events.MethodCallReceived(this.cloudProxy.clientId);
                 var direceMethodRequest = new DirectMethodRequest(this.cloudProxy.clientId, methodrequest.Name, methodrequest.Data, DeviceMethodMaxResponseTimeout);
-                DirectMethodResponse directMethodResponse = await this.cloudListener.CallMethodAsync(direceMethodRequest);
-                MethodResponse methodResponse = directMethodResponse.Data == null ? new MethodResponse(directMethodResponse.Status) : new MethodResponse(directMethodResponse.Data, directMethodResponse.Status);
-                return methodResponse;
+
+                using (Metrics.TimeDirectMethod(this.cloudProxy.clientId))
+                {
+                    DirectMethodResponse directMethodResponse = await this.cloudListener.CallMethodAsync(direceMethodRequest);
+                    MethodResponse methodResponse = directMethodResponse.Data == null ? new MethodResponse(directMethodResponse.Status) : new MethodResponse(directMethodResponse.Data, directMethodResponse.Status);
+                    return methodResponse;
+                }
             }
 
             static Task OnDesiredPropertyUpdates(TwinCollection desiredProperties, object userContext)
@@ -615,7 +621,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             static readonly IMetricsCounter SentMessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "messages_sent",
                 "Messages sent from edge hub",
-                new List<string> { "from", "to" });
+                new List<string> { "from", "to", "from_route_output", "to_route_input" });
 
             static readonly IMetricsTimer GetTwinTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "gettwin_duration_seconds",
@@ -637,6 +643,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 "Reported properties update calls",
                 new List<string> { "target", "id" });
 
+            static readonly IMetricsTimer DirectMethodsTimer = Util.Metrics.Metrics.Instance.CreateTimer(
+                "direct_method_duration_seconds",
+                "Time taken to call direct method",
+                new List<string> { "from", "to" });
+
             static readonly IMetricsDuration MessagesProcessLatency = Util.Metrics.Metrics.Instance.CreateDuration(
                 "message_process_duration",
                 "Time taken to process message in EdgeHub",
@@ -644,7 +655,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static IDisposable TimeMessageSend(string id) => MessagesTimer.GetTimer(new[] { id, "upstream" });
 
-            public static void AddSentMessages(string id, int count) => SentMessagesCounter.Increment(count, new[] { id, "upstream" });
+            public static void AddSentMessages(string id, int count, string fromRoute) => SentMessagesCounter.Increment(count, new[] { id, "upstream", fromRoute, string.Empty });
 
             public static IDisposable TimeGetTwin(string id) => GetTwinTimer.GetTimer(new[] { "upstream", id });
 
@@ -653,6 +664,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public static IDisposable TimeReportedPropertiesUpdate(string id) => ReportedPropertiesTimer.GetTimer(new[] { "upstream", id });
 
             public static void AddUpdateReportedProperties(string id) => ReportedPropertiesCounter.Increment(1, new[] { "upstream", id });
+
+            public static IDisposable TimeDirectMethod(string id) => DirectMethodsTimer.GetTimer(new[] { "upstream", id });
 
             public static void MessageProcessingLatency(string id, IMessage message)
             {

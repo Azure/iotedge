@@ -389,18 +389,19 @@
             }
           },
           "metricsCollector": {
-            "settings": {
-                "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
-                "createOptions": ""
-            },
-            "type": "docker",
             "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
             "env": {
-                "AzMonWorkspaceId": {
+                "logAnalyticsWorkspaceId": {
                     "value": "<LogAnalyticsWorkspaceId>"
                 },
-                "AzMonWorkspaceKey": {
+                "logAnalyticsSharedKey": {
                     "value": "<LogAnalyticsSharedKey>"
+                },
+                "logAnalyticsLogType": {
+                  "value": "testMetrics"
                 },
                 "MetricsEndpointsCSV": {
                   "value": "<MetricsCollector.MetricsEndpointsCSV>"
@@ -412,8 +413,10 @@
                   "value": "<MetricsCollector.UploadTarget>"
                 }
             },
-            "status": "running",
-            "restartPolicy": "always"
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
+                "createOptions": ""
+            }
           }
         }
       }
@@ -434,6 +437,13 @@
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
         }
+      }
+    },
+    "metricsCollector": {
+      "properties.desired": {
+        "testType": "longhaul",
+        "testId": "<TrackingId>",
+        "upstreamProtocol": "amqp"
       }
     }
   }

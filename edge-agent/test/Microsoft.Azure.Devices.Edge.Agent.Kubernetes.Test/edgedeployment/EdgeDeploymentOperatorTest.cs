@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment
+namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
 {
     using System;
     using System.Collections.Generic;

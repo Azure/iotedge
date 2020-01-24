@@ -16,7 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Util;
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
-
     public class KubernetesRuntimeInfoProvider : IRuntimeInfoProvider, IRuntimeInfoSource
     {
         readonly string deviceNamespace;

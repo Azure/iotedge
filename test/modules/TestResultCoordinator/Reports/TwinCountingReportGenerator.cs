@@ -74,7 +74,7 @@ namespace TestResultCoordinator.Reports
                             bool added = propertiesReceived.TryAdd(prop.ToString(), this.actualTestResults.Current.CreatedAt);
                             if (!added)
                             {
-                                Logger.LogDebug($"Duplicate for {actualSource} {prop.ToString()}");
+                                Logger.LogDebug($"Duplicate for {this.actualSource} {prop.ToString()}");
                                 totalDuplicates++;
                             }
                         }

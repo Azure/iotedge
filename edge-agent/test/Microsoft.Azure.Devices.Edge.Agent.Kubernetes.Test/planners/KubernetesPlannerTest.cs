@@ -24,6 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
     public class KubernetesPlannerTest
     {
         const string Namespace = "namespace";
+        const string Selector = "selector";
         static readonly ResourceName ResourceName = new ResourceName("hostname", "deviceId");
         static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
         static readonly DockerConfig Config1 = new DockerConfig("image1");
@@ -39,13 +40,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
         [Unit]
         public void ConstructorThrowsOnInvalidParams()
         {
-            Assert.Throws<ArgumentException>(() => new KubernetesPlanner(null, ResourceName, DefaultClient, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner));
-            Assert.Throws<ArgumentException>(() => new KubernetesPlanner(string.Empty, ResourceName, DefaultClient, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner));
-            Assert.Throws<ArgumentNullException>(() => new KubernetesPlanner(Namespace, null, DefaultClient, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner));
-            Assert.Throws<ArgumentNullException>(() => new KubernetesPlanner(Namespace, ResourceName, null, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner));
-            Assert.Throws<ArgumentNullException>(() => new KubernetesPlanner(Namespace, ResourceName, DefaultClient, null, ConfigProvider, EdgeletModuleOwner));
-            Assert.Throws<ArgumentNullException>(() => new KubernetesPlanner(Namespace, ResourceName, DefaultClient, DefaultCommandFactory, null, EdgeletModuleOwner));
-            Assert.Throws<ArgumentNullException>(() => new KubernetesPlanner(Namespace, ResourceName, DefaultClient, DefaultCommandFactory, ConfigProvider, null));
+            Assert.Throws<ArgumentNullException>(() => new KubernetesPlanner(null, Selector, ResourceName, DefaultClient, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner));
+            Assert.Throws<ArgumentException>(() => new KubernetesPlanner(ResourceName, null, ResourceName, DefaultClient, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner));
+            Assert.Throws<ArgumentException>(() => new KubernetesPlanner(ResourceName, string.Empty, Namespace, DefaultClient, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner));
+            Assert.Throws<ArgumentException>(() => new KubernetesPlanner(ResourceName, Selector, null, DefaultClient, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner));
+            Assert.Throws<ArgumentException>(() => new KubernetesPlanner(ResourceName, Selector, string.Empty, DefaultClient, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner));
+            Assert.Throws<ArgumentNullException>(() => new KubernetesPlanner(ResourceName, Selector, Namespace, null, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner));
+            Assert.Throws<ArgumentNullException>(() => new KubernetesPlanner(ResourceName, Selector, Namespace, DefaultClient, null, ConfigProvider, EdgeletModuleOwner));
+            Assert.Throws<ArgumentNullException>(() => new KubernetesPlanner(ResourceName, Selector, Namespace, DefaultClient, DefaultCommandFactory, null, EdgeletModuleOwner));
+            Assert.Throws<ArgumentNullException>(() => new KubernetesPlanner(ResourceName, Selector, Namespace, DefaultClient, DefaultCommandFactory, ConfigProvider, null));
         }
 
         [Fact]
@@ -75,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
                 }))
             {
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
-                var planner = new KubernetesPlanner(Namespace, ResourceName, client, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner);
+                var planner = new KubernetesPlanner(ResourceName, Selector, Namespace, client, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner);
 
                 Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, ModuleSet.Empty, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty);
                 Assert.True(getCrdCalled);
@@ -109,12 +112,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
                     return false;
                 }))
             {
-                IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-                IModule m2 = new DockerModule("Module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+                IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+                IModule m2 = new DockerModule("Module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
                 ModuleSet addRunning = ModuleSet.Create(m1, m2);
 
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
-                var planner = new KubernetesPlanner(Namespace, ResourceName, client, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner);
+                var planner = new KubernetesPlanner(ResourceName, Selector, Namespace, client, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner);
                 await Assert.ThrowsAsync<InvalidIdentityException>(
                     () => planner.PlanAsync(addRunning, ModuleSet.Empty, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty));
                 Assert.True(getCrdCalled);
@@ -146,11 +149,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
                     return false;
                 }))
             {
-                IModule m1 = new NonDockerModule("module1", "v1", "unknown", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars, string.Empty);
+                IModule m1 = new NonDockerModule("module1", "v1", "unknown", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, string.Empty);
                 ModuleSet addRunning = ModuleSet.Create(m1);
 
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
-                var planner = new KubernetesPlanner(Namespace, ResourceName, client, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner);
+                var planner = new KubernetesPlanner(ResourceName, Selector, Namespace, client, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner);
                 await Assert.ThrowsAsync<InvalidModuleException>(() => planner.PlanAsync(addRunning, ModuleSet.Empty, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty));
                 Assert.True(getCrdCalled);
             }
@@ -160,8 +163,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
         [Unit]
         public async void KubernetesPlannerPlanExistsWhenNoChanges()
         {
-            IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            IModule m2 = new DockerModule("module2", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+            IModule m2 = new DockerModule("module2", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
             KubernetesConfig kc1 = new KubernetesConfig("image1", CreatePodParameters.Create(), Option.None<AuthConfig>());
             KubernetesConfig kc2 = new KubernetesConfig("image2", CreatePodParameters.Create(), Option.None<AuthConfig>());
             var edgeDefinition = new EdgeDeploymentDefinition("v1", "EdgeDeployment", new V1ObjectMeta(name: ResourceName), new List<KubernetesModule>() { new KubernetesModule(m1, kc1, EdgeletModuleOwner), new KubernetesModule(m2, kc2, EdgeletModuleOwner) }, null);
@@ -189,7 +192,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
                 ModuleSet current = ModuleSet.Create(m1, m2);
 
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
-                var planner = new KubernetesPlanner(Namespace, ResourceName, client, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner);
+                var planner = new KubernetesPlanner(ResourceName, Selector, Namespace, client, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner);
                 var plan = await planner.PlanAsync(desired, current, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty);
                 Assert.True(getCrdCalled);
                 Assert.Single(plan.Commands);
@@ -222,13 +225,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
                     return false;
                 }))
             {
-                IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-                IModule m2 = new DockerModule("module2", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+                IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+                IModule m2 = new DockerModule("module2", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
                 ModuleSet desired = ModuleSet.Create(m1);
                 ModuleSet current = ModuleSet.Create(m2);
 
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
-                var planner = new KubernetesPlanner(Namespace, ResourceName, client, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner);
+                var planner = new KubernetesPlanner(ResourceName, Selector, Namespace, client, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner);
                 var plan = await planner.PlanAsync(desired, current, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty);
                 Assert.True(getCrdCalled);
                 Assert.Single(plan.Commands);
@@ -260,13 +263,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
                     return Task.FromResult(false);
                 }))
             {
-                IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-                IModule m2 = new DockerModule("module2", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+                IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+                IModule m2 = new DockerModule("module2", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
                 ModuleSet desired = ModuleSet.Create(m1);
                 ModuleSet current = ModuleSet.Create(m2);
 
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
-                var planner = new KubernetesPlanner(Namespace, ResourceName, client, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner);
+                var planner = new KubernetesPlanner(ResourceName, Selector, Namespace, client, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner);
                 var plan = await planner.PlanAsync(desired, current, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty);
                 Assert.True(getCrdCalled);
                 Assert.Single(plan.Commands);
@@ -278,17 +281,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
         [Unit]
         public async void KubernetesPlannerShutdownTest()
         {
-            IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
             ModuleSet current = ModuleSet.Create(m1);
 
-            var planner = new KubernetesPlanner(Namespace, ResourceName, DefaultClient, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner);
+            var planner = new KubernetesPlanner(ResourceName, Selector, Namespace, DefaultClient, DefaultCommandFactory, ConfigProvider, EdgeletModuleOwner);
             var plan = await planner.CreateShutdownPlanAsync(current);
             Assert.Equal(Plan.Empty, plan);
         }
 
         class NonDockerModule : IModule<string>
         {
-            public NonDockerModule(string name, string version, string type, ModuleStatus desiredStatus, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy restartPolicy, ImagePullPolicy imagePullPolicy, ConfigurationInfo configurationInfo, IDictionary<string, EnvVal> env, string config)
+            public NonDockerModule(string name, string version, string type, ModuleStatus desiredStatus, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy restartPolicy, ImagePullPolicy imagePullPolicy, uint priority, ConfigurationInfo configurationInfo, IDictionary<string, EnvVal> env, string config)
             {
                 this.Name = name;
                 this.Version = version;
@@ -296,6 +299,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
                 this.DesiredStatus = desiredStatus;
                 this.RestartPolicy = restartPolicy;
                 this.ImagePullPolicy = imagePullPolicy;
+                this.Priority = priority;
                 this.ConfigurationInfo = configurationInfo;
                 this.Env = env;
                 this.Config = config;
@@ -314,6 +318,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
             public global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy RestartPolicy { get; }
 
             public ImagePullPolicy ImagePullPolicy { get; }
+
+            public uint Priority { get; }
 
             public ConfigurationInfo ConfigurationInfo { get; }
 

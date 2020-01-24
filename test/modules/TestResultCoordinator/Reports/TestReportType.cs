@@ -5,6 +5,8 @@ namespace TestResultCoordinator.Reports
     {
         CountingReport,
         TwinCountingReport,
-        DeploymentTestReport
+        DeploymentTestReport,
+        DirectMethodReport,
+        NetworkControllerReport
     }
 }
