@@ -35,22 +35,6 @@ jobs:
         name: build
         displayName: Build ($(Build.Configuration))
 
-      - script: scripts/linux/buildDiagnostics.sh $(Build.Configuration)
-        displayName: Build iotedge-diagnostics
-
-      - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifacts'
-        inputs:
-          PathtoPublish: '$(Build.BinariesDirectory)/publish'
-          ArtifactName: 'core-linux'
-
-     # azureiotedge-diagnostics - Not Using Template for ARM64 because we have 2 different .NET Core.
-      - task: Bash@3
-        displayName: Build Image azureiotedge-diagnostics - aarch64
-        inputs: 
-           filePath: scripts/linux/buildImage.sh
-           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-diagnostics -n microsoft -P azureiotedge-diagnostics --target-arch aarch64
-
     # Edge Agent - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
         displayName: Build Edge Agent Image - aarch64
@@ -151,9 +135,6 @@ jobs:
         name: build
         displayName: Build ($(Build.Configuration))
 
-      - script: scripts/linux/buildDiagnostics.sh $(Build.Configuration)
-        displayName: Build iotedge-diagnostics
-
       - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.BinariesDirectory)/publish' --build-number $(Build.BuildNumber)
         displayName: 'Create Artifact Info File'
 
@@ -162,13 +143,6 @@ jobs:
         inputs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'core-linux'
-
-      # azureiotedge-diagnostics
-      - template: templates/image-linux.yaml
-        parameters:
-          name: azureiotedge-diagnostics
-          imageName: azureiotedge-diagnostics
-          project: azureiotedge-diagnostics
 
       # Edge Agent
       - template: templates/image-linux.yaml
@@ -263,9 +237,6 @@ jobs:
         name: build
         displayName: Build ($(Build.Configuration))
 
-      - powershell: edgelet/build/windows/build-diagnostics.ps1 -BuildConfiguration $(Build.Configuration)
-        displayName: Build iotedge-diagnostics
-
       - powershell: scripts/windows/build/Create-ArtifactInfo.ps1 -outputFolder '$(Build.BinariesDirectory)/publish' -buildNumber $(Build.BuildNumber)
         displayName: 'Create Artifact Info File'
 
@@ -274,13 +245,6 @@ jobs:
         inputs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'core-windows'
-
-      # azureiotedge-diagnostics
-      - template: templates/image-windows.yaml
-        parameters:
-          name: azureiotedge-diagnostics
-          imageName: azureiotedge-diagnostics
-          project: azureiotedge-diagnostics
 
       # Edge Agent
       - template: templates/image-windows.yaml
@@ -375,5 +339,3 @@ jobs:
       displayName: 'Publish Edge Hub Manifest'
     - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish Temperature Sensor Manifest'
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edgelet/iotedge-diagnostics/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
-      displayName: 'Publish azureiotedge-diagnostics Manifest'
