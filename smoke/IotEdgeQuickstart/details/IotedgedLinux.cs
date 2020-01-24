@@ -176,7 +176,7 @@ namespace IotEdgeQuickstart.Details
 
         public async Task Configure(DeviceProvisioningMethod method, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
         {
-            Console.WriteLine($"Setting up iotedged with agent image 1.0");
+            Console.WriteLine($"Setting up iotedged with agent image '{image}'");
 
             const string YamlPath = "/etc/iotedge/config.yaml";
             Task<string> text = File.ReadAllTextAsync(YamlPath);
