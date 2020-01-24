@@ -111,11 +111,11 @@ namespace IotEdgeQuickstart.Details
             return Task.CompletedTask;
         }
 
-        public async Task Configure(DeviceProvisioningMethod method, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
+        public async Task Configure(DeviceProvisioningMethod method, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
         {
             const string HidePowerShellProgressBar = "$ProgressPreference='SilentlyContinue'";
 
-            Console.WriteLine($"Setting up iotedged with agent image '{image}'");
+            Console.WriteLine($"Setting up iotedged with agent image 1.0");
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
             {
@@ -133,6 +133,9 @@ namespace IotEdgeQuickstart.Details
                         $"{HidePowerShellProgressBar}; Invoke-WebRequest -UseBasicParsing -OutFile '{this.scriptDir}\\IotEdgeSecurityDaemon.ps1' aka.ms/iotedge-win",
                         cts.Token);
                 }
+
+                // The desired state is whatever agent image the service usually defaults to. In the future, we should eliminate the dependency on an agent image for IotEdgeSecurityDaemon script to run.
+                string image = "mcr.microsoft.com/azureiotedge-agent:1.0";
 
                 string args;
                 if (this.requireEdgeInstallation)
