@@ -15,7 +15,21 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
         {
         }
 
-        public TestResultBase TestResult;
+        public TestResultBase TestResult
+        {
+            get
+            {
+                return this.TestResult;
+            }
+            
+            set
+            {
+                this.TestResult = value;
+                this.TestResultType = this.TestResult.GetType().ToString();
+            }
+        }
+
+        public string TestResultType { get; private set; }
 
         public DateTime EdgeHubRestartTime { get; set; }
 

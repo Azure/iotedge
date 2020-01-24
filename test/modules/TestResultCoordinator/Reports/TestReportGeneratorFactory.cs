@@ -6,6 +6,7 @@ namespace TestResultCoordinator.Reports
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using TestResultCoordinator.Reports.DirectMethod;
+    using TestResultCoordinator.Reports.EdgeHubRestartTest;
     using TestResultCoordinator.Storage;
 
     class TestReportGeneratorFactory : ITestReportGeneratorFactory
@@ -89,6 +90,14 @@ namespace TestResultCoordinator.Reports
                             receiverTestResults,
                             metadata.TestOperationResultType.ToString(),
                             networkStatusTimeline);
+                    }
+
+                case TestReportType.EdgeHubRestartReport:
+                    {
+                        EdgeHubRestartTestMetadata metadata = (EdgeHubRestartTestMetadata)testReportMetadata;
+                        // Pass the meta data to EdgeHubRestartReportGenerator and have it figure out how to manage each report
+                        
+                        break;
                     }
 
                 case TestReportType.NetworkControllerReport:
