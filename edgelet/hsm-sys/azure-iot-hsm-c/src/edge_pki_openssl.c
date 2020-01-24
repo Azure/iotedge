@@ -510,7 +510,7 @@ static void destroy_evp_key(EVP_PKEY *evp_key)
 static X509* load_certificate_file(const char* cert_file_name)
 {
     X509* x509_cert;
-    BIO* cert_file = BIO_new_file(cert_file_name, "r");
+    BIO* cert_file = BIO_new_file(cert_file_name, "rb");
     if (cert_file == NULL)
     {
         LOG_ERROR("Failure to open certificate file %s", cert_file_name);
@@ -581,7 +581,7 @@ static int write_certificate_file
     int result;
 
 #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
-    BIO* cert_file = BIO_new_file(cert_file_name, "w");
+    BIO* cert_file = BIO_new_file(cert_file_name, "wb");
     if (cert_file == NULL)
     {
         LOG_ERROR("Failure opening cert file for writing for %s", cert_file_name);
@@ -648,7 +648,7 @@ static int write_certificate_file
 static EVP_PKEY* load_private_key_file(const char* key_file_name)
 {
     EVP_PKEY* evp_key;
-    BIO* key_file = BIO_new_file(key_file_name, "r");
+    BIO* key_file = BIO_new_file(key_file_name, "rb");
     if (key_file == NULL)
     {
         LOG_ERROR("Failure to open key file %s", key_file_name);
@@ -672,7 +672,7 @@ static int write_private_key_file(EVP_PKEY* evp_key, const char* key_file_name)
     int result;
 
 #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
-    BIO* key_file = BIO_new_file(key_file_name, "w");
+    BIO* key_file = BIO_new_file(key_file_name, "wb");
     if (key_file == NULL)
     {
         LOG_ERROR("Failure opening key file for writing for %s", key_file_name);
