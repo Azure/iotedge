@@ -116,7 +116,7 @@ where
                 future::ok(response)
             }
             Err(err) => {
-                error!("Failure: {}", request);
+                error!("Failure: \"{}\"", request);
                 future::err(Error::from(err.context(ErrorKind::Hyper)))
             }
         });
