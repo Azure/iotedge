@@ -6,7 +6,7 @@ $Alerts = New-Object System.Collections.Generic.List[Alert]
 
 $LoadGenMessagesPerMinThreshold = 50
 $TempFilterMessagesPerMinThreshold = 8 
-$MessageRateAlertQuery = Get-Content -Path ".\queries\MessageRate.txt" 
+$MessageRateAlertQuery = Get-Content -Path ".\queries\MessageRate.kql" 
 $MessageRateAlertQuery = $MessageRateAlertQuery.Replace("<LOADGEN.THRESHOLD>", $LoadGenMessagesPerMinThreshold)
 $MessageRateAlertQuery = $MessageRateAlertQuery.Replace("<TEMPFILTER.THRESHOLD>", $TempFilterMessagesPerMinThreshold)
 $MessageRate = [Alert]@{
@@ -14,5 +14,14 @@ $MessageRate = [Alert]@{
    Query = $MessageRateAlertQuery
 }
 $Alerts.Add($MessageRate)
+
+$TwinTesterUpstreamReportedPropertyUpdatesPerMinThreshold = 15 
+$ReportedPropertyRateAlertQuery = Get-Content -Path ".\queries\ReportedPropertyRate.kql" 
+$ReportedPropertyRateAlertQuery = $ReportedPropertyRateAlertQuery.Replace("<TWINTESTER.THRESHOLD>", $LoadGenMessagesPerMinThreshold)
+$ReportedPropertyRate = [Alert]@{
+   Name = "reported-property-rate"
+   Query = $ReportedPropertyRateAlertQuery
+}
+$Alerts.Add($ReportedPropertyRate)
 
 Write-Output $Alerts

@@ -19,7 +19,7 @@ foreach ($device in $devices)
         Write-Host $alert
         Write-Host "------------------"
 
-        $alertName = "$env-$platform-$($alert.name)"
+        $alertName = "$($device.deviceId)-$($alert.name)"
         $alert.Query = $alert.Query.Replace("<ENVIRONMENT>", $device.environment)
         $alert.Query = $alert.Query.Replace("<PLATFORM>", $device.platform)
 
