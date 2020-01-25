@@ -37,9 +37,19 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
         public Task<ITestResultReport> CreateReportAsync()
         {
-            // Verify the result that is passed in to make sure it passed. 
+            // Verify the result that is passed in to make sure it passed.
+            bool isUnderlyingTestPassed = this.AttachedTestReport.IsPassed;
 
             // Verify the the restarting time is less than the treshold
+            return new EdgeHubRestartTestReport(
+                this.trackingId,
+                this.ExpectedSource,
+                this.ActualSource,
+                this.ResultType,
+                totalExpectCount,
+                totalMatchCount,
+                totalDuplicateResultCount,
+                unmatchedResults.AsReadOnly());
         }
     }
 
