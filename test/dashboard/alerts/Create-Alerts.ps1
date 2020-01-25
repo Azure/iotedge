@@ -1,27 +1,19 @@
 $devices = .\Get-Devices.ps1
 $alerts = .\Get-AlertQueries.ps1
 
-Write-Host $devices
-
-$triggerCondition = New-AzScheduledQueryRuleTriggerCondition `
--ThresholdOperator "GreaterThan" `
--Threshold 0 `
-
-$alertingAction = New-AzScheduledQueryRuleAlertingAction `
--Severity "3" `
--Trigger $triggerCondition `
-
 foreach ($device in $devices)
 {
     foreach ($alert in $alerts)
     {
-        Write-Host $device
-        Write-Host $alert
-        Write-Host "------------------"
-
         $alertName = "$($device.deviceId)-$($alert.name)"
         $alert.Query = $alert.Query.Replace("<ENVIRONMENT>", $device.environment)
         $alert.Query = $alert.Query.Replace("<PLATFORM>", $device.platform)
+
+        $triggerCondition = $alert.Comparator
+
+        $alertingAction = New-AzScheduledQueryRuleAlertingAction `
+        -Severity "3" `
+        -Trigger $triggerCondition `
 
         $schedule = New-AzScheduledQueryRuleSchedule `
         -FrequencyInMinutes 15 `
