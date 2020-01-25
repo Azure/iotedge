@@ -1,6 +1,7 @@
-[string[]]$environments = "lh1"
-[string[]]$platforms = "Linux-amd64"
-$alerts = .\Get-Alert-Queries.ps1 # Load alert query objects from 
+$devices = .\Get-Devices.ps1
+$alerts = .\Get-AlertQueries.ps1
+
+Write-Host $devices
 
 $triggerCondition = New-AzScheduledQueryRuleTriggerCondition `
 -ThresholdOperator "GreaterThan" `
@@ -10,26 +11,27 @@ $alertingAction = New-AzScheduledQueryRuleAlertingAction `
 -Severity "3" `
 -Trigger $triggerCondition `
 
-foreach ($env in $environments)
+foreach ($device in $devices)
 {
-    foreach ($platform in $platforms)
+    foreach ($alert in $alerts)
     {
-        foreach ($alert in $alerts)
-        {
-            $alertName = "$env-$platform-$($alert.name)"
-            $alert.Query = $alert.Query.Replace("<ENVIRONMENT>", $env)
-            $alert.Query = $alert.Query.Replace("<PLATFORM>", $platform)
+        Write-Host $device
+        Write-Host $alert
+        Write-Host "------------------"
 
-            $schedule = New-AzScheduledQueryRuleSchedule `
-            -FrequencyInMinutes 15 `
-            -TimeWindowInMinutes 180 `
+        $alertName = "$env-$platform-$($alert.name)"
+        $alert.Query = $alert.Query.Replace("<ENVIRONMENT>", $device.environment)
+        $alert.Query = $alert.Query.Replace("<PLATFORM>", $device.platform)
 
-            $querySource = New-AzScheduledQueryRuleSource `
-            -Query $alert.Query `
-            -DataSourceId "/subscriptions/5ed2dcb6-29bb-40de-a855-8c24a8260343/resourceGroups/EdgeBuilds/providers/Microsoft.OperationalInsights/workspaces/iotedgeLogAnalytic" `
-            -QueryType "ResultCount"
+        $schedule = New-AzScheduledQueryRuleSchedule `
+        -FrequencyInMinutes 15 `
+        -TimeWindowInMinutes 180 `
 
-            New-AzScheduledQueryRule -Location "West US 2" -ResourceGroupName "EdgeBuilds" -Action $alertingAction -Enabled $true -Description "$env-$platform-longhaul $($alert.Name)" -Schedule $schedule -Source $querySource -Name $alertName
-        }
+        $querySource = New-AzScheduledQueryRuleSource `
+        -Query $alert.Query `
+        -DataSourceId "/subscriptions/5ed2dcb6-29bb-40de-a855-8c24a8260343/resourceGroups/EdgeBuilds/providers/Microsoft.OperationalInsights/workspaces/iotedgeLogAnalytic" `
+        -QueryType "ResultCount"
+
+        New-AzScheduledQueryRule -Location "West US 2" -ResourceGroupName "EdgeBuilds" -Action $alertingAction -Enabled $true -Description "$($device.deviceId) $($alert.Name)" -Schedule $schedule -Source $querySource -Name $alertName
     }
 }
