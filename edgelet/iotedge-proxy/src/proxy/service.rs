@@ -53,16 +53,16 @@ where
 
     fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
         let request = format!("{} {} {:?}", req.method(), req.uri(), req.version());
-        debug!("Starting request {}", request);
+        debug!("Starting request processing {}", request);
 
         let fut = self.client.request(req).then(move |result| {
             let response = match result {
                 Ok(response) => {
-                    debug!("Finished request {}", request);
+                    debug!("Finished request processing {}", request);
                     response
                 }
                 Err(err) => {
-                    debug!("Finished request with error: {}", request);
+                    debug!("Finished request with processing error: {}", request);
 
                     logging::failure(&err);
                     err.into_response()

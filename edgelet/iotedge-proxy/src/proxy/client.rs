@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use failure::{Fail, ResultExt};
-use futures::{Future, IntoFuture};
+use futures::{future, Future, IntoFuture};
 use hyper::client::connect::Connect;
 use hyper::client::HttpConnector;
 use hyper::header::HeaderValue;
 use hyper::{header, Body, Client as HyperClient, Request, Response, Uri};
 use hyper_tls::HttpsConnector;
-use log::info;
+use log::{error, info};
 
 use crate::proxy::{Config, TokenSource};
 use crate::{Error, ErrorKind};
@@ -103,21 +103,23 @@ where
     fn request(&self, req: Request<Body>) -> ResponseFuture {
         let request = format!("{} {} {:?}", req.method(), req.uri(), req.version());
 
-        let fut = self
-            .0
-            .request(req)
-            .map_err(|err| Error::from(err.context(ErrorKind::Hyper)))
-            .map(move |res| {
-                let body_length = res
+        let fut = self.0.request(req).then(move |result| match result {
+            Ok(response) => {
+                let body_length = response
                     .headers()
                     .get(header::CONTENT_LENGTH)
                     .and_then(|length| length.to_str().ok().map(ToString::to_string))
                     .unwrap_or_else(|| "-".to_string());
 
-                info!("\"{}\" {} {}", request, res.status(), body_length);
+                info!("Success: \"{}\" {} {}", request, response.status(), body_length);
 
-                res
-            });
+                future::ok(response)
+            }
+            Err(err) => {
+                error!("Failure: {}", request);
+                future::err(Error::from(err.context(ErrorKind::Hyper)))
+            }
+        });
 
         Box::new(fut)
     }
