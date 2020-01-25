@@ -126,7 +126,6 @@ namespace EdgeHubRestartTester
                     await ModuleUtil.ReportTestResultAsync(reportClient, Logger, dmTestResult);
 
                     // BEARWASHERE -- TODO: update the TRC
-                    //  1. Update the MetaData
                     //  2. Use the MetaData in the deployment
 
                     // Wait to do another restart

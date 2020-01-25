@@ -95,9 +95,53 @@ namespace TestResultCoordinator.Reports
                 case TestReportType.EdgeHubRestartReport:
                     {
                         EdgeHubRestartTestMetadata metadata = (EdgeHubRestartTestMetadata)testReportMetadata;
-                        // Pass the meta data to EdgeHubRestartReportGenerator and have it figure out how to manage each report
-                        
-                        break;
+                        Preconditions.CheckNonWhiteSpace(metadata.SenderSource, nameof(metadata.SenderSource));
+
+                        ITestResultCollection<TestOperationResult> senderTestResults = this.GetResults(metadata.SenderSource);
+    
+                        // Use the metadata to generate the pass/fail status of the underlying test report
+                        ITestResultReportGenerator testResultReportGenerator = null;
+                        switch (metadata.TestOperationResultType)
+                        {
+                            case TestOperationResultType.DirectMethod:
+                                var networkStatusTimeline = await this.GetNetworkStatusTimelineAsync(metadata.TolerancePeriod);
+                                var dmReceiverTestResults = metadata.ReceiverSource.Map(x => this.GetResults(x));
+
+                                testResultReportGenerator = new DirectMethodReportGenerator(
+                                    trackingId,
+                                    metadata.SenderSource,
+                                    senderTestResults,
+                                    metadata.ReceiverSource,
+                                    dmReceiverTestResults,
+                                    metadata.TestOperationResultType.ToString(),
+                                    networkStatusTimeline);
+                                break;
+
+                            case TestOperationResultType.Messages:
+                                string receiverSource = metadata.ReceiverSource
+                                    .Expect(() => new ArgumentException("ReceiverSource is required for EdgeHubRestart test with Messaging"));
+
+                                var msgReceiverTestResults = metadata.ReceiverSource
+                                    .Map(x => this.GetResults(x))
+                                    .Expect(() => new ArgumentException("ReceiverSource is required for EdgeHubRestart test with Messaging"));
+
+                                testResultReportGenerator = new CountingReportGenerator(
+                                    trackingId,
+                                    metadata.SenderSource,
+                                    senderTestResults,
+                                    receiverSource,
+                                    msgReceiverTestResults,
+                                    testReportMetadata.TestOperationResultType.ToString(),
+                                    new SimpleTestOperationResultComparer());
+                                break;
+
+                            default:
+                                throw new NotSupportedException($"{metadata.TestOperationResultType} is not supported in EdgeHubRestartReport");
+                        }
+                        ITestResultReport attachedTestReport = await testResultReportGenerator.CreateReportAsync();
+                        // Pass in the test result + report to the EdgeHubRestartTestReportGenerator
+                        // Need to linked up w/ the REstarter
+                        return new EdgeHubRestartTestReportGenerator(ITestResultReport attachedTestReport)
                     }
 
                 case TestReportType.NetworkControllerReport:
