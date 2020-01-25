@@ -141,7 +141,14 @@ namespace TestResultCoordinator.Reports
                         ITestResultReport attachedTestReport = await testResultReportGenerator.CreateReportAsync();
                         // Pass in the test result + report to the EdgeHubRestartTestReportGenerator
                         // Need to linked up w/ the REstarter
-                        return new EdgeHubRestartTestReportGenerator(ITestResultReport attachedTestReport)
+                        // BEARWASHERE
+                        ITestResultCollection<TestOperationResult> restartResults = this.GetResults(metadata.RestarterSource);
+
+                        return new EdgeHubRestartTestReportGenerator(
+                            trackingId,
+                            metadata.RestarterSource,
+                            restartResults,
+                            attachedTestReport);
                     }
 
                 case TestReportType.NetworkControllerReport:
