@@ -12,14 +12,17 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         public EdgeHubRestartTestMetadata(
             string senderSource,
             string restarterSource,
-            TimeSpan? tolerancePeriod = null,
+            TimeSpan? dmTolerancePeriod = null,
+            TimeSpan? passableEdgeHubRestartPeriod = null,
             string receiverSource = "")
         {
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));;
             this.RestarterSource = Preconditions.CheckNonWhiteSpace(restarterSource, nameof(restarterSource));
-            this.TolerancePeriod = tolerancePeriod ?? new TimeSpan(0, 0, 0, 0, 5);
+            this.DirectMethodTolerancePeriod = dmTolerancePeriod ?? new TimeSpan(0, 0, 0, 0, 5);
             this.ReceiverSource = string.IsNullOrEmpty(receiverSource) ? Option.None<string>() : Option.Some(receiverSource);
+            this.PassableEdgeHubRestartPeriod = passableEdgeHubRestartPeriod ?? new TimeSpan(0, 0, 1, 0);
         }
+
         public string SenderSource { get; }
 
         public string RestarterSource { get; }
@@ -29,7 +32,9 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         public string[] ResultSources =>
             this.ReceiverSource.HasValue ? new string[] { this.SenderSource, this.ReceiverSource.OrDefault() } : new string[] { this.SenderSource };
 
-        public TimeSpan TolerancePeriod { get; }
+        public TimeSpan DirectMethodTolerancePeriod { get; }
+
+        public TimeSpan PassableEdgeHubRestartPeriod { get; }
 
         public TestReportType TestReportType => TestReportType.EdgeHubRestartReport;
 

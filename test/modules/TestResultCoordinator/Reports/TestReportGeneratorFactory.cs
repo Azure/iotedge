@@ -104,7 +104,7 @@ namespace TestResultCoordinator.Reports
                         switch (metadata.TestOperationResultType)
                         {
                             case TestOperationResultType.DirectMethod:
-                                var networkStatusTimeline = await this.GetNetworkStatusTimelineAsync(metadata.TolerancePeriod);
+                                var networkStatusTimeline = await this.GetNetworkStatusTimelineAsync(metadata.DirectMethodTolerancePeriod);
                                 var dmReceiverTestResults = metadata.ReceiverSource.Map(x => this.GetResults(x));
 
                                 testResultReportGenerator = new DirectMethodReportGenerator(
@@ -138,17 +138,18 @@ namespace TestResultCoordinator.Reports
                             default:
                                 throw new NotSupportedException($"{metadata.TestOperationResultType} is not supported in EdgeHubRestartReport");
                         }
+
+                        // Generate a report with respect to the event being verified
                         ITestResultReport attachedTestReport = await testResultReportGenerator.CreateReportAsync();
-                        // Pass in the test result + report to the EdgeHubRestartTestReportGenerator
-                        // Need to linked up w/ the REstarter
-                        // BEARWASHERE
                         ITestResultCollection<TestOperationResult> restartResults = this.GetResults(metadata.RestarterSource);
 
+                        // Pass the report from above to be verified by time
                         return new EdgeHubRestartTestReportGenerator(
                             trackingId,
                             metadata.RestarterSource,
                             restartResults,
-                            attachedTestReport);
+                            attachedTestReport,
+                            metadata.PassableEdgeHubRestartPeriod);
                     }
 
                 case TestReportType.NetworkControllerReport:

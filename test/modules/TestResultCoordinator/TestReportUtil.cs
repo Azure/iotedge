@@ -10,6 +10,7 @@ namespace TestResultCoordinator
     using Newtonsoft.Json.Linq;
     using TestResultCoordinator.Reports;
     using TestResultCoordinator.Reports.DirectMethod;
+    using TestResultCoordinator.Reports.EdgeHubRestartTest;
 
     static class TestReportUtil
     {
@@ -88,6 +89,9 @@ namespace TestResultCoordinator
                             break;
                         case TestReportType.NetworkControllerReport:
                             reportMetadataList.Add(JsonConvert.DeserializeObject<NetworkControllerReportMetadata>(((JProperty)metadata).Value.ToString()));
+                            break;
+                        case TestReportType.EdgeHubRestartReport:
+                            reportMetadataList.Add(JsonConvert.DeserializeObject<EdgeHubRestartTestMetadata>(((JProperty)metadata).Value.ToString()));
                             break;
                         default:
                             throw new NotImplementedException("{testReportType} doesn't implement to construct report metadata from Twin.");
