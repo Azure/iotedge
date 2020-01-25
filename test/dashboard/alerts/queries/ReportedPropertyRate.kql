@@ -28,7 +28,6 @@ let ReportedPropertiesSentToUpstream = ReportedPropertiesSentToUpstreamAtEndTime
 | project-away moduleName1
 | extend upstream_rp_rate_per_min = (upstreamReportedPropertiesEnd  - upstreamReportedPropertiesStart) / 60
 | project-away upstreamReportedPropertiesEnd, upstreamReportedPropertiesStart;
-let out = ReportedPropertiesSentToUpstream
-| extend upstream_rp_rate_per_min = iff(moduleName contains "twinTester", upstream_rp_rate_per_min - twinTesterReportedPropertyUpdateThreshold, upstream_rp_rate_per_min)
-| where upstream_rp_rate_per_min < 0;
-out;
+ReportedPropertiesSentToUpstream
+| extend distanceFromThreshold = iff(moduleName contains "twinTester", upstream_rp_rate_per_min - twinTesterReportedPropertyUpdateThreshold, upstream_rp_rate_per_min)
+| where distanceFromThreshold < 0;

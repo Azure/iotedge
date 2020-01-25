@@ -7,7 +7,7 @@ let mostRecentTestId = toscalar(sanitizedTestMetrics
 | order by TimeGenerated
 | take 1
 | project testId);
-let filteredLastHour = sanitizedLonghaulMetrics
+let filteredLastHour = sanitizedTestMetrics
 | where testId == mostRecentTestId
 | where TimeGenerated > now() - 2h and TimeGenerated < now() - 1h;
 let MessagesSentToUpstreamAtEndTime = filteredLastHour
@@ -30,5 +30,5 @@ let MessagesSentToUpstream = MessagesSentToUpstreamAtEndTime
 | extend upstream_message_rate_per_min = (upstreamMessagesEnd  - upstreamMessagesStart) / 60
 | project-away upstreamMessagesEnd, upstreamMessagesStart;
 MessagesSentToUpstream
-| extend upstream_message_rate_per_min = iff(moduleName contains "loadGen", upstream_message_rate_per_min - loadGenMessageRateThreshold, upstream_message_rate_per_min - tempFilterMessageRateThreshold)
-| where upstream_message_rate_per_min < 0
+| extend distanceFromThreshold = iff(moduleName contains "loadGen", upstream_message_rate_per_min - loadGenMessageRateThreshold, upstream_message_rate_per_min - tempFilterMessageRateThreshold)
+| where distanceFromThreshold < 0;
