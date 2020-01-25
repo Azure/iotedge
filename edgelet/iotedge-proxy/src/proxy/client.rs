@@ -111,7 +111,12 @@ where
                     .and_then(|length| length.to_str().ok().map(ToString::to_string))
                     .unwrap_or_else(|| "-".to_string());
 
-                info!("Success: \"{}\" {} {}", request, response.status(), body_length);
+                info!(
+                    "Success: \"{}\" {} {}",
+                    request,
+                    response.status(),
+                    body_length
+                );
 
                 future::ok(response)
             }
