@@ -20,6 +20,7 @@ namespace EdgeHubRestartTester
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("EdgeHubRestartTester");
 
+        static long restartCount = 0;
         static long messageCount = 0;
         static long directMethodCount = 0;
 
@@ -61,6 +62,12 @@ namespace EdgeHubRestartTester
                 {
                     DateTime eachTestExpirationTime = testStart.AddMinutes(Settings.Current.RestartIntervalInMins);
                     (DateTime restartTime, HttpStatusCode restartStatus) = await RestartModules(iotHubServiceClient, cts);
+                    
+                    // Increment the counter when issue an edgeHub restart
+                    restartCount++;
+                    // Secretly embedded the verification info in the Seq Number
+                    Interlocked.Exchange(ref messageCount, restartCount<<44);
+                    Interlocked.Exchange(ref directMethodCount, restartCount<<44);
 
                     // Setup Direct Method Task
                     Task<Tuple<DateTime, HttpStatusCode>> sendDirectMethodTask = SendDirectMethodAsync(
@@ -92,26 +99,29 @@ namespace EdgeHubRestartTester
                     (DateTime dmCompletedTime, HttpStatusCode dmStatusCode) = sendDirectMethodTask.Result;
 
                     // Generate reports, the new report type
-                    EdgeHubRestartTestResult msgTestResult = CreateEdgeHubRestartTestResult(
-                        TestOperationResultType.Messages,
+                    TestResultBase restartResult = CreateTestResult(
+                        TestOperationResultType.EdgeHubRestart,
                         restartTime,
-                        msgCompletedTime,
                         restartStatus,
+                        batchId.ToString(),
+                        restartCount);
+
+                    TestResultBase msgTestResult = CreateTestResult(
+                        TestOperationResultType.Messages,
+                        msgCompletedTime,
                         msgStatusCode,
                         batchId.ToString(),
                         Interlocked.Read(ref messageCount));
 
-                    EdgeHubRestartTestResult dmTestResult = CreateEdgeHubRestartTestResult(
+                    TestResultBase dmTestResult = CreateTestResult(
                         TestOperationResultType.DirectMethod,
-                        restartTime,
                         dmCompletedTime,
-                        restartStatus,
                         dmStatusCode,
                         batchId.ToString(),
-                        Interlocked.Read(ref directMethodCount),
-                        Settings.Current.TrackingId);
+                        Interlocked.Read(ref directMethodCount));
 
                     // Send results to TRC
+                    await ModuleUtil.ReportTestResultAsync(reportClient, Logger, restartResult);
                     await ModuleUtil.ReportTestResultAsync(reportClient, Logger, msgTestResult);
                     await ModuleUtil.ReportTestResultAsync(reportClient, Logger, dmTestResult);
 
@@ -141,55 +151,46 @@ namespace EdgeHubRestartTester
             return 0;
         }
 
-        static EdgeHubRestartTestResult CreateEdgeHubRestartTestResult(
+        static TestResultBase CreateTestResult(
             TestOperationResultType testOperationResultType,
-            DateTime restartTime,
             DateTime completedTime,
-            HttpStatusCode restartStatus,
             HttpStatusCode completedStatus,
             string batchId = "",
-            long sequenceNumber = 0,
-            string trackingId = "")
+            long sequenceNumber = 0)
         {
-            TestResultBase attachedTestResult = null;
             switch (testOperationResultType)
             {
                 case TestOperationResultType.Messages:
-                    attachedTestResult = new MessageTestResult(
-                        Settings.Current.ModuleId + ".send",
+                    return new MessageTestResult(
+                        Settings.Current.ModuleId + testOperationResultType.ToString(),
                         completedTime)
                     {
                         TrackingId = Settings.Current.TrackingId,
                         BatchId = batchId,
                         SequenceNumber = sequenceNumber.ToString()
                     };
-                    break;
 
                 case TestOperationResultType.DirectMethod:
-                    attachedTestResult = new DirectMethodTestResult(
-                        Settings.Current.ModuleId + ".send",
+                    return new DirectMethodTestResult(
+                        Settings.Current.ModuleId + testOperationResultType.ToString(),
                         completedTime,
-                        trackingId,
+                        Settings.Current.TrackingId,
                         Guid.Parse(batchId),
                         sequenceNumber.ToString(),
                         completedStatus);
-                    break;
+
+                case TestOperationResultType.EdgeHubRestart:
+                    return new EdgeHubRestartResult(
+                        Settings.Current.ModuleId + testOperationResultType.ToString(),
+                        completedTime,
+                        Settings.Current.TrackingId,
+                        Guid.Parse(batchId),
+                        sequenceNumber.ToString(),
+                        completedStatus);
 
                 default:
                     throw new NotSupportedException($"{testOperationResultType} is not supported in CreateEdgeHubRestartTestResult()");
             }
-
-            return new EdgeHubRestartTestResult(
-                Settings.Current.ModuleId + testOperationResultType.ToString(),
-                testOperationResultType,
-                DateTime.UtcNow)
-            {
-                TestResult = attachedTestResult,
-                EdgeHubRestartTime = restartTime,
-                EdgeHubUplinkTime = completedTime,
-                RestartHttpStatusCode = restartStatus,
-                UplinkHttpStatusCode = completedStatus
-            };
         }
 
         static async Task<Tuple<DateTime, HttpStatusCode>> SendDirectMethodAsync(
