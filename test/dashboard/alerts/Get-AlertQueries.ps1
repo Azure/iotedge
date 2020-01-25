@@ -3,9 +3,9 @@ Import-Module Az.Monitor
 $GreaterThanZero = New-AzScheduledQueryRuleTriggerCondition `
    -ThresholdOperator "GreaterThan" `
    -Threshold "0"
-$EqualToZero = New-AzScheduledQueryRuleTriggerCondition `
-   -ThresholdOperator "Equal" `
-   -Threshold "0" `
+$LessThanTwo = New-AzScheduledQueryRuleTriggerCondition `
+   -ThresholdOperator "LessThan" `
+   -Threshold "2" `
 
 class Alert{
    [ValidateNotNullOrEmpty()][string]$Name
@@ -37,12 +37,19 @@ $ReportedPropertyRate = [Alert]@{
 $Alerts.Add($ReportedPropertyRate)
 
 $NoUpstreamMessagesQuery = Get-Content -Path ".\queries\NoUpstreamMessages.kql" 
-$NoUpstreamMessagesQuery = $ReportedPropertyRateAlertQuery.Replace("<TWINTESTER.THRESHOLD>", $LoadGenMessagesPerMinThreshold)
 $NoUpstreamMessages  = [Alert]@{
-   Name = "reported-property-rate"
-   Query = $ReportedPropertyRateAlertQuery
-   Comparator = $EqualToZero
+   Name = "no-upstream-messages"
+   Query = $NoUpstreamMessagesQuery
+   Comparator = $LessThanTwo
 }
 $Alerts.Add($NoUpstreamMessages)
+
+$NoLocalMessagesQuery = Get-Content -Path ".\queries\NoLocalMessages.kql" 
+$NoLocalMessages  = [Alert]@{
+   Name = "no-local-messages"
+   Query = $NoLocalMessagesQuery
+   Comparator = $LessThanTwo
+}
+$Alerts.Add($NoLocalMessages)
 
 Write-Output $Alerts
