@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
                 if (!moduleSet.Modules.TryGetValue(dockerRuntimeInfo.Name, out IModule configModule) || !(configModule is DockerModule dockerModule))
                 {
-                    dockerModule = new DockerModule(dockerRuntimeInfo.Name, string.Empty, ModuleStatus.Unknown, Core.RestartPolicy.Unknown, new DockerConfig(Constants.UnknownImage, new CreateContainerParameters()), ImagePullPolicy.OnCreate, Core.Constants.HighestPriority, new ConfigurationInfo(), null);
+                    dockerModule = new DockerModule(dockerRuntimeInfo.Name, string.Empty, ModuleStatus.Unknown, Core.RestartPolicy.Unknown, new DockerConfig(Constants.UnknownImage, new CreateContainerParameters()), ImagePullPolicy.OnCreate, new ConfigurationInfo(), null);
                 }
 
                 Option<ModuleState> moduleStateOption = await this.moduleStateStore.Get(moduleRuntimeInfo.Name);
@@ -83,7 +83,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                             moduleState.LastRestartTimeUtc,
                             moduleRuntimeInfo.ModuleStatus,
                             dockerModule.ImagePullPolicy,
-                            dockerModule.Priority,
                             dockerModule.ConfigurationInfo,
                             dockerModule.Env);
                         break;
@@ -116,7 +115,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                             moduleState.LastRestartTimeUtc,
                             moduleRuntimeInfo.ModuleStatus,
                             dockerModule.ImagePullPolicy,
-                            dockerModule.Priority,
                             dockerModule.ConfigurationInfo,
                             dockerModule.Env);
                         break;

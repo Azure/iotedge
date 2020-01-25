@@ -273,7 +273,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 CreateImagePullSecret,
                 DeleteImagePullSecret,
                 UpdateImagePullSecret,
-                UpdateExistingImagePullSecret
+                UpdateExistingImagePullSecret,
+                FindActiveDeploymentFailed,
             }
 
             public static void CreateEdgeDeployment(EdgeDeploymentDefinition deployment) => Log.LogDebug((int)EventIds.CreateDeployment, $"Create edge deployment: {deployment.Metadata.Name}");
@@ -287,6 +288,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             internal static void UpdateImagePullSecret(V1Secret secret) => Log.LogDebug((int)EventIds.UpdateImagePullSecret, $"Update Image Pull Secret {secret.Metadata.Name}");
 
             internal static void UpdateExistingImagePullSecret(V1Secret secret) => Log.LogWarning((int)EventIds.UpdateExistingImagePullSecret, $"Update existing Image Pull Secret {secret.Metadata.Name}");
+
+            internal static void FindActiveDeploymentFailed(string deploymentName, Exception exception) => Log.LogDebug((int)EventIds.FindActiveDeploymentFailed, exception, $"Failed to find active Edge Deployment {deploymentName}");
         }
     }
 }
