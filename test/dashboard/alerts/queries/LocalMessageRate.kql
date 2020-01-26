@@ -12,14 +12,14 @@ let filteredLastHour = sanitizedTestMetrics
 let MessagesSentToLocalAtEndTime = filteredLastHour
 | project device, moduleName, messageTarget, Name_s, value, TimeGenerated
 | where Name_s == "edgehub_messages_sent_total"
-| where messageTarget != "local"
+| where messageTarget != "upstream"
 | summarize arg_max(TimeGenerated, *) by moduleName
 | extend localMessagesEnd = value
 | project-away device, messageTarget, TimeGenerated, value, Name_s;
 let MessagesSentToLocalAtStartTime = filteredLastHour
 | project device, moduleName, messageTarget, Name_s, value, TimeGenerated
 | where Name_s == "edgehub_messages_sent_total"
-| where messageTarget != "local"
+| where messageTarget != "upstream"
 | summarize arg_min(TimeGenerated, *) by moduleName
 | extend localMessagesStart = value
 | project-away device, messageTarget, TimeGenerated, value, Name_s;
