@@ -1,7 +1,6 @@
 let environmentPrefix = "<ENVIRONMENT>";
 let platform = "<PLATFORM>";
-let loadGenMessageRateThreshold = <LOADGEN.THRESHOLD>;
-let tempFilterMessageRateThreshold = <TEMPFILTER.THRESHOLD>;
+let tempSensorMessageRateThreshold = <TEMPSENSOR.THRESHOLD>;
 let mostRecentTestId = toscalar(sanitizedTestMetrics 
 | where device contains environmentPrefix and device contains platform
 | order by TimeGenerated
@@ -10,25 +9,25 @@ let mostRecentTestId = toscalar(sanitizedTestMetrics
 let filteredLastHour = sanitizedTestMetrics
 | where testId == mostRecentTestId
 | where TimeGenerated > now() - 2h and TimeGenerated < now() - 1h;
-let MessagesSentToUpstreamAtEndTime = filteredLastHour
+let MessagesSentToLocalAtEndTime = filteredLastHour
 | project device, moduleName, messageTarget, Name_s, value, TimeGenerated
 | where Name_s == "edgehub_messages_sent_total"
-| where messageTarget == "upstream"
+| where messageTarget != "local"
 | summarize arg_max(TimeGenerated, *) by moduleName
-| extend upstreamMessagesEnd = value
+| extend localMessagesEnd = value
 | project-away device, messageTarget, TimeGenerated, value, Name_s;
-let MessagesSentToUpstreamAtStartTime = filteredLastHour
+let MessagesSentToLocalAtStartTime = filteredLastHour
 | project device, moduleName, messageTarget, Name_s, value, TimeGenerated
 | where Name_s == "edgehub_messages_sent_total"
-| where messageTarget == "upstream"
+| where messageTarget != "local"
 | summarize arg_min(TimeGenerated, *) by moduleName
-| extend upstreamMessagesStart = value
+| extend localMessagesStart = value
 | project-away device, messageTarget, TimeGenerated, value, Name_s;
-let MessagesSentToUpstream = MessagesSentToUpstreamAtEndTime
-| join kind = inner(MessagesSentToUpstreamAtStartTime) on moduleName
+let MessagesSentToLocal = MessagesSentToLocalAtEndTime
+| join kind = inner(MessagesSentToLocalAtStartTime) on moduleName
 | project-away moduleName1
-| extend upstream_message_rate_per_min = (upstreamMessagesEnd  - upstreamMessagesStart) / 60
-| project-away upstreamMessagesEnd, upstreamMessagesStart;
-MessagesSentToUpstream
-| extend distanceFromThreshold = iff(moduleName contains "loadGen", upstream_message_rate_per_min - loadGenMessageRateThreshold, upstream_message_rate_per_min - tempFilterMessageRateThreshold)
+| extend local_message_rate_per_min = (localMessagesEnd  - localMessagesStart) / 60
+| project-away localMessagesEnd, localMessagesStart;
+MessagesSentToLocal
+| extend distanceFromThreshold = local_message_rate_per_min - tempSensorMessageRateThreshold
 | where distanceFromThreshold < 0

@@ -30,4 +30,4 @@ let ReportedPropertiesSentToUpstream = ReportedPropertiesSentToUpstreamAtEndTime
 | project-away upstreamReportedPropertiesEnd, upstreamReportedPropertiesStart;
 ReportedPropertiesSentToUpstream
 | extend distanceFromThreshold = iff(moduleName contains "twinTester", upstream_rp_rate_per_min - twinTesterReportedPropertyUpdateThreshold, upstream_rp_rate_per_min)
-| where distanceFromThreshold < 0;
+| where distanceFromThreshold < 0

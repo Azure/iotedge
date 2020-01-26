@@ -10,31 +10,31 @@ $LessThanTwo = New-AzScheduledQueryRuleTriggerCondition `
 class Alert{
    [ValidateNotNullOrEmpty()][string]$Name
    [ValidateNotNullOrEmpty()][string]$Query
-   [ValidateNotNullOrEmpty()]$Comparator #TODO: find way to import type
+   [ValidateNotNullOrEmpty()]$Comparator #TODO: find way to import type (module manifest?)
 }
 $Alerts = New-Object System.Collections.Generic.List[Alert]
 
 $LoadGenMessagesPerMinThreshold = 50
 $TempFilterMessagesPerMinThreshold = 8 
-$MessageRateAlertQuery = Get-Content -Path ".\queries\UpstreamMessageRate.kql" 
-$MessageRateAlertQuery = $MessageRateAlertQuery.Replace("<LOADGEN.THRESHOLD>", $LoadGenMessagesPerMinThreshold)
-$MessageRateAlertQuery = $MessageRateAlertQuery.Replace("<TEMPFILTER.THRESHOLD>", $TempFilterMessagesPerMinThreshold)
-$MessageRate = [Alert]@{
-   Name = "message-rate"
-   Query = $MessageRateAlertQuery
+$UpstreamMessageRateAlertQuery = Get-Content -Path ".\queries\UpstreamMessageRate.kql" 
+$UpstreamMessageRateAlertQuery = $UpstreamMessageRateAlertQuery.Replace("<LOADGEN.THRESHOLD>", $LoadGenMessagesPerMinThreshold)
+$UpstreamMessageRateAlertQuery = $UpstreamMessageRateAlertQuery.Replace("<TEMPFILTER.THRESHOLD>", $TempFilterMessagesPerMinThreshold)
+$UpstreamMessageRate = [Alert]@{
+   Name = "upstream-message-rate"
+   Query = $UpstreamMessageRateAlertQuery
    Comparator = $GreaterThanZero
 }
-$Alerts.Add($MessageRate)
+$Alerts.Add($UpstreamMessageRate)
 
-$TwinTesterUpstreamReportedPropertyUpdatesPerMinThreshold = 15 
-$ReportedPropertyRateAlertQuery = Get-Content -Path ".\queries\ReportedPropertyRate.kql" 
-$ReportedPropertyRateAlertQuery = $ReportedPropertyRateAlertQuery.Replace("<TWINTESTER.THRESHOLD>", $LoadGenMessagesPerMinThreshold)
-$ReportedPropertyRate = [Alert]@{
-   Name = "reported-property-rate"
-   Query = $ReportedPropertyRateAlertQuery
+$TempSensorMessagesPerMinThreshold = 8 
+$LocalMessageRateAlertQuery = Get-Content -Path ".\queries\LocalMessageRate.kql" 
+$LocalMessageRateAlertQuery = $LocalMessageRateAlertQuery.Replace("<TEMPSENSOR.THRESHOLD>", $TempSensorMessagesPerMinThreshold)
+$LocalMessageRate = [Alert]@{
+   Name = "local-message-rate"
+   Query = $LocalMessageRateAlertQuery
    Comparator = $GreaterThanZero
 }
-$Alerts.Add($ReportedPropertyRate)
+$Alerts.Add($LocalMessageRate)
 
 $NoUpstreamMessagesQuery = Get-Content -Path ".\queries\NoUpstreamMessages.kql" 
 $NoUpstreamMessages  = [Alert]@{
@@ -51,5 +51,15 @@ $NoLocalMessages  = [Alert]@{
    Comparator = $LessThanTwo
 }
 $Alerts.Add($NoLocalMessages)
+
+$TwinTesterUpstreamReportedPropertyUpdatesPerMinThreshold = 15 
+$ReportedPropertyRateAlertQuery = Get-Content -Path ".\queries\ReportedPropertyRate.kql" 
+$ReportedPropertyRateAlertQuery = $ReportedPropertyRateAlertQuery.Replace("<TWINTESTER.THRESHOLD>", $TwinTesterUpstreamReportedPropertyUpdatesPerMinThreshold)
+$ReportedPropertyRate = [Alert]@{
+   Name = "reported-property-rate"
+   Query = $ReportedPropertyRateAlertQuery
+   Comparator = $GreaterThanZero
+}
+$Alerts.Add($ReportedPropertyRate)
 
 Write-Output $Alerts
