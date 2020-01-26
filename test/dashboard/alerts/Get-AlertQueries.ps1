@@ -6,6 +6,9 @@ $GreaterThanZero = New-AzScheduledQueryRuleTriggerCondition `
 $LessThanTwo = New-AzScheduledQueryRuleTriggerCondition `
    -ThresholdOperator "LessThan" `
    -Threshold "2" `
+$LessThanThree = New-AzScheduledQueryRuleTriggerCondition `
+   -ThresholdOperator "LessThan" `
+   -Threshold "3" `
 
 class Alert{
    [ValidateNotNullOrEmpty()][string]$Name
@@ -66,7 +69,7 @@ $NoReportedPropertiesQuery = Get-Content -Path ".\queries\NoReportedProperties.k
 $NoReportedProperties  = [Alert]@{
    Name = "no-reported-properties"
    Query = $NoReportedPropertiesQuery
-   Comparator = $LessThanTwo
+   Comparator = $LessThanThree
 }
 $Alerts.Add($NoReportedProperties)
 
