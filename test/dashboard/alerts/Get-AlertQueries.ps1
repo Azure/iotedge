@@ -5,10 +5,10 @@ $GreaterThanZero = New-AzScheduledQueryRuleTriggerCondition `
    -Threshold "0"
 $LessThanTwo = New-AzScheduledQueryRuleTriggerCondition `
    -ThresholdOperator "LessThan" `
-   -Threshold "2" `
+   -Threshold "2" 
 $LessThanThree = New-AzScheduledQueryRuleTriggerCondition `
    -ThresholdOperator "LessThan" `
-   -Threshold "3" `
+   -Threshold "3" 
 
 class Alert{
    [ValidateNotNullOrEmpty()][string]$Name
