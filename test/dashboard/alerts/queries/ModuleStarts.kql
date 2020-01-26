@@ -1,0 +1,19 @@
+let environmentPrefix = "<ENVIRONMENT>";
+let platform = "<PLATFORM>";
+let moduleStartThreshold = <MODULESTARTS.THRESHOLD>;
+let mostRecentTestId = toscalar(sanitizedTestMetrics 
+| where device contains environmentPrefix and device contains platform
+| order by TimeGenerated
+| take 1
+| project testId);
+let filtered = sanitizedTestMetrics
+| where testId == mostRecentTestId
+| where TimeGenerated > now() - 75m and TimeGenerated < now() - 1h;
+let ModuleStarts = filtered
+| project device, moduleName, Name_s, value, TimeGenerated
+| where Name_s == "edgeAgent_module_start_total"
+| extend starts = value
+| summarize arg_max(TimeGenerated, starts) by moduleName
+| project-away TimeGenerated;
+ModuleStarts
+| where starts > moduleStartThreshold

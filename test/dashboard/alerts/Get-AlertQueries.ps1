@@ -1,5 +1,6 @@
 Import-Module Az.Monitor
 
+# TODO: clean this up by making a func that returns this object
 $GreaterThanZero = New-AzScheduledQueryRuleTriggerCondition `
    -ThresholdOperator "GreaterThan" `
    -Threshold "0"
@@ -9,6 +10,12 @@ $LessThanTwo = New-AzScheduledQueryRuleTriggerCondition `
 $LessThanThree = New-AzScheduledQueryRuleTriggerCondition `
    -ThresholdOperator "LessThan" `
    -Threshold "3" 
+$LessThanFourtyTwo = New-AzScheduledQueryRuleTriggerCondition `
+   -ThresholdOperator "LessThan" `
+   -Threshold "42" 
+$GreaterThanFourtyTwo = New-AzScheduledQueryRuleTriggerCondition `
+   -ThresholdOperator "GreaterThan" `
+   -Threshold "42" 
 
 class Alert{
    [ValidateNotNullOrEmpty()][string]$Name
@@ -107,7 +114,7 @@ $EdgeAgentMemoryThreshold = 100
 $EdgeAgentMemoryQuery = Get-Content -Path ".\queries\EdgeAgentMemory.kql" 
 $EdgeAgentMemoryQuery = $EdgeAgentMemoryQuery.Replace("<MEMORY.THRESHOLD>", $EdgeAgentMemoryThreshold)
 $EdgeAgentMemory = [Alert]@{
-   Name = "edge-agent memory"
+   Name = "edge-agent-memory"
    Query = $EdgeAgentMemoryQuery
    Comparator = $GreaterThanZero
 }
@@ -117,10 +124,34 @@ $EdgeHubMemoryThreshold = 100
 $EdgeHubMemoryQuery = Get-Content -Path ".\queries\EdgeHubMemory.kql" 
 $EdgeHubMemoryQuery = $EdgeHubMemoryQuery.Replace("<MEMORY.THRESHOLD>", $EdgeHubMemoryThreshold)
 $EdgeHubMemory = [Alert]@{
-   Name = "edge-hub memory"
+   Name = "edge-hub-memory"
    Query = $EdgeHubMemoryQuery
    Comparator = $GreaterThanZero
 }
 $Alerts.Add($EdgeHubMemory)
+
+$NumberOfMetricsQuery = Get-Content -Path ".\queries\NumberOfMetrics.kql" 
+$NumberOfMetricsTooLow = [Alert]@{
+   Name = "number-of-metrics-too-low"
+   Query = $NumberOfMetricsQuery
+   Comparator = $LessThanFourtyTwo
+}
+$NumberOfMetricsTooHigh = [Alert]@{
+   Name = "number-of-metrics-too-high"
+   Query = $NumberOfMetricsQuery
+   Comparator = $GreaterThanFourtyTwo
+}
+$Alerts.Add($NumberOfMetricsTooLow)
+$Alerts.Add($NumberOfMetricsTooHigh)
+
+$ModuleStartThreshold = 100 
+$ModuleStartsQuery = Get-Content -Path ".\queries\ModuleStarts.kql" 
+$ModuleStartsQuery = $ModuleStartsQuery.Replace("<MODULESTARTS.THRESHOLD>", $ModuleStartThreshold)
+$ModuleStarts = [Alert]@{
+   Name = "failed-module-starts"
+   Query = $ModuleStartsQuery
+   Comparator = $GreaterThanZero
+}
+$Alerts.Add($ModuleStarts)
 
 Write-Output $Alerts
