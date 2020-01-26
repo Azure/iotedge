@@ -72,4 +72,44 @@ $QueueLength = [Alert]@{
 }
 $Alerts.Add($QueueLength)
 
+$EdgeAgentCpuThreshold = 100 
+$EdgeAgentCpuAlertQuery = Get-Content -Path ".\queries\EdgeAgentCpu.kql" 
+$EdgeAgentCpuAlertQuery = $EdgeAgentCpuAlertQuery.Replace("<CPU.THRESHOLD>", $EdgeAgentCpuThreshold)
+$EdgeAgentCpu = [Alert]@{
+   Name = "edge-agent-cpu"
+   Query = $EdgeAgentCpuAlertQuery
+   Comparator = $GreaterThanZero
+}
+$Alerts.Add($EdgeAgentCpu)
+
+$EdgeHubCpuThreshold = 100 
+$EdgeHubCpuAlertQuery = Get-Content -Path ".\queries\EdgeHubCpu.kql" 
+$EdgeHubCpuAlertQuery = $EdgeHubCpuAlertQuery.Replace("<CPU.THRESHOLD>", $EdgeHubCpuThreshold)
+$EdgeHubCpu = [Alert]@{
+   Name = "edge-hub-cpu"
+   Query = $EdgeHubCpuAlertQuery
+   Comparator = $GreaterThanZero
+}
+$Alerts.Add($EdgeHubCpu)
+
+$EdgeAgentMemoryThreshold = 100 
+$EdgeAgentMemoryQuery = Get-Content -Path ".\queries\EdgeAgentMemory.kql" 
+$EdgeAgentMemoryQuery = $EdgeAgentMemoryQuery.Replace("<MEMORY.THRESHOLD>", $EdgeAgentMemoryThreshold)
+$EdgeAgentMemory = [Alert]@{
+   Name = "edge-agent memory"
+   Query = $EdgeAgentMemoryQuery
+   Comparator = $GreaterThanZero
+}
+$Alerts.Add($EdgeAgentMemory)
+
+$EdgeHubMemoryThreshold = 100 
+$EdgeHubMemoryQuery = Get-Content -Path ".\queries\EdgeHubMemory.kql" 
+$EdgeHubMemoryQuery = $EdgeHubMemoryQuery.Replace("<MEMORY.THRESHOLD>", $EdgeHubMemoryThreshold)
+$EdgeHubMemory = [Alert]@{
+   Name = "edge-hub memory"
+   Query = $EdgeHubMemoryQuery
+   Comparator = $GreaterThanZero
+}
+$Alerts.Add($EdgeHubMemory)
+
 Write-Output $Alerts

@@ -1,0 +1,18 @@
+let environmentPrefix = "<ENVIRONMENT>";
+let platform = "<PLATFORM>";
+let cpuThreshold = <CPU.THRESHOLD>;
+let mostRecentTestId = toscalar(sanitizedTestMetrics 
+| where device contains environmentPrefix and device contains platform
+| order by TimeGenerated
+| take 1
+| project testId);
+let filtered = sanitizedTestMetrics
+| where testId == mostRecentTestId
+| where TimeGenerated > now() - 75m and TimeGenerated < now() - 1h;
+filtered
+| where Name_s == "edgeAgent_used_cpu_percent"
+| where quantile == "0.9"
+| where moduleName == "edgeAgent"
+| order by TimeGenerated
+| take 1 
+| where isnan(value) or value > cpuThreshold or isnull(value)

@@ -1,0 +1,17 @@
+let environmentPrefix = "<ENVIRONMENT>";
+let platform = "<PLATFORM>";
+let memoryThreshold = <MEMORY.THRESHOLD>;
+let mostRecentTestId = toscalar(sanitizedTestMetrics 
+| where device contains environmentPrefix and device contains platform
+| order by TimeGenerated
+| take 1
+| project testId);
+let filtered = sanitizedTestMetrics
+| where testId == mostRecentTestId
+| where TimeGenerated > now() - 75m and TimeGenerated < now() - 1h;
+filtered
+| where Name_s == "edgeAgent_used_memory_bytes"
+| where moduleName == "edgeAgent"
+| order by TimeGenerated
+| take 1 
+| where isnan(value) or value > memoryThreshold or isnull(value)
