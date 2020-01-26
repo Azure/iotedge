@@ -62,6 +62,14 @@ $ReportedPropertyRate = [Alert]@{
 }
 $Alerts.Add($ReportedPropertyRate)
 
+$NoReportedPropertiesQuery = Get-Content -Path ".\queries\NoReportedProperties.kql" 
+$NoReportedProperties  = [Alert]@{
+   Name = "no-reported-properties"
+   Query = $NoReportedPropertiesQuery
+   Comparator = $LessThanTwo
+}
+$Alerts.Add($NoReportedProperties)
+
 $QueueLengthThreshold = 1 
 $QueueLengthAlertQuery = Get-Content -Path ".\queries\QueueLength.kql" 
 $QueueLengthAlertQuery = $QueueLengthAlertQuery.Replace("<QUEUELENGTH.THRESHOLD>", $QueueLengthThreshold)

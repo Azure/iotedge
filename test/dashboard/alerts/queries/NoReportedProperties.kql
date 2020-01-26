@@ -1,0 +1,15 @@
+let environmentPrefix = "<ENVIRONMENT>";
+let platform = "<PLATFORM>";
+let mostRecentTestId = toscalar(sanitizedTestMetrics 
+| where device contains environmentPrefix and device contains platform
+| order by TimeGenerated
+| take 1
+| project testId);
+let filteredLastHour = sanitizedTestMetrics
+| where testId == mostRecentTestId
+| where TimeGenerated > now() - 2h and TimeGenerated < now() - 1h;
+filteredLastHour
+| project device, moduleName, messageTarget, Name_s, value, TimeGenerated
+| where Name_s == "edgehub_reported_properties_total"
+| where messageTarget == "upstream"
+| summarize count() by moduleName
