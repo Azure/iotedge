@@ -1,0 +1,15 @@
+let environmentPrefix = "<ENVIRONMENT>";
+let platform = "<PLATFORM>";
+let queueLengthThreshold = <QUEUELENGTH.THRESHOLD>;
+let mostRecentTestId = toscalar(sanitizedTestMetrics 
+| where device contains environmentPrefix and device contains platform
+| order by TimeGenerated
+| take 1
+| project testId);
+let filtered = sanitizedTestMetrics
+| where testId == mostRecentTestId;
+filtered
+| where Name_s == "edgehub_queue_length"
+| order by TimeGenerated
+| take 1
+| where value > queueLengthThreshold

@@ -62,4 +62,14 @@ $ReportedPropertyRate = [Alert]@{
 }
 $Alerts.Add($ReportedPropertyRate)
 
+$QueueLengthThreshold = 1 
+$QueueLengthAlertQuery = Get-Content -Path ".\queries\QueueLength.kql" 
+$QueueLengthAlertQuery = $QueueLengthAlertQuery.Replace("<QUEUELENGTH.THRESHOLD>", $QueueLengthThreshold)
+$QueueLength = [Alert]@{
+   Name = "queue-length"
+   Query = $QueueLengthAlertQuery
+   Comparator = $GreaterThanZero
+}
+$Alerts.Add($QueueLength)
+
 Write-Output $Alerts
