@@ -26,7 +26,7 @@ $UpstreamMessageRate = [Alert]@{
 }
 $Alerts.Add($UpstreamMessageRate)
 
-$TempSensorMessagesPerMinThreshold = 8 
+$TempSensorMessagesPerMinThreshold = 50 
 $LocalMessageRateAlertQuery = Get-Content -Path ".\queries\LocalMessageRate.kql" 
 $LocalMessageRateAlertQuery = $LocalMessageRateAlertQuery.Replace("<TEMPSENSOR.THRESHOLD>", $TempSensorMessagesPerMinThreshold)
 $LocalMessageRate = [Alert]@{

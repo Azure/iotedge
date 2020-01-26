@@ -6,17 +6,17 @@ let mostRecentTestId = toscalar(sanitizedTestMetrics
 | order by TimeGenerated
 | take 1
 | project testId);
-let filteredLastHour = sanitizedTestMetrics
+let filtered = sanitizedTestMetrics
 | where testId == mostRecentTestId
-| where TimeGenerated > now() - 2h and TimeGenerated < now() - 1h;
-let ReportedPropertiesSentToUpstreamAtEndTime = filteredLastHour
+| where TimeGenerated > now() - 75m and TimeGenerated < now() - 1h;
+let ReportedPropertiesSentToUpstreamAtEndTime = filtered
 | project device, moduleName, reportedPropertyTarget, Name_s, value, TimeGenerated
 | where Name_s == "edgehub_reported_properties_total"
 | where reportedPropertyTarget == "upstream"
 | summarize arg_max(TimeGenerated, *) by moduleName
 | extend upstreamReportedPropertiesEnd = value
 | project-away device, reportedPropertyTarget, TimeGenerated, value, Name_s;
-let ReportedPropertiesSentToUpstreamAtStartTime = filteredLastHour
+let ReportedPropertiesSentToUpstreamAtStartTime = filtered
 | project device, moduleName, reportedPropertyTarget, Name_s, value, TimeGenerated
 | where Name_s == "edgehub_reported_properties_total"
 | where reportedPropertyTarget == "upstream"
@@ -26,7 +26,7 @@ let ReportedPropertiesSentToUpstreamAtStartTime = filteredLastHour
 let ReportedPropertiesSentToUpstream = ReportedPropertiesSentToUpstreamAtEndTime
 | join kind = inner(ReportedPropertiesSentToUpstreamAtStartTime) on moduleName
 | project-away moduleName1
-| extend upstream_rp_rate_per_min = (upstreamReportedPropertiesEnd  - upstreamReportedPropertiesStart) / 60
+| extend upstream_rp_rate_per_min = (upstreamReportedPropertiesEnd  - upstreamReportedPropertiesStart) / 15
 | project-away upstreamReportedPropertiesEnd, upstreamReportedPropertiesStart;
 ReportedPropertiesSentToUpstream
 | extend distanceFromThreshold = iff(moduleName contains "twinTester", upstream_rp_rate_per_min - twinTesterReportedPropertyUpdateThreshold, upstream_rp_rate_per_min)
