@@ -3,14 +3,12 @@ namespace DirectMethodSender
 {
     using System;
     using System.Net;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using TestOperationResult = Microsoft.Azure.Devices.Edge.ModuleUtil.TestOperationResult;
 
     class Program
     {
@@ -24,63 +22,35 @@ namespace DirectMethodSender
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
             DirectMethodSenderBase directMethodClient = null;
-            ModuleClient reportClient = null;
-            Option<Uri> analyzerUrl = Settings.Current.AnalyzerUrl;
-            Option<Uri> testReportCoordinatorUrl = Settings.Current.TestResultCoordinatorUrl;
+            ReporterClientBase reportClient = null;
 
             try
             {
                 Guid batchId = Guid.NewGuid();
                 Logger.LogInformation($"Batch Id={batchId}");
-
-                directMethodClient = await CreateClientAsync(Settings.Current.InvocationSource);
-
-                reportClient = await ModuleUtil.CreateModuleClientAsync(
-                    Settings.Current.TransportType,
-                    ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                    ModuleUtil.DefaultTransientRetryStrategy,
-                    Logger);
-
                 Logger.LogInformation($"Load gen delay start for {Settings.Current.TestStartDelay}.");
                 await Task.Delay(Settings.Current.TestStartDelay, cts.Token);
 
                 DateTime testStartAt = DateTime.UtcNow;
+
+                directMethodClient = await CreateClientAsync(Settings.Current.InvocationSource);
+                reportClient = ReporterClientBase.Create(
+                    Logger,
+                    Settings.Current.ReportingEndpointUrl,
+                    Settings.Current.TransportType);
+
                 while (!cts.Token.IsCancellationRequested && IsTestTimeUp(testStartAt))
                 {
-                    (HttpStatusCode result, long dmCounter) = await directMethodClient.InvokeDirectMethodAsync(cts);
+                    (HttpStatusCode result, long dmCounter) = await directMethodClient.InvokeDirectMethodAsync(Settings.Current.DirectMethodName, cts);
 
-                    // TODO: Create an abstract class to handle the reporting client generation
-                    if (testReportCoordinatorUrl.HasValue)
-                    {
-                        await testReportCoordinatorUrl.ForEachAsync(
-                            async (Uri uri) =>
-                            {
-                                var testResultReportingClient = new TestResultReportingClient { BaseUrl = uri.AbsoluteUri };
-                                await ModuleUtil.ReportStatus(
-                                        testResultReportingClient,
-                                        Logger,
-                                        Settings.Current.ModuleId + ".send",
-                                        ModuleUtil.FormatDirectMethodTestResultValue(
-                                            Settings.Current.TrackingId.Expect(() => new ArgumentException("TrackingId is empty")),
-                                            batchId.ToString(),
-                                            dmCounter.ToString(),
-                                            result.ToString()),
-                                        TestOperationResultType.DirectMethod.ToString());
-                            });
-                    }
-                    else
-                    {
-                        await analyzerUrl.ForEachAsync(
-                            async (Uri uri) =>
-                            {
-                                var testResultReportingClient = new TestResultReportingClient { BaseUrl = uri.AbsoluteUri };
-                                await ReportStatus(Settings.Current.TargetModuleId, result, testResultReportingClient);
-                            },
-                            async () =>
-                            {
-                                await reportClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method call succeeded.")));
-                            });
-                    }
+                    // Generate a testResult type depending on the reporting endpoint
+                    TestResultBase testResult = ConstructTestResult(
+                        Settings.Current.DirectMethodResultType,
+                        batchId,
+                        dmCounter,
+                        result);
+
+                    await reportClient.SendTestResultAsync(testResult);
 
                     await Task.Delay(Settings.Current.DirectMethodDelay, cts.Token);
                 }
@@ -138,15 +108,29 @@ namespace DirectMethodSender
             return (Settings.Current.TestDuration == TimeSpan.Zero) || (DateTime.UtcNow - testStartAt < Settings.Current.TestDuration);
         }
 
-        static async Task ReportStatus(string moduleId, HttpStatusCode result, TestResultReportingClient apiClient)
+        // Create reporting result depending on which endpoint is being used.
+        public static TestResultBase ConstructTestResult(DirectMethodResultType directMethodResultType, Guid batchId, long counter, HttpStatusCode result)
         {
-            try
+            string source = Settings.Current.ModuleId + ".send";
+            switch (directMethodResultType)
             {
-                await apiClient.ReportResultAsync(new TestOperationResultDto { Source = moduleId, Result = result.ToString(), CreatedAt = DateTime.UtcNow, Type = Enum.GetName(typeof(TestOperationResultType), TestOperationResultType.LegacyDirectMethod) });
-            }
-            catch (Exception e)
-            {
-                Logger.LogError(e.ToString());
+                case DirectMethodResultType.DirectMethodTestResult:
+                    return new DirectMethodTestResult(
+                        source,
+                        DateTime.UtcNow,
+                        Settings.Current.TrackingId.Expect(() => new ArgumentException("TrackingId is empty")),
+                        batchId,
+                        counter.ToString(),
+                        result);
+
+                case DirectMethodResultType.LegacyDirectMethodTestResult:
+                    return new LegacyDirectMethodTestResult(
+                        source,
+                        DateTime.UtcNow,
+                        result.ToString());
+
+                default:
+                    throw new NotImplementedException("Reporting Endpoint has an unknown type");
             }
         }
     }

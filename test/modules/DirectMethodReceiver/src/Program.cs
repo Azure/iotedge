@@ -3,10 +3,8 @@ namespace DirectMethodReceiver
 {
     using System;
     using System.IO;
-    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
@@ -20,37 +18,40 @@ namespace DirectMethodReceiver
 
         static async Task<int> MainAsync()
         {
-            Logger.LogInformation("DirectMethodReceiver Main() started.");
+            DirectMethodReceiver directMethodReceiver = null;
 
-            IConfiguration configuration = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("config/appsettings.json", optional: true)
-                .AddEnvironmentVariables()
-                .Build();
+            try
+            {
+                Logger.LogInformation("DirectMethodReceiver Main() started.");
 
-            TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only);
-            ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
-                transportType,
-                ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                ModuleUtil.DefaultTransientRetryStrategy,
-                Logger);
+                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
-            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
+                IConfiguration configuration = new ConfigurationBuilder()
+                    .SetBasePath(Directory.GetCurrentDirectory())
+                    .AddJsonFile("config/appsettings.json", optional: true)
+                    .AddEnvironmentVariables()
+                    .Build();
 
-            await moduleClient.OpenAsync();
-            await moduleClient.SetMethodHandlerAsync("HelloWorldMethod", HelloWorldMethodAsync, null);
-            await cts.Token.WhenCanceled();
+                directMethodReceiver = new DirectMethodReceiver(Logger, configuration);
 
-            completed.Set();
-            handler.ForEach(h => GC.KeepAlive(h));
-            Logger.LogInformation("DirectMethodReceiver Main() finished.");
+                await directMethodReceiver.InitAsync();
+
+                await cts.Token.WhenCanceled();
+
+                completed.Set();
+                handler.ForEach(h => GC.KeepAlive(h));
+                Logger.LogInformation("DirectMethodReceiver Main() finished.");
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e.ToString());
+            }
+            finally
+            {
+                directMethodReceiver?.Dispose();
+            }
+
             return 0;
-        }
-
-        static Task<MethodResponse> HelloWorldMethodAsync(MethodRequest methodRequest, object userContext)
-        {
-            Logger.LogInformation("Received direct method call.");
-            return Task.FromResult(new MethodResponse((int)HttpStatusCode.OK));
         }
     }
 }

@@ -6,49 +6,27 @@ namespace DirectMethodSender
     using System.IO;
     using System.Linq;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
 
-    public class Settings
+    class Settings
     {
-        static readonly Lazy<Settings> DefaultSettings = new Lazy<Settings>(
-            () =>
-            {
-                IConfiguration configuration = new ConfigurationBuilder()
-                    .SetBasePath(Directory.GetCurrentDirectory())
-                    .AddJsonFile("config/settings.json", optional: true)
-                    .AddEnvironmentVariables()
-                    .Build();
-
-                return new Settings(
-                    configuration.GetValue<string>("IOTEDGE_DEVICEID"),
-                    configuration.GetValue<string>("TargetModuleId", "DirectMethodReceiver"),
-                    configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
-                    configuration.GetValue<TimeSpan>("DirectMethodDelay", TimeSpan.FromSeconds(5)),
-                    Option.Maybe(configuration.GetValue<Uri>("AnalyzerUrl")),
-                    configuration.GetValue<InvocationSource>("InvocationSource", InvocationSource.Local),
-                    Option.Maybe<string>(configuration.GetValue<string>("ServiceClientConnectionString")),
-                    configuration.GetValue<string>("IOTEDGE_MODULEID"),
-                    configuration.GetValue("testDuration", TimeSpan.Zero),
-                    configuration.GetValue("testStartDelay", TimeSpan.Zero),
-                    Option.Maybe(configuration.GetValue<Uri>("testResultCoordinatorUrl")),
-                    Option.Maybe(configuration.GetValue<string>("trackingId")));
-            });
+        internal static Settings Current = Create();
 
         Settings(
             string deviceId,
             string targetModuleId,
             TransportType transportType,
             TimeSpan directMethodDelay,
-            Option<Uri> analyzerUrl,
+            Option<Uri> reportingEndpointUrl,
             InvocationSource invocationSource,
             Option<string> serviceClientConnectionString,
             string moduleId,
             TimeSpan testDuration,
             TimeSpan testStartDelay,
-            Option<Uri> testResultCoordinatorUrl,
-            Option<string> trackingId)
+            Option<string> directMethodName,
+            Option<string> trackingId,
+            Option<string> directMethodResultType)
         {
             Preconditions.CheckRange(testDuration.Ticks, 0);
             Preconditions.CheckRange(testStartDelay.Ticks, 0);
@@ -59,40 +37,65 @@ namespace DirectMethodSender
             this.TransportType = transportType;
             this.DirectMethodDelay = directMethodDelay;
             this.InvocationSource = invocationSource;
-            this.AnalyzerUrl = analyzerUrl;
+            this.ReportingEndpointUrl = reportingEndpointUrl;
             this.ServiceClientConnectionString = serviceClientConnectionString;
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.TestDuration = testDuration;
             this.TestStartDelay = testStartDelay;
-            this.TestResultCoordinatorUrl = testResultCoordinatorUrl;
+            this.DirectMethodName = directMethodName.GetOrElse("HelloWorldMethod");
             this.TrackingId = trackingId;
+            this.DirectMethodResultType = (DirectMethodResultType)Enum.Parse(typeof(DirectMethodResultType), directMethodResultType.GetOrElse("LegacyDirectMethodTestResult"));
         }
 
-        public static Settings Current => DefaultSettings.Value;
+        static Settings Create()
+        {
+            IConfiguration configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("config/settings.json", optional: true)
+                .AddEnvironmentVariables()
+                .Build();
 
-        public string DeviceId { get; }
+            return new Settings(
+                configuration.GetValue<string>("IOTEDGE_DEVICEID"),
+                configuration.GetValue<string>("TargetModuleId", "DirectMethodReceiver"),
+                configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
+                configuration.GetValue<TimeSpan>("DirectMethodDelay", TimeSpan.FromSeconds(5)),
+                Option.Maybe(configuration.GetValue<Uri>("ReportingEndpointUrl")),
+                configuration.GetValue<InvocationSource>("InvocationSource", InvocationSource.Local),
+                Option.Maybe<string>(configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING")),
+                configuration.GetValue<string>("IOTEDGE_MODULEID"),
+                configuration.GetValue("testDuration", TimeSpan.Zero),
+                configuration.GetValue("testStartDelay", TimeSpan.Zero),
+                Option.Maybe(configuration.GetValue<string>("DirectMethodName")),
+                Option.Maybe(configuration.GetValue<string>("trackingId")),
+                Option.Maybe(configuration.GetValue<string>("DirectMethodResultType")));
+        }
 
-        public string TargetModuleId { get; }
+        internal string DeviceId { get; }
 
-        public TransportType TransportType { get; }
+        internal string TargetModuleId { get; }
 
-        public TimeSpan DirectMethodDelay { get; }
+        internal TransportType TransportType { get; }
 
-        public InvocationSource InvocationSource { get; }
+        internal TimeSpan DirectMethodDelay { get; }
 
-        public Option<string> ServiceClientConnectionString { get; }
+        internal InvocationSource InvocationSource { get; }
 
-        public Option<Uri> AnalyzerUrl { get; }
+        internal Option<string> ServiceClientConnectionString { get; }
 
-        public string ModuleId { get; }
+        internal Option<Uri> ReportingEndpointUrl { get; }
 
-        public TimeSpan TestDuration { get; }
+        internal string ModuleId { get; }
 
-        public TimeSpan TestStartDelay { get; }
+        internal TimeSpan TestDuration { get; }
 
-        public Option<Uri> TestResultCoordinatorUrl { get; }
+        internal TimeSpan TestStartDelay { get; }
 
-        public Option<string> TrackingId { get; }
+        internal string DirectMethodName { get; }
+
+        internal Option<string> TrackingId { get; }
+
+        internal DirectMethodResultType DirectMethodResultType { get; }
 
         public override string ToString()
         {
@@ -106,14 +109,12 @@ namespace DirectMethodSender
                 { nameof(this.TestStartDelay), this.TestStartDelay.ToString() },
                 { nameof(this.TrackingId), this.TrackingId.ToString() },
                 { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) },
+                { nameof(this.DirectMethodName), this.DirectMethodName },
                 { nameof(this.DirectMethodDelay), this.DirectMethodDelay.ToString() },
                 { nameof(this.InvocationSource), this.InvocationSource.ToString() },
+                { nameof(this.DirectMethodResultType), this.DirectMethodResultType.ToString() },
+                { nameof(this.ReportingEndpointUrl), this.ReportingEndpointUrl.ToString() },
             };
-
-            this.AnalyzerUrl.ForEach((url) =>
-            {
-                fields.Add(nameof(this.AnalyzerUrl), url.AbsoluteUri);
-            });
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
         }

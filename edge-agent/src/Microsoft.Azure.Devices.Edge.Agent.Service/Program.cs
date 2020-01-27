@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using System.Net;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
@@ -28,7 +27,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
     using K8sConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
     using KubernetesModule = Microsoft.Azure.Devices.Edge.Agent.Service.Modules.KubernetesModule;
-    using MetricsListener = Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net.MetricsListener;
 
     public class Program
     {
@@ -151,7 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         deviceId = connectionStringParser.DeviceId;
                         iothubHostname = connectionStringParser.HostName;
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize));
-                        builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout));
+                        builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, backupConfigFilePath));
                         break;
 
                     case Constants.IotedgedMode:
@@ -164,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
                         TimeSpan performanceMetricsUpdateFrequency = configuration.GetValue("PerformanceMetricsUpdateFrequency", TimeSpan.FromSeconds(30));
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize));
-                        builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, performanceMetricsUpdateFrequency));
+                        builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, performanceMetricsUpdateFrequency, backupConfigFilePath));
 
                         IEnumerable<X509Certificate2> trustBundle = await CertificateHelper.GetTrustBundleFromEdgelet(new Uri(workloadUri), apiVersion, Constants.WorkloadApiVersion, moduleId, moduleGenerationId);
                         CertificateHelper.InstallCertificates(trustBundle, logger);
@@ -202,36 +200,37 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         bool runAsNonRoot = configuration.GetValue<bool>(K8sConstants.RunAsNonRootKey);
 
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize));
-                        builder.RegisterModule(new KubernetesModule(
-                            iothubHostname,
-                            deviceId,
-                            edgeDeviceHostName,
-                            proxyImage,
-                            proxyImagePullSecretName,
-                            proxyConfigPath,
-                            proxyConfigVolumeName,
-                            proxyConfigMapName,
-                            proxyTrustBundlePath,
-                            proxyTrustBundleVolumeName,
-                            proxyTrustBundleConfigMapName,
-                            apiVersion,
-                            deviceNamespace,
-                            new Uri(managementUri),
-                            new Uri(workloadUri),
-                            dockerAuthConfig,
-                            upstreamProtocol,
-                            Option.Some(productInfo),
-                            mappedServiceDefault,
-                            enableServiceCallTracing,
-                            persistentVolumeName,
-                            storageClassName,
-                            persistentVolumeClaimDefaultSizeMb,
-                            proxy,
-                            closeOnIdleTimeout,
-                            idleTimeout,
-                            kubernetesExperimentalFeatures,
-                            moduleOwner,
-                            runAsNonRoot));
+                        builder.RegisterModule(
+                            new KubernetesModule(
+                                iothubHostname,
+                                deviceId,
+                                edgeDeviceHostName,
+                                proxyImage,
+                                proxyImagePullSecretName,
+                                proxyConfigPath,
+                                proxyConfigVolumeName,
+                                proxyConfigMapName,
+                                proxyTrustBundlePath,
+                                proxyTrustBundleVolumeName,
+                                proxyTrustBundleConfigMapName,
+                                apiVersion,
+                                deviceNamespace,
+                                new Uri(managementUri),
+                                new Uri(workloadUri),
+                                dockerAuthConfig,
+                                upstreamProtocol,
+                                Option.Some(productInfo),
+                                mappedServiceDefault,
+                                enableServiceCallTracing,
+                                persistentVolumeName,
+                                storageClassName,
+                                persistentVolumeClaimDefaultSizeMb,
+                                proxy,
+                                closeOnIdleTimeout,
+                                idleTimeout,
+                                kubernetesExperimentalFeatures,
+                                moduleOwner,
+                                runAsNonRoot));
 
                         break;
 
@@ -248,7 +247,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             new TwinConfigSourceModule(
                                 iothubHostname,
                                 deviceId,
-                                backupConfigFilePath,
                                 configuration,
                                 versionInfo,
                                 TimeSpan.FromSeconds(configRefreshFrequencySecs),
@@ -280,6 +278,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 return 1;
             }
 
+            // TODO move this code to Agent
+            if (mode.ToLowerInvariant().Equals(Constants.KubernetesMode))
+            {
+                // Block agent startup routine until proxy sidecar container is ready
+                string managementUri = configuration.GetValue<string>(Constants.EdgeletManagementUriVariableName);
+                string apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
+                ProxyReadinessProbe probe = new ProxyReadinessProbe(new Uri(managementUri), apiVersion);
+
+                CancellationTokenSource tokenSource = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+                await probe.WaitUntilProxyIsReady(tokenSource.Token);
+
+                // Start environment operator
+                IKubernetesEnvironmentOperator environmentOperator = container.Resolve<IKubernetesEnvironmentOperator>();
+                environmentOperator.Start();
+
+                // Start the edge deployment operator
+                IEdgeDeploymentOperator edgeDeploymentOperator = container.Resolve<IEdgeDeploymentOperator>();
+                edgeDeploymentOperator.Start();
+            }
+
             // Initialize metrics
             if (metricsConfig.Enabled)
             {
@@ -290,21 +308,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             // Initialize metric uploading
             if (diagnosticConfig.Enabled)
             {
-                MetricsWorker worker = container.Resolve<MetricsWorker>();
+                MetricsWorker worker = await container.Resolve<Task<MetricsWorker>>();
                 worker.Start(diagnosticConfig.ScrapeInterval, diagnosticConfig.UploadInterval);
                 Console.WriteLine($"Scraping frequency: {diagnosticConfig.ScrapeInterval}\nUpload Frequency: {diagnosticConfig.UploadInterval}");
-            }
-
-            // TODO move this code to Agent
-            if (mode.ToLowerInvariant().Equals(Constants.KubernetesMode))
-            {
-                // Start environment operator
-                IKubernetesEnvironmentOperator environmentOperator = container.Resolve<IKubernetesEnvironmentOperator>();
-                environmentOperator.Start();
-
-                // Start the edge deployment operator
-                IEdgeDeploymentOperator edgeDeploymentOperator = container.Resolve<IEdgeDeploymentOperator>();
-                edgeDeploymentOperator.Start();
             }
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)

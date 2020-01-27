@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Moq;
@@ -44,13 +45,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             await worker.Scrape(CancellationToken.None);
             Assert.Equal(1, scraper.Invocations.Count);
             Assert.Equal(1, storage.Invocations.Count);
-            Assert.Equal(testData, storedValues);
+            Assert.Equal(testData.Select(d => (d.TimeGeneratedUtc, d.Name, d.Value)), storedValues.Select(d => (d.TimeGeneratedUtc, d.Name, d.Value)));
 
             testData = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", this.rand.NextDouble())).ToArray()).ToArray();
             await worker.Scrape(CancellationToken.None);
             Assert.Equal(2, scraper.Invocations.Count);
             Assert.Equal(2, storage.Invocations.Count);
-            Assert.Equal(testData, storedValues);
+            Assert.Equal(testData.Select(d => (d.TimeGeneratedUtc, d.Name, d.Value)), storedValues.Select(d => (d.TimeGeneratedUtc, d.Name, d.Value)));
         }
 
         [Fact]
@@ -89,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         public async Task TestUploadContent()
         {
             /* test data */
-            var metrics = Enumerable.Range(1, 10).Select(i => new Metric(DateTime.UtcNow, "test_metric", 3, $"tag_{i}")).ToList();
+            var metrics = Enumerable.Range(1, 10).Select(i => new Metric(DateTime.UtcNow, "test_metric", 3, new Dictionary<string, string> { { "id", $"{i}" } })).ToList();
 
             /* Setup mocks */
             var scraper = new Mock<IMetricsScraper>();
@@ -104,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
 
             /* test */
             await worker.Upload(CancellationToken.None);
-            Assert.Equal(metrics.OrderBy(x => x.Tags), uploadedData.OrderBy(x => x.Tags));
+            TestUtilities.OrderlessCompare(metrics, uploadedData);
             Assert.Single(storage.Invocations.Where(i => i.Method.Name == "GetAllMetricsAsync"));
             Assert.Single(storage.Invocations.Where(i => i.Method.Name == "RemoveAllReturnedMetricsAsync"));
             Assert.Single(uploader.Invocations);
@@ -118,7 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             IEnumerable<Metric> Metrics()
             {
                 metricsCalls++;
-                return Enumerable.Range(1, 10).Select(i => new Metric(DateTime.UtcNow, "1", 3, $"{i}"));
+                return Enumerable.Range(1, 10).Select(i => new Metric(DateTime.UtcNow, "1", 3, new Dictionary<string, string> { { "id", $"{i}" } }));
             }
 
             /* Setup mocks */
@@ -272,7 +273,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         private IEnumerable<Metric> PrometheousMetrics(IEnumerable<(string name, double value)> modules)
         {
             string dataPoints = string.Join("\n", modules.Select(module => $@"
-edgeagent_module_start_total{{iothub=""lefitche-hub-3.azure-devices.net"",edge_device=""device4"",instance_number=""1"",module_name=""{module.name}"",module_version=""1.0""}} {module.value}
+edgeagent_module_start_total{{iothub=""lefitche-hub-3.azure-devices.net"",edge_device=""device4"",instance_number=""1"",module_name=""{module.name}"",module_version=""1.0"",{MetricsConstants.MsTelemetry}=""True""}} {module.value}
 "));
             string metricsString = $@"
 # HELP edgeagent_module_start_total Start command sent to module

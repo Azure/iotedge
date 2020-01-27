@@ -15,9 +15,9 @@ namespace TwinTester
         readonly string moduleId;
         readonly string trackingId;
 
-        public TwinEdgeOperationsResultHandler(Uri reporterUri, string moduleId, Option<string> trackingId)
+        public TwinEdgeOperationsResultHandler(Uri reportUrl, string moduleId, Option<string> trackingId)
         {
-            this.testResultReportingClient = new TestResultReportingClient { BaseUrl = reporterUri.AbsoluteUri };
+            this.testResultReportingClient = new TestResultReportingClient { BaseUrl = reportUrl.AbsoluteUri };
             this.moduleId = moduleId;
             this.trackingId = trackingId.Expect(() => new ArgumentNullException(nameof(trackingId)));
         }
@@ -27,15 +27,15 @@ namespace TwinTester
             return this.SendReportAsync($"{this.moduleId}.desiredReceived", StatusCode.DesiredPropertyReceived, desiredProperties);
         }
 
-        public Task HandleDesiredPropertyUpdateAsync(string propertyKey)
+        public Task HandleDesiredPropertyUpdateAsync(string propertyKey, string value)
         {
-            TwinCollection properties = this.GetTwinCollection(propertyKey);
+            TwinCollection properties = this.CreateTwinCollection(propertyKey, value);
             return this.SendReportAsync($"{this.moduleId}.desiredUpdated", StatusCode.DesiredPropertyUpdated, properties);
         }
 
-        public Task HandleReportedPropertyUpdateAsync(string propertyKey)
+        public Task HandleReportedPropertyUpdateAsync(string propertyKey, string value)
         {
-            TwinCollection properties = this.GetTwinCollection(propertyKey);
+            TwinCollection properties = this.CreateTwinCollection(propertyKey, value);
             return this.SendReportAsync($"{this.moduleId}.reportedUpdated", StatusCode.ReportedPropertyUpdated, properties);
         }
 
@@ -49,19 +49,25 @@ namespace TwinTester
             return Task.CompletedTask;
         }
 
-        TwinCollection GetTwinCollection(string propertyKey)
+        TwinCollection CreateTwinCollection(string propertyKey, string value)
         {
             var properties = new TwinCollection();
-            properties[propertyKey] = propertyKey;
+            properties[propertyKey] = value;
 
             return properties;
         }
 
         async Task SendReportAsync(string source, StatusCode statusCode, TwinCollection details, string exception = "")
         {
-            var result = new TwinTestResult() { Operation = statusCode.ToString(), Properties = details, ErrorMessage = exception, TrackingId = this.trackingId };
-            Logger.LogDebug($"Sending report {result.ToString()}");
-            await ModuleUtil.ReportStatus(this.testResultReportingClient, Logger, source, result.ToString(), TestOperationResultType.Twin.ToString());
+            var result = new TwinTestResult(source, DateTime.UtcNow)
+            {
+                Operation = statusCode.ToString(),
+                Properties = details,
+                ErrorMessage = exception,
+                TrackingId = this.trackingId
+            };
+            Logger.LogDebug($"Sending report {result.GetFormattedResult()}");
+            await ModuleUtil.ReportTestResultAsync(this.testResultReportingClient, Logger, result);
         }
     }
 }
