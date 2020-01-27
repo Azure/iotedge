@@ -11,7 +11,15 @@ jobs:
 ################################################################################
     displayName: Linux AMD64 Moby
     condition: and(eq(variables['run.linux.amd64.moby'], 'true'), ne(variables['agent.group'], ''))
-    timeoutInMinutes: 120
+    timeoutInMinutes: 150
+    strategy:
+      matrix:
+        test_config_1:
+          test_param_1: test_config_1_v1
+          test_param_2: test_config_1_v2
+        test_config_2:
+          test_param_1: test_config_2_v1
+          test_param_2: test_config_2_v2
     pool:
       name: $(pool.name)
       demands:
@@ -79,6 +87,8 @@ jobs:
           metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
+          param_1: '$(test_param_1)'
+          param_2: '$(test_param_2)'
 
 ################################################################################
   - job: linux_arm32v7_moby

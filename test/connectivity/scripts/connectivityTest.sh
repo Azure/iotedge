@@ -217,6 +217,12 @@ function process_args() {
         elif [ $saveNextArg -eq 24 ]; then
             METRICS_UPLOAD_TARGET="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 25 ]; then
+            PARAM_1="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 26 ]; then
+            PARAM_2="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -244,8 +250,9 @@ function process_args() {
                 '-metricsEndpointsCSV' ) saveNextArg=22;;
                 '-metricsScrapeFrequencyInSecs' ) saveNextArg=23;;
                 '-metricsUploadTarget' ) saveNextArg=24;;
+                '-param1' ) saveNextArg=25;;
+                '-param2' ) saveNextArg=26;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
-
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -419,6 +426,9 @@ function usage() {
 }
 
 process_args "$@"
+
+echo "param 1=$PARAM_1"
+echo "param 2=$PARAM_2"
 
 CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
