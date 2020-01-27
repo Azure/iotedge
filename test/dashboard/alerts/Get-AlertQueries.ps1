@@ -25,7 +25,7 @@ class Alert{
 $Alerts = New-Object System.Collections.Generic.List[Alert]
 
 $LoadGenMessagesPerMinThreshold = 50
-$TempFilterMessagesPerMinThreshold = 8 
+$TempFilterMessagesPerMinThreshold = 15 
 $UpstreamMessageRateAlertQuery = Get-Content -Path ".\queries\UpstreamMessageRate.kql" 
 $UpstreamMessageRateAlertQuery = $UpstreamMessageRateAlertQuery.Replace("<LOADGEN.THRESHOLD>", $LoadGenMessagesPerMinThreshold)
 $UpstreamMessageRateAlertQuery = $UpstreamMessageRateAlertQuery.Replace("<TEMPFILTER.THRESHOLD>", $TempFilterMessagesPerMinThreshold)
@@ -36,7 +36,7 @@ $UpstreamMessageRate = [Alert]@{
 }
 $Alerts.Add($UpstreamMessageRate)
 
-$TempSensorMessagesPerMinThreshold = 50 
+$TempSensorMessagesPerMinThreshold = 15 
 $LocalMessageRateAlertQuery = Get-Content -Path ".\queries\LocalMessageRate.kql" 
 $LocalMessageRateAlertQuery = $LocalMessageRateAlertQuery.Replace("<TEMPSENSOR.THRESHOLD>", $TempSensorMessagesPerMinThreshold)
 $LocalMessageRate = [Alert]@{
@@ -62,7 +62,7 @@ $NoLocalMessages  = [Alert]@{
 }
 $Alerts.Add($NoLocalMessages)
 
-$TwinTesterUpstreamReportedPropertyUpdatesPerMinThreshold = 15 
+$TwinTesterUpstreamReportedPropertyUpdatesPerMinThreshold = 4 
 $ReportedPropertyRateAlertQuery = Get-Content -Path ".\queries\ReportedPropertyRate.kql" 
 $ReportedPropertyRateAlertQuery = $ReportedPropertyRateAlertQuery.Replace("<TWINTESTER.THRESHOLD>", $TwinTesterUpstreamReportedPropertyUpdatesPerMinThreshold)
 $ReportedPropertyRate = [Alert]@{
@@ -80,7 +80,7 @@ $NoReportedProperties  = [Alert]@{
 }
 $Alerts.Add($NoReportedProperties)
 
-$QueueLengthThreshold = 1 
+$QueueLengthThreshold = 100 
 $QueueLengthAlertQuery = Get-Content -Path ".\queries\QueueLength.kql" 
 $QueueLengthAlertQuery = $QueueLengthAlertQuery.Replace("<QUEUELENGTH.THRESHOLD>", $QueueLengthThreshold)
 $QueueLength = [Alert]@{
@@ -90,7 +90,7 @@ $QueueLength = [Alert]@{
 }
 $Alerts.Add($QueueLength)
 
-$EdgeAgentCpuThreshold = 100 
+$EdgeAgentCpuThreshold = .90 
 $EdgeAgentCpuAlertQuery = Get-Content -Path ".\queries\EdgeAgentCpu.kql" 
 $EdgeAgentCpuAlertQuery = $EdgeAgentCpuAlertQuery.Replace("<CPU.THRESHOLD>", $EdgeAgentCpuThreshold)
 $EdgeAgentCpu = [Alert]@{
@@ -100,7 +100,7 @@ $EdgeAgentCpu = [Alert]@{
 }
 $Alerts.Add($EdgeAgentCpu)
 
-$EdgeHubCpuThreshold = 100 
+$EdgeHubCpuThreshold = .90 
 $EdgeHubCpuAlertQuery = Get-Content -Path ".\queries\EdgeHubCpu.kql" 
 $EdgeHubCpuAlertQuery = $EdgeHubCpuAlertQuery.Replace("<CPU.THRESHOLD>", $EdgeHubCpuThreshold)
 $EdgeHubCpu = [Alert]@{
@@ -110,7 +110,7 @@ $EdgeHubCpu = [Alert]@{
 }
 $Alerts.Add($EdgeHubCpu)
 
-$EdgeAgentMemoryThreshold = 100 
+$EdgeAgentMemoryThreshold = .5 
 $EdgeAgentMemoryQuery = Get-Content -Path ".\queries\EdgeAgentMemory.kql" 
 $EdgeAgentMemoryQuery = $EdgeAgentMemoryQuery.Replace("<MEMORY.THRESHOLD>", $EdgeAgentMemoryThreshold)
 $EdgeAgentMemory = [Alert]@{
@@ -120,7 +120,7 @@ $EdgeAgentMemory = [Alert]@{
 }
 $Alerts.Add($EdgeAgentMemory)
 
-$EdgeHubMemoryThreshold = 100 
+$EdgeHubMemoryThreshold = .5 
 $EdgeHubMemoryQuery = Get-Content -Path ".\queries\EdgeHubMemory.kql" 
 $EdgeHubMemoryQuery = $EdgeHubMemoryQuery.Replace("<MEMORY.THRESHOLD>", $EdgeHubMemoryThreshold)
 $EdgeHubMemory = [Alert]@{
