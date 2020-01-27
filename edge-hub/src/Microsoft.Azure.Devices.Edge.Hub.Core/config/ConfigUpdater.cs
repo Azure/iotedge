@@ -21,18 +21,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         Option<EdgeHubConfig> currentConfig;
         Option<IConfigSource> configProvider;
 
-        private ConfigUpdater(Router router, IMessageStore messageStore, TimeSpan configUpdateFrequency, Option<EdgeHubConfig> initialConfig)
+        private ConfigUpdater(Router router, IMessageStore messageStore, TimeSpan configUpdateFrequency)
         {
             this.router = Preconditions.CheckNotNull(router, nameof(router));
             this.messageStore = messageStore;
             this.configUpdateFrequency = configUpdateFrequency;
-            this.currentConfig = initialConfig;
         }
 
         public static async Task<ConfigUpdater> Create(Router router, IMessageStore messageStore, TimeSpan configUpdateFrequency, IStorageSpaceChecker storageSpaceChecker, Option<EdgeHubConfig> initialConfig)
         {
-            var instance = new ConfigUpdater(router, messageStore, configUpdateFrequency, storageSpaceChecker, initialConfig);
-            await initialConfig.ForEachAsync(async (config) => await instance.UpdateConfig(config));
+            var instance = new ConfigUpdater(router, messageStore, configUpdateFrequency, storageSpaceChecker);
+            await instance.UpdateConfig(initialConfig);
             return instance;
         }
 
@@ -41,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             Preconditions.CheckNotNull(configProvider, nameof(configProvider));
             try
             {
-                configProvider.SetConfigUpdatedCallback(this.UpdateConfig);
+                configProvider.SetConfigUpdatedCallback(this.HandleUpdateConfig);
                 this.configProvider = Option.Some(configProvider);
 
                 // Get the config and initialize the EdgeHub
@@ -84,21 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 }
                 else
                 {
-                    using (await this.updateLock.LockAsync())
-                    {
-                        await edgeHubConfig.ForEachAsync(
-                            async ehc =>
-                            {
-                                bool hasUpdates = this.currentConfig.Map(cc => !cc.Equals(ehc)).GetOrElse(true);
-                                Events.ConfigReceived(hasUpdates);
-                                if (hasUpdates)
-                                {
-                                    await this.UpdateRoutes(ehc.Routes, this.currentConfig.HasValue);
-                                    this.UpdateStoreAndForwardConfig(ehc.StoreAndForwardConfiguration);
-                                    this.currentConfig = Option.Some(ehc);
-                                }
-                            });
-                    }
+                    await this.UpdateConfig(edgeHubConfig);
                 }
             }
             catch (Exception ex)
@@ -107,17 +92,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             }
         }
 
-        async Task UpdateConfig(EdgeHubConfig edgeHubConfig)
+        async Task UpdateConfig(Option<EdgeHubConfig> edgeHubConfig)
+        {
+            using (await this.updateLock.LockAsync())
+            {
+                await edgeHubConfig.ForEachAsync(
+                    async ehc =>
+                    {
+                        bool hasUpdates = this.currentConfig.Map(cc => !cc.Equals(ehc)).GetOrElse(true);
+                        Events.ConfigReceived(hasUpdates);
+                        if (hasUpdates)
+                        {
+                            await this.UpdateRoutes(ehc.Routes, this.currentConfig.HasValue);
+                            this.UpdateStoreAndForwardConfig(ehc.StoreAndForwardConfiguration);
+                            this.currentConfig = Option.Some(ehc);
+                        }
+                    });
+            }
+        }
+
+        async Task HandleUpdateConfig(EdgeHubConfig edgeHubConfig)
         {
             Preconditions.CheckNotNull(edgeHubConfig, nameof(edgeHubConfig));
             Events.UpdatingConfig();
             try
             {
-                using (await this.updateLock.LockAsync())
-                {
-                    await this.UpdateRoutes(edgeHubConfig.Routes, true);
-                    this.UpdateStoreAndForwardConfig(edgeHubConfig.StoreAndForwardConfiguration);
-                }
+                await this.UpdateConfig(Option.Some(edgeHubConfig));
             }
             catch (Exception ex)
             {
