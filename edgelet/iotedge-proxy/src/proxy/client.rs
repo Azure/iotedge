@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use failure::{Fail, ResultExt};
-use futures::{future, Future, IntoFuture};
+use futures::{Future, IntoFuture};
 use hyper::client::connect::Connect;
 use hyper::client::HttpConnector;
 use hyper::header::HeaderValue;
 use hyper::{header, Body, Client as HyperClient, Request, Response, Uri};
 use hyper_tls::HttpsConnector;
-use log::{error, info};
+use log::info;
 
 use crate::proxy::{Config, TokenSource};
 use crate::{Error, ErrorKind};
@@ -103,28 +103,24 @@ where
     fn request(&self, req: Request<Body>) -> ResponseFuture {
         let request = format!("{} {} {:?}", req.method(), req.uri(), req.version());
 
-        let fut = self.0.request(req).then(move |result| match result {
-            Ok(response) => {
-                let body_length = response
+        let fut = self
+            .0
+            .request(req)
+            .map_err({
+                let request = request.clone();
+                |err| Error::from(err.context(ErrorKind::HttpRequest(request)))
+            })
+            .map(move |res| {
+                let body_length = res
                     .headers()
                     .get(header::CONTENT_LENGTH)
                     .and_then(|length| length.to_str().ok().map(ToString::to_string))
                     .unwrap_or_else(|| "-".to_string());
 
-                info!(
-                    "Success: \"{}\" {} {}",
-                    request,
-                    response.status(),
-                    body_length
-                );
+                info!("\"{}\" {} {}", request, res.status(), body_length);
 
-                future::ok(response)
-            }
-            Err(err) => {
-                error!("Failure: \"{}\"", request);
-                future::err(Error::from(err.context(ErrorKind::Hyper)))
-            }
-        });
+                res
+            });
 
         Box::new(fut)
     }
@@ -212,13 +208,20 @@ mod tests {
 
     #[test]
     fn it_fails_when_http_client_returns_error() {
-        let http = client_fn(|_| Err(Error::from(ErrorKind::Hyper)));
+        let http = client_fn(|_| {
+            Err(Error::from(ErrorKind::HttpRequest(
+                "GET / HTTP 1.1".to_string(),
+            )))
+        });
         let client = Client::with_client(http, config());
         let req = Request::new(Body::empty());
 
         let task = client.request(req);
 
         let err = current_thread::block_on_all(task).unwrap_err();
-        assert_eq!(err.kind(), &ErrorKind::Hyper);
+        assert_eq!(
+            err.kind(),
+            &ErrorKind::HttpRequest("GET / HTTP 1.1".to_string(),)
+        );
     }
 }

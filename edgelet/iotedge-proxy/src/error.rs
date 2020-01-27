@@ -20,8 +20,14 @@ pub enum ErrorKind {
     #[fail(display = "The proxy could not start up successfully: {}", _0)]
     Initialize(InitializeErrorReason),
 
-    #[fail(display = "HTTP connection error")]
-    Hyper,
+    #[fail(display = "Api service error")]
+    ApiService,
+
+    #[fail(display = "Proxy service error")]
+    ProxyService,
+
+    #[fail(display = "Unable to make an HTTP request: {:?}", _0)]
+    HttpRequest(String),
 
     #[fail(
         display = "Could not form well-formed URL by joining {:?} with {:?}",
@@ -103,7 +109,7 @@ impl IntoResponse for Error {
         }
 
         let status_code = match *self.kind() {
-            ErrorKind::Hyper => StatusCode::BAD_GATEWAY,
+            ErrorKind::HttpRequest(_) => StatusCode::BAD_GATEWAY,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
