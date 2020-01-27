@@ -4,8 +4,6 @@ By default, IoT Edge does not impose an ordering in the sequence in which module
 
 The processing order of modules can be controlled by specifying the value of a module-specific property called `priority` in the IoT Edge deployment. Modules that have been assigned a higher priority will be processed before modules that have been assigned a lower priority.
 
-**It must be noted that this feature is currently only supported for the in-memory database store of Edge Hub i.e., when the environment variable `UsePersistentStorage` is set to `false`. The work to support this feature for the disk-based database store is currently in progress.**
-
 ## __Use case__
 
 Customers who have an array of modules of which some are 'critical' or 'foundation' modules that are required by other modules in the ecosystem might want these modules to be started before other modules. This is so as to achieve a better end user experience where other modules don't have to wait for these 'critical' or 'foundation' modules to be started, so as to initialize themselves.
@@ -34,7 +32,7 @@ Modules that do not have a `priority` value specified will be started in a non-d
 
 Here's an example of how to set the priorities of IoT Edge modules through Az CLI:
 
-Create a deployment manifest `deployment.json` JSON file that has your IoT Edge deployment specification. More information about the IoT Edge deployment manifest can be found [here][1].
+Create a deployment manifest `deployment.json` JSON file that has your IoT Edge deployment specification. Please refer to [Learn how to deploy modules and establish routes in IoT Edge][1] for more information about the IoT Edge deployment manifest.
 
 The following sample deployment manifest illustrates how priority values of modules can be set:
 

@@ -30,7 +30,7 @@ Only when the message store decreases in size will Edge Hub start accepting new 
 
 Here's an example of how to set the store size limit for Edge Hub through Az CLI:
 
-Create a deployment manifest `deployment.json` JSON file that has your IoT Edge deployment specification. More information about the IoT Edge deployment manifest (including a sample manifest that describes the `edgeHub` configuration section of the manifest) can be found [here][1].
+Create a deployment manifest `deployment.json` JSON file that has your IoT Edge deployment specification. Please refer to [Learn how to deploy modules and establish routes in IoT Edge][1] for more information about the IoT Edge deployment manifest (including a sample manifest that describes the `edgeHub` configuration section of the manifest).
 
 The feature is specifically controlled using the following section of the `edgeHub` configuration in the deployment manifest:
 
