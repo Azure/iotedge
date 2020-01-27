@@ -72,10 +72,13 @@ jobs:
           testStartDelay: '$(testStartDelay)'
           networkController.frequencies: '$(networkController.frequencies)'
           networkController.mode: '$(networkController.mode)'
-          testResultCoordinator.logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
-          testResultCoordinator.logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
+          logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
           testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
           testResultCoordinator.verificationDelay: '$(testResultCoordinator.verificationDelay)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
+          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -144,7 +147,10 @@ jobs:
           testStartDelay: '$(testStartDelay.arm32)'
           networkController.frequencies: '$(networkController.frequencies)'
           networkController.mode: '$(networkController.mode)'
-          testResultCoordinator.logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
-          testResultCoordinator.logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
+          logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
           testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
           testResultCoordinator.verificationDelay: '$(testResultCoordinator.verificationDelay)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
+          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
