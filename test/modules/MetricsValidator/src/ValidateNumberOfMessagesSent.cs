@@ -46,12 +46,11 @@ namespace MetricsValidator
             int prevSent = await this.GetNumberOfMessagesSent(cancellationToken);
             await this.SendMessageBatches(n, m, cancellationToken);
             int newSent = await this.GetNumberOfMessagesSent(cancellationToken);
-            this.testReporter.Assert($"Reports {n * m} for {n} batches of {n}", n * m, newSent - prevSent);
+            this.testReporter.Assert($"Reports {n * m} for {n} batches of {m}", n * m, newSent - prevSent);
         }
 
         async Task<int> GetNumberOfMessagesSent(CancellationToken cancellationToken)
         {
-            log.LogInformation("Getting number of messages sent");
             var metrics = (await this.scraper.ScrapeEndpointsAsync(cancellationToken)).ToArray();
             Metric metric = metrics.FirstOrDefault(m => m.Name == "edgehub_messages_received_total" && m.Tags.TryGetValue("route_output", out string output) && output == this.endpoint);
 

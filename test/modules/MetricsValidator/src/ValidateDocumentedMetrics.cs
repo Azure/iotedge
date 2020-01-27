@@ -18,13 +18,9 @@ namespace MetricsValidator
 
     public class ValidateDocumentedMetrics : TestBase
     {
-        MetricFilter metricFilter;
-
         public ValidateDocumentedMetrics(TestReporter testReporter, IMetricsScraper scraper, ModuleClient moduleClient)
             : base(testReporter, scraper, moduleClient)
         {
-            this.metricFilter = new MetricFilter()
-                .AddTagsToRemove(MetricsConstants.MsTelemetry, MetricsConstants.IotHubLabel, MetricsConstants.DeviceIdLabel);
         }
 
         public override async Task Start(CancellationToken cancellationToken)
@@ -35,7 +31,6 @@ namespace MetricsValidator
 
             // scrape metrics
             var metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
-            metrics = this.metricFilter.FilterMetrics(metrics);
 
             var expected = this.GetExpectedMetrics();
             HashSet<string> unreturnedMetrics = new HashSet<string>(expected.Keys);
