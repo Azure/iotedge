@@ -128,9 +128,6 @@
     .PARAMETER MetricsScrapeFrequencyInSecs
         Optional frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds. 
 
-    .PARAMETER MetricsUploadTarget
-        Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics. 
-
     .EXAMPLE
         .\Run-E2ETest.ps1
             -E2ETestFolder "C:\Data\e2etests"
@@ -264,8 +261,6 @@ Param (
     [string] $MetricsEndpointsCSV = $null,
 
     [string] $MetricsScrapeFrequencyInSecs = $null,
-
-    [string] $MetricsUploadTarget = $null,
 
     [ValidateScript({($_ -as [System.Uri]).AbsoluteUri -ne $null})]
     [string] $ProxyUri = $null,
@@ -507,7 +502,6 @@ Function PrepareTestFromArtifacts
                 (Get-Content $DeploymentWorkingFilePath).replace('<ServiceClientConnectionString>',$IoTHubConnectionString) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.MetricsEndpointsCSV>',$MetricsEndpointsCSV) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.ScrapeFrequencyInSecs>',$MetricsScrapeFrequencyInSecs) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.UploadTarget>',$MetricsUploadTarget) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.AlertUrl>',$SnitchAlertUrl) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildNumber>',$SnitchBuildNumber) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildId>',"$ReleaseLabel-$(GetImageArchitectureLabel)-windows-$escapedBuildId") | Set-Content $DeploymentWorkingFilePath
@@ -1572,11 +1566,6 @@ If ([string]::IsNullOrWhiteSpace($TwinUpdateFailureThreshold))
 If ([string]::IsNullOrWhiteSpace($MetricsScrapeFrequencyInSecs))
 {
     $MetricsScrapeFrequencyInSecs=300;
-}
-
-If ([string]::IsNullOrWhiteSpace($MetricsUploadTarget))
-{
-    $MetricsScrapeFrequencyInSecs="AzureLogAnalytics";
 }
 
 If ($TestName -eq "LongHaul")

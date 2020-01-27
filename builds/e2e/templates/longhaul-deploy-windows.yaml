@@ -24,7 +24,6 @@ parameters:
   twinTester.twinUpdateFailureThreshold: ''
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
-  metricsCollector.uploadTarget: ''
 
 steps:
   - task: CopyFiles@2
@@ -74,5 +73,4 @@ steps:
           -TwinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" `
           -MetricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" `
           -MetricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" `
-          -MetricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}"
       workingDirectory: "$(Agent.HomeDirectory)/.."

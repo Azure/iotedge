@@ -28,7 +28,6 @@ parameters:
   twinTester.twinUpdateFailureThreshold: ''
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
-  metricsCollector.uploadTarget: ''
 
 steps:
   - task: CopyFiles@2
@@ -85,7 +84,6 @@ steps:
           -twinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" \
           -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
           -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
-          -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
           -cleanAll
         #Remove all pending jobs
         atrm $(atq | cut -f1)
