@@ -11,8 +11,8 @@ namespace TestResultCoordinator.Reports.DirectMethod
     {
         public DirectMethodReport(
             string trackingId,
-            string expectedSource,
-            string actualSource,
+            string senderSource,
+            Option<string> receiverSource,
             string resultType,
             ulong networkOnSuccess,
             ulong networkOffSuccess,
@@ -24,8 +24,8 @@ namespace TestResultCoordinator.Reports.DirectMethod
             ulong mismatchFailure)
             : base(trackingId, resultType)
         {
-            this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
-            this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
+            this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
+            this.ReceiverSource = receiverSource;
             this.NetworkOnSuccess = networkOnSuccess;
             this.NetworkOffSuccess = networkOffSuccess;
             this.NetworkOnToleratedSuccess = networkOnToleratedSuccess;
@@ -36,9 +36,9 @@ namespace TestResultCoordinator.Reports.DirectMethod
             this.MismatchFailure = mismatchFailure;
         }
 
-        public string ExpectedSource { get; }
+        public string SenderSource { get; }
 
-        public string ActualSource { get; }
+        public Option<string> ReceiverSource { get; }
 
         // NetworkOnSuccess is when the network is online and the DirectMethod call succeeds.
         public ulong NetworkOnSuccess { get; }
@@ -64,7 +64,8 @@ namespace TestResultCoordinator.Reports.DirectMethod
         // MismatchFailure is when the there is a result in ActualStore but no result in ExpectedStore. This should never happen.
         public ulong MismatchFailure { get; }
 
-        public override string Title => $"DirectMethod Report for [{this.ExpectedSource}] and [{this.ActualSource}] ({this.ResultType})";
+        public override string Title => this.ReceiverSource.HasValue ?
+            $"DirectMethod Report for [{this.SenderSource}] and [{this.ReceiverSource.OrDefault()}] ({this.ResultType})" : $"DirectMethod Report for [{this.SenderSource}] ({this.ResultType})";
 
         public override bool IsPassed =>
             this.MismatchFailure == 0 && this.NetworkOffFailure == 0 && this.NetworkOnFailure == 0;
