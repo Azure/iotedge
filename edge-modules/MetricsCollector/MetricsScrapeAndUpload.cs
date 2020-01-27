@@ -76,7 +76,7 @@ namespace MetricsCollector
                 }
             }
 
-            this.failedUploadMetrics.RemoveRange(0, processedCount);
+            this.failedUploadMetrics.RemoveRange(0, Math.Min(processedCount, this.failedUploadMetrics.Count));
         }
 
         IEnumerable<Metric> GetGuidTaggedMetrics(IEnumerable<Metric> metrics)
