@@ -31,8 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool clientCertAuthEnabled,
             SslProtocols sslProtocols)
         {
-            int mainPort = configuration.GetValue("httpSettings:port", 443);
-            int metricsPort = configuration.GetValue("httpSettings:metrics_port", 9600);
+            int port = configuration.GetValue("httpSettings:port", 443);
             var certificateMode = clientCertAuthEnabled ? ClientCertificateMode.AllowCertificate : ClientCertificateMode.NoCertificate;
             IWebHostBuilder webHostBuilder = new WebHostBuilder()
                 .UseKestrel(
@@ -40,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     {
                         options.Listen(
                             !Socket.OSSupportsIPv6 ? IPAddress.Any : IPAddress.IPv6Any,
-                            mainPort,
+                            port,
                             listenOptions =>
                             {
                                 listenOptions.UseHttpsExtensions(
@@ -52,8 +51,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                                         SslProtocols = sslProtocols
                                     });
                             });
-
-                        options.Listen(!Socket.OSSupportsIPv6 ? IPAddress.Any : IPAddress.IPv6Any, metricsPort);
                     })
                 .UseSockets()
                 .ConfigureServices(
