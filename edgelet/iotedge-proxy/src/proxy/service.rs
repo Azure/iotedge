@@ -188,7 +188,7 @@ mod tests {
         assert_eq!(status, StatusCode::BAD_GATEWAY);
         assert_eq!(
             body.as_ref(),
-            json!({ "message": "Unable to make an HTTP request: \"GET / HTTP/1.1\""}).to_string()
+            json!({ "message": "Could not make an HTTP request: \"GET / HTTP/1.1\""}).to_string()
         );
     }
 }
