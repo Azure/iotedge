@@ -33,7 +33,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string body = result.GetPayloadAsJson();
             Report report = JsonConvert.DeserializeObject<Report>(body, new JsonSerializerSettings() { DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate });
             Assert.Zero(report.Failed, body);
-            Console.WriteLine($"Failed: {report.Failed}\nPassed: {report.Succeeded}");
         }
 
         class Report
