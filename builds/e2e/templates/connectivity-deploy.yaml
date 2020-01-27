@@ -17,7 +17,6 @@ parameters:
   testResultCoordinator.verificationDelay: ''
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
-  metricsCollector.uploadTarget: ''
 
 steps:
   - task: CopyFiles@2
@@ -62,7 +61,6 @@ steps:
           -verificationDelay "${{ parameters['testResultCoordinator.verificationDelay'] }}" \
           -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
           -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
-          -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
           -waitForTestComplete \
           -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."

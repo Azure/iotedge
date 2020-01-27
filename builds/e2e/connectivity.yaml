@@ -78,7 +78,6 @@ jobs:
           testResultCoordinator.verificationDelay: '$(testResultCoordinator.verificationDelay)'
           metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
-          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -153,4 +152,3 @@ jobs:
           testResultCoordinator.verificationDelay: '$(testResultCoordinator.verificationDelay)'
           metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
-          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'

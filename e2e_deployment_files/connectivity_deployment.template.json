@@ -617,9 +617,6 @@
                 },
                 "ScrapeFrequencyInSecs": {
                     "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
-                },
-                "UploadTarget": {
-                  "value": "<MetricsCollector.UploadTarget>"
                 }
             },
             "settings": {
