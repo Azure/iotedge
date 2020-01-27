@@ -31,7 +31,7 @@ $lh1_windows_amd64 = [Device]@{
    Environment = "lh1"
    Platform = "Windows-x64"
 }
-$Devices.Add($lh1_linux_arm64v8)
+$Devices.Add($lh1_windows_amd64)
 
 $lh2_linux_amd64 = [Device]@{
    DeviceId = "lh2-Linux-amd64-longhaul"
@@ -59,7 +59,7 @@ $lh2_windows_amd64 = [Device]@{
    Environment = "lh2"
    Platform = "Windows-x64"
 }
-$Devices.Add($lh2_linux_arm64v8)
+$Devices.Add($lh2_windows_amd64)
 
 $lh3_linux_amd64 = [Device]@{
    DeviceId = "lh3-Linux-amd64-longhaul"
@@ -87,6 +87,6 @@ $lh3_windows_amd64 = [Device]@{
    Environment = "lh3"
    Platform = "Windows-x64"
 }
-$Devices.Add($lh3_linux_arm64v8)
+$Devices.Add($lh3_windows_amd64)
 
 Write-Output $Devices
