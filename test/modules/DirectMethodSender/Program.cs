@@ -48,7 +48,7 @@ namespace DirectMethodSender
                         Settings.Current.DirectMethodResultType,
                         batchId,
                         dmCounter,
-                        result.ToString());
+                        result);
 
                     await reportClient.SendTestResultAsync(testResult);
 
@@ -109,7 +109,7 @@ namespace DirectMethodSender
         }
 
         // Create reporting result depending on which endpoint is being used.
-        public static TestResultBase ConstructTestResult(DirectMethodResultType directMethodResultType, Guid batchId, long counter, string result)
+        public static TestResultBase ConstructTestResult(DirectMethodResultType directMethodResultType, Guid batchId, long counter, HttpStatusCode result)
         {
             string source = Settings.Current.ModuleId + ".send";
             switch (directMethodResultType)
@@ -127,7 +127,7 @@ namespace DirectMethodSender
                     return new LegacyDirectMethodTestResult(
                         source,
                         DateTime.UtcNow,
-                        result);
+                        result.ToString());
 
                 default:
                     throw new NotImplementedException("Reporting Endpoint has an unknown type");
