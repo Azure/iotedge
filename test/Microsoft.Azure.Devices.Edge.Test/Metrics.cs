@@ -24,9 +24,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             CancellationToken token = this.TestToken;
             await this.Deploy(token);
 
-            // System resource metrics wait 1 minute to start collecting.
-            await Task.Delay(TimeSpan.FromMinutes(1.5), token);
-
             var result = await this.iotHub.InvokeMethodAsync(Context.Current.DeviceId, ModuleName, new CloudToDeviceMethod("ValidateMetrics"), CancellationToken.None);
             Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
 
