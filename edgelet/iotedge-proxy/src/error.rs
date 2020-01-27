@@ -26,7 +26,7 @@ pub enum ErrorKind {
     #[fail(display = "Proxy service error")]
     ProxyService,
 
-    #[fail(display = "Unable to make an HTTP request: {:?}", _0)]
+    #[fail(display = "Could not make an HTTP request: {:?}", _0)]
     HttpRequest(String),
 
     #[fail(

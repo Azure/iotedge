@@ -62,7 +62,7 @@ where
                     response
                 }
                 Err(err) => {
-                    debug!("Finished request with processing error: {}", request);
+                    debug!("Finished request processing with error: {}", request);
 
                     logging::failure(&err);
                     err.into_response()
