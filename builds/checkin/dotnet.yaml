@@ -89,4 +89,3 @@ jobs:
           runTestsInIsolation: true
           codeCoverageEnabled: true
           publishRunAttachments: true
-          otherConsoleOptions: '/Logger: "trx;LogFileName=result.trx"'
