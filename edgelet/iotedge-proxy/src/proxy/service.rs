@@ -53,16 +53,16 @@ where
 
     fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
         let request = format!("{} {} {:?}", req.method(), req.uri(), req.version());
-        debug!("Starting request {}", request);
+        debug!("Starting request processing {}", request);
 
         let fut = self.client.request(req).then(move |result| {
             let response = match result {
                 Ok(response) => {
-                    debug!("Finished request {}", request);
+                    debug!("Finished request processing {}", request);
                     response
                 }
                 Err(err) => {
-                    debug!("Finished request with error: {}", request);
+                    debug!("Finished request processing with error: {}", request);
 
                     logging::failure(&err);
                     err.into_response()
@@ -158,7 +158,11 @@ mod tests {
 
     #[test]
     fn it_returns_502_with_error_message_on_server_unavailable_err() {
-        let http = client_fn(|_| Err(Error::from(ErrorKind::Hyper)));
+        let http = client_fn(|_| {
+            Err(Error::from(ErrorKind::HttpRequest(
+                "GET / HTTP/1.1".to_string(),
+            )))
+        });
         let client = Client::with_client(http, config());
         let req = Request::new(Body::empty());
         let mut proxy = ProxyService::new(client);
@@ -184,7 +188,7 @@ mod tests {
         assert_eq!(status, StatusCode::BAD_GATEWAY);
         assert_eq!(
             body.as_ref(),
-            json!({ "message": "HTTP connection error"}).to_string()
+            json!({ "message": "Could not make an HTTP request: \"GET / HTTP/1.1\""}).to_string()
         );
     }
 }
