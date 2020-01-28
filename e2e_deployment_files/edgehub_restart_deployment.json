@@ -85,7 +85,6 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              // BEARWASHERE -- TODO: Introduce the restarter here
               "directMethodEnable": {
                 "value": "true"
               },
@@ -113,8 +112,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-edgeHub-restart-tester:<Build.BuildNumber>-linux-<Architecture>",
-              // BEARWASHERE -- Which port should I open for DM + msg + EhRestart
-              "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}],\"9600/tcp\": [{\"HostPort\": \"9601\"}]}}}"
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "relayer1": {
