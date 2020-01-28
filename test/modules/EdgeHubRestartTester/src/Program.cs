@@ -74,6 +74,7 @@ namespace EdgeHubRestartTester
 
                     // Increment the counter when issue an edgeHub restart
                     restartCount++;
+
                     // Secretly embedded the verification info in the Seq Number
                     // Last 44 bits are package seqeunce number while the first 20 bits are restart seqeunce.
                     Interlocked.Exchange(ref messageCount, restartCount << 44);
@@ -161,9 +162,6 @@ namespace EdgeHubRestartTester
                         restartCount);
                     await ModuleUtil.ReportTestResultAsync(reportClient, Logger, restartResult);
 
-                    // BEARWASHERE -- TODO: update the TRC
-                    //  2. Use the MetaData in the deployment
-
                     // Wait to do another restart
                     await Task.Delay((int)(eachTestExpirationTime - DateTime.UtcNow).TotalMilliseconds, cts.Token);
                 }
@@ -195,8 +193,9 @@ namespace EdgeHubRestartTester
         {
             switch (testOperationResultType)
             {
+                // BEARWASHERE -- Create the two new types to send the report for DM & MSG
                 case TestOperationResultType.Messages:
-                    return new MessageTestResult(
+                    return new EdgeHubRestartMessageResult(
                         Settings.Current.ModuleId + testOperationResultType.ToString(),
                         completedTime)
                     {

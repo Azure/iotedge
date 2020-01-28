@@ -4,7 +4,7 @@ namespace TestResultCoordinator.Reports
     public enum TestReportType
     {
         CountingReport,
-        EdgeHubRestartReport,
+        EdgeHubRestartMessageResult,
         TwinCountingReport,
         DeploymentTestReport,
         DirectMethodReport,
