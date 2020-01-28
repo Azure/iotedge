@@ -72,6 +72,8 @@ jobs:
   - job: code_coverage
 ################################################################################
     displayName: Code coverage
+    variables:
+      coverage.goal: 14
     pool:
       vmImage: vs2017-win2016
     steps:
@@ -98,3 +100,10 @@ jobs:
           testRunner: VSTest
           testResultsFiles: '$(Agent.TempDirectory)/TestResults/*.trx'
         condition: succeededOrFailed()
+      - task: mspremier.BuildQualityChecks.QualityChecks-task.BuildQualityChecks@5
+        displayName: 'Check build quality'
+        inputs:
+          checkCoverage: true
+          coverageFailOption: fixed
+          coverageType: lines
+          coverageThreshold: $(coverage.goal)
