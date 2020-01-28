@@ -93,5 +93,5 @@ jobs:
         displayName: Publish code coverage
         inputs:
           testRunner: VSTest
-          testResultsFiles: '**/TestResults/*.trx'
+          testResultsFiles: '$(Agent.TempDirectory)/TestResults/*.trx'
         condition: succeededOrFailed()
