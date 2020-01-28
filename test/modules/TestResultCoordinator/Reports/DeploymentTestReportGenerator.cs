@@ -145,7 +145,6 @@ namespace TestResultCoordinator.Reports
                 unmatchedResults.AsReadOnly());
         }
 
-
         void ValidateResult(TestOperationResult current, string expectedSource)
         {
             if (!current.Source.Equals(expectedSource, StringComparison.OrdinalIgnoreCase))

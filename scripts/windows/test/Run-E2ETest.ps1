@@ -522,6 +522,8 @@ Function PrepareTestFromArtifacts
                 (Get-Content $DeploymentWorkingFilePath).replace('<TwinUpdateSize>',$TwinUpdateSize) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<TwinUpdateFrequency>',$TwinUpdateFrequency) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<TwinUpdateFailureThreshold>',$TwinUpdateFailureThreshold) | Set-Content $DeploymentWorkingFilePath
+                $TrackingId = New-Guid
+                (Get-Content $DeploymentWorkingFilePath).replace('<TrackingId>',$TrackingId) | Set-Content $DeploymentWorkingFilePath
             }
             "TempFilter"
             {
