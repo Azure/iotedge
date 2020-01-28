@@ -79,7 +79,7 @@ jobs:
           dotnet build -o target
         displayName: Build
       - task: VSTest@2
-        displayName: Run unit tests and publish code coverage
+        displayName: Run unit tests with code coverage
         inputs:
           testSelector: testAssemblies
           testAssemblyVer2: |
@@ -89,3 +89,9 @@ jobs:
           runTestsInIsolation: true
           codeCoverageEnabled: true
           publishRunAttachments: true
+      - task: PublishTestResults@2
+        displayName: Publish code coverage
+        inputs:
+          testRunner: VSTest
+          testResultsFiles: '**/TestResults/*.trx'
+        condition: succeededOrFailed()
