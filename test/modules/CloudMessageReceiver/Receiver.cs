@@ -57,9 +57,11 @@ namespace CloudMessageReceiver
             {
                 this.logger.LogInformation("Ready to receive message");
                 Message message = await this.deviceClient.ReceiveAsync();
-                this.logger.LogInformation($"Message received: {message}. Sending message to TRC");
+                this.logger.LogInformation($"Message received. " +
+                    $"Sequence Number: {message.Properties[TestConstants.Message.SequenceNumberPropertyName]}, " +
+                    $"batchId: {message.Properties[TestConstants.Message.BatchIdPropertyName]}, " +
+                    $"trackingId: {message.Properties[TestConstants.Message.TrackingIdPropertyName]}.");
                 await this.ReportTestResult(message);
-                this.logger.LogInformation("Message sent successfully to TRC.");
             }
         }
     }

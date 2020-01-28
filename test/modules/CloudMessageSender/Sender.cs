@@ -46,6 +46,7 @@ namespace CloudMessageSender
 
         public async Task<MessageTestResult> SendCloudToDeviceMessageAsync(Guid batchId, string trackingId)
         {
+            this.logger.LogInformation($"Sending C2D message to deviceId: {this.deviceId} with Sequence Number: {this.messageCount}, batchId: {batchId}, and trackingId: {trackingId}");
             try
             {
                 var message = new Message(Encoding.ASCII.GetBytes("Cloud to device message."));
