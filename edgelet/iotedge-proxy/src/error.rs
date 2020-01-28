@@ -6,9 +6,9 @@ use std::fmt::Display;
 use failure::{Backtrace, Context, Fail};
 use hyper::{header, Body, Response, StatusCode};
 use serde_json::json;
+use url::Url;
 
 use crate::IntoResponse;
-use url::Url;
 
 #[derive(Debug)]
 pub struct Error {
@@ -29,14 +29,8 @@ pub enum ErrorKind {
     #[fail(display = "Could not make an HTTP request: {:?}", _0)]
     HttpRequest(String),
 
-    #[fail(
-        display = "Could not form well-formed URL by joining {:?} with {:?}",
-        _0, _1
-    )]
-    UrlJoin(Url, String),
-
     #[fail(display = "Invalid URI to parse: {:?}", _0)]
-    Uri(Url),
+    Uri(String),
 
     #[fail(display = "Invalid HTTP header value {:?}", _0)]
     HeaderValue(String),
