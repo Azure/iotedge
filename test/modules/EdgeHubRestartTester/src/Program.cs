@@ -144,23 +144,16 @@ namespace EdgeHubRestartTester
 
                         TestResultBase dmTestResult = CreateTestResult(
                         TestOperationResultType.DirectMethod,
+                        restartTime,
+                        restartStatus,
                         dmCompletedTime,
                         dmStatusCode,
-                        batchId.ToString(),
+                        batchId,
                         Interlocked.Read(ref directMethodCount));
+                        // BEARWASHERE -- Add restart sequence number to the two reporting type
 
                         await ModuleUtil.ReportTestResultAsync(reportClient, Logger, dmTestResult);
                     }
-
-                    // Generate reports, the new report type
-                    // BEARWASHERE -- Think about a new reporting type to deal with this
-                    TestResultBase restartResult = CreateTestResult(
-                        TestOperationResultType.EdgeHubRestart,
-                        restartTime,
-                        restartStatus,
-                        batchId.ToString(),
-                        restartCount);
-                    await ModuleUtil.ReportTestResultAsync(reportClient, Logger, restartResult);
 
                     // Wait to do another restart
                     await Task.Delay((int)(eachTestExpirationTime - DateTime.UtcNow).TotalMilliseconds, cts.Token);
@@ -186,10 +179,12 @@ namespace EdgeHubRestartTester
 
         static TestResultBase CreateTestResult(
             TestOperationResultType testOperationResultType,
+            DateTime edgeHubRestartedTime,
+            HttpStatusCode edgeHubRestartStatusCode,
             DateTime completedTime,
             HttpStatusCode completedStatus,
-            string batchId = "",
-            long sequenceNumber = 0)
+            Guid batchId,
+            long sequenceNumber)
         {
             switch (testOperationResultType)
             {
@@ -197,29 +192,25 @@ namespace EdgeHubRestartTester
                 case TestOperationResultType.Messages:
                     return new EdgeHubRestartMessageResult(
                         Settings.Current.ModuleId + testOperationResultType.ToString(),
-                        completedTime)
-                    {
-                        TrackingId = Settings.Current.TrackingId,
-                        BatchId = batchId,
-                        SequenceNumber = sequenceNumber.ToString()
-                    };
-
-                case TestOperationResultType.DirectMethod:
-                    return new DirectMethodTestResult(
-                        Settings.Current.ModuleId + testOperationResultType.ToString(),
-                        completedTime,
+                        DateTime.UtcNow,
                         Settings.Current.TrackingId,
-                        Guid.Parse(batchId),
+                        batchId.ToString(),
                         sequenceNumber.ToString(),
+                        edgeHubRestartedTime,
+                        edgeHubRestartStatusCode,
+                        completedTime,
                         completedStatus);
 
-                case TestOperationResultType.EdgeHubRestart:
-                    return new EdgeHubRestartResult(
+                case TestOperationResultType.DirectMethod:
+                    return new EdgeHubRestartDirectMethodResult(
                         Settings.Current.ModuleId + testOperationResultType.ToString(),
-                        completedTime,
+                        DateTime.UtcNow,
                         Settings.Current.TrackingId,
-                        Guid.Parse(batchId),
+                        batchId,
                         sequenceNumber.ToString(),
+                        edgeHubRestartedTime,
+                        edgeHubRestartStatusCode,
+                        completedTime,
                         completedStatus);
 
                 default:

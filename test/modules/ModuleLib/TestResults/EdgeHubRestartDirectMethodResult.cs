@@ -6,38 +6,41 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
-    public class EdgeHubRestartMessageResult : MessageTestResult
+    public class EdgeHubRestartDirectMethodResult : DirectMethodTestResult
     {
-        public EdgeHubRestartMessageResult(
+        public EdgeHubRestartDirectMethodResult(
             string source,
             DateTime createdAt,
             string trackingId,
-            string batchId,
+            Guid batchId,
             string sequenceNumber,
             DateTime edgeHubRestartedTime,
             HttpStatusCode edgeHubRestartStatusCode,
-            DateTime messageCompletedTime,
-            HttpStatusCode messageCompletedStatusCode)
-            : base(source, createdAt)
+            DateTime directMethodCompletedTime,
+            HttpStatusCode directMethodCompletedStatusCode)
+            : base(
+                source,
+                createdAt,
+                trackingId,
+                batchId,
+                sequenceNumber,
+                directMethodCompletedStatusCode)
         {
-            this.TrackingId = trackingId;
-            this.BatchId = batchId;
-            this.SequenceNumber = sequenceNumber;
             this.EdgeHubRestartedTime = Preconditions.CheckNotNull(edgeHubRestartedTime, nameof(edgeHubRestartedTime));
             this.EdgeHubRestartStatusCode = Preconditions.CheckNotNull(edgeHubRestartStatusCode, nameof(edgeHubRestartStatusCode));
-            this.MessageCompletedTime = Preconditions.CheckNotNull(messageCompletedTime, nameof(messageCompletedTime));
-            this.MessageCompletedStatusCode = Preconditions.CheckNotNull(messageCompletedStatusCode, nameof(messageCompletedStatusCode));
+            this.DirectMethodCompletedTime = Preconditions.CheckNotNull(directMethodCompletedTime, nameof(directMethodCompletedTime));
+            this.DirectMethodCompletedStatusCode = Preconditions.CheckNotNull(directMethodCompletedStatusCode, nameof(directMethodCompletedStatusCode));
         }
 
         DateTime EdgeHubRestartedTime { get; set; }
 
         public HttpStatusCode EdgeHubRestartStatusCode { get; set; }
 
-        public DateTime MessageCompletedTime { get; set; }
+        public DateTime DirectMethodCompletedTime { get; set; }
 
-        public HttpStatusCode MessageCompletedStatusCode { get; set; }
+        public HttpStatusCode DirectMethodCompletedStatusCode { get; set; }
 
-        public string GetMessageTestResult()
+        public string GetDirectMethodTestResult()
         {
             return base.GetFormattedResult();
         }
