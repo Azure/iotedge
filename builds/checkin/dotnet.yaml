@@ -67,3 +67,23 @@ jobs:
           testRunner: VSTest
           testResultsFiles: '**/TestResults/*.trx'
         condition: succeededOrFailed()
+
+################################################################################
+  - job: code_coverage
+################################################################################
+    displayName: Code coverage
+    pool:
+      vmImage: vs2017-win2016
+    steps:
+      - task: VSTest@2
+        displayName: Run unit tests and publish code coverage
+        inputs:
+          testSelector: testAssemblies
+          testAssemblyVer2: |
+            **\Microsoft.Azure*Test.dll
+          testFiltercriteria: Category=Unit
+          runInParallel: true
+          runTestsInIsolation: true
+          codeCoverageEnabled: true
+          publishRunAttachments: true
+          otherConsoleOptions: '/Logger: "trx;LogFileName=result.trx"'
