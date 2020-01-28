@@ -31,7 +31,7 @@ jobs:
             IotDevice3ConnStr2,
             IotHubConnStr2,
             IotHubMqttHeadCert
-      - task: DotNetCoreInstaller@0
+      - task: UseDotNet@2
         displayName: Install .NET Core
         inputs:
           packageType: sdk
@@ -110,7 +110,7 @@ jobs:
             IotDevice3ConnStr2,
             IotHubConnStr2,
             IotHubMqttHeadCert
-      - task: DotNetCoreInstaller@0
+      - task: UseDotNet@2
         displayName: Install .NET Core
         inputs:
           packageType: sdk
