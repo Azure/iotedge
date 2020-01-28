@@ -73,7 +73,7 @@ jobs:
 ################################################################################
     displayName: Code coverage
     variables:
-      coverage.goal: 14
+      coverage.goal: 13
     pool:
       vmImage: vs2017-win2016
     steps:
