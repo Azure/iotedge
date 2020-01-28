@@ -74,7 +74,7 @@ where
                 // add authorization header with bearer token to authenticate request
                 if let Some(token) = self.config.token().get() {
                     let token = HeaderValue::from_str(format!("Bearer {}", token).as_str())
-                        .context(ErrorKind::HeaderValue("Authorization".to_owned()))?;
+                        .with_context(|_| ErrorKind::HeaderValue("Authorization".to_owned()))?;
 
                     req.headers_mut().insert(header::AUTHORIZATION, token);
                 }
@@ -87,28 +87,28 @@ where
     }
 }
 
-fn build_uri(destination_url: Url, requested_uri: &Uri) -> Result<Uri, Error> {
+fn build_uri(base_url: Url, requested_uri: &Uri) -> Result<Uri, Error> {
     let path = percent_decode(requested_uri.path().as_bytes())
         .decode_utf8()
-        .context(ErrorKind::Uri(requested_uri.to_string()))?;
+        .with_context(|_| ErrorKind::Uri(requested_uri.to_string()))?;
 
     let query = requested_uri
         .query()
         .map(|query| {
             percent_decode(query.as_bytes())
                 .decode_utf8()
-                .context(ErrorKind::Uri(requested_uri.to_string()))
+                .with_context(|_| ErrorKind::Uri(requested_uri.to_string()))
         })
         .transpose()?;
 
-    let mut url = destination_url;
-    url.set_path(&path);
-    url.set_query(query.as_ref().map(AsRef::as_ref));
+    let mut destination_url = base_url;
+    destination_url.set_path(&path);
+    destination_url.set_query(query.as_ref().map(AsRef::as_ref));
 
-    let full_uri = url
+    let full_uri = destination_url
         .as_str()
         .parse::<Uri>()
-        .context(ErrorKind::Uri(url.to_string()))?;
+        .with_context(|_| ErrorKind::Uri(destination_url.to_string()))?;
     Ok(full_uri)
 }
 
