@@ -20,7 +20,7 @@ namespace EdgeHubRestartTester
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("EdgeHubRestartTester");
 
-        static UInt32 restartCount = 0;
+        static uint restartCount = 0;
         static long messageCount = 0;
         static long directMethodCount = 0;
 
@@ -187,7 +187,7 @@ namespace EdgeHubRestartTester
             DateTime completedTime,
             HttpStatusCode completedStatus,
             Guid batchId,
-            UInt32 restartSequenceNumber,
+            uint restartSequenceNumber,
             long sequenceNumber)
         {
             switch (testOperationResultType)

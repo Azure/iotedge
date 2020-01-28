@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
             HttpStatusCode edgeHubRestartStatusCode,
             DateTime messageCompletedTime,
             HttpStatusCode messageCompletedStatusCode,
-            UInt32 restartSequenceNumber)
+            uint restartSequenceNumber)
             : base(source, createdAt)
         {
             this.TrackingId = trackingId;
@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
 
         public HttpStatusCode MessageCompletedStatusCode { get; set; }
 
-        public UInt32 RestartSequenceNumber { get; set; }
+        public uint RestartSequenceNumber { get; set; }
 
         public string GetMessageTestResult()
         {
