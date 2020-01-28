@@ -132,7 +132,7 @@
         Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics. 
 
     .PARAMETER HostPlatform
-         Describes the host OS and cpu architecture.
+         Describes the host OS and cpu architecture. This information is added to scraped metrics.
 
     .EXAMPLE
         .\Run-E2ETest.ps1
@@ -1501,6 +1501,7 @@ Function ValidateTestParameters
         If ([string]::IsNullOrEmpty($SnitchAlertUrl)) {Throw "Required snith alert URL."}
         If ([string]::IsNullOrEmpty($SnitchStorageAccount)) {Throw "Required snitch storage account."}
         If ([string]::IsNullOrEmpty($SnitchStorageMasterKey)) {Throw "Required snitch storage master key."}
+        If ([string]::IsNullOrEmpty($HostPlatform)) {Throw "Required host platform."}
         If ($ProxyUri) {Throw "Proxy not supported for $TestName test"}
     }
 }

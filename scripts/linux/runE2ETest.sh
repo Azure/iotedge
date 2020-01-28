@@ -988,6 +988,11 @@ function validate_test_parameters() {
             print_error "Required snitch storage master key."
             ((error++))
         fi
+
+        if [[ -z "$HOST_PLATFORM" ]]; then
+            print_error "Required host platform."
+            ((error++))
+        fi
     fi
 
     if (( error > 0 )); then
@@ -1045,7 +1050,7 @@ function usage() {
     echo ' -metricsEndpointsCSV              Optional csv of exposed endpoints for which to scrape metrics.'
     echo ' -metricsScrapeFrequencyInSecs     Optional frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
     echo ' -metricsUploadTarget              Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
-    echo ' -hostPlatform                     Describes the host OS and cpu architecture.'
+    echo ' -hostPlatform                     Describes the host OS and cpu architecture. This information is added to scraped metrics.'
     exit 1;
 }
 
