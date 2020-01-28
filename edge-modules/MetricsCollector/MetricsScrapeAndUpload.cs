@@ -9,10 +9,6 @@ namespace MetricsCollector
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using Newtonsoft.Json;
-    using Serilog;
-    using Serilog.Core;
-    using Serilog.Events;
     using ILogger = Microsoft.Extensions.Logging.ILogger;
 
     class MetricsScrapeAndUpload : IDisposable
@@ -20,15 +16,14 @@ namespace MetricsCollector
         static readonly ILogger Logger = MetricsUtil.CreateLogger("MetricsCollector");
         readonly IMetricsScraper scraper;
         readonly IMetricsPublisher publisher;
+        readonly Dictionary<string, string> additionalTags;
         PeriodicTask periodicScrapeAndUpload;
-        Guid metricsCollectorRuntimeId;
 
-        public MetricsScrapeAndUpload(IMetricsScraper scraper, IMetricsPublisher publisher, Guid metricsCollectorRuntimeId)
+        public MetricsScrapeAndUpload(IMetricsScraper scraper, IMetricsPublisher publisher, Dictionary<string, string> additionalTags)
         {
             this.scraper = Preconditions.CheckNotNull(scraper);
             this.publisher = Preconditions.CheckNotNull(publisher);
-            Preconditions.CheckArgument(metricsCollectorRuntimeId != Guid.Empty);
-            this.metricsCollectorRuntimeId = metricsCollectorRuntimeId;
+            this.additionalTags = Preconditions.CheckNotNull(additionalTags);
         }
 
         public void Start(TimeSpan scrapeAndUploadInterval)
@@ -59,9 +54,13 @@ namespace MetricsCollector
         {
             foreach (Metric metric in metrics)
             {
-                Dictionary<string, string> tagsWithGuid = new Dictionary<string, string>(metric.Tags);
-                tagsWithGuid.Add("guid", this.metricsCollectorRuntimeId.ToString());
-                yield return new Metric(metric.TimeGeneratedUtc, metric.Name, metric.Value, tagsWithGuid);
+                Dictionary<string, string> metricTags = new Dictionary<string, string>(metric.Tags);
+                foreach (KeyValuePair<string, string> pair in this.additionalTags)
+                {
+                    metricTags[pair.Key] = pair.Value;
+                }
+
+                yield return new Metric(metric.TimeGeneratedUtc, metric.Name, metric.Value, metricTags);
             }
         }
     }

@@ -2203,6 +2203,9 @@ mod tests {
     #[cfg(unix)]
     static GOOD_SETTINGS_EXTERNAL: &str =
         "../edgelet-docker/test/linux/sample_settings.external.1.yaml";
+    #[cfg(unix)]
+    static SETTINGS_DEFAULT_CERT: &str =
+        "../edgelet-docker/test/linux/sample_settings_default_cert.yaml";
 
     #[cfg(windows)]
     static GOOD_SETTINGS: &str = "../edgelet-docker/test/windows/sample_settings.yaml";
@@ -2226,6 +2229,9 @@ mod tests {
     #[cfg(windows)]
     static GOOD_SETTINGS_EXTERNAL: &str =
         "../edgelet-docker/test/windows/sample_settings.external.1.yaml";
+    #[cfg(windows)]
+    static SETTINGS_DEFAULT_CERT: &str =
+        "../edgelet-docker/test/windows/sample_settings_default_cert.yaml";
 
     #[derive(Clone, Copy, Debug, Fail)]
     pub struct Error;
@@ -2377,6 +2383,17 @@ mod tests {
             ErrorKind::Initialize(InitializeErrorReason::LoadSettings) => (),
             kind => panic!("Expected `LoadSettings` but got {:?}", kind),
         }
+    }
+
+    #[test]
+    fn settings_manual_without_cert_uses_default() {
+        let _guard = LOCK.lock().unwrap();
+
+        let settings = Settings::new(Path::new(SETTINGS_DEFAULT_CERT)).unwrap();
+        assert_eq!(
+            u64::from(DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS) * 86_400,
+            settings.certificates().auto_generated_ca_lifetime_seconds()
+        );
     }
 
     #[test]
