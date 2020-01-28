@@ -57,7 +57,6 @@ namespace DeploymentTester
             try
             {
                 registryManager = RegistryManager.CreateFromConnectionString(Settings.Current.IoTHubConnectionString.OrDefault());
-                JObject deploymentJson = await GetEdgeAgentDeploymentManifestJsonAsync(registryManager, Settings.Current.DeviceId);
 
                 DateTime testStartAt = DateTime.UtcNow;
                 long count = 1;
@@ -65,6 +64,8 @@ namespace DeploymentTester
 
                 while (!cts.IsCancellationRequested && DateTime.UtcNow - testStartAt < Settings.Current.TestDuration)
                 {
+                    JObject deploymentJson = await GetEdgeAgentDeploymentManifestJsonAsync(registryManager, Settings.Current.DeviceId);
+
                     KeyValuePair<string, string> newEnvVar = AddEnvironmentValue(deploymentJson, Settings.Current.TargetModuleId.OrDefault(), count);
                     ConfigurationContent configContent = JsonConvert.DeserializeObject<ConfigurationContent>(deploymentJson.ToString());
                     await registryManager.ApplyConfigurationContentOnDeviceAsync(Settings.Current.DeviceId, configContent);
