@@ -208,14 +208,14 @@
           "reportMetadata1": {
             "TestReportType": "EdgeHubRestartDirectMethodResult",
             "TestOperationResultType": "DirectMethod",
-            "SenderSource": "loadGen1.send",
-            "ReceiverSource": "relayer1.receive"
+            "SenderSource": "edgeHubRestartTester1.DirectMethod",
+            "ReceiverSource": "directMethodReceiver1.receive"
           },
           "reportMetadata2": {
             "TestReportType": "EdgeHubRestartMessageResult",
             "TestOperationResultType": "Messages",
-            "SenderSource": "relayer1.send",
-            "ReceiverSource": "relayer1.eventHub"
+            "SenderSource": "edgeHubRestartTester1.Messages",
+            "ReceiverSource": "relayer1.receive"
           }
         }
       }
