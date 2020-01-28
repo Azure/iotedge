@@ -71,8 +71,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
 
             configProvider.Setup(c => c.SetConfigUpdatedCallback(It.IsAny<Func<EdgeHubConfig, Task>>()));
 
+            var initialConfigSource = new Mock<IConfigSource>();
+            initialConfigSource.Setup(c => c.GetConfig())
+                .Returns(() =>
+                {
+                    return Task.FromResult(Option.Some(edgeHubConfig1));
+                });
+
             // Act
-            var configUpdater = await ConfigUpdater.Create(router, messageStore.Object, updateFrequency, storageSpaceChecker.Object, Option.Some(edgeHubConfig1));
+            var configUpdater = new ConfigUpdater(router, messageStore.Object, updateFrequency, storageSpaceChecker.Object, Option.Some(initialConfigSource.Object));
             await configUpdater.Init(configProvider.Object);
 
             // Assert
@@ -126,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             configProvider.Setup(c => c.SetConfigUpdatedCallback(It.IsAny<Func<EdgeHubConfig, Task>>()));
 
             // Act
-            var configUpdater = await ConfigUpdater.Create(router, messageStore.Object, updateFrequency, storageSpaceChecker.Object, Option.None<EdgeHubConfig>());
+            var configUpdater = new ConfigUpdater(router, messageStore.Object, updateFrequency, storageSpaceChecker.Object, Option.None<IConfigSource>());
             await configUpdater.Init(configProvider.Object);
 
             // Assert
@@ -217,7 +224,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             configProvider.Setup(c => c.SetConfigUpdatedCallback(It.IsAny<Func<EdgeHubConfig, Task>>()));
 
             // Act
-            var configUpdater = await ConfigUpdater.Create(router, messageStore.Object, updateFrequency, storageSpaceChecker.Object, Option.None<EdgeHubConfig>());
+            var configUpdater = new ConfigUpdater(router, messageStore.Object, updateFrequency, storageSpaceChecker.Object, Option.None<IConfigSource>());
             await configUpdater.Init(configProvider.Object);
 
             // Assert
@@ -327,7 +334,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
                 .Callback<Func<EdgeHubConfig, Task>>(callback => { updateCallback = callback; });
 
             // Act
-            var configUpdater = await ConfigUpdater.Create(router, messageStore.Object, updateFrequency, storageSpaceChecker.Object, Option.None<EdgeHubConfig>());
+            var configUpdater = new ConfigUpdater(router, messageStore.Object, updateFrequency, storageSpaceChecker.Object, Option.None<IConfigSource>());
             await configUpdater.Init(configProvider.Object);
 
             // Assert

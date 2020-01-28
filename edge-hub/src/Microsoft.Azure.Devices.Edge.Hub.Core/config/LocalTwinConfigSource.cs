@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         {
             try
             {
-                Option<IMessage> twinMessage = await this.twinManager.GetLocalTwinAsync(this.id);
+                Option<IMessage> twinMessage = await this.twinManager.GetCachedTwinAsync(this.id);
 
                 var config = twinMessage.FlatMap((message) =>
                 {

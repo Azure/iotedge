@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             return this.twinConverter.ToMessage(twin);
         }
 
-        public async Task<Option<IMessage>> GetLocalTwinAsync(string id)
+        public async Task<Option<IMessage>> GetCachedTwinAsync(string id)
         {
             Option<Twin> storedTwin = await this.twinStore.Get(id);
             return storedTwin.Map(twin => this.twinConverter.ToMessage(twin));
