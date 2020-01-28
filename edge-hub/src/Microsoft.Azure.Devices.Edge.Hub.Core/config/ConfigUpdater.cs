@@ -21,18 +21,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         Option<EdgeHubConfig> currentConfig;
         Option<IConfigSource> configProvider;
 
-        private ConfigUpdater(Router router, IMessageStore messageStore, TimeSpan configUpdateFrequency)
+        public ConfigUpdater(Router router, IMessageStore messageStore, TimeSpan configUpdateFrequency, Option<IConfigSource> initialConfigProvider)
         {
             this.router = Preconditions.CheckNotNull(router, nameof(router));
             this.messageStore = messageStore;
             this.configUpdateFrequency = configUpdateFrequency;
-        }
-
-        public static async Task<ConfigUpdater> Create(Router router, IMessageStore messageStore, TimeSpan configUpdateFrequency, IStorageSpaceChecker storageSpaceChecker, Option<EdgeHubConfig> initialConfig)
-        {
-            var instance = new ConfigUpdater(router, messageStore, configUpdateFrequency, storageSpaceChecker);
-            await instance.UpdateConfig(initialConfig);
-            return instance;
+            this.storageSpaceChecker = Preconditions.CheckNotNull(storageSpaceChecker, nameof(storageSpaceChecker));
+            this.configProvider = initialConfigProvider;
         }
 
         public async Task Init(IConfigSource configProvider)
@@ -40,6 +35,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             Preconditions.CheckNotNull(configProvider, nameof(configProvider));
             try
             {
+                // first try to update config with the initialConfigProvider
+                await this.PullConfig();
+
                 configProvider.SetConfigUpdatedCallback(this.HandleUpdateConfig);
                 this.configProvider = Option.Some(configProvider);
 

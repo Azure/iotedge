@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             return twin;
         }
 
-        public Task<Option<IMessage>> GetLocalTwinAsync(string id)
+        public Task<Option<IMessage>> GetCachedTwinAsync(string id)
         {
             return Task.FromResult(Option.None<IMessage>());
         }

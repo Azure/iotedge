@@ -516,18 +516,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         var twinManagerTask = c.Resolve<Task<ITwinManager>>();
                         var twinMessageConverter = c.Resolve<Core.IMessageConverter<Twin>>();
                         var twinManager = await twinManagerTask;
-                        Option<EdgeHubConfig> prefetchConfig;
+                        Option<IConfigSource> prefetchConfigSource;
                         if (this.useTwinConfig)
                         {
-                            var localConfigSource = new LocalTwinConfigSource(edgeHubCredentials.Identity.Id, twinManager, twinMessageConverter, routeFactory);
-                            prefetchConfig = await localConfigSource.GetConfig();
+                            prefetchConfigSource = Option.Some((IConfigSource)new LocalTwinConfigSource(edgeHubCredentials.Identity.Id, twinManager, twinMessageConverter, routeFactory));
                         }
                         else
                         {
-                            prefetchConfig = Option.None<EdgeHubConfig>();
+                            prefetchConfigSource = Option.None<IConfigSource>();
                         }
 
-                        var configUpdater = await ConfigUpdater.Create(router, messageStore, this.configUpdateFrequency, prefetchConfig);
+                        var configUpdater = new ConfigUpdater(router, messageStore, this.configUpdateFrequency, prefetchConfigSource);
                         return configUpdater;
                     })
                 .As<Task<ConfigUpdater>>()
