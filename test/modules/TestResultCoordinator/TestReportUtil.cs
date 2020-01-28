@@ -10,6 +10,7 @@ namespace TestResultCoordinator
     using Newtonsoft.Json.Linq;
     using TestResultCoordinator.Reports;
     using TestResultCoordinator.Reports.DirectMethod;
+    using TestResultCoordinator.Reports.EdgeHubRestartTest;
 
     static class TestReportUtil
     {
@@ -76,6 +77,9 @@ namespace TestResultCoordinator
                     {
                         case TestReportType.CountingReport:
                             reportMetadataList.Add(JsonConvert.DeserializeObject<CountingReportMetadata>(((JProperty)metadata).Value.ToString()));
+                            break;
+                        case TestReportType.EdgeHubRestartDirectMethodResult:
+                            reportMetadataList.Add(JsonConvert.DeserializeObject<EdgeHubRestartMessageReportMetadata>(((JProperty)metadata).Value.ToString()));
                             break;
                         case TestReportType.TwinCountingReport:
                             reportMetadataList.Add(JsonConvert.DeserializeObject<TwinCountingReportMetadata>(((JProperty)metadata).Value.ToString()));
