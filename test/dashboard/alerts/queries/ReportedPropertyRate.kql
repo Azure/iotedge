@@ -7,16 +7,20 @@ let mostRecentTestId = toscalar(sanitizedTestMetrics
 | take 1
 | project testId);
 let filtered = sanitizedTestMetrics
-| where testId == mostRecentTestId
-| where TimeGenerated > now() - 75m and TimeGenerated < now() - 1h;
-let ReportedPropertiesSentToUpstreamAtEndTime = filtered
+| where testId == mostRecentTestId;
+let filteredWithMaxTime = filtered
+| summarize maxTimeGenerated = max(TimeGenerated);
+let maxTimeGenerated = toscalar(filteredWithMaxTime);
+let alertContext = filtered
+| where TimeGenerated < maxTimeGenerated and TimeGenerated > maxTimeGenerated - <ALERTING.INTERVAL>m;
+let ReportedPropertiesSentToUpstreamAtEndTime = alertContext
 | project device, moduleName, reportedPropertyTarget, Name_s, value, TimeGenerated
 | where Name_s == "edgehub_reported_properties_total"
 | where reportedPropertyTarget == "upstream"
 | summarize arg_max(TimeGenerated, *) by moduleName
 | extend upstreamReportedPropertiesEnd = value
 | project-away device, reportedPropertyTarget, TimeGenerated, value, Name_s;
-let ReportedPropertiesSentToUpstreamAtStartTime = filtered
+let ReportedPropertiesSentToUpstreamAtStartTime = alertContext
 | project device, moduleName, reportedPropertyTarget, Name_s, value, TimeGenerated
 | where Name_s == "edgehub_reported_properties_total"
 | where reportedPropertyTarget == "upstream"
@@ -26,7 +30,7 @@ let ReportedPropertiesSentToUpstreamAtStartTime = filtered
 let ReportedPropertiesSentToUpstream = ReportedPropertiesSentToUpstreamAtEndTime
 | join kind = inner(ReportedPropertiesSentToUpstreamAtStartTime) on moduleName
 | project-away moduleName1
-| extend upstream_rp_rate_per_min = (upstreamReportedPropertiesEnd  - upstreamReportedPropertiesStart) / 15
+| extend upstream_rp_rate_per_min = (upstreamReportedPropertiesEnd  - upstreamReportedPropertiesStart) / <ALERTING.INTERVAL>
 | project-away upstreamReportedPropertiesEnd, upstreamReportedPropertiesStart;
 ReportedPropertiesSentToUpstream
 | extend distanceFromThreshold = iff(moduleName contains "twinTester", upstream_rp_rate_per_min - twinTesterReportedPropertyUpdateThreshold, upstream_rp_rate_per_min)

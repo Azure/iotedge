@@ -7,16 +7,20 @@ let mostRecentTestId = toscalar(sanitizedTestMetrics
 | take 1
 | project testId);
 let filtered = sanitizedTestMetrics
-| where testId == mostRecentTestId
-| where TimeGenerated > now() - 75m and TimeGenerated < now() - 1h;
-let MessagesSentToLocalAtEndTime = filtered
+| where testId == mostRecentTestId;
+let filteredWithMaxTime = filtered
+| summarize maxTimeGenerated = max(TimeGenerated);
+let maxTimeGenerated = toscalar(filteredWithMaxTime);
+let alertContext = filtered
+| where TimeGenerated < maxTimeGenerated and TimeGenerated > maxTimeGenerated - <ALERTING.INTERVAL>m;
+let MessagesSentToLocalAtEndTime = alertContext
 | project device, moduleName, messageTarget, Name_s, value, TimeGenerated
 | where Name_s == "edgehub_messages_sent_total"
 | where messageTarget != "upstream"
 | summarize arg_max(TimeGenerated, *) by moduleName
 | extend localMessagesEnd = value
 | project-away device, messageTarget, TimeGenerated, value, Name_s;
-let MessagesSentToLocalAtStartTime = filtered
+let MessagesSentToLocalAtStartTime = alertContext
 | project device, moduleName, messageTarget, Name_s, value, TimeGenerated
 | where Name_s == "edgehub_messages_sent_total"
 | where messageTarget != "upstream"
@@ -26,7 +30,7 @@ let MessagesSentToLocalAtStartTime = filtered
 let MessagesSentToLocal = MessagesSentToLocalAtEndTime
 | join kind = inner(MessagesSentToLocalAtStartTime) on moduleName
 | project-away moduleName1
-| extend local_message_rate_per_min = (localMessagesEnd  - localMessagesStart) / 15
+| extend local_message_rate_per_min = (localMessagesEnd  - localMessagesStart) / <ALERTING.INTERVAL>
 | project-away localMessagesEnd, localMessagesStart;
 MessagesSentToLocal
 | extend distanceFromThreshold = local_message_rate_per_min - tempSensorMessageRateThreshold

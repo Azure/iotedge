@@ -5,10 +5,14 @@ let mostRecentTestId = toscalar(sanitizedTestMetrics
 | order by TimeGenerated
 | take 1
 | project testId);
-let filteredLastHour = sanitizedTestMetrics
-| where testId == mostRecentTestId
-| where TimeGenerated > now() - 2h and TimeGenerated < now() - 1h;
-filteredLastHour
+let filtered = sanitizedTestMetrics
+| where testId == mostRecentTestId;
+let filteredWithMaxTime = filtered
+| summarize maxTimeGenerated = max(TimeGenerated);
+let maxTimeGenerated = toscalar(filteredWithMaxTime);
+let alertContext = filtered
+| where TimeGenerated < maxTimeGenerated and TimeGenerated > maxTimeGenerated - <ALERTING.INTERVAL>m;
+alertContext
 | project device, moduleName, messageTarget, Name_s, value, TimeGenerated
 | where Name_s == "edgehub_messages_sent_total"
 | where messageTarget == "upstream"
