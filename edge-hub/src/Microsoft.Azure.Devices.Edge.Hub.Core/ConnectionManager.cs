@@ -13,15 +13,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
+    using Nito.AsyncEx;
     using static System.FormattableString;
+    using AsyncLock = Microsoft.Azure.Devices.Edge.Util.Concurrency.AsyncLock;
 
     public class ConnectionManager : IConnectionManager
     {
         const int DefaultMaxClients = 101; // 100 Clients + 1 Edgehub
         readonly object deviceConnLock = new object();
-        readonly AsyncLock connectToCloudLock = new AsyncLock();
+        readonly AsyncReaderWriterLock connectToCloudLock = new AsyncReaderWriterLock();
         readonly ConcurrentDictionary<string, ConnectedDevice> devices = new ConcurrentDictionary<string, ConnectedDevice>();
         readonly ICloudConnectionProvider cloudConnectionProvider;
         readonly int maxClients;
@@ -281,7 +282,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async void HandleDeviceCloudConnectionDisconnected()
         {
-            using (await this.connectToCloudLock.LockAsync())
+            using (await this.connectToCloudLock.WriterLockAsync())
             {
                 KeyValuePair<string, ConnectedDevice>[] snapshot = this.devices.ToArray();
                 Events.CloudConnectionLostClosingAllClients();
@@ -330,7 +331,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task<Try<ICloudConnection>> ConnectToCloud(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
         {
-            using (await this.connectToCloudLock.LockAsync())
+            using (await this.connectToCloudLock.ReaderLockAsync())
             {
                 return await this.cloudConnectionProvider.Connect(identity, connectionStatusChangedHandler);
             }
@@ -338,7 +339,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task<Try<ICloudConnection>> ConnectToCloud(IClientCredentials credentials, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
         {
-            using (await this.connectToCloudLock.LockAsync())
+            using (await this.connectToCloudLock.ReaderLockAsync())
             {
                 return await this.cloudConnectionProvider.Connect(credentials, connectionStatusChangedHandler);
             }
