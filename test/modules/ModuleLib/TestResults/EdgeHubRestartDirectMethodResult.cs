@@ -17,7 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
             DateTime edgeHubRestartedTime,
             HttpStatusCode edgeHubRestartStatusCode,
             DateTime directMethodCompletedTime,
-            HttpStatusCode directMethodCompletedStatusCode)
+            HttpStatusCode directMethodCompletedStatusCode,
+            UInt32 restartSequenceNumber)
             : base(
                 source,
                 createdAt,
@@ -30,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
             this.EdgeHubRestartStatusCode = Preconditions.CheckNotNull(edgeHubRestartStatusCode, nameof(edgeHubRestartStatusCode));
             this.DirectMethodCompletedTime = Preconditions.CheckNotNull(directMethodCompletedTime, nameof(directMethodCompletedTime));
             this.DirectMethodCompletedStatusCode = Preconditions.CheckNotNull(directMethodCompletedStatusCode, nameof(directMethodCompletedStatusCode));
+            this.RestartSequenceNumber = Preconditions.CheckNotNull(restartSequenceNumber, nameof(restartSequenceNumber));
         }
 
         DateTime EdgeHubRestartedTime { get; set; }
@@ -39,6 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
         public DateTime DirectMethodCompletedTime { get; set; }
 
         public HttpStatusCode DirectMethodCompletedStatusCode { get; set; }
+
+        public UInt32 RestartSequenceNumber { get; set; }
 
         public string GetDirectMethodTestResult()
         {

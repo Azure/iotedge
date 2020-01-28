@@ -17,7 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
             DateTime edgeHubRestartedTime,
             HttpStatusCode edgeHubRestartStatusCode,
             DateTime messageCompletedTime,
-            HttpStatusCode messageCompletedStatusCode)
+            HttpStatusCode messageCompletedStatusCode,
+            UInt32 restartSequenceNumber)
             : base(source, createdAt)
         {
             this.TrackingId = trackingId;
@@ -27,6 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
             this.EdgeHubRestartStatusCode = Preconditions.CheckNotNull(edgeHubRestartStatusCode, nameof(edgeHubRestartStatusCode));
             this.MessageCompletedTime = Preconditions.CheckNotNull(messageCompletedTime, nameof(messageCompletedTime));
             this.MessageCompletedStatusCode = Preconditions.CheckNotNull(messageCompletedStatusCode, nameof(messageCompletedStatusCode));
+            this.RestartSequenceNumber = Preconditions.CheckNotNull(restartSequenceNumber, nameof(restartSequenceNumber));
         }
 
         DateTime EdgeHubRestartedTime { get; set; }
@@ -36,6 +38,8 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
         public DateTime MessageCompletedTime { get; set; }
 
         public HttpStatusCode MessageCompletedStatusCode { get; set; }
+
+        public UInt32 RestartSequenceNumber { get; set; }
 
         public string GetMessageTestResult()
         {

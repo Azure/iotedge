@@ -20,7 +20,7 @@ namespace EdgeHubRestartTester
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("EdgeHubRestartTester");
 
-        static long restartCount = 0;
+        static UInt32 restartCount = 0;
         static long messageCount = 0;
         static long directMethodCount = 0;
 
@@ -129,11 +129,14 @@ namespace EdgeHubRestartTester
                         (DateTime msgCompletedTime, HttpStatusCode msgStatusCode) = taskList[TestOperationResultType.Messages.ToString()].Result;
 
                         TestResultBase msgTestResult = CreateTestResult(
-                        TestOperationResultType.Messages,
-                        msgCompletedTime,
-                        msgStatusCode,
-                        batchId.ToString(),
-                        Interlocked.Read(ref messageCount));
+                            TestOperationResultType.Messages,
+                            restartTime,
+                            restartStatus,
+                            msgCompletedTime,
+                            msgStatusCode,
+                            batchId,
+                            restartCount,
+                            Interlocked.Read(ref messageCount));
 
                         await ModuleUtil.ReportTestResultAsync(reportClient, Logger, msgTestResult);
                     }
@@ -143,14 +146,14 @@ namespace EdgeHubRestartTester
                         (DateTime dmCompletedTime, HttpStatusCode dmStatusCode) = taskList[TestOperationResultType.DirectMethod.ToString()].Result;
 
                         TestResultBase dmTestResult = CreateTestResult(
-                        TestOperationResultType.DirectMethod,
-                        restartTime,
-                        restartStatus,
-                        dmCompletedTime,
-                        dmStatusCode,
-                        batchId,
-                        Interlocked.Read(ref directMethodCount));
-                        // BEARWASHERE -- Add restart sequence number to the two reporting type
+                            TestOperationResultType.DirectMethod,
+                            restartTime,
+                            restartStatus,
+                            dmCompletedTime,
+                            dmStatusCode,
+                            batchId,
+                            restartCount,
+                            Interlocked.Read(ref directMethodCount));
 
                         await ModuleUtil.ReportTestResultAsync(reportClient, Logger, dmTestResult);
                     }
@@ -184,11 +187,11 @@ namespace EdgeHubRestartTester
             DateTime completedTime,
             HttpStatusCode completedStatus,
             Guid batchId,
+            UInt32 restartSequenceNumber,
             long sequenceNumber)
         {
             switch (testOperationResultType)
             {
-                // BEARWASHERE -- Create the two new types to send the report for DM & MSG
                 case TestOperationResultType.Messages:
                     return new EdgeHubRestartMessageResult(
                         Settings.Current.ModuleId + testOperationResultType.ToString(),
@@ -199,7 +202,8 @@ namespace EdgeHubRestartTester
                         edgeHubRestartedTime,
                         edgeHubRestartStatusCode,
                         completedTime,
-                        completedStatus);
+                        completedStatus,
+                        restartSequenceNumber);
 
                 case TestOperationResultType.DirectMethod:
                     return new EdgeHubRestartDirectMethodResult(
@@ -211,7 +215,8 @@ namespace EdgeHubRestartTester
                         edgeHubRestartedTime,
                         edgeHubRestartStatusCode,
                         completedTime,
-                        completedStatus);
+                        completedStatus,
+                        restartSequenceNumber);
 
                 default:
                     throw new NotSupportedException($"{testOperationResultType} is not supported in CreateEdgeHubRestartTestResult()");
