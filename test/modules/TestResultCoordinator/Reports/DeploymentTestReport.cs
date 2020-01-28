@@ -45,8 +45,8 @@ namespace TestResultCoordinator.Reports
 
         public IReadOnlyList<TestOperationResult> UnmatchedResults { get; }
 
-        public override bool IsPassed => this.TotalExpectedDeployments == this.TotalMatchedDeployments;
+        public override bool IsPassed => this.TotalExpectedDeployments == this.TotalMatchedDeployments && this.TotalExpectedDeployments > 0;
 
-        public override string Title => $"Deployment Test Report ({this.ResultType}) between [{this.ExpectedSource}] and [{this.ActualSource}]";
+        public override string Title => $"Deployment Test Report between [{this.ExpectedSource}] and [{this.ActualSource}] ({this.ResultType})";
     }
 }

@@ -32,8 +32,8 @@ namespace TestResultCoordinator.Reports
 
         public ReadOnlyCollection<string> UnmatchedResults { get; }
 
-        public override bool IsPassed => this.TotalExpectCount == this.TotalMatchCount;
+        public override bool IsPassed => this.TotalExpectCount == this.TotalMatchCount && this.TotalExpectCount > 0;
 
-        public override string Title => $"Twin Counting Report ({this.ResultType}) between [{this.ExpectedSource}] and [{this.ActualSource}]";
+        public override string Title => $"Twin Counting Report between [{this.ExpectedSource}] and [{this.ActualSource}] ({this.ResultType})";
     }
 }
