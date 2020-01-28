@@ -75,9 +75,12 @@ jobs:
     pool:
       vmImage: vs2017-win2016
     steps:
-      - script: |
-          dotnet build -o target
-        displayName: Build
+      - task: DotNetCoreCLI@2
+        displayName: Build test projects
+        inputs:
+          command: build
+          projects: edge-*\test\Microsoft.Azure.Devices.*Test\Microsoft.Azure.Devices.*Test.csproj
+          arguments: '-o target'
       - task: VSTest@2
         displayName: Run unit tests with code coverage
         inputs:
