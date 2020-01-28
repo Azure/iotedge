@@ -79,6 +79,9 @@ namespace TestResultCoordinator
                             reportMetadataList.Add(JsonConvert.DeserializeObject<CountingReportMetadata>(((JProperty)metadata).Value.ToString()));
                             break;
                         case TestReportType.EdgeHubRestartDirectMethodResult:
+                            // BEARWASHERE -- TODO: Implement
+                            break;
+                        case TestReportType.EdgeHubRestartMessageResult:
                             reportMetadataList.Add(JsonConvert.DeserializeObject<EdgeHubRestartMessageReportMetadata>(((JProperty)metadata).Value.ToString()));
                             break;
                         case TestReportType.TwinCountingReport:
