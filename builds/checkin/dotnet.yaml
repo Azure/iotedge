@@ -75,12 +75,15 @@ jobs:
     pool:
       vmImage: vs2017-win2016
     steps:
+      - script: |
+          dotnet build -o target
+        displayName: Build
       - task: VSTest@2
         displayName: Run unit tests and publish code coverage
         inputs:
           testSelector: testAssemblies
           testAssemblyVer2: |
-            **\Microsoft.Azure*Test.dll
+            target\Microsoft.Azure*Test.dll
           testFiltercriteria: Category=Unit
           runInParallel: true
           runTestsInIsolation: true
