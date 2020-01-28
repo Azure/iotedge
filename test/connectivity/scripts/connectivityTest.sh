@@ -445,7 +445,8 @@ fi
 
 iotedged_artifact_folder="$(get_iotedged_artifact_folder $E2E_TEST_DIR)"
 iotedge_quickstart_artifact_file="$(get_iotedge_quickstart_artifact_file $E2E_TEST_DIR)"
-connectivity_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/connectivity_deployment.template.json"
+echo " !!!!!!!!!!!!! BEARWASHERE -- Hard coded value for a deployment file"
+connectivity_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/edgehub_restart_deployment.template.json"
 deployment_working_file="$working_folder/deployment.json"
 
 testRet=0
