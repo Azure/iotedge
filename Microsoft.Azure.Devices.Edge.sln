@@ -215,9 +215,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeploymentTester", "test\mo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Agent.Integration.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Integration.Test\Microsoft.Azure.Devices.Edge.Agent.Integration.Test.csproj", "{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CloudMessageSender", "test\modules\CloudMessageSender\CloudMessageSender.csproj", "{C2CD267B-A6CD-4D7F-86EE-4DD15CE0B88F}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CloudMessageReceiver", "test\modules\CloudMessageReceiver\CloudMessageReceiver.csproj", "{46FF9C4F-8BB7-43D5-80E1-6C42E394771E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CloudToDeviceMessageTester", "test\modules\CloudToDeviceMessageTester\CloudToDeviceMessageTester.csproj", "{446F50F3-3E93-454B-8EBF-4830E92DFE5D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -731,6 +729,14 @@ Global
 		{46FF9C4F-8BB7-43D5-80E1-6C42E394771E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{46FF9C4F-8BB7-43D5-80E1-6C42E394771E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{46FF9C4F-8BB7-43D5-80E1-6C42E394771E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{446F50F3-3E93-454B-8EBF-4830E92DFE5D}.CheckInBuild|Any CPU.ActiveCfg = Debug|Any CPU
+		{446F50F3-3E93-454B-8EBF-4830E92DFE5D}.CheckInBuild|Any CPU.Build.0 = Debug|Any CPU
+		{446F50F3-3E93-454B-8EBF-4830E92DFE5D}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
+		{446F50F3-3E93-454B-8EBF-4830E92DFE5D}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
+		{446F50F3-3E93-454B-8EBF-4830E92DFE5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{446F50F3-3E93-454B-8EBF-4830E92DFE5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{446F50F3-3E93-454B-8EBF-4830E92DFE5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{446F50F3-3E93-454B-8EBF-4830E92DFE5D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -818,6 +824,7 @@ Global
 		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
 		{C2CD267B-A6CD-4D7F-86EE-4DD15CE0B88F} = {F921339B-32F9-4BF3-B364-2DB01FA2F1A1}
 		{46FF9C4F-8BB7-43D5-80E1-6C42E394771E} = {F921339B-32F9-4BF3-B364-2DB01FA2F1A1}
+		{446F50F3-3E93-454B-8EBF-4830E92DFE5D} = {F921339B-32F9-4BF3-B364-2DB01FA2F1A1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}
