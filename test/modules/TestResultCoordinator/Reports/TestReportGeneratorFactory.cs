@@ -6,6 +6,7 @@ namespace TestResultCoordinator.Reports
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using TestResultCoordinator.Reports.DirectMethod;
+    using TestResultCoordinator.Reports.EdgeHubRestartTest;
     using TestResultCoordinator.Storage;
 
     class TestReportGeneratorFactory : ITestReportGeneratorFactory
@@ -89,6 +90,21 @@ namespace TestResultCoordinator.Reports
                             receiverTestResults,
                             metadata.TestOperationResultType.ToString(),
                             networkStatusTimeline);
+                    }
+
+                case TestReportType.EdgeHubRestartMessageResult:
+                    {
+                        var metadata = (EdgeHubRestartMessageReportMetadata)testReportMetadata;
+                        var senderTestResults = this.GetResults(metadata.SenderSource);
+                        var receiverTestResults = this.GetResults(metadata.ReceiverSource);
+                        var passableEdgeHubRestartPeriod = metadata.PassableEdgeHubRestartPeriod;
+                        // BEARWASHERE -- DO the report generator
+                        return new EdgeHubRestartMessageReportGenerator(
+                            trackingId,
+                            metadata,
+                            senderTestResults,
+                            receiverTestResults,
+                            passableEdgeHubRestartPeriod);
                     }
 
                 case TestReportType.NetworkControllerReport:

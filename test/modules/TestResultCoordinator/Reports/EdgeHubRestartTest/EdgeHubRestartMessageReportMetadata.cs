@@ -11,21 +11,17 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
     {
         public EdgeHubRestartMessageReportMetadata(
             string senderSource,
-            string restarterSource,
-            TimeSpan passableEdgeHubRestartPeriod,
-            string receiverSource)
+            string receiverSource,
+            TimeSpan passableEdgeHubRestartPeriod)
         {
             Preconditions.CheckRange(passableEdgeHubRestartPeriod.Ticks, 0);
 
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));;
-            this.RestarterSource = Preconditions.CheckNonWhiteSpace(restarterSource, nameof(restarterSource));
             this.ReceiverSource = Preconditions.CheckNonWhiteSpace(receiverSource, nameof(receiverSource));
             this.PassableEdgeHubRestartPeriod = passableEdgeHubRestartPeriod;
         }
 
         public string SenderSource { get; }
-
-        public string RestarterSource { get; }
 
         public string ReceiverSource { get; }
 
