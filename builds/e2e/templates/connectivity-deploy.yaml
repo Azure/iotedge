@@ -11,10 +11,13 @@ parameters:
   loadGen.message.frequency: ''
   networkController.frequencies: ''
   networkController.mode: ''
-  testResultCoordinator.logAnalyticsWorkspaceId: ''
-  testResultCoordinator.logAnalyticsSharedKey: ''
+  logAnalyticsWorkspaceId: ''
+  logAnalyticsSharedKey: ''
   testResultCoordinator.logAnalyticsLogType: ''
   testResultCoordinator.verificationDelay: ''
+  metricsCollector.metricsEndpointsCSV: ''
+  metricsCollector.scrapeFrequencyInSecs: ''
+  metricsCollector.uploadTarget: ''
 
 steps:
   - task: CopyFiles@2
@@ -53,10 +56,13 @@ steps:
           -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
           -networkControllerFrequency "${{ parameters['networkController.frequencies'] }}" \
           -networkControllerMode "${{ parameters['networkController.mode'] }}" \
-          -logAnalyticsWorkspaceId "${{ parameters['testResultCoordinator.logAnalyticsWorkspaceId'] }}" \
-          -logAnalyticsSharedKey "${{ parameters['testResultCoordinator.logAnalyticsSharedKey'] }}" \
+          -logAnalyticsWorkspaceId "${{ parameters['logAnalyticsWorkspaceId'] }}" \
+          -logAnalyticsSharedKey "${{ parameters['logAnalyticsSharedKey'] }}" \
           -logAnalyticsLogType "${{ parameters['testResultCoordinator.logAnalyticsLogType'] }}" \
           -verificationDelay "${{ parameters['testResultCoordinator.verificationDelay'] }}" \
+          -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
+          -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
+          -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
           -waitForTestComplete \
           -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."
