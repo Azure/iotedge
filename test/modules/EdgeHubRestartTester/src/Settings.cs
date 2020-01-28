@@ -64,7 +64,7 @@ namespace EdgeHubRestartTester
                 .Build();
 
             return new Settings(
-                configuration.GetValue<uint>("sdkRetryTimeout", 20),
+                configuration.GetValue<uint>("sdkRetryTimeoutMilisec", 20),
                 configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING", string.Empty),
                 configuration.GetValue<string>("IOTEDGE_DEVICEID", string.Empty),
                 configuration.GetValue<string>("reportingEndpointUrl"),

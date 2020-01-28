@@ -86,6 +86,30 @@
             "restartPolicy": "always",
             "env": {
               // BEARWASHERE -- TODO: Introduce the restarter here
+              "directMethodEnable": {
+                "value": "true"
+              },
+              "messageEnable": {
+                "value": "true"
+              },
+              "reportingEndpointUrl": {
+                "value": "http://localhost:5001"
+              },
+              "restartIntervalInMins": {
+                "value": "5"
+              },
+              "sdkRetryTimeoutMilisec": {
+                "value": "20"
+              },
+              "testDuration": {
+                "value": "00:00:10"
+              },
+              "testStartDelay": {
+                "value": "00:00:02"
+              },
+              "trackingId": {
+                "value": "<TrackingId>"
+              }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-edgeHub-restart-tester:<Build.BuildNumber>-linux-<Architecture>",
