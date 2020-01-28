@@ -44,7 +44,6 @@ namespace CloudToDeviceMessageTester
 
         public override async Task InitAsync(CancellationTokenSource cts, DateTime testStartAt)
         {
-            // registry manager stuff
             Microsoft.Azure.Devices.RegistryManager registryManager = null;
             try
             {
