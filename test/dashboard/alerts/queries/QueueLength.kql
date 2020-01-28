@@ -8,7 +8,12 @@ let mostRecentTestId = toscalar(sanitizedTestMetrics
 | project testId);
 let filtered = sanitizedTestMetrics
 | where testId == mostRecentTestId;
-filtered
+let filteredWithMaxTime = filtered
+| summarize maxTimeGenerated = max(TimeGenerated);
+let maxTimeGenerated = toscalar(filteredWithMaxTime);
+let alertContext = filtered
+| where TimeGenerated < maxTimeGenerated and TimeGenerated > maxTimeGenerated - <ALERTING.INTERVAL>m;
+alertContext
 | where Name_s == "edgehub_queue_length"
 | order by TimeGenerated
 | take 1

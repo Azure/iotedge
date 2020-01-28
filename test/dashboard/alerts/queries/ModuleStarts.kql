@@ -7,9 +7,13 @@ let mostRecentTestId = toscalar(sanitizedTestMetrics
 | take 1
 | project testId);
 let filtered = sanitizedTestMetrics
-| where testId == mostRecentTestId
-| where TimeGenerated > now() - 75m and TimeGenerated < now() - 1h;
-let ModuleStarts = filtered
+| where testId == mostRecentTestId;
+let filteredWithMaxTime = filtered
+| summarize maxTimeGenerated = max(TimeGenerated);
+let maxTimeGenerated = toscalar(filteredWithMaxTime);
+let alertContext = filtered
+| where TimeGenerated < maxTimeGenerated and TimeGenerated > maxTimeGenerated - <ALERTING.INTERVAL>m;
+let ModuleStarts = alertContext
 | project device, moduleName, Name_s, value, TimeGenerated
 | where Name_s == "edgeAgent_module_start_total"
 | extend starts = value

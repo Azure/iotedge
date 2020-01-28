@@ -7,9 +7,13 @@ let mostRecentTestId = toscalar(sanitizedTestMetrics
 | take 1
 | project testId);
 let filtered = sanitizedTestMetrics
-| where testId == mostRecentTestId
-| where TimeGenerated > now() - 75m and TimeGenerated < now() - 1h;
-filtered
+| where testId == mostRecentTestId;
+let filteredWithMaxTime = filtered
+| summarize maxTimeGenerated = max(TimeGenerated);
+let maxTimeGenerated = toscalar(filteredWithMaxTime);
+let alertContext = filtered
+| where TimeGenerated < maxTimeGenerated and TimeGenerated > maxTimeGenerated - <ALERTING.INTERVAL>m;
+alertContext
 | where Name_s == "edgeAgent_used_cpu_percent"
 | where quantile == "0.9"
 | where moduleName == "edgeHub"
