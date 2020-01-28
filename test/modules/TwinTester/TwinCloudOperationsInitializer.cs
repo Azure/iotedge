@@ -47,6 +47,7 @@ namespace TwinTester
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
+            Logger.LogInformation($"Waiting for {Settings.Current.TestStartDelay} based on TestStartDelay setting before starting.");
             await Task.Delay(Settings.Current.TestStartDelay, cancellationToken);
             this.periodicUpdate = new PeriodicTask(this.UpdateAsync, Settings.Current.TwinUpdateFrequency, Settings.Current.TwinUpdateFrequency, Logger, "TwinDesiredPropertiesUpdate");
         }

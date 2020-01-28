@@ -75,6 +75,7 @@ namespace TwinTester
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
+            Logger.LogInformation($"Waiting for {Settings.Current.TestStartDelay} based on TestStartDelay setting before starting.");
             await Task.Delay(Settings.Current.TestStartDelay, cancellationToken);
             TimeSpan validationInterval = new TimeSpan(Settings.Current.TwinUpdateFailureThreshold.Ticks / 4);
             this.periodicValidation = new PeriodicTask(this.PerformValidationAsync, validationInterval, validationInterval, Logger, "TwinValidation");
