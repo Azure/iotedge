@@ -31,7 +31,7 @@ spec:
             value: "debug"
           {{- if .Values.iotedged.data.httpsProxy }}
           - name: "https_proxy"
-            value: {{ .Values.iotedged.data.targetPath | quote}}
+            value: {{ .Values.iotedged.data.httpsProxy | quote}}
           {{end}}
           volumeMounts:
           - name: config
