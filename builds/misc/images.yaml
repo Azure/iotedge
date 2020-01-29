@@ -138,7 +138,7 @@ jobs:
         displayName: Build Image - EdgeHub Restart Tester - aarch64
         inputs:
           filePath: scripts/linux/buildImage.sh
-          arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-edgeHub-restart-tester -n microsoft -P EdgeHubRestartTester --target-arch aarch64
+          arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-edgehub-restart-tester -n microsoft -P EdgeHubRestartTester --target-arch aarch64
           
 ################################################################################
   - job: linux_dotnet_projects
@@ -281,7 +281,7 @@ jobs:
       - template: templates/image-linux.yaml
         parameters:
           name: EdgeHubRestartTester
-          imageName: azureiotedge-edgeHub-restart-tester
+          imageName: azureiotedge-edgehub-restart-tester
           project: EdgeHubRestartTester
 
 ################################################################################
@@ -463,7 +463,7 @@ jobs:
       - template: templates/image-windows.yaml
         parameters:
           name: EdgeHubRestartTester
-          imageName: azureiotedge-edgeHub-restart-tester
+          imageName: azureiotedge-edgehub-restart-tester
           project: EdgeHubRestartTester
 
       - powershell: docker system prune -a -f
