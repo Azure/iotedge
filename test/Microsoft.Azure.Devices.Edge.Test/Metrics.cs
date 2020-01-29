@@ -48,9 +48,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder =>
                     {
                         builder.AddModule(ModuleName, metricsValidatorImage);
-                        builder.GetModule("$edgeHub")
+
+                        var edgeHub = builder.GetModule("$edgeHub")
                             .WithEnvironment(("experimentalfeatures__enabled", "true"), ("experimentalfeatures__enableMetrics", "true"))
                             .WithDesiredProperties(new Dictionary<string, object> { { "routes", new { All = "FROM /messages/* INTO $upstream" } } });
+                        if (OsPlatform.IsWindows())
+                        {
+                            edgeHub.WithSettings(("User", "ContainerAdministrator"));
+                        }
+
                         builder.GetModule("$edgeAgent")
                             .WithEnvironment(("experimentalfeatures__enabled", "true"), ("experimentalfeatures__enableMetrics", "true"));
                     }, token);
