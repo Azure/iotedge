@@ -55,9 +55,9 @@ namespace MetricsCollector
                 .Build();
 
             return new Settings(
-                configuration.GetValue<string>("logAnalyticsWorkspaceId"),
-                configuration.GetValue<string>("logAnalyticsSharedKey"),
-                configuration.GetValue<string>("logAnalyticsLogType"),
+                configuration.GetValue<string>("LogAnalyticsWorkspaceId"),
+                configuration.GetValue<string>("LogAnalyticsSharedKey"),
+                configuration.GetValue<string>("LogAnalyticsLogType"),
                 configuration.GetValue<string>("MetricsEndpointsCSV", "http://edgeHub:9600/metrics,http://edgeAgent:9600/metrics"),
                 configuration.GetValue<int>("ScrapeFrequencyInSecs", 300),
                 configuration.GetValue<UploadTarget>("UploadTarget", UploadTarget.AzureLogAnalytics));
