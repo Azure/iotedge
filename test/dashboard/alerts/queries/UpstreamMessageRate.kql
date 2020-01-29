@@ -14,25 +14,14 @@ let filteredWithMaxTime = filtered
 let maxTimeGenerated = toscalar(filteredWithMaxTime);
 let alertContext = filtered
 | where TimeGenerated < maxTimeGenerated and TimeGenerated > maxTimeGenerated - <ALERTING.INTERVAL>m;
-let MessagesSentToUpstreamAtEndTime = alertContext
-| project device, moduleName, messageTarget, Name_s, value, TimeGenerated
+filtered
 | where Name_s == "edgehub_messages_sent_total"
 | where messageTarget == "upstream"
-| summarize arg_max(TimeGenerated, *) by moduleName
-| extend upstreamMessagesEnd = value
-| project-away device, messageTarget, TimeGenerated, value, Name_s;
-let MessagesSentToUpstreamAtStartTime = alertContext
-| project device, moduleName, messageTarget, Name_s, value, TimeGenerated
-| where Name_s == "edgehub_messages_sent_total"
-| where messageTarget == "upstream"
-| summarize arg_min(TimeGenerated, *) by moduleName
-| extend upstreamMessagesStart = value
-| project-away device, messageTarget, TimeGenerated, value, Name_s;
-let MessagesSentToUpstream = MessagesSentToUpstreamAtEndTime
-| join kind = inner(MessagesSentToUpstreamAtStartTime) on moduleName
-| project-away moduleName1
-| extend upstream_message_rate_per_min = (upstreamMessagesEnd  - upstreamMessagesStart) / <ALERTING.INTERVAL>
-| project-away upstreamMessagesEnd, upstreamMessagesStart;
-MessagesSentToUpstream
-| extend distanceFromThreshold = iff(moduleName contains "loadGen", upstream_message_rate_per_min - loadGenMessageRateThreshold, upstream_message_rate_per_min - tempFilterMessageRateThreshold)
-| where distanceFromThreshold < 0
+| order by moduleName, TimeGenerated
+| serialize | extend nextValue = next(value, 1) | extend nextId = next(moduleName, 1) | extend nextTime = next(TimeGenerated, 1)
+| extend event_diff = iff((value - nextValue) >= 0, value - nextValue, value)
+| extend minutes_diff = (TimeGenerated - nextTime) / 1s / 60
+| extend rate = event_diff / minutes_diff
+| where moduleName == nextId and rate >= 0
+| summarize min_rate=min(rate) by moduleName
+| where moduleName contains("tempFilter") and min_rate < tempFilterMessageRateThreshold or moduleName contains("loadGen") and min_rate < loadGenMessageRateThreshold

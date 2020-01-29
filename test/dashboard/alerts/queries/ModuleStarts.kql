@@ -13,11 +13,16 @@ let filteredWithMaxTime = filtered
 let maxTimeGenerated = toscalar(filteredWithMaxTime);
 let alertContext = filtered
 | where TimeGenerated < maxTimeGenerated and TimeGenerated > maxTimeGenerated - <ALERTING.INTERVAL>m;
+let baselineStarts = toscalar(filtered
+| where Name_s == "edgeAgent_module_start_total"
+| summarize arg_min(TimeGenerated, value)
+| project value);
 let ModuleStarts = alertContext
 | project device, moduleName, Name_s, value, TimeGenerated
 | where Name_s == "edgeAgent_module_start_total"
 | extend starts = value
 | summarize arg_max(TimeGenerated, starts) by moduleName
+| extend starts = starts - baselineStarts
 | project-away TimeGenerated;
 ModuleStarts
 | where starts > moduleStartThreshold

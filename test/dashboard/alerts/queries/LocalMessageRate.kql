@@ -13,25 +13,14 @@ let filteredWithMaxTime = filtered
 let maxTimeGenerated = toscalar(filteredWithMaxTime);
 let alertContext = filtered
 | where TimeGenerated < maxTimeGenerated and TimeGenerated > maxTimeGenerated - <ALERTING.INTERVAL>m;
-let MessagesSentToLocalAtEndTime = alertContext
-| project device, moduleName, messageTarget, Name_s, value, TimeGenerated
+filtered
 | where Name_s == "edgehub_messages_sent_total"
 | where messageTarget != "upstream"
-| summarize arg_max(TimeGenerated, *) by moduleName
-| extend localMessagesEnd = value
-| project-away device, messageTarget, TimeGenerated, value, Name_s;
-let MessagesSentToLocalAtStartTime = alertContext
-| project device, moduleName, messageTarget, Name_s, value, TimeGenerated
-| where Name_s == "edgehub_messages_sent_total"
-| where messageTarget != "upstream"
-| summarize arg_min(TimeGenerated, *) by moduleName
-| extend localMessagesStart = value
-| project-away device, messageTarget, TimeGenerated, value, Name_s;
-let MessagesSentToLocal = MessagesSentToLocalAtEndTime
-| join kind = inner(MessagesSentToLocalAtStartTime) on moduleName
-| project-away moduleName1
-| extend local_message_rate_per_min = (localMessagesEnd  - localMessagesStart) / <ALERTING.INTERVAL>
-| project-away localMessagesEnd, localMessagesStart;
-MessagesSentToLocal
-| extend distanceFromThreshold = local_message_rate_per_min - tempSensorMessageRateThreshold
-| where distanceFromThreshold < 0
+| order by moduleName, TimeGenerated
+| serialize | extend nextValue = next(value, 1) | extend nextId = next(moduleName, 1) | extend nextTime = next(TimeGenerated, 1)
+| extend event_diff = iff((value - nextValue) >= 0, value - nextValue, value)
+| extend minutes_diff = (TimeGenerated - nextTime) / 1s / 60
+| extend rate = event_diff / minutes_diff
+| where moduleName == nextId and rate >= 0
+| summarize min_rate=min(rate) by moduleName
+| where moduleName contains("tempSensor") and min_rate < tempSensorMessageRateThreshold
