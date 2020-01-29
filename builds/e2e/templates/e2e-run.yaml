@@ -1,4 +1,8 @@
 steps:
+  - pwsh: |
+      echo "Hello"
+    displayName: Test adding step
+    condition: succeededOrFailed()
 - pwsh: |
     $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
 
@@ -53,9 +57,4 @@ steps:
   inputs:
     PathtoPublish: $(Build.ArtifactStagingDirectory)/logs
     ArtifactName: logs-end-to-end-$(Build.BuildNumber)-$(os)-$(arch)
-  condition: succeededOrFailed()
-
-- pwsh: |
-    echo "Hello"
-  displayName: Test adding step
   condition: succeededOrFailed()
