@@ -33,7 +33,7 @@ jobs:
         inputs:
           targetType: inline
           script: |
-            echo pwd
+            pwd
             sudo apt-get install tree
             tree
             wget -q https://packages.microsoft.com/config/ubuntu/16.04/packages-microsoft-prod.deb
