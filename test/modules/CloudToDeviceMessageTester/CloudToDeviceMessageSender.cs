@@ -12,7 +12,7 @@ namespace CloudToDeviceMessageTester
     using Microsoft.Extensions.Logging;
     using TransportType = Microsoft.Azure.Devices.TransportType;
 
-    sealed class Sender : CloudToDeviceMessageTesterBase
+    sealed class CloudToDeviceMessageSender : CloudToDeviceMessageTesterBase
     {
         readonly TimeSpan messageDelay;
         readonly TimeSpan testStartDelay;
@@ -20,7 +20,7 @@ namespace CloudToDeviceMessageTester
         long messageCount = 0;
         ServiceClient serviceClient;
 
-        public Sender(
+        public CloudToDeviceMessageSender(
             ILogger logger,
             string iotHubConnectionString,
             string deviceId,
@@ -33,17 +33,18 @@ namespace CloudToDeviceMessageTester
             TimeSpan testStartDelay)
             : base(logger, iotHubConnectionString, deviceId, moduleId, transportType, testDuration, testResultReportingClient)
         {
-            this.messageDelay = Preconditions.CheckNotNull(messageDelay, nameof(messageDelay));
-            this.testStartDelay = Preconditions.CheckNotNull(testStartDelay, nameof(testStartDelay));
+            this.messageDelay = messageDelay;
+            this.testStartDelay = testStartDelay;
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
         }
 
         public override void Dispose() => this.serviceClient?.Dispose();
 
-        public override async Task InitAsync(CancellationTokenSource cts, DateTime testStartAt)
+        public override async Task StartAsync(CancellationToken ct)
         {
             this.logger.LogInformation($"CloudToDeviceMessageTester in sender mode with delayed start for {this.testStartDelay}.");
-            await Task.Delay(this.testStartDelay, cts.Token);
+            await Task.Delay(this.testStartDelay, ct);
+            DateTime testStartAt = DateTime.UtcNow;
 
             this.serviceClient = ServiceClient.CreateFromConnectionString(this.iotHubConnectionString, this.transportType);
             await this.serviceClient.OpenAsync();
@@ -51,11 +52,11 @@ namespace CloudToDeviceMessageTester
             Guid batchId = Guid.NewGuid();
             this.logger.LogInformation($"Batch Id={batchId}");
 
-            while (!cts.Token.IsCancellationRequested && this.IsTestTimeUp(testStartAt))
+            while (!ct.IsCancellationRequested && this.IsTestTimeUp(testStartAt))
             {
                 MessageTestResult testResult = await this.SendCloudToDeviceMessageAsync(batchId, this.trackingId);
                 await ModuleUtil.ReportTestResultAsync(this.testResultReportingClient, this.logger, testResult);
-                await Task.Delay(this.messageDelay, cts.Token);
+                await Task.Delay(this.messageDelay, ct);
             }
         }
 
@@ -83,6 +84,11 @@ namespace CloudToDeviceMessageTester
                 this.logger.LogError(ex, $"Error occurred while sending Cloud to Device message for Sequence nubmer: {this.messageCount}, batchId: {batchId}.");
                 throw ex;
             }
+        }
+
+        bool IsTestTimeUp(DateTime testStartAt)
+        {
+            return (this.testDuration == TimeSpan.Zero) || (DateTime.UtcNow - testStartAt < this.testDuration);
         }
     }
 }

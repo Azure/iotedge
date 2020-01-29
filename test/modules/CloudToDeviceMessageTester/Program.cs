@@ -10,7 +10,7 @@ namespace CloudToDeviceMessageTester
 
     class Program
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger("CloudMessageSender");
+        static readonly ILogger Logger = ModuleUtil.CreateLogger("CloudToDeviceMessageTester");
 
         public static int Main() => MainAsync().Result;
 
@@ -28,18 +28,19 @@ namespace CloudToDeviceMessageTester
             {
                 if (Settings.Current.TestMode == CloudToDeviceMessageTesterMode.Receiver)
                 {
-                    cloudToDeviceMessageTester = new Receiver(
+                    cloudToDeviceMessageTester = new CloudToDeviceMessageReceiver(
                         Logger,
                         Settings.Current.IoTHubConnectionString,
                         Settings.Current.DeviceId,
                         Settings.Current.ModuleId,
+                        Settings.Current.GatewayHostName,
                         Settings.Current.TransportType,
                         Settings.Current.TestDuration,
                         reportClient);
                 }
                 else
                 {
-                    cloudToDeviceMessageTester = new Sender(
+                    cloudToDeviceMessageTester = new CloudToDeviceMessageSender(
                         Logger,
                         Settings.Current.IoTHubConnectionString,
                         Settings.Current.DeviceId,
@@ -52,7 +53,7 @@ namespace CloudToDeviceMessageTester
                         Settings.Current.TestStartDelay);
                 }
 
-                await cloudToDeviceMessageTester.InitAsync(cts, testStartAt);
+                await cloudToDeviceMessageTester.StartAsync(cts.Token);
             }
             catch (Exception ex)
             {
@@ -64,9 +65,10 @@ namespace CloudToDeviceMessageTester
                 cloudToDeviceMessageTester?.Dispose();
             }
 
+            await cts.Token.WhenCanceled();
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
-            Logger.LogInformation("CloudToDeviceMessageTester Main() finished.");
+            Logger.LogInformation($"{nameof(Program.MainAsync)} finished.");
             return 0;
         }
     }

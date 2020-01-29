@@ -32,18 +32,13 @@ namespace CloudToDeviceMessageTester
             this.iotHubConnectionString = Preconditions.CheckNonWhiteSpace(iotHubConnectionString, nameof(iotHubConnectionString));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.moduleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
-            this.transportType = Preconditions.CheckNotNull(transportType, nameof(transportType));
-            this.testDuration = Preconditions.CheckNotNull(testDuration, nameof(testDuration));
+            this.transportType = transportType;
+            this.testDuration = testDuration;
             this.testResultReportingClient = Preconditions.CheckNotNull(testResultReportingClient, nameof(testResultReportingClient));
         }
 
-        public abstract Task InitAsync(CancellationTokenSource cts, DateTime testStartAt);
+        public abstract Task StartAsync(CancellationToken ct);
 
         public abstract void Dispose();
-
-        protected bool IsTestTimeUp(DateTime testStartAt)
-        {
-            return (this.testDuration == TimeSpan.Zero) || (DateTime.UtcNow - testStartAt < this.testDuration);
-        }
     }
 }

@@ -17,6 +17,7 @@ namespace CloudToDeviceMessageTester
             string deviceId,
             string iotHubConnectionString,
             string moduleId,
+            string gatewayHostName,
             CloudToDeviceMessageTesterMode testMode,
             string trackingId,
             TransportType transportType,
@@ -32,12 +33,13 @@ namespace CloudToDeviceMessageTester
 
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.IoTHubConnectionString = Preconditions.CheckNonWhiteSpace(iotHubConnectionString, nameof(iotHubConnectionString));
-            this.TestMode = testMode;
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
+            this.GatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
+            this.TestMode = testMode;
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.TransportType = transportType;
             this.MessageDelay = messageDelay;
-            this.ReportingEndpointUrl = reportingEndpointUrl;
+            this.ReportingEndpointUrl = Preconditions.CheckNotNull(reportingEndpointUrl, nameof(reportingEndpointUrl));
             this.TestDuration = testDuration;
             this.TestStartDelay = testStartDelay;
         }
@@ -54,6 +56,7 @@ namespace CloudToDeviceMessageTester
                 configuration.GetValue<string>("IOTEDGE_DEVICEID"),
                 configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING"),
                 configuration.GetValue<string>("IOTEDGE_MODULEID"),
+                configuration.GetValue<string>("IOTEDGE_GATEWAYHOSTNAME"),
                 configuration.GetValue("CLOUD_TO_DEVICE_MESSAGE_TESTER_MODE", CloudToDeviceMessageTesterMode.Receiver),
                 configuration.GetValue<string>("trackingId"),
                 configuration.GetValue("TransportType", TransportType.Amqp),
@@ -68,6 +71,8 @@ namespace CloudToDeviceMessageTester
         internal string IoTHubConnectionString { get; }
 
         internal string ModuleId { get; }
+
+        internal string GatewayHostName { get; }
 
         internal CloudToDeviceMessageTesterMode TestMode { get; }
 
