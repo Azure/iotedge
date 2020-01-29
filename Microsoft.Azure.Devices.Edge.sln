@@ -215,7 +215,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeploymentTester", "test\mo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Integration.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Integration.Test\Microsoft.Azure.Devices.Edge.Agent.Integration.Test.csproj", "{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeHubRestartTester", "test\modules\EdgeHubRestartTester\EdgeHubRestartTester.csproj", "{1FB4CE7E-C343-4840-BC80-0CC58516F937}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MetricsValidator", "test\modules\MetricsValidator\MetricsValidator.csproj", "{5857DB4A-F61A-4467-96F1-003B47B8B2CF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeHubRestartTester", "test\modules\EdgeHubRestartTester\EdgeHubRestartTester.csproj", "{DA073067-83EF-4F4C-8E58-51CA7870C1F6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -705,22 +707,30 @@ Global
 		{1C1C8203-CD73-4CC1-9112-7315F9DE1AB6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1C1C8203-CD73-4CC1-9112-7315F9DE1AB6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1C1C8203-CD73-4CC1-9112-7315F9DE1AB6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.CheckInBuild|Any CPU.ActiveCfg = Debug|Any CPU
-		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.CheckInBuild|Any CPU.Build.0 = Debug|Any CPU
-		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
-		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
+		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
+		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
+		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.CodeCoverage|Any CPU.ActiveCfg = CodeCoverage|Any CPU
+		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.CodeCoverage|Any CPU.Build.0 = CodeCoverage|Any CPU
 		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1FB4CE7E-C343-4840-BC80-0CC58516F937}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
-		{1FB4CE7E-C343-4840-BC80-0CC58516F937}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
-		{1FB4CE7E-C343-4840-BC80-0CC58516F937}.CodeCoverage|Any CPU.ActiveCfg = CodeCoverage|Any CPU
-		{1FB4CE7E-C343-4840-BC80-0CC58516F937}.CodeCoverage|Any CPU.Build.0 = CodeCoverage|Any CPU
-		{1FB4CE7E-C343-4840-BC80-0CC58516F937}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1FB4CE7E-C343-4840-BC80-0CC58516F937}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1FB4CE7E-C343-4840-BC80-0CC58516F937}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1FB4CE7E-C343-4840-BC80-0CC58516F937}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5857DB4A-F61A-4467-96F1-003B47B8B2CF}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
+		{5857DB4A-F61A-4467-96F1-003B47B8B2CF}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
+		{5857DB4A-F61A-4467-96F1-003B47B8B2CF}.CodeCoverage|Any CPU.ActiveCfg = CodeCoverage|Any CPU
+		{5857DB4A-F61A-4467-96F1-003B47B8B2CF}.CodeCoverage|Any CPU.Build.0 = CodeCoverage|Any CPU
+		{5857DB4A-F61A-4467-96F1-003B47B8B2CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5857DB4A-F61A-4467-96F1-003B47B8B2CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5857DB4A-F61A-4467-96F1-003B47B8B2CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5857DB4A-F61A-4467-96F1-003B47B8B2CF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA073067-83EF-4F4C-8E58-51CA7870C1F6}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
+		{DA073067-83EF-4F4C-8E58-51CA7870C1F6}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
+		{DA073067-83EF-4F4C-8E58-51CA7870C1F6}.CodeCoverage|Any CPU.ActiveCfg = CodeCoverage|Any CPU
+		{DA073067-83EF-4F4C-8E58-51CA7870C1F6}.CodeCoverage|Any CPU.Build.0 = CodeCoverage|Any CPU
+		{DA073067-83EF-4F4C-8E58-51CA7870C1F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA073067-83EF-4F4C-8E58-51CA7870C1F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA073067-83EF-4F4C-8E58-51CA7870C1F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA073067-83EF-4F4C-8E58-51CA7870C1F6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -806,6 +816,8 @@ Global
 		{1447EC5D-DD23-4C51-8941-336A495A48EE} = {F921339B-32F9-4BF3-B364-2DB01FA2F1A1}
 		{1C1C8203-CD73-4CC1-9112-7315F9DE1AB6} = {F921339B-32F9-4BF3-B364-2DB01FA2F1A1}
 		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
+		{5857DB4A-F61A-4467-96F1-003B47B8B2CF} = {F921339B-32F9-4BF3-B364-2DB01FA2F1A1}
+		{DA073067-83EF-4F4C-8E58-51CA7870C1F6} = {F921339B-32F9-4BF3-B364-2DB01FA2F1A1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}

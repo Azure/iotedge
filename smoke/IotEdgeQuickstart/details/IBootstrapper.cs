@@ -13,7 +13,10 @@ namespace IotEdgeQuickstart.Details
 
         Task Install();
 
-        Task Configure(DeviceProvisioningMethod method, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel);
+        /* This will set up the device with edge agent image 1.0.
+           This is necessary because, if iotedged instead starts a the desired agent image, edgeAgent will not update its initial environment variables, createOptions, etc.
+           A deployment is necessary to start the desired agent image. */
+        Task Configure(DeviceProvisioningMethod method, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel);
 
         Task Start();
 

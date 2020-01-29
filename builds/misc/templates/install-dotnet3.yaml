@@ -1,6 +1,6 @@
 steps:
-  - task: DotNetCoreInstaller@0
-    displayName: Install .NET Core
+  - task: UseDotNet@2
+    displayName: Install .NET Core sdk
     inputs:
       packageType: sdk
       version: 3.0.100
