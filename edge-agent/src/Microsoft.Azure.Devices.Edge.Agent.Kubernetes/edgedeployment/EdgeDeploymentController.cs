@@ -22,12 +22,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     // TODO add unit tests
     public class EdgeDeploymentController : IEdgeDeploymentController
     {
-        static readonly string EdgeAgentDeploymentName = KubeUtils.SanitizeLabelValue(CoreConstants.EdgeAgentModuleName);
-
         readonly IKubernetes client;
-
         readonly ResourceName resourceName;
-        readonly string deploymentSelector;
+        readonly string deviceSelector;
         readonly string deviceNamespace;
         readonly IModuleIdentityLifecycleManager moduleIdentityLifecycleManager;
         readonly IKubernetesServiceMapper serviceMapper;
@@ -37,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
         public EdgeDeploymentController(
             ResourceName resourceName,
-            string deploymentSelector,
+            string deviceSelector,
             string deviceNamespace,
             IKubernetes client,
             IModuleIdentityLifecycleManager moduleIdentityLifecycleManager,
@@ -47,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             IKubernetesServiceAccountMapper serviceAccountMapper)
         {
             this.resourceName = resourceName;
-            this.deploymentSelector = deploymentSelector;
+            this.deviceSelector = deviceSelector;
             this.deviceNamespace = deviceNamespace;
             this.moduleIdentityLifecycleManager = moduleIdentityLifecycleManager;
             this.client = client;
@@ -62,6 +59,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             try
             {
                 var moduleIdentities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModules, currentModules);
+
+                // having desired modules an no module identities means that we are unable to obtain a list of module identities
+                if (desiredModules.Modules.Any() && !moduleIdentities.Any())
+                {
+                    Events.NoModuleIdentities();
+                    return EdgeDeploymentStatus.Failure("Unable to obtain identities for desired modules");
+                }
 
                 var labels = desiredModules.Modules
                     .ToDictionary(
@@ -83,14 +87,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     .FilterMap()
                     .ToList();
 
-                V1ServiceList currentServices = await this.client.ListNamespacedServiceAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
+                V1ServiceList currentServices = await this.client.ListNamespacedServiceAsync(this.deviceNamespace, labelSelector: this.deviceSelector);
                 await this.ManageServices(currentServices, desiredServices);
 
                 var desiredDeployments = desiredModules.Modules
                     .Select(module => this.deploymentMapper.CreateDeployment(moduleIdentities[module.Key], (KubernetesModule)module.Value, labels[module.Key]))
                     .ToList();
 
-                V1DeploymentList currentDeployments = await this.client.ListNamespacedDeploymentAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
+                V1DeploymentList currentDeployments = await this.client.ListNamespacedDeploymentAsync(this.deviceNamespace, labelSelector: this.deviceSelector);
                 await this.ManageDeployments(currentDeployments, desiredDeployments);
 
                 var desiredPvcs = desiredModules.Modules
@@ -107,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     .Select(module => this.serviceAccountMapper.CreateServiceAccount((KubernetesModule)module.Value, moduleIdentities[module.Key], labels[module.Key]))
                     .ToList();
 
-                V1ServiceAccountList currentServiceAccounts = await this.client.ListNamespacedServiceAccountAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
+                V1ServiceAccountList currentServiceAccounts = await this.client.ListNamespacedServiceAccountAsync(this.deviceNamespace, labelSelector: this.deviceSelector);
                 await this.ManageServiceAccounts(currentServiceAccounts, desiredServiceAccounts);
 
                 return EdgeDeploymentStatus.Success("Successfully deployed");
@@ -364,7 +368,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 CreateServiceAccount,
                 DeleteServiceAccount,
                 UpdateServiceAccount,
-                DeployModulesException
+                DeployModulesException,
+                NoModuleIdentities
             }
 
             internal static void DeleteService(string name)
@@ -435,6 +440,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             internal static void UpdateServiceAccount(V1ServiceAccount serviceAccount)
             {
                 Log.LogDebug((int)EventIds.UpdateServiceAccount, $"Update Service Account {serviceAccount.Metadata.Name}");
+            }
+
+            internal static void NoModuleIdentities()
+            {
+                Log.LogError((int)EventIds.NoModuleIdentities, "Unable to get identities for desired modules");
             }
         }
     }

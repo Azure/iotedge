@@ -1,12 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment
+namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
 {
     using System;
     using System.Collections.Generic;
     using System.Net;
     using System.Net.Http;
     using System.Threading;
-    using System.Threading.Tasks;
     using k8s;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -189,7 +188,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment
                     Request = new HttpRequestMessageWrapper(new HttpRequestMessage(HttpMethod.Put, new Uri("http://valid-uri")), "content")
                 };
             Option<EdgeDeploymentStatus> reportedStatus = Option.None<EdgeDeploymentStatus>();
-            EdgeDeploymentStatus expectedStatus = new EdgeDeploymentStatus(EdgeDeploymentStatusType.Failure, $"{controllerException.Request.Method} [{controllerException.Request.RequestUri}]({controllerException.Message})");
+            EdgeDeploymentStatus expectedStatus = EdgeDeploymentStatus.Failure($"{controllerException.Request.Method} [{controllerException.Request.RequestUri}]({controllerException.Message})");
             var edgeDefinition = new EdgeDeploymentDefinition("v1", "EdgeDeployment", new V1ObjectMeta(name: ResourceName), new List<KubernetesModule>(), null);
             var response = new HttpOperationResponse<object>()
             {
