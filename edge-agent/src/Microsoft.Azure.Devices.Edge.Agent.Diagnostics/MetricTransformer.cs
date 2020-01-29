@@ -36,10 +36,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 {
                     Dictionary<string, string> newTags = metric.Tags.ToDictionary(t => t.Key, t => t.Value);
 
-                    this.tagsToAdd.ForEach(tta => tta.ForEach(toAdd => newTags.Add(toAdd.Key, toAdd.Value)));
-                    this.tagsToRemove.ForEach(ttr => ttr.ForEach(toRemove => newTags.Remove(toRemove)));
+                    this.tagsToAdd.ForEach(t => t.ForEach(toAdd => newTags.Add(toAdd.Key, toAdd.Value)));
+                    this.tagsToRemove.ForEach(t => t.ForEach(toRemove => newTags.Remove(toRemove)));
 
-                    this.tagsToModify.ForEach(tth => tth.ForEach(modification =>
+                    this.tagsToModify.ForEach(t => t.ForEach(modification =>
                     {
                         if (newTags.TryGetValue(modification.tag, out string oldValue))
                         {
@@ -98,6 +98,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             return this;
         }
 
+        /// <summary>
+        /// This replaces the value of the given tag with the result of the valueTransformer function.
+        /// </summary>
+        /// <param name="modifications">Tuple containing tag and transformer function.</param>
+        /// <returns>self.</returns>
         public MetricTransformer AddTagsToModify(params (string tag, Func<string, string> valueTransformer)[] modifications)
         {
             if (this.tagsToModify.HasValue)
