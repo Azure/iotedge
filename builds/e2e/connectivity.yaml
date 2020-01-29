@@ -59,29 +59,29 @@ jobs:
             $(images.artifact.name.linux)/scripts/testHelper.sh
             $(images.artifact.name.linux)/artifactInfo.txt
       # Deploy connectivity test
-      - template: templates/connectivity-deploy.yaml
-        parameters:
-          release.label: 'ct$(agent.group)'
-          edgelet.artifact.name: '$(edgelet.artifact.name)'
-          images.artifact.name: '$(images.artifact.name.linux)'
-          container.registry: '$(container.registry)'
-          container.registry.username: '$(edgebuilds-azurecr-io-username)'
-          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(EdgeConnectivityTestHubConnString)'
-          eventHub.connectionString: '$(EdgeConnectivityEventHubConnString)'
-          upstream.protocol: '$(upstream.protocol)'
-          loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
-          testDuration: '$(testDuration)'
-          testStartDelay: '$(testStartDelay)'
-          networkController.frequencies: '$(networkController.frequencies)'
-          networkController.mode: '$(networkController.mode)'
-          logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
-          logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
-          testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
-          testResultCoordinator.verificationDelay: '$(testResultCoordinator.verificationDelay)'
-          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
-          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
-          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
+      # - template: templates/connectivity-deploy.yaml
+      #   parameters:
+      #     release.label: 'ct$(agent.group)'
+      #     edgelet.artifact.name: '$(edgelet.artifact.name)'
+      #     images.artifact.name: '$(images.artifact.name.linux)'
+      #     container.registry: '$(container.registry)'
+      #     container.registry.username: '$(edgebuilds-azurecr-io-username)'
+      #     container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
+      #     iotHub.connectionString: '$(EdgeConnectivityTestHubConnString)'
+      #     eventHub.connectionString: '$(EdgeConnectivityEventHubConnString)'
+      #     upstream.protocol: '$(upstream.protocol)'
+      #     loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
+      #     testDuration: '$(testDuration)'
+      #     testStartDelay: '$(testStartDelay)'
+      #     networkController.frequencies: '$(networkController.frequencies)'
+      #     networkController.mode: '$(networkController.mode)'
+      #     logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
+      #     logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
+      #     testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
+      #     testResultCoordinator.verificationDelay: '$(testResultCoordinator.verificationDelay)'
+      #     metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
+      #     metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+      #     metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
 
 ################################################################################
   - job: linux_arm32v7_moby
