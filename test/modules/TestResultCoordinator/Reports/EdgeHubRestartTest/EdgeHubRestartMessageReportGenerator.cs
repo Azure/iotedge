@@ -42,24 +42,23 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         {
             Logger.LogInformation($"Generating report: {nameof(EdgeHubRestartMessageReport)} for [{this.Metadata.SenderSource}] and [{this.Metadata.ReceiverSource}]");
 
-            // BEARWASHERE -- Verification
-            ValidateResult(
-                this.SenderTestResults.Current,
-                this.Metadata.SenderSource,
-                this.Metadata.TestOperationResultType.ToString());
-            ValidateResult(
-                this.ReceiverTestResults.Current,
-                this.Metadata.ReceiverSource,
-                this.Metadata.TestOperationResultType.ToString());
+            // BEARWASHERE -- Verification -- DO THIS
+            //this.SenderTestResults.Current.Result ---Deserialize()--> EdgeHubRestartMessageResult/EdgeHubRestartDirectMethodResult
+            bool hasSenderResult = await this.SenderTestResults.MoveNextAsync();
+            bool hasReceiverResult = await this.ReceiverTestResults.MoveNextAsync();
 
-                //this.SenderTestResults.Current.Result ---Deserialize()--> EdgeHubRestartMessageResult/EdgeHubRestartDirectMethodResult
-
-            while (hasActualResult && this.TestResultComparer.Matches(lastLoadedResult, this.ActualTestResults.Current))
-                {
-                    totalDuplicateResultCount++;
-                    lastLoadedResult = this.ActualTestResults.Current;
-                    hasActualResult = await this.ActualTestResults.MoveNextAsync();
-                }
+            while (hasSenderResult && hasReceiverResult)
+            {
+                ValidateResult(
+                    this.SenderTestResults.Current,
+                    this.Metadata.SenderSource,
+                    this.Metadata.TestOperationResultType.ToString());
+                ValidateResult(
+                    this.ReceiverTestResults.Current,
+                    this.Metadata.ReceiverSource,
+                    this.Metadata.TestOperationResultType.ToString());
+            }
+            
 
             // BEARWASHERE -- Define the report format
             return new EdgeHubRestartMessageReport(
