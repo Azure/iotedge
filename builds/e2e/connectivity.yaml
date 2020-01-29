@@ -30,13 +30,10 @@ jobs:
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
       - pwsh: |
-          $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
-      # - task: Bash@3
-      #   inputs:
-      #     targetType: inline
-      #     script: |
-      #       echo "Test"
+          env
         displayName: 'Test'
+        env:
+          KeyVaultName: $(azure.keyVault)
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
