@@ -18,8 +18,23 @@ parameters:
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''
+  configs:
+    Offline:
+      key: 1
+    Online:
+      key: 2
 
 steps:
+  - ${{ each config in parameters.configs }}: # Each job
+    - bash: |
+        echo "build.status=$(Agent.JobStatus)"
+        if [[ ( "$(config.key)" == "$(config.to.run)" || "$(config.to.run)" == "0" ) && "$(Agent.JobStatus)" != "Canceled" ]]; then
+            echo "##vso[task.setvariable variable=run.steps]1"
+            echo "run $(config.key)"
+        else
+            echo "##vso[task.setvariable variable=run.steps]0"
+            echo "else run $(config.key)"
+        fi
   - task: CopyFiles@2
     displayName: 'Copy Edgelet Artifact'
     inputs:
