@@ -24,7 +24,7 @@ jobs:
     steps:
       - checkout: none
       - task: Bash@3
-        displayName: 'Create Tracking Id'
+        displayName: 'Create Tracking Ids'
         inputs:
           targetType: inline
           script: |
@@ -112,6 +112,12 @@ jobs:
       edgelet.artifact.name: 'iotedged-debian9-arm32v7'
     steps:
       - checkout: none
+      - task: Bash@3
+        displayName: 'Create Tracking Ids'
+        inputs:
+          targetType: inline
+          script: |
+            echo "##vso[task.setvariable variable=testTrackingId]$(cat /proc/sys/kernel/random/uuid)"
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'
         inputs:
@@ -168,3 +174,4 @@ jobs:
           metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
+          testTrackingId: '$(testTrackingId)'
