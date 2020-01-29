@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var cloudListener = new CloudListener(edgeHub, identity.Id);
             await cloudListener.CallMethodAsync(request);
-            Mock.Get(edgeHub).Verify(eh => eh.InvokeMethodAsync(identity.Id, request), Times.Once);
+            Mock.Get(edgeHub).Verify(eh => eh.InvokeMethodAsync("upstream", request), Times.Once);
         }
     }
 }
