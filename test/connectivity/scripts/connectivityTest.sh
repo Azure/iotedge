@@ -45,12 +45,10 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
     sed -i -e "s@<IoTHubConnectionString>@$IOT_HUB_CONNECTION_STRING@g" "$deployment_working_file"
 
-    local tracking_id=$(cat /proc/sys/kernel/random/uuid)
-
     sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
     sed -i -e "s@<TestDuration>@$TEST_DURATION@g" "$deployment_working_file"
     sed -i -e "s@<TestStartDelay>@$TEST_START_DELAY@g" "$deployment_working_file"
-    sed -i -e "s@<TrackingId>@$tracking_id@g" "$deployment_working_file"
+    sed -i -e "s@<TrackingId>@$TEST_TRACKING_ID@g" "$deployment_working_file"
     sed -i -e "s@<UpstreamProtocol>@$UPSTREAM_PROTOCOL@g" "$deployment_working_file"
 
     sed -i -e "s@<TestResultCoordinator.VerificationDelay>@$VERIFICATION_DELAY@g" "$deployment_working_file"
@@ -217,6 +215,9 @@ function process_args() {
         elif [ $saveNextArg -eq 24 ]; then
             METRICS_UPLOAD_TARGET="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 25 ]; then
+            TEST_TRACKING_ID="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -244,6 +245,7 @@ function process_args() {
                 '-metricsEndpointsCSV' ) saveNextArg=22;;
                 '-metricsScrapeFrequencyInSecs' ) saveNextArg=23;;
                 '-metricsUploadTarget' ) saveNextArg=24;;
+                '-testTrackingId' ) saveNextArg=25;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
 
                 '-cleanAll' ) CLEAN_ALL=1;;
@@ -277,21 +279,21 @@ function run_connectivity_test() {
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run connectivity test with -d '$device_id' started at $test_start_time"
 
-    SECONDS=0
-    "$quickstart_working_folder/IotEdgeQuickstart" \
-        -d "$device_id" \
-        -a "$iotedge_package" \
-        -c "$IOT_HUB_CONNECTION_STRING" \
-        -e "$EVENTHUB_CONNECTION_STRING" \
-        -r "$CONTAINER_REGISTRY" \
-        -u "$CONTAINER_REGISTRY_USERNAME" \
-        -p "$CONTAINER_REGISTRY_PASSWORD" \
-        -n "$(hostname)" \
-        -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
-        --leave-running=All \
-        -l "$deployment_working_file" \
-        --runtime-log-level "Debug" \
-        --no-verify && funcRet=$? || funcRet=$?
+    # SECONDS=0
+    # "$quickstart_working_folder/IotEdgeQuickstart" \
+    #     -d "$device_id" \
+    #     -a "$iotedge_package" \
+    #     -c "$IOT_HUB_CONNECTION_STRING" \
+    #     -e "$EVENTHUB_CONNECTION_STRING" \
+    #     -r "$CONTAINER_REGISTRY" \
+    #     -u "$CONTAINER_REGISTRY_USERNAME" \
+    #     -p "$CONTAINER_REGISTRY_PASSWORD" \
+    #     -n "$(hostname)" \
+    #     -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+    #     --leave-running=All \
+    #     -l "$deployment_working_file" \
+    #     --runtime-log-level "Debug" \
+    #     --no-verify && funcRet=$? || funcRet=$?
 
     local elapsed_time="$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$SECONDS")"
     print_highlighted_message "Deploy connectivity test with -d '$device_id' completed in $elapsed_time"
@@ -413,6 +415,7 @@ function usage() {
     echo ' -metricsEndpointsCSV            Optional csv of exposed endpoints for which to scrape metrics.'
     echo ' -metricsScrapeFrequencyInSecs   Optional frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
     echo ' -metricsUploadTarget            Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
+    echo ' -testTrackingId                 Represents a specific test configuration within a connectivity test.'
 
     echo ' -cleanAll                       Do docker prune for containers, logs and volumes.'
     exit 1;
