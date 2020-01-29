@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
     public class DiskIO
     {
         [JsonConstructor]
-        public DiskIO(long? major, long? minor, string op, long? value)
+        public DiskIO(double? major, double? minor, string op, double? value)
         {
             this.Major = Option.Maybe(major);
             this.Minor = Option.Maybe(minor);
@@ -67,22 +67,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
         }
 
         [JsonProperty("major", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public Option<long> Major { get; }
+        public Option<double> Major { get; }
 
         [JsonProperty("minor", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public Option<long> Minor { get; }
+        public Option<double> Minor { get; }
 
         [JsonProperty("op", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public Option<string> Op { get; }
 
         [JsonProperty("value", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public Option<long> Value { get; }
+        public Option<double> Value { get; }
     }
 
     public class DockerCpuStats
     {
         [JsonConstructor]
-        public DockerCpuStats(CpuUsage cpu_usage, int? online_cpus, ulong? system_cpu_usage)
+        public DockerCpuStats(CpuUsage cpu_usage, int? online_cpus, double? system_cpu_usage)
         {
             this.CpuUsage = Option.Maybe(cpu_usage);
             this.OnlineCpus = Option.Maybe(online_cpus);
@@ -96,13 +96,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
         public Option<int> OnlineCpus { get; }
 
         [JsonProperty("system_cpu_usage", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public Option<ulong> SystemCpuUsage { get; }
+        public Option<double> SystemCpuUsage { get; }
     }
 
     public class CpuUsage
     {
         [JsonConstructor]
-        public CpuUsage(ulong? total_usage, ulong? usage_in_kernelmode, ulong? usage_in_usermode)
+        public CpuUsage(double? total_usage, double? usage_in_kernelmode, double? usage_in_usermode)
         {
             this.TotalUsage = Option.Maybe(total_usage);
             this.UsageInKernelmode = Option.Maybe(usage_in_kernelmode);
@@ -110,19 +110,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
         }
 
         [JsonProperty("total_usage", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public Option<ulong> TotalUsage { get; }
+        public Option<double> TotalUsage { get; }
 
         [JsonProperty("usage_in_kernelmode", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public Option<ulong> UsageInKernelmode { get; }
+        public Option<double> UsageInKernelmode { get; }
 
         [JsonProperty("usage_in_usermode", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public Option<ulong> UsageInUsermode { get; }
+        public Option<double> UsageInUsermode { get; }
     }
 
     public class MemoryStats
     {
         [JsonConstructor]
-        public MemoryStats(ulong? limit, ulong? max_usage, ulong? usage)
+        public MemoryStats(double? limit, double? max_usage, double? usage)
         {
             this.Limit = Option.Maybe(limit);
             this.MaxUsage = Option.Maybe(max_usage);
@@ -130,40 +130,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
         }
 
         [JsonProperty("limit", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public Option<ulong> Limit { get; }
+        public Option<double> Limit { get; }
 
         [JsonProperty("max_usage", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public Option<ulong> MaxUsage { get; }
+        public Option<double> MaxUsage { get; }
 
         [JsonProperty("usage", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public Option<ulong> Usage { get; }
+        public Option<double> Usage { get; }
     }
 
     public class NetworkInfo
     {
         [JsonConstructor]
-        public NetworkInfo(int? rx_bytes, int? tx_bytes)
+        public NetworkInfo(double? rx_bytes, double? tx_bytes)
         {
             this.RxBytes = Option.Maybe(rx_bytes);
             this.TxBytes = Option.Maybe(tx_bytes);
         }
 
         [JsonProperty("rx_bytes", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public Option<int> RxBytes { get; }
+        public Option<double> RxBytes { get; }
 
         [JsonProperty("tx_bytes", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public Option<int> TxBytes { get; }
+        public Option<double> TxBytes { get; }
     }
 
     public class PidsStats
     {
         [JsonConstructor]
-        public PidsStats(int? current)
+        public PidsStats(double? current)
         {
             this.Current = Option.Maybe(current);
         }
 
         [JsonProperty("current", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public Option<int> Current { get; }
+        public Option<double> Current { get; }
     }
 }

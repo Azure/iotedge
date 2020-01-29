@@ -41,8 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
         IMetricsGauge diskWrite;
 
         // Used to calculate cpu percentage
-        Dictionary<string, ulong> previousModuleCpu = new Dictionary<string, ulong>();
-        Dictionary<string, ulong> previousSystemCpu = new Dictionary<string, ulong>();
+        Dictionary<string, double> previousModuleCpu = new Dictionary<string, double>();
+        Dictionary<string, double> previousSystemCpu = new Dictionary<string, double>();
         Dictionary<string, DateTime> previousReadTime = new Dictionary<string, DateTime>();
 
         public SystemResourcesMetrics(IMetricsProvider metricsProvider, Func<Task<SystemResources>> getSystemResources, string apiVersion, TimeSpan updateFrequency)
@@ -200,7 +200,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 // Get values if exist
-                ulong totalUsage = 0, systemUsage = 0;
+                double totalUsage = 0, systemUsage = 0;
                 if (!module.CpuStats.Exists(cpuStats => cpuStats.CpuUsage.Exists(cpuUsage => cpuUsage.TotalUsage.Exists(tu =>
                      {
                          totalUsage = tu;
@@ -216,7 +216,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
                 }
 
                 // Calculate
-                if (this.previousModuleCpu.TryGetValue(name, out ulong prevModule) && this.previousSystemCpu.TryGetValue(name, out ulong prevSystem))
+                if (this.previousModuleCpu.TryGetValue(name, out double prevModule) && this.previousSystemCpu.TryGetValue(name, out double prevSystem))
                 {
                     double moduleDiff = totalUsage - prevModule;
                     double systemDiff = systemUsage - prevSystem;
@@ -238,7 +238,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             else
             {
                 // Get values if exist
-                ulong totalUsage = 0;
+                double totalUsage = 0;
                 DateTime readTime = DateTime.MinValue;
                 if (!(module.CpuStats.Exists(cpuStats => cpuStats.CpuUsage.Exists(cpuUsage => cpuUsage.TotalUsage.Exists(tu =>
                     {
@@ -255,10 +255,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
                 }
 
                 // Calculate
-                if (this.previousModuleCpu.TryGetValue(name, out ulong prevModule) && this.previousReadTime.TryGetValue(name, out DateTime prevTime))
+                if (this.previousModuleCpu.TryGetValue(name, out double prevModule) && this.previousReadTime.TryGetValue(name, out DateTime prevTime))
                 {
                     double totalIntervals = (readTime - prevTime).TotalMilliseconds * 10; // Get number of 100ns intervals during read
-                    ulong intervalsUsed = totalUsage - prevModule;
+                    double intervalsUsed = totalUsage - prevModule;
 
                     if (totalIntervals > 0)
                     {
