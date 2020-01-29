@@ -44,27 +44,27 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         {
             Logger.LogInformation($"Generating report: {nameof(EdgeHubRestartMessageReport)} for [{this.Metadata.SenderSource}] and [{this.Metadata.ReceiverSource}]");
 
-            // BEARWASHERE -- Verification -- DO THIS
-            //this.SenderTestResults.Current.Result ---Deserialize()--> EdgeHubRestartMessageResult/EdgeHubRestartDirectMethodResult
-            bool hasSenderResult = await this.SenderTestResults.MoveNextAsync();
-            bool hasReceiverResult = await this.ReceiverTestResults.MoveNextAsync();
+            bool hasExpectedResult = await this.SenderTestResults.MoveNextAsync();
+            bool hasActualResult = await this.ReceiverTestResults.MoveNextAsync();
 
-            while (hasSenderResult && hasReceiverResult)
+            while (hasExpectedResult && hasActualResult)
             {
-                ValidateResult(
-                    this.SenderTestResults.Current,
-                    this.Metadata.SenderSource,
-                    this.Metadata.TestOperationResultType.ToString());
-                ValidateResult(
-                    this.ReceiverTestResults.Current,
-                    this.Metadata.ReceiverSource,
-                    this.Metadata.TestOperationResultType.ToString());
-
+                //this.SenderTestResults.Current.Result ---Deserialize()--> EdgeHubRestartMessageResult/EdgeHubRestartDirectMethodResult
                 EdgeHubRestartMessageResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(this.SenderTestResults.Current.Result);
-                senderResult.GetMessageTestResult()
-                
+
+                // Check if the trackingId is correct
+                // Check if the batchId is correct
+                // Check if the sequece number is correct
+                // Check if EH restart status is Http 200
+                // Check if the message result matches
+                // Cehck if message status is HTTP200
+                // Check if the timestamp matches
+                //      Check if the timestmp from relayer is inbetween restart time & sender response time
+                //      Check if the time is exceeding the threshold
+                // Give a warning if the restart cycle does not contain only a message sent.
             }
-            
+
+            // BEARWASHERE -- TODO: Deal w/ dups
 
             // BEARWASHERE -- Define the report format
             return new EdgeHubRestartMessageReport(
