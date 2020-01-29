@@ -217,6 +217,9 @@ function process_args() {
         elif [ $saveNextArg -eq 24 ]; then
             METRICS_UPLOAD_TARGET="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 25 ]; then
+            DEPLOYMENT_FILE_NAME="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -244,6 +247,7 @@ function process_args() {
                 '-metricsEndpointsCSV' ) saveNextArg=22;;
                 '-metricsScrapeFrequencyInSecs' ) saveNextArg=23;;
                 '-metricsUploadTarget' ) saveNextArg=24;;
+                '-deploymentFileName' ) saveNextArg=25;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
 
                 '-cleanAll' ) CLEAN_ALL=1;;
@@ -257,6 +261,7 @@ function process_args() {
     [[ -z "$ARTIFACT_IMAGE_BUILD_NUMBER" ]] && { print_error 'Artifact image build number is required'; exit 1; }
     [[ -z "$CONTAINER_REGISTRY_USERNAME" ]] && { print_error 'Container registry username is required'; exit 1; }
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
+    [[ -z "$DEPLOYMENT_FILE_NAME" ]] && { print_error 'Deployment file name is required'; exit 1; }
     [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
     [[ -z "$IOT_HUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
     [[ -z "$LOG_ANALYTICS_WORKSPACEID" ]] && { print_error 'Log analytics workspace id is required'; exit 1; }
@@ -413,6 +418,7 @@ function usage() {
     echo ' -metricsEndpointsCSV            Optional csv of exposed endpoints for which to scrape metrics.'
     echo ' -metricsScrapeFrequencyInSecs   Optional frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
     echo ' -metricsUploadTarget            Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
+    echo ' -deploymentFileName             Deployment file name'
 
     echo ' -cleanAll                       Do docker prune for containers, logs and volumes.'
     exit 1;
@@ -445,8 +451,7 @@ fi
 
 iotedged_artifact_folder="$(get_iotedged_artifact_folder $E2E_TEST_DIR)"
 iotedge_quickstart_artifact_file="$(get_iotedge_quickstart_artifact_file $E2E_TEST_DIR)"
-echo " !!!!!!!!!!!!! BEARWASHERE -- Hard coded value for a deployment file"
-connectivity_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/edgehub_restart_deployment.template.json"
+connectivity_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/$DEPLOYMENT_FILE_NAME"
 deployment_working_file="$working_folder/deployment.json"
 
 testRet=0
