@@ -35,6 +35,9 @@ steps:
             echo "##vso[task.setvariable variable=run.steps]0"
             echo "else run $(config.key)"
         fi
+    - bash: |
+        echo "bash2 build.status=$(Agent.JobStatus)"
+      condition: or(eq("${{ parameters['config.key'] }}", "$(config.to.run)"), eq("${{ parameters['config.key'] }}", "0"))
   - task: CopyFiles@2
     displayName: 'Copy Edgelet Artifact'
     inputs:
