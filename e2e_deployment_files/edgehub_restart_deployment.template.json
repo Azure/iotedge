@@ -91,6 +91,9 @@
               "directMethodEnable": {
                 "value": "true"
               },
+              "directMethodTargetModuleId": {
+                "value": "directMethodReceiver1"
+              },
               "messageEnable": {
                 "value": "true"
               },
