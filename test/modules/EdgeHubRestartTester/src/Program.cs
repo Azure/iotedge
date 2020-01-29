@@ -80,41 +80,44 @@ namespace EdgeHubRestartTester
                     Interlocked.Exchange(ref directMethodCount, restartCount << 44);
 
                     // Setup Message Task
+                    Task sendMessageTask;
                     if (Settings.Current.MessageEnable)
                     {
-                        await Task.Run(
-                                () => SendMessageAsync(
-                                    msgModuleClient,
-                                    Settings.Current.TrackingId,
-                                    batchId,
-                                    Settings.Current.MessageOutputEndpoint,
-                                    eachTestExpirationTime,
-                                    cts.Token),
-                                cts.Token)
-                            .ContinueWith(
-                                (sendMessageReturnValues) => CreateTestResult(
-                                    TestOperationResultType.Messages,
-                                    restartTime,
-                                    restartStatus,
-                                    sendMessageReturnValues.Result.Item1,
-                                    sendMessageReturnValues.Result.Item2,
-                                    batchId,
-                                    restartCount,
-                                    Interlocked.Read(ref messageCount)),
-                                cts.Token)
-                            .ContinueWith(
-                                async (msgTestResult) =>
-                                {
-                                    TestResultReportingClient reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
-                                    await ModuleUtil.ReportTestResultAsync(
-                                        reportClient,
-                                        Logger,
-                                        msgTestResult.Result).ConfigureAwait(false);
-                                },
-                                cts.Token).ConfigureAwait(false);
+                        Func<Task> sendMessage = async () => {
+                            var (msgCompletedTime, msgStatusCode) = await SendMessageAsync(
+                                msgModuleClient,
+                                Settings.Current.TrackingId,
+                                batchId,
+                                Settings.Current.MessageOutputEndpoint,
+                                eachTestExpirationTime,
+                                cts.Token
+                            ).ConfigureAwait(false);
+                            var msgTestResult = CreateTestResult(
+                                TestOperationResultType.Messages,
+                                restartTime,
+                                restartStatus,
+                                msgCompletedTime,
+                                msgStatusCode,
+                                batchId,
+                                restartCount,
+                                Interlocked.Read(ref messageCount)
+                            );
+                            var reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
+                            await ModuleUtil.ReportTestResultAsync(
+                                reportClient,
+                                Logger,
+                                msgTestResult,
+                                cts.Token
+                            ).ConfigureAwait(false);
+                        };
+                        sendMessageTask = sendMessage();
+                    }
+                    else {
+                        sendMessageTask = Task.CompletedTask;
                     }
 
                     // Setup Direct Method Task
+                    Task directMethodTask;
                     if (Settings.Current.DirectMethodEnable)
                     {
                         await Task.Run(
@@ -148,6 +151,8 @@ namespace EdgeHubRestartTester
                                 },
                                 cts.Token).ConfigureAwait(false);
                     }
+
+                    await Task.WhenAll(new [] { sendMessageTask, directMethodTask });
 
                     // Wait to do another restart
                     await Task.Delay((int)(eachTestExpirationTime - DateTime.UtcNow).TotalMilliseconds, cts.Token);
