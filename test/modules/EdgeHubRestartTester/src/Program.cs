@@ -225,9 +225,9 @@ namespace EdgeHubRestartTester
             ModuleClient moduleClient,
             string directMethodName,
             DateTime testExpirationTime,
-            CancellationToken cts)
+            CancellationToken cancellationToken)
         {
-            while ((!cts.IsCancellationRequested) && (DateTime.UtcNow < testExpirationTime))
+            while ((!cancellationToken.IsCancellationRequested) && (DateTime.UtcNow < testExpirationTime))
             {
                 // BEARWASHERE -- TODO: Test this
                 try
@@ -265,9 +265,9 @@ namespace EdgeHubRestartTester
             Guid batchId,
             string msgOutputEndpoint,
             DateTime testExpirationTime,
-            CancellationToken cts)
+            CancellationToken cancellationToken)
         {
-            while ((!cts.IsCancellationRequested) && (DateTime.UtcNow < testExpirationTime))
+            while ((!cancellationToken.IsCancellationRequested) && (DateTime.UtcNow < testExpirationTime))
             {
                 // BEARWASHERE -- TODO: Test this
                 Message message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new { data = DateTime.UtcNow.ToString() })));
