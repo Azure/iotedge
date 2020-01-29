@@ -82,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         this.upstreamProtocol,
                         this.proxy,
                         this.productInfo,
-                        this.closeOnIdleTimeout,                        
+                        this.closeOnIdleTimeout,
                         this.idleTimeout,
                         this.useConnectivityCheck,
                         this.connectionCheckFrequency))

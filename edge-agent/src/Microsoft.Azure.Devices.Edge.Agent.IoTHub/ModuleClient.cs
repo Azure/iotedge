@@ -38,27 +38,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.pingTimer.Start();
         }
 
-        private async Task Ping()
-        {
-            try
-            {
-                Events.PerformConnectionCheck();
-                await this.UpdateReportedPropertiesAsync(new TwinCollection());
-                Events.ConnectionCheckSucceeded();
-            }
-            catch (TimeoutException)
-            {
-                Events.ConnectionCheckFailed();
-                await this.CloseAsync();
-            }
-            catch
-            {
-                // SDK should have thrown a TimeoutException.
-                // Swallowing like we didn't send a ping check - nothing depends on the result
-                Events.ConnectionCheckFailed();
-            }
-        }
-
         public event EventHandler Closed;
 
         public bool IsActive => this.isActive.Get();
@@ -69,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             try
             {
-                this.ResetTimters();
+                this.ResetTimers();
                 await this.inner.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyChanged);
             }
             catch (Exception e)
@@ -83,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             try
             {
-                this.ResetTimters();
+                this.ResetTimers();
                 await this.inner.SetMethodHandlerAsync(methodName, callback);
             }
             catch (Exception e)
@@ -97,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             try
             {
-                this.ResetTimters();
+                this.ResetTimers();
                 await this.inner.SetDefaultMethodHandlerAsync(callback);
             }
             catch (Exception e)
@@ -111,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             try
             {
-                this.ResetTimters();
+                this.ResetTimers();
                 return await this.inner.GetTwinAsync();
             }
             catch (Exception e)
@@ -125,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             try
             {
-                this.ResetTimters();
+                this.ResetTimers();
                 await this.inner.UpdateReportedPropertiesAsync(reportedProperties);
             }
             catch (Exception e)
@@ -139,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             try
             {
-                this.ResetTimters();
+                this.ResetTimers();
                 await this.inner.SendEventAsync(message);
             }
             catch (Exception e)
@@ -147,12 +126,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 await this.HandleException(e);
                 throw;
             }
-        }
-
-        private void ResetTimters()
-        {
-            // We don't reset ping timer intentionally.
-            this.inactivityTimer.Reset();
         }
 
         ////public async Task<DeviceStreamRequest> WaitForDeviceStreamRequestAsync(CancellationToken cancellationToken)
@@ -234,6 +207,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             {
                 Events.ExceptionInHandleException(this, ex, e);
             }
+        }
+
+        private async Task Ping()
+        {
+            try
+            {
+                Events.PerformConnectionCheck();
+                await this.UpdateReportedPropertiesAsync(new TwinCollection());
+                Events.ConnectionCheckSucceeded();
+            }
+            catch (TimeoutException)
+            {
+                Events.ConnectionCheckFailed();
+                await this.CloseAsync();
+            }
+            catch
+            {
+                // SDK should have thrown a TimeoutException.
+                // Swallowing like we didn't send a ping check - nothing depends on the result
+                Events.ConnectionCheckFailed();
+            }
+        }
+
+        private void ResetTimers()
+        {
+            // We don't reset ping timer intentionally.
+            this.inactivityTimer.Reset();
         }
 
         static class Events
