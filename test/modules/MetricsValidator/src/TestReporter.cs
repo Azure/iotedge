@@ -19,6 +19,9 @@ namespace MetricsValidator
         [JsonProperty("Category")]
         string category;
 
+        [JsonProperty("Duration", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public TimeSpan Duration { get; private set; } = TimeSpan.Zero;
+
         [JsonProperty("Successes")]
         List<string> successes = new List<string>();
 
@@ -29,8 +32,6 @@ namespace MetricsValidator
         [DefaultValue(null)]
         List<TestReporter> subcategories = null;
 
-        [JsonProperty("Duration", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public TimeSpan Duration { get; private set; } = TimeSpan.Zero;
 
         [JsonProperty("Succeeded", Order = -2)]
         public int NumSuccesses

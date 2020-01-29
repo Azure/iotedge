@@ -52,7 +52,7 @@ namespace MetricsValidator
                 }
             }
 
-            log.LogInformation($"Finished test {this.TestName} in {this.testReporter.Duration} ms.");
+            log.LogInformation($"Finished test {this.TestName} in {this.testReporter.Duration}.");
         }
 
         protected abstract Task Test(CancellationToken cancellationToken);

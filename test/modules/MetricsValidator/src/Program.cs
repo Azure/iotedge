@@ -55,7 +55,11 @@ namespace MetricsValidator
                                 new ValidateHostRanges(testReporter, scraper, moduleClient),
                             };
 
-                            await Task.WhenAll(tests.Select(test => test.Start(cts.Token)));
+                            using (testReporter.MeasureDuration())
+                            {
+                                await Task.WhenAll(tests.Select(test => test.Start(cts.Token)));
+                            }
+
                             return new MethodResponse(Encoding.UTF8.GetBytes(testReporter.ReportResults()), (int)HttpStatusCode.OK);
                         },
                         null);
