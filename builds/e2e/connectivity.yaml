@@ -33,7 +33,9 @@ jobs:
         inputs:
           targetType: inline
           script: |
-            dotnet tool install --global PowerShell
+            wget https://github.com/PowerShell/PowerShell/releases/download/v6.2.4/powershell_6.2.4-1.ubuntu.16.04_amd64.deb
+            sudo dpkg -i powershell_6.2.4-1.ubuntu.16.04_amd64.deb
+            sudo apt-get install -f
             pwsh -h
         displayName: 'Test'
       - task: DownloadBuildArtifacts@0
