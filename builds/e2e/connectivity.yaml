@@ -23,6 +23,12 @@ jobs:
       edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
     steps:
       - checkout: none
+      - task: Bash@3
+        displayName: 'Run Connectivity Deployment'
+        inputs:
+          targetType: inline
+          script: |
+            export trackingId=$(cat /proc/sys/kernel/random/uuid)
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'
         inputs:
@@ -30,9 +36,7 @@ jobs:
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
       - pwsh: |
-          echo "Test"
           env
-          $env:KeyVaultName
         displayName: 'Test'
         env:
           KeyVaultName: $(azure.keyVault)
