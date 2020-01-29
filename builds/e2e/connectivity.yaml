@@ -24,11 +24,11 @@ jobs:
     steps:
       - checkout: none
       - task: Bash@3
-        displayName: 'Run Connectivity Deployment'
+        displayName: 'Create Tracking Id'
         inputs:
           targetType: inline
           script: |
-            export trackingId=$(cat /proc/sys/kernel/random/uuid)
+            echo "##vso[task.setvariable variable=trackingId]$(cat /proc/sys/kernel/random/uuid)"
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'
         inputs:
@@ -36,10 +36,12 @@ jobs:
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
       - pwsh: |
+          echo $TrackingId
+          echo ""
           env
         displayName: 'Test'
         env:
-          KeyVaultName: $(azure.keyVault)
+          TrackingId: $(trackingId)
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
