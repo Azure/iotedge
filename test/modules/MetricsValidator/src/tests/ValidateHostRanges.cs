@@ -21,10 +21,8 @@ namespace MetricsValidator.Tests
         {
         }
 
-        public override async Task Start(CancellationToken cancellationToken)
+        protected override async Task Test(CancellationToken cancellationToken)
         {
-            log.LogInformation($"Starting {nameof(ValidateHostRanges)}");
-
             List<Metric> metrics = (await this.scraper.ScrapeEndpointsAsync(cancellationToken)).ToList();
             this.CheckCPU(metrics);
         }
@@ -32,8 +30,11 @@ namespace MetricsValidator.Tests
         void CheckCPU(List<Metric> metrics)
         {
             var cpuMetrics = metrics.Where(m => m.Name == "edgeAgent_used_cpu_percent");
+            Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(cpuMetrics, Newtonsoft.Json.Formatting.Indented));
             var hostCpu = cpuMetrics.Where(m => m.Tags.TryGetValue("module", out string module) && module == "host").ToDictionary(m => m.Tags["quantile"], m => m.Value);
             var moduleCpu = cpuMetrics.Where(m => m.Tags.TryGetValue("module", out string module) && module != "host").ToList();
+
+            this.testReporter.Assert("Host has all quantiles", hostCpu.Count == 5, $"Host had the following quantiles: {string.Join(", ", hostCpu.Keys)}");
 
             foreach (var hostCpuQuartile in hostCpu)
             {

@@ -23,9 +23,8 @@ namespace MetricsValidator.Tests
         {
         }
 
-        public override async Task Start(CancellationToken cancellationToken)
+        protected override async Task Test(CancellationToken cancellationToken)
         {
-            log.LogInformation($"Starting {nameof(ValidateDocumentedMetrics)}");
             await this.SeedMetrics(cancellationToken);
 
             // scrape metrics

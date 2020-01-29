@@ -4,6 +4,7 @@ namespace MetricsValidator
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -20,14 +21,37 @@ namespace MetricsValidator
         protected IMetricsScraper scraper;
         protected ModuleClient moduleClient;
 
+        protected string TestName { get { return this.GetType().ToString(); } }
+
         public TestBase(TestReporter testReporter, IMetricsScraper scraper, ModuleClient moduleClient)
         {
-            log.LogInformation($"Making test {this.GetType().ToString()}");
+            log.LogInformation($"Making test {TestName}");
             this.testReporter = testReporter.MakeSubcategory(this.GetType().ToString());
             this.scraper = scraper;
             this.moduleClient = moduleClient;
         }
 
-        public abstract Task Start(CancellationToken cancellationToken);
+        public async Task Start(CancellationToken cancellationToken)
+        {
+            log.LogInformation($"Starting test {TestName}");
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+            try
+            {
+                await this.Test(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, $"{TestName} Failed");
+                this.testReporter.Assert("Test doesn't break", false, $"Test threw exception:\n{ex}");
+            }
+            finally
+            {
+                stopwatch.Stop();
+            }
+            log.LogInformation($"Finished test {TestName} in {stopwatch.ElapsedMilliseconds} ms.");
+        }
+
+        protected abstract Task Test(CancellationToken cancellationToken);
     }
 }

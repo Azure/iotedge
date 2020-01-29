@@ -21,9 +21,8 @@ namespace MetricsValidator.Tests
         {
         }
 
-        public override async Task Start(CancellationToken cancellationToken)
+        protected override async Task Test(CancellationToken cancellationToken)
         {
-            log.LogInformation($"Starting {nameof(ValidateNumberOfMessagesSent)}");
             await this.TestNumberSent(10, cancellationToken);
             await this.TestNumberSent(100, cancellationToken);
 
