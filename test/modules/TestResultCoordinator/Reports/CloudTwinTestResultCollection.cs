@@ -68,7 +68,7 @@ namespace TestResultCoordinator.Reports
 
                 Logger.LogDebug($"Twin reported properties from cloud {twin.Properties.Reported}");
 
-                return new TwinTestResult(this.source, twin.LastActivityTime.HasValue ? twin.LastActivityTime.Value : DateTime.UtcNow)
+                return new TwinTestResult(this.source, twin.LastActivityTime.HasValue ? twin.LastActivityTime.Value.UtcDateTime : DateTime.UtcNow)
                 {
                     TrackingId = this.trackingId,
                     Properties = twin.Properties.Reported
