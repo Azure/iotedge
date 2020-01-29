@@ -213,6 +213,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TwinTester", "test\modules\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DeploymentTester", "test\modules\DeploymentTester\DeploymentTester.csproj", "{1C1C8203-CD73-4CC1-9112-7315F9DE1AB6}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MetricsValidator", "test\modules\MetricsValidator\MetricsValidator.csproj", "{5857DB4A-F61A-4467-96F1-003B47B8B2CF}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Agent.Integration.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Integration.Test\Microsoft.Azure.Devices.Edge.Agent.Integration.Test.csproj", "{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}"
 EndProject
 Global
@@ -711,6 +713,14 @@ Global
 		{1C1C8203-CD73-4CC1-9112-7315F9DE1AB6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1C1C8203-CD73-4CC1-9112-7315F9DE1AB6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1C1C8203-CD73-4CC1-9112-7315F9DE1AB6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5857DB4A-F61A-4467-96F1-003B47B8B2CF}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
+		{5857DB4A-F61A-4467-96F1-003B47B8B2CF}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
+		{5857DB4A-F61A-4467-96F1-003B47B8B2CF}.CodeCoverage|Any CPU.ActiveCfg = CodeCoverage|Any CPU
+		{5857DB4A-F61A-4467-96F1-003B47B8B2CF}.CodeCoverage|Any CPU.Build.0 = CodeCoverage|Any CPU
+		{5857DB4A-F61A-4467-96F1-003B47B8B2CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5857DB4A-F61A-4467-96F1-003B47B8B2CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5857DB4A-F61A-4467-96F1-003B47B8B2CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5857DB4A-F61A-4467-96F1-003B47B8B2CF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -795,6 +805,7 @@ Global
 		{6208102C-151C-45CE-B573-B9C15B551B4D} = {F921339B-32F9-4BF3-B364-2DB01FA2F1A1}
 		{1447EC5D-DD23-4C51-8941-336A495A48EE} = {F921339B-32F9-4BF3-B364-2DB01FA2F1A1}
 		{1C1C8203-CD73-4CC1-9112-7315F9DE1AB6} = {F921339B-32F9-4BF3-B364-2DB01FA2F1A1}
+		{5857DB4A-F61A-4467-96F1-003B47B8B2CF} = {F921339B-32F9-4BF3-B364-2DB01FA2F1A1}
 		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution

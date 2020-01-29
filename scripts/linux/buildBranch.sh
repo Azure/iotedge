@@ -258,6 +258,7 @@ publish_app "MetricsCollector"
 publish_app "TestResultCoordinator"
 publish_app "NetworkController"
 publish_app "DeploymentTester"
+publish_app "MetricsValidator"
 
 publish_lib "Microsoft.Azure.WebJobs.Extensions.EdgeHub"
 publish_lib "EdgeHubTriggerCSharp"

@@ -29,17 +29,37 @@ spec:
           env:
           - name: "IOTEDGE_LOG"
             value: "debug"
+          {{- if .Values.iotedged.data.httpsProxy }}
+          - name: "https_proxy"
+            value: {{ .Values.iotedged.data.targetPath | quote}}
+          {{end}}
           volumeMounts:
           - name: config
             mountPath: "/etc/iotedged"
             readOnly: true
           - name: edge-home
             mountPath: {{ .Values.iotedged.data.targetPath | quote }}
-          {{- if .Values.iotedged.certificates }}
+          {{- with .Values.iotedged.certificates }}
+          {{- if .secret }}
           - name: edge-certs
             mountPath: "/etc/edgecerts"
             readOnly: true
-          {{end}}
+          {{- end}}
+          {{- end}}
+          {{- with .Values.provisioning.authentication }}
+          {{- if .identitySecret }}
+          - name: edge-authentication
+            mountPath: "/etc/edge-authentication"
+            readOnly: true
+          {{- end}}
+          {{- end}}
+          {{- with .Values.provisioning.attestation }}
+          {{- if .identitySecret }}
+          - name: edge-attestation
+            mountPath: "/etc/edge-attestation"
+            readOnly: true
+          {{- end}}
+          {{- end}}
           ports:
             - name: management
               containerPort: {{ .Values.iotedged.ports.management }}
@@ -70,27 +90,59 @@ spec:
       - name: config
         secret:
           secretName: iotedged-config
-      {{- if .Values.iotedged.certificates }}
+      {{- with .Values.provisioning.authentication }}
+      {{- if .identitySecret }}
+      {{- /*
+      NOTE: This sets up iotedged with a volume "/etc/edge-authentication" populated with authentication certs.
+    */}}
+      - name: edge-authentication
+        secret:
+          secretName: {{ .identitySecret }}
+          items:
+          - key: {{ .identityCert | default "identity_certificate.pem" }}
+            path: identity_cert
+          - key: {{ .identityPk | default "identity_key.pem" }}
+            path: identity_pk
+      {{- end}}
+      {{- end}}
+      {{- with .Values.provisioning.attestation }}
+      {{- if .identitySecret }}
+      {{- /*
+      NOTE: This sets up iotedged with a volume "/etc/edge-attestation" populated with the attestation certs.
+    */}}
+      - name: edge-attestation
+        secret:
+          secretName: {{ .identitySecret }}
+          items:
+          - key: {{ .identityCert | default "identity_certificate.pem" }}
+            path: identity_cert
+          - key: {{ .identityPk | default "identity_key.pem" }}
+            path: identity_pk
+      {{- end}}
+      {{- end}}
+      {{- with .Values.iotedged.certificates }}
+      {{- if .secret }}
       {{- /*
         NOTE: This sets up iotedged with a volume "/etc/edgecerts" populated with the given CA certs.
       */}}
       - name: edge-certs
         secret:
-          secretName: {{ .Values.iotedged.certificates.secret }}
+          secretName: {{ .secret }}
           items:
-          - key: {{ .Values.iotedged.certificates.device_ca_cert | default "device_ca_cert" }}
+          - key: {{ .device_ca_cert | default "device_ca_cert" }}
             path: device_ca_cert
-          - key: {{ .Values.iotedged.certificates.device_ca_pk | default "device_ca_pk" }}
+          - key: {{ .device_ca_pk | default "device_ca_pk" }}
             path: device_ca_pk
-          - key: {{ .Values.iotedged.certificates.trusted_ca_certs | default "trusted_ca_certs" }}
+          - key: {{ .trusted_ca_certs | default "trusted_ca_certs" }}
             path: trusted_ca_certs
-      {{else}}
+      {{- end}}
+      {{- else}}
       {{- /*
         NOTE: This sets up iotedged in the "quickstart" mode which is NOT meant
         for production use. For PoCs though, its wonderful! For production, this
         volume should probably be populated with proper CA certs.
       */}}
-      {{end}}
+      {{- end}}
       - name: edge-home
         {{- if .Values.iotedged.data.persistentVolumeClaim }}
         persistentVolumeClaim:
