@@ -30,7 +30,9 @@ jobs:
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
       - pwsh: |
+          echo "Test"
           env
+          $env:KeyVaultName
         displayName: 'Test'
         env:
           KeyVaultName: $(azure.keyVault)
