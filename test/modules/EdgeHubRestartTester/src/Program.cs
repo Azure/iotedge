@@ -121,6 +121,8 @@ namespace EdgeHubRestartTester
                     }
 
                     // Wait for treads to be done
+                    // TODO: - This introduces a problem if one of the test hang with timeout none of the result is going through to TRC.
+                    //       - Make each thread responsible for sending its own result to TRC
                     Task.WaitAll(taskWaitlist.ToArray());
 
                     // Get the result and report it to TRC
