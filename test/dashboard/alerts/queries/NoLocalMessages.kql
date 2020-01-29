@@ -9,7 +9,7 @@ let filteredLastHour = sanitizedTestMetrics
 | where testId == mostRecentTestId
 | where TimeGenerated > now() - 2h and TimeGenerated < now() - 1h;
 filteredLastHour
-| project device, moduleName, messageTarget, Name_s, value, TimeGenerated
+| project device, moduleName, target, Name_s, value, TimeGenerated
 | where Name_s == "edgehub_messages_sent_total"
-| where messageTarget != "upstream"
+| where target != "upstream"
 | summarize count() by moduleName

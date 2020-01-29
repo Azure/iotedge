@@ -16,7 +16,7 @@ let alertContext = filtered
 | where TimeGenerated < maxTimeGenerated and TimeGenerated > maxTimeGenerated - <ALERTING.INTERVAL>m;
 filtered
 | where Name_s == "edgehub_messages_sent_total"
-| where messageTarget == "upstream"
+| where target == "upstream"
 | order by moduleName, TimeGenerated
 | serialize | extend nextValue = next(value, 1) | extend nextId = next(moduleName, 1) | extend nextTime = next(TimeGenerated, 1)
 | extend event_diff = iff((value - nextValue) >= 0, value - nextValue, value)
