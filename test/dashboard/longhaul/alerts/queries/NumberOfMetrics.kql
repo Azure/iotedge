@@ -1,0 +1,16 @@
+let environmentPrefix = "<ENVIRONMENT>";
+let platform = "<PLATFORM>";
+let mostRecentTestId = toscalar(sanitizedTestMetrics 
+| where device contains environmentPrefix and device contains platform
+| order by TimeGenerated
+| take 1
+| project testId);
+let filtered = sanitizedTestMetrics
+| where testId == mostRecentTestId;
+let filteredWithMaxTime = filtered
+| summarize maxTimeGenerated = max(TimeGenerated);
+let maxTimeGenerated = toscalar(filteredWithMaxTime);
+let alertContext = filtered
+| where TimeGenerated < maxTimeGenerated and TimeGenerated > maxTimeGenerated - <ALERTING.INTERVAL>m;
+alertContext
+| summarize count() by Name_s

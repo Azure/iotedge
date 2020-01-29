@@ -1,0 +1,26 @@
+let environmentPrefix = "<ENVIRONMENT>";
+let platform = "<PLATFORM>";
+let tempSensorMessageRateThreshold = <TEMPSENSOR.THRESHOLD>;
+let mostRecentTestId = toscalar(sanitizedTestMetrics 
+| where device contains environmentPrefix and device contains platform
+| order by TimeGenerated
+| take 1
+| project testId);
+let filtered = sanitizedTestMetrics
+| where testId == mostRecentTestId;
+let filteredWithMaxTime = filtered
+| summarize maxTimeGenerated = max(TimeGenerated);
+let maxTimeGenerated = toscalar(filteredWithMaxTime);
+let alertContext = filtered
+| where TimeGenerated < maxTimeGenerated and TimeGenerated > maxTimeGenerated - <ALERTING.INTERVAL>m;
+filtered
+| where Name_s == "edgehub_messages_sent_total"
+| where target != "upstream"
+| order by moduleName, TimeGenerated
+| serialize | extend nextValue = next(value, 1) | extend nextId = next(moduleName, 1) | extend nextTime = next(TimeGenerated, 1)
+| extend event_diff = iff((value - nextValue) >= 0, value - nextValue, value)
+| extend minutes_diff = (TimeGenerated - nextTime) / 1s / 60
+| extend rate = event_diff / minutes_diff
+| where moduleName == nextId and rate >= 0
+| summarize min_rate=min(rate) by moduleName
+| where moduleName contains("tempSensor") and min_rate < tempSensorMessageRateThreshold
