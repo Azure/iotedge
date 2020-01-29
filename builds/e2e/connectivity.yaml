@@ -6,9 +6,10 @@ variables:
   vsts.project: $(System.TeamProjectId)
   config1.key: 1
   config2.key: 2
+  numOfConfigs: [1, 2]
 
 jobs:
-  - ${{ each configKey in [1, 2] }}: # Each config
+  - ${{ each configKey in numOfConfigs }}: # Each config
   ################################################################################
     - job: linux_amd64_moby
   ################################################################################
