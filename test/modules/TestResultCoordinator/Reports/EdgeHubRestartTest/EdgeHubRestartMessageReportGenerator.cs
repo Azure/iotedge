@@ -52,12 +52,14 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 //this.SenderTestResults.Current.Result ---Deserialize()--> EdgeHubRestartMessageResult/EdgeHubRestartDirectMethodResult
                 EdgeHubRestartMessageResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(this.SenderTestResults.Current.Result);
 
+                // Check if {this.TrackingId};{this.BatchId};{this.SequenceNumber} matches
                 // Check if the trackingId is correct
                 // Check if the batchId is correct
                 // Check if the sequece number is correct
+
                 // Check if EH restart status is Http 200
                 // Check if the message result matches
-                // Cehck if message status is HTTP200
+                // Check if message status is HTTP200
                 // Check if the timestamp matches
                 //      Check if the timestmp from relayer is inbetween restart time & sender response time
                 //      Check if the time is exceeding the threshold
