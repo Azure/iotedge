@@ -187,7 +187,7 @@ namespace EdgeHubRestartTester
             {
                 case TestOperationResultType.Messages:
                     return new EdgeHubRestartMessageResult(
-                        Settings.Current.ModuleId + testOperationResultType.ToString(),
+                        Settings.Current.ModuleId + "." + testOperationResultType.ToString(),
                         DateTime.UtcNow,
                         Settings.Current.TrackingId,
                         batchId.ToString(),
@@ -200,7 +200,7 @@ namespace EdgeHubRestartTester
 
                 case TestOperationResultType.DirectMethod:
                     return new EdgeHubRestartDirectMethodResult(
-                        Settings.Current.ModuleId + testOperationResultType.ToString(),
+                        Settings.Current.ModuleId + "." + testOperationResultType.ToString(),
                         DateTime.UtcNow,
                         Settings.Current.TrackingId,
                         batchId,
