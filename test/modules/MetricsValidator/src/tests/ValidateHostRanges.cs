@@ -29,12 +29,15 @@ namespace MetricsValidator.Tests
 
         void CheckCPU(List<Metric> metrics)
         {
-            var cpuMetrics = metrics.Where(m => m.Name == "edgeAgent_used_cpu_percent");
-            Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(cpuMetrics, Newtonsoft.Json.Formatting.Indented));
-            var hostCpu = cpuMetrics.Where(m => m.Tags.TryGetValue("module", out string module) && module == "host").ToDictionary(m => m.Tags["quantile"], m => m.Value);
-            var moduleCpu = cpuMetrics.Where(m => m.Tags.TryGetValue("module", out string module) && module != "host").ToList();
+            const string cpuMetricName = "edgeAgent_used_cpu_percent";
+            var cpuMetrics = metrics.Where(m => m.Name == cpuMetricName);
+            this.testReporter.Assert($"{cpuMetricName} metric exists", cpuMetrics.Any(), $"Missing {cpuMetricName}");
 
-            this.testReporter.Assert("Host has all quantiles", hostCpu.Count == 5, $"Host had the following quantiles: {string.Join(", ", hostCpu.Keys)}");
+            var hostCpu = cpuMetrics.Where(m => m.Tags.TryGetValue("module", out string module) && module == "host").ToDictionary(m => m.Tags["quantile"], m => m.Value);
+            this.testReporter.Assert("Host has all quantiles", hostCpu.Count == 6, $"Host had the following quantiles: {string.Join(", ", hostCpu.Keys)}");
+
+            var moduleCpu = cpuMetrics.Where(m => m.Tags.TryGetValue("module", out string module) && module != "host").ToList();
+            this.testReporter.Assert("At least 1 docker module reports cpu", moduleCpu.Any(), $"No modules reported cpu");
 
             foreach (var hostCpuQuartile in hostCpu)
             {
