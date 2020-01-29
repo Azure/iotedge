@@ -82,8 +82,7 @@ namespace EdgeHubRestartTester
                     // Setup Message Task
                     if (Settings.Current.MessageEnable)
                     {
-                        // (DateTime msgCompletedTime, HttpStatusCode msgStatusCode) = 
-                        Task.Run(
+                        await Task.Run(
                                 () => SendMessageAsync(
                                     msgModuleClient,
                                     Settings.Current.TrackingId,
@@ -104,21 +103,21 @@ namespace EdgeHubRestartTester
                                     Interlocked.Read(ref messageCount)),
                                 cts.Token)
                             .ContinueWith(
-                                (msgTestResult) =>
+                                async (msgTestResult) =>
                                 {
                                     TestResultReportingClient reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
-                                    ModuleUtil.ReportTestResultAsync(
+                                    await ModuleUtil.ReportTestResultAsync(
                                         reportClient,
                                         Logger,
-                                        msgTestResult.Result);
+                                        msgTestResult.Result).ConfigureAwait(false);
                                 },
-                                cts.Token);
+                                cts.Token).ConfigureAwait(false);
                     }
 
                     // Setup Direct Method Task
                     if (Settings.Current.DirectMethodEnable)
                     {
-                        Task.Run(
+                        await Task.Run(
                                 () => SendDirectMethodAsync(
                                     Settings.Current.DeviceId,
                                     Settings.Current.DirectMethodTargetModuleId,
@@ -139,15 +138,15 @@ namespace EdgeHubRestartTester
                                     Interlocked.Read(ref directMethodCount)),
                                 cts.Token)
                             .ContinueWith(
-                                (dmTestResult) =>
+                                async (dmTestResult) =>
                                 {
                                     TestResultReportingClient reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
-                                    ModuleUtil.ReportTestResultAsync(
+                                    await ModuleUtil.ReportTestResultAsync(
                                         reportClient,
                                         Logger,
-                                        dmTestResult.Result);
+                                        dmTestResult.Result).ConfigureAwait(false);
                                 },
-                                cts.Token);
+                                cts.Token).ConfigureAwait(false);
                     }
 
                     // Wait to do another restart
