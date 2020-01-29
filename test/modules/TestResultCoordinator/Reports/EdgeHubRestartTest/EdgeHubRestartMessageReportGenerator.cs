@@ -2,6 +2,7 @@
 namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 {
     using System;
+    using System.IO;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -40,8 +41,25 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         public async Task<ITestResultReport> CreateReportAsync()
         {
             Logger.LogInformation($"Generating report: {nameof(EdgeHubRestartMessageReport)} for [{this.Metadata.SenderSource}] and [{this.Metadata.ReceiverSource}]");
+
             // BEARWASHERE -- Verification
-            await Task.Delay(100);
+            ValidateResult(
+                this.SenderTestResults.Current,
+                this.Metadata.SenderSource,
+                this.Metadata.TestOperationResultType.ToString());
+            ValidateResult(
+                this.ReceiverTestResults.Current,
+                this.Metadata.ReceiverSource,
+                this.Metadata.TestOperationResultType.ToString());
+
+                //this.SenderTestResults.Current.Result ---Deserialize()--> EdgeHubRestartMessageResult/EdgeHubRestartDirectMethodResult
+
+            while (hasActualResult && this.TestResultComparer.Matches(lastLoadedResult, this.ActualTestResults.Current))
+                {
+                    totalDuplicateResultCount++;
+                    lastLoadedResult = this.ActualTestResults.Current;
+                    hasActualResult = await this.ActualTestResults.MoveNextAsync();
+                }
 
             // BEARWASHERE -- Define the report format
             return new EdgeHubRestartMessageReport(
@@ -49,6 +67,22 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 this.Metadata.TestReportType.ToString(),
                 this.Metadata.SenderSource,
                 this.Metadata.ReceiverSource);
+        }
+
+        void ValidateResult(
+            TestOperationResult result,
+            string expectedSource,
+            string testOperationResultType)
+        {
+            if (!result.Source.Equals(expectedSource, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException($"Result source is '{result.Source}' but expected should be '{expectedSource}'.");
+            }
+
+            if (!result.Type.Equals(testOperationResultType, StringComparison.Ordinal))
+            {
+                throw new InvalidDataException($"Result type is '{result.Type}' but expected should be '{testOperationResultType}'.");
+            }
         }
     }
 }
