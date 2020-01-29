@@ -293,7 +293,7 @@ namespace EdgeHubRestartTester
         {
             CloudToDeviceMethod c2dMethod = new CloudToDeviceMethod("RestartModule");
             string payloadSchema = "{{ \"SchemaVersion\": \"1.0\", \"Id\": \"{0}\" }}";
-            string payload = string.Format(payloadSchema, "$edgeHub");
+            string payload = string.Format(payloadSchema, "edgeHub");
             Logger.LogInformation("RestartModule Method Payload: {0}", payload);
             c2dMethod.SetPayloadJson(payload);
 
