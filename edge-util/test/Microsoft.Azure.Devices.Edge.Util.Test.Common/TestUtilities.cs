@@ -19,6 +19,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
         public static void OrderlessCompare<T>(IEnumerable<T> expected, IEnumerable<T> actual)
             where T : IEquatable<T>
         {
+            OrderlessCompareLogic(expected, actual).ForEach(reason => Assert.True(false, reason));
+        }
+
+        public static Option<string> OrderlessCompareLogic<T>(IEnumerable<T> expected, IEnumerable<T> actual)
+            where T : IEquatable<T>
+        {
             LinkedList<T> expectedList = new LinkedList<T>(expected);
 
             foreach (T actualItem in actual)
@@ -34,11 +40,20 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
                     expectedNode = expectedNode.Next;
                 }
 
-                Assert.False(expectedNode == null, $"Didn't expect actual to contain {JsonConvert.SerializeObject(actualItem)}");
+                if (expectedNode == null)
+                {
+                    return Option.Some($"Didn't expect actual to contain {JsonConvert.SerializeObject(actualItem)}");
+                }
+
                 expectedList.Remove(expectedNode);
             }
 
-            Assert.False(expectedList.Any(), $"Expected actual to contain {JsonConvert.SerializeObject(expectedList)}");
+            if (expectedList.Any())
+            {
+                return Option.Some($"Expected actual to contain {JsonConvert.SerializeObject(expectedList)}");
+            }
+
+            return Option.None<string>();
         }
     }
 }
