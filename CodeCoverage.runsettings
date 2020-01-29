@@ -39,13 +39,17 @@ Included items must then not match any entries in the exclude list to remain inc
                 <ModulePath>.*moq\..*</ModulePath>
                 <ModulePath>.*app.metrics.*\..*</ModulePath>
                 <ModulePath>.*autofac*\..*</ModulePath>
+                <ModulePath>.*bouncycastle*\..*</ModulePath>
                 <ModulePath>.*fluentassertions\..*</ModulePath>
                 <ModulePath>.*microsoft.codeanalysis*\..*</ModulePath>
                 <ModulePath>.*microsoft.identitymodel*\..*</ModulePath>
                 <ModulePath>.*newtonsoft*\..*</ModulePath>
                 <ModulePath>.*nito*\..*</ModulePath>
                 <ModulePath>.*prometheus*\..*</ModulePath>
+                <ModulePath>.*protobuf*\..*</ModulePath>
+                <ModulePath>.*stackexchange*\..*</ModulePath>
                 <ModulePath>.*system.identitymodel*\..*</ModulePath>
+                <ModulePath>.*system.reactive*\..*</ModulePath>
               </Exclude>
             </ModulePaths>
 
