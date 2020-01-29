@@ -50,6 +50,7 @@ Included items must then not match any entries in the exclude list to remain inc
                 <ModulePath>.*stackexchange\..*</ModulePath>
                 <ModulePath>.*system.identitymodel\..*</ModulePath>
                 <ModulePath>.*system.reactive.*</ModulePath>
+                <ModulePath>.*xunit\..*</ModulePath>
               </Exclude>
             </ModulePaths>
 
