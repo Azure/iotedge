@@ -84,7 +84,7 @@ namespace EdgeHubRestartTester
                     if (Settings.Current.MessageEnable)
                     {
                         Func<Task> sendMessage = async () => {
-                            var (msgCompletedTime, msgStatusCode) = await SendMessageAsync(
+                            (DateTime msgCompletedTime, HttpStatusCode msgStatusCode) = await SendMessageAsync(
                                 msgModuleClient,
                                 Settings.Current.TrackingId,
                                 batchId,
@@ -92,7 +92,7 @@ namespace EdgeHubRestartTester
                                 eachTestExpirationTime,
                                 cts.Token
                             ).ConfigureAwait(false);
-                            var msgTestResult = CreateTestResult(
+                            TestResultBase msgTestResult = CreateTestResult(
                                 TestOperationResultType.Messages,
                                 restartTime,
                                 restartStatus,
@@ -107,12 +107,12 @@ namespace EdgeHubRestartTester
                                 reportClient,
                                 Logger,
                                 msgTestResult,
-                                cts.Token
-                            ).ConfigureAwait(false);
+                                cts.Token).ConfigureAwait(false);
                         };
                         sendMessageTask = sendMessage();
                     }
-                    else {
+                    else
+                    {
                         sendMessageTask = Task.CompletedTask;
                     }
 
@@ -120,41 +120,41 @@ namespace EdgeHubRestartTester
                     Task directMethodTask;
                     if (Settings.Current.DirectMethodEnable)
                     {
-                        await Task.Run(
-                                () => SendDirectMethodAsync(
-                                    Settings.Current.DeviceId,
-                                    Settings.Current.DirectMethodTargetModuleId,
-                                    dmModuleClient,
-                                    Settings.Current.DirectMethodName,
-                                    testExpirationTime,
-                                    cts.Token),
-                                cts.Token)
-                            .ContinueWith(
-                                (SendDirectMethodReturnValues) => CreateTestResult(
-                                    TestOperationResultType.DirectMethod,
-                                    restartTime,
-                                    restartStatus,
-                                    SendDirectMethodReturnValues.Result.Item1,
-                                    SendDirectMethodReturnValues.Result.Item2,
-                                    batchId,
-                                    restartCount,
-                                    Interlocked.Read(ref directMethodCount)),
-                                cts.Token)
-                            .ContinueWith(
-                                async (dmTestResult) =>
-                                {
-                                    TestResultReportingClient reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
-                                    await ModuleUtil.ReportTestResultAsync(
-                                        reportClient,
-                                        Logger,
-                                        dmTestResult.Result).ConfigureAwait(false);
-                                },
+                        Func<Task> directMethod = async () => {
+                            (DateTime dmCompletedTime, HttpStatusCode dmStatusCode) = await SendDirectMethodAsync(
+                                Settings.Current.DeviceId,
+                                Settings.Current.DirectMethodTargetModuleId,
+                                dmModuleClient,
+                                Settings.Current.DirectMethodName,
+                                testExpirationTime,
                                 cts.Token).ConfigureAwait(false);
+                            TestResultBase dmTestResult = CreateTestResult(
+                                TestOperationResultType.DirectMethod,
+                                restartTime,
+                                restartStatus,
+                                dmCompletedTime,
+                                dmStatusCode,
+                                batchId,
+                                restartCount,
+                                Interlocked.Read(ref directMethodCount));
+                            var reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
+                            await ModuleUtil.ReportTestResultAsync(
+                                reportClient,
+                                Logger,
+                                dmTestResult,
+                                cts.Token).ConfigureAwait(false);
+                        };
+                        directMethodTask = directMethod();
+                    }
+                    else
+                    {
+                        directMethodTask = Task.CompletedTask;
                     }
 
+                    // Wait for the two task to be done before do a restart
                     await Task.WhenAll(new [] { sendMessageTask, directMethodTask });
 
-                    // Wait to do another restart
+                    // Wait until the specified restart period to do another restart
                     await Task.Delay((int)(eachTestExpirationTime - DateTime.UtcNow).TotalMilliseconds, cts.Token);
                 }
             }
@@ -305,7 +305,7 @@ namespace EdgeHubRestartTester
                 CloudToDeviceMethodResult response = await iotHubServiceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", c2dMethod);
                 if ((HttpStatusCode)response.Status != HttpStatusCode.OK)
                 {
-                    Logger.LogError($"Calling Direct Method failed with status code {response.Status}.");
+                    Logger.LogError($"Calling Direct Method failed with status code {response.Status} : {response.GetPayloadAsJson()} .");
                 }
 
                 return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)response.Status);
