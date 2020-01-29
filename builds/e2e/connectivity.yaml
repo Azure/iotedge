@@ -98,6 +98,8 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-debian9-arm32v7'
     steps:
+      - bash: | 
+          echo "BEARWASHERE: $(deploymentFileName)"
       - checkout: none
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'

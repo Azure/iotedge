@@ -37,6 +37,8 @@ steps:
     inputs:
       targetType: inline
       script: |
+        echo "BEARWASHERE: ${{ parameters['deploymentFileName'] }}"
+
         declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
         . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
         chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/testHelper.sh
