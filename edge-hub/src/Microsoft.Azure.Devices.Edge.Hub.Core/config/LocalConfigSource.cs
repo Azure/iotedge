@@ -23,6 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             this.edgeHubConfig = new EdgeHubConfig(Constants.ConfigSchemaVersion.ToString(), new ReadOnlyDictionary<string, RouteConfig>(parsedRoutes), storeAndForwardConfiguration);
         }
 
+        public Task<Option<EdgeHubConfig>> GetCachedConfig() => Task.FromResult(Option.Some(this.edgeHubConfig));
+
         public Task<Option<EdgeHubConfig>> GetConfig() => Task.FromResult(Option.Some(this.edgeHubConfig));
 
         public void SetConfigUpdatedCallback(Func<EdgeHubConfig, Task> callback)

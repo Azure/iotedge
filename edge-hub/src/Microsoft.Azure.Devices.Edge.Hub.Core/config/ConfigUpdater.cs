@@ -24,13 +24,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         Option<EdgeHubConfig> currentConfig;
         Option<IConfigSource> configProvider;
 
-        public ConfigUpdater(Router router, IMessageStore messageStore, TimeSpan configUpdateFrequency, IStorageSpaceChecker storageSpaceChecker, Option<IConfigSource> initialConfigProvider)
+        public ConfigUpdater(Router router, IMessageStore messageStore, TimeSpan configUpdateFrequency, IStorageSpaceChecker storageSpaceChecker)
         {
             this.router = Preconditions.CheckNotNull(router, nameof(router));
             this.messageStore = messageStore;
             this.configUpdateFrequency = configUpdateFrequency;
             this.storageSpaceChecker = Preconditions.CheckNotNull(storageSpaceChecker, nameof(storageSpaceChecker));
-            this.configProvider = initialConfigProvider;
         }
 
         public async Task Init(IConfigSource configProvider)
@@ -38,11 +37,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             Preconditions.CheckNotNull(configProvider, nameof(configProvider));
             try
             {
-                // first try to update config with the initialConfigProvider
-                await this.PullConfig();
-
                 configProvider.SetConfigUpdatedCallback(this.HandleUpdateConfig);
                 this.configProvider = Option.Some(configProvider);
+
+                // first try to update config with the cached config
+                await this.PullCachedConfig();
 
                 // Get the config and initialize the EdgeHub
                 // but don't wait if it has a prefetched config
@@ -86,6 +85,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 {
                     await this.UpdateConfig(edgeHubConfig);
                 }
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorPullingConfig(ex);
+            }
+        }
+
+        async Task PullCachedConfig()
+        {
+            try
+            {
+                Option<EdgeHubConfig> edgeHubConfig = await this.configProvider
+                    .Map(c => c.GetCachedConfig())
+                    .GetOrElse(Task.FromResult(Option.None<EdgeHubConfig>()));
+                await this.UpdateConfig(edgeHubConfig);
             }
             catch (Exception ex)
             {

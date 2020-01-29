@@ -54,11 +54,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var twinManager = Mock.Of<ITwinManager>();
             var routeFactory = new EdgeRouteFactory(Mock.Of<IEndpointFactory>());
             var twinCollectionMessageConverter = Mock.Of<Core.IMessageConverter<TwinCollection>>();
-            var twinMessageConverter = Mock.Of<Core.IMessageConverter<Shared.Twin>>();
             var versionInfo = new VersionInfo("1.0", "1", "123");
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             deviceScopeIdentitiesCache.Setup(d => d.RefreshServiceIdentities(It.IsAny<IEnumerable<string>>())).Returns(Task.CompletedTask);
-            var edgeHubConnection = new EdgeHubConnection(edgeHubIdentity, twinManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter, versionInfo, deviceScopeIdentitiesCache.Object);
+            var edgeHubConnection = new EdgeHubConnection(edgeHubIdentity, twinManager, routeFactory, twinCollectionMessageConverter, versionInfo, deviceScopeIdentitiesCache.Object);
 
             string correlationId = Guid.NewGuid().ToString();
             var requestPayload = new
@@ -88,11 +87,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var twinManager = Mock.Of<ITwinManager>();
             var routeFactory = new EdgeRouteFactory(Mock.Of<IEndpointFactory>());
             var twinCollectionMessageConverter = Mock.Of<Core.IMessageConverter<TwinCollection>>();
-            var twinMessageConverter = Mock.Of<Core.IMessageConverter<Shared.Twin>>();
             var versionInfo = new VersionInfo("1.0", "1", "123");
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             deviceScopeIdentitiesCache.Setup(d => d.RefreshServiceIdentities(It.IsAny<IEnumerable<string>>())).Returns(Task.CompletedTask);
-            var edgeHubConnection = new EdgeHubConnection(edgeHubIdentity, twinManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter, versionInfo, deviceScopeIdentitiesCache.Object);
+            var edgeHubConnection = new EdgeHubConnection(edgeHubIdentity, twinManager, routeFactory, twinCollectionMessageConverter, versionInfo, deviceScopeIdentitiesCache.Object);
 
             string correlationId = Guid.NewGuid().ToString();
             var requestPayload = new[]
@@ -119,11 +117,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var twinManager = Mock.Of<ITwinManager>();
             var routeFactory = new EdgeRouteFactory(Mock.Of<IEndpointFactory>());
             var twinCollectionMessageConverter = Mock.Of<Core.IMessageConverter<TwinCollection>>();
-            var twinMessageConverter = Mock.Of<Core.IMessageConverter<Shared.Twin>>();
             var versionInfo = new VersionInfo("1.0", "1", "123");
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             deviceScopeIdentitiesCache.Setup(d => d.RefreshServiceIdentities(It.IsAny<IEnumerable<string>>())).ThrowsAsync(new Exception("Foo"));
-            var edgeHubConnection = new EdgeHubConnection(edgeHubIdentity, twinManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter, versionInfo, deviceScopeIdentitiesCache.Object);
+            var edgeHubConnection = new EdgeHubConnection(edgeHubIdentity, twinManager, routeFactory, twinCollectionMessageConverter, versionInfo, deviceScopeIdentitiesCache.Object);
 
             string correlationId = Guid.NewGuid().ToString();
             var requestPayload = new
@@ -153,11 +150,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var twinManager = Mock.Of<ITwinManager>();
             var routeFactory = new EdgeRouteFactory(Mock.Of<IEndpointFactory>());
             var twinCollectionMessageConverter = Mock.Of<Core.IMessageConverter<TwinCollection>>();
-            var twinMessageConverter = Mock.Of<Core.IMessageConverter<Shared.Twin>>();
             var versionInfo = new VersionInfo("1.0", "1", "123");
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             deviceScopeIdentitiesCache.Setup(d => d.RefreshServiceIdentities(It.IsAny<IEnumerable<string>>())).Returns(Task.CompletedTask);
-            var edgeHubConnection = new EdgeHubConnection(edgeHubIdentity, twinManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter, versionInfo, deviceScopeIdentitiesCache.Object);
+            var edgeHubConnection = new EdgeHubConnection(edgeHubIdentity, twinManager, routeFactory, twinCollectionMessageConverter, versionInfo, deviceScopeIdentitiesCache.Object);
 
             string correlationId = Guid.NewGuid().ToString();
             var requestPayload = new
@@ -187,10 +183,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var twinManager = Mock.Of<ITwinManager>();
             var routeFactory = new EdgeRouteFactory(Mock.Of<IEndpointFactory>());
             var twinCollectionMessageConverter = new TwinCollectionMessageConverter();
-            var twinMessageConverter = new TwinMessageConverter();
             var versionInfo = new VersionInfo("1.0", "1", "123");
             var deviceScopeIdentitiesCache = Mock.Of<IDeviceScopeIdentitiesCache>();
-            var edgeHubConnection = new EdgeHubConnection(edgeHubIdentity, twinManager, routeFactory, twinCollectionMessageConverter, twinMessageConverter, versionInfo, deviceScopeIdentitiesCache);
+            var edgeHubConnection = new EdgeHubConnection(edgeHubIdentity, twinManager, routeFactory, twinCollectionMessageConverter, versionInfo, deviceScopeIdentitiesCache);
 
             Mock.Get(twinManager).Setup(t => t.UpdateReportedPropertiesAsync(It.IsAny<string>(), It.IsAny<IMessage>())).Returns(Task.CompletedTask);
 

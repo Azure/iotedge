@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
     using System.Collections.Generic;
-    using System.Collections.ObjectModel;
     using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
@@ -13,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
@@ -23,32 +21,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     /// <summary>
     /// EdgeHubConnection is responsible for connecting to the cloud as the Edge hub and getting/upating the edge hub twin.
     /// </summary>
-    public class EdgeHubConnection : IConfigSource
+    public class EdgeHubConnection
     {
         readonly IIdentity edgeHubIdentity;
         readonly ITwinManager twinManager;
         readonly IMessageConverter<TwinCollection> twinCollectionMessageConverter;
-        readonly IMessageConverter<Shared.Twin> twinMessageConverter;
         readonly VersionInfo versionInfo;
         readonly RouteFactory routeFactory;
-        readonly AsyncLock edgeHubConfigLock = new AsyncLock();
         readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
-        Func<EdgeHubConfig, Task> configUpdateCallback;
-        Option<TwinCollection> lastDesiredProperties = Option.None<TwinCollection>();
+        Func<IMessage, Task> callback;
 
         internal EdgeHubConnection(
             IIdentity edgeHubIdentity,
             ITwinManager twinManager,
             RouteFactory routeFactory,
             IMessageConverter<TwinCollection> twinCollectionMessageConverter,
-            IMessageConverter<Shared.Twin> twinMessageConverter,
             VersionInfo versionInfo,
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache)
         {
             this.edgeHubIdentity = edgeHubIdentity;
             this.twinManager = twinManager;
             this.twinCollectionMessageConverter = twinCollectionMessageConverter;
-            this.twinMessageConverter = twinMessageConverter;
             this.routeFactory = routeFactory;
             this.versionInfo = versionInfo ?? VersionInfo.Empty;
             this.deviceScopeIdentitiesCache = deviceScopeIdentitiesCache;
@@ -61,7 +54,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             IConnectionManager connectionManager,
             RouteFactory routeFactory,
             IMessageConverter<TwinCollection> twinCollectionMessageConverter,
-            IMessageConverter<Shared.Twin> twinMessageConverter,
             VersionInfo versionInfo,
             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache)
         {
@@ -69,7 +61,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
             Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             Preconditions.CheckNotNull(twinCollectionMessageConverter, nameof(twinCollectionMessageConverter));
-            Preconditions.CheckNotNull(twinMessageConverter, nameof(twinMessageConverter));
             Preconditions.CheckNotNull(routeFactory, nameof(routeFactory));
             Preconditions.CheckNotNull(deviceScopeIdentitiesCache, nameof(deviceScopeIdentitiesCache));
 
@@ -78,7 +69,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 twinManager,
                 routeFactory,
                 twinCollectionMessageConverter,
-                twinMessageConverter,
                 versionInfo ?? VersionInfo.Empty,
                 deviceScopeIdentitiesCache);
 
@@ -89,19 +79,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return edgeHubConnection;
         }
 
-        public async Task<Option<EdgeHubConfig>> GetConfig()
+        internal void SetDesiredPropertiesUpdateCallback(Func<IMessage, Task> callback)
         {
-            using (await this.edgeHubConfigLock.LockAsync())
-            {
-                return await this.GetConfigInternal();
-            }
+            this.callback = callback;
         }
 
-        /// <summary>
-        /// If called multiple times, this will currently overwrite the existing callback.
-        /// </summary>
-        public void SetConfigUpdatedCallback(Func<EdgeHubConfig, Task> callback) =>
-            this.configUpdateCallback = Preconditions.CheckNotNull(callback, nameof(callback));
+        private Task HandleDesiredPropertiesUpdate(IMessage desiredProperties)
+        {
+            return this.callback?.Invoke(desiredProperties);
+        }
 
         internal async void DeviceDisconnected(object sender, IIdentity device)
         {
@@ -172,105 +158,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Task methodsSubscriptionTask = edgeHub.AddSubscription(edgeHubIdentity.Id, DeviceSubscription.Methods);
             Task clearDeviceConnectionStatusesTask = edgeHubConnection.ClearDeviceConnectionStatuses();
             return Task.WhenAll(addDeviceConnectionTask, desiredPropertyUpdatesSubscriptionTask, methodsSubscriptionTask, clearDeviceConnectionStatusesTask);
-        }
-
-        // This method updates local state and should be called only after acquiring edgeHubConfigLock
-        async Task<Option<EdgeHubConfig>> GetConfigInternal()
-        {
-            Option<EdgeHubConfig> edgeHubConfig;
-            try
-            {
-                IMessage message = await this.twinManager.GetTwinAsync(this.edgeHubIdentity.Id);
-                Shared.Twin twin = this.twinMessageConverter.FromMessage(message);
-                this.lastDesiredProperties = Option.Some(twin.Properties.Desired);
-                try
-                {
-                    var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(twin.Properties.Desired.ToJson());
-                    edgeHubConfig = Option.Some(EdgeHubConfigParser.GetEdgeHubConfig(desiredProperties, this.routeFactory));
-                    await this.UpdateReportedProperties(twin.Properties.Desired.Version, new LastDesiredStatus(200, string.Empty));
-                    Events.GetConfigSuccess();
-                }
-                catch (Exception ex)
-                {
-                    await this.UpdateReportedProperties(twin.Properties.Desired.Version, new LastDesiredStatus(400, $"Error while parsing desired properties - {ex.Message}"));
-                    throw;
-                }
-            }
-            catch (Exception ex)
-            {
-                edgeHubConfig = Option.None<EdgeHubConfig>();
-                Events.ErrorGettingEdgeHubConfig(ex);
-            }
-
-            return edgeHubConfig;
-        }
-
-        async Task HandleDesiredPropertiesUpdate(IMessage desiredPropertiesUpdate)
-        {
-            try
-            {
-                TwinCollection twinCollection = this.twinCollectionMessageConverter.FromMessage(desiredPropertiesUpdate);
-                using (await this.edgeHubConfigLock.LockAsync())
-                {
-                    Option<EdgeHubConfig> edgeHubConfig = await this.lastDesiredProperties
-                        .Map(e => this.PatchDesiredProperties(e, twinCollection))
-                        .GetOrElse(() => this.GetConfigInternal());
-
-                    await edgeHubConfig.ForEachAsync(
-                        async config =>
-                        {
-                            if (this.configUpdateCallback != null)
-                            {
-                                await this.configUpdateCallback(config);
-                            }
-                        });
-                }
-            }
-            catch (Exception ex)
-            {
-                Events.ErrorHandlingDesiredPropertiesUpdate(ex);
-            }
-        }
-
-        // This method updates local state and should be called only after acquiring edgeHubConfigLock
-        async Task<Option<EdgeHubConfig>> PatchDesiredProperties(TwinCollection baseline, TwinCollection patch)
-        {
-            LastDesiredStatus lastDesiredStatus;
-            Option<EdgeHubConfig> edgeHubConfig;
-            try
-            {
-                string desiredPropertiesJson = JsonEx.Merge(baseline, patch, true);
-                this.lastDesiredProperties = Option.Some(new TwinCollection(desiredPropertiesJson));
-                var desiredPropertiesPatch = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(desiredPropertiesJson);
-                edgeHubConfig = Option.Some(EdgeHubConfigParser.GetEdgeHubConfig(desiredPropertiesPatch, this.routeFactory));
-                lastDesiredStatus = new LastDesiredStatus(200, string.Empty);
-                Events.PatchConfigSuccess();
-            }
-            catch (Exception ex)
-            {
-                lastDesiredStatus = new LastDesiredStatus(400, $"Error while parsing desired properties - {ex.Message}");
-                edgeHubConfig = Option.None<EdgeHubConfig>();
-                Events.ErrorPatchingDesiredProperties(ex);
-            }
-
-            await this.UpdateReportedProperties(patch.Version, lastDesiredStatus);
-            return edgeHubConfig;
-        }
-
-        Task UpdateReportedProperties(long desiredVersion, LastDesiredStatus desiredStatus)
-        {
-            try
-            {
-                var edgeHubReportedProperties = new ReportedProperties(this.versionInfo, desiredVersion, desiredStatus);
-                var twinCollection = new TwinCollection(JsonConvert.SerializeObject(edgeHubReportedProperties));
-                IMessage reportedPropertiesMessage = this.twinCollectionMessageConverter.ToMessage(twinCollection);
-                return this.twinManager.UpdateReportedPropertiesAsync(this.edgeHubIdentity.Id, reportedPropertiesMessage);
-            }
-            catch (Exception ex)
-            {
-                Events.ErrorUpdatingLastDesiredStatus(ex);
-                return Task.CompletedTask;
-            }
         }
 
         Task UpdateDeviceConnectionStatus(IIdentity client, ConnectionStatus connectionStatus)
@@ -452,14 +339,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             enum EventIds
             {
                 Initialized = IdStart,
-                ErrorUpdatingLastDesiredStatus,
-                ErrorHandlingDesiredPropertiesUpdate,
-                ErrorPatchingDesiredProperties,
                 ErrorHandlingDeviceDisconnectedEvent,
                 ErrorHandlingDeviceConnectedEvent,
                 ErrorUpdatingDeviceConnectionStatus,
-                GetConfigSuccess,
-                PatchConfigSuccess,
                 ErrorClearingDeviceConnectionStatuses,
                 UpdatingDeviceConnectionStatus,
                 ErrorParsingMethodRequest,
@@ -468,14 +350,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 InvalidMethodRequest,
                 SkipUpdatingEdgeHubIdentity,
                 MethodRequestReceived
-            }
-
-            public static void ErrorGettingEdgeHubConfig(Exception ex)
-            {
-                Log.LogWarning(
-                    (int)EventIds.ErrorPatchingDesiredProperties,
-                    ex,
-                    Invariant($"Error getting edge hub config from twin desired properties"));
             }
 
             public static void ErrorParsingMethodRequest(Exception ex)
@@ -518,30 +392,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Log.LogDebug((int)EventIds.Initialized, Invariant($"Initialized connection for {edgeHubIdentity.Id}"));
             }
 
-            internal static void ErrorUpdatingLastDesiredStatus(Exception ex)
-            {
-                Log.LogWarning(
-                    (int)EventIds.ErrorUpdatingLastDesiredStatus,
-                    ex,
-                    Invariant($"Error updating last desired status for edge hub"));
-            }
-
-            internal static void ErrorHandlingDesiredPropertiesUpdate(Exception ex)
-            {
-                Log.LogWarning(
-                    (int)EventIds.ErrorHandlingDesiredPropertiesUpdate,
-                    ex,
-                    Invariant($"Error handling desired properties update for edge hub"));
-            }
-
-            internal static void ErrorPatchingDesiredProperties(Exception ex)
-            {
-                Log.LogWarning(
-                    (int)EventIds.ErrorPatchingDesiredProperties,
-                    ex,
-                    Invariant($"Error merging desired properties patch with existing desired properties for edge hub"));
-            }
-
             internal static void ErrorHandlingDeviceConnectedEvent(IIdentity device, Exception ex)
             {
                 Log.LogWarning(
@@ -564,16 +414,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     (int)EventIds.ErrorUpdatingDeviceConnectionStatus,
                     ex,
                     Invariant($"Error updating device connection status for device {deviceId ?? string.Empty}"));
-            }
-
-            internal static void GetConfigSuccess()
-            {
-                Log.LogInformation((int)EventIds.GetConfigSuccess, Invariant($"Obtained edge hub config from module twin"));
-            }
-
-            internal static void PatchConfigSuccess()
-            {
-                Log.LogInformation((int)EventIds.PatchConfigSuccess, Invariant($"Obtained edge hub config patch update from module twin"));
             }
 
             internal static void ErrorClearingDeviceConnectionStatuses(Exception ex)
