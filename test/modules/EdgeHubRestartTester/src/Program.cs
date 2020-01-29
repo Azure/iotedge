@@ -42,6 +42,7 @@ namespace EdgeHubRestartTester
             try
             {
                 iotHubServiceClient = ServiceClient.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString);
+                TestResultReportingClient reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
 
                 if (Settings.Current.MessageEnable)
                 {
@@ -82,7 +83,8 @@ namespace EdgeHubRestartTester
                     // Setup Message Task
                     if (Settings.Current.MessageEnable)
                     {
-                        await Task.Run(
+                        (DateTime msgCompletedTime, HttpStatusCode msgStatusCode) =
+                            await Task.Run(
                                 () => SendMessageAsync(
                                     msgModuleClient,
                                     Settings.Current.TrackingId,
@@ -90,34 +92,29 @@ namespace EdgeHubRestartTester
                                     Settings.Current.MessageOutputEndpoint,
                                     eachTestExpirationTime,
                                     cts.Token),
-                                cts.Token)
-                            .ContinueWith(
-                                (sendMessageReturnValues) => CreateTestResult(
-                                    TestOperationResultType.Messages,
-                                    restartTime,
-                                    restartStatus,
-                                    sendMessageReturnValues.Result.Item1,
-                                    sendMessageReturnValues.Result.Item2,
-                                    batchId,
-                                    restartCount,
-                                    Interlocked.Read(ref messageCount)),
-                                cts.Token)
-                            .ContinueWith(
-                                async (msgTestResult) =>
-                                {
-                                    TestResultReportingClient reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
-                                    await ModuleUtil.ReportTestResultAsync(
-                                        reportClient,
-                                        Logger,
-                                        msgTestResult.Result).ConfigureAwait(false);
-                                },
-                                cts.Token).ConfigureAwait(false);
+                                cts.Token);
+
+                        TestResultBase msgTestResult = CreateTestResult(
+                            TestOperationResultType.Messages,
+                            restartTime,
+                            restartStatus,
+                            msgCompletedTime,
+                            msgStatusCode,
+                            batchId,
+                            restartCount,
+                            Interlocked.Read(ref messageCount));
+
+                        await ModuleUtil.ReportTestResultAsync(
+                            reportClient,
+                            Logger,
+                            msgTestResult);
                     }
 
                     // Setup Direct Method Task
                     if (Settings.Current.DirectMethodEnable)
                     {
-                        await Task.Run(
+                        (DateTime dmCompletedTime, HttpStatusCode dmStatusCode) =
+                            await Task.Run(
                                 () => SendDirectMethodAsync(
                                     Settings.Current.DeviceId,
                                     Settings.Current.DirectMethodTargetModuleId,
@@ -125,28 +122,22 @@ namespace EdgeHubRestartTester
                                     Settings.Current.DirectMethodName,
                                     testExpirationTime,
                                     cts.Token),
-                                cts.Token)
-                            .ContinueWith(
-                                (SendDirectMethodReturnValues) => CreateTestResult(
-                                    TestOperationResultType.DirectMethod,
-                                    restartTime,
-                                    restartStatus,
-                                    SendDirectMethodReturnValues.Result.Item1,
-                                    SendDirectMethodReturnValues.Result.Item2,
-                                    batchId,
-                                    restartCount,
-                                    Interlocked.Read(ref directMethodCount)),
-                                cts.Token)
-                            .ContinueWith(
-                                async (dmTestResult) =>
-                                {
-                                    TestResultReportingClient reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
-                                    await ModuleUtil.ReportTestResultAsync(
-                                        reportClient,
-                                        Logger,
-                                        dmTestResult.Result).ConfigureAwait(false);
-                                },
-                                cts.Token).ConfigureAwait(false);
+                                cts.Token);
+
+                        TestResultBase dmTestResult = CreateTestResult(
+                            TestOperationResultType.DirectMethod,
+                            restartTime,
+                            restartStatus,
+                            dmCompletedTime,
+                            dmStatusCode,
+                            batchId,
+                            restartCount,
+                            Interlocked.Read(ref directMethodCount));
+
+                        await ModuleUtil.ReportTestResultAsync(
+                            reportClient,
+                            Logger,
+                            dmTestResult).ConfigureAwait(false);
                     }
 
                     // Wait to do another restart
