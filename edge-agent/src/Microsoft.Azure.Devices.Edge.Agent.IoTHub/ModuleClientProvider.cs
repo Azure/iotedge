@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(int.MaxValue, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
 
-        readonly Option<string> connectionString;        
+        readonly Option<string> connectionString;
         readonly Option<IWebProxy> proxy;
         readonly string productInfo;
         readonly bool closeOnIdleTimeout;
