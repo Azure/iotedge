@@ -18,8 +18,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     {
         Option<List<KeyValuePair<string, string>>> allowedTags = Option.None<List<KeyValuePair<string, string>>>();
         Option<List<KeyValuePair<string, string>>> tagsToAdd = Option.None<List<KeyValuePair<string, string>>>();
+        Option<List<(string tag, Func<string, string> valueTransformer)>> tagsToModify = Option.None<List<(string, Func<string, string>)>>();
         Option<List<string>> tagsToRemove = Option.None<List<string>>();
-        Option<List<string>> tagsToHash = Option.None<List<string>>();
 
         public IEnumerable<Metric> TransformMetrics(IEnumerable<Metric> metrics)
         {
@@ -32,17 +32,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 }
 
                 // Modify tags if needed.
-                if (this.tagsToAdd.HasValue || this.tagsToRemove.HasValue)
+                if (this.tagsToAdd.HasValue || this.tagsToRemove.HasValue || this.tagsToModify.HasValue)
                 {
                     Dictionary<string, string> newTags = metric.Tags.ToDictionary(t => t.Key, t => t.Value);
 
                     this.tagsToAdd.ForEach(tta => tta.ForEach(toAdd => newTags.Add(toAdd.Key, toAdd.Value)));
                     this.tagsToRemove.ForEach(ttr => ttr.ForEach(toRemove => newTags.Remove(toRemove)));
-                    this.tagsToHash.ForEach(tth => tth.ForEach(toHash =>
+
+                    this.tagsToModify.ForEach(tth => tth.ForEach(modification =>
                     {
-                        if (newTags.TryGetValue(toHash, out string value))
+                        if (newTags.TryGetValue(modification.tag, out string oldValue))
                         {
-                            newTags[toHash] = value.CreateSha256();
+                            newTags[modification.tag] = modification.valueTransformer(oldValue);
                         }
                     }));
 
@@ -97,15 +98,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             return this;
         }
 
-        public MetricTransformer AddTagsToHash(params string[] keys)
+        public MetricTransformer AddTagsToModify(params (string tag, Func<string, string> valueTransformer)[] modifications)
         {
-            if (this.tagsToHash.HasValue)
+            if (this.tagsToModify.HasValue)
             {
-                this.tagsToHash.ForEach(wl => wl.AddRange(keys));
+                this.tagsToModify.ForEach(wl => wl.AddRange(modifications));
             }
             else
             {
-                this.tagsToHash = Option.Some(new List<string>(keys));
+                this.tagsToModify = Option.Some(new List<(string, Func<string, string>)>(modifications));
             }
 
             return this;

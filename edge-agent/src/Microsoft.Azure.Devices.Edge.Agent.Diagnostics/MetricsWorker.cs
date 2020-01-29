@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             this.metricFilter = new MetricTransformer()
                 .AddAllowedTags(new KeyValuePair<string, string>(MetricsConstants.MsTelemetry, true.ToString()))
                 .AddTagsToRemove(MetricsConstants.MsTelemetry, MetricsConstants.IotHubLabel, MetricsConstants.DeviceIdLabel)
-                .AddTagsToHash("id", "module_name");
+                .AddTagsToModify(("id", this.ReplaceDeviceId));
         }
 
         public void Start(TimeSpan scrapingInterval, TimeSpan uploadInterval)
@@ -124,6 +124,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 await this.storage.RemoveAllReturnedMetricsAsync();
                 Log.LogInformation($"Deleted stored metrics.");
             }
+        }
+
+        /// <summary>
+        /// Replaces the device id in some edgeHub metrics with "device".
+        ///
+        /// EdgeHub metrics id comes in the form of 'deviceId/moduleName' in the case of an edgeDevice
+        /// and 'deviceId' in the case of downstream leaf devices.
+        /// </summary>
+        /// <param name="id">Metric id tag.</param>
+        /// <returns>Id tag with deviceId removed.</returns>
+        string ReplaceDeviceId(string id)
+        {
+            const string deviceIdReplacement = "device";
+
+            // Id is in the form of 'deviceId/moduleId'
+            string[] parts = id.Split('/');
+            if (parts.Length == 2)
+            {
+                parts[0] = deviceIdReplacement;
+
+                return $"{parts[0]}/{parts[1]}";
+            }
+
+            // Id is just 'deviceId'
+            return deviceIdReplacement;
         }
 
         public void Dispose()
