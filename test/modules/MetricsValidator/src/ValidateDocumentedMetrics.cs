@@ -28,6 +28,7 @@ namespace MetricsValidator
             log.LogInformation($"Starting {nameof(ValidateDocumentedMetrics)}");
 
             await this.moduleClient.SendEventAsync(new Message(Encoding.UTF8.GetBytes("Test message to seed metrics")));
+            await Task.Delay(TimeSpan.FromSeconds(10));
 
             // scrape metrics
             var metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
