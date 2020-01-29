@@ -59,9 +59,10 @@ jobs:
       - template: templates/connectivity-deploy.yaml
         parameters:
           release.label: 'ct$(agent.group)'
+          test.buildNumber: '$(Build.BuildNumber)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
-          edgelet.branch.name: '$(edgelet.branchName)'
+          edgelet.branchName: '$(edgelet.branchName)'
           images.branchName: '$(images.branchName)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
@@ -136,6 +137,7 @@ jobs:
       - template: templates/connectivity-deploy.yaml
         parameters:
           release.label: 'ct$(agent.group)'
+          test.buildNumber: '$(Build.BuildNumber)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           edgelet.branchName: '$(edgelet.branchName)'

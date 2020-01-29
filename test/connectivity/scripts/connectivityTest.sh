@@ -69,9 +69,9 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<MetricsCollector.MetricsEndpointsCSV>@$METRICS_ENDPOINTS_CSV@g" "$deployment_working_file"
     sed -i -e "s@<MetricsCollector.ScrapeFrequencyInSecs>@$METRICS_SCRAPE_FREQUENCY_IN_SECS@g" "$deployment_working_file"
     sed -i -e "s@<MetricsCollector.UploadTarget>@$METRICS_UPLOAD_TARGET@g" "$deployment_working_file"
-
     sed -i -e "s@<MetricsCollector.Images.BranchName>@$IMAGES_BRANCH_NAME@g" "$deployment_working_file"
     sed -i -e "s@<MetricsCollector.Edgelet.BranchName>@$EDGELET_BRANCH_NAME@g" "$deployment_working_file"
+    sed -i -e "s@<MetricsCollector.Test.BuildNumber>@$TEST_BUILD_NUMBER@g" "$deployment_working_file"
 }
 
 function print_deployment_logs() {
@@ -226,6 +226,9 @@ function process_args() {
         elif [ $saveNextArg -eq 26 ]; then
             EDGELET_BRANCH_NAME="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 27 ]; then
+            TEST_BUILD_NUMBER="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -255,6 +258,7 @@ function process_args() {
                 '-metricsUploadTarget' ) saveNextArg=24;;
                 '-imagesBranchName' ) saveNextArg=25;;
                 '-edgeletBranchName' ) saveNextArg=26;;
+                '-testBuildNumber' ) saveNextArg=27;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
 
                 '-cleanAll' ) CLEAN_ALL=1;;
@@ -274,6 +278,7 @@ function process_args() {
     [[ -z "$IMAGES_BRANCH_NAME" ]] && { print_error 'Images branch name is required'; exit 1; }
     [[ -z "$LOG_ANALYTICS_WORKSPACEID" ]] && { print_error 'Log analytics workspace id is required'; exit 1; }
     [[ -z "$LOG_ANALYTICS_SHAREDKEY" ]] && { print_error 'Log analytics shared key is required'; exit 1; }
+    [[ -z "$TEST_BUILD_NUMBER" ]] && { print_error 'Test build number is required'; exit 1; }
 
     echo 'Required parameters are provided'
 }
@@ -426,8 +431,9 @@ function usage() {
     echo ' -metricsEndpointsCSV            Csv of exposed endpoints for which to scrape metrics.'
     echo ' -metricsScrapeFrequencyInSecs   Frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
     echo ' -metricsUploadTarget            Upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
-    echo ' -imagesBranchName               The branch name that built the image artifacts'
-    echo ' -edgeletBranchName              The branch name that built the edgelet artifacts'
+    echo ' -imagesBranchName               Branch name that built the image artifacts'
+    echo ' -edgeletBranchName              Branch name that built the edgelet artifacts'
+    echo ' -testBuildNumber                Unique identifier for the main connectivity test run'
 
     echo ' -cleanAll                       Do docker prune for containers, logs and volumes.'
     exit 1;
