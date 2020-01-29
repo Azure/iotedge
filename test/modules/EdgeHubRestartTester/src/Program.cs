@@ -42,7 +42,6 @@ namespace EdgeHubRestartTester
             try
             {
                 iotHubServiceClient = ServiceClient.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString);
-                TestResultReportingClient reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
 
                 if (Settings.Current.MessageEnable)
                 {
@@ -83,81 +82,72 @@ namespace EdgeHubRestartTester
                     // Setup Message Task
                     if (Settings.Current.MessageEnable)
                     {
-                        Task<Tuple<DateTime, HttpStatusCode>> sendMessageTask = SendMessageAsync(
-                            msgModuleClient,
-                            Settings.Current.TrackingId,
-                            batchId,
-                            Settings.Current.MessageOutputEndpoint,
-                            eachTestExpirationTime,
-                            cts.Token);
-
-                        taskList.Add(
-                            TestOperationResultType.Messages.ToString(),
-                            sendMessageTask);
+                        // (DateTime msgCompletedTime, HttpStatusCode msgStatusCode) = 
+                        Task.Run(
+                                () => SendMessageAsync(
+                                    msgModuleClient,
+                                    Settings.Current.TrackingId,
+                                    batchId,
+                                    Settings.Current.MessageOutputEndpoint,
+                                    eachTestExpirationTime,
+                                    cts.Token),
+                                cts.Token)
+                            .ContinueWith(
+                                (sendMessageReturnValues) => CreateTestResult(
+                                    TestOperationResultType.Messages,
+                                    restartTime,
+                                    restartStatus,
+                                    sendMessageReturnValues.Result.Item1,
+                                    sendMessageReturnValues.Result.Item2,
+                                    batchId,
+                                    restartCount,
+                                    Interlocked.Read(ref messageCount)),
+                                cts.Token)
+                            .ContinueWith(
+                                (msgTestResult) =>
+                                {
+                                    TestResultReportingClient reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
+                                    ModuleUtil.ReportTestResultAsync(
+                                        reportClient,
+                                        Logger,
+                                        msgTestResult.Result);
+                                },
+                                cts.Token);
                     }
 
                     // Setup Direct Method Task
                     if (Settings.Current.DirectMethodEnable)
                     {
-                        Task<Tuple<DateTime, HttpStatusCode>> sendDirectMethodTask = SendDirectMethodAsync(
-                            Settings.Current.DeviceId,
-                            Settings.Current.DirectMethodTargetModuleId,
-                            dmModuleClient,
-                            Settings.Current.DirectMethodName,
-                            testExpirationTime,
-                            cts.Token);
-
-                        taskList.Add(
-                            TestOperationResultType.DirectMethod.ToString(),
-                            sendDirectMethodTask);
-                    }
-
-                    // Each task gets its own thread from a threadpool
-                    List<Task<Tuple<DateTime, HttpStatusCode>>> taskWaitlist = new List<Task<Tuple<DateTime, HttpStatusCode>>>();
-                    foreach (var eachTaskEntry in taskList)
-                    {
-                        eachTaskEntry.Value.Start();
-                        taskWaitlist.Add(eachTaskEntry.Value);
-                    }
-
-                    // Wait for treads to be done
-                    // TODO: - This introduces a problem if one of the test hang with timeout none of the result is going through to TRC.
-                    //       - Make each thread responsible for sending its own result to TRC
-                    Task.WaitAll(taskWaitlist.ToArray());
-
-                    // Get the result and report it to TRC
-                    if (Settings.Current.MessageEnable)
-                    {
-                        (DateTime msgCompletedTime, HttpStatusCode msgStatusCode) = taskList[TestOperationResultType.Messages.ToString()].Result;
-
-                        TestResultBase msgTestResult = CreateTestResult(
-                            TestOperationResultType.Messages,
-                            restartTime,
-                            restartStatus,
-                            msgCompletedTime,
-                            msgStatusCode,
-                            batchId,
-                            restartCount,
-                            Interlocked.Read(ref messageCount));
-
-                        await ModuleUtil.ReportTestResultAsync(reportClient, Logger, msgTestResult);
-                    }
-
-                    if (Settings.Current.DirectMethodEnable)
-                    {
-                        (DateTime dmCompletedTime, HttpStatusCode dmStatusCode) = taskList[TestOperationResultType.DirectMethod.ToString()].Result;
-
-                        TestResultBase dmTestResult = CreateTestResult(
-                            TestOperationResultType.DirectMethod,
-                            restartTime,
-                            restartStatus,
-                            dmCompletedTime,
-                            dmStatusCode,
-                            batchId,
-                            restartCount,
-                            Interlocked.Read(ref directMethodCount));
-
-                        await ModuleUtil.ReportTestResultAsync(reportClient, Logger, dmTestResult);
+                        Task.Run(
+                                () => SendDirectMethodAsync(
+                                    Settings.Current.DeviceId,
+                                    Settings.Current.DirectMethodTargetModuleId,
+                                    dmModuleClient,
+                                    Settings.Current.DirectMethodName,
+                                    testExpirationTime,
+                                    cts.Token),
+                                cts.Token)
+                            .ContinueWith(
+                                (SendDirectMethodReturnValues) => CreateTestResult(
+                                    TestOperationResultType.DirectMethod,
+                                    restartTime,
+                                    restartStatus,
+                                    SendDirectMethodReturnValues.Result.Item1,
+                                    SendDirectMethodReturnValues.Result.Item2,
+                                    batchId,
+                                    restartCount,
+                                    Interlocked.Read(ref directMethodCount)),
+                                cts.Token)
+                            .ContinueWith(
+                                (dmTestResult) =>
+                                {
+                                    TestResultReportingClient reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
+                                    ModuleUtil.ReportTestResultAsync(
+                                        reportClient,
+                                        Logger,
+                                        dmTestResult.Result);
+                                },
+                                cts.Token);
                     }
 
                     // Wait to do another restart
