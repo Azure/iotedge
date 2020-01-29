@@ -4,6 +4,7 @@ namespace EdgeHubRestartTester
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using System.Net.Http;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -76,76 +77,92 @@ namespace EdgeHubRestartTester
 
                     // Setup Message Task
                     Task sendMessageTask;
-                    if (Settings.Current.MessageEnable)
+                    try
                     {
-                        Func<Task> sendMessage =
-                            async () =>
-                            {
-                                (DateTime msgCompletedTime, HttpStatusCode msgStatusCode) = await SendMessageAsync(
-                                    msgModuleClient,
-                                    Settings.Current.TrackingId,
-                                    batchId,
-                                    Settings.Current.MessageOutputEndpoint,
-                                    eachTestExpirationTime,
-                                    cts.Token).ConfigureAwait(false);
-                                TestResultBase msgTestResult = CreateTestResult(
-                                    TestOperationResultType.Messages,
-                                    restartTime,
-                                    restartStatus,
-                                    msgCompletedTime,
-                                    msgStatusCode,
-                                    batchId,
-                                    restartCount,
-                                    Interlocked.Read(ref messageCount));
-                                var reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
-                                await ModuleUtil.ReportTestResultAsync(
-                                    reportClient,
-                                    Logger,
-                                    msgTestResult,
-                                    cts.Token).ConfigureAwait(false);
-                            };
-                        sendMessageTask = sendMessage();
+                        if (Settings.Current.MessageEnable)
+                        {
+                            Func<Task> sendMessage =
+                                async () =>
+                                {
+                                    (DateTime msgCompletedTime, HttpStatusCode msgStatusCode) = await SendMessageAsync(
+                                        msgModuleClient,
+                                        Settings.Current.TrackingId,
+                                        batchId,
+                                        Settings.Current.MessageOutputEndpoint,
+                                        eachTestExpirationTime,
+                                        cts.Token).ConfigureAwait(false);
+                                    TestResultBase msgTestResult = CreateTestResult(
+                                        TestOperationResultType.Messages,
+                                        restartTime,
+                                        restartStatus,
+                                        msgCompletedTime,
+                                        msgStatusCode,
+                                        batchId,
+                                        restartCount,
+                                        Interlocked.Read(ref messageCount));
+                                    var reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
+                                    await ModuleUtil.ReportTestResultAsync(
+                                        reportClient,
+                                        Logger,
+                                        msgTestResult,
+                                        cts.Token).ConfigureAwait(false);
+                                };
+                            sendMessageTask = sendMessage();
+                        }
+                        else
+                        {
+                            sendMessageTask = Task.CompletedTask;
+                        }
                     }
-                    else
+                    catch (HttpRequestException ex)
                     {
                         sendMessageTask = Task.CompletedTask;
+                        Logger.LogError($"{nameof(sendMessageTask)} HttpRequestException: {ex}");
                     }
 
                     // Setup Direct Method Task
                     Task directMethodTask;
-                    if (Settings.Current.DirectMethodEnable)
+                    try
                     {
-                        Func<Task> directMethod =
-                            async () =>
-                            {
-                                (DateTime dmCompletedTime, HttpStatusCode dmStatusCode) = await SendDirectMethodAsync(
-                                    Settings.Current.DeviceId,
-                                    Settings.Current.DirectMethodTargetModuleId,
-                                    dmModuleClient,
-                                    Settings.Current.DirectMethodName,
-                                    testExpirationTime,
-                                    cts.Token).ConfigureAwait(false);
-                                TestResultBase dmTestResult = CreateTestResult(
-                                    TestOperationResultType.DirectMethod,
-                                    restartTime,
-                                    restartStatus,
-                                    dmCompletedTime,
-                                    dmStatusCode,
-                                    batchId,
-                                    restartCount,
-                                    Interlocked.Read(ref directMethodCount));
-                                var reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
-                                await ModuleUtil.ReportTestResultAsync(
-                                    reportClient,
-                                    Logger,
-                                    dmTestResult,
-                                    cts.Token).ConfigureAwait(false);
-                            };
-                        directMethodTask = directMethod();
+                        if (Settings.Current.DirectMethodEnable)
+                        {
+                            Func<Task> directMethod =
+                                async () =>
+                                {
+                                    (DateTime dmCompletedTime, HttpStatusCode dmStatusCode) = await SendDirectMethodAsync(
+                                        Settings.Current.DeviceId,
+                                        Settings.Current.DirectMethodTargetModuleId,
+                                        dmModuleClient,
+                                        Settings.Current.DirectMethodName,
+                                        testExpirationTime,
+                                        cts.Token).ConfigureAwait(false);
+                                    TestResultBase dmTestResult = CreateTestResult(
+                                        TestOperationResultType.DirectMethod,
+                                        restartTime,
+                                        restartStatus,
+                                        dmCompletedTime,
+                                        dmStatusCode,
+                                        batchId,
+                                        restartCount,
+                                        Interlocked.Read(ref directMethodCount));
+                                    var reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
+                                    await ModuleUtil.ReportTestResultAsync(
+                                        reportClient,
+                                        Logger,
+                                        dmTestResult,
+                                        cts.Token).ConfigureAwait(false);
+                                };
+                            directMethodTask = directMethod();
+                        }
+                        else
+                        {
+                            directMethodTask = Task.CompletedTask;
+                        }
                     }
-                    else
+                    catch (HttpRequestException ex)
                     {
                         directMethodTask = Task.CompletedTask;
+                        Logger.LogError($"{nameof(directMethodTask)} HttpRequestException: {ex}");
                     }
 
                     // Wait for the two task to be done before do a restart
