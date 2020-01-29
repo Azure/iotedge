@@ -37,15 +37,15 @@ Included items must then not match any entries in the exclude list to remain inc
                 <ModulePath>.*test\..*</ModulePath>
                 <ModulePath>.*windowsazure\..*</ModulePath>
                 <ModulePath>.*moq\..*</ModulePath>
-                <ModulePath>*app.metrics.*\..*</ModulePath>
-                <ModulePath>*autofac*\..*</ModulePath>
-                <ModulePath>*fluentassertions\..*</ModulePath>
-                <ModulePath>*microsoft.codeanalysis*\..*</ModulePath>
-                <ModulePath>*microsoft.identitymodel*\..*</ModulePath>
-                <ModulePath>*newtonsoft*\..*</ModulePath>
-                <ModulePath>*nito*\..*</ModulePath>
-                <ModulePath>*prometheus*\..*</ModulePath>
-                <ModulePath>*system.identitymodel*\..*</ModulePath>
+                <ModulePath>.*app.metrics.*\..*</ModulePath>
+                <ModulePath>.*autofac*\..*</ModulePath>
+                <ModulePath>.*fluentassertions\..*</ModulePath>
+                <ModulePath>.*microsoft.codeanalysis*\..*</ModulePath>
+                <ModulePath>.*microsoft.identitymodel*\..*</ModulePath>
+                <ModulePath>.*newtonsoft*\..*</ModulePath>
+                <ModulePath>.*nito*\..*</ModulePath>
+                <ModulePath>.*prometheus*\..*</ModulePath>
+                <ModulePath>.*system.identitymodel*\..*</ModulePath>
               </Exclude>
             </ModulePaths>
 
