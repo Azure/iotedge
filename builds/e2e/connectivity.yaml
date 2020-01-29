@@ -22,19 +22,19 @@ jobs:
           testrun.config: 2
           testrun.network.frequencies: "00:05:00 00:05:00 5"
           testrun.duration: 50
-        offline(10/10/3):
+        Offline(10/10/3):
           testrun.config: 3
           testrun.network.frequencies: "00:10:00 00:10:00 3"
           testrun.duration: 60
-        offline(15/15/3):
+        Offline(15/15/3):
           testrun.config: 4
           testrun.network.frequencies: "00:15:00 00:15:00 3"
           testrun.duration: 90
-        offline(30/30/2):
+        Offline(30/30/2):
           testrun.config: 5
           testrun.network.frequencies: "00:30:00 00:30:00 2"
           testrun.duration: 120
-        offline(5/20/3):
+        Offline(5/20/3):
           testrun.config: 6
           testrun.network.frequencies: "00:05:00 00:20:00 3"
           testrun.duration: 75
@@ -48,11 +48,21 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
     steps:
-      - bash: |
-            if [[ ( "$(testrun.config)" == "$(config.to.run)" || "$(config.to.run)" == "0" ) && "$(Agent.JobStatus)" != "Canceled" ]]; then
-                echo "##vso[task.setvariable variable=run.steps]1"
+      - task: Bash@3
+        name: Set_run_flag
+        displayName: 'Set run flag'
+        inputs:
+          targetType: inline
+          script: |
+            output1=$(curl -s -u :$accessToken --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$buildId?api-version=5.1" | grep -oe '"status":"cancel')
+            output2=$(curl -s -u :$(System.AccessToken) --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$(Build.BuildId)/Timeline?api-version=5.1" | grep -oe '"result":"canceled"')
+            
+            if [[ ( "$(testrun.config)" == "$(config.to.run)" || "$(config.to.run)" == "0" ) && ( -z "$output1" ) && ( -z "$output2" ) ]]; then
+              echo "##vso[task.setvariable variable=run.steps]1"
+              echo "run.steps=1"
             else
-                echo "##vso[task.setvariable variable=run.steps]0"
+              echo "##vso[task.setvariable variable=run.steps]0"
+              echo "run.steps=0"
             fi
       - checkout: none
         condition: eq(variables['run.steps'], 1)
