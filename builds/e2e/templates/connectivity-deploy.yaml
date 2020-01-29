@@ -28,7 +28,7 @@ steps:
   - ${{ each config in parameters.configs }}: # Each job
     - bash: |
         echo "build.status=$(Agent.JobStatus)"
-        if [[ ( "$(config.key)" == "$(config.to.run)" || "$(config.to.run)" == "0" ) && "$(Agent.JobStatus)" != "Canceled" ]]; then
+        if [[ ( "${{ parameters['config.key'] }}" == "$(config.to.run)" || "$(config.to.run)" == "0" ) && "$(Agent.JobStatus)" != "Canceled" ]]; then
             echo "##vso[task.setvariable variable=run.steps]1"
             echo "run $(config.key)"
         else
