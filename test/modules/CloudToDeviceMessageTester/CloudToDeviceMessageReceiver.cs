@@ -63,9 +63,9 @@ namespace CloudToDeviceMessageTester
                     {
                         Message message = await this.deviceClient.ReceiveAsync();
                         this.logger.LogInformation($"Message received. " +
-                        $"Sequence Number: {message.Properties[TestConstants.Message.SequenceNumberPropertyName]}, " +
-                        $"batchId: {message.Properties[TestConstants.Message.BatchIdPropertyName]}, " +
-                        $"trackingId: {message.Properties[TestConstants.Message.TrackingIdPropertyName]}.");
+                            $"Sequence Number: {message.Properties[TestConstants.Message.SequenceNumberPropertyName]}, " +
+                            $"batchId: {message.Properties[TestConstants.Message.BatchIdPropertyName]}, " +
+                            $"trackingId: {message.Properties[TestConstants.Message.TrackingIdPropertyName]}.");
                         await this.ReportTestResult(message);
                     }
                     catch (Exception ex)
