@@ -85,6 +85,9 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
+              "IOT_HUB_CONNECTION_STRING": {
+                "value": "<IoTHubConnectionString>"
+              },
               "directMethodEnable": {
                 "value": "true"
               },
