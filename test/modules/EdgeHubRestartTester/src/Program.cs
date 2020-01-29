@@ -288,9 +288,7 @@ namespace EdgeHubRestartTester
                 }
                 catch (OperationCanceledException ex)
                 {
-                    // The message sequence number is not incrementing if the send failed.
                     Logger.LogError(ex, $"[SendEventAsync] Sequence number {messageCount}, BatchId: {batchId.ToString()};");
-                    Interlocked.Decrement(ref messageCount);
                 }
             }
 
