@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup Condition="'$(DotNet_Runtime)' != 'netcoreapp3.0'">
     <TargetFramework>netcoreapp2.1</TargetFramework>
@@ -27,8 +27,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Devices" Version="1.18.2" />
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.21.3" />
+    <PackageReference Include="Microsoft.Azure.Devices" Version="1.18.3" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.21.4" />
     <PackageReference Include="Microsoft.Azure.EventHubs" Version="3.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
     <PackageReference Include="RunProcessAsTask" Version="1.2.3" />
