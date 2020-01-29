@@ -5,8 +5,10 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
     using System.IO;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
 
     sealed class EdgeHubRestartMessageReportGenerator : ITestResultReportGenerator
     {
@@ -57,6 +59,10 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                     this.ReceiverTestResults.Current,
                     this.Metadata.ReceiverSource,
                     this.Metadata.TestOperationResultType.ToString());
+
+                EdgeHubRestartMessageResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(this.SenderTestResults.Current.Result);
+                senderResult.GetMessageTestResult()
+                
             }
             
 

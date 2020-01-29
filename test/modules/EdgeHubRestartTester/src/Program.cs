@@ -121,6 +121,8 @@ namespace EdgeHubRestartTester
                     }
 
                     // Wait for treads to be done
+                    // TODO: - This introduces a problem if one of the test hang with timeout none of the result is going through to TRC.
+                    //       - Make each thread responsible for sending its own result to TRC
                     Task.WaitAll(taskWaitlist.ToArray());
 
                     // Get the result and report it to TRC
@@ -288,9 +290,7 @@ namespace EdgeHubRestartTester
                 }
                 catch (OperationCanceledException ex)
                 {
-                    // The message sequence number is not incrementing if the send failed.
                     Logger.LogError(ex, $"[SendEventAsync] Sequence number {messageCount}, BatchId: {batchId.ToString()};");
-                    Interlocked.Decrement(ref messageCount);
                 }
             }
 
