@@ -40,6 +40,7 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y powershell
             pwsh -h
+            sudo apt --fix-broken install -y
         displayName: 'Test'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
