@@ -49,6 +49,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient
         ////    return await EdgeClientWebSocket.Connect(deviceStreamRequest.Url, deviceStreamRequest.AuthorizationToken, cancellationToken);
         ////}
 
-        public Task CloseAsync() => this.sdkModuleClient.CloseAsync();
+        public Task CloseAsync()
+        {
+            // Changing this from Close() to Dispose() as if no network, Close() has a long timeout before throws.
+            // Dispose() cleans up properly and returns immeditely even if no network.
+            this.sdkModuleClient.Dispose();
+            return Task.CompletedTask;
+        }
     }
 }

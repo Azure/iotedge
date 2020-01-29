@@ -43,6 +43,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
         readonly TimeSpan performanceMetricsUpdateFrequency;
+        readonly bool useConnectivityCheck;
+        readonly TimeSpan connectionCheckFrequency;
         readonly string backupConfigFilePath;
 
         public EdgeletModule(
@@ -58,6 +60,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string productInfo,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
+            bool useConnectivityCheck,
+            TimeSpan connectionCheckFrequency,
             TimeSpan performanceMetricsUpdateFrequency,
             string backupConfigFilePath)
         {
@@ -73,6 +77,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.productInfo = Preconditions.CheckNotNull(productInfo, nameof(productInfo));
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
+            this.useConnectivityCheck = useConnectivityCheck;
+            this.connectionCheckFrequency = connectionCheckFrequency;
             this.performanceMetricsUpdateFrequency = performanceMetricsUpdateFrequency;
             this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
         }
@@ -86,8 +92,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         this.upstreamProtocol,
                         this.proxy,
                         this.productInfo,
-                        this.closeOnIdleTimeout,
-                        this.idleTimeout))
+                        this.closeOnIdleTimeout,                        
+                        this.idleTimeout,
+                        this.useConnectivityCheck,
+                        this.connectionCheckFrequency))
                 .As<IModuleClientProvider>()
                 .SingleInstance();
 

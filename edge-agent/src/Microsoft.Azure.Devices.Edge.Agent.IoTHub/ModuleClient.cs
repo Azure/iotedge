@@ -1,3 +1,5 @@
+#pragma warning disable CA2007
+#pragma warning disable CA1801
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
@@ -24,13 +26,39 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly AtomicBoolean isActive = new AtomicBoolean(true);
         readonly ISdkModuleClient inner;
         readonly ResettableTimer inactivityTimer;
+        readonly ResettableTimer pingTimer;
 
-        public ModuleClient(ISdkModuleClient inner, TimeSpan idleTimeout, bool closeOnIdleTimeout, UpstreamProtocol protocol)
+        public ModuleClient(ISdkModuleClient inner, TimeSpan idleTimeout, bool closeOnIdleTimeout, TimeSpan connectionCheckFrequency, bool useConnectivityCheck, UpstreamProtocol protocol)
         {
             this.inner = Preconditions.CheckNotNull(inner, nameof(inner));
             this.UpstreamProtocol = protocol;
             this.inactivityTimer = new ResettableTimer(this.CloseOnInactivity, idleTimeout, Events.Log, closeOnIdleTimeout);
             this.inactivityTimer.Start();
+
+            Events.ConnectivityCheckSetup(useConnectivityCheck, connectionCheckFrequency);
+            this.pingTimer = new ResettableTimer(this.Ping, connectionCheckFrequency, Events.Log, useConnectivityCheck);
+            this.pingTimer.Start();
+        }
+
+        private async Task Ping()
+        {
+            try
+            {
+                Events.PerformConnectionCheck();
+                await this.UpdateReportedPropertiesAsync(new TwinCollection());
+                Events.ConnectionCheckSucceeded();
+            }
+            catch (TimeoutException)
+            {
+                Events.ConnectionCheckFailed();
+                await this.CloseAsync();
+            }
+            catch
+            {
+                // SDK should have thrown a TimeoutException.
+                // Swallowing like we didn't send a ping check - nothing depends on the result
+                Events.ConnectionCheckFailed();
+            }
         }
 
         public event EventHandler Closed;
@@ -43,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             try
             {
-                this.inactivityTimer.Reset();
+                this.ResetTimters();
                 await this.inner.SetDesiredPropertyUpdateCallbackAsync(onDesiredPropertyChanged);
             }
             catch (Exception e)
@@ -57,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             try
             {
-                this.inactivityTimer.Reset();
+                this.ResetTimters();
                 await this.inner.SetMethodHandlerAsync(methodName, callback);
             }
             catch (Exception e)
@@ -71,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             try
             {
-                this.inactivityTimer.Reset();
+                this.ResetTimters();
                 await this.inner.SetDefaultMethodHandlerAsync(callback);
             }
             catch (Exception e)
@@ -85,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             try
             {
-                this.inactivityTimer.Reset();
+                this.ResetTimters();
                 return await this.inner.GetTwinAsync();
             }
             catch (Exception e)
@@ -99,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             try
             {
-                this.inactivityTimer.Reset();
+                this.ResetTimters();
                 await this.inner.UpdateReportedPropertiesAsync(reportedProperties);
             }
             catch (Exception e)
@@ -113,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             try
             {
-                this.inactivityTimer.Reset();
+                this.ResetTimters();
                 await this.inner.SendEventAsync(message);
             }
             catch (Exception e)
@@ -121,6 +149,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 await this.HandleException(e);
                 throw;
             }
+        }
+
+        private void ResetTimters()
+        {
+            // We don't reset ping timer intentionally.
+            this.inactivityTimer.Reset();
         }
 
         ////public async Task<DeviceStreamRequest> WaitForDeviceStreamRequestAsync(CancellationToken cancellationToken)
@@ -157,8 +191,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             {
                 if (this.isActive.GetAndSet(false))
                 {
-                    await this.inner.CloseAsync();
-                    this.Closed?.Invoke(this, EventArgs.Empty);
+                    try
+                    {
+                        this.inactivityTimer.Dispose();
+                        this.pingTimer.Dispose();
+
+                        await this.inner.CloseAsync();
+                    }
+                    finally
+                    {
+                        // call the event even we failed: that will try to reconnect
+                        this.Closed?.Invoke(this, EventArgs.Empty);
+                    }
                 }
             }
             catch (Exception e)
@@ -204,7 +248,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 ClosingModuleClient = IdStart,
                 ExceptionInHandleException,
                 TimedOutClosing,
-                ErrorClosingClient
+                ErrorClosingClient,
+                ConnectivityCheckSetup,
+                PerformConnectionCheck,
+                ConnectionCheckFailed,
+                ConnectionCheckSucceeded
             }
 
             public static void ClosingModuleClient(Exception ex)
@@ -214,7 +262,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
             public static void ExceptionInHandleException(ModuleClient moduleClient, Exception ex, Exception e)
             {
-                Log.LogWarning((int)EventIds.ExceptionInHandleException, "Encountered error - {e} while trying to handle error {ex.Message}");
+                Log.LogWarning((int)EventIds.ExceptionInHandleException, $"Encountered error - {e} while trying to handle error {ex.Message}");
             }
 
             public static void ErrorClosingClient(Exception ex)
@@ -225,6 +273,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             public static void TimedOutClosing()
             {
                 Log.LogInformation((int)EventIds.TimedOutClosing, "Edge agent module client timed out due to inactivity, closing...");
+            }
+
+            public static void ConnectivityCheckSetup(bool enabled, TimeSpan frequency)
+            {
+                Log.LogInformation((int)EventIds.ConnectivityCheckSetup, $"Setting up connectivity check with the following parameters - enabled: {enabled}, frequency (hh:mm:ss) {frequency}.");
+            }
+
+            public static void PerformConnectionCheck()
+            {
+                Log.LogInformation((int)EventIds.PerformConnectionCheck, "Performing connectivity check");
+            }
+
+            public static void ConnectionCheckFailed()
+            {
+                Log.LogWarning((int)EventIds.ConnectionCheckFailed, "Connection check failed");
+            }
+
+            public static void ConnectionCheckSucceeded()
+            {
+                Log.LogInformation((int)EventIds.ConnectionCheckSucceeded, "Connection check succeeded");
             }
         }
     }

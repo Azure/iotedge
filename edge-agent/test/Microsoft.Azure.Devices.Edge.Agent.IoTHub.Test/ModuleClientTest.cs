@@ -23,9 +23,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             TimeSpan idleTimeout = TimeSpan.FromSeconds(2);
             bool closeOnIdleTimeout = true;
+            bool checkConnectivity = false;
+            TimeSpan checkFrequency = TimeSpan.FromMinutes(5);
 
             // Act
-            var moduleClient = new ModuleClient(sdkModuleClient.Object, idleTimeout, closeOnIdleTimeout, Core.UpstreamProtocol.AmqpWs);
+            var moduleClient = new ModuleClient(sdkModuleClient.Object, idleTimeout, closeOnIdleTimeout, checkFrequency, checkConnectivity, Core.UpstreamProtocol.AmqpWs);
             Assert.Equal(Core.UpstreamProtocol.AmqpWs, moduleClient.UpstreamProtocol);
 
             // Assert
@@ -49,9 +51,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             TimeSpan idleTimeout = TimeSpan.FromSeconds(3);
             bool closeOnIdleTimeout = true;
+            bool checkConnectivity = false;
+            TimeSpan checkFrequency = TimeSpan.FromMinutes(5);
 
             // Act
-            var moduleClient = new ModuleClient(sdkModuleClient.Object, idleTimeout, closeOnIdleTimeout, Core.UpstreamProtocol.Amqp);
+            var moduleClient = new ModuleClient(sdkModuleClient.Object, idleTimeout, closeOnIdleTimeout, checkFrequency, checkConnectivity, Core.UpstreamProtocol.Amqp);
             Assert.True(moduleClient.IsActive);
             Assert.Equal(Core.UpstreamProtocol.Amqp, moduleClient.UpstreamProtocol);
 
@@ -90,9 +94,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             TimeSpan idleTimeout = TimeSpan.FromMinutes(3);
             bool closeOnIdleTimeout = false;
+            bool checkConnectivity = false;
+            TimeSpan checkFrequency = TimeSpan.FromMinutes(5);
 
             // Act
-            var moduleClient = new ModuleClient(sdkModuleClient.Object, idleTimeout, closeOnIdleTimeout, Core.UpstreamProtocol.Mqtt);
+            var moduleClient = new ModuleClient(sdkModuleClient.Object, idleTimeout, closeOnIdleTimeout, checkFrequency, checkConnectivity, Core.UpstreamProtocol.Mqtt);
             Assert.Equal(Core.UpstreamProtocol.Mqtt, moduleClient.UpstreamProtocol);
             Assert.True(moduleClient.IsActive);
             await Assert.ThrowsAsync(exception, () => moduleClient.SetDefaultMethodHandlerAsync(testMethodCallback));

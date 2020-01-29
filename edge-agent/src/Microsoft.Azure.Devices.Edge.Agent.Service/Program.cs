@@ -133,7 +133,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 Option<IWebProxy> proxy = Proxy.Parse(configuration.GetValue<string>("https_proxy"), logger);
                 bool closeOnIdleTimeout = configuration.GetValue(Constants.CloseOnIdleTimeout, false);
                 int idleTimeoutSecs = configuration.GetValue(Constants.IdleTimeoutSecs, 300);
+                bool checkNetworkConnectivity = configuration.GetValue(Constants.CheckNetworkConnectivity, false);
+                int checkNetworkConnectivityFrequencySecs = configuration.GetValue(Constants.CheckNetworkConnectivityFrequencySecs, 240);
                 TimeSpan idleTimeout = TimeSpan.FromSeconds(idleTimeoutSecs);
+                TimeSpan checkNetworkConnectivityFrequency = TimeSpan.FromSeconds(checkNetworkConnectivityFrequencySecs);
                 experimentalFeatures = ExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
                 Option<ulong> storageTotalMaxWalSize = GetStorageMaxTotalWalSizeIfExists(configuration);
                 string iothubHostname;
@@ -149,7 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         deviceId = connectionStringParser.DeviceId;
                         iothubHostname = connectionStringParser.HostName;
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize));
-                        builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, backupConfigFilePath));
+                        builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, checkNetworkConnectivity, checkNetworkConnectivityFrequency, backupConfigFilePath));
                         break;
 
                     case Constants.IotedgedMode:
@@ -162,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
                         TimeSpan performanceMetricsUpdateFrequency = configuration.GetValue("PerformanceMetricsUpdateFrequency", TimeSpan.FromSeconds(30));
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize));
-                        builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, performanceMetricsUpdateFrequency, backupConfigFilePath));
+                        builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, checkNetworkConnectivity, checkNetworkConnectivityFrequency, performanceMetricsUpdateFrequency, backupConfigFilePath));
 
                         IEnumerable<X509Certificate2> trustBundle = await CertificateHelper.GetTrustBundleFromEdgelet(new Uri(workloadUri), apiVersion, Constants.WorkloadApiVersion, moduleId, moduleGenerationId);
                         CertificateHelper.InstallCertificates(trustBundle, logger);
@@ -228,6 +231,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                                 proxy,
                                 closeOnIdleTimeout,
                                 idleTimeout,
+                                checkNetworkConnectivity,
+                                checkNetworkConnectivityFrequency,
                                 kubernetesExperimentalFeatures,
                                 moduleOwner,
                                 runAsNonRoot));

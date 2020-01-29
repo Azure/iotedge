@@ -36,6 +36,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             bool closeOnIdleTimeout = false;
             TimeSpan idleTimeout = TimeSpan.FromMinutes(5);
+            bool checkConnectivity = false;
+            TimeSpan checkFrequency = TimeSpan.FromMinutes(5);
             ConnectionStatusChangesHandler handler = (status, reason) => { };
 
             // Act
@@ -45,7 +47,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 webProxy,
                 productInfo,
                 closeOnIdleTimeout,
-                idleTimeout);
+                idleTimeout,
+                checkConnectivity,
+                checkFrequency);
             IModuleClient moduleClient = await moduleClientProvider.Create(handler);
 
             // Assert
@@ -92,6 +96,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             bool closeOnIdleTimeout = false;
             TimeSpan idleTimeout = TimeSpan.FromMinutes(5);
+            bool checkConnectivity = false;
+            TimeSpan checkFrequency = TimeSpan.FromMinutes(5);
             ConnectionStatusChangesHandler handler = (status, reason) => { };
 
             // Assert
@@ -101,7 +107,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Option.None<IWebProxy>(),
                 null,
                 closeOnIdleTimeout,
-                idleTimeout));
+                idleTimeout,
+                checkConnectivity,
+                checkFrequency));
         }
 
         [Theory]
@@ -124,6 +132,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             bool closeOnIdleTimeout = false;
             TimeSpan idleTimeout = TimeSpan.FromMinutes(5);
+            bool checkConnectivity = false;
+            TimeSpan checkFrequency = TimeSpan.FromMinutes(5);
             ConnectionStatusChangesHandler handler = (status, reason) => { };
 
             // Act
@@ -134,7 +144,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 webProxy,
                 productInfo,
                 closeOnIdleTimeout,
-                idleTimeout);
+                idleTimeout,
+                checkConnectivity,
+                checkFrequency);
             IModuleClient moduleClient = await moduleClientProvider.Create(handler);
 
             // Assert

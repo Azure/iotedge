@@ -60,6 +60,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Option<IWebProxy> proxy;
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
+        readonly bool useConnectivityCheck;
+        readonly TimeSpan connectionCheckFrequency;
         readonly KubernetesExperimentalFeatures experimentalFeatures;
         readonly KubernetesModuleOwner moduleOwner;
         readonly bool runAsNonRoot;
@@ -91,6 +93,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             Option<IWebProxy> proxy,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
+            bool useConnectivityCheck,
+            TimeSpan connectionCheckFrequency,
             KubernetesExperimentalFeatures experimentalFeatures,
             KubernetesModuleOwner moduleOwner,
             bool runAsNonRoot)
@@ -121,6 +125,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.proxy = proxy;
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
+            this.useConnectivityCheck = useConnectivityCheck;
+            this.connectionCheckFrequency = connectionCheckFrequency;
             this.experimentalFeatures = experimentalFeatures;
             this.moduleOwner = moduleOwner;
             this.runAsNonRoot = runAsNonRoot;
@@ -161,7 +167,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         this.proxy,
                         this.productInfo.OrDefault(),
                         this.closeOnIdleTimeout,
-                        this.idleTimeout))
+                        this.idleTimeout,
+                        this.useConnectivityCheck,
+                        this.connectionCheckFrequency))
                 .As<IModuleClientProvider>()
                 .SingleInstance();
 

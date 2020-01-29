@@ -31,6 +31,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly string productInfo;
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
+        readonly bool useConnectivityCheck;
+        readonly TimeSpan connectionCheckFrequency;
         readonly ISdkModuleClientProvider sdkModuleClientProvider;
 
         public ModuleClientProvider(
@@ -40,8 +42,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             Option<IWebProxy> proxy,
             string productInfo,
             bool closeOnIdleTimeout,
-            TimeSpan idleTimeout)
-            : this(Option.Maybe(connectionString), sdkModuleClientProvider, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout)
+            TimeSpan idleTimeout,
+            bool useConnectivityCheck,
+            TimeSpan connectionCheckFrequency)
+            : this(Option.Maybe(connectionString), sdkModuleClientProvider, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useConnectivityCheck, connectionCheckFrequency)
         {
         }
 
@@ -51,8 +55,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             Option<IWebProxy> proxy,
             string productInfo,
             bool closeOnIdleTimeout,
-            TimeSpan idleTimeout)
-            : this(Option.None<string>(), sdkModuleClientProvider, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout)
+            TimeSpan idleTimeout,
+            bool useConnectivityCheck,
+            TimeSpan connectionCheckFrequency)
+            : this(Option.None<string>(), sdkModuleClientProvider, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useConnectivityCheck, connectionCheckFrequency)
         {
         }
 
@@ -63,7 +69,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             Option<IWebProxy> proxy,
             string productInfo,
             bool closeOnIdleTimeout,
-            TimeSpan idleTimeout)
+            TimeSpan idleTimeout,
+            bool useConnectivityCheck,
+            TimeSpan connectionCheckFrequency)
         {
             this.connectionString = connectionString;
             this.sdkModuleClientProvider = sdkModuleClientProvider;
@@ -72,12 +80,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.proxy = proxy;
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
+            this.useConnectivityCheck = useConnectivityCheck;
+            this.connectionCheckFrequency = connectionCheckFrequency;
         }
 
         public async Task<IModuleClient> Create(ConnectionStatusChangesHandler statusChangedHandler)
         {
             (ISdkModuleClient sdkModuleClient, UpstreamProtocol protocol) = await this.CreateSdkModuleClientWithRetry(statusChangedHandler);
-            IModuleClient moduleClient = new ModuleClient(sdkModuleClient, this.idleTimeout, this.closeOnIdleTimeout, protocol);
+            IModuleClient moduleClient = new ModuleClient(sdkModuleClient, this.idleTimeout, this.closeOnIdleTimeout, this.connectionCheckFrequency, this.useConnectivityCheck, protocol);
             return moduleClient;
         }
 

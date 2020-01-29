@@ -91,6 +91,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string IdleTimeoutSecs = "CloudConnectionIdleTimeoutSecs";
 
+        public const string CheckNetworkConnectivity = "CheckNetworkConnectivity";
+
+        public const string CheckNetworkConnectivityFrequencySecs = "CheckNetworkConnectivityFrequencySecs";
+
         public const string IoTEdgeAgentProductInfoIdentifier = "EdgeAgent";
 
         public const string StorageMaxTotalWalSize = "RocksDB_MaxTotalWalSize";
