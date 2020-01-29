@@ -36,7 +36,7 @@ jobs:
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
       - pwsh: |
-          echo $TrackingId
+          echo $TRACKINGID
           echo ""
           env
         displayName: 'Test'
