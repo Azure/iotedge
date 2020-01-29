@@ -1,5 +1,3 @@
-#pragma warning disable CA2007
-#pragma warning disable CA1801
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
