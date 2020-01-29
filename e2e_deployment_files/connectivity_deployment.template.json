@@ -647,6 +647,8 @@
     "metricsCollector": {
       "properties.desired": {
         "testType": "connectivity",
+        "imagesBranchName": "<MetricsCollector.Images.BranchName>",
+        "edgeletBranchName": "<MetricsCollector.Edgelet.BranchName>",
         "testId": "<TrackingId>",
         "upstreamProtocol": "<UpstreamProtocol>",
         "networkControllerOfflineFrequency": "<NetworkController.OfflineFrequency0>",

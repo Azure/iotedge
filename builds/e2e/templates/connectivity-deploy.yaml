@@ -2,6 +2,8 @@ parameters:
   release.label: ''
   edgelet.artifact.name: ''
   images.artifact.name: ''
+  edgelet.branchName: ''
+  images.branchName: ''
   container.registry: ''
   container.registry.username: ''
   container.registry.password: ''
@@ -63,6 +65,8 @@ steps:
           -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
           -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
           -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
+          -imagesBranchName "${{ parameters['images.branchName'] }}" \
+          -edgeletBranchName "${{ parameters['edgelet.branchName'] }}" \
           -waitForTestComplete \
           -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."
