@@ -25,8 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(int.MaxValue, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
 
-        readonly Option<string> connectionString;
-        readonly Option<UpstreamProtocol> upstreamProtocol;
+        readonly Option<string> connectionString;        
         readonly Option<IWebProxy> proxy;
         readonly string productInfo;
         readonly bool closeOnIdleTimeout;
@@ -34,6 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly bool useConnectivityCheck;
         readonly TimeSpan connectionCheckFrequency;
         readonly ISdkModuleClientProvider sdkModuleClientProvider;
+
+        Option<UpstreamProtocol> upstreamProtocol;
 
         public ModuleClientProvider(
             string connectionString,
@@ -186,6 +187,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                         {
                             Events.DeviceConnectionError(result.Exception);
                             ExceptionDispatchInfo.Capture(result.Exception).Throw();
+                        }
+                        else
+                        {
+                            // once we connected using a protocol, let's stick with it next time.
+                            this.upstreamProtocol = Option.Some(result.Value.Item2);
                         }
 
                         return result.Value;
