@@ -39,9 +39,6 @@ jobs:
           echo $testTrackingId
           echo ""
           env
-        displayName: 'Test'
-        env:
-          testTrackingId: $(testTrackingId)
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
