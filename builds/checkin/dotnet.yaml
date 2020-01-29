@@ -73,7 +73,7 @@ jobs:
 ################################################################################
     displayName: Code coverage
     variables:
-      coverage.goal: 62
+      coverage.goal: 64
     pool:
       vmImage: windows-2019
     steps:
