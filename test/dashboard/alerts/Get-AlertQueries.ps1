@@ -26,8 +26,8 @@ class Alert{
 }
 $Alerts = New-Object System.Collections.Generic.List[Alert]
 
-$LoadGenMessagesPerMinThreshold = 50
-$TempFilterMessagesPerMinThreshold = 15 
+$LoadGenMessagesPerMinThreshold = 45
+$TempFilterMessagesPerMinThreshold = 9 
 $UpstreamMessageRateAlertQuery = Get-Content -Path ".\queries\UpstreamMessageRate.kql" 
 $UpstreamMessageRateAlertQuery = $UpstreamMessageRateAlertQuery.Replace("<LOADGEN.THRESHOLD>", $LoadGenMessagesPerMinThreshold)
 $UpstreamMessageRateAlertQuery = $UpstreamMessageRateAlertQuery.Replace("<TEMPFILTER.THRESHOLD>", $TempFilterMessagesPerMinThreshold)
@@ -39,7 +39,7 @@ $UpstreamMessageRate = [Alert]@{
 }
 $Alerts.Add($UpstreamMessageRate)
 
-$TempSensorMessagesPerMinThreshold = 15 
+$TempSensorMessagesPerMinThreshold = 9 
 $LocalMessageRateAlertQuery = Get-Content -Path ".\queries\LocalMessageRate.kql" 
 $LocalMessageRateAlertQuery = $LocalMessageRateAlertQuery.Replace("<TEMPSENSOR.THRESHOLD>", $TempSensorMessagesPerMinThreshold)
 $LocalMessageRateAlertQuery = $LocalMessageRateAlertQuery.Replace("<ALERTING.INTERVAL>", $AlertingInterval)
