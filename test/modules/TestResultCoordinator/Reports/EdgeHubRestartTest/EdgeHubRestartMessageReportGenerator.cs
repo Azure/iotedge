@@ -5,8 +5,10 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
     using System.IO;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
 
     sealed class EdgeHubRestartMessageReportGenerator : ITestResultReportGenerator
     {
@@ -52,14 +54,20 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 this.Metadata.ReceiverSource,
                 this.Metadata.TestOperationResultType.ToString());
 
-                //this.SenderTestResults.Current.Result ---Deserialize()--> EdgeHubRestartMessageResult/EdgeHubRestartDirectMethodResult
+            bool hasExpectedResult = await this.SenderTestResults.MoveNextAsync();
+            bool hasActualResult = await this.ReceiverTestResults.MoveNextAsync();
 
-            while (hasActualResult && this.TestResultComparer.Matches(lastLoadedResult, this.ActualTestResults.Current))
-                {
-                    totalDuplicateResultCount++;
-                    lastLoadedResult = this.ActualTestResults.Current;
-                    hasActualResult = await this.ActualTestResults.MoveNextAsync();
-                }
+            while (hasExpectedResult && hasActualResult)
+            {
+                //this.SenderTestResults.Current.Result ---Deserialize()--> EdgeHubRestartMessageResult/EdgeHubRestartDirectMethodResult
+                EdgeHubRestartMessageResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(this.SenderTestResults.Current.Result);
+
+                // Check if the sequece number is matched
+                // Check if the message result matches
+                // Check if the timestamp matches
+                //      Check if the timestmp from relayer is inbetween restart time & sender response time
+                //      Check if the time is exceeding the threshold
+            }
 
             // BEARWASHERE -- Define the report format
             return new EdgeHubRestartMessageReport(
