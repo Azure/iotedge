@@ -98,8 +98,6 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-debian9-arm32v7'
     steps:
-      - bash: | 
-          echo "BEARWASHERE: $(deploymentFileName)"
       - checkout: none
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'
@@ -143,7 +141,6 @@ jobs:
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          deploymentFileName: '$(deploymentFileName)'
           iotHub.connectionString: '$(EdgeConnectivityTestHubConnString)'
           eventHub.connectionString: '$(EdgeConnectivityEventHubConnString)'
           upstream.protocol: '$(upstream.protocol)'
