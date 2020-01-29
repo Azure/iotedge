@@ -1,8 +1,4 @@
 steps:
-  - pwsh: |
-      echo "Hello"
-    displayName: Test adding step
-    condition: succeededOrFailed()
 - pwsh: |
     $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
 
