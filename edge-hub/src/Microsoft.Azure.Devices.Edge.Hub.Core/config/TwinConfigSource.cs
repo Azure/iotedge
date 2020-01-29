@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         readonly VersionInfo versionInfo;
         readonly EdgeHubConnection edgeHubConnection;
         Option<TwinCollection> lastDesiredProperties;
-        private Func<EdgeHubConfig, Task> configUpdateCallback;
+        Func<EdgeHubConfig, Task> configUpdateCallback;
 
         public TwinConfigSource(EdgeHubConnection edgeHubConnection, string id, VersionInfo versionInfo, ITwinManager twinManager, Core.IMessageConverter<Twin> messageConverter, Core.IMessageConverter<TwinCollection> twinCollectionMessageConverter, RouteFactory routeFactory)
         {
@@ -44,20 +44,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             {
                 Option<Core.IMessage> twinMessage = await this.twinManager.GetCachedTwinAsync(this.id);
 
-                var config = twinMessage.FlatMap((message) =>
-                {
-                    Twin twin = this.twinMessageConverter.FromMessage(message);
+                var config = twinMessage.FlatMap(
+                    (message) =>
+                    {
+                        Twin twin = this.twinMessageConverter.FromMessage(message);
 
-                    if (twin.Properties.Desired.Count > 0)
-                    {
-                        var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(twin.Properties.Desired.ToJson());
-                        return Option.Some(EdgeHubConfigParser.GetEdgeHubConfig(desiredProperties, this.routeFactory));
-                    }
-                    else
-                    {
-                        return Option.None<EdgeHubConfig>();
-                    }
-                });
+                        if (twin.Properties.Desired.Count > 0)
+                        {
+                            var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(twin.Properties.Desired.ToJson());
+                            return Option.Some(EdgeHubConfigParser.GetEdgeHubConfig(desiredProperties, this.routeFactory));
+                        }
+                        else
+                        {
+                            return Option.None<EdgeHubConfig>();
+                        }
+                    });
 
                 return config;
             }
@@ -242,9 +243,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             internal static void FailedGettingCachedConfig(Exception ex)
             {
                 Log.LogWarning(
-                   (int)EventIds.ErrorGettingCachedConfig,
-                   ex,
-                   Invariant($"Failed to get local config"));
+                    (int)EventIds.ErrorGettingCachedConfig,
+                    ex,
+                    Invariant($"Failed to get local config"));
             }
         }
     }

@@ -88,18 +88,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 async (store) =>
                 {
                     Option<TwinInfo> cached = await store.Get(id);
-                    Option<IMessage> twinInfo = cached.FlatMap((t) =>
-                    {
-                        return t.Twin != null
-                            ? Option.Some(this.twinConverter.ToMessage(t.Twin))
-                            : Option.None<IMessage>();
-                    });
+                    Option<IMessage> twinInfo = cached.FlatMap(
+                        (t) =>
+                        {
+                            return t.Twin != null
+                                ? Option.Some(this.twinConverter.ToMessage(t.Twin))
+                                : Option.None<IMessage>();
+                        });
                     return twinInfo;
                 },
-                () =>
-                {
-                    return Task.FromResult(Option.None<IMessage>());
-                });
+                () => { return Task.FromResult(Option.None<IMessage>()); });
         }
 
         public async Task UpdateDesiredPropertiesAsync(string id, IMessage desiredProperties)

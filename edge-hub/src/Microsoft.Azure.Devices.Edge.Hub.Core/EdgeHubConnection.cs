@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly VersionInfo versionInfo;
         readonly RouteFactory routeFactory;
         readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
-        Func<IMessage, Task> callback;
+        Func<IMessage, Task> configUpdateCallback;
 
         internal EdgeHubConnection(
             IIdentity edgeHubIdentity,
@@ -81,12 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         internal void SetDesiredPropertiesUpdateCallback(Func<IMessage, Task> callback)
         {
-            this.callback = callback;
-        }
-
-        private Task HandleDesiredPropertiesUpdate(IMessage desiredProperties)
-        {
-            return this.callback?.Invoke(desiredProperties);
+            this.configUpdateCallback = callback;
         }
 
         internal async void DeviceDisconnected(object sender, IIdentity device)
@@ -158,6 +153,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Task methodsSubscriptionTask = edgeHub.AddSubscription(edgeHubIdentity.Id, DeviceSubscription.Methods);
             Task clearDeviceConnectionStatusesTask = edgeHubConnection.ClearDeviceConnectionStatuses();
             return Task.WhenAll(addDeviceConnectionTask, desiredPropertyUpdatesSubscriptionTask, methodsSubscriptionTask, clearDeviceConnectionStatusesTask);
+        }
+
+        Task HandleDesiredPropertiesUpdate(IMessage desiredProperties)
+        {
+            return this.configUpdateCallback?.Invoke(desiredProperties);
         }
 
         Task UpdateDeviceConnectionStatus(IIdentity client, ConnectionStatus connectionStatus)
