@@ -25,6 +25,7 @@ namespace MetricsValidator.Tests
         {
             List<Metric> metrics = (await this.scraper.ScrapeEndpointsAsync(cancellationToken)).ToList();
             this.CheckCPU(metrics);
+            this.CheckMemory(metrics);
         }
 
         void CheckCPU(List<Metric> metrics)
@@ -48,6 +49,18 @@ namespace MetricsValidator.Tests
                 {
                     this.testReporter.Assert($"{hostCpuQuartile.Key} {module.Tags["module"]} CPU <= {hostCpuQuartile.Key} host CPU", module.Value <= hostCpuQuartile.Value);
                 }
+            }
+        }
+
+        void CheckMemory(List<Metric> metrics)
+        {
+            var avaliableDisk = metrics.Where(m => m.Name == "edgeAgent_available_disk_space_bytes").ToDictionary(m => m.Tags["disk_name"], m => m.Value);
+            var totalDisk = metrics.Where(m => m.Name == "edgeAgent_total_disk_space_bytes").ToDictionary(m => m.Tags["disk_name"], m => m.Value);
+
+            foreach (var avaliable in avaliableDisk)
+            {
+                double total = totalDisk[avaliable.Key];
+                this.testReporter.Assert($"Disk {avaliable.Key} total space > avaliable space", total > avaliable.Value, $"\n\tTotal: {total}\n\tAvaliable:{avaliable.Value}");
             }
         }
     }
