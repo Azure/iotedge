@@ -37,7 +37,7 @@ steps:
     inputs:
       targetType: inline
       script: |
-        echo "BEARWASHERE: '$(deploymentFileName)'"
+        echo "BEARWASHERE: $(deploymentFileName)"
 
         declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
         . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
@@ -65,7 +65,7 @@ steps:
           -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
           -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
           -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
-          -deploymentFileName "${{ parameters['deploymentFileName'] }}" \
+          -deploymentFileName "$(deploymentFileName)" \
           -waitForTestComplete \
           -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."
