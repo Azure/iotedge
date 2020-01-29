@@ -70,7 +70,7 @@ namespace EdgeHubRestartTester
                 while ((!cts.IsCancellationRequested) && (DateTime.UtcNow < testExpirationTime))
                 {
                     DateTime eachTestExpirationTime = testStart.AddMinutes(Settings.Current.RestartIntervalInMins);
-                    (DateTime restartTime, HttpStatusCode restartStatus) = await RestartModules(iotHubServiceClient, cts);
+                    (DateTime restartTime, HttpStatusCode restartStatus) = await RestartModules(iotHubServiceClient);
 
                     // Increment the counter when issue an edgeHub restart
                     restartCount++;
@@ -89,7 +89,7 @@ namespace EdgeHubRestartTester
                             batchId,
                             Settings.Current.MessageOutputEndpoint,
                             eachTestExpirationTime,
-                            cts);
+                            cts.Token);
 
                         taskList.Add(
                             TestOperationResultType.Messages.ToString(),
@@ -105,7 +105,7 @@ namespace EdgeHubRestartTester
                             dmModuleClient,
                             Settings.Current.DirectMethodName,
                             testExpirationTime,
-                            cts);
+                            cts.Token);
 
                         taskList.Add(
                             TestOperationResultType.DirectMethod.ToString(),
@@ -231,9 +231,9 @@ namespace EdgeHubRestartTester
             ModuleClient moduleClient,
             string directMethodName,
             DateTime testExpirationTime,
-            CancellationTokenSource cts)
+            CancellationToken cts)
         {
-            while ((!cts.Token.IsCancellationRequested) && (DateTime.UtcNow < testExpirationTime))
+            while ((!cts.IsCancellationRequested) && (DateTime.UtcNow < testExpirationTime))
             {
                 // BEARWASHERE -- TODO: Test this
                 try
@@ -271,9 +271,9 @@ namespace EdgeHubRestartTester
             Guid batchId,
             string msgOutputEndpoint,
             DateTime testExpirationTime,
-            CancellationTokenSource cts)
+            CancellationToken cts)
         {
-            while ((!cts.Token.IsCancellationRequested) && (DateTime.UtcNow < testExpirationTime))
+            while ((!cts.IsCancellationRequested) && (DateTime.UtcNow < testExpirationTime))
             {
                 // BEARWASHERE -- TODO: Test this
                 Message message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new { data = DateTime.UtcNow.ToString() })));
@@ -297,7 +297,8 @@ namespace EdgeHubRestartTester
             return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.InternalServerError);
         }
 
-        static async Task<Tuple<DateTime, HttpStatusCode>> RestartModules(ServiceClient iotHubServiceClient, CancellationTokenSource cts)
+        static async Task<Tuple<DateTime, HttpStatusCode>> RestartModules(
+            ServiceClient iotHubServiceClient)
         {
             CloudToDeviceMethod c2dMethod = new CloudToDeviceMethod("RestartModule");
             string payloadSchema = "{{ \"SchemaVersion\": \"1.0\", \"Id\": \"{0}\" }}";
