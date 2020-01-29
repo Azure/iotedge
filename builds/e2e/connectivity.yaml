@@ -36,12 +36,12 @@ jobs:
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
       - pwsh: |
-          echo $TRACKINGID
+          echo $testTrackingId
           echo ""
           env
         displayName: 'Test'
         env:
-          TrackingId: $(testTrackingId)
+          testTrackingId: $(testTrackingId)
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
