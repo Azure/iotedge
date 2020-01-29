@@ -12,12 +12,12 @@ $LessThanTwo = New-AzScheduledQueryRuleTriggerCondition `
 $LessThanThree = New-AzScheduledQueryRuleTriggerCondition `
    -ThresholdOperator "LessThan" `
    -Threshold "3" 
-$LessThanFourtyTwo = New-AzScheduledQueryRuleTriggerCondition `
+$LessThanFourty = New-AzScheduledQueryRuleTriggerCondition `
    -ThresholdOperator "LessThan" `
-   -Threshold "42" 
-$GreaterThanFourtyTwo = New-AzScheduledQueryRuleTriggerCondition `
+   -Threshold "40" 
+$GreaterThanFourty = New-AzScheduledQueryRuleTriggerCondition `
    -ThresholdOperator "GreaterThan" `
-   -Threshold "42" 
+   -Threshold "40" 
 
 class Alert{
    [ValidateNotNullOrEmpty()][string]$Name
@@ -67,7 +67,7 @@ $NoLocalMessages  = [Alert]@{
 }
 $Alerts.Add($NoLocalMessages)
 
-$TwinTesterUpstreamReportedPropertyUpdatesPerMinThreshold = 4 
+$TwinTesterUpstreamReportedPropertyUpdatesPerMinThreshold = 2 
 $ReportedPropertyRateAlertQuery = Get-Content -Path ".\queries\ReportedPropertyRate.kql" 
 $ReportedPropertyRateAlertQuery = $ReportedPropertyRateAlertQuery.Replace("<ALERTING.INTERVAL>", $AlertingInterval)
 $ReportedPropertyRateAlertQuery = $ReportedPropertyRateAlertQuery.Replace("<TWINTESTER.THRESHOLD>", $TwinTesterUpstreamReportedPropertyUpdatesPerMinThreshold)
@@ -147,12 +147,12 @@ $NumberOfMetricsQuery = $NumberOfMetricsQuery.Replace("<ALERTING.INTERVAL>", $Al
 $NumberOfMetricsTooLow = [Alert]@{
    Name = "number-of-metrics-too-low"
    Query = $NumberOfMetricsQuery
-   Comparator = $LessThanFourtyTwo
+   Comparator = $LessThanFourty
 }
 $NumberOfMetricsTooHigh = [Alert]@{
    Name = "number-of-metrics-too-high"
    Query = $NumberOfMetricsQuery
-   Comparator = $GreaterThanFourtyTwo
+   Comparator = $GreaterThanFourty
 }
 $Alerts.Add($NumberOfMetricsTooLow)
 $Alerts.Add($NumberOfMetricsTooHigh)
