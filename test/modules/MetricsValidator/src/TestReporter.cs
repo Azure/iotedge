@@ -10,6 +10,7 @@ namespace MetricsValidator
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
 
@@ -27,6 +28,9 @@ namespace MetricsValidator
         [JsonProperty("Subcategories", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [DefaultValue(null)]
         List<TestReporter> subcategories = null;
+
+        [JsonProperty("Duration", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public TimeSpan Duration { get; private set; } = TimeSpan.Zero;
 
         [JsonProperty("Succeeded", Order = -2)]
         public int NumSuccesses
@@ -96,6 +100,11 @@ namespace MetricsValidator
             this.subcategories.Add(newCategory);
 
             return newCategory;
+        }
+
+        public IDisposable MeasureDuration()
+        {
+            return DurationMeasurer.MeasureDuration(d => this.Duration = d);
         }
 
         public string ReportResults()

@@ -30,37 +30,47 @@ namespace MetricsValidator.Tests
 
         void CheckCPU(List<Metric> metrics)
         {
-            const string cpuMetricName = "edgeAgent_used_cpu_percent";
-            var cpuMetrics = metrics.Where(m => m.Name == cpuMetricName);
-            this.testReporter.Assert($"{cpuMetricName} metric exists", cpuMetrics.Any(), $"Missing {cpuMetricName}");
+            var reporter = this.testReporter.MakeSubcategory("CPU");
 
-            var hostCpu = cpuMetrics.Where(m => m.Tags.TryGetValue("module", out string module) && module == "host").ToDictionary(m => m.Tags["quantile"], m => m.Value);
-            this.testReporter.Assert("Host has all quantiles", hostCpu.Count == 6, $"Host had the following quantiles: {string.Join(", ", hostCpu.Keys)}");
-
-            var moduleCpu = cpuMetrics.Where(m => m.Tags.TryGetValue("module", out string module) && module != "host").ToList();
-            this.testReporter.Assert("At least 1 docker module reports cpu", moduleCpu.Any(), $"No modules reported cpu");
-
-            foreach (var hostCpuQuartile in hostCpu)
+            using (reporter.MeasureDuration())
             {
-                this.testReporter.Assert($"{hostCpuQuartile.Key} host CPU < 100%", hostCpuQuartile.Value < 100);
+                const string cpuMetricName = "edgeAgent_used_cpu_percent";
+                var cpuMetrics = metrics.Where(m => m.Name == cpuMetricName);
+                reporter.Assert($"{cpuMetricName} metric exists", cpuMetrics.Any(), $"Missing {cpuMetricName}");
 
-                var moduleQuartile = moduleCpu.Where(m => m.Tags["quantile"] == hostCpuQuartile.Key);
-                foreach (var module in moduleQuartile)
+                var hostCpu = cpuMetrics.Where(m => m.Tags.TryGetValue("module", out string module) && module == "host").ToDictionary(m => m.Tags["quantile"], m => m.Value);
+                reporter.Assert("Host has all quantiles", hostCpu.Count == 6, $"Host had the following quantiles: {string.Join(", ", hostCpu.Keys)}");
+
+                var moduleCpu = cpuMetrics.Where(m => m.Tags.TryGetValue("module", out string module) && module != "host").ToList();
+                reporter.Assert("At least 1 docker module reports cpu", moduleCpu.Any(), $"No modules reported cpu");
+
+                foreach (var hostCpuQuartile in hostCpu)
                 {
-                    this.testReporter.Assert($"{hostCpuQuartile.Key} {module.Tags["module"]} CPU <= {hostCpuQuartile.Key} host CPU", module.Value <= hostCpuQuartile.Value);
+                    reporter.Assert($"{hostCpuQuartile.Key} host CPU < 100%", hostCpuQuartile.Value < 100);
+
+                    var moduleQuartile = moduleCpu.Where(m => m.Tags["quantile"] == hostCpuQuartile.Key);
+                    foreach (var module in moduleQuartile)
+                    {
+                        reporter.Assert($"{hostCpuQuartile.Key} {module.Tags["module"]} CPU <= {hostCpuQuartile.Key} host CPU", module.Value <= hostCpuQuartile.Value);
+                    }
                 }
             }
         }
 
         void CheckMemory(List<Metric> metrics)
         {
-            var avaliableDisk = metrics.Where(m => m.Name == "edgeAgent_available_disk_space_bytes").ToDictionary(m => m.Tags["disk_name"], m => m.Value);
-            var totalDisk = metrics.Where(m => m.Name == "edgeAgent_total_disk_space_bytes").ToDictionary(m => m.Tags["disk_name"], m => m.Value);
+            var reporter = this.testReporter.MakeSubcategory("Memory and Disk");
 
-            foreach (var avaliable in avaliableDisk)
+            using (reporter.MeasureDuration())
             {
-                double total = totalDisk[avaliable.Key];
-                this.testReporter.Assert($"Disk {avaliable.Key} total space > avaliable space", total > avaliable.Value, $"\n\tTotal: {total}\n\tAvaliable:{avaliable.Value}");
+                var avaliableDisk = metrics.Where(m => m.Name == "edgeAgent_available_disk_space_bytes").ToDictionary(m => m.Tags["disk_name"], m => m.Value);
+                var totalDisk = metrics.Where(m => m.Name == "edgeAgent_total_disk_space_bytes").ToDictionary(m => m.Tags["disk_name"], m => m.Value);
+
+                foreach (var avaliable in avaliableDisk)
+                {
+                    double total = totalDisk[avaliable.Key];
+                    reporter.Assert($"Disk {avaliable.Key} total space > avaliable space", total > avaliable.Value, $"\n\tTotal: {total}\n\tAvaliable:{avaliable.Value}");
+                }
             }
         }
     }
