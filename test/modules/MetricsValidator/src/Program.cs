@@ -9,6 +9,7 @@ namespace MetricsValidator
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using MetricsValidator.Tests;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
