@@ -69,6 +69,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<MetricsCollector.MetricsEndpointsCSV>@$METRICS_ENDPOINTS_CSV@g" "$deployment_working_file"
     sed -i -e "s@<MetricsCollector.ScrapeFrequencyInSecs>@$METRICS_SCRAPE_FREQUENCY_IN_SECS@g" "$deployment_working_file"
     sed -i -e "s@<MetricsCollector.UploadTarget>@$METRICS_UPLOAD_TARGET@g" "$deployment_working_file"
+    sed -i -e "s@<MetricsCollector.HostPlatform>@$HOST_PLATFORM@g" "$deployment_working_file"
 }
 
 function print_deployment_logs() {
@@ -220,6 +221,9 @@ function process_args() {
         elif [ $saveNextArg -eq 25 ]; then
             DEPLOYMENT_FILE_NAME="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 26 ]; then
+            HOST_PLATFORM="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -248,6 +252,7 @@ function process_args() {
                 '-metricsScrapeFrequencyInSecs' ) saveNextArg=23;;
                 '-metricsUploadTarget' ) saveNextArg=24;;
                 '-deploymentFileName' ) saveNextArg=25;;
+                '-hostPlatform' ) saveNextArg=26;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
 
                 '-cleanAll' ) CLEAN_ALL=1;;
@@ -263,9 +268,13 @@ function process_args() {
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
     [[ -z "$DEPLOYMENT_FILE_NAME" ]] && { print_error 'Deployment file name is required'; exit 1; }
     [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
+    [[ -z "$HOST_PLATFORM" ]] && { print_error 'Host platform is required'; exit 1; }
     [[ -z "$IOT_HUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
     [[ -z "$LOG_ANALYTICS_WORKSPACEID" ]] && { print_error 'Log analytics workspace id is required'; exit 1; }
     [[ -z "$LOG_ANALYTICS_SHAREDKEY" ]] && { print_error 'Log analytics shared key is required'; exit 1; }
+    [[ -z "$METRICS_ENDPOINTS_CSV" ]] && { print_error 'Metrics endpoints csv is required'; exit 1; }
+    [[ -z "$METRICS_SCRAPE_FREQUENCY_IN_SECS" ]] && { print_error 'Metrics scrape frequency is required'; exit 1; }
+    [[ -z "$METRICS_UPLOAD_TARGET" ]] && { print_error 'Metrics upload target is required'; exit 1; }
 
     echo 'Required parameters are provided'
 }
@@ -419,6 +428,7 @@ function usage() {
     echo ' -metricsScrapeFrequencyInSecs   Optional frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
     echo ' -metricsUploadTarget            Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
     echo ' -deploymentFileName             Deployment file name'
+    echo ' -hostPlatform                   Describes the host OS and cpu architecture.'
 
     echo ' -cleanAll                       Do docker prune for containers, logs and volumes.'
     exit 1;

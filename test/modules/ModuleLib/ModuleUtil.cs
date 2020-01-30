@@ -57,22 +57,10 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             return new LoggerFactory().AddSerilog().CreateLogger(categoryName);
         }
 
-        public static async Task ReportTestResultAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult)
-        {
-            await ReportTestResultAsync(apiClient, logger, testResult, CancellationToken.None);
-        }
-
-        public static async Task ReportTestResultAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                logger.LogInformation($"Sending test result: Source={testResult.Source}, Type={testResult.ResultType}, CreatedAt={testResult.CreatedAt}, Result={testResult.GetFormattedResult()}");
-                await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto(), cancellationToken);
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Failed call to report status to TestResultCoordinator");
-            }
+        public static async Task ReportTestResultAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult, CancellationToken cancellationToken = default(CancellationToken))
+        {            
+            logger.LogInformation($"Sending test result: Source={testResult.Source}, Type={testResult.ResultType}, CreatedAt={testResult.CreatedAt}, Result={testResult.GetFormattedResult()}");
+            await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto(), cancellationToken);
         }
 
         static async Task<ModuleClient> InitializeModuleClientAsync(TransportType transportType, ILogger logger)
