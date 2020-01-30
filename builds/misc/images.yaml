@@ -486,7 +486,7 @@ jobs:
      # Cloud To Device Message Tester
       - template: templates/image-windows.yaml
         parameters:
-          name: CloudToDeviceMessageTester
+          name: Cloud To Device Message Tester
           imageName: azureiotedge-cloud-to-device-message-tester
           project: Cloud To Device Message Tester
 
