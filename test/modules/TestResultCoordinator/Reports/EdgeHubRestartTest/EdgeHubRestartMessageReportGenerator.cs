@@ -3,6 +3,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 {
     using System;
     using System.IO;
+    using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
@@ -68,11 +69,13 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 isPassed &= (senderResult.GetMessageTestResult() != this.ReceiverTestResults.Current.Result);
 
                 // Check if EH restart status is Http 200
-                // Check if the message result matches
-                // Cehck if message status is HTTP200
-                // Check if the timestamp matches
-                //      Check if the timestmp from relayer is inbetween restart time & sender response time
-                //      Check if the time is exceeding the threshold
+                isPassed &= (senderResult.EdgeHubRestartStatusCode == HttpStatusCode.OK);
+
+                // Check if message status is HTTP200
+                isPassed &= (senderResult.MessageCompletedStatusCode == HttpStatusCode.OK);
+
+                // Check if the time is exceeding the threshold
+                isPassed &= (this.Metadata.PassableEdgeHubRestartPeriod > (senderResult.MessageCompletedTime - senderResult.EdgeHubRestartedTime));
                 // Give a warning if the restart cycle does not contain only a message sent.
             }
 

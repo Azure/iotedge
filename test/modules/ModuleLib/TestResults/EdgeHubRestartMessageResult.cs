@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
             this.RestartSequenceNumber = Preconditions.CheckNotNull(restartSequenceNumber, nameof(restartSequenceNumber));
         }
 
-        DateTime EdgeHubRestartedTime { get; set; }
+        public DateTime EdgeHubRestartedTime { get; set; }
 
         public HttpStatusCode EdgeHubRestartStatusCode { get; set; }
 
