@@ -731,7 +731,10 @@
     },
     "metricsCollector": {
       "properties.desired": {
+        "hostPlatform": "<MetricsCollector.HostPlatform>",
         "testType": "connectivity",
+        "imagesBranchName": "<MetricsCollector.Images.BranchName>",
+        "edgeletBranchName": "<MetricsCollector.Edgelet.BranchName>",
         "testId": "<TrackingId>",
         "upstreamProtocol": "<UpstreamProtocol>",
         "networkControllerOfflineFrequency": "<NetworkController.OfflineFrequency0>",
