@@ -1,0 +1,24 @@
+# Connectivity:
+#     - Name:
+#         metricName: edgeAgent_cpu
+#         comparison: [<, >, =, !=]
+#         query-type [value/rate]
+#         target: 5
+
+Connectivity:
+    - EdgeHubCPU:
+        metricName: edgeAgent_used_cpu_percent
+        tags:
+            - module_name: edgeHub
+            - quartile: .9
+        comparison: <
+        query-type: value
+        target: 50
+    - EdgeAgentCPU:
+        metricName: edgeAgent_used_cpu_percent
+        tags:
+            - module_name: edgeAgent
+            - quartile: .9
+        comparison: <
+        query-type: value
+        target: 25
