@@ -10,7 +10,7 @@ let alertContext = filtered
 | where TimeGenerated < maxTimeGenerated and TimeGenerated > maxTimeGenerated - <ALERTING.INTERVAL>m;
 alertContext
 | where Name_s == "<METRIC.NAME>"
-|
+<TAG.FILTER.QUERY>
 | order by TimeGenerated
 | take 1
-| where isnan(Value_d) or Value_d > target or isnull(Value_d)
+| where isnan(Value_d) or Value_d <COMPARISON> target or isnull(Value_d)
