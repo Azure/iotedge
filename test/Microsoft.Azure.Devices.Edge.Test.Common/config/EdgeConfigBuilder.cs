@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             // Return a configuration for $edgeHub and $edgeAgent
             foreach (ModuleConfiguration module in modulesLookup["system"])
             {
-                this.AddModuleToConfiguration(module, moduleNames, moduleImages, config);
+                AddModuleToConfiguration(module, moduleNames, moduleImages, config);
             }
 
             if (modulesLookup.Contains("other")) {
@@ -96,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 // Return a configuration for all modules
                 foreach (ModuleConfiguration module in modulesLookup["other"])
                 {
-                    this.AddModuleToConfiguration(module, moduleNames, moduleImages, config);
+                    AddModuleToConfiguration(module, moduleNames, moduleImages, config);
                 }
             }
 
@@ -181,7 +181,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             return agentBuilder.Build();
         }
 
-        void AddModuleToConfiguration(ModuleConfiguration module, List<string> moduleNames, List<string> moduleImages, ConfigurationContent config)
+        static void AddModuleToConfiguration(
+            ModuleConfiguration module,
+            List<string> moduleNames,
+            List<string> moduleImages,
+            ConfigurationContent config)
         {
             moduleNames.Add(module.Name);
             moduleImages.Add(module.Image);
