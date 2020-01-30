@@ -260,7 +260,7 @@ namespace EdgeHubRestartTester
                     Logger.LogInformation($"[SendDirectMethodAsync] Invoke DirectMethod with count {Interlocked.Read(ref directMethodCount).ToString()}");
                     return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)result.Status);
                 }
-                catch (Exception e)
+                catch (TimeoutException e)
                 {
                     Logger.LogError(e, $"[SendDirectMethodAsync] Exception caught with SequenceNumber {Interlocked.Read(ref directMethodCount).ToString()}");
                 }
@@ -292,9 +292,10 @@ namespace EdgeHubRestartTester
                     Logger.LogInformation($"[SendMessageAsync] Send Message with count {Interlocked.Read(ref messageCount).ToString()}: finished.");
                     return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.OK);
                 }
-                catch (Exception ex)
+                catch (TimeoutException ex)
                 {
-                    // TODO: Specific which exception is thrown when edgeHub is restarting
+                    // TimeoutException is expected to happen while the EdgeHub is down.
+                    // Let's log the attempt and retry the message send until successful
                     Logger.LogDebug(ex, $"[SendMessageAsync] Exception caught with SequenceNumber {messageCount}, BatchId: {batchId.ToString()};");
                 }
             }
