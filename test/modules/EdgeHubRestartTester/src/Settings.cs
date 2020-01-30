@@ -14,11 +14,11 @@ namespace EdgeHubRestartTester
         internal static Settings Current = Create();
 
         Settings(
-            uint sdkRetryTimeout,
+            TimeSpan sdkRetryTimeout,
             string serviceClientConnectionString,
             string deviceId,
             string reportingEndpointUrl,
-            int restartIntervalInMins,
+            TimeSpan restartIntervalInMins,
             TimeSpan testStartDelay,
             TimeSpan testDuration,
             bool directMethodEnable,
@@ -30,20 +30,22 @@ namespace EdgeHubRestartTester
             string moduleId,
             string trackingId)
         {
+            Preconditions.CheckRange(sdkRetryTimeout.Ticks, 0);
+            Preconditions.CheckRange(restartIntervalInMins.Ticks, 0);
             Preconditions.CheckRange(testStartDelay.Ticks, 0);
             Preconditions.CheckRange(testDuration.Ticks, 0);
 
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.DirectMethodEnable = Preconditions.CheckNotNull(directMethodEnable, nameof(directMethodEnable));
-            this.DirectMethodName = Preconditions.CheckNonWhiteSpace(directMethodName, nameof(directMethodName));
-            this.DirectMethodTargetModuleId = Preconditions.CheckNonWhiteSpace(directMethodTargetModuleId, nameof(directMethodTargetModuleId));
+            this.DirectMethodName = this.DirectMethodEnable ? Preconditions.CheckNonWhiteSpace(directMethodName, nameof(directMethodName)) : directMethodName;
+            this.DirectMethodTargetModuleId = this.DirectMethodEnable ? Preconditions.CheckNonWhiteSpace(directMethodTargetModuleId, nameof(directMethodTargetModuleId)) : directMethodTargetModuleId;
             this.MessageEnable = Preconditions.CheckNotNull(messageEnable, nameof(messageEnable));
-            this.MessageOutputEndpoint = Preconditions.CheckNonWhiteSpace(messageOutputEndpoint, nameof(messageOutputEndpoint));
+            this.MessageOutputEndpoint = this.MessageEnable ? Preconditions.CheckNonWhiteSpace(messageOutputEndpoint, nameof(messageOutputEndpoint)) : messageOutputEndpoint;
             this.MessageTransportType = messageTransportType;
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.ReportingEndpointUrl = new Uri(Preconditions.CheckNonWhiteSpace(reportingEndpointUrl, nameof(reportingEndpointUrl)));
-            this.RestartIntervalInMins = Preconditions.CheckRange(restartIntervalInMins, 0);
-            this.SdkRetryTimeout = Preconditions.CheckRange<uint>(sdkRetryTimeout, 0);
+            this.RestartIntervalInMins = (int)restartIntervalInMins.Minutes;
+            this.SdkRetryTimeout = (uint)sdkRetryTimeout.Milliseconds;
             this.ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, nameof(serviceClientConnectionString));
             this.TestDuration = testDuration;
             this.TestStartDelay = testStartDelay;
@@ -52,6 +54,11 @@ namespace EdgeHubRestartTester
             if (!(this.DirectMethodEnable || this.MessageEnable))
             {
                 throw new NotSupportedException("EdgeHubRestartTester requires at least one of the sending methods {DirectMethodEnable, MessageEnable} to be enable to perform the EdgeHub restarting test.");
+            }
+
+            if (restartIntervalInMins < sdkRetryTimeout)
+            {
+                throw new InvalidDataException("sdkRetryTimeout period must be less than restartInterval period {sdkRetryTimeoutMilisec < restartIntervalInMins}.");
             }
         }
 
@@ -64,11 +71,11 @@ namespace EdgeHubRestartTester
                 .Build();
 
             return new Settings(
-                configuration.GetValue<uint>("sdkRetryTimeoutMilisec", 20),
+                configuration.GetValue("sdkRetryTimeoutMilisec", TimeSpan.FromMilliseconds(20)),
                 configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING", string.Empty),
                 configuration.GetValue<string>("IOTEDGE_DEVICEID", string.Empty),
                 configuration.GetValue<string>("reportingEndpointUrl"),
-                configuration.GetValue<int>("restartIntervalInMins", 5),
+                configuration.GetValue("restartIntervalInMins", TimeSpan.FromMinutes(5)),
                 configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
                 configuration.GetValue("testDuration", TimeSpan.Zero),
                 configuration.GetValue<bool>("directMethodEnable", false),

@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
         Twin,
         Network,
         Deployment,
-        EdgeHubRestartMessageResult
+        EdgeHubRestartMessage,
+        EdgeHubRestartDirectMethod
     }
 }

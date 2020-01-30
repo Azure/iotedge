@@ -22,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
             : base(
                 source,
                 createdAt,
+                TestOperationResultType.EdgeHubRestartDirectMethod,
                 trackingId,
                 batchId,
                 sequenceNumber,
