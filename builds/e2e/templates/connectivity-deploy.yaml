@@ -18,6 +18,7 @@ parameters:
   logAnalyticsSharedKey: ''
   testResultCoordinator.logAnalyticsLogType: ''
   testResultCoordinator.verificationDelay: ''
+  testResultCoordinator.storageAccountConnectionString: ''
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''
@@ -71,6 +72,7 @@ steps:
           -imagesBranchName "${{ parameters['images.branchName'] }}" \
           -edgeletBranchName "${{ parameters['edgelet.branchName'] }}" \
           -hostPlatform "${{ parameters['metricsCollector.hostPlatform'] }}" \
+          -storageAccountConnectionString "${{ parameters['testResultCoordinator.storageAccountConnectionString'] }}" \
           -waitForTestComplete \
           -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."

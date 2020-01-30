@@ -28,7 +28,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeConnectivityStorageAccountConnString'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -79,6 +79,7 @@ jobs:
           logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
           testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
           testResultCoordinator.verificationDelay: '$(testResultCoordinator.verificationDelay)'
+          testResultCoordinator.storageAccountConnectionString: '$(EdgeConnectivityStorageAccountConnString)'
           metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
@@ -107,7 +108,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeConnectivityStorageAccountConnString'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -158,6 +159,7 @@ jobs:
           logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
           testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
           testResultCoordinator.verificationDelay: '$(testResultCoordinator.verificationDelay)'
+          testResultCoordinator.storageAccountConnectionString: '$(EdgeConnectivityStorageAccountConnString)'
           metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
