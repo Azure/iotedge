@@ -141,7 +141,6 @@ jobs:
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          deploymentFileName: '$(deploymentFileName)'
           iotHub.connectionString: '$(EdgeConnectivityTestHubConnString)'
           eventHub.connectionString: '$(EdgeConnectivityEventHubConnString)'
           upstream.protocol: '$(upstream.protocol)'

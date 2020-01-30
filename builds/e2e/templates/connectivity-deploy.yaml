@@ -63,7 +63,7 @@ steps:
           -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
           -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
           -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
-          -deploymentFileName "${{ parameters['deploymentFileName'] }}" \
+          -deploymentFileName "$(deploymentFileName)" \
           -waitForTestComplete \
           -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."

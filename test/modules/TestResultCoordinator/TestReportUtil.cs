@@ -80,7 +80,6 @@ namespace TestResultCoordinator
                             break;
                         case TestReportType.EdgeHubRestartDirectMethodResult:
                             // BEARWASHERE -- TODO: Implement
-                            break;
                         case TestReportType.EdgeHubRestartMessageResult:
                             reportMetadataList.Add(JsonConvert.DeserializeObject<EdgeHubRestartMessageReportMetadata>(((JProperty)metadata).Value.ToString()));
                             break;
