@@ -82,9 +82,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 });
         }
 
-        public async Task<Option<IMessage>> GetCachedTwinAsync(string id)
+        public Task<Option<IMessage>> GetCachedTwinAsync(string id)
         {
-            return await this.TwinStore.Match(
+            return this.TwinStore.Match(
                 async (store) =>
                 {
                     Option<TwinInfo> cached = await store.Get(id);
