@@ -36,7 +36,8 @@ namespace TestResultCoordinator
             bool optimizeForPerformance,
             TimeSpan testStartDelay,
             TimeSpan testDuration,
-            TimeSpan verificationDelay)
+            TimeSpan verificationDelay,
+            string storageAccountConnectionString)
         {
             Preconditions.CheckRange(testDuration.Ticks, 1);
 
@@ -55,6 +56,7 @@ namespace TestResultCoordinator
             this.TestStartDelay = testStartDelay;
             this.DurationBeforeVerification = verificationDelay;
             this.ConsumerGroupName = "$Default";
+            this.StorageAccountConnectionString = Preconditions.CheckNonWhiteSpace(storageAccountConnectionString, nameof(storageAccountConnectionString));
         }
 
         static Settings Create()
@@ -79,7 +81,8 @@ namespace TestResultCoordinator
                 configuration.GetValue<bool>("optimizeForPerformance", true),
                 configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
                 configuration.GetValue("testDuration", TimeSpan.FromHours(1)),
-                configuration.GetValue("verificationDelay", TimeSpan.FromMinutes(15)));
+                configuration.GetValue("verificationDelay", TimeSpan.FromMinutes(15)),
+                configuration.GetValue<string>("STORAGE_ACCOUNT_CONNECTION_STRING"));
         }
 
         public string EventHubConnectionString { get; }
@@ -111,6 +114,8 @@ namespace TestResultCoordinator
         public TimeSpan DurationBeforeVerification { get; }
 
         public string ConsumerGroupName { get; }
+
+        public string StorageAccountConnectionString { get; }
 
         public override string ToString()
         {
