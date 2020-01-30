@@ -36,15 +36,20 @@ namespace MetricsValidator
                     .AddEnvironmentVariables()
                     .Build();
 
+                await Task.Delay(TimeSpan.FromSeconds(30));
+
+                Logger.LogInformation("Making client");
                 using (ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync())
                 using (MetricsScraper scraper = new MetricsScraper(new List<string> { "http://edgeHub:9600/metrics", "http://edgeAgent:9600/metrics" }))
                 {
+                    Logger.LogInformation("Made client");
                     await moduleClient.OpenAsync();
+                    Logger.LogInformation("Opened client");
                     await moduleClient.SetMethodHandlerAsync(
                         "ValidateMetrics",
                         async (MethodRequest methodRequest, object _) =>
                         {
-                            Console.WriteLine("Validating metrics");
+                            Logger.LogInformation("Validating metrics");
 
                             TestReporter testReporter = new TestReporter("Metrics Validation");
                             List<TestBase> tests = new List<TestBase>
@@ -58,7 +63,7 @@ namespace MetricsValidator
                         },
                         null);
 
-                    Console.WriteLine("Ready to validate metrics");
+                    Logger.LogInformation("Ready to validate metrics");
                     await cts.Token.WhenCanceled();
                 }
 
