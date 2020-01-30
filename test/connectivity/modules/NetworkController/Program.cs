@@ -25,8 +25,7 @@ namespace NetworkController
 
                 if (networkInterfaceName.HasValue)
                 {
-                    await networkInterfaceName.ForEachAsync(
-(Func<string, Task>)(async name =>
+                    await networkInterfaceName.ForEachAsync(async name =>
                     {
                         var offline = new OfflineController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
                         var satellite = new SatelliteController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
@@ -49,7 +48,7 @@ namespace NetworkController
                             default:
                                 throw new NotSupportedException($"Network type {Settings.Current.NetworkRunProfile.ProfileType} is not supported.");
                         }
-                    }));
+                    });
                 }
                 else
                 {
