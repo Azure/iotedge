@@ -13,7 +13,7 @@ namespace NetworkController
         static readonly ILogger Log = Logger.Factory.CreateLogger<SatelliteController>();
         readonly INetworkController underlyingController;
 
-        public SatelliteController(string networkInterfaceName, string iotHubHostname, NetworkProfile.ProfileSetting settings)
+        public SatelliteController(string networkInterfaceName, string iotHubHostname, NetworkProfileSetting settings)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -25,7 +25,7 @@ namespace NetworkController
             }
         }
 
-        public NetworkControllerType NetworkControllerType => this.NetworkControllerType.Satellite;
+        public NetworkControllerType NetworkControllerType => NetworkControllerType.Satellite;
 
         public Task<bool> SetNetworkControllerStatusAsync(NetworkControllerStatus networkControllerStatus, CancellationToken cs) => this.underlyingController.SetNetworkControllerStatusAsync(networkControllerStatus, cs);
 

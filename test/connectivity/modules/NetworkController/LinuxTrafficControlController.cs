@@ -14,9 +14,9 @@ namespace NetworkController
         static readonly ILogger Log = Logger.Factory.CreateLogger<LinuxTrafficControlController>();
         readonly string networkInterfaceName;
         readonly string iotHubHostname;
-        readonly NetworkProfile.ProfileSetting profileRuleSettings;
+        readonly NetworkProfileSetting profileRuleSettings;
 
-        public LinuxTrafficControlController(NetworkProfile.ProfileSetting settings, string networkInterfaceName, string iotHubHostname)
+        public LinuxTrafficControlController(NetworkProfileSetting settings, string networkInterfaceName, string iotHubHostname)
         {
             this.networkInterfaceName = networkInterfaceName;
             this.iotHubHostname = iotHubHostname;

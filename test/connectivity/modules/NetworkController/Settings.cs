@@ -38,7 +38,7 @@ namespace NetworkController
             this.DockerUri = Preconditions.CheckNonWhiteSpace(dockerUri, nameof(dockerUri));
             this.NetworkId = Preconditions.CheckNonWhiteSpace(networkId, nameof(networkId));
             this.TestResultCoordinatorEndpoint = Preconditions.CheckNotNull(testResultCoordinatorEndpoint, nameof(testResultCoordinatorEndpoint));
-            Preconditions.CheckNotNull(networkRunProfile, nameof(networkRunProfile));
+            Preconditions.CheckNonWhiteSpace(networkRunProfile, nameof(networkRunProfile));
             Preconditions.CheckNotNull(profileSettings, nameof(profileSettings));
             Preconditions.CheckArgument(profileSettings.ContainsKey(networkRunProfile));
             this.NetworkRunProfile = profileSettings[networkRunProfile];
@@ -59,7 +59,7 @@ namespace NetworkController
 
         public NetworkProfile NetworkRunProfile { get; }
 
-        public NetworkProfile.ProfileSetting ProfileSettings { get; }
+        public NetworkProfileSetting ProfileSettings { get; }
 
         public string TrackingId { get; }
 

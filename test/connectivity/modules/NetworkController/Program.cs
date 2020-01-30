@@ -23,12 +23,14 @@ namespace NetworkController
             {
                 var networkInterfaceName = DockerHelper.GetDockerInterfaceName();
 
-                await networkInterfaceName.ForEachAsync(
-                    async name =>
+                if (networkInterfaceName.HasValue)
+                {
+                    await networkInterfaceName.ForEachAsync(
+(Func<string, Task>)(async name =>
                     {
-                        var offline = new OfflineController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSettings);
-                        var satellite = new SatelliteController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSettings);
-                        var cellular = new CellularController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSettings);
+                        var offline = new OfflineController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
+                        var satellite = new SatelliteController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
+                        var cellular = new CellularController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
                         var controllers = new List<INetworkController>() { offline, satellite, cellular };
                         await RemoveAllControllingRules(controllers, cts.Token);
 
@@ -44,14 +46,15 @@ namespace NetworkController
                             case NetworkControllerType.Cellular:
                                 await StartAsync(cellular, cts.Token);
                                 break;
-                            case NetworkControllerType.All:
+                            default:
                                 throw new NotSupportedException($"Network type {Settings.Current.NetworkRunProfile.ProfileType} is not supported.");
                         }
-                    });
-
-                await cts.Token.WhenCanceled();
-                completed.Set();
-                handler.ForEach(h => GC.KeepAlive(h));
+                    }));
+                }
+                else
+                {
+                    Log.LogError($"No network interface found for docker network {Settings.Current.NetworkId}");
+                }
             }
             catch (Exception ex)
             {

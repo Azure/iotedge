@@ -13,7 +13,7 @@ namespace NetworkController
         static readonly ILogger Log = Logger.Factory.CreateLogger<OfflineController>();
         readonly INetworkController underlyingController;
 
-        public OfflineController(string networkInterfaceName, string iotHubHostname, NetworkProfile.ProfileSetting settings)
+        public OfflineController(string networkInterfaceName, string iotHubHostname, NetworkProfileSetting settings)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {

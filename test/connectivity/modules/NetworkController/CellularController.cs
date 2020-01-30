@@ -13,7 +13,7 @@ namespace NetworkController
         static readonly ILogger Log = Logger.Factory.CreateLogger<CellularController>();
         readonly INetworkController underlyingController;
 
-        public CellularController(string networkInterfaceName, string iotHubHostname, NetworkProfile.ProfileSetting settings)
+        public CellularController(string networkInterfaceName, string iotHubHostname, NetworkProfileSetting settings)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
