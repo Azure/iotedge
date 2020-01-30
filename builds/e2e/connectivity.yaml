@@ -36,9 +36,8 @@ jobs:
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
       - pwsh: |
-          echo $testTrackingId
-          echo ""
           env
+        displayName: 'List env vars'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -66,6 +65,9 @@ jobs:
             $(images.artifact.name.linux)/scripts/testHelper.sh
             $(images.artifact.name.linux)/artifactInfo.txt
             $(images.artifact.name.linux)/kpis.yaml
+      - pwsh: |
+          tree
+        displayName: 'List folder'
       # Deploy connectivity test
       - template: templates/connectivity-deploy.yaml
         parameters:
