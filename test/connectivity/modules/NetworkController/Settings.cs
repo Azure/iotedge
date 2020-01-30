@@ -3,13 +3,13 @@ namespace NetworkController
 {
     using System;
     using System.Collections.Generic;
-    using System.Configuration;
     using System.IO;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
 
     class Settings
     {
+        internal static Settings Current = Create();
         const string StartAfterPropertyName = "StartAfter";
         const string DockerUriPropertyName = "DockerUri";
         const string FrequencyPropertyName = "RunFrequencies";
@@ -20,8 +20,6 @@ namespace NetworkController
         const string IotHubHostnamePropertyName = "IOTEDGE_IOTHUBHOSTNAME";
         const string NetworkControllerRunProfilePropertyName = "NetworkControllerRunProfile";
         const string DefaultProfilesPropertyName = "DefaultProfiles";
-
-        internal static Settings Current = Create();
 
         Settings(
             TimeSpan startAfter,
@@ -49,6 +47,26 @@ namespace NetworkController
             this.IotHubHostname = Preconditions.CheckNonWhiteSpace(iothubHostname, nameof(iothubHostname));
         }
 
+        public TimeSpan StartAfter { get; }
+
+        public IList<Frequency> Frequencies { get; }
+
+        public string DockerUri { get; }
+
+        public string NetworkId { get; }
+
+        public Uri TestResultCoordinatorEndpoint { get; }
+
+        public NetworkProfile NetworkRunProfile { get; }
+
+        public NetworkProfile.ProfileSetting ProfileSettings { get; }
+
+        public string TrackingId { get; }
+
+        public string ModuleId { get; }
+
+        public string IotHubHostname { get; }
+
         static Settings Create()
         {
             IConfiguration configuration = new ConfigurationBuilder()
@@ -75,26 +93,6 @@ namespace NetworkController
                 configuration.GetValue<string>(ModuleIdPropertyName),
                 configuration.GetValue<string>(IotHubHostnamePropertyName));
         }
-
-        public TimeSpan StartAfter { get; }
-
-        public IList<Frequency> Frequencies { get; }
-
-        public string DockerUri { get; }
-
-        public string NetworkId { get; }
-
-        public Uri TestResultCoordinatorEndpoint { get; }
-
-        public NetworkProfile NetworkRunProfile { get; }
-
-        public NetworkProfile.ProfileSetting ProfileSettings { get; }
-
-        public string TrackingId { get; }
-
-        public string ModuleId { get; }
-
-        public string IotHubHostname { get; }
     }
 
     class Frequency

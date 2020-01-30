@@ -5,9 +5,9 @@ namespace NetworkController
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
 
-    internal class WindowsSatelliteController : INetworkController
+    class WindowsSatelliteController : INetworkController
     {
-        private string networkInterfaceName;
+        string networkInterfaceName;
 
         public WindowsSatelliteController(string networkInterfaceName)
         {

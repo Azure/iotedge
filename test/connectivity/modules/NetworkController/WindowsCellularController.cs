@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
-
 namespace NetworkController
 {
-    internal class WindowsCellularController : INetworkController
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
+
+    class WindowsCellularController : INetworkController
     {
-        private string networkInterfaceName;
+        string networkInterfaceName;
 
         public WindowsCellularController(string networkInterfaceName)
         {

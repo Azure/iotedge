@@ -21,14 +21,14 @@ namespace NetworkController
             }
             else
             {
-                underlyingController = new LinuxTrafficControlController(settings, networkInterfaceName, iotHubHostname);
+                this.underlyingController = new LinuxTrafficControlController(settings, networkInterfaceName, iotHubHostname);
             }
         }
 
-        public NetworkControllerType NetworkControllerType => NetworkControllerType.Satellite;
+        public NetworkControllerType NetworkControllerType => this.NetworkControllerType.Satellite;
 
         public Task<bool> SetNetworkControllerStatusAsync(NetworkControllerStatus networkControllerStatus, CancellationToken cs) => this.underlyingController.SetNetworkControllerStatusAsync(networkControllerStatus, cs);
-        
+
         public Task<NetworkControllerStatus> GetNetworkControllerStatusAsync(CancellationToken cs) => this.underlyingController.GetNetworkControllerStatusAsync(cs);
     }
 }

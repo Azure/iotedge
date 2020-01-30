@@ -72,9 +72,9 @@ namespace NetworkController
             {
                 // Delete the root rules cleans the chilldren rules
                 await CommandExecutor.Execute(
-                   LinuxTrafficControllerHelper.CommandName,
-                   LinuxTrafficControllerHelper.GetRemoveAllArguments(this.networkInterfaceName),
-                   cs);
+                    LinuxTrafficControllerHelper.CommandName,
+                    LinuxTrafficControllerHelper.GetRemoveAllArguments(this.networkInterfaceName),
+                    cs);
 
                 return true;
             }
@@ -113,9 +113,9 @@ namespace NetworkController
                     cs);
 
                 await CommandExecutor.Execute(
-                   LinuxTrafficControllerHelper.CommandName,
-                   LinuxTrafficControllerHelper.GetIpFilter(this.networkInterfaceName, iothubAddresses),
-                   cs);
+                    LinuxTrafficControllerHelper.CommandName,
+                    LinuxTrafficControllerHelper.GetIpFilter(this.networkInterfaceName, iothubAddresses),
+                    cs);
 
                 return true;
             }

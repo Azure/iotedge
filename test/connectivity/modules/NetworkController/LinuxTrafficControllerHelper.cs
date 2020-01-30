@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace NetworkController
 {
-    using System;
     using System.Net;
 
     static class LinuxTrafficControllerHelper
