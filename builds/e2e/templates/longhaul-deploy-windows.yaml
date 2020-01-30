@@ -22,6 +22,7 @@ parameters:
   twinTester.twinUpdateSize: ''
   twinTester.twinUpdateFrequency: ''
   twinTester.twinUpdateFailureThreshold: ''
+  hostPlatform: ''
 
 steps:
   - task: CopyFiles@2
@@ -68,5 +69,6 @@ steps:
           -LogAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" `
           -TwinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" `
           -TwinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" `
-          -TwinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}"
+          -TwinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" `
+          -HostPlatform "${{ parameters['hostPlatform'] }}"
       workingDirectory: "$(Agent.HomeDirectory)/.."

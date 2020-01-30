@@ -22,6 +22,7 @@ parameters:
   twinTester.twinUpdateSize: ''
   twinTester.twinUpdateFrequency: ''
   twinTester.twinUpdateFailureThreshold: ''
+  hostPlatform: ''
 
 steps:
   - task: CopyFiles@2
@@ -70,5 +71,6 @@ steps:
           -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \
           -twinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" \
           -twinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" \
+          -hostPlatform "${{ parameters['hostPlatform'] }}" \
           -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."
