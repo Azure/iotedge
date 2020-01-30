@@ -14,29 +14,38 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     /// It will exclude metrics based on a list of allowed tags.
     /// After filtering, it will add or remove tags.
     /// </summary>
-    public class MetricFilter
+    public class MetricTransformer
     {
         Option<List<KeyValuePair<string, string>>> allowedTags = Option.None<List<KeyValuePair<string, string>>>();
         Option<List<KeyValuePair<string, string>>> tagsToAdd = Option.None<List<KeyValuePair<string, string>>>();
+        Option<List<(string tag, Func<string, string> valueTransformer)>> tagsToModify = Option.None<List<(string, Func<string, string>)>>();
         Option<List<string>> tagsToRemove = Option.None<List<string>>();
 
-        public IEnumerable<Metric> FilterMetrics(IEnumerable<Metric> metrics)
+        public IEnumerable<Metric> TransformMetrics(IEnumerable<Metric> metrics)
         {
             foreach (Metric metric in metrics)
             {
                 // Skip metric if it doesn't contain any allowed tags.
-                if (this.allowedTags.Exists(wl => !wl.Any(metric.Tags.Contains)))
+                if (this.allowedTags.Exists(allowedTags => !allowedTags.Any(metric.Tags.Contains)))
                 {
                     continue;
                 }
 
-                // Add or remove tags if needed.
-                if (this.tagsToAdd.HasValue || this.tagsToRemove.HasValue)
+                // Modify tags if needed.
+                if (this.tagsToAdd.HasValue || this.tagsToRemove.HasValue || this.tagsToModify.HasValue)
                 {
                     Dictionary<string, string> newTags = metric.Tags.ToDictionary(t => t.Key, t => t.Value);
 
-                    this.tagsToAdd.ForEach(tta => tta.ForEach(toAdd => newTags.Add(toAdd.Key, toAdd.Value)));
-                    this.tagsToRemove.ForEach(ttr => ttr.ForEach(toRemove => newTags.Remove(toRemove)));
+                    this.tagsToAdd.ForEach(tagsToAdd => tagsToAdd.ForEach(toAdd => newTags.Add(toAdd.Key, toAdd.Value)));
+                    this.tagsToRemove.ForEach(tagsToRemove => tagsToRemove.ForEach(toRemove => newTags.Remove(toRemove)));
+
+                    this.tagsToModify.ForEach(tagsToModify => tagsToModify.ForEach(modification =>
+                    {
+                        if (newTags.TryGetValue(modification.tag, out string oldValue))
+                        {
+                            newTags[modification.tag] = modification.valueTransformer(oldValue);
+                        }
+                    }));
 
                     yield return new Metric(metric.TimeGeneratedUtc, metric.Name, metric.Value, newTags);
                 }
@@ -47,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             }
         }
 
-        public MetricFilter AddAllowedTags(params KeyValuePair<string, string>[] pairs)
+        public MetricTransformer AddAllowedTags(params KeyValuePair<string, string>[] pairs)
         {
             if (this.allowedTags.HasValue)
             {
@@ -61,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             return this;
         }
 
-        public MetricFilter AddTagsToAdd(params KeyValuePair<string, string>[] pairs)
+        public MetricTransformer AddTagsToAdd(params KeyValuePair<string, string>[] pairs)
         {
             if (this.tagsToAdd.HasValue)
             {
@@ -75,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             return this;
         }
 
-        public MetricFilter AddTagsToRemove(params string[] keys)
+        public MetricTransformer AddTagsToRemove(params string[] keys)
         {
             if (this.tagsToRemove.HasValue)
             {
@@ -84,6 +93,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             else
             {
                 this.tagsToRemove = Option.Some(new List<string>(keys));
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// This replaces the value of the given tag with the result of the valueTransformer function.
+        /// </summary>
+        /// <param name="modifications">Tuple containing tag and transformer function.</param>
+        /// <returns>self.</returns>
+        public MetricTransformer AddTagsToModify(params (string tag, Func<string, string> valueTransformer)[] modifications)
+        {
+            if (this.tagsToModify.HasValue)
+            {
+                this.tagsToModify.ForEach(wl => wl.AddRange(modifications));
+            }
+            else
+            {
+                this.tagsToModify = Option.Some(new List<(string, Func<string, string>)>(modifications));
             }
 
             return this;
