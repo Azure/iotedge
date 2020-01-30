@@ -71,6 +71,25 @@ namespace MetricsValidator.Tests
                     double total = totalDisk[avaliable.Key];
                     reporter.Assert($"Disk {avaliable.Key} total space > avaliable space", total > avaliable.Value, $"\n\tTotal: {total}\n\tAvaliable:{avaliable.Value}");
                 }
+
+                var usedMemory = metrics.Where(m => m.Name == "edgeAgent_used_memory_bytes").ToDictionary(m => m.Tags["module"], m => m.Value);
+                var totalMemory = metrics.Where(m => m.Name == "edgeAgent_total_memory_bytes").ToDictionary(m => m.Tags["module"], m => m.Value);
+
+                if(!usedMemory.ContainsKey("host") && totalMemory.ContainsKey("host"))
+                {
+                    reporter.Assert("Host reports memory", false, $"Could not find host memory usage. Found usage for: {string.Join(", ", usedMemory.Keys)}");
+                }
+
+                foreach (var used in usedMemory)
+                {
+                    double total = totalMemory[used.Key];
+                    reporter.Assert($"{used.Key} used RAM < total RAM", used.Value < total, $"\n\tTotal: {total}\n\tAvaliable:{used.Value}");
+
+                    if(used.Key != "host")
+                    {
+
+                    }
+                }
             }
         }
     }
