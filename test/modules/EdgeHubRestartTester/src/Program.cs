@@ -319,7 +319,11 @@ namespace EdgeHubRestartTester
                 CloudToDeviceMethodResult response = await iotHubServiceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", c2dMethod);
                 if ((HttpStatusCode)response.Status != HttpStatusCode.OK)
                 {
-                    Logger.LogError($"Calling EdgeHub restart failed with status code {response.Status} : {response.GetPayloadAsJson()} .");
+                    Logger.LogError($"Calling EdgeHub restart failed with status code {response.Status} : {response.GetPayloadAsJson()}.");
+                }
+                else
+                {
+                    Logger.LogInformation($"Calling EdgeHub restart succeeded with status code {response.Status}.");
                 }
 
                 return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)response.Status);
