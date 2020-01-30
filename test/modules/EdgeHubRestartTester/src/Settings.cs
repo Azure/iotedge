@@ -18,7 +18,7 @@ namespace EdgeHubRestartTester
             string serviceClientConnectionString,
             string deviceId,
             string reportingEndpointUrl,
-            TimeSpan restartIntervalInMins,
+            TimeSpan restartPeriod,
             TimeSpan testStartDelay,
             TimeSpan testDuration,
             bool directMethodEnable,
@@ -31,7 +31,7 @@ namespace EdgeHubRestartTester
             string trackingId)
         {
             Preconditions.CheckRange(sdkRetryTimeout.Ticks, 0);
-            Preconditions.CheckRange(restartIntervalInMins.Ticks, 0);
+            Preconditions.CheckRange(restartPeriod.Ticks, 0);
             Preconditions.CheckRange(testStartDelay.Ticks, 0);
             Preconditions.CheckRange(testDuration.Ticks, 0);
 
@@ -44,7 +44,7 @@ namespace EdgeHubRestartTester
             this.MessageTransportType = messageTransportType;
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.ReportingEndpointUrl = new Uri(Preconditions.CheckNonWhiteSpace(reportingEndpointUrl, nameof(reportingEndpointUrl)));
-            this.RestartIntervalInMins = (int)restartIntervalInMins.Minutes;
+            this.RestartPeriod = (int)restartPeriod.Minutes;
             this.SdkRetryTimeout = (uint)sdkRetryTimeout.Milliseconds;
             this.ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, nameof(serviceClientConnectionString));
             this.TestDuration = testDuration;
@@ -56,9 +56,9 @@ namespace EdgeHubRestartTester
                 throw new NotSupportedException("EdgeHubRestartTester requires at least one of the sending methods {DirectMethodEnable, MessageEnable} to be enable to perform the EdgeHub restarting test.");
             }
 
-            if (restartIntervalInMins < sdkRetryTimeout)
+            if (restartPeriod < sdkRetryTimeout)
             {
-                throw new InvalidDataException("sdkRetryTimeout period must be less than restartInterval period {sdkRetryTimeoutMilisec < restartIntervalInMins}.");
+                throw new InvalidDataException("sdkRetryTimeout period must be less than restartInterval period {sdkRetryTimeoutMilisec < restartPeriod}.");
             }
         }
 
@@ -75,7 +75,7 @@ namespace EdgeHubRestartTester
                 configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING", string.Empty),
                 configuration.GetValue<string>("IOTEDGE_DEVICEID", string.Empty),
                 configuration.GetValue<string>("reportingEndpointUrl"),
-                configuration.GetValue("restartIntervalInMins", TimeSpan.FromMinutes(5)),
+                configuration.GetValue("restartPeriod", TimeSpan.FromMinutes(5)),
                 configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
                 configuration.GetValue("testDuration", TimeSpan.Zero),
                 configuration.GetValue<bool>("directMethodEnable", false),
@@ -108,7 +108,7 @@ namespace EdgeHubRestartTester
 
         public Uri ReportingEndpointUrl { get; }
 
-        public int RestartIntervalInMins { get; }
+        public int RestartPeriod { get; }
 
         public uint SdkRetryTimeout { get; }
 
@@ -132,7 +132,7 @@ namespace EdgeHubRestartTester
                 { nameof(this.MessageTransportType), this.MessageTransportType.ToString() },
                 { nameof(this.ModuleId), this.ModuleId },
                 { nameof(this.ReportingEndpointUrl), this.ReportingEndpointUrl.ToString() },
-                { nameof(this.RestartIntervalInMins), this.RestartIntervalInMins.ToString() },
+                { nameof(this.RestartPeriod), this.RestartPeriod.ToString() },
                 { nameof(this.SdkRetryTimeout), this.SdkRetryTimeout.ToString() },
                 { nameof(this.TestStartDelay), this.TestStartDelay.ToString() },
                 { nameof(this.TestDuration), this.TestDuration.ToString() },

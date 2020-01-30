@@ -14,17 +14,17 @@
   "reportingEndpointUrl": {
     "value": "http://localhost:5001"
   },
-  "restartIntervalInMins": {
-    "value": "5"
+  "restartPeriod": {
+    "value": "00:00:05.000"
   },
   "sdkRetryTimeoutMilisec": {
     "value": "00:00:00.020"
   },
   "testDuration": {
-    "value": ""
+    "value": "00:00:22.000"
   },
   "testStartDelay": {
-    "value": ""
+    "value": "00:00:02.000"
   },
   "trackingId": {
     "value": ""
