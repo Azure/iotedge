@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             foreach (Metric metric in metrics)
             {
                 // Skip metric if it doesn't contain any allowed tags.
-                if (this.allowedTags.Exists(wl => !wl.Any(metric.Tags.Contains)))
+                if (this.allowedTags.Exists(allowedTags => !allowedTags.Any(metric.Tags.Contains)))
                 {
                     continue;
                 }
@@ -36,10 +36,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 {
                     Dictionary<string, string> newTags = metric.Tags.ToDictionary(t => t.Key, t => t.Value);
 
-                    this.tagsToAdd.ForEach(t => t.ForEach(toAdd => newTags.Add(toAdd.Key, toAdd.Value)));
-                    this.tagsToRemove.ForEach(t => t.ForEach(toRemove => newTags.Remove(toRemove)));
+                    this.tagsToAdd.ForEach(tagsToAdd => tagsToAdd.ForEach(toAdd => newTags.Add(toAdd.Key, toAdd.Value)));
+                    this.tagsToRemove.ForEach(tagsToRemove => tagsToRemove.ForEach(toRemove => newTags.Remove(toRemove)));
 
-                    this.tagsToModify.ForEach(t => t.ForEach(modification =>
+                    this.tagsToModify.ForEach(tagsToModify => tagsToModify.ForEach(modification =>
                     {
                         if (newTags.TryGetValue(modification.tag, out string oldValue))
                         {

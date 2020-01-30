@@ -143,7 +143,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             if (parts.Length == 2)
             {
                 parts[0] = deviceIdReplacement;
-                parts[1] = parts[1].CreateSha256(); // Hash moduleId
+
+                if (!parts[1].StartsWith("$")) // Don't hash system modules
+                {
+                    parts[1] = parts[1].CreateSha256(); // Hash moduleId
+                }
 
                 return $"{parts[0]}/{parts[1]}";
             }
