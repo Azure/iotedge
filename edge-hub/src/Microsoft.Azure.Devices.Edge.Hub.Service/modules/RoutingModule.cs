@@ -509,7 +509,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        IMessageStore messageStore = this.isStoreAndForwardEnabled ? await c.Resolve<Task<IMessageStore>>() : null;
+                        IMessageStore messageStore = this.isStoreAndForwardEnabled ? c.Resolve<IMessageStore>() : null;
                         var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
                         RouteFactory routeFactory = await c.Resolve<Task<RouteFactory>>();
                         Router router = await c.Resolve<Task<Router>>();
