@@ -35,9 +35,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             var messageStore = new Mock<IMessageStore>();
             messageStore.Setup(m => m.SetTimeToLive(It.IsAny<TimeSpan>()));
 
-            var storageSpaceChecker = new Mock<IStorageSpaceChecker>();
-            storageSpaceChecker.Setup(m => m.SetMaxSizeBytes(It.IsAny<Option<long>>()));
-
             TimeSpan updateFrequency = TimeSpan.FromMinutes(10);
 
             Endpoint GetEndpoint() => new ModuleEndpoint("id", Guid.NewGuid().ToString(), "in1", Mock.Of<IConnectionManager>(), Mock.Of<Core.IMessageConverter<IMessage>>());
@@ -78,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
                 });
 
             // Act
-            var configUpdater = new ConfigUpdater(router, messageStore.Object, updateFrequency, storageSpaceChecker.Object, Option.Some(initialConfigSource.Object));
+            var configUpdater = new ConfigUpdater(router, messageStore.Object, updateFrequency, Option.Some(initialConfigSource.Object));
             await configUpdater.Init(configProvider.Object);
 
             // Assert
@@ -100,9 +97,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
 
             var messageStore = new Mock<IMessageStore>();
             messageStore.Setup(m => m.SetTimeToLive(It.IsAny<TimeSpan>()));
-
-            var storageSpaceChecker = new Mock<IStorageSpaceChecker>();
-            storageSpaceChecker.Setup(m => m.SetMaxSizeBytes(It.IsAny<Option<long>>()));
 
             TimeSpan updateFrequency = TimeSpan.FromSeconds(10);
 
@@ -132,7 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             configProvider.Setup(c => c.SetConfigUpdatedCallback(It.IsAny<Func<EdgeHubConfig, Task>>()));
 
             // Act
-            var configUpdater = new ConfigUpdater(router, messageStore.Object, updateFrequency, storageSpaceChecker.Object, Option.None<IConfigSource>());
+            var configUpdater = new ConfigUpdater(router, messageStore.Object, updateFrequency, Option.None<IConfigSource>());
             await configUpdater.Init(configProvider.Object);
 
             // Assert
@@ -253,9 +247,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             var messageStore = new Mock<IMessageStore>();
             messageStore.Setup(m => m.SetTimeToLive(It.IsAny<TimeSpan>()));
 
-            var storageSpaceChecker = new Mock<IStorageSpaceChecker>();
-            storageSpaceChecker.Setup(m => m.SetMaxSizeBytes(It.IsAny<Option<long>>()));
-
             TimeSpan updateFrequency = TimeSpan.FromSeconds(10);
 
             Endpoint GetEndpoint() => new ModuleEndpoint("id", Guid.NewGuid().ToString(), "in1", Mock.Of<IConnectionManager>(), Mock.Of<Core.IMessageConverter<IMessage>>());
@@ -293,40 +284,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
                 .Callback<Func<EdgeHubConfig, Task>>(callback => { updateCallback = callback; });
 
             // Act
-            var configUpdater = new ConfigUpdater(router, messageStore.Object, updateFrequency, storageSpaceChecker.Object, Option.None<IConfigSource>());
+            var configUpdater = new ConfigUpdater(router, messageStore.Object, updateFrequency, Option.None<IConfigSource>());
             await configUpdater.Init(configProvider.Object);
 
             // Assert
             configProvider.Verify(c => c.GetConfig(), Times.Once);
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Once);
-            storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.Is<Option<long>>(x => x.Equals(Option.None<long>()))), Times.Once);
 
             // call update with no changes
             await updateCallback(edgeHubConfig1);
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(1));
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Once);
-            storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.Is<Option<long>>(x => x.Equals(Option.None<long>()))), Times.Once);
 
             await Task.Delay(TimeSpan.FromSeconds(12));
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(2));
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Exactly(2));
-            storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.Is<Option<long>>(x => x.Equals(Option.None<long>()))), Times.Exactly(2));
 
             // call update with changes
             await updateCallback(edgeHubConfig3);
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(2));
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Exactly(3));
-            storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.Is<Option<long>>(x => x.Equals(Option.None<long>()))), Times.Exactly(3));
 
             await Task.Delay(TimeSpan.FromSeconds(10));
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(3));
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Exactly(3));
-            storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.Is<Option<long>>(x => x.Equals(Option.None<long>()))), Times.Exactly(3));
         }
     }
 }

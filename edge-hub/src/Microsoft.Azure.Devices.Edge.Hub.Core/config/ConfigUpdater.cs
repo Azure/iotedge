@@ -26,7 +26,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             this.router = Preconditions.CheckNotNull(router, nameof(router));
             this.messageStore = messageStore;
             this.configUpdateFrequency = configUpdateFrequency;
-            this.storageSpaceChecker = Preconditions.CheckNotNull(storageSpaceChecker, nameof(storageSpaceChecker));
             this.configProvider = initialConfigProvider;
         }
 
