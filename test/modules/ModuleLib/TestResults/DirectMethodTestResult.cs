@@ -23,6 +23,22 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
             this.HttpStatusCode = result;
         }
 
+        public DirectMethodTestResult(
+            string source,
+            DateTime createdAt,
+            TestOperationResultType testOperationResultType,
+            string trackingId,
+            Guid batchId,
+            string sequenceNumber,
+            HttpStatusCode result)
+            : base(source, testOperationResultType, createdAt)
+        {
+            this.TrackingId = trackingId ?? string.Empty;
+            this.BatchId = Preconditions.CheckNotNull(batchId, nameof(batchId)).ToString();
+            this.SequenceNumber = Preconditions.CheckNonWhiteSpace(sequenceNumber, nameof(sequenceNumber));
+            this.HttpStatusCode = result;
+        }
+
         public string TrackingId { get; set; }
 
         public string BatchId { get; set; }

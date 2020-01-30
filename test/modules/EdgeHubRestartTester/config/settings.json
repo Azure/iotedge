@@ -1,5 +1,32 @@
 {
-  "ServiceClientConnectionString": "",
-  "DesiredModulesToRestartCSV": "moduleRestarter",
-  "RestartIntervalInMins": "10"
+  "IOT_HUB_CONNECTION_STRING": {
+    "value": ""
+  },
+  "directMethodEnable": {
+    "value": "true"
+  },
+  "directMethodTargetModuleId": {
+    "value": "directMethodReceiver1"
+  },
+  "messageEnable": {
+    "value": "true"
+  },
+  "reportingEndpointUrl": {
+    "value": "http://localhost:5001"
+  },
+  "restartIntervalInMins": {
+    "value": "5"
+  },
+  "sdkRetryTimeoutMilisec": {
+    "value": "00:00:00.020"
+  },
+  "testDuration": {
+    "value": ""
+  },
+  "testStartDelay": {
+    "value": ""
+  },
+  "trackingId": {
+    "value": ""
+  }
 }

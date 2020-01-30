@@ -10,6 +10,11 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
         {
         }
 
+        public MessageTestResult(string source, DateTime createdAt, TestOperationResultType testOperationResultType)
+            : base(source, testOperationResultType, createdAt)
+        {
+        }
+
         public string TrackingId { get; set; }
 
         public string BatchId { get; set; }

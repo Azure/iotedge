@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.ModuleUtil
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
@@ -58,10 +59,15 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
 
         public static async Task ReportTestResultAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult)
         {
+            await ReportTestResultAsync(apiClient, logger, testResult, CancellationToken.None);
+        }
+
+        public static async Task ReportTestResultAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult, CancellationToken cancellationToken = default)
+        {
             try
             {
                 logger.LogInformation($"Sending test result: Source={testResult.Source}, Type={testResult.ResultType}, CreatedAt={testResult.CreatedAt}, Result={testResult.GetFormattedResult()}");
-                await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto());
+                await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto(), cancellationToken);
             }
             catch (Exception e)
             {

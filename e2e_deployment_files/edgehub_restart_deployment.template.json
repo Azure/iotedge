@@ -85,8 +85,14 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
+              "IOT_HUB_CONNECTION_STRING": {
+                "value": "<IoTHubConnectionString>"
+              },
               "directMethodEnable": {
                 "value": "true"
+              },
+              "directMethodTargetModuleId": {
+                "value": "directMethodReceiver1"
               },
               "messageEnable": {
                 "value": "true"
@@ -101,10 +107,10 @@
                 "value": "20"
               },
               "testDuration": {
-                "value": "00:00:10"
+                "value": "<TestDuration>"
               },
               "testStartDelay": {
-                "value": "00:00:02"
+                "value": "<TestStartDelay>"
               },
               "trackingId": {
                 "value": "<TrackingId>"
@@ -207,14 +213,14 @@
         "reportMetadataList": {
           "reportMetadata1": {
             "TestReportType": "EdgeHubRestartDirectMethodResult",
-            "TestOperationResultType": "DirectMethod",
-            "SenderSource": "edgeHubRestartTester1.DirectMethod",
+            "TestOperationResultType": "EdgeHubRestartDirectMethod",
+            "SenderSource": "edgeHubRestartTester1.EdgeHubRestartDirectMethod",
             "ReceiverSource": "directMethodReceiver1.receive"
           },
           "reportMetadata2": {
             "TestReportType": "EdgeHubRestartMessageResult",
-            "TestOperationResultType": "Messages",
-            "SenderSource": "edgeHubRestartTester1.Messages",
+            "TestOperationResultType": "EdgeHubRestartMessage",
+            "SenderSource": "edgeHubRestartTester1.EdgeHubRestartMessage",
             "ReceiverSource": "relayer1.receive"
           }
         }

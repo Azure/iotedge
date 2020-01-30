@@ -88,7 +88,7 @@ impl CertificatesQuickstart {
                 return Ok(CheckResult::Warning(
                 Context::new(format!(
                     "The Edge device is using self-signed automatically-generated development certificates.\n\
-                     The certs expired at {}. Restart the IoT Edge daemon to generate new development certs with 90-day expiry.\n\
+                     The certs expired at {}. Restart the IoT Edge daemon to generate new development certs.\n\
                      Please consider using production certificates instead. See https://aka.ms/iotedge-prod-checklist-certs for best practices.",
                     not_after,
                 ))
@@ -99,7 +99,7 @@ impl CertificatesQuickstart {
                 Context::new(format!(
                     "The Edge device is using self-signed automatically-generated development certificates.\n\
                      They will expire in {} days (at {}) causing module-to-module and downstream device communication to fail on an active deployment.\n\
-                     After the certs have expired, restarting the IoT Edge daemon will trigger it to generate new development certs with 90-day expiry.\n\
+                     After the certs have expired, restarting the IoT Edge daemon will trigger it to generate new development certs.\n\
                      Please consider using production certificates instead. See https://aka.ms/iotedge-prod-checklist-certs for best practices.",
                     (not_after - now).num_days(), not_after,
                 ))
