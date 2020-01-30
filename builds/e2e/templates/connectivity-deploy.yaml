@@ -1,7 +1,10 @@
 parameters:
   release.label: ''
+  test.buildNumber: ''
   edgelet.artifact.name: ''
   images.artifact.name: ''
+  edgelet.branchName: ''
+  images.branchName: ''
   container.registry: ''
   container.registry.username: ''
   container.registry.password: ''
@@ -15,9 +18,11 @@ parameters:
   logAnalyticsSharedKey: ''
   testResultCoordinator.logAnalyticsLogType: ''
   testResultCoordinator.verificationDelay: ''
+  testResultCoordinator.storageAccountConnectionString: ''
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''
+  metricsCollector.hostPlatform: ''
   testTrackingId: ''
 
 steps:
@@ -64,6 +69,11 @@ steps:
           -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
           -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
           -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
+          -testBuildNumber "${{ parameters['test.buildNumber'] }}" \
+          -imagesBranchName "${{ parameters['images.branchName'] }}" \
+          -edgeletBranchName "${{ parameters['edgelet.branchName'] }}" \
+          -hostPlatform "${{ parameters['metricsCollector.hostPlatform'] }}" \
+          -storageAccountConnectionString "${{ parameters['testResultCoordinator.storageAccountConnectionString'] }}" \
           -testTrackingId "${{ parameters['testTrackingId'] }}" \
           -waitForTestComplete \
           -cleanAll
