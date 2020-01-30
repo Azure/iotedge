@@ -39,10 +39,7 @@ $UpstreamMessageRate = [Alert]@{
    Name = "upstream-message-rate"
    Query = $UpstreamMessageRateAlertQuery
    Comparator = $GreaterThanZero
-   Threshold = @{
-      LoadGenThreshold = $LoadGenMessagesPerMinThreshold
-      TempFilterMessagesPerMinThreshold = $TempFilterMessagesPerMinThreshold
-   }
+   Threshold = "threshold0: $LoadGenMessagesPerMinThreshold threshold1: $TempFilterMessagesPerMinThreshold"
 }
 $Alerts.Add($UpstreamMessageRate)
 
@@ -54,9 +51,7 @@ $LocalMessageRate = [Alert]@{
    Name = "local-message-rate"
    Query = $LocalMessageRateAlertQuery
    Comparator = $GreaterThanZero
-   Threshold = @{
-      LoadGenThreshold = $TempSensorMessagesPerMinThreshold
-   }
+   Threshold = "threshold0: $TempSensorMessagesPerMinThreshold"
 }
 $Alerts.Add($LocalMessageRate)
 
@@ -66,9 +61,7 @@ $NoUpstreamMessages  = [Alert]@{
    Name = "no-upstream-messages"
    Query = $NoUpstreamMessagesQuery
    Comparator = $LessThanTwo
-   Threshold = @{
-      NoUpstreamMessagesThreshold = 0
-   }
+   Threshold = "threshold0: 0"
 }
 $Alerts.Add($NoUpstreamMessages)
 
@@ -77,9 +70,7 @@ $NoLocalMessages  = [Alert]@{
    Name = "no-local-messages"
    Query = $NoLocalMessagesQuery
    Comparator = $LessThanTwo
-   Threshold = @{
-      NoLocalMessagesThreshold = 0
-   }
+   Threshold = "threshold0: 0"
 }
 $Alerts.Add($NoLocalMessages)
 
@@ -91,9 +82,7 @@ $ReportedPropertyRate = [Alert]@{
    Name = "reported-property-rate"
    Query = $ReportedPropertyRateAlertQuery
    Comparator = $GreaterThanZero
-   Threshold = @{
-      TwinTesterThreshold = $TwinTesterUpstreamReportedPropertyUpdatesPerMinThreshold
-   }
+   Threshold = "threshold0: $TwinTesterUpstreamReportedPropertyUpdatesPerMinThreshold"
 }
 $Alerts.Add($ReportedPropertyRate)
 
@@ -103,9 +92,7 @@ $NoReportedProperties  = [Alert]@{
    Name = "no-reported-properties"
    Query = $NoReportedPropertiesQuery
    Comparator = $LessThanThree
-   Threshold = @{
-      NoReportedPropertiesThreshold = 0
-   }
+   Threshold = "threshold0: 0"
 }
 $Alerts.Add($NoReportedProperties)
 
@@ -117,9 +104,7 @@ $QueueLength = [Alert]@{
    Name = "queue-length"
    Query = $QueueLengthAlertQuery
    Comparator = $GreaterThanZero
-   Threshold = @{
-      QueueLengthThreshold = $QueueLengthThreshold
-   }
+   Threshold = "threshold0: $QueueLengthThreshold"
 }
 $Alerts.Add($QueueLength)
 
@@ -131,9 +116,7 @@ $EdgeAgentCpu = [Alert]@{
    Name = "edge-agent-cpu"
    Query = $EdgeAgentCpuAlertQuery
    Comparator = $GreaterThanZero
-   Threshold = @{
-      EdgeAgentCpuThreshold = $EdgeAgentCpuThreshold
-   }
+   Threshold = "threshold0: $EdgeAgentCpuThreshold"
 }
 $Alerts.Add($EdgeAgentCpu)
 
@@ -145,9 +128,7 @@ $EdgeHubCpu = [Alert]@{
    Name = "edge-hub-cpu"
    Query = $EdgeHubCpuAlertQuery
    Comparator = $GreaterThanZero
-   Threshold = @{
-      EdgeHubCpuThreshold = $EdgeHubCpuThreshold
-   }
+   Threshold = "threshold0: $EdgeHubCpuThreshold"
 }
 $Alerts.Add($EdgeHubCpu)
 
@@ -159,9 +140,7 @@ $EdgeAgentMemory = [Alert]@{
    Name = "edge-agent-memory"
    Query = $EdgeAgentMemoryQuery
    Comparator = $GreaterThanZero
-   Threshold = @{
-      EdgeAgentMemoryThreshold = $EdgeAgentMemoryThreshold
-   }
+   Threshold = "threshold0: $EdgeAgentMemoryThreshold"
 }
 $Alerts.Add($EdgeAgentMemory)
 
@@ -173,9 +152,7 @@ $EdgeHubMemory = [Alert]@{
    Name = "edge-hub-memory"
    Query = $EdgeHubMemoryQuery
    Comparator = $GreaterThanZero
-   Threshold = @{
-      EdgeHubMemoryThreshold = $EdgeAgentMemoryThreshold
-   }
+   Threshold = "threshold0: $EdgeHubMemoryThreshold"
 }
 $Alerts.Add($EdgeHubMemory)
 
@@ -185,17 +162,13 @@ $NumberOfMetricsTooLow = [Alert]@{
    Name = "number-of-metrics-too-low"
    Query = $NumberOfMetricsQuery
    Comparator = $LessThanFourty
-   Threshold = @{
-      NumberOfMetricsThreshold = $NumberOfMetrics
-   }
+   Threshold = "threshold0: 42"
 }
 $NumberOfMetricsTooHigh = [Alert]@{
    Name = "number-of-metrics-too-high"
    Query = $NumberOfMetricsQuery
    Comparator = $GreaterThanFourty
-   Threshold = @{
-      NumberOfMetricsThreshold = $NumberOfMetrics
-   }
+   Threshold = "threshold0: 42"
 }
 $Alerts.Add($NumberOfMetricsTooLow)
 $Alerts.Add($NumberOfMetricsTooHigh)
@@ -208,9 +181,7 @@ $ModuleStarts = [Alert]@{
    Name = "failed-module-starts"
    Query = $ModuleStartsQuery
    Comparator = $GreaterThanZero
-   Threshold = @{
-      ModuleStartThreshold = $ModuleStartThreshold
-   }
+   Threshold = "threshold0: $ModuleStartThreshold"
 }
 $Alerts.Add($ModuleStarts)
 

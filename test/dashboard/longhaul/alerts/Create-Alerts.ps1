@@ -24,6 +24,7 @@ foreach ($device in $devices)
         -DataSourceId "/subscriptions/5ed2dcb6-29bb-40de-a855-8c24a8260343/resourceGroups/EdgeBuilds/providers/Microsoft.OperationalInsights/workspaces/iotedgeLogAnalytic" `
         -QueryType "ResultCount"
 
-        New-AzScheduledQueryRule -Location "West US 2" -ResourceGroupName "EdgeBuilds" -Action $alertingAction -Enabled $true -Description "$($device.deviceId) $($alert.Name)" -Schedule $schedule -Source $querySource -Name $alertName
+        New-AzScheduledQueryRule -Location "West US 2" -ResourceGroupName "EdgeBuilds" -Action $alertingAction -Enabled $true -Description "$($device.deviceId) $($alert.Name) $($alert.Threshold)" -Schedule $schedule -Source $querySource -Name $alertName
     }
 }
+
