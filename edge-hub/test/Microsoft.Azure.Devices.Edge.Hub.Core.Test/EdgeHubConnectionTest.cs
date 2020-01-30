@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
@@ -37,11 +38,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             if (expectedException != null)
             {
-                Assert.Throws(expectedException, () => EdgeHubConnection.ValidateSchemaVersion(schemaVersion));
+                Assert.Throws(expectedException, () => EdgeHubConfigParser.ValidateSchemaVersion(schemaVersion));
             }
             else
             {
-                EdgeHubConnection.ValidateSchemaVersion(schemaVersion);
+                EdgeHubConfigParser.ValidateSchemaVersion(schemaVersion);
             }
         }
 
