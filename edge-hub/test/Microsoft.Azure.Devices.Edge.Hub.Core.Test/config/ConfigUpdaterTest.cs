@@ -82,8 +82,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             // First only has updated from prefeched config
             Assert.Equal(2, router.Routes.Count);
 
-            // After 10 seconds updates from init received
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            // After 6 seconds updates from init received
+            await Task.Delay(TimeSpan.FromSeconds(6));
             Assert.Equal(3, router.Routes.Count);
         }
 
@@ -132,8 +132,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             // Assert
             Assert.Equal(2, router.Routes.Count);
 
-            // After 5 seconds no updates
-            await Task.Delay(TimeSpan.FromSeconds(5));
+            // After 6 seconds no updates
+            await Task.Delay(TimeSpan.FromSeconds(6));
             Assert.Equal(2, router.Routes.Count);
         }
 
