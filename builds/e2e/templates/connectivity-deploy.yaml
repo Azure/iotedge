@@ -21,6 +21,7 @@ parameters:
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''
+  metricsCollector.hostPlatform: ''
 
 steps:
   - task: CopyFiles@2
@@ -69,6 +70,7 @@ steps:
           -testBuildNumber "${{ parameters['test.buildNumber'] }}" \
           -imagesBranchName "${{ parameters['images.branchName'] }}" \
           -edgeletBranchName "${{ parameters['edgelet.branchName'] }}" \
+          -hostPlatform "${{ parameters['metricsCollector.hostPlatform'] }}" \
           -waitForTestComplete \
           -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."
