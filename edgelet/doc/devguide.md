@@ -195,7 +195,7 @@ cargo test --all
     To verify the source code is already correctly formatted, run:
 
     ```sh
-    cargo fmt --all --check
+    cargo fmt --all -- --check
     ```
 
 - clippy
