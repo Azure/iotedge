@@ -155,6 +155,7 @@ jobs:
             $(images.artifact.name.linux)/scripts/connectivityTest.sh
             $(images.artifact.name.linux)/scripts/testHelper.sh
             $(images.artifact.name.linux)/artifactInfo.txt
+            $(images.artifact.name.linux)/kpis.yaml
       # Deploy connectivity test
       - template: templates/connectivity-deploy.yaml
         parameters:
