@@ -44,7 +44,7 @@ namespace EdgeHubRestartTester
             this.MessageTransportType = messageTransportType;
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.ReportingEndpointUrl = new Uri(Preconditions.CheckNonWhiteSpace(reportingEndpointUrl, nameof(reportingEndpointUrl)));
-            this.RestartPeriod = (int)restartPeriod.Minutes;
+            this.RestartPeriod = restartPeriod;
             this.SdkRetryTimeout = (uint)sdkRetryTimeout.Milliseconds;
             this.ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, nameof(serviceClientConnectionString));
             this.TestDuration = testDuration;
@@ -108,7 +108,7 @@ namespace EdgeHubRestartTester
 
         public Uri ReportingEndpointUrl { get; }
 
-        public int RestartPeriod { get; }
+        public TimeSpan RestartPeriod { get; }
 
         public uint SdkRetryTimeout { get; }
 

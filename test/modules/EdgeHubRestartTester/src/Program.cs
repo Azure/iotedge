@@ -71,7 +71,7 @@ namespace EdgeHubRestartTester
                 while ((!cts.IsCancellationRequested) && (DateTime.UtcNow < testExpirationTime))
                 {
                     (DateTime restartTime, HttpStatusCode restartStatus) = await RestartModules(iotHubServiceClient);
-                    DateTime eachTestExpirationTime = restartTime.AddMinutes(Settings.Current.RestartPeriod);
+                    DateTime eachTestExpirationTime = restartTime.Add(Settings.Current.RestartPeriod);
 
                     // Increment the counter when issue an edgeHub restart
                     restartCount++;
