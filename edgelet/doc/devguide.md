@@ -20,7 +20,9 @@ Linux packages are built using the `edgelet/build/linux/package.sh` script. Set 
 For example:
 
 ```sh
-cd ~/src/iotedge/   # Your local clone of https://github.com/Azure/iotedge
+git clone --recurse-submodules 'https://github.com/Azure/iotedge'
+cd iotedge/
+
 PACKAGE_OS='debian10' PACKAGE_ARCH='arm32v7' ./edgelet/build/linux/package.sh
 ```
 
@@ -46,9 +48,10 @@ After installing `rustup`, or if you already have it installed, install the tool
 
 ```sh
 rustup self update   # Update rustup itself to the latest version
-cd ~/src/iotedge/   # Your local clone of https://github.com/Azure/iotedge
 
-cd edgelet/
+git clone --recurse-submodules 'https://github.com/Azure/iotedge'
+cd iotedge/edgelet/
+
 rustup update   # Install / update the toolchain used to build the daemon binaries. This is controlled by the rust-toolchain file in this directory.
                 # For the master branch, this is the latest "stable" toolchain. For release branches, this is a pinned Rust release.
 ```
