@@ -8,6 +8,7 @@ namespace TestResultCoordinator
     using System.Threading;
     using System.Threading.Tasks;
     using Azure.Storage.Blobs;
+    using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
@@ -134,29 +135,29 @@ namespace TestResultCoordinator
             DateTime uploadLogStartAt = DateTime.UtcNow;
             logger.LogInformation("Send upload logs request to edgeAgent.");
 
-            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(TransportType.Amqp_Tcp_Only);
-            var uploadLogRequest = new MethodRequest(
-                "UploadLogs",
-                Encoding.UTF8.GetBytes($"{{ \"schemaVersion\": \"1.0\", \"sasUrl\": \"{blobContainerWriteUri.AbsoluteUri}\", \"items\": [{{ \"id\": \".*\", \"filter\": {{}} }}], \"encoding\": \"gzip\", \"contentType\": \"json\" }}"));
-            MethodResponse uploadLogResponse = await moduleClient.InvokeMethodAsync(Settings.Current.DeviceId, "$edgeAgent", uploadLogRequest);
+            ServiceClient serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
+            CloudToDeviceMethod uploadLogRequest =
+                new CloudToDeviceMethod("UploadLogs")
+                    .SetPayloadJson($"{{ \"schemaVersion\": \"1.0\", \"sasUrl\": \"{blobContainerWriteUri.AbsoluteUri}\", \"items\": [{{ \"id\": \".*\", \"filter\": {{}} }}], \"encoding\": \"gzip\", \"contentType\": \"json\" }}");
+            CloudToDeviceMethodResult uploadLogResponse = await serviceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", uploadLogRequest);
 
-            (string status, string correlationId) = GetUploadLogResponseResult(uploadLogResponse.ResultAsJson);
+            (string status, string correlationId) = GetUploadLogResponseResult(uploadLogResponse.GetPayloadAsJson());
             logger.LogInformation($"Upload logs response: status={status}, correlationId={correlationId}");
 
             int checkUploadStatusPeriod = 60 * 1000;    // 1 min
             while (!string.Equals(status, UploadLogResponseStatus.Completed.ToString(), StringComparison.OrdinalIgnoreCase))
             {
                 await Task.Delay(checkUploadStatusPeriod);
-                var getTaskStatusRequest = new MethodRequest(
-                "GetTaskStatus",
-                Encoding.UTF8.GetBytes($"{{ \"schemaVersion\": \"1.0\", \"correlationId\": \"{correlationId}\" }}"));
-                MethodResponse getTaskStatusResponse = await moduleClient.InvokeMethodAsync(Settings.Current.DeviceId, "$edgeAgent", getTaskStatusRequest);
-                (status, _) = GetUploadLogResponseResult(getTaskStatusResponse.ResultAsJson);
+                CloudToDeviceMethod getTaskStatusRequest =
+                new CloudToDeviceMethod("GetTaskStatus")
+                    .SetPayloadJson($"{{ \"schemaVersion\": \"1.0\", \"correlationId\": \"{correlationId}\" }}");
+                CloudToDeviceMethodResult getTaskStatusResponse = await serviceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", getTaskStatusRequest);
+                (status, _) = GetUploadLogResponseResult(getTaskStatusResponse.GetPayloadAsJson());
             }
 
             // Complete upload log to Azure blob
             DateTime uploadLogFinishAt = DateTime.UtcNow;
-            logger.LogInformation($"Upload logs was started at {uploadLogStartAt}; and took {uploadLogFinishAt - uploadLogStartAt}.");
+            logger.LogInformation($"Upload logs was started at {uploadLogStartAt} and completed at {uploadLogFinishAt}; and took {uploadLogFinishAt - uploadLogStartAt}.");
         }
 
         static TEnum GetEnumValueFromReportMetadata<TEnum>(JToken metadata, string key)
