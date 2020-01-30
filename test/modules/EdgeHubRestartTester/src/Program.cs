@@ -292,13 +292,10 @@ namespace EdgeHubRestartTester
                     Logger.LogInformation($"[SendMessageAsync] Send Message with count {Interlocked.Read(ref messageCount).ToString()}: finished.");
                     return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.OK);
                 }
-                catch (OperationCanceledException ex)
+                catch (Exception ex)
                 {
-                    Logger.LogError(ex, $"[SendMessageAsync] Exception caught with SequenceNumber {messageCount}, BatchId: {batchId.ToString()};");
-                }
-                catch (IotHubCommunicationException ex)
-                {
-                    Logger.LogError(ex, $"[SendMessageAsync] Exception caught with SequenceNumber {messageCount}, BatchId: {batchId.ToString()};");
+                    // TODO: Specific which exception is thrown when edgeHub is restarting
+                    Logger.LogDebug(ex, $"[SendMessageAsync] Exception caught with SequenceNumber {messageCount}, BatchId: {batchId.ToString()};");
                 }
             }
 
