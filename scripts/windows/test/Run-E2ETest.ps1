@@ -131,6 +131,9 @@
     .PARAMETER MetricsUploadTarget
         Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics. 
 
+    .PARAMETER HostPlatform
+         Describes the host OS and cpu architecture. This information is added to scraped metrics.
+
     .EXAMPLE
         .\Run-E2ETest.ps1
             -E2ETestFolder "C:\Data\e2etests"
@@ -315,6 +318,8 @@ Param (
     [string] $TwinUpdateFrequency = $null,
 
     [string] $TwinUpdateFailureThreshold = $null,
+
+    [switch] $HostPlatform = $null,
 
     [switch] $BypassEdgeInstallation
 )
@@ -508,6 +513,7 @@ Function PrepareTestFromArtifacts
                 (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.MetricsEndpointsCSV>',$MetricsEndpointsCSV) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.ScrapeFrequencyInSecs>',$MetricsScrapeFrequencyInSecs) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.UploadTarget>',$MetricsUploadTarget) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $HostPlatform).replace('<MetricsCollector.HostPlatform>',$HostPlatform) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.AlertUrl>',$SnitchAlertUrl) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildNumber>',$SnitchBuildNumber) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildId>',"$ReleaseLabel-$(GetImageArchitectureLabel)-windows-$escapedBuildId") | Set-Content $DeploymentWorkingFilePath
@@ -1495,6 +1501,7 @@ Function ValidateTestParameters
         If ([string]::IsNullOrEmpty($SnitchAlertUrl)) {Throw "Required snith alert URL."}
         If ([string]::IsNullOrEmpty($SnitchStorageAccount)) {Throw "Required snitch storage account."}
         If ([string]::IsNullOrEmpty($SnitchStorageMasterKey)) {Throw "Required snitch storage master key."}
+        If ([string]::IsNullOrEmpty($HostPlatform)) {Throw "Required host platform."}
         If ($ProxyUri) {Throw "Proxy not supported for $TestName test"}
     }
 }
