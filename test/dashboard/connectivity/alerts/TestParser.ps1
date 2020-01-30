@@ -1,4 +1,5 @@
-$yaml = Get-Content C:\Users\Lee\source\repos\edge\and\iotedge\test\dashboard\kpis.yaml -Raw
+$yaml = Invoke-WebRequest https://raw.githubusercontent.com/and-rewsmith/iotedge/andsmi/dashboard-alerts/test/dashboard/kpis.yaml
+# $yaml = Get-Content C:\Users\Lee\source\repos\edge\and\iotedge\test\dashboard\kpis.yaml -Raw
 
 $obj = ConvertFrom-Yaml $yaml
 
@@ -17,8 +18,8 @@ foreach ($testType in $obj.Keys) {
 
         $kpiSettings.tags
         echo ""
-        $fakeTags = @{module_name = "edgeHub"; quartile = .9 }
-        $fakeTags
+        # $fakeTags = @{module_name = "edgeHub"; quartile = .9 }
+        # $fakeTags
     }    
 }
 
