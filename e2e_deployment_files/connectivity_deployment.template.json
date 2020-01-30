@@ -25,10 +25,10 @@
                 "value": "<UpstreamProtocol>"
               },
               "experimentalfeatures__enabled": {
-                  "value": "true"
+                "value": "true"
               },
               "experimentalfeatures__enableMetrics": {
-                  "value": "true"
+                "value": "true"
               }
             },
             "settings": {
@@ -47,10 +47,10 @@
                 "value": "true"
               },
               "experimentalfeatures__enabled": {
-                  "value": "true"
+                "value": "true"
               },
               "experimentalfeatures__enableMetrics": {
-                  "value": "true"
+                "value": "true"
               }
             },
             "status": "running",
@@ -205,8 +205,7 @@
               "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "ReportingEndpointUrl":
-              {
+              "ReportingEndpointUrl": {
                 "value": "http://localhost:5001"
               },
               "trackingId": {
@@ -266,8 +265,7 @@
               "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "ReportingEndpointUrl":
-              {
+              "ReportingEndpointUrl": {
                 "value": "http://localhost:5001"
               },
               "trackingId": {
@@ -432,7 +430,7 @@
               "ServiceClientConnectionString": {
                 "value": "<IoTHubConnectionString>"
               },
-              "TransportType" : {
+              "TransportType": {
                 "value": "Amqp"
               }
             },
@@ -498,7 +496,7 @@
               "ServiceClientConnectionString": {
                 "value": "<IoTHubConnectionString>"
               },
-              "TransportType" : {
+              "TransportType": {
                 "value": "Mqtt"
               }
             },
@@ -534,7 +532,7 @@
               "testResultCoordinatorUrl": {
                 "value": "http://localhost:5001"
               },
-              "DEPLOYMENT_UPDATE_PERIOD" : {
+              "DEPLOYMENT_UPDATE_PERIOD": {
                 "value": "<DeploymentTester1.DeploymentUpdatePeriod>"
               }
             },
@@ -562,6 +560,93 @@
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-deployment-tester:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
+            }
+          },
+          "cloudToDeviceMessageSender1": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "CLOUD_TO_DEVICE_MESSAGE_TESTER_MODE": {
+                "value": "Sender"
+              },
+              "IOT_HUB_CONNECTION_STRING": {
+                "value": "<IoTHubConnectionString>"
+              },
+              "trackingId": {
+                "value": "<TrackingId>"
+              },
+              "testDuration": {
+                "value": "<TestDuration>"
+              },
+              "ReportingEndpointUrl": {
+                "value": "http://testResultCoordinator:5001"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-deployment-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+            }
+          },
+          "cloudToDeviceMessageReceiver1": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "CLOUD_TO_DEVICE_MESSAGE_TESTER_MODE": {
+                "value": "Receiver"
+              },
+              "IOT_HUB_CONNECTION_STRING": {
+                "value": "<IoTHubConnectionString>"
+              },
+              "trackingId": {
+                "value": "<TrackingId>"
+              },
+              "testDuration": {
+                "value": "<TestDuration>"
+              },
+              "transportType": {
+                "value": "Mqtt"
+              },
+              "ReportingEndpointUrl": {
+                "value": "http://testResultCoordinator:5001"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-deployment-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+            }
+          },
+          "cloudToDeviceMessageSender2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "CLOUD_TO_DEVICE_MESSAGE_TESTER_MODE": {
+                "value": "Sender"
+              },
+              "IOT_HUB_CONNECTION_STRING": {
+                "value": "<IoTHubConnectionString>"
+              },
+              "trackingId": {
+                "value": "<TrackingId>"
+              },
+              "testDuration": {
+                "value": "<TestDuration>"
+              },
+              "transportType": {
+                "value": "Mqtt"
+              },
+              "ReportingEndpointUrl": {
+                "value": "http://testResultCoordinator:5001"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-deployment-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "networkController": {
@@ -603,28 +688,28 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-                "logAnalyticsWorkspaceId": {
-                    "value": "<LogAnalyticsWorkspaceId>"
-                },
-                "logAnalyticsSharedKey": {
-                    "value": "<LogAnalyticsSharedKey>"
-                },
-                "logAnalyticsLogType": {
-                  "value": "testMetrics"
-                },
-                "MetricsEndpointsCSV": {
-                  "value": "<MetricsCollector.MetricsEndpointsCSV>"
-                },
-                "ScrapeFrequencyInSecs": {
-                    "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
-                },
-                "UploadTarget": {
-                  "value": "<MetricsCollector.UploadTarget>"
-                }
+              "logAnalyticsWorkspaceId": {
+                "value": "<LogAnalyticsWorkspaceId>"
+              },
+              "logAnalyticsSharedKey": {
+                "value": "<LogAnalyticsSharedKey>"
+              },
+              "logAnalyticsLogType": {
+                "value": "testMetrics"
+              },
+              "MetricsEndpointsCSV": {
+                "value": "<MetricsCollector.MetricsEndpointsCSV>"
+              },
+              "ScrapeFrequencyInSecs": {
+                "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
+              },
+              "UploadTarget": {
+                "value": "<MetricsCollector.UploadTarget>"
+              }
             },
             "settings": {
-                "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
-                "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           }
         }
