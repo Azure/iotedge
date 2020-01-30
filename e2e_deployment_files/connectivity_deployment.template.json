@@ -815,6 +815,18 @@
             "TolerancePeriod": "00:00:00.005"
           },
           "reportMetadata13": {
+            "TestReportType": "CountingReport",
+            "TwinTestPropertyType": "Reported",
+            "ExpectedSource": "cloudToDeviceMessageSender1.send",
+            "ActualSource": "cloudToDeviceMessageReceiver1.receive"
+          },
+          "reportMetadata14": {
+            "TestReportType": "CountingReport",
+            "TwinTestPropertyType": "Reported",
+            "ExpectedSource": "cloudToDeviceMessageSender2.send",
+            "ActualSource": "cloudToDeviceMessageReceiver2.receive"
+          },
+          "reportMetadata15": {
             "TestReportType": "NetworkControllerReport",
             "Source": "networkController"
           }
