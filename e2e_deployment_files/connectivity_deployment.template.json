@@ -29,6 +29,9 @@
               },
               "experimentalfeatures__enableMetrics": {
                   "value": "true"
+              },
+              "ExperimentalFeatures__EnableUploadLogs": {
+                  "value": "true"
               }
             },
             "settings": {
@@ -368,6 +371,9 @@
               },
               "IOT_HUB_CONNECTION_STRING": {
                 "value": "<IoTHubConnectionString>"
+              },
+              "STORAGE_ACCOUNT_CONNECTION_STRING": {
+                "value": "<TestResultCoordinator.StorageAccountConnectionString>"
               }
             },
             "settings": {
@@ -646,7 +652,10 @@
     },
     "metricsCollector": {
       "properties.desired": {
+        "hostPlatform": "<MetricsCollector.HostPlatform>",
         "testType": "connectivity",
+        "imagesBranchName": "<MetricsCollector.Images.BranchName>",
+        "edgeletBranchName": "<MetricsCollector.Edgelet.BranchName>",
         "testId": "<TrackingId>",
         "upstreamProtocol": "<UpstreamProtocol>",
         "networkControllerOfflineFrequency": "<NetworkController.OfflineFrequency0>",
@@ -729,7 +738,7 @@
             "SenderSource": "directMethodSender3.send",
             "TolerancePeriod": "00:00:00.005"
           },
-          "reportMetadata12": {
+          "reportMetadata13": {
             "TestReportType": "NetworkControllerReport",
             "Source": "networkController"
           }
