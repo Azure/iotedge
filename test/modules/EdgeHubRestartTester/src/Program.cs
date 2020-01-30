@@ -10,6 +10,7 @@ namespace EdgeHubRestartTester
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -31,9 +32,9 @@ namespace EdgeHubRestartTester
             uint restartCount = 0;
 
             Guid batchId = Guid.NewGuid();
-            Logger.LogInformation($"Starting Edge Hub Restart Tester ({batchId}) with the following settings:\r\n{Settings.Current}");
+            Logger.LogInformation($"Starting EdgeHubRestartTester ({batchId}) with the following settings:\r\n{Settings.Current}");
 
-            Logger.LogInformation($"Load gen delay start for {Settings.Current.TestStartDelay}.");
+            Logger.LogInformation($"EdgeHubRestartTester delay start for {Settings.Current.TestStartDelay}.");
             await Task.Delay(Settings.Current.TestStartDelay);
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
@@ -256,12 +257,12 @@ namespace EdgeHubRestartTester
                         Logger.LogError(result.ResultAsJson);
                     }
 
-                    Logger.LogInformation($"Invoke DirectMethod with count {Interlocked.Read(ref directMethodCount).ToString()}: finished.");
+                    Logger.LogInformation($"[SendDirectMethodAsync] Invoke DirectMethod with count {Interlocked.Read(ref directMethodCount).ToString()}");
                     return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)result.Status);
                 }
                 catch (Exception e)
                 {
-                    Logger.LogError(e, $"Exception caught with count {Interlocked.Read(ref directMethodCount).ToString()}");
+                    Logger.LogError(e, $"[SendDirectMethodAsync] Exception caught with SequenceNumber {Interlocked.Read(ref directMethodCount).ToString()}");
                 }
             }
 
@@ -288,11 +289,16 @@ namespace EdgeHubRestartTester
                 {
                     // Sending the result via edgeHub
                     await moduleClient.SendEventAsync(msgOutputEndpoint, message);
+                    Logger.LogInformation($"[SendMessageAsync] Send Message with count {Interlocked.Read(ref messageCount).ToString()}: finished.");
                     return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.OK);
                 }
                 catch (OperationCanceledException ex)
                 {
-                    Logger.LogError(ex, $"[SendEventAsync] Sequence number {messageCount}, BatchId: {batchId.ToString()};");
+                    Logger.LogError(ex, $"[SendMessageAsync] Exception caught with SequenceNumber {messageCount}, BatchId: {batchId.ToString()};");
+                }
+                catch (IotHubCommunicationException ex)
+                {
+                    Logger.LogError(ex, $"[SendMessageAsync] Exception caught with SequenceNumber {messageCount}, BatchId: {batchId.ToString()};");
                 }
             }
 
@@ -313,7 +319,7 @@ namespace EdgeHubRestartTester
                 CloudToDeviceMethodResult response = await iotHubServiceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", c2dMethod);
                 if ((HttpStatusCode)response.Status != HttpStatusCode.OK)
                 {
-                    Logger.LogError($"Calling Direct Method failed with status code {response.Status} : {response.GetPayloadAsJson()} .");
+                    Logger.LogError($"Calling EdgeHub restart failed with status code {response.Status} : {response.GetPayloadAsJson()} .");
                 }
 
                 return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)response.Status);
