@@ -13,17 +13,9 @@ let filteredWithMaxTime = filtered
 let maxTimeGenerated = toscalar(filteredWithMaxTime);
 let alertContext = filtered
 | where TimeGenerated < maxTimeGenerated and TimeGenerated > maxTimeGenerated - <ALERTING.INTERVAL>m;
-let totalMemoryAvailable = toscalar(alertContext
-| where Name_s == "edgeAgent_total_memory_bytes"
-| order by moduleName, TimeGenerated
-| where moduleName == "host"
-| extend moduleName = "total_memory"
-| take 1
-| project value);
 alertContext
 | where Name_s == "edgeAgent_used_memory_bytes"
 | where moduleName == "edgeHub"
 | order by TimeGenerated
 | take 1 
-| extend value = value / totalMemoryAvailable
 | where isnan(value) or value > memoryThreshold or isnull(value)

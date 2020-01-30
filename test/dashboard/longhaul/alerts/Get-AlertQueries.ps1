@@ -132,7 +132,7 @@ $EdgeHubCpu = [Alert]@{
 }
 $Alerts.Add($EdgeHubCpu)
 
-$EdgeAgentMemoryThreshold = .5 
+$EdgeAgentMemoryThreshold = 120000000
 $EdgeAgentMemoryQuery = Get-Content -Path ".\queries\EdgeAgentMemory.kql" 
 $EdgeAgentMemoryQuery = $EdgeAgentMemoryQuery.Replace("<MEMORY.THRESHOLD>", $EdgeAgentMemoryThreshold)
 $EdgeAgentMemoryQuery = $EdgeAgentMemoryQuery.Replace("<ALERTING.INTERVAL>", $AlertingInterval)
@@ -144,7 +144,7 @@ $EdgeAgentMemory = [Alert]@{
 }
 $Alerts.Add($EdgeAgentMemory)
 
-$EdgeHubMemoryThreshold = .5 
+$EdgeHubMemoryThreshold = 400000000 
 $EdgeHubMemoryQuery = Get-Content -Path ".\queries\EdgeHubMemory.kql" 
 $EdgeHubMemoryQuery = $EdgeHubMemoryQuery.Replace("<MEMORY.THRESHOLD>", $EdgeHubMemoryThreshold)
 $EdgeHubMemoryQuery = $EdgeHubMemoryQuery.Replace("<ALERTING.INTERVAL>", $AlertingInterval)
