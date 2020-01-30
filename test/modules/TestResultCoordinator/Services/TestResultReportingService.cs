@@ -69,9 +69,22 @@ namespace TestResultCoordinator.Services
                 return;
             }
 
-            var testSummary = new TestSummary(testResultReports);
+            string blobContainerUri = string.Empty;
+
+            try
+            {
+                Uri blobContainerWriteUriForLog = await TestReportUtil.GetOrCreateBlobContainerSasUriForLogAsync(Settings.Current.StorageAccountConnectionString);
+                blobContainerUri = $"{blobContainerWriteUriForLog.Scheme}{ Uri.SchemeDelimiter}{ blobContainerWriteUriForLog.Authority}{ blobContainerWriteUriForLog.AbsolutePath}";
+                await TestReportUtil.UploadLogsAsync(Settings.Current.IoTHubConnectionString, blobContainerWriteUriForLog, this.logger);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Exception happened when uploading logs");
+            }
+
+            var testSummary = new TestSummary(testResultReports, blobContainerUri);
             string reportsContent = JsonConvert.SerializeObject(testSummary, Formatting.Indented);
-            this.logger.LogInformation($"Test result report{Environment.NewLine}{reportsContent}");
+            this.logger.LogInformation($"Test summary{Environment.NewLine}{reportsContent}");
 
             await AzureLogAnalytics.Instance.PostAsync(
                 Settings.Current.LogAnalyticsWorkspaceId,
