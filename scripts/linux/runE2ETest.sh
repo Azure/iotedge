@@ -175,6 +175,7 @@ function prepare_test_from_artifacts() {
                 sed -i -e "s@<Analyzer.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.LogAnalyticsEnabled>@$LOG_ANALYTICS_ENABLED@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.LogAnalyticsLogType>@$LOG_ANALYTICS_LOG_TYPE@g" "$deployment_working_file"
+                sed -i -e "s@<MetricsCollector.HostPlatform>@$HOST_PLATFORM@g" "$deployment_working_file"
                 sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
                 sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHARED_KEY@g" "$deployment_working_file"
                 sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACE_ID@g" "$deployment_working_file"
@@ -402,6 +403,9 @@ function process_args() {
         elif [ $saveNextArg -eq 41 ]; then
             METRICS_UPLOAD_TARGET="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 42 ]; then
+            HOST_PLATFORM="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -446,6 +450,7 @@ function process_args() {
                 '-metricsEndpointsCSV' ) saveNextArg=39;;
                 '-metricsScrapeFrequencyInSecs' ) saveNextArg=40;;
                 '-metricsUploadTarget' ) saveNextArg=41;;
+                '-hostPlatform' ) saveNextArg=42;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -983,6 +988,11 @@ function validate_test_parameters() {
             print_error "Required snitch storage master key."
             ((error++))
         fi
+
+        if [[ -z "$HOST_PLATFORM" ]]; then
+            print_error "Required host platform."
+            ((error++))
+        fi
     fi
 
     if (( error > 0 )); then
@@ -1040,6 +1050,7 @@ function usage() {
     echo ' -metricsEndpointsCSV              Optional csv of exposed endpoints for which to scrape metrics.'
     echo ' -metricsScrapeFrequencyInSecs     Optional frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
     echo ' -metricsUploadTarget              Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
+    echo ' -hostPlatform                     Describes the host OS and cpu architecture. This information is added to scraped metrics.'
     exit 1;
 }
 
