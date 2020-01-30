@@ -69,6 +69,9 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<MetricsCollector.MetricsEndpointsCSV>@$METRICS_ENDPOINTS_CSV@g" "$deployment_working_file"
     sed -i -e "s@<MetricsCollector.ScrapeFrequencyInSecs>@$METRICS_SCRAPE_FREQUENCY_IN_SECS@g" "$deployment_working_file"
     sed -i -e "s@<MetricsCollector.UploadTarget>@$METRICS_UPLOAD_TARGET@g" "$deployment_working_file"
+    sed -i -e "s@<MetricsCollector.Images.BranchName>@$IMAGES_BRANCH_NAME@g" "$deployment_working_file"
+    sed -i -e "s@<MetricsCollector.Edgelet.BranchName>@$EDGELET_BRANCH_NAME@g" "$deployment_working_file"
+    sed -i -e "s@<MetricsCollector.Test.BuildNumber>@$TEST_BUILD_NUMBER@g" "$deployment_working_file"
     sed -i -e "s@<MetricsCollector.HostPlatform>@$HOST_PLATFORM@g" "$deployment_working_file"
 }
 
@@ -219,6 +222,15 @@ function process_args() {
             METRICS_UPLOAD_TARGET="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 25 ]; then
+            IMAGES_BRANCH_NAME="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 26 ]; then
+            EDGELET_BRANCH_NAME="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 27 ]; then
+            TEST_BUILD_NUMBER="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 28 ]; then
             HOST_PLATFORM="$arg"
             saveNextArg=0
         else
@@ -248,7 +260,10 @@ function process_args() {
                 '-metricsEndpointsCSV' ) saveNextArg=22;;
                 '-metricsScrapeFrequencyInSecs' ) saveNextArg=23;;
                 '-metricsUploadTarget' ) saveNextArg=24;;
-                '-hostPlatform' ) saveNextArg=25;;
+                '-imagesBranchName' ) saveNextArg=25;;
+                '-edgeletBranchName' ) saveNextArg=26;;
+                '-testBuildNumber' ) saveNextArg=27;;
+                '-hostPlatform' ) saveNextArg=28;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
 
                 '-cleanAll' ) CLEAN_ALL=1;;
@@ -262,14 +277,17 @@ function process_args() {
     [[ -z "$ARTIFACT_IMAGE_BUILD_NUMBER" ]] && { print_error 'Artifact image build number is required'; exit 1; }
     [[ -z "$CONTAINER_REGISTRY_USERNAME" ]] && { print_error 'Container registry username is required'; exit 1; }
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
+    [[ -z "$EDGELET_BRANCH_NAME" ]] && { print_error 'Edgelet branch name is required'; exit 1; }
     [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
     [[ -z "$HOST_PLATFORM" ]] && { print_error 'Host platform is required'; exit 1; }
     [[ -z "$IOT_HUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
-    [[ -z "$LOG_ANALYTICS_WORKSPACEID" ]] && { print_error 'Log analytics workspace id is required'; exit 1; }
+    [[ -z "$IMAGES_BRANCH_NAME" ]] && { print_error 'Images branch name is required'; exit 1; }
     [[ -z "$LOG_ANALYTICS_SHAREDKEY" ]] && { print_error 'Log analytics shared key is required'; exit 1; }
+    [[ -z "$LOG_ANALYTICS_WORKSPACEID" ]] && { print_error 'Log analytics workspace id is required'; exit 1; }
     [[ -z "$METRICS_ENDPOINTS_CSV" ]] && { print_error 'Metrics endpoints csv is required'; exit 1; }
     [[ -z "$METRICS_SCRAPE_FREQUENCY_IN_SECS" ]] && { print_error 'Metrics scrape frequency is required'; exit 1; }
     [[ -z "$METRICS_UPLOAD_TARGET" ]] && { print_error 'Metrics upload target is required'; exit 1; }
+    [[ -z "$TEST_BUILD_NUMBER" ]] && { print_error 'Test build number is required'; exit 1; }
 
     echo 'Required parameters are provided'
 }
@@ -419,9 +437,12 @@ function usage() {
     echo ' -deploymentTestUpdatePeriod     duration of updating deployment of target module in deployment test'
     echo ' -timeForReportingGeneration     Time reserved for report generation'
     echo ' -waitForTestComplete            Wait for test to complete if this parameter is provided.  Otherwise it will finish once deployment is done.'
-    echo ' -metricsEndpointsCSV            Optional csv of exposed endpoints for which to scrape metrics.'
-    echo ' -metricsScrapeFrequencyInSecs   Optional frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
-    echo ' -metricsUploadTarget            Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
+    echo ' -metricsEndpointsCSV            Csv of exposed endpoints for which to scrape metrics.'
+    echo ' -metricsScrapeFrequencyInSecs   Frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
+    echo ' -metricsUploadTarget            Upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
+    echo ' -imagesBranchName               Branch name that built the image artifacts'
+    echo ' -edgeletBranchName              Branch name that built the edgelet artifacts'
+    echo ' -testBuildNumber                Unique identifier for the main connectivity test run'
     echo ' -hostPlatform                   Describes the host OS and cpu architecture.'
 
     echo ' -cleanAll                       Do docker prune for containers, logs and volumes.'

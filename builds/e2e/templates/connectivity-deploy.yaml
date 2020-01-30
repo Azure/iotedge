@@ -1,7 +1,10 @@
 parameters:
   release.label: ''
+  test.buildNumber: ''
   edgelet.artifact.name: ''
   images.artifact.name: ''
+  edgelet.branchName: ''
+  images.branchName: ''
   container.registry: ''
   container.registry.username: ''
   container.registry.password: ''
@@ -64,6 +67,9 @@ steps:
           -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
           -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
           -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
+          -testBuildNumber "${{ parameters['test.buildNumber'] }}" \
+          -imagesBranchName "${{ parameters['images.branchName'] }}" \
+          -edgeletBranchName "${{ parameters['edgelet.branchName'] }}" \
           -hostPlatform "${{ parameters['metricsCollector.hostPlatform'] }}" \
           -waitForTestComplete \
           -cleanAll
