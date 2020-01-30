@@ -1,0 +1,28 @@
+// Copyright (c) Microsoft. All rights reserved.
+namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
+{
+    using System;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
+
+    public class ErrorTestResult : TestResultBase
+    {
+        public ErrorTestResult(string trackingId, Exception ex)
+            : this(trackingId, ex.Message, DateTime.UtcNow)
+        {
+        }
+
+        public ErrorTestResult(string trackingId, string errorMessage, DateTime createdAt)
+            : base(TestConstants.Error.TestResultSource, TestOperationResultType.Error, createdAt)
+        {
+            this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
+            this.ErrorMessage = Preconditions.CheckNonWhiteSpace(errorMessage, nameof(errorMessage));
+        }
+
+        public string TrackingId { get; }
+
+        public string ErrorMessage { get; }
+
+        public override string GetFormattedResult() => this.ToPrettyJson();
+    }
+}
