@@ -54,7 +54,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             .WithDesiredProperties(new Dictionary<string, object> { { "routes", new { All = "FROM /messages/* INTO $upstream" } } });
                         if (OsPlatform.IsWindows())
                         {
-                            edgeHub.WithSettings(("User", "ContainerAdministrator"));
+                            // Note: This overwrites the default port mapping. This if fine for this test.
+                            edgeHub.WithSettings(("createOptions", "{\"User\":\"ContainerAdministrator\"}"));
                         }
 
                         builder.GetModule("$edgeAgent")
