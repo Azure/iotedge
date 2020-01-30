@@ -92,7 +92,7 @@ namespace MetricsCollector
 
     public enum UploadTarget
     {
-        EventHub,
+        IoTHub,
         AzureLogAnalytics
     }
 }
