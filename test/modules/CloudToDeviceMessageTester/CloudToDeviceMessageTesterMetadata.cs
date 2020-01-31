@@ -20,6 +20,7 @@ namespace CloudToDeviceMessageTester
             public string WorkloadUri;
             public string ApiVersion;
             public string ModuleGenerationId;
+            public string IotHubHostName;
         }
 
         public struct SenderMetadata

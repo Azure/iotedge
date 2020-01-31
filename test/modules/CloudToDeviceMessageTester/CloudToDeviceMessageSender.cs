@@ -10,7 +10,7 @@ namespace CloudToDeviceMessageTester
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using static global::CloudToDeviceMessageTester.CloudToDeviceMessageTesterMetadata;
+    using static CloudToDeviceMessageTester.CloudToDeviceMessageTesterMetadata;
 
     sealed class CloudToDeviceMessageSender : ICloudToDeviceMessageTester
     {
@@ -26,7 +26,7 @@ namespace CloudToDeviceMessageTester
         long messageCount = 0;
         ServiceClient serviceClient;
 
-        public CloudToDeviceMessageSender(
+        internal CloudToDeviceMessageSender(
             ILogger logger,
             SharedMetadata sharedMetadata,
             SenderMetadata senderMetadata,
@@ -66,7 +66,7 @@ namespace CloudToDeviceMessageTester
             }
         }
 
-        public async Task<MessageTestResult> SendCloudToDeviceMessageAsync(Guid batchId, string trackingId)
+        internal async Task<MessageTestResult> SendCloudToDeviceMessageAsync(Guid batchId, string trackingId)
         {
             this.logger.LogInformation($"Sending C2D message to deviceId: {this.deviceId} with Sequence Number: {this.messageCount}, batchId: {batchId}, and trackingId: {trackingId}");
             try

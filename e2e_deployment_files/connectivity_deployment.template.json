@@ -568,7 +568,7 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "CLOUD_TO_DEVICE_MESSAGE_TESTER_MODE": {
+              "C2DMESSAGE_TESTER_MODE": {
                 "value": "Sender"
               },
               "IOT_HUB_CONNECTION_STRING": {
@@ -580,12 +580,15 @@
               "testDuration": {
                 "value": "<TestDuration>"
               },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
+              },
               "ReportingEndpointUrl": {
                 "value": "http://localhost:5001"
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-cloud-to-device-message-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
@@ -595,7 +598,7 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "CLOUD_TO_DEVICE_MESSAGE_TESTER_MODE": {
+              "C2DMESSAGE_TESTER_MODE": {
                 "value": "Receiver"
               },
               "IOT_HUB_CONNECTION_STRING": {
@@ -609,7 +612,7 @@
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-cloud-to-device-message-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
@@ -619,7 +622,7 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "CLOUD_TO_DEVICE_MESSAGE_TESTER_MODE": {
+              "C2DMESSAGE_TESTER_MODE": {
                 "value": "Sender"
               },
               "IOT_HUB_CONNECTION_STRING": {
@@ -631,6 +634,9 @@
               "testDuration": {
                 "value": "<TestDuration>"
               },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
+              },
               "transportType": {
                 "value": "Mqtt"
               },
@@ -639,7 +645,7 @@
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-cloud-to-device-message-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
@@ -649,7 +655,7 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "CLOUD_TO_DEVICE_MESSAGE_TESTER_MODE": {
+              "C2DMESSAGE_TESTER_MODE": {
                 "value": "Receiver"
               },
               "IOT_HUB_CONNECTION_STRING": {
@@ -663,7 +669,7 @@
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-cloud-to-device-message-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },

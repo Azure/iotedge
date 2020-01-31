@@ -8,7 +8,7 @@ namespace CloudToDeviceMessageTester
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
-    using static global::CloudToDeviceMessageTester.CloudToDeviceMessageTesterMetadata;
+    using static CloudToDeviceMessageTester.CloudToDeviceMessageTesterMetadata;
 
     class Settings
     {
@@ -54,6 +54,7 @@ namespace CloudToDeviceMessageTester
                     WorkloadUri = Preconditions.CheckNonWhiteSpace(workloadUri, nameof(workloadUri)),
                     ApiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion)),
                     ModuleGenerationId = Preconditions.CheckNonWhiteSpace(moduleGenerationId, nameof(moduleGenerationId)),
+                    IotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName)),
                     TransportType = transportType
                 };
             }
@@ -86,7 +87,7 @@ namespace CloudToDeviceMessageTester
                 configuration.GetValue<string>("IOTEDGE_APIVERSION"),
                 configuration.GetValue<string>("IOTEDGE_MODULEGENERATIONID"),
                 configuration.GetValue<string>("IOTEDGE_IOTHUBHOSTNAME"),
-                configuration.GetValue("CLOUD_TO_DEVICE_MESSAGE_TESTER_MODE", CloudToDeviceMessageTesterMode.Receiver),
+                configuration.GetValue("C2DMESSAGE_TESTER_MODE", CloudToDeviceMessageTesterMode.Receiver),
                 configuration.GetValue<string>("trackingId"),
                 configuration.GetValue("TransportType", TransportType.Amqp),
                 configuration.GetValue("MessageDelay", TimeSpan.FromSeconds(5)),
