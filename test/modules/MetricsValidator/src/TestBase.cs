@@ -24,7 +24,7 @@ namespace MetricsValidator
 
         protected string TestName
         {
-            get { return this.GetType().ToString().Split('.').LastOrDefault(); }
+            get { return this.GetType().ToString().Split('.').Last(); }
         }
 
         public TestBase(TestReporter testReporter, IMetricsScraper scraper, ModuleClient moduleClient)
@@ -38,8 +38,7 @@ namespace MetricsValidator
         public async Task Start(CancellationToken cancellationToken)
         {
             log.LogInformation($"Starting test {this.TestName}");
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
+            Stopwatch stopwatch = Stopwatch.StartNew();
 
             try
             {

@@ -33,8 +33,9 @@ namespace MetricsValidator.Tests
             var cpuMetrics = metrics.Where(m => m.Name == cpuMetricName);
             this.testReporter.Assert($"{cpuMetricName} metric exists", cpuMetrics.Any(), $"Missing {cpuMetricName}");
 
+            const int numQuantiles = 6; // Our histograms return 6 quantiles: 50, 90, 95, 99, 99.9, 99.99
             var hostCpu = cpuMetrics.Where(m => m.Tags.TryGetValue("module", out string module) && module == "host").ToDictionary(m => m.Tags["quantile"], m => m.Value);
-            this.testReporter.Assert("Host has all quantiles", hostCpu.Count == 6, $"Host had the following quantiles: {string.Join(", ", hostCpu.Keys)}");
+            this.testReporter.Assert("Host has all quantiles", hostCpu.Count == numQuantiles, $"Host had the following quantiles: {string.Join(", ", hostCpu.Keys)}");
 
             var moduleCpu = cpuMetrics.Where(m => m.Tags.TryGetValue("module", out string module) && module != "host").ToList();
             this.testReporter.Assert("At least 1 docker module reports cpu", moduleCpu.Any(), $"No modules reported cpu");
