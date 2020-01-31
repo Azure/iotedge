@@ -581,7 +581,7 @@
                 "value": "<TestDuration>"
               },
               "ReportingEndpointUrl": {
-                "value": "http://testResultCoordinator:5001"
+                "value": "http://localhost:5001"
               }
             },
             "settings": {
@@ -601,14 +601,8 @@
               "IOT_HUB_CONNECTION_STRING": {
                 "value": "<IoTHubConnectionString>"
               },
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
               "transportType": {
-                "value": "Mqtt"
+                "value": "Amqp"
               },
               "ReportingEndpointUrl": {
                 "value": "http://testResultCoordinator:5001"
@@ -616,7 +610,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-cloud-to-device-message-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": ""
             }
           },
           "cloudToDeviceMessageSender2": {
@@ -641,12 +635,36 @@
                 "value": "Mqtt"
               },
               "ReportingEndpointUrl": {
-                "value": "http://testResultCoordinator:5001"
+                "value": "http://localhost:5001"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-cloud-to-device-message-tester:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+            }
+          },
+          "cloudToDeviceMessageReceiver2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "CLOUD_TO_DEVICE_MESSAGE_TESTER_MODE": {
+                "value": "Receiver"
+              },
+              "IOT_HUB_CONNECTION_STRING": {
+                "value": "<IoTHubConnectionString>"
+              },
+              "transportType": {
+                "value": "Mqtt"
+              },
+              "ReportingEndpointUrl": {
+                "value": "http://testResultCoordinator:5001"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-cloud-to-device-message-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
             }
           },
           "networkController": {
