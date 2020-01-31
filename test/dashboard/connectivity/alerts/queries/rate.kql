@@ -1,0 +1,20 @@
+let testId = "<TEST.ID>";
+let target = <TARGET>;
+let filtered = testMetrics_CL
+| extend dimensions=parse_json(Tags_s)
+| where tostring(dimensions.testId) == <TEST.ID>;
+let filteredWithMaxTime = filtered
+| summarize maxTimeGenerated = max(TimeGenerated);
+let maxTimeGenerated = toscalar(filteredWithMaxTime);
+let alertContext = filtered
+| where TimeGenerated < maxTimeGenerated and TimeGenerated > maxTimeGenerated - <ALERTING.INTERVAL>m;
+alertContext
+| where Name_s == "<METRIC.NAME>"
+<TAG.FILTER.QUERY>
+| order by TimeGenerated
+| serialize | extend nextValue = next(Value_d, 1) | extend nextTime = next(TimeGenerated, 1)
+| extend event_diff = iff((Value_d - nextValue) >= 0, Value_d - nextValue, Value_d)
+| extend minutes_diff = (TimeGenerated - nextTime) / 1s / 60
+| extend rate = event_diff / minutes_diff
+| where rate >= 0 // needed due to bug where metric values decrease
+| where rate <COMPARISON> target

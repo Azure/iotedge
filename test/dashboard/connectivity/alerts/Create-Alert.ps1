@@ -6,6 +6,9 @@ Param (
     [ValidateNotNullOrEmpty()]
     [string] $MetricName = $null,
 
+    [ValidateNotNullOrEmpty()]
+    [string] $KpiName = $null,
+
     [ValidateSet("<",
                  ">",
                  "==",
@@ -36,18 +39,29 @@ Param (
 
 Write-Host "Generating alert for $MetricName $QueryComparison $QueryTarget"
 
-$ValueQuery = Get-Content -Path ".\queries\value.kql" -Raw
+if ($QueryType -eq "value")
+{
+    $ValueQuery = Get-Content -Path ".\queries\value.kql" -Raw
+}
+else
+{
+    $ValueQuery = Get-Content -Path ".\queries\rate.kql" -Raw
+}
 
-
-# TODO: add/consolidate logic for query type "rate"
 $TagNamePlaceholder = "<TAG.NAME>";
 $TagValuePlaceholder = "<TAG.VALUE>";
 $TagFiltersToAppendToQuery = ""
 foreach ($Tag in $Tags.GetEnumerator())
 {
-    $TagFilter = "| where tostring(dimensions.$TagNamePlaceholder) == `"$TagValuePlaceholder`""
-    $TagFilter = $TagFilter.Replace("$TagNamePlaceholder", $Tag.Name)
-    $TagFilter = $TagFilter.Replace("$TagValuePlaceholder", $Tag.Value)
+    $TagFilter = "";
+    if ($Tag.Name -eq "to")
+    {
+        $TagFilter =  "| where tostring(trim_start(@`"[^/]+/`", extractjson(`"$.to`", tostring(dimensions), typeof(string)))) == $($Tag.Name)"
+    }
+    else
+    {
+        $TagFilter = "| where tostring(dimensions.$($Tag.Name)) == `"$($Tag.Value)`""
+    }
     $TagFiltersToAppendToQuery += "`n$TagFilter"
 }
 
@@ -80,9 +94,13 @@ $QuerySource = New-AzScheduledQueryRuleSource `
 New-AzScheduledQueryRule `
 -Location "West US 2" `
 -ResourceGroupName "EdgeBuilds" `
--Action $alertingAction `
+-Action $AlertingAction `
 -Enabled $true `
 -Description "$TestId $MetricName $QueryComparison $QueryTarget" `
 -Schedule $Schedule `
--Source $querySource `
--Name "ConnectivityTestAlert"
+-Source $QuerySource `
+-Name $KpiName
+
+#| where tostring(dimensions.target) != "upstream"
+#| where tostring(trim_start(@"[^/]+/", extractjson("$.to", tostring(dimensions), typeof(string))))
+#| where tostring(dimensions.from) hassuffix "tempSensor2"
