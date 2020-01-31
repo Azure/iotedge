@@ -46,22 +46,27 @@ namespace CloudToDeviceMessageTester
                 ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId)),
             };
 
-            this.ReceiverMetadata = new ReceiverMetadata()
+            if (testMode == CloudToDeviceMessageTesterMode.Receiver)
             {
-                GatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName)),
-                WorkloadUri = Preconditions.CheckNonWhiteSpace(workloadUri, nameof(workloadUri)),
-                ApiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion)),
-                ModuleGenerationId = Preconditions.CheckNonWhiteSpace(moduleGenerationId, nameof(moduleGenerationId)),
-                TransportType = transportType
-            };
-
-            this.SenderMetadata = new SenderMetadata()
+                this.ReceiverMetadata = new ReceiverMetadata()
+                {
+                    GatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName)),
+                    WorkloadUri = Preconditions.CheckNonWhiteSpace(workloadUri, nameof(workloadUri)),
+                    ApiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion)),
+                    ModuleGenerationId = Preconditions.CheckNonWhiteSpace(moduleGenerationId, nameof(moduleGenerationId)),
+                    TransportType = transportType
+                };
+            }
+            else
             {
-                TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId)),
-                MessageDelay = messageDelay,
-                TestStartDelay = testStartDelay,
-                TestDuration = testDuration
-            };
+                this.SenderMetadata = new SenderMetadata()
+                {
+                    TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId)),
+                    MessageDelay = messageDelay,
+                    TestStartDelay = testStartDelay,
+                    TestDuration = testDuration
+                };
+            }
         }
 
         static Settings Create()
