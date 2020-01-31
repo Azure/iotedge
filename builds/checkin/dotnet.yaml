@@ -78,17 +78,16 @@ jobs:
       vmImage: windows-2019
     steps:
       - task: DotNetCoreCLI@2
-        displayName: Build test projects
+        displayName: Build
         inputs:
           command: build
-          projects: edge-*\test\Microsoft.Azure.Devices.*Test\Microsoft.Azure.Devices.*Test.csproj
           arguments: '-o target'
       - task: VSTest@2
         displayName: Run unit tests with code coverage
         inputs:
           testSelector: testAssemblies
           testAssemblyVer2: |
-            target\Microsoft.Azure*Test.dll
+            target\*Test.dll
           testFiltercriteria: Category=Unit
           runInParallel: true
           runTestsInIsolation: true
