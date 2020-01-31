@@ -117,13 +117,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     connectionManager,
                     routeFactory,
                     twinCollectionMessageConverter,
-                    twinMessageConverter,
                     versionInfo,
                     new NullDeviceScopeIdentitiesCache());
                 await Task.Delay(TimeSpan.FromMinutes(1));
 
+                TwinConfigSource configSource = new TwinConfigSource(edgeHubConnection, edgeHubCredentials.Identity.Id, versionInfo, twinManager, twinMessageConverter, twinCollectionMessageConverter, routeFactory);
+
                 // Get and Validate EdgeHubConfig
-                Option<EdgeHubConfig> edgeHubConfigOption = await edgeHubConnection.GetConfig();
+                Option<EdgeHubConfig> edgeHubConfigOption = await configSource.GetConfig();
                 Assert.True(edgeHubConfigOption.HasValue);
                 EdgeHubConfig edgeHubConfig = edgeHubConfigOption.OrDefault();
                 Assert.Equal("1.0", edgeHubConfig.SchemaVersion);
@@ -240,7 +241,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     return Task.CompletedTask;
                 }
 
-                edgeHubConnection.SetConfigUpdatedCallback(ConfigUpdatedCallback);
+                configSource.SetConfigUpdatedCallback(ConfigUpdatedCallback);
                 await this.UpdateDesiredProperties(registryManager, edgeDeviceId);
                 await Task.Delay(TimeSpan.FromSeconds(5));
                 Assert.True(callbackCalled);
@@ -275,7 +276,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     connectionManager,
                     routeFactory,
                     twinCollectionMessageConverter,
-                    twinMessageConverter,
                     versionInfo,
                     new NullDeviceScopeIdentitiesCache());
                 await Task.Delay(TimeSpan.FromMinutes(1));
