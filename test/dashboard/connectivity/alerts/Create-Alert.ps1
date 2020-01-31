@@ -48,8 +48,6 @@ else
     $ValueQuery = Get-Content -Path ".\queries\rate.kql" -Raw
 }
 
-$TagNamePlaceholder = "<TAG.NAME>";
-$TagValuePlaceholder = "<TAG.VALUE>";
 $TagFiltersToAppendToQuery = ""
 foreach ($Tag in $Tags.GetEnumerator())
 {
