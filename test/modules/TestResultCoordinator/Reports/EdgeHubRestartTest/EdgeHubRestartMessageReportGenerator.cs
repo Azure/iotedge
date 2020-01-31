@@ -2,6 +2,7 @@
 namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Net;
     using System.Threading.Tasks;
@@ -46,7 +47,31 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             Logger.LogInformation($"Generating report: {nameof(EdgeHubRestartMessageReport)} for [{this.Metadata.SenderSource}] and [{this.Metadata.ReceiverSource}]");
 
             bool isPassed = true;
-            string failedReason = " ";
+            
+            ulong senderMessages = 0;
+            ulong receiverMessage = 0;
+            // Value: (source, numOfMessage)
+            Dictionary<HttpStatusCode, ulong> messageCount = new Dictionary<HttpStatusCode, ulong>();
+
+            // Value: (restartStatusCode, numOfTimesTheStatusCodeHappened)
+            Dictionary<HttpStatusCode, ulong> completedRestartPeriod = new Dictionary<HttpStatusCode, ulong>();
+            ulong numSuccessRestart = 0;
+            // Check restart HttpStatusCode and if not HTTP.OK, increment this number.
+            // The result of failed restart will not be added to completedRestartPeriod.
+            ulong numFailedToRestart = 0;
+
+            // TODO: pass this dict and numFailedToRestart to the report
+            // Value: (completedStatusCode, MessageCompletedTime - EdgeHubRestartedTime)
+            // TODO: In report,
+            //    - Calculate min, max, mean, med restartPeriod.
+            //    - Use Max(completedRestartPeriod[HttpStatusCode.OK]) to check if it always less the PassableThreshold
+            //    - Report numFailedToRestart > 0 but does not count towards failure, give a warning though
+            //    - Report messagePreRestart > 1 failure the test citing test code malfunction.
+            Dictionary<HttpStatusCode, List<TimeSpan>> completedRestartPeriod = new Dictionary<HttpStatusCode, List<TimeSpan>>();
+
+
+
+
             bool hasExpectedResult = await this.SenderTestResults.MoveNextAsync();
             bool hasActualResult = await this.ReceiverTestResults.MoveNextAsync();
 
@@ -75,9 +100,17 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 isPassed &= (senderResult.MessageCompletedStatusCode == HttpStatusCode.OK);
 
                 // Check if the time is exceeding the threshold
-                isPassed &= (this.Metadata.PassableEdgeHubRestartPeriod > (senderResult.MessageCompletedTime - senderResult.EdgeHubRestartedTime));
-                // Give a warning if the restart cycle does not contain only a message sent.
+                isPassed &= (this.Metadata.PassableEdgeHubRestartPeriod >= (senderResult.MessageCompletedTime - senderResult.EdgeHubRestartedTime));
+
+                // Check the sender's TRC if
+                // - the sequence is in order
+                // - if the status code would fit this nicely
+                // - 
             }
+
+
+
+            // Give a warning if the restart cycle does not contain only a message sent.
 
             // BEARWASHERE -- TODO: Deal w/ dups
 
