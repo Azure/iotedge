@@ -42,6 +42,7 @@ namespace NetworkController
             Preconditions.CheckNotNull(profileSettings, nameof(profileSettings));
             Preconditions.CheckArgument(profileSettings.ContainsKey(networkRunProfile));
             this.NetworkRunProfile = profileSettings[networkRunProfile];
+            Preconditions.CheckRange<uint>(this.NetworkRunProfile.ProfileSetting.PackageLoss, 0, 101, nameof(this.NetworkRunProfile));
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.IotHubHostname = Preconditions.CheckNonWhiteSpace(iothubHostname, nameof(iothubHostname));

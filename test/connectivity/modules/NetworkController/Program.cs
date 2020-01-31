@@ -17,7 +17,7 @@ namespace NetworkController
         {
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Log);
 
-            Log.LogInformation($"Starting with {Settings.Current.NetworkRunProfile.ProfileType}");
+            Log.LogInformation($"Starting with {Settings.Current.NetworkRunProfile.ProfileType} Settings: {Settings.Current.NetworkRunProfile.ProfileSetting}");
 
             try
             {
