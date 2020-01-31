@@ -837,13 +837,13 @@
           },
           "reportMetadata13": {
             "TestReportType": "CountingReport",
-            "TwinTestPropertyType": "Reported",
+            "TestOperationResultType": "Messages",
             "ExpectedSource": "cloudToDeviceMessageSender1.send",
             "ActualSource": "cloudToDeviceMessageReceiver1.receive"
           },
           "reportMetadata14": {
             "TestReportType": "CountingReport",
-            "TwinTestPropertyType": "Reported",
+            "TestOperationResultType": "Messages",
             "ExpectedSource": "cloudToDeviceMessageSender2.send",
             "ActualSource": "cloudToDeviceMessageReceiver2.receive"
           },
