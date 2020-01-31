@@ -16,8 +16,6 @@ namespace EdgeHubRestartTester
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("EdgeHubRestartTester");
 
-        static long messageCount = 0;
-
         public static int Main() => MainAsync().Result;
 
         static async Task<int> MainAsync()
@@ -74,7 +72,7 @@ namespace EdgeHubRestartTester
                     Task sendMessageTask = Task.CompletedTask;
                     if (Settings.Current.MessageEnable)
                     {
-                        sendMessageTask = 
+                        sendMessageTask =
                             new MessageEdgeHubConnector(
                                 dmModuleClient,
                                 batchId,
@@ -91,7 +89,7 @@ namespace EdgeHubRestartTester
                     Task directMethodTask = Task.CompletedTask;
                     if (Settings.Current.DirectMethodEnable)
                     {
-                        directMethodTask = 
+                        directMethodTask =
                             new DirectMethodEdgeHubConnector(
                                 dmModuleClient,
                                 batchId,

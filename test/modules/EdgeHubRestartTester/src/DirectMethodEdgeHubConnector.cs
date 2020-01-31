@@ -44,7 +44,7 @@ namespace EdgeHubRestartTester
             this.EdgeHubRestartedTime = edgeHubRestartedTime;
             this.EdgeHubRestartStatusCode = edgeHubRestartStatusCode;
             this.RestartSequenceNumber = Preconditions.CheckNotNull(restartSequenceNumber, nameof(restartSequenceNumber));
-            this.Logger = Preconditions.CheckNotNull(logger, nameof(logger));;
+            this.Logger = Preconditions.CheckNotNull(logger, nameof(logger));
         }
 
         public async Task ConnectAsync()

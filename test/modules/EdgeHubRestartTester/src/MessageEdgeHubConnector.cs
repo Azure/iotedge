@@ -45,7 +45,7 @@ namespace EdgeHubRestartTester
             this.EdgeHubRestartedTime = edgeHubRestartedTime;
             this.EdgeHubRestartStatusCode = edgeHubRestartStatusCode;
             this.RestartSequenceNumber = Preconditions.CheckNotNull(restartSequenceNumber, nameof(restartSequenceNumber));
-            this.Logger = Preconditions.CheckNotNull(logger, nameof(logger));;
+            this.Logger = Preconditions.CheckNotNull(logger, nameof(logger));
         }
 
         public async Task ConnectAsync()
@@ -98,14 +98,14 @@ namespace EdgeHubRestartTester
                 {
                     // Sending the result via edgeHub
                     await moduleClient.SendEventAsync(msgOutputEndpoint, message);
-                    Logger.LogInformation($"[SendMessageAsync] Send Message with count {Interlocked.Read(ref this.messageCount).ToString()}: finished.");
+                    this.Logger.LogInformation($"[SendMessageAsync] Send Message with count {Interlocked.Read(ref this.messageCount).ToString()}: finished.");
                     return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.OK);
                 }
                 catch (TimeoutException ex)
                 {
                     // TimeoutException is expected to happen while the EdgeHub is down.
                     // Let's log the attempt and retry the message send until successful
-                    Logger.LogDebug(ex, $"[SendMessageAsync] Exception caught with SequenceNumber {this.messageCount}, BatchId: {batchId.ToString()};");
+                    this.Logger.LogDebug(ex, $"[SendMessageAsync] Exception caught with SequenceNumber {this.messageCount}, BatchId: {batchId.ToString()};");
                 }
             }
 
