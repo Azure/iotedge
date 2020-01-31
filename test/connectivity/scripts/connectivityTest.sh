@@ -9,7 +9,7 @@ set -e
 . $(dirname "$0")/testHelper.sh
 
 function examine_test_result() {
-    found_test_passed="$(docker logs testResultCoordinator 2>&1 | sed -n '/Test result report/,/"TestResultReports"/p' | grep '"IsPassed": true')"
+    found_test_passed="$(docker logs testResultCoordinator 2>&1 | sed -n '/Test summary/,/"TestResultReports"/p' | grep '"IsPassed": true')"
 
     if [[ ! -z "$found_test_passed" ]]; then
         echo 0
@@ -58,6 +58,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACEID@g" "$deployment_working_file"
     sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHAREDKEY@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.LogAnalyticsLogType>@$LOG_ANALYTICS_LOGTYPE@g" "$deployment_working_file"
+    sed -i -e "s@<TestResultCoordinator.StorageAccountConnectionString>@$STORAGE_ACCOUNT_CONNECTION_STRING@g" "$deployment_working_file"
 
     sed -i -e "s@<NetworkController.OfflineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[0]}@g" "$deployment_working_file"
     sed -i -e "s@<NetworkController.OnlineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[1]}@g" "$deployment_working_file"
@@ -233,6 +234,9 @@ function process_args() {
         elif [ $saveNextArg -eq 28 ]; then
             HOST_PLATFORM="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 29 ]; then
+            STORAGE_ACCOUNT_CONNECTION_STRING="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -264,8 +268,8 @@ function process_args() {
                 '-edgeletBranchName' ) saveNextArg=26;;
                 '-testBuildNumber' ) saveNextArg=27;;
                 '-hostPlatform' ) saveNextArg=28;;
+                '-storageAccountConnectionString' ) saveNextArg=29;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
-
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -287,6 +291,7 @@ function process_args() {
     [[ -z "$METRICS_ENDPOINTS_CSV" ]] && { print_error 'Metrics endpoints csv is required'; exit 1; }
     [[ -z "$METRICS_SCRAPE_FREQUENCY_IN_SECS" ]] && { print_error 'Metrics scrape frequency is required'; exit 1; }
     [[ -z "$METRICS_UPLOAD_TARGET" ]] && { print_error 'Metrics upload target is required'; exit 1; }
+    [[ -z "$STORAGE_ACCOUNT_CONNECTION_STRING" ]] && { print_error 'Storage account connection string is required'; exit 1; }
     [[ -z "$TEST_BUILD_NUMBER" ]] && { print_error 'Test build number is required'; exit 1; }
 
     echo 'Required parameters are provided'
@@ -444,6 +449,7 @@ function usage() {
     echo ' -edgeletBranchName              Branch name that built the edgelet artifacts'
     echo ' -testBuildNumber                Unique identifier for the main connectivity test run'
     echo ' -hostPlatform                   Describes the host OS and cpu architecture.'
+    echo ' -storageAccountConnectionString Azure storage account connection string with privilege to create blob container.'
 
     echo ' -cleanAll                       Do docker prune for containers, logs and volumes.'
     exit 1;
