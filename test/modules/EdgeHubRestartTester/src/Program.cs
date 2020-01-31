@@ -73,7 +73,7 @@ namespace EdgeHubRestartTester
                     {
                         sendMessageTask =
                             new MessageEdgeHubConnector(
-                                dmModuleClient,
+                                msgModuleClient,
                                 batchId,
                                 eachTestExpirationTime,
                                 cts.Token,
