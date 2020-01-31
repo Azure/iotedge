@@ -51,10 +51,10 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             ulong senderMessages = 0;
             ulong receiverMessage = 0;
             // Value: (source, numOfMessage)
-            Dictionary<HttpStatusCode, ulong> messageCount = new Dictionary<HttpStatusCode, ulong>();
+            Dictionary<string, ulong> messageCount = new Dictionary<string, ulong>();
 
             // Value: (restartStatusCode, numOfTimesTheStatusCodeHappened)
-            Dictionary<HttpStatusCode, ulong> completedRestartPeriod = new Dictionary<HttpStatusCode, ulong>();
+            Dictionary<HttpStatusCode, ulong> restartStatusCount = new Dictionary<HttpStatusCode, ulong>();
             ulong numSuccessRestart = 0;
             // Check restart HttpStatusCode and if not HTTP.OK, increment this number.
             // The result of failed restart will not be added to completedRestartPeriod.
