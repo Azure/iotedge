@@ -84,7 +84,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 AddModuleToConfiguration(module, moduleNames, moduleImages, config);
             }
 
-            if (modulesLookup.Contains("other")) {
+            if (modulesLookup.Contains("other"))
+            {
                 Dictionary<string, IDictionary<string, object>> modulesContent =
                     config.ModulesContent.ToDictionary(entry => entry.Key, entry => entry.Value);
                 yield return new EdgeConfiguration(
