@@ -32,7 +32,6 @@ namespace MetricsValidator
         [DefaultValue(null)]
         List<TestReporter> subcategories = null;
 
-
         [JsonProperty("Succeeded", Order = -2)]
         public int NumSuccesses
         {

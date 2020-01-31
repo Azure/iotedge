@@ -75,21 +75,26 @@ namespace MetricsValidator.Tests
                 var usedMemory = metrics.Where(m => m.Name == "edgeAgent_used_memory_bytes").ToDictionary(m => m.Tags["module"], m => m.Value);
                 var totalMemory = metrics.Where(m => m.Name == "edgeAgent_total_memory_bytes").ToDictionary(m => m.Tags["module"], m => m.Value);
 
-                if(!usedMemory.ContainsKey("host") && totalMemory.ContainsKey("host"))
+                if (!usedMemory.ContainsKey("host") && totalMemory.ContainsKey("host"))
                 {
                     reporter.Assert("Host reports memory", false, $"Could not find host memory usage. Found usage for: {string.Join(", ", usedMemory.Keys)}");
                 }
 
+                double usedSum = 0;
                 foreach (var used in usedMemory)
                 {
                     double total = totalMemory[used.Key];
                     reporter.Assert($"{used.Key} used RAM < total RAM", used.Value < total, $"\n\tTotal: {total}\n\tAvaliable:{used.Value}");
 
-                    if(used.Key != "host")
+                    if (used.Key != "host")
                     {
-
+                        usedSum += used.Value;
+                        reporter.Assert($"{used.Key} used RAM < host used RAM", used.Value < usedMemory["host"], $"\n\t{used.Key}: {used.Value}\n\thost: {usedMemory["host"]}");
+                        reporter.Assert($"{used.Key} total RAM < host used RAM", total < totalMemory["host"], $"\n\t{used.Key}: {total}\n\thost: {totalMemory["host"]}");
                     }
                 }
+
+                reporter.Assert($"All module's used RAM < host used", usedSum < usedMemory["host"], $"\n\tmodules: {usedSum}\n\thost used:{usedMemory["host"]}");
             }
         }
     }
