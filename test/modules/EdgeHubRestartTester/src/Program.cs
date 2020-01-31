@@ -41,7 +41,7 @@ namespace EdgeHubRestartTester
                 if (Settings.Current.MessageEnable)
                 {
                     msgModuleClient = await ModuleUtil.CreateModuleClientAsync(
-                        Settings.Current.MessageTransportType,
+                        Settings.Current.TransportType,
                         ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                         ModuleUtil.DefaultTransientRetryStrategy,
                         Logger);
@@ -51,7 +51,7 @@ namespace EdgeHubRestartTester
                 if (Settings.Current.DirectMethodEnable)
                 {
                     dmModuleClient = await ModuleUtil.CreateModuleClientAsync(
-                        Settings.Current.MessageTransportType,
+                        Settings.Current.TransportType,
                         ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                         ModuleUtil.DefaultTransientRetryStrategy,
                         Logger);

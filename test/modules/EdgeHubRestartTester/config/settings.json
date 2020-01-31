@@ -15,16 +15,16 @@
     "value": "http://localhost:5001"
   },
   "restartPeriod": {
-    "value": "00:00:05.000"
+    "value": "00:05:00.000"
   },
   "sdkRetryTimeoutMilisec": {
     "value": "00:00:00.020"
   },
   "testDuration": {
-    "value": "00:00:22.000"
+    "value": "01:00:00.000"
   },
   "testStartDelay": {
-    "value": "00:00:02.000"
+    "value": "00:02:00.000"
   },
   "trackingId": {
     "value": ""

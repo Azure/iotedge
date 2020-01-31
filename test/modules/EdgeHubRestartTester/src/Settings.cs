@@ -26,7 +26,7 @@ namespace EdgeHubRestartTester
             string directMethodTargetModuleId,
             bool messageEnable,
             string messageOutputEndpoint,
-            TransportType messageTransportType,
+            TransportType transportType,
             string moduleId,
             string trackingId)
         {
@@ -41,7 +41,7 @@ namespace EdgeHubRestartTester
             this.DirectMethodTargetModuleId = this.DirectMethodEnable ? Preconditions.CheckNonWhiteSpace(directMethodTargetModuleId, nameof(directMethodTargetModuleId)) : directMethodTargetModuleId;
             this.MessageEnable = Preconditions.CheckNotNull(messageEnable, nameof(messageEnable));
             this.MessageOutputEndpoint = this.MessageEnable ? Preconditions.CheckNonWhiteSpace(messageOutputEndpoint, nameof(messageOutputEndpoint)) : messageOutputEndpoint;
-            this.MessageTransportType = messageTransportType;
+            this.TransportType = transportType;
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.ReportingEndpointUrl = new Uri(Preconditions.CheckNonWhiteSpace(reportingEndpointUrl, nameof(reportingEndpointUrl)));
             this.RestartPeriod = restartPeriod;
@@ -88,7 +88,7 @@ namespace EdgeHubRestartTester
                 configuration.GetValue<string>("directMethodTargetModuleId", "DirectMethodReceiver"),
                 configuration.GetValue<bool>("messageEnable", false),
                 configuration.GetValue("messageOutputEndpoint", "output1"),
-                configuration.GetValue("messageTransportType", TransportType.Amqp_Tcp_Only),
+                configuration.GetValue("transportType", TransportType.Amqp_Tcp_Only),
                 configuration.GetValue<string>("IOTEDGE_MODULEID"),
                 configuration.GetValue("trackingId", string.Empty));
         }
@@ -107,7 +107,7 @@ namespace EdgeHubRestartTester
 
         public string MessageOutputEndpoint { get; }
 
-        public TransportType MessageTransportType { get; }
+        public TransportType TransportType { get; }
 
         public string ModuleId { get; }
 
@@ -134,7 +134,7 @@ namespace EdgeHubRestartTester
                 { nameof(this.DirectMethodTargetModuleId), this.DirectMethodTargetModuleId },
                 { nameof(this.MessageEnable), this.MessageEnable.ToString() },
                 { nameof(this.MessageOutputEndpoint), this.MessageOutputEndpoint },
-                { nameof(this.MessageTransportType), this.MessageTransportType.ToString() },
+                { nameof(this.TransportType), this.TransportType.ToString() },
                 { nameof(this.ModuleId), this.ModuleId },
                 { nameof(this.ReportingEndpointUrl), this.ReportingEndpointUrl.ToString() },
                 { nameof(this.RestartPeriod), this.RestartPeriod.ToString() },
