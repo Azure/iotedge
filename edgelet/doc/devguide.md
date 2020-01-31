@@ -32,6 +32,8 @@ Note that the script must be run on an `amd64` device. The `PACKAGE_ARCH=arm32v7
 
 Once the packages are built, they will be found somewhere under the `edgelet/target/` directory. (The exact path under that directory depends on the combination of `PACKAGE_OS` and `PACKAGE_ARCH`. See `builds/misc/packages.yaml` for the exact paths.)
 
+If you want to run another build for a different combination of `PACKAGE_OS` and `PACKAGE_ARCH`, make sure to clean the repository first with `sudo git clean -xffd` so that artifacts from the previous build don't get reused for the next one.
+
 
 ### Windows
 
