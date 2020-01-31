@@ -42,7 +42,7 @@ namespace DeploymentTester
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Unexpected exception found.");
-                await ModuleUtil.ReportTestResultAsync(testResultReportingClient, Logger, new ErrorTestResult(Settings.Current.TrackingId, ex));
+                await ModuleUtil.ReportTestResultAsync(testResultReportingClient, Logger, new ErrorTestResult(Settings.Current.TrackingId, Settings.Current.ModuleId, ex));
             }
 
             await cts.Token.WhenCanceled();
