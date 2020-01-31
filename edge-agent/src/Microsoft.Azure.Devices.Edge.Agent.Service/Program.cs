@@ -22,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
@@ -155,14 +156,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         IotHubConnectionStringBuilder connectionStringParser = IotHubConnectionStringBuilder.Create(deviceConnectionString);
                         deviceId = connectionStringParser.DeviceId;
                         iothubHostname = connectionStringParser.HostName;
-                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, enableNonPersistentStorageBackup, storageBackupPath, storageTotalMaxWalSize, storageMaxOpenFiles, storageLogLevel));
-                        builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat, backupConfigFilePath));
+                        builder.RegisterInstance(new NullMetricsProvider() as IMetricsProvider);
+                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, enableNonPersistentStorageBackup, storageBackupPath));
+                        builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, backupConfigFilePath));
                         break;
 
                     case Constants.IotedgedMode:
                         string managementUri = configuration.GetValue<string>(Constants.EdgeletManagementUriVariableName);
                         string workloadUri = configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName);
                         iothubHostname = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
+                        builder.RegisterInstance(new NullMetricsProvider() as IMetricsProvider);
                         deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
                         string moduleId = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
                         string moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
@@ -183,6 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
                         apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
                         iothubHostname = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
+                        builder.RegisterInstance(new NullMetricsProvider() as IMetricsProvider);
                         deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
                         string proxyImage = configuration.GetValue<string>(K8sConstants.ProxyImageEnvKey);
                         Option<string> proxyImagePullSecretName = Option.Maybe(configuration.GetValue<string>(K8sConstants.ProxyImagePullSecretNameEnvKey));
