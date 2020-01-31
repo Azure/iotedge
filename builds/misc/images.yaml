@@ -480,15 +480,15 @@ jobs:
           imageName: azureiotedge-deployment-tester
           project: DeploymentTester
 
-      - powershell: docker system prune -a -f
-        displayName: Clean Machine
-
      # Cloud To Device Message Tester
       - template: templates/image-windows.yaml
         parameters:
           name: Cloud To Device Message Tester
           imageName: azureiotedge-cloud-to-device-message-tester
           project: CloudToDeviceMessageTester
+
+      - powershell: docker system prune -a -f
+        displayName: Clean Machine
 
 ################################################################################
   - job: manifest
