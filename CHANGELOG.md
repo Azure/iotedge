@@ -1,11 +1,12 @@
 # 1.0.8.5 (2020-01-23)
+
 ## Edge Hub
 ### Bug Fixes
-Hotfix [windows security issue](https://support.microsoft.com/en-us/help/4528760/windows-10-update-kb4528760) by updating base nanoserver images ([5a88e89e55f589c42c1b391794a1555d853dcef0](https://github.com/Azure/iotedge/commit/5a88e89e55f589c42c1b391794a1555d853dcef0))
+Hotfix [windows security vulnerability](https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2020-0601) by updating base nanoserver images ([5a88e89](https://github.com/Azure/iotedge/commit/5a88e89e55f589c42c1b391794a1555d853dcef0))
 
 ## Edge Agent
 ### Bug Fixes
-Hotfix [windows security issue](https://support.microsoft.com/en-us/help/4528760/windows-10-update-kb4528760) by updating base nanoserver images ([5a88e89e55f589c42c1b391794a1555d853dcef0](https://github.com/Azure/iotedge/commit/5a88e89e55f589c42c1b391794a1555d853dcef0))
+Hotfix [windows security vulnerability](https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2020-0601) by updating base nanoserver images ([5a88e89](https://github.com/Azure/iotedge/commit/5a88e89e55f589c42c1b391794a1555d853dcef0))
 
 # 1.0.8.4 (2019-11-19)
 ## Edge Hub
