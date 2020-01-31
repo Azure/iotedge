@@ -8,7 +8,8 @@ Param (
 
     [ValidateSet("<",
                  ">",
-                 "==")]
+                 "==",
+                 "!=" )]
     [string] $QueryComparison = $null,
 
     [ValidateSet("GreaterThan",
