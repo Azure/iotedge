@@ -73,8 +73,9 @@ namespace CloudToDeviceMessageTester
             {
                 registryManager = Microsoft.Azure.Devices.RegistryManager.CreateFromConnectionString(this.iotHubConnectionString);
                 Microsoft.Azure.Devices.Device device = await registryManager.AddDeviceAsync(new Microsoft.Azure.Devices.Device(this.deviceId), ct);
-                string deviceConnectionString = $"HostName={this.iotHubConnectionString};DeviceId={this.deviceId};SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.gatewayHostName}";
-                this.deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, this.transportType);
+                var csb = IotHubConnectionStringBuilder.Create($"{this.iotHubConnectionString};DeviceId={this.deviceId}");
+                string deviceConnectionString = $"HostName={csb.HostName};DeviceId={this.deviceId};SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.gatewayHostName}";
+                this.deviceClient = DeviceClient.CreateFromConnectionString(csb.ToString(), this.transportType);
                 await this.deviceClient.OpenAsync();
 
                 while (!ct.IsCancellationRequested)
