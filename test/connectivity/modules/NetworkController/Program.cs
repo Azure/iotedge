@@ -98,7 +98,7 @@ namespace NetworkController
         {
             await reporter.ReportNetworkStatusAsync(NetworkControllerOperation.SettingRule, networkControllerStatus, controller.NetworkControllerType);
             bool success = await controller.SetNetworkControllerStatusAsync(networkControllerStatus, cs);
-            success = await CheckSetNetworkControllerStatusAsyncResult(success, NetworkControllerStatus.Disabled, controller, cs);
+            success = await CheckSetNetworkControllerStatusAsyncResult(success, networkControllerStatus, controller, cs);
             await reporter.ReportNetworkStatusAsync(NetworkControllerOperation.RuleSet, networkControllerStatus, controller.NetworkControllerType, success);
         }
 
