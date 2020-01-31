@@ -60,6 +60,11 @@ namespace EdgeHubRestartTester
             {
                 throw new InvalidDataException("sdkRetryTimeout period must be less than restartInterval period {sdkRetryTimeoutMilisec < restartPeriod}.");
             }
+
+            if (this.RestartPeriod.Ticks < TimeSpan.FromMinutes(1).Ticks)
+            {
+                throw new InvalidDataException("RestartPeriod period must be at least one minute");
+            }
         }
 
         static Settings Create()

@@ -101,7 +101,7 @@
                 "value": "http://localhost:5001"
               },
               "restartPeriod": {
-                "value": "00:00:05.000"
+                "value": "00:05:00.000"
               },
               "sdkRetryTimeoutMilisec": {
                 "value": "00:00:00.020"
