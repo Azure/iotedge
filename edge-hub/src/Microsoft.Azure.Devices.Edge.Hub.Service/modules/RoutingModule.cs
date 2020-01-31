@@ -512,7 +512,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     {
                         IMessageStore messageStore = this.isStoreAndForwardEnabled ? await c.Resolve<Task<IMessageStore>>() : null;
                         var storageSpaceChecker = c.Resolve<IStorageSpaceChecker>();
+                        var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
+                        RouteFactory routeFactory = await c.Resolve<Task<RouteFactory>>();
                         Router router = await c.Resolve<Task<Router>>();
+                        var twinManagerTask = c.Resolve<Task<ITwinManager>>();
+                        var twinMessageConverter = c.Resolve<Core.IMessageConverter<Twin>>();
+                        var twinManager = await twinManagerTask;
                         var configUpdater = new ConfigUpdater(router, messageStore, this.configUpdateFrequency, storageSpaceChecker);
                         return configUpdater;
                     })
@@ -520,7 +525,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // Task<IConfigSource>
-            builder.Register(
+            builder.Register<Task<IConfigSource>>(
                     async c =>
                     {
                         RouteFactory routeFactory = await c.Resolve<Task<RouteFactory>>();
@@ -535,17 +540,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             IEdgeHub edgeHub = await edgeHubTask;
                             IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
                             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
-                            IConfigSource edgeHubConnection = await EdgeHubConnection.Create(
+
+                            var edgeHubConnection = await EdgeHubConnection.Create(
                                 edgeHubCredentials.Identity,
                                 edgeHub,
                                 twinManager,
                                 connectionManager,
                                 routeFactory,
                                 twinCollectionMessageConverter,
-                                twinMessageConverter,
                                 this.versionInfo,
                                 deviceScopeIdentitiesCache);
-                            return edgeHubConnection;
+
+                            return new TwinConfigSource(edgeHubConnection, edgeHubCredentials.Identity.Id, this.versionInfo, twinManager, twinMessageConverter, twinCollectionMessageConverter, routeFactory);
                         }
                         else
                         {
