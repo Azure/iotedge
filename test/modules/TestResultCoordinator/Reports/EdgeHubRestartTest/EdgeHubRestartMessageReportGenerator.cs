@@ -48,10 +48,12 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
             bool isPassed = true;
             
-            ulong senderMessages = 0;
-            ulong receiverMessage = 0;
             // Value: (source, numOfMessage)
-            Dictionary<string, ulong> messageCount = new Dictionary<string, ulong>();
+            Dictionary<string, ulong> messageCount = new Dictionary<string, ulong>()
+            {
+                {nameof(this.SenderTestResults), 0ul},
+                {nameof(this.ReceiverTestResults), 0ul}
+            };
 
             // Value: (restartStatusCode, numOfTimesTheStatusCodeHappened)
             Dictionary<HttpStatusCode, ulong> restartStatusCount = new Dictionary<HttpStatusCode, ulong>();
@@ -69,9 +71,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             //    - Report messagePreRestart > 1 failure the test citing test code malfunction.
             Dictionary<HttpStatusCode, List<TimeSpan>> completedRestartPeriod = new Dictionary<HttpStatusCode, List<TimeSpan>>();
 
-
-
-
             bool hasExpectedResult = await this.SenderTestResults.MoveNextAsync();
             bool hasActualResult = await this.ReceiverTestResults.MoveNextAsync();
 
@@ -87,6 +86,10 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                     this.Metadata.ReceiverSource,
                     TestOperationResultType.Messages.ToString());
 
+                // Both sender & receiver have their messages
+                messageCount[nameof(this.SenderTestResults)]++;
+                messageCount[nameof(this.ReceiverTestResults)]++;
+
                 //this.SenderTestResults.Current.Result ---Deserialize()--> EdgeHubRestartMessageResult/EdgeHubRestartDirectMethodResult
                 EdgeHubRestartMessageResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(this.SenderTestResults.Current.Result);
 
@@ -94,7 +97,12 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 isPassed &= (senderResult.GetMessageTestResult() != this.ReceiverTestResults.Current.Result);
 
                 // Check if EH restart status is Http 200
-                isPassed &= (senderResult.EdgeHubRestartStatusCode == HttpStatusCode.OK);
+                //isPassed &= (senderResult.EdgeHubRestartStatusCode == HttpStatusCode.OK);
+                HttpStatusCode restartStatus = senderResult.EdgeHubRestartStatusCode;
+                if (!restartStatusCount.TryAdd(restartStatus, 1))
+                {
+                    restartStatusCount[restartStatus]++;
+                }
 
                 // Check if message status is HTTP200
                 isPassed &= (senderResult.MessageCompletedStatusCode == HttpStatusCode.OK);
