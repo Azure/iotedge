@@ -41,13 +41,17 @@ namespace MetricsValidator.Tests
 
             foreach (var hostCpuQuartile in hostCpu)
             {
-                this.testReporter.Assert($"{hostCpuQuartile.Key} host CPU < 100%", hostCpuQuartile.Value < 100);
+                this.testReporter.Assert($"{hostCpuQuartile.Key} host CPU <= 100% and >= 0%", hostCpuQuartile.Value <= 100 && hostCpuQuartile.Value >= 0);
 
                 var moduleQuartile = moduleCpu.Where(m => m.Tags["quantile"] == hostCpuQuartile.Key);
+                double totalModuleCpu = 0;
                 foreach (var module in moduleQuartile)
                 {
                     this.testReporter.Assert($"{hostCpuQuartile.Key} {module.Tags["module"]} CPU <= {hostCpuQuartile.Key} host CPU", module.Value <= hostCpuQuartile.Value);
+                    totalModuleCpu += module.Value;
                 }
+
+                this.testReporter.Assert($"Sum of {hostCpuQuartile.Key} modules' cpu < host", totalModuleCpu < hostCpuQuartile.Value, $"Module cpu values were: {string.Join(", ", moduleQuartile.Select(m => $"{m.Tags["module"]}:{m.Value}"))}");
             }
         }
     }
