@@ -57,10 +57,28 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             return new LoggerFactory().AddSerilog().CreateLogger(categoryName);
         }
 
-        public static async Task ReportTestResultAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult, CancellationToken cancellationToken = default(CancellationToken))
-        {            
+        public static async Task ReportTestResultAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult)
+        {
             logger.LogInformation($"Sending test result: Source={testResult.Source}, Type={testResult.ResultType}, CreatedAt={testResult.CreatedAt}, Result={testResult.GetFormattedResult()}");
-            await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto(), cancellationToken);
+            await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto());
+        }
+
+        public static async Task ReportTestResultUntilSuccessAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult, CancellationToken cancellationToken)
+        {
+            bool isSuccessful = false;
+            while(!isSuccessful && !cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    logger.LogInformation($"Sending test result: Source={testResult.Source}, Type={testResult.ResultType}, CreatedAt={testResult.CreatedAt}, Result={testResult.GetFormattedResult()}");
+                    await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto(), cancellationToken);
+                    isSuccessful = true;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogDebug(ex, "Exception caught in ReportTestResultAsync()");
+                }
+            }
         }
 
         static async Task<ModuleClient> InitializeModuleClientAsync(TransportType transportType, ILogger logger)

@@ -5,6 +5,7 @@ namespace EdgeHubRestartTester
     using System.Collections.Generic;
     using System.Net;
     using System.Net.Http;
+    using System.Net.Sockets;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -104,7 +105,7 @@ namespace EdgeHubRestartTester
                                         restartCount,
                                         Interlocked.Read(ref messageCount));
                                     var reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
-                                    await ModuleUtil.ReportTestResultAsync(
+                                    await ModuleUtil.ReportTestResultUntilSuccessAsync(
                                         reportClient,
                                         Logger,
                                         msgTestResult,
@@ -146,7 +147,7 @@ namespace EdgeHubRestartTester
                                         restartCount,
                                         Interlocked.Read(ref directMethodCount));
                                     var reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
-                                    await ModuleUtil.ReportTestResultAsync(
+                                    await ModuleUtil.ReportTestResultUntilSuccessAsync(
                                         reportClient,
                                         Logger,
                                         dmTestResult,
@@ -260,13 +261,38 @@ namespace EdgeHubRestartTester
                     Logger.LogInformation($"[SendDirectMethodAsync] Invoke DirectMethod with count {Interlocked.Read(ref directMethodCount).ToString()}");
                     return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)result.Status);
                 }
-                catch (TimeoutException e)
+                catch (IotHubCommunicationException e)
                 {
-                    Logger.LogError(e, $"[SendDirectMethodAsync] Exception caught with SequenceNumber {Interlocked.Read(ref directMethodCount).ToString()}");
+                    // Only handle the exception that relevant to our test case; otherwise, re-throw it.
+                    if (IsEdgeHubDownDuringDirectMethodSend(e))
+                    {
+                        // swallow exeception and retry until success
+                        Logger.LogDebug(e, $"[SendDirectMethodAsync] Exception caught with SequenceNumber {Interlocked.Read(ref directMethodCount).ToString()}");
+                    }
+                    else
+                    {
+                        // something is wrong, Log and re-throw
+                        Logger.LogError(e, $"[SendDirectMethodAsync] Exception caught with SequenceNumber {Interlocked.Read(ref directMethodCount).ToString()}");
+                        throw;
+                    }
                 }
             }
 
             return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.InternalServerError);
+        }
+
+        static bool IsEdgeHubDownDuringDirectMethodSend(IotHubCommunicationException e)
+        {
+            // This is a socket exception error code when EdgeHub is down.
+            const int EdgeHubNotAvailableErrorCode = 111;
+
+            if (e?.InnerException?.InnerException is SocketException)
+            {
+                int errorCode = ((SocketException)e.InnerException.InnerException).ErrorCode;
+                return errorCode == EdgeHubNotAvailableErrorCode;
+            }
+
+            return false;
         }
 
         static async Task<Tuple<DateTime, HttpStatusCode>> SendMessageAsync(

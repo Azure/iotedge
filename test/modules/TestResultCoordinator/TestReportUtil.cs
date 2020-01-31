@@ -90,9 +90,10 @@ namespace TestResultCoordinator
                             reportMetadataList.Add(JsonConvert.DeserializeObject<NetworkControllerReportMetadata>(((JProperty)metadata).Value.ToString()));
                             break;
                         case TestReportType.EdgeHubRestartDirectMethodResult:
+                            reportMetadataList.Add(JsonConvert.DeserializeObject<DirectMethodReportMetadata>(((JProperty)metadata).Value.ToString()));
+                            break;
                         case TestReportType.EdgeHubRestartMessageResult:
-                            // TODO: To be implemented
-                            logger.LogInformation($"{testReportType} received");
+                            reportMetadataList.Add(JsonConvert.DeserializeObject<CountingReportMetadata>(((JProperty)metadata).Value.ToString()));
                             break;
                         default:
                             throw new NotImplementedException("{testReportType} doesn't implement to construct report metadata from Twin.");
