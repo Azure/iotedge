@@ -6,5 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit
 
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
     public class EndToEndAttribute : CategoryAttribute
-    { }
+    {
+    }
 }
