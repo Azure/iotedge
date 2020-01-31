@@ -5,6 +5,7 @@ namespace EdgeHubRestartTester
     using System.Net;
     using System.Net.Sockets;
     using System.Text;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -124,6 +125,24 @@ namespace EdgeHubRestartTester
                         throw;
                     }
                 }
+                catch (DeviceNotFoundException e)
+                {
+                    logger.LogError("BEARWASHERE ----------------------- AggregateException");
+                    logger.LogError($"BEARWASHERE -------------------------------- IsType: {(e is DeviceNotFoundException).ToString()}");
+                    var isReg = Regex.IsMatch(e.Message, $"\\b{Settings.Current.DirectMethodTargetModuleId}\\b");
+                    logger.LogError($"BEARWASHERE -------------------------------- Regex : {isReg.ToString()}");
+                    if (this.IsDirectMethodReceiverNotConnected(e))
+                    {
+                        // swallow exeception and retry until success
+                        logger.LogDebug(e, $"[DirectMethodEdgeHubConnector] Exception caught with SequenceNumber {Interlocked.Read(ref this.directMethodCount).ToString()}");
+                    }
+                    else
+                    {
+                        // something is wrong, Log and re-throw
+                        logger.LogError(e, $"[DirectMethodEdgeHubConnector] Exception caught with SequenceNumber {Interlocked.Read(ref this.directMethodCount).ToString()}");
+                        throw;
+                    }
+                }
             }
 
             return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.InternalServerError);
@@ -141,6 +160,12 @@ namespace EdgeHubRestartTester
             }
 
             return false;
+        }
+
+        bool IsDirectMethodReceiverNotConnected(DeviceNotFoundException e)
+        {
+            string errorMsg = e.Message;
+            return Regex.IsMatch(errorMsg, $"\\b{Settings.Current.DirectMethodTargetModuleId}\\b");
         }
     }
 }
