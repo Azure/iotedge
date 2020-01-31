@@ -50,7 +50,7 @@ namespace MetricsValidator
                             List<TestBase> tests = new List<TestBase>
                             {
                                 new ValidateNumberOfMessagesSent(testReporter, scraper, moduleClient),
-                                // new ValidateDocumentedMetrics(testReporter, scraper, moduleClient),
+                                new ValidateDocumentedMetrics(testReporter, scraper, moduleClient),
                             };
 
                             await Task.WhenAll(tests.Select(test => test.Start(cts.Token)));

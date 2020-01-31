@@ -671,7 +671,7 @@ impl ModuleRuntime for DockerModuleRuntime {
             let used_cpu = system_info
                 .get_processor_list()
                 .iter()
-                .find(|p| p.get_name() == "Total CPU")
+                .find(|p| p.get_name() == "cpu")
                 .map_or_else(|| -1.0, |p| p.get_cpu_usage());
 
             let total_memory = system_info.get_total_memory() * 1000;
