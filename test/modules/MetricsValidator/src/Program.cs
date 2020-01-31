@@ -49,7 +49,7 @@ namespace MetricsValidator
                             TestReporter testReporter = new TestReporter("Metrics Validation");
                             List<TestBase> tests = new List<TestBase>
                             {
-                                new ValidateNumberOfMessagesSent(testReporter, scraper, moduleClient),
+                                new ValidateMessages(testReporter, scraper, moduleClient),
                                 new ValidateDocumentedMetrics(testReporter, scraper, moduleClient),
                             };
 
