@@ -14,23 +14,8 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
             string trackingId,
             Guid batchId,
             string sequenceNumber,
-            HttpStatusCode result)
-            : base(source, TestOperationResultType.DirectMethod, createdAt)
-        {
-            this.TrackingId = trackingId ?? string.Empty;
-            this.BatchId = Preconditions.CheckNotNull(batchId, nameof(batchId)).ToString();
-            this.SequenceNumber = Preconditions.CheckNonWhiteSpace(sequenceNumber, nameof(sequenceNumber));
-            this.HttpStatusCode = result;
-        }
-
-        public DirectMethodTestResult(
-            string source,
-            DateTime createdAt,
-            TestOperationResultType testOperationResultType,
-            string trackingId,
-            Guid batchId,
-            string sequenceNumber,
-            HttpStatusCode result)
+            HttpStatusCode result,
+            TestOperationResultType testOperationResultType = TestOperationResultType.DirectMethod)
             : base(source, testOperationResultType, createdAt)
         {
             this.TrackingId = trackingId ?? string.Empty;

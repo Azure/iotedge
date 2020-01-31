@@ -22,11 +22,11 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
             : base(
                 source,
                 createdAt,
-                TestOperationResultType.EdgeHubRestartDirectMethod,
                 trackingId,
                 batchId,
                 sequenceNumber,
-                directMethodCompletedStatusCode)
+                directMethodCompletedStatusCode,
+                TestOperationResultType.EdgeHubRestartDirectMethod)
         {
             this.EdgeHubRestartedTime = Preconditions.CheckNotNull(edgeHubRestartedTime, nameof(edgeHubRestartedTime));
             this.EdgeHubRestartStatusCode = Preconditions.CheckNotNull(edgeHubRestartStatusCode, nameof(edgeHubRestartStatusCode));
