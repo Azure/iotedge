@@ -29,6 +29,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             return twin;
         }
 
+        public Task<Option<IMessage>> GetCachedTwinAsync(string id)
+        {
+            return Task.FromResult(Option.None<IMessage>());
+        }
+
         public Task UpdateDesiredPropertiesAsync(string id, IMessage twinCollection)
         {
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
