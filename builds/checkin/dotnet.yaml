@@ -14,7 +14,7 @@ jobs:
   - job: check_run_pipeline
 ################################################################################
     displayName: Check pipeline preconditions (changes are NOT in edgelet and docs)
-    steps: 
+    pool: 
       vmImage: 'ubuntu-16.04'
     steps:
     - bash: |
