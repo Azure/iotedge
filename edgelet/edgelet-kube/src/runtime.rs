@@ -2,12 +2,10 @@
 
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::convert::TryFrom;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use failure::Fail;
-use futures::future::Either;
 use futures::prelude::*;
 use futures::{future, stream, Async, Future, Stream};
 use hyper::client::HttpConnector;
@@ -18,16 +16,16 @@ use hyper_tls::HttpsConnector;
 use edgelet_core::{
     AuthId, Authenticator, GetTrustBundle, LogOptions, MakeModuleRuntime, ModuleRegistry,
     ModuleRuntime, ModuleRuntimeState, ModuleSpec, ProvisioningResult as CoreProvisioningResult,
-    RuntimeOperation, SystemInfo,
+    RuntimeOperation, SystemInfo, SystemResources,
 };
 use edgelet_docker::DockerConfig;
 use kube_client::{get_config, Client as KubeClient, HttpClient, TokenSource, ValueToken};
 use provisioning::ProvisioningResult;
 
-use crate::convert::{pod_to_module, NamedSecret};
+use crate::convert::pod_to_module;
 use crate::error::{Error, ErrorKind};
 use crate::module::{authenticate, create_module, init_trust_bundle, KubeModule};
-use crate::registry::ImagePullSecret;
+use crate::registry::create_image_pull_secrets;
 use crate::settings::Settings;
 
 pub struct KubeModuleRuntime<T, S> {
@@ -64,7 +62,7 @@ impl<T, S> KubeModuleRuntime<T, S> {
 impl<T, S> Clone for KubeModuleRuntime<T, S> {
     fn clone(&self) -> Self {
         KubeModuleRuntime {
-            client: self.client().clone(),
+            client: self.client(),
             settings: self.settings().clone(),
         }
     }
@@ -86,72 +84,7 @@ where
     type Config = DockerConfig;
 
     fn pull(&self, config: &Self::Config) -> Self::PullFuture {
-        let image_pull_secret = config
-            .auth()
-            .and_then(|auth| ImagePullSecret::from_auth(auth));
-
-        // Find and generate image pull secrets.
-        if let Some(image_pull_secret) = image_pull_secret {
-            // Have authorization for this module spec, create this if it doesn't exist.
-            let fut = NamedSecret::try_from((self.settings().namespace(), image_pull_secret))
-                .map(|pull_secret| {
-                    let client_copy = self.client.clone();
-                    let namespace_copy = self.settings().namespace().to_owned();
-
-                    self.client
-                        .lock()
-                        .expect("Unexpected lock error")
-                        .borrow_mut()
-                        .list_secrets(self.settings().namespace(), Some(pull_secret.name()))
-                        .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
-                        .and_then(move |secrets| {
-                            if let Some(current_secret) = secrets.items.into_iter().find(|secret| {
-                                secret.metadata.as_ref().map_or(false, |meta| {
-                                    meta.name
-                                        .as_ref()
-                                        .map_or(false, |n| n == pull_secret.name())
-                                })
-                            }) {
-                                if current_secret == *pull_secret.secret() {
-                                    Either::A(Either::A(future::ok(())))
-                                } else {
-                                    let f = client_copy
-                                        .lock()
-                                        .expect("Unexpected lock error")
-                                        .borrow_mut()
-                                        .replace_secret(
-                                            namespace_copy.as_str(),
-                                            pull_secret.name(),
-                                            pull_secret.secret(),
-                                        )
-                                        .map_err(|err| {
-                                            Error::from(err.context(ErrorKind::KubeClient))
-                                        })
-                                        .map(|_| ());
-
-                                    Either::A(Either::B(f))
-                                }
-                            } else {
-                                let f = client_copy
-                                    .lock()
-                                    .expect("Unexpected lock error")
-                                    .borrow_mut()
-                                    .create_secret(namespace_copy.as_str(), pull_secret.secret())
-                                    .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
-                                    .map(|_| ());
-
-                                Either::B(f)
-                            }
-                        })
-                })
-                .into_future()
-                .flatten()
-                .map_err(|err| Error::from(err.context(ErrorKind::RegistryOperation)));
-
-            Box::new(fut)
-        } else {
-            Box::new(future::ok(()))
-        }
+        Box::new(create_image_pull_secrets(self, &config))
     }
 
     fn remove(&self, _: &str) -> Self::RemoveFuture {
@@ -172,16 +105,25 @@ impl MakeModuleRuntime
     fn make_runtime(
         settings: Self::Settings,
         provisioning_result: Self::ProvisioningResult,
-        crypto: impl GetTrustBundle + 'static,
+        crypto: impl GetTrustBundle + Send + 'static,
     ) -> Self::Future {
         let settings = settings
             .with_device_id(provisioning_result.device_id())
             .with_iot_hub_hostname(provisioning_result.hub_name());
 
         let fut = get_config()
-            .map(|config| KubeModuleRuntime::new(KubeClient::new(config), settings))
+            .map(|config| (config.clone(), KubeClient::new(config)))
             .map_err(|err| Error::from(err.context(ErrorKind::Initialization)))
-            .map(|runtime| init_trust_bundle(&runtime, &crypto).map(|_| runtime))
+            .map(|(config, mut client)| {
+                client
+                    .is_subject_allowed("nodes".to_string(), "list".to_string())
+                    .map(|subject_review_status| {
+                        settings.with_nodes_rbac(subject_review_status.allowed)
+                    })
+                    .map_err(|err| Error::from(err.context(ErrorKind::Initialization)))
+                    .map(|settings| KubeModuleRuntime::new(KubeClient::new(config), settings))
+                    .and_then(move |runtime| init_trust_bundle(&runtime, crypto).map(|_| runtime))
+            })
             .into_future()
             .flatten();
 
@@ -218,10 +160,12 @@ where
     type StartFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type StopFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type SystemInfoFuture = Box<dyn Future<Item = SystemInfo, Error = Self::Error> + Send>;
+    type SystemResourcesFuture =
+        Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
-        Box::new(create_module(self, &module))
+        Box::new(create_module(self, module))
     }
 
     fn get(&self, _id: &str) -> Self::GetFuture {
@@ -250,47 +194,69 @@ where
             name: String,
             nodes_count: u32,
         };
-
-        let fut = self
-            .client
-            .lock()
-            .expect("Unexpected lock error")
-            .borrow_mut()
-            .list_nodes()
-            .map_err(|err| {
-                Error::from(err.context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo)))
-            })
-            .map(|nodes| {
-                // Accumulate the architectures and their node counts into a map
-                let architectures = nodes
-                    .items
-                    .into_iter()
-                    .filter_map(|node| {
-                        node.status
-                            .and_then(|status| status.node_info.map(|info| info.architecture))
+        let fut = if self.settings.has_nodes_rbac() {
+            future::Either::A(
+                self.client
+                    .lock()
+                    .expect("Unexpected lock error")
+                    .borrow_mut()
+                    .list_nodes()
+                    .map_err(|err| {
+                        Error::from(
+                            err.context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo)),
+                        )
                     })
-                    .fold(HashMap::new(), |mut architectures, current_arch| {
-                        let count = architectures.entry(current_arch).or_insert(0);
-                        *count += 1;
-                        architectures
-                    });
+                    .map(|nodes| {
+                        // Accumulate the architectures and their node counts into a map
+                        let architectures = nodes
+                            .items
+                            .into_iter()
+                            .filter_map(|node| {
+                                node.status.and_then(|status| {
+                                    status.node_info.map(|info| info.architecture)
+                                })
+                            })
+                            .fold(HashMap::new(), |mut architectures, current_arch| {
+                                let count = architectures.entry(current_arch).or_insert(0);
+                                *count += 1;
+                                architectures
+                            });
 
-                // Convert a map to a list of architectures
-                let architectures = architectures
-                    .into_iter()
-                    .map(|(name, count)| Architecture {
-                        name,
-                        nodes_count: count,
-                    })
-                    .collect::<Vec<Architecture>>();
+                        // Convert a map to a list of architectures
+                        let architectures = architectures
+                            .into_iter()
+                            .map(|(name, count)| Architecture {
+                                name,
+                                nodes_count: count,
+                            })
+                            .collect::<Vec<Architecture>>();
 
-                SystemInfo::new(
-                    "Kubernetes".to_string(),
-                    serde_json::to_string(&architectures).unwrap(),
-                )
-            });
-
+                        SystemInfo::new(
+                            "Kubernetes".to_string(),
+                            serde_json::to_string(&architectures).unwrap(),
+                        )
+                    }),
+            )
+        } else {
+            future::Either::B(future::ok(SystemInfo::new(
+                "Kubernetes".to_string(),
+                "Kubernetes".to_string(),
+            )))
+        };
         Box::new(fut)
+    }
+
+    fn system_resources(&self) -> Self::SystemResourcesFuture {
+        // TODO: add support for system resources on k8s
+        Box::new(future::ok(SystemResources::new(
+            0,
+            0,
+            0.0,
+            0,
+            0,
+            vec![],
+            "".to_owned(),
+        )))
     }
 
     fn list(&self) -> Self::ListFuture {
@@ -429,6 +395,51 @@ mod tests {
     fn runtime_get_system_info() {
         let settings = make_settings(None);
 
+        let dispatch_table = routes!(
+            GET "/api/v1/nodes" => list_node_handler(),
+        );
+
+        let handler = make_req_dispatcher(dispatch_table, Box::new(not_found_handler));
+        let service = service_fn(handler);
+        let runtime = create_runtime(settings, service);
+
+        let task = runtime.system_info();
+
+        let mut runtime = Runtime::new().unwrap();
+        let info = runtime.block_on(task).unwrap();
+
+        assert_eq!(
+            info.architecture(),
+            "[{\"name\":\"amd64\",\"nodes_count\":2}]"
+        );
+    }
+
+    #[test]
+    fn runtime_get_system_info_no_rbac() {
+        let more_settings = json!({"has_nodes_rbac" : "false"});
+        let settings = make_settings(Option::Some(more_settings));
+        assert_eq!(settings.has_nodes_rbac(), false);
+        let dispatch_table = routes!(
+            GET "/api/v1/nodes" => list_node_handler(),
+        );
+
+        let handler = make_req_dispatcher(dispatch_table, Box::new(not_found_handler));
+        let service = service_fn(handler);
+        let runtime = create_runtime(settings, service);
+
+        let task = runtime.system_info();
+
+        let mut runtime = Runtime::new().unwrap();
+        let info = runtime.block_on(task).unwrap();
+
+        assert_eq!(info.architecture(), "Kubernetes");
+    }
+
+    #[test]
+    fn runtime_get_system_info_rbac_set() {
+        let more_settings = json!({"has_nodes_rbac" : "true"});
+        let settings = make_settings(Option::Some(more_settings));
+        assert_eq!(settings.has_nodes_rbac(), true);
         let dispatch_table = routes!(
             GET "/api/v1/nodes" => list_node_handler(),
         );

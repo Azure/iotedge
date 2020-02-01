@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_10_22
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_10_22.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -19,6 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_10_22
     using Identity = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.Identity;
     using ModuleSpec = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.ModuleSpec;
     using SystemInfo = Microsoft.Azure.Devices.Edge.Agent.Core.SystemInfo;
+    using SystemResources = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.SystemResources;
 
     class ModuleManagementHttpClient : ModuleManagementHttpClientVersioned
     {
@@ -117,13 +119,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_10_22
             }
         }
 
-        public override async Task<SystemInfo> GetSystemInfoAsync()
+        public override async Task<SystemInfo> GetSystemInfoAsync(CancellationToken cancellationToken)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
                 GeneratedCode.SystemInfo systemInfo = await this.Execute(
-                    () => edgeletHttpClient.GetSystemInfoAsync(this.Version.Name),
+                    () => edgeletHttpClient.GetSystemInfoAsync(this.Version.Name, cancellationToken),
                     "Getting System Info");
                 return new SystemInfo(systemInfo.OsType, systemInfo.Architecture, systemInfo.Version);
             }
@@ -193,6 +195,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_10_22
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
                 await this.Execute(() => edgeletHttpClient.ReprovisionDeviceAsync(this.Version.Name), "reprovision the device");
             }
+        }
+
+        public override Task<SystemResources> GetSystemResourcesAsync()
+        {
+            return Task.FromResult<SystemResources>(null);
         }
 
         protected override void HandleException(Exception exception, string operation)

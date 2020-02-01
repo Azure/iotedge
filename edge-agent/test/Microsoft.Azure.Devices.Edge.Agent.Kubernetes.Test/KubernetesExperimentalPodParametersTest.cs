@@ -67,6 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.False(parameters.Volumes.HasValue);
             Assert.False(parameters.NodeSelector.HasValue);
             Assert.False(parameters.Resources.HasValue);
+            Assert.False(parameters.SecurityContext.HasValue);
         }
 
         [Fact]
@@ -255,6 +256,59 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             volumeSpec.VolumeMounts.ForEach(mounts => Assert.Equal("None", mounts[0].MountPropagation));
             volumeSpec.VolumeMounts.ForEach(mounts => Assert.Equal(true, mounts[0].ReadOnlyProperty));
             volumeSpec.VolumeMounts.ForEach(mounts => Assert.Equal(string.Empty, mounts[0].SubPath));
+        }
+
+        [Fact]
+        public void ParsesNoneSecurityContextExperimentalOptions()
+        {
+            var experimental = new Dictionary<string, JToken>
+            {
+                ["k8s-experimental"] = JToken.Parse("{ securityContext: null }")
+            };
+
+            var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
+
+            Assert.False(parameters.SecurityContext.HasValue);
+        }
+
+        [Fact]
+        public void ParsesEmptySecurityContextExperimentalOptions()
+        {
+            var experimental = new Dictionary<string, JToken>
+            {
+                ["k8s-experimental"] = JToken.Parse("{ securityContext: {  } }")
+            };
+
+            var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
+
+            Assert.True(parameters.SecurityContext.HasValue);
+            parameters.SecurityContext.ForEach(securityContext => Assert.Null(securityContext.RunAsGroup));
+            parameters.SecurityContext.ForEach(securityContext => Assert.Null(securityContext.RunAsUser));
+            parameters.SecurityContext.ForEach(securityContext => Assert.Null(securityContext.RunAsNonRoot));
+            parameters.SecurityContext.ForEach(securityContext => Assert.Null(securityContext.Sysctls));
+            parameters.SecurityContext.ForEach(securityContext => Assert.Null(securityContext.FsGroup));
+            parameters.SecurityContext.ForEach(securityContext => Assert.Null(securityContext.SeLinuxOptions));
+            parameters.SecurityContext.ForEach(securityContext => Assert.Null(securityContext.SupplementalGroups));
+        }
+
+        [Fact]
+        public void ParsesSomeSecurityContextExperimentalOptions()
+        {
+            var experimental = new Dictionary<string, JToken>
+            {
+                ["k8s-experimental"] = JToken.Parse("{ securityContext: { runAsGroup: 1001, runAsUser: 1000, runAsNonRoot: true } }")
+            };
+
+            var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
+
+            Assert.True(parameters.SecurityContext.HasValue);
+            parameters.SecurityContext.ForEach(securityContext => Assert.Equal(1001, securityContext.RunAsGroup));
+            parameters.SecurityContext.ForEach(securityContext => Assert.Equal(1000, securityContext.RunAsUser));
+            parameters.SecurityContext.ForEach(securityContext => Assert.Equal(true, securityContext.RunAsNonRoot));
+            parameters.SecurityContext.ForEach(securityContext => Assert.Null(securityContext.Sysctls));
+            parameters.SecurityContext.ForEach(securityContext => Assert.Null(securityContext.FsGroup));
+            parameters.SecurityContext.ForEach(securityContext => Assert.Null(securityContext.SeLinuxOptions));
+            parameters.SecurityContext.ForEach(securityContext => Assert.Null(securityContext.SupplementalGroups));
         }
     }
 }

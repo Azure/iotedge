@@ -5,8 +5,10 @@
 #![allow(
     clippy::cognitive_complexity,
     clippy::module_name_repetitions,
+    clippy::must_use_candidate,
     clippy::similar_names,
     clippy::shadow_unrelated,
+    clippy::too_many_lines,
     clippy::use_self
 )]
 

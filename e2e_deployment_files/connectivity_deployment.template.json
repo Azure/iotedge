@@ -1,0 +1,251 @@
+{
+  "modulesContent": {
+    "$edgeAgent": {
+      "properties.desired": {
+        "schemaVersion": "1.0",
+        "runtime": {
+          "type": "docker",
+          "settings": {
+            "minDockerVersion": "v1.25",
+            "loggingOptions": "",
+            "registryCredentials": {
+              "rc1": {
+                "username": "<CR.Username>",
+                "password": "<CR.Password>",
+                "address": "<Container_Registry>"
+              }
+            }
+          }
+        },
+        "systemModules": {
+          "edgeAgent": {
+            "type": "docker",
+            "env": {
+              "UpstreamProtocol": {
+                "value": "<UpstreamProtocol>"
+              }
+             },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
+          "edgeHub": {
+            "type": "docker",
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
+            },
+            "status": "running",
+            "restartPolicy": "always"
+          }
+        },
+        "modules": {
+          "loadGen1": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "messageFrequency": {
+                "value": "<LoadGen.MessageFrequency>"
+              },
+              "testDuration": {
+                "value": "<TestDuration>"
+              },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
+              },
+              "trackingId": {
+                "value": "<TrackingId>"
+              },
+              "transportType": {
+                "value": "amqp"
+              },
+              "outputName": {
+                "value": "output1"
+              },
+              "testResultCoordinatorUrl": {
+                "value": "http://testResultCoordinator:5001"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
+          "loadGen2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "messageFrequency": {
+                "value": "<LoadGen.MessageFrequency>"
+              },
+              "testDuration": {
+                "value": "<TestDuration>"
+              },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
+              },
+              "trackingId": {
+                "value": "<TrackingId>"
+              },
+              "transportType": {
+                "value": "mqtt"
+              },
+              "outputName": {
+                "value": "output2"
+              },
+              "testResultCoordinatorUrl": {
+                "value": "http://testResultCoordinator:5001"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
+          "relayer1": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "transportType": {
+                "value": "amqp"
+              },
+              "inputName": {
+                "value": "input1"
+              },
+              "outputName": {
+                "value": "output1"
+              },
+              "testResultCoordinatorUrl": {
+                "value": "http://testResultCoordinator:5001"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
+          "relayer2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "transportType": {
+                "value": "mqtt"
+              },
+              "inputName": {
+                "value": "input2"
+              },
+              "outputName": {
+                "value": "output2"
+              },
+              "testResultCoordinatorUrl": {
+                "value": "http://testResultCoordinator:5001"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
+          "testResultCoordinator": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "trackingId": {
+                "value": "<TrackingId>"
+              },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
+              },
+              "testDuration": {
+                "value": "<TestDuration>"
+              },
+              "verificationDelay": {
+                "value": "<TestResultCoordinator.VerificationDelay>"
+              },
+              "eventHubConnectionString": {
+                "value": "<TestResultCoordinator.EventHubConnectionString>"
+              },
+              "ConsumerGroupName": {
+                "value": "<TestResultCoordinator.ConsumerGroupId>"
+              },
+              "optimizeForPerformance": {
+                "value": "<TestResultCoordinator.OptimizeForPerformance>"
+              },
+              "logAnalyticsWorkspaceId": {
+                "value": "<TestResultCoordinator.LogAnalyticsWorkspaceId>"
+              },
+              "logAnalyticsSharedKey": {
+                "value": "<TestResultCoordinator.LogAnalyticsSharedKey>"
+              },
+              "logAnalyticsLogType": {
+                "value": "<TestResultCoordinator.LogAnalyticsLogType>"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-test-result-coordinator:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"5001/tcp\": [{\"HostPort\": \"5001\"}]}}}"
+            }
+          },
+          "networkController": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "trackingId": {
+                "value": "<TrackingId>"
+              },
+              "testResultCoordinatorUrl": {
+                "value": "http://testResultCoordinator:5001"
+              },
+              "RunFrequencies__0__OfflineFrequency": {
+                "value": "<NetworkController.OfflineFrequency0>"
+              },
+              "RunFrequencies__0__OnlineFrequency": {
+                "value": "<NetworkController.OnlineFrequency0>"
+              },
+              "RunFrequencies__0__RunsCount": {
+                "value": "<NetworkController.RunsCount0>"
+              },
+              "NetworkControllerMode": {
+                "value": "<NetworkController.Mode>"
+              },
+              "StartAfter": {
+                "value": "<TestStartDelay>"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-network-controller:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"Privileged\":\"true\",\"NetworkMode\":\"host\",\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"]},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+            }
+          }
+        }
+      }
+    },
+    "$edgeHub": {
+      "properties.desired": {
+        "schemaVersion": "1.0",
+        "routes": {
+          "loadGen1ToRelayer1": "FROM /messages/modules/loadGen1/outputs/output1 INTO BrokeredEndpoint(\"/modules/relayer1/inputs/input1\")",
+          "relayer1ToCloud": "FROM /messages/modules/relayer1/outputs/output1 INTO $upstream",
+          "loadGen2ToRelayer2": "FROM /messages/modules/loadGen2/outputs/output2 INTO BrokeredEndpoint(\"/modules/relayer2/inputs/input2\")",
+          "relayer2ToCloud": "FROM /messages/modules/relayer2/outputs/output2 INTO $upstream"
+        },
+        "storeAndForwardConfiguration": {
+          "timeToLiveSecs": 86400
+        }
+      }
+    }
+  }
+}

@@ -44,6 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly MetricsConfig metricsConfig;
         readonly bool useBackupAndRestore;
         readonly Option<string> storageBackupPath;
+        readonly Option<ulong> storageMaxTotalWalSize;
 
         public CommonModule(
             string productInfo,
@@ -65,7 +66,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             string proxy,
             MetricsConfig metricsConfig,
             bool useBackupAndRestore,
-            Option<string> storageBackupPath)
+            Option<string> storageBackupPath,
+            Option<ulong> storageMaxTotalWalSize)
         {
             this.productInfo = productInfo;
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
@@ -87,6 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
             this.useBackupAndRestore = useBackupAndRestore;
             this.storageBackupPath = storageBackupPath;
+            this.storageMaxTotalWalSize = storageMaxTotalWalSize;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -138,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // DataBase options
-            builder.Register(c => new RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), this.optimizeForPerformance))
+            builder.Register(c => new RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), this.optimizeForPerformance, this.storageMaxTotalWalSize))
                 .As<IRocksDbOptionsProvider>()
                 .SingleInstance();
 
@@ -149,6 +152,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     .As<IDataBackupRestore>()
                     .SingleInstance();
             }
+
+            // IStorageSpaceChecker
+            builder.Register(
+                c =>
+                {
+                    IStorageSpaceChecker spaceChecker = !this.usePersistentStorage
+                       ? new MemorySpaceChecker(() => 0L) as IStorageSpaceChecker
+                       : new NullStorageSpaceChecker();
+                    return spaceChecker;
+                })
+                .As<IStorageSpaceChecker>()
+                .SingleInstance();
 
             // IDbStoreProvider
             builder.Register(
@@ -170,7 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                 logger.LogInformation($"Created persistent store at {this.storagePath}");
                                 return dbStoreProvider;
                             }
-                            catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
+                            catch (Exception ex) when (!ex.IsFatal())
                             {
                                 logger.LogError(ex, "Error creating RocksDB store. Falling back to in-memory store.");
                                 IDbStoreProvider dbStoreProvider = await this.BuildInMemoryDbStoreProvider(c);
@@ -375,7 +390,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
         async Task<IDbStoreProvider> BuildInMemoryDbStoreProvider(IComponentContext container)
         {
-            IDbStoreProvider dbStoreProvider = DbStoreProviderFactory.GetInMemoryDbStore();
+            var memorySpaceChecker = container.Resolve<IStorageSpaceChecker>();
+            IDbStoreProvider dbStoreProvider = DbStoreProviderFactory.GetInMemoryDbStore(Option.Some(memorySpaceChecker));
             if (this.useBackupAndRestore)
             {
                 var backupRestore = container.Resolve<IDataBackupRestore>();

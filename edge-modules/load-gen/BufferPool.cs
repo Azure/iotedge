@@ -24,7 +24,7 @@ namespace LoadGen
                         new Buffer(bufferSize)
                     };
 
-                    Log.Information($"Allocated new list & buffer [{list[0].Id}] of size {bufferSize}");
+                    Log.Debug($"Allocated new list & buffer [{list[0].Id}] of size {bufferSize}");
                     return list;
                 });
 
@@ -37,7 +37,7 @@ namespace LoadGen
                     buffer = new Buffer(size);
                     buffers.Add(buffer);
 
-                    Log.Information($"Allocated buffer [{buffer.Id}] of size {size}");
+                    Log.Debug($"Allocated buffer [{buffer.Id}] of size {size}");
                 }
 
                 buffer.InUse.Set(true);

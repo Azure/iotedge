@@ -1,0 +1,15 @@
+{
+    "StartAfter": "00:05:00",
+    "DockerUri": "unix:///var/run/docker.sock",
+    "NetworkId": "azure-iot-edge",
+    "NetworkControllerMode": "OfflineNetworkInterface",
+    "TestResultCoordinatorEndpoint": "http://localhost:5001",
+    "TrackingId": "",
+    "RunFrequencies": [
+        {
+            "OfflineFrequency": "00:05:00",
+            "OnlineFrequency": "00:05:00",
+            "RunsCount": "6"
+        }
+    ]
+}

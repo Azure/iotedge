@@ -4,6 +4,7 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::module_name_repetitions,
+    clippy::must_use_candidate,
     clippy::too_many_arguments,
     clippy::too_many_lines,
     clippy::use_self
@@ -17,10 +18,79 @@ mod registry;
 mod runtime;
 mod settings;
 
-pub use error::{Error, ErrorKind};
+use std::convert::TryFrom;
+
+pub use error::{Error, ErrorKind, MissingMetadataReason, Result};
 pub use module::KubeModule;
 pub use runtime::KubeModuleRuntime;
 pub use settings::Settings;
+
+use k8s_openapi::api::apps::v1 as api_apps;
+use k8s_openapi::Resource;
+
+type Deployment = api_apps::Deployment;
+
+#[derive(Clone)]
+pub struct KubeModuleOwner {
+    name: String,
+    api_version: String,
+    kind: String,
+    uid: String,
+}
+
+impl KubeModuleOwner {
+    pub fn new(name: String, api_version: String, kind: String, uid: String) -> Self {
+        KubeModuleOwner {
+            name,
+            api_version,
+            kind,
+            uid,
+        }
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn api_version(&self) -> &str {
+        &self.api_version
+    }
+
+    pub fn kind(&self) -> &str {
+        &self.kind
+    }
+
+    pub fn uid(&self) -> &str {
+        &self.uid
+    }
+}
+
+impl TryFrom<Deployment> for KubeModuleOwner {
+    type Error = Error;
+
+    fn try_from(deployment: Deployment) -> Result<Self> {
+        let metadata = deployment
+            .metadata
+            .as_ref()
+            .ok_or(ErrorKind::MissingMetadata(
+                MissingMetadataReason::DeploymentMetadata,
+            ))?;
+        Ok(Self {
+            name: metadata
+                .name
+                .as_ref()
+                .map(String::to_string)
+                .ok_or(ErrorKind::MissingMetadata(MissingMetadataReason::Name))?,
+            api_version: Deployment::api_version().to_string(),
+            kind: Deployment::kind().to_string(),
+            uid: metadata
+                .uid
+                .as_ref()
+                .map(String::to_string)
+                .ok_or(ErrorKind::MissingMetadata(MissingMetadataReason::Uid))?,
+        })
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -38,6 +108,7 @@ mod tests {
     use kube_client::{Client as KubeClient, Config as KubeConfig, Error, TokenSource};
 
     use crate::settings::Settings;
+    use crate::KubeModuleOwner;
     use crate::KubeModuleRuntime;
 
     pub const PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME: &str = "device1-iotedged-proxy-trust-bundle";
@@ -72,13 +143,16 @@ mod tests {
             "namespace": "default",
             "iot_hub_hostname": "iotHub",
             "device_id": "device1",
-            "proxy_image": "proxy:latest",
-            "proxy_config_path": "/etc/traefik",
-            "proxy_config_map_name": PROXY_CONFIG_MAP_NAME,
-            "proxy_trust_bundle_path": "/etc/trust-bundle",
-            "proxy_trust_bundle_config_map_name": PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME,
-            "image_pull_policy": "IfNotPresent",
             "device_hub_selector": "",
+            "proxy": {
+               "image": "proxy:latest",
+               "image_pull_policy": "IfNotPresent",
+               "auth": {},
+               "config_path": "/etc/traefik",
+               "config_map_name": PROXY_CONFIG_MAP_NAME,
+               "trust_bundle_path": "/etc/trust-bundle",
+               "trust_bundle_config_map_name": PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME,
+            },
         });
 
         if let Some(merge_json) = merge_json {
@@ -90,6 +164,15 @@ mod tests {
             .unwrap();
 
         config.try_into().unwrap()
+    }
+
+    pub fn create_module_owner() -> KubeModuleOwner {
+        KubeModuleOwner::new(
+            "iotedged".to_string(),
+            "v1".to_string(),
+            "Deployment".to_string(),
+            "123".to_string(),
+        )
     }
 
     #[derive(Clone)]

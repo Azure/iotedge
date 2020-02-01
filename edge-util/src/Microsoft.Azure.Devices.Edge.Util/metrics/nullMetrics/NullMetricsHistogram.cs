@@ -3,7 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics
 {
     public class NullMetricsHistogram : IMetricsHistogram
     {
-        public void Update(long value, string[] labelValues)
+        public void Update(double value, string[] labelValues)
         {
         }
     }

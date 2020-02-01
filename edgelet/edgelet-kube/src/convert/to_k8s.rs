@@ -19,6 +19,7 @@ use crate::convert::{sanitize_dns_domain, sanitize_dns_value};
 use crate::error::{ErrorKind, Result};
 use crate::registry::ImagePullSecret;
 use crate::settings::Settings;
+use crate::KubeModuleOwner;
 
 /// Converts Docker `ModuleSpec` to K8s `PodSpec`
 fn spec_to_podspec(
@@ -26,6 +27,7 @@ fn spec_to_podspec(
     spec: &ModuleSpec<DockerConfig>,
     module_label_value: String,
     module_image: String,
+    module_owner: &KubeModuleOwner,
 ) -> Result<api_core::PodSpec> {
     // privileged container
     let security = spec
@@ -56,19 +58,24 @@ fn spec_to_podspec(
         })
         .collect();
 
+    let proxy_pull_secret = settings
+        .proxy()
+        .auth()
+        .and_then(|auth| ImagePullSecret::from_auth(auth).and_then(|secret| secret.name()));
+
     if EDGE_EDGE_AGENT_NAME == module_label_value {
         env_vars.push(env(EDGE_NETWORK_ID_KEY, ""));
         env_vars.push(env(NAMESPACE_KEY, settings.namespace()));
-        env_vars.push(env(PROXY_IMAGE_KEY, settings.proxy_image()));
+        env_vars.push(env(PROXY_IMAGE_KEY, settings.proxy().image()));
         env_vars.push(env(PROXY_CONFIG_VOLUME_KEY, PROXY_CONFIG_VOLUME_NAME));
         env_vars.push(env(
             PROXY_CONFIG_MAP_NAME_KEY,
-            settings.proxy_config_map_name(),
+            settings.proxy().config_map_name(),
         ));
-        env_vars.push(env(PROXY_CONFIG_PATH_KEY, settings.proxy_config_path()));
+        env_vars.push(env(PROXY_CONFIG_PATH_KEY, settings.proxy().config_path()));
         env_vars.push(env(
             PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY,
-            settings.proxy_trust_bundle_config_map_name(),
+            settings.proxy().trust_bundle_config_map_name(),
         ));
         env_vars.push(env(
             PROXY_TRUST_BUNDLE_VOLUME_KEY,
@@ -76,14 +83,26 @@ fn spec_to_podspec(
         ));
         env_vars.push(env(
             PROXY_TRUST_BUNDLE_PATH_KEY,
-            settings.proxy_trust_bundle_path(),
+            settings.proxy().trust_bundle_path(),
         ));
+
+        env_vars.push(env(
+            EDGE_OBJECT_OWNER_API_VERSION_KEY,
+            module_owner.api_version(),
+        ));
+        env_vars.push(env(EDGE_OBJECT_OWNER_KIND_KEY, module_owner.kind()));
+        env_vars.push(env(EDGE_OBJECT_OWNER_NAME_KEY, module_owner.name()));
+        env_vars.push(env(EDGE_OBJECT_OWNER_UID_KEY, module_owner.uid()));
+
+        if let Some(proxy_pull_secret) = &proxy_pull_secret {
+            env_vars.push(env(PROXY_IMAGE_PULL_SECRET_NAME_KEY, proxy_pull_secret))
+        }
     }
 
     // Bind/volume mounts
     // ConfigMap volume name is fixed: "config-volume"
     let proxy_config_volume_source = api_core::ConfigMapVolumeSource {
-        name: Some(settings.proxy_config_map_name().to_string()),
+        name: Some(settings.proxy().config_map_name().to_string()),
         ..api_core::ConfigMapVolumeSource::default()
     };
     // Volume entry for proxy's config map
@@ -95,7 +114,7 @@ fn spec_to_podspec(
 
     // trust bundle ConfigMap volume name is fixed: "trust-bundle-volume"
     let trust_bundle_config_volume_source = api_core::ConfigMapVolumeSource {
-        name: Some(settings.proxy_trust_bundle_config_map_name().to_string()),
+        name: Some(settings.proxy().trust_bundle_config_map_name().to_string()),
         ..api_core::ConfigMapVolumeSource::default()
     };
     // Volume entry for proxy's trust bundle config map
@@ -109,7 +128,7 @@ fn spec_to_podspec(
 
     // Where to mount proxy config map
     let proxy_volume_mount = api_core::VolumeMount {
-        mount_path: settings.proxy_config_path().to_string(),
+        mount_path: settings.proxy().config_path().to_string(),
         name: PROXY_CONFIG_VOLUME_NAME.to_string(),
         read_only: Some(true),
         ..api_core::VolumeMount::default()
@@ -117,7 +136,7 @@ fn spec_to_podspec(
 
     // Where to mount proxy trust bundle config map
     let trust_bundle_volume_mount = api_core::VolumeMount {
-        mount_path: settings.proxy_trust_bundle_path().to_string(),
+        mount_path: settings.proxy().trust_bundle_path().to_string(),
         name: PROXY_TRUST_BUNDLE_VOLUME_NAME.to_string(),
         read_only: Some(true),
         ..api_core::VolumeMount::default()
@@ -233,16 +252,16 @@ fn spec_to_podspec(
         }
     };
 
-    //pull secrets
-    let image_pull_secrets = spec
+    let module_pull_secret = spec
         .config()
         .auth()
-        .and_then(|auth| ImagePullSecret::from_auth(&auth))
-        .map(|image_pull_secret| {
-            vec![api_core::LocalObjectReference {
-                name: image_pull_secret.name(),
-            }]
-        });
+        .and_then(|auth| ImagePullSecret::from_auth(&auth).and_then(|secret| secret.name()));
+
+    //pull secrets
+    let image_pull_secrets = vec![proxy_pull_secret, module_pull_secret]
+        .into_iter()
+        .filter_map(|name| name.map(|name| api_core::LocalObjectReference { name: Some(name) }))
+        .collect::<Vec<_>>();
 
     Ok(api_core::PodSpec {
         containers: vec![
@@ -251,7 +270,7 @@ fn spec_to_podspec(
                 name: module_label_value.clone(),
                 env: Some(env_vars.clone()),
                 image: Some(module_image),
-                image_pull_policy: Some(settings.image_pull_policy().to_string()),
+                image_pull_policy: Some(settings.proxy().image_pull_policy().to_string()), //todo user edgeagent imagepullpolicy instead
                 security_context: security,
                 volume_mounts: Some(volume_mounts),
                 ..api_core::Container::default()
@@ -260,14 +279,23 @@ fn spec_to_podspec(
             api_core::Container {
                 name: PROXY_CONTAINER_NAME.to_string(),
                 env: Some(env_vars),
-                image: Some(settings.proxy_image().to_string()),
-                image_pull_policy: Some(settings.image_pull_policy().to_string()),
+                image: Some(settings.proxy().image().to_string()),
+                image_pull_policy: Some(settings.proxy().image_pull_policy().to_string()),
                 volume_mounts: Some(proxy_volume_mounts),
                 ..api_core::Container::default()
             },
         ],
-        image_pull_secrets,
+        image_pull_secrets: if image_pull_secrets.is_empty() {
+            None
+        } else {
+            Some(image_pull_secrets)
+        },
         service_account_name: Some(module_label_value),
+        security_context: Some(api_core::PodSecurityContext {
+            run_as_non_root: Some(true),
+            run_as_user: Some(1000),
+            ..api_core::PodSecurityContext::default()
+        }),
         volumes: Some(volumes),
         ..api_core::PodSpec::default()
     })
@@ -281,10 +309,21 @@ fn env<V: Into<String>>(key: &str, value: V) -> api_core::EnvVar {
     }
 }
 
+fn owner_references(module_owner: &KubeModuleOwner) -> Vec<api_meta::OwnerReference> {
+    vec![api_meta::OwnerReference {
+        api_version: module_owner.api_version().to_string(),
+        name: module_owner.name().to_string(),
+        kind: module_owner.kind().to_string(),
+        uid: module_owner.uid().to_string(),
+        ..api_meta::OwnerReference::default()
+    }]
+}
+
 /// Converts Docker Module Spec into a K8S Deployment.
 pub fn spec_to_deployment(
     settings: &Settings,
     spec: &ModuleSpec<DockerConfig>,
+    module_owner: &KubeModuleOwner,
 ) -> Result<(String, api_apps::Deployment)> {
     // Set some values...
     let module_label_value = sanitize_dns_value(spec.name())?;
@@ -323,6 +362,7 @@ pub fn spec_to_deployment(
             name: Some(deployment_name.clone()),
             namespace: Some(settings.namespace().to_string()),
             labels: Some(deployment_labels),
+            owner_references: Some(owner_references(module_owner)),
             ..api_meta::ObjectMeta::default()
         }),
         spec: Some(api_apps::DeploymentSpec {
@@ -342,6 +382,7 @@ pub fn spec_to_deployment(
                     spec,
                     module_label_value,
                     module_image,
+                    module_owner,
                 )?),
             },
             ..api_apps::DeploymentSpec::default()
@@ -355,6 +396,7 @@ pub fn spec_to_deployment(
 pub fn spec_to_service_account(
     settings: &Settings,
     spec: &ModuleSpec<DockerConfig>,
+    module_owner: &KubeModuleOwner,
 ) -> Result<(String, api_core::ServiceAccount)> {
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value =
@@ -369,7 +411,7 @@ pub fn spec_to_service_account(
 
     // labels
     let mut labels = BTreeMap::new();
-    labels.insert(EDGE_MODULE_LABEL.to_string(), module_label_value.clone());
+    labels.insert(EDGE_MODULE_LABEL.to_string(), module_label_value);
     labels.insert(EDGE_DEVICE_LABEL.to_string(), device_label_value);
     labels.insert(EDGE_HUBNAME_LABEL.to_string(), hubname_label);
 
@@ -383,6 +425,7 @@ pub fn spec_to_service_account(
             namespace: Some(settings.namespace().to_string()),
             labels: Some(labels),
             annotations: Some(annotations),
+            owner_references: Some(owner_references(module_owner)),
             ..api_meta::ObjectMeta::default()
         }),
         ..api_core::ServiceAccount::default()
@@ -395,6 +438,7 @@ pub fn spec_to_service_account(
 pub fn spec_to_role_binding(
     settings: &Settings,
     spec: &ModuleSpec<DockerConfig>,
+    module_owner: &KubeModuleOwner,
 ) -> Result<(String, api_rbac::RoleBinding)> {
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value =
@@ -423,6 +467,7 @@ pub fn spec_to_role_binding(
             namespace: Some(settings.namespace().to_string()),
             labels: Some(labels),
             annotations: Some(annotations),
+            owner_references: Some(owner_references(module_owner)),
             ..api_meta::ObjectMeta::default()
         }),
         role_ref: api_rbac::RoleRef {
@@ -464,7 +509,7 @@ pub fn trust_bundle_to_config_map(
 
     let mut data = BTreeMap::new();
     data.insert(PROXY_TRUST_BUNDLE_FILENAME.to_string(), cert.to_string());
-    let config_map_name = settings.proxy_trust_bundle_config_map_name().to_string();
+    let config_map_name = settings.proxy().trust_bundle_config_map_name().to_string();
 
     let config_map = api_core::ConfigMap {
         metadata: Some(api_meta::ObjectMeta {
@@ -501,7 +546,10 @@ mod tests {
         spec_to_deployment, spec_to_role_binding, spec_to_service_account,
         trust_bundle_to_config_map,
     };
-    use crate::tests::{make_settings, PROXY_CONFIG_MAP_NAME, PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME};
+    use crate::tests::{
+        create_module_owner, make_settings, PROXY_CONFIG_MAP_NAME,
+        PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME,
+    };
     use crate::ErrorKind;
 
     fn create_module_spec() -> ModuleSpec<DockerConfig> {
@@ -578,8 +626,10 @@ mod tests {
     #[test]
     fn deployment_success() {
         let module_config = create_module_spec();
+        let module_owner = create_module_owner();
 
-        let (name, deployment) = spec_to_deployment(&make_settings(None), &module_config).unwrap();
+        let (name, deployment) =
+            spec_to_deployment(&make_settings(None), &module_config, &module_owner).unwrap();
         assert_eq!(name, "edgeagent");
         validate_deployment_metadata(
             "edgeagent",
@@ -617,7 +667,19 @@ mod tests {
                     assert_eq!(proxy.image_pull_policy.as_ref().unwrap(), "IfNotPresent");
                 }
                 assert_eq!(podspec.service_account_name.as_ref().unwrap(), "edgeagent");
+                assert!(podspec.security_context.is_some());
+                if let Some(security_context) = &podspec.security_context {
+                    assert_eq!(security_context.run_as_non_root, Some(true));
+                    assert_eq!(security_context.run_as_user, Some(1000));
+                }
                 assert!(podspec.image_pull_secrets.is_some());
+                if let Some(image_pull_secrets) = &podspec.image_pull_secrets {
+                    assert_eq!(image_pull_secrets.len(), 1);
+                    assert_eq!(
+                        image_pull_secrets[0].name,
+                        Some("username-registry".to_string())
+                    );
+                }
                 // 4 bind mounts, 2 volume mounts, 1 proxy configmap, 1 trust bundle configmap
                 assert_eq!(podspec.volumes.as_ref().map(Vec::len).unwrap(), 8);
             }
@@ -625,7 +687,7 @@ mod tests {
     }
 
     fn validate_container_env(env: &[api_core::EnvVar]) {
-        assert_eq!(env.len(), 11);
+        assert_eq!(env.len(), 15);
         assert!(env.contains(&super::env("a", "b")));
         assert!(env.contains(&super::env("C", "D")));
         assert!(env.contains(&super::env(NAMESPACE_KEY, "default")));
@@ -651,14 +713,19 @@ mod tests {
             &PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY,
             PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME,
         )));
+        assert!(env.contains(&super::env(&EDGE_OBJECT_OWNER_API_VERSION_KEY, "v1",)));
+        assert!(env.contains(&super::env(&EDGE_OBJECT_OWNER_KIND_KEY, "Deployment",)));
+        assert!(env.contains(&super::env(&EDGE_OBJECT_OWNER_NAME_KEY, "iotedged",)));
+        assert!(env.contains(&super::env(&EDGE_OBJECT_OWNER_UID_KEY, "123",)));
     }
 
     #[test]
     fn module_to_service_account() {
         let module = create_module_spec();
+        let module_owner = create_module_owner();
 
         let (name, service_account) =
-            spec_to_service_account(&make_settings(None), &module).unwrap();
+            spec_to_service_account(&make_settings(None), &module, &module_owner).unwrap();
         assert_eq!(name, "edgeagent");
 
         assert!(service_account.metadata.is_some());
@@ -685,8 +752,10 @@ mod tests {
     #[test]
     fn module_to_role_binding() {
         let module = create_module_spec();
+        let module_owner = create_module_owner();
 
-        let (name, role_binding) = spec_to_role_binding(&make_settings(None), &module).unwrap();
+        let (name, role_binding) =
+            spec_to_role_binding(&make_settings(None), &module, &module_owner).unwrap();
         assert_eq!(name, "edgeagent");
         assert!(role_binding.metadata.is_some());
         if let Some(metadata) = role_binding.metadata {

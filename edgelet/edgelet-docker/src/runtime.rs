@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::collections::HashMap;
-use std::convert::From;
 use std::ops::Deref;
 use std::time::Duration;
 
@@ -22,7 +21,7 @@ use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig
 use edgelet_core::{
     AuthId, Authenticator, GetTrustBundle, Ipam as CoreIpam, LogOptions, MakeModuleRuntime,
     MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, UrlExt,
+    RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
@@ -35,6 +34,19 @@ use crate::module::{
     runtime_state, DockerModule, DockerModuleTop, MODULE_TYPE as DOCKER_MODULE_TYPE,
 };
 use crate::settings::Settings;
+
+#[cfg(not(windows))]
+use edgelet_core::DiskInfo;
+#[cfg(not(windows))]
+use std::convert::TryInto;
+#[cfg(target_os = "linux")]
+use std::mem;
+#[cfg(not(windows))]
+use std::process;
+#[cfg(not(windows))]
+use std::time::{SystemTime, UNIX_EPOCH};
+#[cfg(not(windows))]
+use sysinfo::{DiskExt, ProcessExt, ProcessorExt, SystemExt};
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
@@ -305,6 +317,8 @@ impl ModuleRuntime for DockerModuleRuntime {
     type StartFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type StopFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type SystemInfoFuture = Box<dyn Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
+    type SystemResourcesFuture =
+        Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
@@ -590,6 +604,119 @@ impl ModuleRuntime for DockerModuleRuntime {
         )
     }
 
+    fn system_resources(&self) -> Self::SystemResourcesFuture {
+        info!("Querying system resources...");
+
+        let client = self.client.clone();
+        let docker_stats = self
+            .list() // Get all modules
+            .and_then(|modules: Vec<Self::Module>| {
+                // Get iterable of stats
+                remove_not_found(
+                    stream::iter_ok(modules)
+                        .and_then(move |module| {
+                            client.container_api().container_stats(module.name(), false)
+                        })
+                        .map_err(|err| {
+                            Error::from_docker_error(
+                                err,
+                                ErrorKind::RuntimeOperation(RuntimeOperation::SystemResources),
+                            )
+                        }),
+                )
+                .collect()
+            })
+            .map(serde_json::Value::Array) // Condense into single json value
+            .and_then(|stats| {
+                // convert to string
+                serde_json::to_string(&stats).map_err(|_| {
+                    Error::from(ErrorKind::RuntimeOperation(
+                        RuntimeOperation::SystemResources,
+                    ))
+                })
+            });
+
+        #[cfg(not(windows))]
+        {
+            #[cfg(target_os = "linux")]
+            let uptime = {
+                let mut info: libc::sysinfo = unsafe { mem::zeroed() };
+                let ret = unsafe { libc::sysinfo(&mut info) };
+                if ret == 0 {
+                    info.uptime.try_into().unwrap_or_default()
+                } else {
+                    0
+                }
+            };
+            #[cfg(not(target_os = "linux"))]
+            let uptime = 0;
+
+            let mut system_info = sysinfo::System::new();
+            system_info.refresh_all();
+            let current_time = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs();
+            let start_time = process::id()
+                .try_into()
+                .map(|id| {
+                    system_info
+                        .get_process_list()
+                        .get(&id)
+                        .map(|p| p.start_time())
+                        .unwrap_or_default()
+                })
+                .unwrap_or_default();
+
+            let used_cpu = system_info
+                .get_processor_list()
+                .iter()
+                .find(|p| p.get_name() == "Total CPU")
+                .map_or_else(|| -1.0, |p| p.get_cpu_usage());
+
+            let total_memory = system_info.get_total_memory() * 1000;
+            let used_memory = system_info.get_used_memory() * 1000;
+
+            let disks = system_info
+                .get_disks()
+                .iter()
+                .map(|disk| {
+                    DiskInfo::new(
+                        disk.get_name().to_string_lossy().into_owned(),
+                        disk.get_available_space(),
+                        disk.get_total_space(),
+                        String::from_utf8_lossy(disk.get_file_system()).into_owned(),
+                        format!("{:?}", disk.get_type()),
+                    )
+                })
+                .collect();
+
+            let result = docker_stats.map(move |stats: String| {
+                SystemResources::new(
+                    uptime,
+                    current_time - start_time,
+                    used_cpu.into(),
+                    used_memory,
+                    total_memory,
+                    disks,
+                    stats,
+                )
+            });
+
+            Box::new(result)
+        }
+
+        #[cfg(windows)]
+        {
+            let uptime = unsafe { winapi::um::sysinfoapi::GetTickCount() };
+            let result = docker_stats.map(move |stats: String| {
+                SystemResources::new(uptime.into(), 0, 0.0, 0, 0, vec![], stats)
+            });
+
+            Box::new(result)
+        }
+    }
+
     fn list(&self) -> Self::ListFuture {
         debug!("Listing modules...");
 
@@ -806,7 +933,7 @@ where
     M: Module<Error = Error> + Send + 'static,
     <M as Module>::Config: Clone + Send,
 {
-    Box::new(
+    Box::new(remove_not_found(
         runtime
             .list()
             .into_stream()
@@ -816,17 +943,25 @@ where
                         .map(|module| module.runtime_state().map(|state| (module, state))),
                 )
             })
-            .flatten()
-            .then(Ok::<_, Error>) // Ok(_) -> Ok(Ok(_)), Err(_) -> Ok(Err(_)), ! -> Err(_)
-            .filter_map(|value| match value {
-                Ok(value) => Some(Ok(value)),
-                Err(err) => match err.kind() {
-                    ErrorKind::NotFound(_) => None,
-                    _ => Some(Err(err)),
-                },
-            })
-            .then(Result::unwrap), // Ok(Ok(_)) -> Ok(_), Ok(Err(_)) -> Err(_), Err(_) -> !
-    )
+            .flatten(),
+    ))
+}
+
+fn remove_not_found<S>(stream: S) -> impl Stream<Item = S::Item, Error = S::Error> + Send
+where
+    S: Stream<Error = Error> + Send + 'static,
+    S::Item: Send + 'static,
+{
+    stream
+        .then(Ok::<_, Error>) // Ok(_) -> Ok(Ok(_)), Err(_) -> Ok(Err(_)), ! -> Err(_)
+        .filter_map(|value| match value {
+            Ok(value) => Some(Ok(value)),
+            Err(err) => match err.kind() {
+                ErrorKind::NotFound(_) => None,
+                _ => Some(Err(err)),
+            },
+        })
+        .then(Result::unwrap) // Ok(Ok(_)) -> Ok(_), Ok(Err(_)) -> Err(_), Err(_) -> !
 }
 
 fn authenticate<MR>(
@@ -1346,6 +1481,8 @@ mod tests {
         type StartFuture = FutureResult<(), Self::Error>;
         type StopFuture = FutureResult<(), Self::Error>;
         type SystemInfoFuture = FutureResult<CoreSystemInfo, Self::Error>;
+        type SystemResourcesFuture =
+            Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
         type RemoveAllFuture = FutureResult<(), Self::Error>;
 
         fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
@@ -1373,6 +1510,10 @@ mod tests {
         }
 
         fn system_info(&self) -> Self::SystemInfoFuture {
+            unimplemented!()
+        }
+
+        fn system_resources(&self) -> Self::SystemResourcesFuture {
             unimplemented!()
         }
 

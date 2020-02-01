@@ -37,6 +37,7 @@ fn main() {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 fn run() -> Result<(), Error> {
     let (default_mgmt_uri, default_config_path, default_container_engine_config_path) =
         if cfg!(windows) {
@@ -55,7 +56,7 @@ fn run() -> Result<(), Error> {
             default_config_path.push("config.yaml");
             let default_config_path = Cow::Owned(default_config_path);
 
-            let mut default_container_engine_config_path = program_data.clone();
+            let mut default_container_engine_config_path = program_data;
             default_container_engine_config_path.push("iotedge-moby");
             default_container_engine_config_path.push("config");
             default_container_engine_config_path.push("daemon.json");
