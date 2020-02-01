@@ -29,7 +29,7 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: 'ubuntu-16.04'
+      vmImage: "ubuntu-16.04"
     steps:
       - script: echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
         displayName: Set env variables
@@ -51,7 +51,7 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: 'ubuntu-16.04'
+      vmImage: "ubuntu-16.04"
     variables:
       IOTEDGE_HOMEDIR: /tmp
     steps:
@@ -64,23 +64,23 @@ jobs:
         displayName: Set Version
       - script: edgelet/build/linux/install.sh
         displayName: Install Rust
-      - script: 'cargo install --git https://github.com/arsing/cross.git --branch set-path'
-        displayName: 'Install cross (fork with docker fix)'
-      - script: 'cross build --target armv7-unknown-linux-gnueabihf'
+      - script: "cargo install --git https://github.com/arsing/cross.git --branch set-path"
+        displayName: "Install cross (fork with docker fix)"
+      - script: "cross build --target armv7-unknown-linux-gnueabihf"
         displayName: armv7-unknown-linux-gnueabihf build
         workingDirectory: $(Build.SourcesDirectory)/edgelet
-      - script: 'cross test --target armv7-unknown-linux-gnueabihf'
+      - script: "cross test --target armv7-unknown-linux-gnueabihf"
         displayName: armv7-unknown-linux-gnueabihf test
         workingDirectory: $(Build.SourcesDirectory)/edgelet
 
-  ################################################################################
+################################################################################
   - job: linux_arm64v8
-    ################################################################################
+################################################################################
     displayName: Linux arm64v8
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: 'ubuntu-16.04'
+      vmImage: "ubuntu-16.04"
     variables:
       IOTEDGE_HOMEDIR: /tmp
     steps:
@@ -93,12 +93,12 @@ jobs:
         displayName: Set Version
       - script: edgelet/build/linux/install.sh
         displayName: Install Rust
-      - script: 'cargo install --git https://github.com/arsing/cross.git --branch set-path'
-        displayName: 'Install cross (fork with docker fix)'
-      - script: 'cross build --target aarch64-unknown-linux-gnu'
+      - script: "cargo install --git https://github.com/arsing/cross.git --branch set-path"
+        displayName: "Install cross (fork with docker fix)"
+      - script: "cross build --target aarch64-unknown-linux-gnu"
         displayName: aarch64-unknown-linux-gnu build
         workingDirectory: $(Build.SourcesDirectory)/edgelet
-      - script: 'cross test --target aarch64-unknown-linux-gnu'
+      - script: "cross test --target aarch64-unknown-linux-gnu"
         displayName: aarch64-unknown-linux-gnu test
         workingDirectory: $(Build.SourcesDirectory)/edgelet
 
@@ -109,7 +109,7 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: 'vs2017-win2016'
+      vmImage: "vs2017-win2016"
     steps:
       - powershell: Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
         displayName: Set env variables
@@ -131,7 +131,7 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: 'ubuntu-16.04'
+      vmImage: "ubuntu-16.04"
     steps:
       - script: echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
         displayName: Set env variables
@@ -153,7 +153,7 @@ jobs:
       coverage.goal: 68
       rust.toolchain: nightly-2019-11-06
     pool:
-      vmImage: 'ubuntu-16.04'
+      vmImage: "ubuntu-16.04"
     steps:
       - script: |
           echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
@@ -195,10 +195,9 @@ jobs:
           codeCoverageTool: cobertura
           summaryFileLocation: "edgelet/target/coverage.xml"
       - task: mspremier.BuildQualityChecks.QualityChecks-task.BuildQualityChecks@5
-        displayName: 'Check build quality'
+        displayName: "Check build quality"
         inputs:
           checkCoverage: true
           coverageFailOption: fixed
           coverageType: lines
           coverageThreshold: $(coverage.goal)
-
