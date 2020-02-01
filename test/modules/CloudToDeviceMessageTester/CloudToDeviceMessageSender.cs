@@ -10,7 +10,6 @@ namespace CloudToDeviceMessageTester
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using static CloudToDeviceMessageTester.CloudToDeviceMessageTesterMetadata;
 
     sealed class CloudToDeviceMessageSender : ICloudToDeviceMessageTester
     {
@@ -28,8 +27,8 @@ namespace CloudToDeviceMessageTester
 
         internal CloudToDeviceMessageSender(
             ILogger logger,
-            SharedMetadata sharedMetadata,
-            SenderMetadata senderMetadata,
+            C2DTestSharedSettings sharedMetadata,
+            C2DTestSenderSettings senderMetadata,
             TestResultReportingClient testResultReportingClient)
         {
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));

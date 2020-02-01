@@ -13,7 +13,6 @@ namespace CloudToDeviceMessageTester
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using static global::CloudToDeviceMessageTester.CloudToDeviceMessageTesterMetadata;
 
     sealed class CloudToDeviceMessageReceiver : ICloudToDeviceMessageTester
     {
@@ -33,8 +32,8 @@ namespace CloudToDeviceMessageTester
 
         internal CloudToDeviceMessageReceiver(
             ILogger logger,
-            SharedMetadata sharedMetadata,
-            ReceiverMetadata receiverMetadata,
+            C2DTestSharedSettings sharedMetadata,
+            C2DTestReceiverSettings receiverMetadata,
             TestResultReportingClient testResultReportingClient)
         {
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
@@ -70,7 +69,7 @@ namespace CloudToDeviceMessageTester
         {
             IEnumerable<X509Certificate2> certs = await CertificateHelper.GetTrustBundleFromEdgelet(new Uri(this.workloadUri), this.apiVersion, this.workloadClientApiVersion, this.moduleId, this.moduleGenerationId);
             OsPlatform.Current.InstallCaCertificates(certs, ((Protocol)Enum.Parse(typeof(Protocol), this.transportType.ToString())).ToTransportSettings());
-            // TODO: you can install certificate on Windows by script, you need to implement certificate verification callback handler.
+            // TODO: You cannot install certificate on Windows by script - we need to implement certificate verification callback handler.
             Microsoft.Azure.Devices.RegistryManager registryManager = null;
             try
             {

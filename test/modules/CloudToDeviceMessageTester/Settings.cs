@@ -8,7 +8,6 @@ namespace CloudToDeviceMessageTester
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
-    using static CloudToDeviceMessageTester.CloudToDeviceMessageTesterMetadata;
 
     class Settings
     {
@@ -39,7 +38,7 @@ namespace CloudToDeviceMessageTester
             this.TestMode = testMode;
             this.ReportingEndpointUrl = Preconditions.CheckNotNull(reportingEndpointUrl, nameof(reportingEndpointUrl));
 
-            this.SharedMetadata = new SharedMetadata()
+            this.SharedMetadata = new C2DTestSharedSettings()
             {
                 IotHubConnectionString = Preconditions.CheckNonWhiteSpace(iotHubConnectionString, nameof(iotHubConnectionString)),
                 DeviceId = deviceId + "-" + transportType.ToString() + "-leaf",
@@ -48,7 +47,7 @@ namespace CloudToDeviceMessageTester
 
             if (testMode == CloudToDeviceMessageTesterMode.Receiver)
             {
-                this.ReceiverMetadata = new ReceiverMetadata()
+                this.ReceiverMetadata = new C2DTestReceiverSettings()
                 {
                     GatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName)),
                     WorkloadUri = Preconditions.CheckNonWhiteSpace(workloadUri, nameof(workloadUri)),
@@ -60,7 +59,7 @@ namespace CloudToDeviceMessageTester
             }
             else
             {
-                this.SenderMetadata = new SenderMetadata()
+                this.SenderMetadata = new C2DTestSenderSettings()
                 {
                     TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId)),
                     MessageDelay = messageDelay,
@@ -96,11 +95,11 @@ namespace CloudToDeviceMessageTester
                 configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)));
         }
 
-        internal SharedMetadata SharedMetadata { get; }
+        internal C2DTestSharedSettings SharedMetadata { get; }
 
-        internal ReceiverMetadata ReceiverMetadata { get; }
+        internal C2DTestReceiverSettings ReceiverMetadata { get; }
 
-        internal SenderMetadata SenderMetadata { get; }
+        internal C2DTestSenderSettings SenderMetadata { get; }
 
         internal CloudToDeviceMessageTesterMode TestMode { get; }
 
