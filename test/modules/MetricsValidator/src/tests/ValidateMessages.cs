@@ -1,18 +1,16 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace MetricsValidator
+namespace MetricsValidator.Tests
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Runtime.CompilerServices;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Logging;
 
     public class ValidateMessages : TestBase
     {
@@ -23,10 +21,8 @@ namespace MetricsValidator
         {
         }
 
-        public override async Task Start(CancellationToken cancellationToken)
+        protected override async Task Test(CancellationToken cancellationToken)
         {
-            log.LogInformation($"Starting {nameof(ValidateMessages)}");
-
             // This must be first, since message size is only recorded per module
             await this.TestMessageSize(cancellationToken);
 

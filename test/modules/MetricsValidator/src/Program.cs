@@ -9,6 +9,7 @@ namespace MetricsValidator
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using MetricsValidator.Tests;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
@@ -51,9 +52,14 @@ namespace MetricsValidator
                             {
                                 new ValidateMessages(testReporter, scraper, moduleClient),
                                 new ValidateDocumentedMetrics(testReporter, scraper, moduleClient),
+                                new ValidateHostRanges(testReporter, scraper, moduleClient),
                             };
 
-                            await Task.WhenAll(tests.Select(test => test.Start(cts.Token)));
+                            using (testReporter.MeasureDuration())
+                            {
+                                await Task.WhenAll(tests.Select(test => test.Start(cts.Token)));
+                            }
+
                             return new MethodResponse(Encoding.UTF8.GetBytes(testReporter.ReportResults()), (int)HttpStatusCode.OK);
                         },
                         null);
