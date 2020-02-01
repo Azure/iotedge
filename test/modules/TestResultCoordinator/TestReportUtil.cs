@@ -3,9 +3,17 @@ namespace TestResultCoordinator
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+    using System.Threading;
     using System.Threading.Tasks;
+    using Azure.Storage.Blobs;
+    using Microsoft.Azure.Devices;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using Microsoft.WindowsAzure.Storage;
+    using Microsoft.WindowsAzure.Storage.Blob;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using TestResultCoordinator.Reports;
@@ -103,9 +111,100 @@ namespace TestResultCoordinator
             return reportMetadataList;
         }
 
+        internal static async Task<Uri> GetOrCreateBlobContainerSasUriForLogAsync(string storageAccountConnectionString)
+        {
+            string containerName = GetAzureBlobContainerNameForLog();
+            var containerClient = new BlobContainerClient(storageAccountConnectionString, containerName);
+
+            if (!await containerClient.ExistsAsync())
+            {
+                await containerClient.CreateAsync();
+            }
+
+            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(storageAccountConnectionString);
+            var container = new CloudBlobContainer(containerClient.Uri, storageAccount.Credentials);
+            return GetContainerSasUri(container);
+        }
+
+        internal static async Task UploadLogsAsync(string iotHubConnectionString, Uri blobContainerWriteUri, ILogger logger)
+        {
+            Preconditions.CheckNonWhiteSpace(iotHubConnectionString, nameof(iotHubConnectionString));
+            Preconditions.CheckNotNull(blobContainerWriteUri, nameof(blobContainerWriteUri));
+            Preconditions.CheckNotNull(logger, nameof(logger));
+
+            DateTime uploadLogStartAt = DateTime.UtcNow;
+            logger.LogInformation("Send upload logs request to edgeAgent.");
+
+            ServiceClient serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
+            CloudToDeviceMethod uploadLogRequest =
+                new CloudToDeviceMethod("UploadLogs")
+                    .SetPayloadJson($"{{ \"schemaVersion\": \"1.0\", \"sasUrl\": \"{blobContainerWriteUri.AbsoluteUri}\", \"items\": [{{ \"id\": \".*\", \"filter\": {{}} }}], \"encoding\": \"gzip\", \"contentType\": \"json\" }}");
+            CloudToDeviceMethodResult uploadLogResponse = await serviceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", uploadLogRequest);
+
+            (string status, string correlationId) = GetUploadLogResponseResult(uploadLogResponse.GetPayloadAsJson());
+            logger.LogInformation($"Upload logs response: status={status}, correlationId={correlationId}");
+
+            int checkUploadStatusPeriod = 60 * 1000;    // 1 min
+            while (!string.Equals(status, UploadLogResponseStatus.Completed.ToString(), StringComparison.OrdinalIgnoreCase))
+            {
+                await Task.Delay(checkUploadStatusPeriod);
+                CloudToDeviceMethod getTaskStatusRequest =
+                new CloudToDeviceMethod("GetTaskStatus")
+                    .SetPayloadJson($"{{ \"schemaVersion\": \"1.0\", \"correlationId\": \"{correlationId}\" }}");
+                CloudToDeviceMethodResult getTaskStatusResponse = await serviceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", getTaskStatusRequest);
+                (status, _) = GetUploadLogResponseResult(getTaskStatusResponse.GetPayloadAsJson());
+            }
+
+            // Complete upload log to Azure blob
+            DateTime uploadLogFinishAt = DateTime.UtcNow;
+            logger.LogInformation($"Upload logs was started at {uploadLogStartAt} and completed at {uploadLogFinishAt}; and took {uploadLogFinishAt - uploadLogStartAt}.");
+        }
+
         static TEnum GetEnumValueFromReportMetadata<TEnum>(JToken metadata, string key)
         {
             return (TEnum)Enum.Parse(typeof(TEnum), ((JProperty)metadata).Value[key].ToString());
+        }
+
+        static (string status, string correlationId) GetUploadLogResponseResult(string responseJson)
+        {
+            IEnumerable<UploadLogResponseStatus> validResponseStatuses = Enum.GetValues(typeof(UploadLogResponseStatus)).Cast<UploadLogResponseStatus>();
+
+            JObject responseObj = JObject.Parse(responseJson);
+            string status = ((JValue)responseObj["status"]).ToString();
+            string correlationId = ((JValue)responseObj["correlationId"]).ToString();
+
+            if (!validResponseStatuses.Any(s => string.Equals(s.ToString(), status, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new ApplicationException($"Upload log response status is {status} with correlation id {correlationId}, which is invalid.");
+            }
+
+            return (status, correlationId);
+        }
+
+        static string GetAzureBlobContainerNameForLog()
+        {
+            return $"logs{DateTime.UtcNow.ToString("yyyyMMdd")}";
+        }
+
+        static Uri GetContainerSasUri(CloudBlobContainer container)
+        {
+            var adHocPolicy = new SharedAccessBlobPolicy()
+            {
+                // When the start time for the SAS is omitted, the start time is assumed to be the time when the storage service receives the request.
+                // Omitting the start time for a SAS that is effective immediately helps to avoid clock skew.
+                SharedAccessExpiryTime = DateTime.UtcNow.AddHours(1),
+                Permissions = SharedAccessBlobPermissions.Write | SharedAccessBlobPermissions.List
+            };
+
+            string sasContainerToken = container.GetSharedAccessSignature(adHocPolicy, null);
+            return new Uri(container.Uri + sasContainerToken);
+        }
+
+        enum UploadLogResponseStatus
+        {
+            NotStarted,
+            Running,
+            Completed
         }
     }
 }
