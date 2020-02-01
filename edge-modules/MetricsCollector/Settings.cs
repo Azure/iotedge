@@ -19,7 +19,6 @@ namespace MetricsCollector
             string logAnalyticsLogType,
             string endpoints,
             int scrapeFrequencySecs,
-            string testType,
             UploadTarget uploadTarget)
         {
             if (uploadTarget == UploadTarget.AzureLogAnalytics)
@@ -43,7 +42,6 @@ namespace MetricsCollector
                 throw new ArgumentException("No endpoints specified for which to scrape metrics");
             }
 
-            this.TestType = Preconditions.CheckNonWhiteSpace(testType, nameof(testType));
             this.ScrapeFrequencySecs = Preconditions.CheckRange(scrapeFrequencySecs, 1);
             this.UploadTarget = uploadTarget;
         }
@@ -74,8 +72,6 @@ namespace MetricsCollector
         public List<string> Endpoints { get; }
 
         public int ScrapeFrequencySecs { get; }
-
-        public string TestType { get; }
 
         public UploadTarget UploadTarget { get; }
 
