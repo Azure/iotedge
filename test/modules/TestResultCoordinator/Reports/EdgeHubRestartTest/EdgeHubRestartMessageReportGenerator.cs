@@ -50,7 +50,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         {
             Logger.LogInformation($"Generating report: {nameof(EdgeHubRestartMessageReport)} for [{this.Metadata.SenderSource}] and [{this.Metadata.ReceiverSource}]");
 
-            bool isResultMatched = true;
+            bool isPassing = true;
             
             // Value: (source, numOfMessage)
             Dictionary<string, ulong> messageCount = new Dictionary<string, ulong>()
@@ -84,10 +84,10 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 messageCount[nameof(this.SenderTestResults)]++;
                 messageCount[nameof(this.ReceiverTestResults)]++;
 
-                // this.SenderTestResults.Current.Result ---Deserialize()--> EdgeHubRestartMessageResult/EdgeHubRestartDirectMethodResult
                 // Adjust seqeunce number from both source to be equal before doing any comparison
+                EdgeHubRestartMessageResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(this.SenderTestResults.Current.Result);
                 long receiverSeqNum = ParseReceiverSequenceNumber(this.ReceiverTestResults.Current.Result);
-                long senderSeqNum = ParseSenderSequenceNumber(this.SenderTestResults.Current.Result);
+                long senderSeqNum = ParseSenderSequenceNumber(senderResult.SequenceNumber);
 
                 if (receiverSeqNum > senderSeqNum)
                 {
@@ -101,10 +101,9 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                         completedStatusHistogram);
 
                     // Fail the test
-                    isResultMatched = false;
-
-                    // The resuls has enough info to fill out the whole 4 necessary param
+                    isPassing = false;
                 }
+
                 if (receiverSeqNum < senderSeqNum)
                 {
                     // Increment receiver result to have the same seq as the sender
@@ -115,19 +114,16 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                         messageCount);
 
                     // Fail the test
-                    isResultMatched = false;
+                    isPassing = false;
 
                     // BEARWASHERE -- The stats cannot be reported. Make sure these result entries are represent in the warning.
                 }
 
-                // BEARWASHERE -- Think about re-using logic IncrementAdjustSequenceNumberAsync() to deal with single source result is presence
-                // May need to create another delegate and pass it in to do the data extracting & verification depending on which source.
-
-                EdgeHubRestartMessageResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(this.SenderTestResults.Current.Result);
+                senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(this.SenderTestResults.Current.Result);
                 string receiverResult = this.ReceiverTestResults.Current.Result;
 
                 // Verified "TrackingId;BatchId;SequenceNumber" altogether.
-                isResultMatched &= (senderResult.GetMessageTestResult() != receiverResult);
+                isPassing &= (senderResult.GetMessageTestResult() != receiverResult);
 
                 // Extract restart status code
                 this.IncrementRestartStatusHistogram(
@@ -142,23 +138,31 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 hasReceiverResult = await this.ReceiverTestResults.MoveNextAsync();
             }
 
-            while (hasSenderResult)
-            {
-                hasSenderResult = await this.SenderTestResults.MoveNextAsync();
+            // Fail the test
+            isPassing &= !(hasSenderResult ^ hasReceiverResult);
+            
+            await IncrementSenderSequenceNumberAsync(
+                this.SenderTestResults,
+                nameof(this.SenderTestResults),
+                long.MaxValue,
+                messageCount,
+                restartStatusHistogram,
+                completedStatusHistogram);
+            
+            await IncrementReceiverSequenceNumberAsync(
+                this.ReceiverTestResults,
+                nameof(this.ReceiverTestResults),
+                long.MaxValue,
+                messageCount);
 
-                // Log queue items
-                Logger.LogError($"Unexpected actual test result: {this.ActualTestResults.Current.Source}, {this.ActualTestResults.Current.Type}, {this.ActualTestResults.Current.Result} at {this.ActualTestResults.Current.CreatedAt}");
-            }
 
-
-
-                // TODO: In report,
-                //    - Calculate min, max, mean, med restartPeriod.
-                //    - Use Max(completedRestartPeriod[HttpStatusCode.OK]) to check if it always less the PassableThreshold
-                //    - Report numFailedToRestart > 0 but does not count towards failure, give a warning though
-                //    - Report messagePreRestart > 1 failure the test citing test code malfunction.
-                //    - Check if the time is exceeding the threshold
-                //    - Give a warning if the restart cycle does not contain only a message sent.
+            // TODO: In report,
+            //    - Calculate min, max, mean, med restartPeriod.
+            //    - Use Max(completedRestartPeriod[HttpStatusCode.OK]) to check if it always less the PassableThreshold
+            //    - Report numFailedToRestart > 0 but does not count towards failure, give a warning though
+            //    - Report messagePreRestart > 1 failure the test citing test code malfunction.
+            //    - Check if the time is exceeding the threshold
+            //    - Give a warning if the restart cycle does not contain only a message sent.
 
 
 
@@ -191,7 +195,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             {
                 messageCount[key]++;
 
-                // Update restart count
+                // Update histrograms
                 this.IncrementRestartStatusHistogram(
                     senderResult.EdgeHubRestartStatusCode,
                     restartStatusHistogram);
