@@ -60,10 +60,10 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             };
 
             // Value: (restartStatusCode, numOfTimesTheStatusCodeHappened)
-            Dictionary<HttpStatusCode, ulong> restartStatusCount = new Dictionary<HttpStatusCode, ulong>();
+            Dictionary<HttpStatusCode, ulong> restartStatusHistogram = new Dictionary<HttpStatusCode, ulong>();
 
             // Value: (completedStatusCode, MessageCompletedTime - EdgeHubRestartedTime)
-            Dictionary<HttpStatusCode, List<TimeSpan>> completedRestartPeriod = new Dictionary<HttpStatusCode, List<TimeSpan>>();
+            Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram = new Dictionary<HttpStatusCode, List<TimeSpan>>();
 
             bool hasSenderResult = await this.SenderTestResults.MoveNextAsync();
             bool hasReceiverResult = await this.ReceiverTestResults.MoveNextAsync();
@@ -91,21 +91,33 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
                 if (receiverSeqNum > senderSeqNum)
                 {
-                    await IncrementAdjustSequenceNumberAsync(
+                    // Increment sender result to have the same seq as the receiver
+                    await IncrementSenderSequenceNumberAsync(
                         this.SenderTestResults,
                         nameof(this.SenderTestResults),
-                        ParseSenderSequenceNumber,
                         receiverSeqNum,
-                        messageCount);
+                        messageCount,
+                        restartStatusHistogram,
+                        completedStatusHistogram);
+
+                    // Fail the test
+                    isResultMatched = false;
+
+                    // The resuls has enough info to fill out the whole 4 necessary param
                 }
                 if (receiverSeqNum < senderSeqNum)
                 {
-                    await IncrementAdjustSequenceNumberAsync(
+                    // Increment receiver result to have the same seq as the sender
+                    await IncrementReceiverSequenceNumberAsync(
                         this.ReceiverTestResults,
                         nameof(this.ReceiverTestResults),
-                        ParseReceiverSequenceNumber,
                         senderSeqNum,
                         messageCount);
+
+                    // Fail the test
+                    isResultMatched = false;
+
+                    // BEARWASHERE -- The stats cannot be reported. Make sure these result entries are represent in the warning.
                 }
 
                 // BEARWASHERE -- Think about re-using logic IncrementAdjustSequenceNumberAsync() to deal with single source result is presence
@@ -118,18 +130,13 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 isResultMatched &= (senderResult.GetMessageTestResult() != receiverResult);
 
                 // Extract restart status code
-                HttpStatusCode restartStatus = senderResult.EdgeHubRestartStatusCode;
-                if (!restartStatusCount.TryAdd(restartStatus, 1))
-                {
-                    restartStatusCount[restartStatus]++;
-                }
+                this.IncrementRestartStatusHistogram(
+                    senderResult.EdgeHubRestartStatusCode,
+                    restartStatusHistogram);
 
-                // Extract completedMessageStatus and the time it takes to complete.
-                HttpStatusCode completedStatus = senderResult.MessageCompletedStatusCode;
-                TimeSpan completedPeriod = senderResult.MessageCompletedTime - senderResult.EdgeHubRestartedTime;
-                // Try to allocate the list if it is the first time HttpStatusCode shows up
-                completedRestartPeriod.TryAdd(completedStatus, new List<TimeSpan>());
-                completedRestartPeriod[completedStatus].Add(completedPeriod);
+                this.AddEntryToCompletedStatusHistogram(
+                    senderResult,
+                    completedStatusHistogram);
 
                 hasSenderResult = await this.SenderTestResults.MoveNextAsync();
                 hasReceiverResult = await this.ReceiverTestResults.MoveNextAsync();
@@ -167,37 +174,53 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 this.Metadata.ReceiverSource);
         }
 
-        long ParseReceiverSequenceNumber(string result)
-        {
-            long seqNum;
-            long.TryParse(result.Split(';').LastOrDefault(), out seqNum);
-            return seqNum;
-        }
-
-        long ParseSenderSequenceNumber(string result)
-        {
-            EdgeHubRestartMessageResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(result);
-            long seqNum;
-            long.TryParse(senderResult.SequenceNumber, out seqNum);
-            return seqNum;
-        }
-
-        async Task IncrementAdjustSequenceNumberAsync(
+        async Task IncrementSenderSequenceNumberAsync(
             ITestResultCollection<TestOperationResult> resultCollection,
             string key,
-            parsingSequenceNumber parse,
+            long targetSequenceNumber,
+            Dictionary<string, ulong> messageCount,
+            Dictionary<HttpStatusCode, ulong> restartStatusHistogram,
+            Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram)
+        {
+            bool isNotEmpty = true;
+
+            EdgeHubRestartMessageResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(resultCollection.Current.Result);
+            long seqNum = ParseSenderSequenceNumber(senderResult.SequenceNumber);
+
+            while ((seqNum < targetSequenceNumber) && isNotEmpty)
+            {
+                messageCount[key]++;
+
+                // Update restart count
+                this.IncrementRestartStatusHistogram(
+                    senderResult.EdgeHubRestartStatusCode,
+                    restartStatusHistogram);
+
+                this.AddEntryToCompletedStatusHistogram(
+                    senderResult,
+                    completedStatusHistogram);
+
+                isNotEmpty = await resultCollection.MoveNextAsync();
+                senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(resultCollection.Current.Result);
+                seqNum = ParseSenderSequenceNumber(senderResult.SequenceNumber);
+            }
+        }
+
+        async Task IncrementReceiverSequenceNumberAsync(
+            ITestResultCollection<TestOperationResult> resultCollection,
+            string key,
             long targetSequenceNumber,
             Dictionary<string, ulong> messageCount)
         {
             bool isNotEmpty = true;
-            long seqNum = parse(resultCollection.Current.Result);
+            long seqNum = ParseReceiverSequenceNumber(resultCollection.Current.Result);
 
             while ((seqNum < targetSequenceNumber) && isNotEmpty)
             {
                 messageCount[key]++;
 
                 isNotEmpty = await resultCollection.MoveNextAsync();
-                seqNum = parse(resultCollection.Current.Result);
+                seqNum = ParseReceiverSequenceNumber(resultCollection.Current.Result);
             }
         }
 
@@ -215,6 +238,42 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             {
                 throw new InvalidDataException($"Result type is '{result.Type}' but expected should be '{testOperationResultType}'.");
             }
+        }
+
+        //////////////////////////////////////////////////////////////// HELPER LAND
+        void IncrementRestartStatusHistogram(
+            HttpStatusCode key,
+            Dictionary<HttpStatusCode, ulong> histogram)
+        {
+            if (!histogram.TryAdd(key, 1))
+            {
+                histogram[key]++;
+            }
+        }
+
+        void AddEntryToCompletedStatusHistogram(
+            EdgeHubRestartMessageResult senderResult,
+            Dictionary<HttpStatusCode, List<TimeSpan>> histogram)
+        {
+            HttpStatusCode completedStatus = senderResult.MessageCompletedStatusCode;
+            TimeSpan completedPeriod = senderResult.MessageCompletedTime - senderResult.EdgeHubRestartedTime;
+            // Try to allocate the list if it is the first time HttpStatusCode shows up
+            histogram.TryAdd(completedStatus, new List<TimeSpan>());
+            histogram[completedStatus].Add(completedPeriod);
+        }
+
+        long ParseReceiverSequenceNumber(string result)
+        {
+            long seqNum;
+            long.TryParse(result.Split(';').LastOrDefault(), out seqNum);
+            return seqNum;
+        }
+
+        long ParseSenderSequenceNumber(string seqNumString)
+        {
+            long seqNum;
+            long.TryParse(seqNumString, out seqNum);
+            return seqNum;
         }
     }
 }
