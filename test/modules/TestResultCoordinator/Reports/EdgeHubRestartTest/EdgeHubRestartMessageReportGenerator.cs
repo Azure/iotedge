@@ -4,6 +4,8 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
+    using System.Linq.Expressions;
     using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
@@ -15,6 +17,8 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
     sealed class EdgeHubRestartMessageReportGenerator : ITestResultReportGenerator
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(EdgeHubRestartMessageReportGenerator));
+
+        delegate long parsingSequenceNumber(string seqNumString);
 
         internal EdgeHubRestartMessageReportGenerator(
             string trackingId,
@@ -46,7 +50,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         {
             Logger.LogInformation($"Generating report: {nameof(EdgeHubRestartMessageReport)} for [{this.Metadata.SenderSource}] and [{this.Metadata.ReceiverSource}]");
 
-            bool isPassed = true;
+            bool isResultMatched = true;
             
             // Value: (source, numOfMessage)
             Dictionary<string, ulong> messageCount = new Dictionary<string, ulong>()
@@ -57,24 +61,14 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
             // Value: (restartStatusCode, numOfTimesTheStatusCodeHappened)
             Dictionary<HttpStatusCode, ulong> restartStatusCount = new Dictionary<HttpStatusCode, ulong>();
-            ulong numSuccessRestart = 0;
-            // Check restart HttpStatusCode and if not HTTP.OK, increment this number.
-            // The result of failed restart will not be added to completedRestartPeriod.
-            ulong numFailedToRestart = 0;
 
-            // TODO: pass this dict and numFailedToRestart to the report
             // Value: (completedStatusCode, MessageCompletedTime - EdgeHubRestartedTime)
-            // TODO: In report,
-            //    - Calculate min, max, mean, med restartPeriod.
-            //    - Use Max(completedRestartPeriod[HttpStatusCode.OK]) to check if it always less the PassableThreshold
-            //    - Report numFailedToRestart > 0 but does not count towards failure, give a warning though
-            //    - Report messagePreRestart > 1 failure the test citing test code malfunction.
             Dictionary<HttpStatusCode, List<TimeSpan>> completedRestartPeriod = new Dictionary<HttpStatusCode, List<TimeSpan>>();
 
-            bool hasExpectedResult = await this.SenderTestResults.MoveNextAsync();
-            bool hasActualResult = await this.ReceiverTestResults.MoveNextAsync();
+            bool hasSenderResult = await this.SenderTestResults.MoveNextAsync();
+            bool hasReceiverResult = await this.ReceiverTestResults.MoveNextAsync();
 
-            while (hasExpectedResult && hasActualResult)
+            while (hasSenderResult && hasReceiverResult)
             {
                 this.ValidateResult(
                     this.SenderTestResults.Current,
@@ -90,35 +84,75 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 messageCount[nameof(this.SenderTestResults)]++;
                 messageCount[nameof(this.ReceiverTestResults)]++;
 
-                //this.SenderTestResults.Current.Result ---Deserialize()--> EdgeHubRestartMessageResult/EdgeHubRestartDirectMethodResult
+                // this.SenderTestResults.Current.Result ---Deserialize()--> EdgeHubRestartMessageResult/EdgeHubRestartDirectMethodResult
+                // Adjust seqeunce number from both source to be equal before doing any comparison
+                long receiverSeqNum = ParseReceiverSequenceNumber(this.ReceiverTestResults.Current.Result);
+                long senderSeqNum = ParseSenderSequenceNumber(this.SenderTestResults.Current.Result);
+
+                if (receiverSeqNum > senderSeqNum)
+                {
+                    await IncrementAdjustSequenceNumberAsync(
+                        this.SenderTestResults,
+                        nameof(this.SenderTestResults),
+                        ParseSenderSequenceNumber,
+                        receiverSeqNum,
+                        messageCount);
+                }
+                if (receiverSeqNum < senderSeqNum)
+                {
+                    await IncrementAdjustSequenceNumberAsync(
+                        this.ReceiverTestResults,
+                        nameof(this.ReceiverTestResults),
+                        ParseReceiverSequenceNumber,
+                        senderSeqNum,
+                        messageCount);
+                }
+
                 EdgeHubRestartMessageResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(this.SenderTestResults.Current.Result);
+                string receiverResult = this.ReceiverTestResults.Current.Result;
 
                 // Verified "TrackingId;BatchId;SequenceNumber" altogether.
-                isPassed &= (senderResult.GetMessageTestResult() != this.ReceiverTestResults.Current.Result);
+                isResultMatched &= (senderResult.GetMessageTestResult() != receiverResult);
 
-                // Check if EH restart status is Http 200
-                //isPassed &= (senderResult.EdgeHubRestartStatusCode == HttpStatusCode.OK);
+                // Extract restart status code
                 HttpStatusCode restartStatus = senderResult.EdgeHubRestartStatusCode;
                 if (!restartStatusCount.TryAdd(restartStatus, 1))
                 {
                     restartStatusCount[restartStatus]++;
                 }
 
-                // Check if message status is HTTP200
-                isPassed &= (senderResult.MessageCompletedStatusCode == HttpStatusCode.OK);
+                // Extract completedMessageStatus and the time it takes to complete.
+                HttpStatusCode completedStatus = senderResult.MessageCompletedStatusCode;
+                TimeSpan completedPeriod = senderResult.MessageCompletedTime - senderResult.EdgeHubRestartedTime;
+                // Try to allocate the list if it is the first time HttpStatusCode shows up
+                completedRestartPeriod.TryAdd(completedStatus, new List<TimeSpan>());
+                completedRestartPeriod[completedStatus].Add(completedPeriod);
 
-                // Check if the time is exceeding the threshold
-                isPassed &= (this.Metadata.PassableEdgeHubRestartPeriod >= (senderResult.MessageCompletedTime - senderResult.EdgeHubRestartedTime));
+                hasSenderResult = await this.SenderTestResults.MoveNextAsync();
+                hasReceiverResult = await this.ReceiverTestResults.MoveNextAsync();
+            }
 
-                // Check the sender's TRC if
-                // - the sequence is in order
-                // - if the status code would fit this nicely
-                // - 
+            while (hasSenderResult)
+            {
+                hasSenderResult = await this.SenderTestResults.MoveNextAsync();
+
+                // Log queue items
+                Logger.LogError($"Unexpected actual test result: {this.ActualTestResults.Current.Source}, {this.ActualTestResults.Current.Type}, {this.ActualTestResults.Current.Result} at {this.ActualTestResults.Current.CreatedAt}");
             }
 
 
 
-            // Give a warning if the restart cycle does not contain only a message sent.
+                // TODO: In report,
+                //    - Calculate min, max, mean, med restartPeriod.
+                //    - Use Max(completedRestartPeriod[HttpStatusCode.OK]) to check if it always less the PassableThreshold
+                //    - Report numFailedToRestart > 0 but does not count towards failure, give a warning though
+                //    - Report messagePreRestart > 1 failure the test citing test code malfunction.
+                //    - Check if the time is exceeding the threshold
+                //    - Give a warning if the restart cycle does not contain only a message sent.
+
+
+
+            
 
             // BEARWASHERE -- TODO: Deal w/ dups
 
@@ -128,6 +162,40 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 this.Metadata.TestReportType.ToString(),
                 this.Metadata.SenderSource,
                 this.Metadata.ReceiverSource);
+        }
+
+        long ParseReceiverSequenceNumber(string result)
+        {
+            long seqNum;
+            long.TryParse(result.Split(';').LastOrDefault(), out seqNum);
+            return seqNum;
+        }
+
+        long ParseSenderSequenceNumber(string result)
+        {
+            EdgeHubRestartMessageResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(result);
+            long seqNum;
+            long.TryParse(senderResult.SequenceNumber, out seqNum);
+            return seqNum;
+        }
+
+        async Task IncrementAdjustSequenceNumberAsync(
+            ITestResultCollection<TestOperationResult> resultCollection,
+            string key,
+            parsingSequenceNumber parse,
+            long targetSequenceNumber,
+            Dictionary<string, ulong> messageCount)
+        {
+            bool isNotEmpty = true;
+            long seqNum = parse(resultCollection.Current.Result);
+
+            while ((seqNum < targetSequenceNumber) && isNotEmpty)
+            {
+                messageCount[key]++;
+
+                isNotEmpty = await resultCollection.MoveNextAsync();
+                seqNum = parse(resultCollection.Current.Result);
+            }
         }
 
         void ValidateResult(
