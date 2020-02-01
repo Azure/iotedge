@@ -5,7 +5,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using System.Linq.Expressions;
     using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
@@ -17,8 +16,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
     sealed class EdgeHubRestartMessageReportGenerator : ITestResultReportGenerator
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(EdgeHubRestartMessageReportGenerator));
-
-        delegate long parsingSequenceNumber(string seqNumString);
 
         internal EdgeHubRestartMessageReportGenerator(
             string trackingId,
@@ -115,9 +112,11 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
                     // Fail the test
                     isPassing = false;
-
-                    // BEARWASHERE -- The stats cannot be reported. Make sure these result entries are represent in the warning.
                 }
+
+                // Note: In the current verification, if the receiver obtained more result message than 
+                //   sender, the test is consider a fail. We are disregarding duplicated/unique seqeunce number 
+                //   of receiver's result.
 
                 senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(this.SenderTestResults.Current.Result);
                 string receiverResult = this.ReceiverTestResults.Current.Result;
@@ -155,22 +154,27 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 long.MaxValue,
                 messageCount);
 
+            return VerifyResults(
+                isPassing,
+                messageCount,
+                restartStatusHistogram,
+                completedStatusHistogram);
+        }
 
+        EdgeHubRestartMessageReport VerifyResults(
+            bool isPassing,
+            Dictionary<string, ulong> messageCount,
+            Dictionary<HttpStatusCode, ulong> restartStatusHistogram,
+            Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram)
+        {
             // TODO: In report,
             //    - Calculate min, max, mean, med restartPeriod.
-            //    - Use Max(completedRestartPeriod[HttpStatusCode.OK]) to check if it always less the PassableThreshold
+            //    - Use Max(completedStatusHistogram[HttpStatusCode.OK]) to check if it always less the PassableThreshold
             //    - Report numFailedToRestart > 0 but does not count towards failure, give a warning though
             //    - Report messagePreRestart > 1 failure the test citing test code malfunction.
-            //    - Check if the time is exceeding the threshold
-            //    - Give a warning if the restart cycle does not contain only a message sent.
-
-
-
+            //    - Give a warning if the restart cycle does not contain only a message sent (more than 1 message)
             
-
-            // BEARWASHERE -- TODO: Deal w/ dups
-
-            // BEARWASHERE -- Define the report format
+            // BEARWASHERE -- TODO
             return new EdgeHubRestartMessageReport(
                 this.TrackingId,
                 this.Metadata.TestReportType.ToString(),
