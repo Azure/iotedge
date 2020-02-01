@@ -38,7 +38,7 @@ namespace CloudToDeviceMessageTester
             this.TestMode = testMode;
             this.ReportingEndpointUrl = Preconditions.CheckNotNull(reportingEndpointUrl, nameof(reportingEndpointUrl));
 
-            this.SharedMetadata = new C2DTestSharedSettings()
+            this.SharedSettings = new C2DTestSharedSettings()
             {
                 IotHubConnectionString = Preconditions.CheckNonWhiteSpace(iotHubConnectionString, nameof(iotHubConnectionString)),
                 DeviceId = deviceId + "-" + transportType.ToString() + "-leaf",
@@ -47,7 +47,7 @@ namespace CloudToDeviceMessageTester
 
             if (testMode == CloudToDeviceMessageTesterMode.Receiver)
             {
-                this.ReceiverMetadata = new C2DTestReceiverSettings()
+                this.ReceiverSettings = new C2DTestReceiverSettings()
                 {
                     GatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName)),
                     WorkloadUri = Preconditions.CheckNonWhiteSpace(workloadUri, nameof(workloadUri)),
@@ -59,7 +59,7 @@ namespace CloudToDeviceMessageTester
             }
             else
             {
-                this.SenderMetadata = new C2DTestSenderSettings()
+                this.SenderSettings = new C2DTestSenderSettings()
                 {
                     TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId)),
                     MessageDelay = messageDelay,
@@ -95,11 +95,11 @@ namespace CloudToDeviceMessageTester
                 configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)));
         }
 
-        internal C2DTestSharedSettings SharedMetadata { get; }
+        internal C2DTestSharedSettings SharedSettings { get; }
 
-        internal C2DTestReceiverSettings ReceiverMetadata { get; }
+        internal C2DTestReceiverSettings ReceiverSettings { get; }
 
-        internal C2DTestSenderSettings SenderMetadata { get; }
+        internal C2DTestSenderSettings SenderSettings { get; }
 
         internal CloudToDeviceMessageTesterMode TestMode { get; }
 
@@ -110,18 +110,43 @@ namespace CloudToDeviceMessageTester
             // serializing in this pattern so that secrets don't accidentally get added anywhere in the future
             var fields = new Dictionary<string, string>()
             {
-                { nameof(this.SharedMetadata.ModuleId), this.SharedMetadata.ModuleId },
-                { nameof(this.SharedMetadata.DeviceId), this.SharedMetadata.DeviceId },
+                { nameof(this.SharedSettings.ModuleId), this.SharedSettings.ModuleId },
+                { nameof(this.SharedSettings.DeviceId), this.SharedSettings.DeviceId },
                 { nameof(this.TestMode), this.TestMode.ToString() },
-                { nameof(this.SenderMetadata.TestDuration), this.SenderMetadata.TestDuration.ToString() },
-                { nameof(this.SenderMetadata.TestStartDelay), this.SenderMetadata.TestStartDelay.ToString() },
-                { nameof(this.SenderMetadata.TrackingId), this.SenderMetadata.TrackingId },
-                { nameof(this.ReceiverMetadata.TransportType), Enum.GetName(typeof(TransportType), this.ReceiverMetadata.TransportType) },
-                { nameof(this.SenderMetadata.MessageDelay), this.SenderMetadata.MessageDelay.ToString() },
+                { nameof(this.SenderSettings.TestDuration), this.SenderSettings.TestDuration.ToString() },
+                { nameof(this.SenderSettings.TestStartDelay), this.SenderSettings.TestStartDelay.ToString() },
+                { nameof(this.SenderSettings.TrackingId), this.SenderSettings.TrackingId },
+                { nameof(this.ReceiverSettings.TransportType), Enum.GetName(typeof(TransportType), this.ReceiverSettings.TransportType) },
+                { nameof(this.SenderSettings.MessageDelay), this.SenderSettings.MessageDelay.ToString() },
                 { nameof(this.ReportingEndpointUrl), this.ReportingEndpointUrl.ToString() },
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
         }
+    }
+
+    public struct C2DTestSharedSettings
+    {
+        public string IotHubConnectionString;
+        public string DeviceId;
+        public string ModuleId;
+    }
+
+    public struct C2DTestReceiverSettings
+    {
+        public TransportType TransportType;
+        public string GatewayHostName;
+        public string WorkloadUri;
+        public string ApiVersion;
+        public string ModuleGenerationId;
+        public string IotHubHostName;
+    }
+
+    public struct C2DTestSenderSettings
+    {
+        public string TrackingId;
+        public TimeSpan MessageDelay;
+        public TimeSpan TestStartDelay;
+        public TimeSpan TestDuration;
     }
 }

@@ -30,16 +30,16 @@ namespace CloudToDeviceMessageTester
                 {
                     cloudToDeviceMessageTester = new CloudToDeviceMessageReceiver(
                         Logger,
-                        Settings.Current.SharedMetadata,
-                        Settings.Current.ReceiverMetadata,
+                        Settings.Current.SharedSettings,
+                        Settings.Current.ReceiverSettings,
                         reportClient);
                 }
                 else
                 {
                     cloudToDeviceMessageTester = new CloudToDeviceMessageSender(
                         Logger,
-                        Settings.Current.SharedMetadata,
-                        Settings.Current.SenderMetadata,
+                        Settings.Current.SharedSettings,
+                        Settings.Current.SenderSettings,
                         reportClient);
                 }
 
