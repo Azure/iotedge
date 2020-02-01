@@ -125,14 +125,14 @@ namespace CloudToDeviceMessageTester
         }
     }
 
-    public struct C2DTestSharedSettings
+    internal struct C2DTestSharedSettings
     {
         public string IotHubConnectionString;
         public string DeviceId;
         public string ModuleId;
     }
 
-    public struct C2DTestReceiverSettings
+    internal struct C2DTestReceiverSettings
     {
         public TransportType TransportType;
         public string GatewayHostName;
@@ -142,7 +142,7 @@ namespace CloudToDeviceMessageTester
         public string IotHubHostName;
     }
 
-    public struct C2DTestSenderSettings
+    internal struct C2DTestSenderSettings
     {
         public string TrackingId;
         public TimeSpan MessageDelay;

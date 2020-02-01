@@ -67,9 +67,9 @@ namespace CloudToDeviceMessageTester
 
         public async Task StartAsync(CancellationToken ct)
         {
+            // TODO: You cannot install certificate on Windows by script - we need to implement certificate verification callback handler.
             IEnumerable<X509Certificate2> certs = await CertificateHelper.GetTrustBundleFromEdgelet(new Uri(this.workloadUri), this.apiVersion, this.workloadClientApiVersion, this.moduleId, this.moduleGenerationId);
             OsPlatform.Current.InstallCaCertificates(certs, ((Protocol)Enum.Parse(typeof(Protocol), this.transportType.ToString())).ToTransportSettings());
-            // TODO: You cannot install certificate on Windows by script - we need to implement certificate verification callback handler.
             Microsoft.Azure.Devices.RegistryManager registryManager = null;
             try
             {
