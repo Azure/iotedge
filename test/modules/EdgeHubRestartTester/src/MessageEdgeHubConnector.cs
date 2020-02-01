@@ -18,64 +18,63 @@ namespace EdgeHubRestartTester
     class MessageEdgeHubConnector : IEdgeHubConnector
     {
         long messageCount = 0;
-
-        ModuleClient MsgModuleClient { get; }
-        Guid BatchId { get; }
-        DateTime RunExpirationTime { get; }
-        CancellationToken CancellationToken { get; }
-        DateTime EdgeHubRestartedTime { get; }
-        HttpStatusCode EdgeHubRestartStatusCode { get; }
-        uint RestartSequenceNumber { get; }
-        ILogger Logger { get; }
+        ModuleClient msgModuleClient { get; }
+        Guid batchId { get; }
+        DateTime runExpirationTime { get; }
+        CancellationToken cancellationToken { get; }
+        DateTime edgeHubRestartedTime { get; }
+        HttpStatusCode edgeHubRestartStatusCode { get; }
+        uint restartSequenceNumber { get; }
+        ILogger logger { get; }
 
         public MessageEdgeHubConnector(
             ModuleClient msgModuleClient,
             Guid batchId,
             DateTime runExpirationTime,
-            CancellationToken cancellationToken,
             DateTime edgeHubRestartedTime,
             HttpStatusCode edgeHubRestartStatusCode,
             uint restartSequenceNumber,
-            ILogger logger)
+            ILogger logger,
+            CancellationToken cancellationToken)
         {
-            this.MsgModuleClient = Preconditions.CheckNotNull(msgModuleClient, nameof(msgModuleClient));
-            this.BatchId = batchId;
-            this.RunExpirationTime = runExpirationTime;
-            this.CancellationToken = Preconditions.CheckNotNull(cancellationToken, nameof(cancellationToken));
-            this.EdgeHubRestartedTime = edgeHubRestartedTime;
-            this.EdgeHubRestartStatusCode = edgeHubRestartStatusCode;
-            this.RestartSequenceNumber = Preconditions.CheckNotNull(restartSequenceNumber, nameof(restartSequenceNumber));
-            this.Logger = Preconditions.CheckNotNull(logger, nameof(logger));
+            this.msgModuleClient = Preconditions.CheckNotNull(msgModuleClient, nameof(msgModuleClient));
+            this.batchId = batchId;
+            this.runExpirationTime = runExpirationTime;
+            this.cancellationToken = Preconditions.CheckNotNull(cancellationToken, nameof(cancellationToken));
+            this.edgeHubRestartedTime = edgeHubRestartedTime;
+            this.edgeHubRestartStatusCode = edgeHubRestartStatusCode;
+            this.restartSequenceNumber = restartSequenceNumber;
+            this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
         }
 
-        public async Task ConnectAsync()
+        public async Task StartAsync()
         {
             (DateTime msgCompletedTime, HttpStatusCode mgsStatusCode) = await this.SendMessageAsync(
-                this.MsgModuleClient,
+                this.msgModuleClient,
                 Settings.Current.TrackingId,
-                this.BatchId,
+                this.batchId,
                 Settings.Current.MessageOutputEndpoint,
-                this.RunExpirationTime,
-                this.CancellationToken).ConfigureAwait(false);
+                this.runExpirationTime,
+                this.cancellationToken).ConfigureAwait(false);
 
             TestResultBase msgTestResult = new EdgeHubRestartMessageResult(
                 Settings.Current.ModuleId + "." + TestOperationResultType.EdgeHubRestartMessage.ToString(),
                 DateTime.UtcNow,
                 Settings.Current.TrackingId,
-                this.BatchId.ToString(),
+                this.batchId.ToString(),
                 Interlocked.Read(ref this.messageCount).ToString(),
-                this.EdgeHubRestartedTime,
-                this.EdgeHubRestartStatusCode,
+                this.edgeHubRestartedTime,
+                this.edgeHubRestartStatusCode,
                 msgCompletedTime,
                 mgsStatusCode,
-                this.RestartSequenceNumber);
+                this.restartSequenceNumber);
 
             var reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
             await ModuleUtil.ReportTestResultUntilSuccessAsync(
                 reportClient,
-                this.Logger,
+                this.logger,
                 msgTestResult,
-                this.CancellationToken).ConfigureAwait(false);
+                this.cancellationToken).ConfigureAwait(false);
         }
 
         async Task<Tuple<DateTime, HttpStatusCode>> SendMessageAsync(
@@ -98,14 +97,14 @@ namespace EdgeHubRestartTester
                 {
                     // Sending the result via edgeHub
                     await moduleClient.SendEventAsync(msgOutputEndpoint, message);
-                    this.Logger.LogInformation($"[SendMessageAsync] Send Message with count {Interlocked.Read(ref this.messageCount).ToString()}: finished.");
+                    this.logger.LogInformation($"[SendMessageAsync] Send Message with count {Interlocked.Read(ref this.messageCount).ToString()}: finished.");
                     return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.OK);
                 }
                 catch (TimeoutException ex)
                 {
                     // TimeoutException is expected to happen while the EdgeHub is down.
                     // Let's log the attempt and retry the message send until successful
-                    this.Logger.LogDebug(ex, $"[SendMessageAsync] Exception caught with SequenceNumber {this.messageCount}, BatchId: {batchId.ToString()};");
+                    this.logger.LogDebug(ex, $"[SendMessageAsync] Exception caught with SequenceNumber {this.messageCount}, BatchId: {batchId.ToString()};");
                 }
             }
 

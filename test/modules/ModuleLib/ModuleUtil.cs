@@ -63,6 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto());
         }
 
+        // TODO: Remove this function once the TRC support the two new endpoint properly.
         public static async Task ReportTestResultUntilSuccessAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult, CancellationToken cancellationToken)
         {
             bool isSuccessful = false;

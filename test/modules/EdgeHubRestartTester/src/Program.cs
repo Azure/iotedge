@@ -76,12 +76,12 @@ namespace EdgeHubRestartTester
                                 msgModuleClient,
                                 batchId,
                                 eachTestExpirationTime,
-                                cts.Token,
                                 restartTime,
                                 restartStatus,
                                 restartCount,
-                                Logger)
-                            .ConnectAsync();
+                                Logger,
+                                cts.Token)
+                            .StartAsync();
                     }
 
                     // Setup Direct Method Task
@@ -93,12 +93,12 @@ namespace EdgeHubRestartTester
                                 dmModuleClient,
                                 batchId,
                                 eachTestExpirationTime,
-                                cts.Token,
                                 restartTime,
                                 restartStatus,
                                 restartCount,
-                                Logger)
-                            .ConnectAsync();
+                                Logger,
+                                cts.Token)
+                            .StartAsync();
                     }
 
                     // Wait for the two task to be done before do a restart

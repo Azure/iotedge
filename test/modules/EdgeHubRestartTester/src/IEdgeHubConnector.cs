@@ -5,6 +5,6 @@ namespace EdgeHubRestartTester
 
     public interface IEdgeHubConnector
     {
-        Task ConnectAsync();
+        Task StartAsync();
     }
 }

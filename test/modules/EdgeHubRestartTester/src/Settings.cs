@@ -36,29 +36,29 @@ namespace EdgeHubRestartTester
             Preconditions.CheckRange(testDuration.Ticks, 0);
 
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            this.DirectMethodEnable = Preconditions.CheckNotNull(directMethodEnable, nameof(directMethodEnable));
-            this.DirectMethodName = this.DirectMethodEnable ? Preconditions.CheckNonWhiteSpace(directMethodName, nameof(directMethodName)) : directMethodName;
-            this.DirectMethodTargetModuleId = this.DirectMethodEnable ? Preconditions.CheckNonWhiteSpace(directMethodTargetModuleId, nameof(directMethodTargetModuleId)) : directMethodTargetModuleId;
-            this.MessageEnable = Preconditions.CheckNotNull(messageEnable, nameof(messageEnable));
-            this.MessageOutputEndpoint = this.MessageEnable ? Preconditions.CheckNonWhiteSpace(messageOutputEndpoint, nameof(messageOutputEndpoint)) : messageOutputEndpoint;
+            this.DirectMethodEnable = directMethodEnable;
+            this.DirectMethodName = this.DirectMethodEnable ? Preconditions.CheckNonWhiteSpace(directMethodName, nameof(directMethodName)) : string.Empty;
+            this.DirectMethodTargetModuleId = this.DirectMethodEnable ? Preconditions.CheckNonWhiteSpace(directMethodTargetModuleId, nameof(directMethodTargetModuleId)) : string.Empty;
+            this.MessageEnable = messageEnable;
+            this.MessageOutputEndpoint = this.MessageEnable ? Preconditions.CheckNonWhiteSpace(messageOutputEndpoint, nameof(messageOutputEndpoint)) : string.Empty;
             this.TransportType = transportType;
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.ReportingEndpointUrl = new Uri(Preconditions.CheckNonWhiteSpace(reportingEndpointUrl, nameof(reportingEndpointUrl)));
             this.RestartPeriod = restartPeriod;
             this.SdkRetryTimeout = (uint)sdkRetryTimeout.Milliseconds;
-            this.ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, nameof(serviceClientConnectionString));
+            this.IoTHubConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, nameof(serviceClientConnectionString));
             this.TestDuration = testDuration;
             this.TestStartDelay = testStartDelay;
-            this.TrackingId = trackingId;
+            this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
 
             if (!(this.DirectMethodEnable || this.MessageEnable))
             {
-                throw new NotSupportedException("EdgeHubRestartTester requires at least one of the sending methods {DirectMethodEnable, MessageEnable} to be enable to perform the EdgeHub restarting test.");
+                throw new NotSupportedException("EdgeHubRestartTester requires at least one of the sending methods {DirectMethodEnable, MessageEnable} to be enabled to perform the EdgeHub restarting test.");
             }
 
             if (restartPeriod < sdkRetryTimeout)
             {
-                throw new InvalidDataException("sdkRetryTimeout period must be less than restartInterval period {sdkRetryTimeoutMilisec < restartPeriod}.");
+                throw new InvalidDataException("sdkRetryTimeout period must be less than restartInterval period.");
             }
 
             if (this.RestartPeriod.Ticks < TimeSpan.FromMinutes(1).Ticks)
@@ -93,7 +93,7 @@ namespace EdgeHubRestartTester
                 configuration.GetValue("trackingId", string.Empty));
         }
 
-        public string ServiceClientConnectionString { get; }
+        public string IoTHubConnectionString { get; }
 
         public string DeviceId { get; }
 
