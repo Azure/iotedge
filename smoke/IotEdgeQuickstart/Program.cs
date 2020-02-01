@@ -41,6 +41,7 @@ Defaults:
   --bootstrapper-archive     no path (archive is installed from apt or pypi)
   --connection-string        get the value from Key Vault
   --device-id                an auto-generated unique identifier
+  --deploy-agent-directly    false
   --edge-hostname            'quickstart'
   --eventhub-endpoint        get the value from Key Vault
   --leave-running            none (or 'all' if given as a switch)
@@ -74,6 +75,9 @@ Defaults:
 
         [Option("-d|--device-id", Description = "Edge device identifier registered with IoT Hub")]
         public string DeviceId { get; } = $"iot-edge-quickstart-{Guid.NewGuid()}";
+
+        [Option("--deploy-agent-directly", Description = "Bypass startup of edge agent 1.0 and start with the desired artifact directly")]
+        public bool DeployAgentDirectly { get; } = false;
 
         [Option("-e|--eventhub-endpoint <value>", Description = "Event Hub-compatible endpoint for IoT Hub, including EntityPath")]
         public string EventHubCompatibleEndpointWithEntityPath { get; } = Environment.GetEnvironmentVariable("eventhubCompatibleEndpointWithEntityPath");
@@ -200,7 +204,7 @@ Defaults:
                         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                         {
                             string offlineInstallationPath = string.IsNullOrEmpty(this.OfflineInstallationPath) ? this.BootstrapperArchivePath : this.OfflineInstallationPath;
-                            bootstrapper = new IotedgedWindows(offlineInstallationPath, credentials, proxy, upstreamProtocolOption, !this.BypassEdgeInstallation);
+                            bootstrapper = new IotedgedWindows(offlineInstallationPath, credentials, proxy, upstreamProtocolOption, !this.BypassEdgeInstallation, this.DeployAgentDirectly);
                         }
                         else
                         {
@@ -209,7 +213,7 @@ Defaults:
                                 ? Option.Some(string.IsNullOrEmpty(hostname) ? new HttpUris() : new HttpUris(hostname))
                                 : Option.None<HttpUris>();
 
-                            bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris, proxy, upstreamProtocolOption);
+                            bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris, proxy, upstreamProtocolOption, DeployAgentDirectly);
                         }
 
                         break;
