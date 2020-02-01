@@ -5,7 +5,7 @@ namespace NetworkController
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkControllerResult;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -19,36 +19,44 @@ namespace NetworkController
 
             Log.LogInformation($"Starting with {Settings.Current.NetworkControllerMode}");
 
-            var networkInterfaceName = DockerHelper.GetDockerInterfaceName();
-            if (networkInterfaceName.HasValue)
+            try
             {
-                await networkInterfaceName.ForEachAsync(
-                    async name =>
-                    {
-                        var firewall = new FirewallOfflineController(name, Settings.Current.IotHubHostname);
-                        var satellite = new SatelliteController(name);
-                        var controllers = new List<INetworkController>() { firewall, satellite };
-                        await RemoveAllControllingRules(controllers, cts.Token);
+                var networkInterfaceName = DockerHelper.GetDockerInterfaceName();
 
-                        switch (Settings.Current.NetworkControllerMode)
+                if (networkInterfaceName.HasValue)
+                {
+                    await networkInterfaceName.ForEachAsync(
+                        async name =>
                         {
-                            case NetworkControllerMode.OfflineTrafficController:
-                                await StartAsync(firewall, cts.Token);
-                                break;
-                            case NetworkControllerMode.SatelliteTrafficController:
-                                await StartAsync(satellite, cts.Token);
-                                break;
-                        }
-                    });
+                            var firewall = new FirewallOfflineController(name, Settings.Current.IotHubHostname);
+                            var satellite = new SatelliteController(name);
+                            var controllers = new List<INetworkController>() { firewall, satellite };
+                            await RemoveAllControllingRules(controllers, cts.Token);
 
-                await cts.Token.WhenCanceled();
-                completed.Set();
-                handler.ForEach(h => GC.KeepAlive(h));
+                            switch (Settings.Current.NetworkControllerMode)
+                            {
+                                case NetworkControllerMode.OfflineTrafficController:
+                                    await StartAsync(firewall, cts.Token);
+                                    break;
+                                case NetworkControllerMode.SatelliteTrafficController:
+                                    await StartAsync(satellite, cts.Token);
+                                    break;
+                            }
+                        });
+                }
+                else
+                {
+                    Log.LogError($"No network interface found for docker network {Settings.Current.NetworkId}");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                Log.LogError($"No network interface found for docker network {Settings.Current.NetworkId}");
+                Log.LogError(ex, $"Unexpected exception thrown from {nameof(Main)} method");
             }
+
+            await cts.Token.WhenCanceled();
+            completed.Set();
+            handler.ForEach(h => GC.KeepAlive(h));
         }
 
         static async Task StartAsync(INetworkController controller, CancellationToken cancellationToken)
@@ -68,7 +76,7 @@ namespace NetworkController
                         await SetNetworkControllerStatus(controller, NetworkControllerStatus.Disabled, reporter, cs);
                     },
                     delay,
-                    item.OfflineFrequency,
+                    item.OnlineFrequency,
                     item.RunsCount,
                     Log,
                     "restrict/default");
@@ -82,15 +90,16 @@ namespace NetworkController
 
         static async Task SetNetworkControllerStatus(INetworkController controller, NetworkControllerStatus networkControllerStatus, INetworkStatusReporter reporter, CancellationToken cs)
         {
-            await reporter.ReportNetworkStatus(NetworkControllerOperation.SettingRule, networkControllerStatus, controller.NetworkControllerType);
+            await reporter.ReportNetworkStatusAsync(NetworkControllerOperation.SettingRule, networkControllerStatus, controller.NetworkControllerType);
             bool success = await controller.SetNetworkControllerStatusAsync(networkControllerStatus, cs);
             success = await CheckSetNetworkControllerStatusAsyncResult(success, NetworkControllerStatus.Disabled, controller, cs);
-            await reporter.ReportNetworkStatus(NetworkControllerOperation.RuleSet, networkControllerStatus, controller.NetworkControllerType, success);
+            await reporter.ReportNetworkStatusAsync(NetworkControllerOperation.RuleSet, networkControllerStatus, controller.NetworkControllerType, success);
         }
 
         static async Task RemoveAllControllingRules(IList<INetworkController> controllerList, CancellationToken cancellationToken)
         {
             var reporter = new NetworkStatusReporter(Settings.Current.TestResultCoordinatorEndpoint, Settings.Current.ModuleId, Settings.Current.TrackingId);
+            await reporter.ReportNetworkStatusAsync(NetworkControllerOperation.SettingRule, NetworkControllerStatus.Disabled, NetworkControllerType.All);
 
             foreach (var controller in controllerList)
             {
@@ -103,14 +112,14 @@ namespace NetworkController
                     if (!online)
                     {
                         Log.LogError($"Failed to ensure it starts with default values.");
-                        await reporter.ReportNetworkStatus(NetworkControllerOperation.RuleSet, NetworkControllerStatus.Enabled, controller.NetworkControllerType, true);
+                        await reporter.ReportNetworkStatusAsync(NetworkControllerOperation.RuleSet, NetworkControllerStatus.Enabled, controller.NetworkControllerType, true);
                         throw new TestInitializationException();
                     }
                 }
             }
 
             Log.LogInformation($"Network is online");
-            await reporter.ReportNetworkStatus(NetworkControllerOperation.RuleSet, NetworkControllerStatus.Disabled, NetworkControllerType.All, true);
+            await reporter.ReportNetworkStatusAsync(NetworkControllerOperation.RuleSet, NetworkControllerStatus.Disabled, NetworkControllerType.All, true);
         }
 
         static async Task<bool> CheckSetNetworkControllerStatusAsyncResult(bool success, NetworkControllerStatus networkControllerStatus, INetworkController controller, CancellationToken cs)

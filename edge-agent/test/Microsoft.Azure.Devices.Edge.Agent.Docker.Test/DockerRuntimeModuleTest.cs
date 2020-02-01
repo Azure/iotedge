@@ -25,24 +25,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly DockerConfig Config1 = new DockerReportedConfig("image1:42", @"{""HostConfig"": {""PortBinding"": {""42/tcp"": [{""HostPort"": ""42""}], ""43/udp"": [{""HostPort"": ""43""}]}}}", "foo");
         static readonly DockerConfig Config2 = new DockerReportedConfig("image2:42", @"{""HostConfig"": {""PortBinding"": {""42/tcp"": [{""HostPort"": ""42""}], ""43/udp"": [{""HostPort"": ""43""}]}}}", "foo");
 
-        static readonly IModule Module1 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, null, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module1A = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, null, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module2 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module2A = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module3 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config2, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module4 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, -1, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module5 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 35 minutes", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module6 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-07-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module7 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.Parse("2017-08-05T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module8 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-        static readonly DockerModule Module9 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module10 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnFailure, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module11 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 1, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module12 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-        static readonly IModule Module13 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.Never, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module1 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, null, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module1A = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, null, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module2 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module2A = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module3 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config2, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module4 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, -1, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module5 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 35 minutes", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module6 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-07-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module7 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.Parse("2017-08-05T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module8 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+        static readonly DockerModule Module9 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module10 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnFailure, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module11 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 1, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module12 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module13 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.Never, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module14 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.HighestPriority, DefaultConfigurationInfo, EnvVars);
 
         static readonly DockerConfig ValidConfig = new DockerReportedConfig("image1:42", (string)null, "sha256:75");
-        static readonly DockerRuntimeModule ValidJsonModule = new DockerRuntimeModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, RestartPolicy.OnFailure, ValidConfig, 0, "<status description>", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.Parse("2017-08-05T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), 1, DateTime.Parse("2017-08-06T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), ModuleStatus.Running, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+        static readonly DockerRuntimeModule ValidJsonModule = new DockerRuntimeModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, RestartPolicy.OnFailure, ValidConfig, 0, "<status description>", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.Parse("2017-08-05T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), 1, DateTime.Parse("2017-08-06T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+        static readonly DockerRuntimeModule ValidJsonModuleWithPriority = new DockerRuntimeModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, RestartPolicy.OnFailure, ValidConfig, 0, "<status description>", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.Parse("2017-08-05T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), 1, DateTime.Parse("2017-08-06T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.HighestPriority, DefaultConfigurationInfo, EnvVars);
 
         static readonly JObject TestJsonInputs = JsonConvert.DeserializeObject<JObject>(
             @"
@@ -484,12 +486,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          }
       }
    ],
+   ""validJsonWithPriority"":[
+      {
+         ""Version"":""<semantic_version_number>"",
+         ""Type"":""docker"",
+         ""Status"":""running"",
+         ""RestartPolicy"":""on-failure"",
+         ""ImagePullPolicy"": ""on-create"",
+         ""Priority"": 0,
+         ""Settings"":{
+            ""Image"":""image1:42""
+         },
+         ""ExitCode"": 0,
+         ""StatusDescription"" : ""<status description>"",
+         ""LastStartTimeUtc"" : ""2017-08-04T17:52:13.0419502Z"",
+         ""LastExitTimeUtc"" : ""2017-08-05T17:52:13.0419502Z"",
+         ""RestartCount"" : 1,
+         ""LastRestartTimeUtc"" : ""2017-08-06T17:52:13.0419502Z"",
+         ""RuntimeStatus"":""running"",
+         ""Configuration"": {
+            ""id"": ""1""
+         }
+      }
+   ],
 }
 ");
 
         public static IEnumerable<object[]> GetValidJsonInputs()
         {
             return GetJsonTestCases("validJson").Select(s => new object[] { s });
+        }
+
+        public static IEnumerable<object[]> GetValidJsonWithPriorityInputs()
+        {
+            return GetJsonTestCases("validJsonWithPriority").Select(s => new object[] { s });
         }
 
         public static IEnumerable<object[]> GetValidStatusInputs()
@@ -533,26 +563,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             DateTime lastStartTime = DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind);
 
             // null docker config
-            Assert.Throws<ArgumentNullException>(() => new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, null, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars));
+            Assert.Throws<ArgumentNullException>(() => new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, null, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars));
 
             // bad desired status
-            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerRuntimeModule("mod1", "version1", (ModuleStatus)int.MaxValue, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerRuntimeModule("mod1", "version1", (ModuleStatus)int.MaxValue, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars));
 
             // bad restart policy
-            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, (RestartPolicy)int.MaxValue, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, (RestartPolicy)int.MaxValue, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars));
 
             // bad runtime status
-            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, (ModuleStatus)int.MaxValue, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, (ModuleStatus)int.MaxValue, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars));
 
             // bad restart count
-            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, -1, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, -1, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars));
 
             // bad pull policy
-            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, (ImagePullPolicy)int.MaxValue, DefaultConfigurationInfo, EnvVars));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, (ImagePullPolicy)int.MaxValue, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars));
 
-            var env1 = new DockerRuntimeModule("name", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, null, lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            var env2 = new DockerRuntimeModule("name", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            var env3 = new DockerRuntimeModule("name", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            var env1 = new DockerRuntimeModule("name", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, null, lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+            var env2 = new DockerRuntimeModule("name", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+            var env3 = new DockerRuntimeModule("name", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", lastStartTime, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
             Assert.NotNull(env1);
             Assert.NotNull(env2);
             Assert.NotNull(env3);
@@ -578,6 +608,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.NotEqual(Module8, Module11);
             Assert.NotEqual(Module8, Module12);
             Assert.NotEqual(Module8, Module13);
+            Assert.NotEqual(Module8, Module14);
 
             Assert.False(Module1.Equals(null));
             Assert.False(Module2.Equals(null));
@@ -621,6 +652,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var module = ModuleSerde.Instance.Deserialize<DockerRuntimeModule>(inputJson);
             module.Name = "<module_name>";
             Assert.True(ValidJsonModule.Equals(module));
+        }
+
+        [Theory]
+        [MemberData(nameof(GetValidJsonWithPriorityInputs))]
+        public void TestDeserializeValidJsonWithPriority(string inputJson)
+        {
+            var module = ModuleSerde.Instance.Deserialize<DockerRuntimeModule>(inputJson);
+            module.Name = "<module_name>";
+            Assert.True(ValidJsonModuleWithPriority.Equals(module));
         }
 
         [Theory]
@@ -711,6 +751,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(m2.RestartCount, newM2.RestartCount);
             Assert.Equal(m2.RestartPolicy, newM2.RestartPolicy);
             Assert.Equal(m2.ImagePullPolicy, newM2.ImagePullPolicy);
+            Assert.Equal(m2.Priority, newM2.Priority);
             Assert.Equal(m2.StatusDescription, newM2.StatusDescription);
             Assert.Equal(m2.Type, newM2.Type);
             Assert.Equal(m2.Version, newM2.Version);

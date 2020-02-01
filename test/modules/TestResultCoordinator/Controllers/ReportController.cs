@@ -2,13 +2,14 @@
 namespace TestResultCoordinator.Controllers
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
-    using TestResultCoordinator.Report;
+    using TestResultCoordinator.Reports;
     using TestResultCoordinator.Storage;
 
     [Route("api/[controller]")]
@@ -27,7 +28,9 @@ namespace TestResultCoordinator.Controllers
         [HttpGet]
         public async Task<ContentResult> GetReportsAsync()
         {
-            ITestResultReport[] testResultReports = await TestReportHelper.GenerateTestResultReports(this.storage, Logger);
+            var testReportGeneratorFactory = new TestReportGeneratorFactory(this.storage);
+            List<ITestReportMetadata> reportMetadataList = await Settings.Current.GetReportMetadataListAsync(Logger);
+            ITestResultReport[] testResultReports = await TestReportUtil.GenerateTestResultReportsAsync(Settings.Current.TrackingId, reportMetadataList, testReportGeneratorFactory, Logger);
 
             if (testResultReports.Length == 0)
             {

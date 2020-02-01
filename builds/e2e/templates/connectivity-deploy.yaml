@@ -1,7 +1,10 @@
 parameters:
   release.label: ''
+  test.buildNumber: ''
   edgelet.artifact.name: ''
   images.artifact.name: ''
+  edgelet.branchName: ''
+  images.branchName: ''
   container.registry: ''
   container.registry.username: ''
   container.registry.password: ''
@@ -11,10 +14,15 @@ parameters:
   loadGen.message.frequency: ''
   networkController.frequencies: ''
   networkController.mode: ''
-  testResultCoordinator.logAnalyticsWorkspaceId: ''
-  testResultCoordinator.logAnalyticsSharedKey: ''
+  logAnalyticsWorkspaceId: ''
+  logAnalyticsSharedKey: ''
   testResultCoordinator.logAnalyticsLogType: ''
   testResultCoordinator.verificationDelay: ''
+  testResultCoordinator.storageAccountConnectionString: ''
+  metricsCollector.metricsEndpointsCSV: ''
+  metricsCollector.scrapeFrequencyInSecs: ''
+  metricsCollector.uploadTarget: ''
+  metricsCollector.hostPlatform: ''
 
 steps:
   - task: CopyFiles@2
@@ -53,9 +61,18 @@ steps:
           -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
           -networkControllerFrequency "${{ parameters['networkController.frequencies'] }}" \
           -networkControllerMode "${{ parameters['networkController.mode'] }}" \
-          -logAnalyticsWorkspaceId "${{ parameters['testResultCoordinator.logAnalyticsWorkspaceId'] }}" \
-          -logAnalyticsSharedKey "${{ parameters['testResultCoordinator.logAnalyticsSharedKey'] }}" \
+          -logAnalyticsWorkspaceId "${{ parameters['logAnalyticsWorkspaceId'] }}" \
+          -logAnalyticsSharedKey "${{ parameters['logAnalyticsSharedKey'] }}" \
           -logAnalyticsLogType "${{ parameters['testResultCoordinator.logAnalyticsLogType'] }}" \
           -verificationDelay "${{ parameters['testResultCoordinator.verificationDelay'] }}" \
+          -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
+          -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
+          -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
+          -testBuildNumber "${{ parameters['test.buildNumber'] }}" \
+          -imagesBranchName "${{ parameters['images.branchName'] }}" \
+          -edgeletBranchName "${{ parameters['edgelet.branchName'] }}" \
+          -hostPlatform "${{ parameters['metricsCollector.hostPlatform'] }}" \
+          -storageAccountConnectionString "${{ parameters['testResultCoordinator.storageAccountConnectionString'] }}" \
+          -waitForTestComplete \
           -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."

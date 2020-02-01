@@ -52,7 +52,6 @@ Defaults:
                              Sockets, otherwise N/A
                              switch form uses local IP address as hostname
   --username                 anonymous, or Key Vault if --registry is specified
-  --no-deployment            deploy Edge Hub and temperature sensor modules
   --no-verify                false
   --optimize_for_performance true
   --verify-data-from-module  tempSensor
@@ -102,9 +101,6 @@ Defaults:
 
         [Option("--leave-running=<All/Core/None>", CommandOptionType.SingleOrNoValue, Description = "Leave IoT Edge running when the app is finished")]
         public LeaveRunning LeaveRunning { get; } = LeaveRunning.None;
-
-        [Option("--no-deployment", CommandOptionType.NoValue, Description = "Don't deploy Edge Hub and temperature sensor modules")]
-        public bool NoDeployment { get; } = false;
 
         [Option("--no-verify", CommandOptionType.NoValue, Description = "Don't verify the behavior of the deployment (e.g.: temp sensor)")]
         public bool NoVerify { get; } = false;
@@ -217,9 +213,6 @@ Defaults:
                         }
 
                         break;
-                    case BootstrapperType.Iotedgectl:
-                        bootstrapper = new Iotedgectl(this.BootstrapperArchivePath, credentials);
-                        break;
                     default:
                         throw new ArgumentException("Unknown BootstrapperType");
                 }
@@ -281,7 +274,6 @@ Defaults:
                     this.DeviceId,
                     this.EdgeHostname,
                     this.LeaveRunning,
-                    this.NoDeployment,
                     this.NoVerify,
                     this.BypassEdgeInstallation,
                     this.VerifyDataFromModule,
