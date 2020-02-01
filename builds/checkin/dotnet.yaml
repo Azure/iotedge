@@ -4,21 +4,17 @@ pr:
     include:
       - master
       - release/*
-  paths:
-    exclude:
-      - edgelet/*
-      - doc/*
 jobs:
+
 ################################################################################
   - job: check_run_pipeline
 ################################################################################
-    displayName: Check pipeline preconditions (changes are NOT in edgelet and docs)
+    displayName: Check pipeline preconditions (changes ARE NOT in edgelet and docs)
     pool:
       vmImage: "ubuntu-16.04"
     steps:
       - bash: |
           git log -m -1 --name-only --first-parent --pretty="" | egrep -i -v '^(edgelet|doc)'
-          # git --no-pager diff --name-only HEAD $(git merge-base HEAD refs/heads/master) | egrep -i -v '^(edgelet|doc)'
           if [[ $? == 0 ]]; then
             echo "Detected changes outside of edgelet and docs folders"
             echo "##vso[task.setvariable variable=RUN_PIPELINE;isOutput=true]TRUE"
@@ -31,7 +27,7 @@ jobs:
 ################################################################################
     displayName: Linux amd64
     dependsOn: check_run_pipeline
-    condition: and(succeeded(), eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true'))
+    condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
       vmImage: "ubuntu-16.04"
     steps:
@@ -62,7 +58,7 @@ jobs:
 ################################################################################
     displayName: Windows amd64
     dependsOn: check_run_pipeline
-    condition: eq(dependencies.check_run_pipeline.outputs['printvar.RUN_PIPELINE'], 'true')
+    condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
       vmImage: "vs2017-win2016"
     steps:
