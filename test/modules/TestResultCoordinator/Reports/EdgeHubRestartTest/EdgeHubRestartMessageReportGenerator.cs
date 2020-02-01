@@ -108,6 +108,9 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                         messageCount);
                 }
 
+                // BEARWASHERE -- Think about re-using logic IncrementAdjustSequenceNumberAsync() to deal with single source result is presence
+                // May need to create another delegate and pass it in to do the data extracting & verification depending on which source.
+
                 EdgeHubRestartMessageResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(this.SenderTestResults.Current.Result);
                 string receiverResult = this.ReceiverTestResults.Current.Result;
 
