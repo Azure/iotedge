@@ -59,19 +59,26 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
 
         public static async Task ReportTestResultAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult)
         {
-            await ReportTestResultAsync(apiClient, logger, testResult, CancellationToken.None);
+            logger.LogInformation($"Sending test result: Source={testResult.Source}, Type={testResult.ResultType}, CreatedAt={testResult.CreatedAt}, Result={testResult.GetFormattedResult()}");
+            await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto());
         }
 
-        public static async Task ReportTestResultAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult, CancellationToken cancellationToken = default)
+        // TODO: Remove this function once the TRC support the two new endpoint properly.
+        public static async Task ReportTestResultUntilSuccessAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult, CancellationToken cancellationToken)
         {
-            try
+            bool isSuccessful = false;
+            while(!isSuccessful && !cancellationToken.IsCancellationRequested)
             {
-                logger.LogInformation($"Sending test result: Source={testResult.Source}, Type={testResult.ResultType}, CreatedAt={testResult.CreatedAt}, Result={testResult.GetFormattedResult()}");
-                await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto(), cancellationToken);
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Failed call to report status to TestResultCoordinator");
+                try
+                {
+                    logger.LogInformation($"Sending test result: Source={testResult.Source}, Type={testResult.ResultType}, CreatedAt={testResult.CreatedAt}, Result={testResult.GetFormattedResult()}");
+                    await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto(), cancellationToken);
+                    isSuccessful = true;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogDebug(ex, "Exception caught in ReportTestResultAsync()");
+                }
             }
         }
 

@@ -100,11 +100,11 @@
               "reportingEndpointUrl": {
                 "value": "http://localhost:5001"
               },
-              "restartIntervalInMins": {
-                "value": "5"
+              "restartPeriod": {
+                "value": "00:05:00.000"
               },
               "sdkRetryTimeoutMilisec": {
-                "value": "20"
+                "value": "00:00:00.020"
               },
               "testDuration": {
                 "value": "<TestDuration>"

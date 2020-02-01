@@ -219,6 +219,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MetricsValidator", "test\mo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeHubRestartTester", "test\modules\EdgeHubRestartTester\EdgeHubRestartTester.csproj", "{DA073067-83EF-4F4C-8E58-51CA7870C1F6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CloudToDeviceMessageTester", "test\modules\CloudToDeviceMessageTester\CloudToDeviceMessageTester.csproj", "{446F50F3-3E93-454B-8EBF-4830E92DFE5D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		CheckInBuild|Any CPU = CheckInBuild|Any CPU
@@ -715,6 +717,14 @@ Global
 		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50}.Release|Any CPU.Build.0 = Release|Any CPU
+		{446F50F3-3E93-454B-8EBF-4830E92DFE5D}.CheckInBuild|Any CPU.ActiveCfg = Debug|Any CPU
+		{446F50F3-3E93-454B-8EBF-4830E92DFE5D}.CheckInBuild|Any CPU.Build.0 = Debug|Any CPU
+		{446F50F3-3E93-454B-8EBF-4830E92DFE5D}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
+		{446F50F3-3E93-454B-8EBF-4830E92DFE5D}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
+		{446F50F3-3E93-454B-8EBF-4830E92DFE5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{446F50F3-3E93-454B-8EBF-4830E92DFE5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{446F50F3-3E93-454B-8EBF-4830E92DFE5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{446F50F3-3E93-454B-8EBF-4830E92DFE5D}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5857DB4A-F61A-4467-96F1-003B47B8B2CF}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
 		{5857DB4A-F61A-4467-96F1-003B47B8B2CF}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
 		{5857DB4A-F61A-4467-96F1-003B47B8B2CF}.CodeCoverage|Any CPU.ActiveCfg = CodeCoverage|Any CPU
@@ -818,6 +828,7 @@ Global
 		{B3C68519-B309-42FF-B4DF-9E77B2D4BD50} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
 		{5857DB4A-F61A-4467-96F1-003B47B8B2CF} = {F921339B-32F9-4BF3-B364-2DB01FA2F1A1}
 		{DA073067-83EF-4F4C-8E58-51CA7870C1F6} = {F921339B-32F9-4BF3-B364-2DB01FA2F1A1}
+		{446F50F3-3E93-454B-8EBF-4830E92DFE5D} = {F921339B-32F9-4BF3-B364-2DB01FA2F1A1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}

@@ -2,27 +2,18 @@
 namespace EdgeHubRestartTester
 {
     using System;
-    using System.Collections.Generic;
     using System.Net;
-    using System.Net.Http;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using Newtonsoft.Json;
-    using Message = Microsoft.Azure.Devices.Client.Message;
 
     class Program
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("EdgeHubRestartTester");
-
-        static long messageCount = 0;
-        static long directMethodCount = 0;
 
         public static int Main() => MainAsync().Result;
 
@@ -31,12 +22,12 @@ namespace EdgeHubRestartTester
             uint restartCount = 0;
 
             Guid batchId = Guid.NewGuid();
-            Logger.LogInformation($"Starting Edge Hub Restart Tester ({batchId}) with the following settings:\r\n{Settings.Current}");
+            Logger.LogInformation($"Starting EdgeHubRestartTester ({batchId}) with the following settings:\r\n{Settings.Current}");
 
-            Logger.LogInformation($"Load gen delay start for {Settings.Current.TestStartDelay}.");
+            Logger.LogInformation($"EdgeHubRestartTester delay start for {Settings.Current.TestStartDelay}.");
             await Task.Delay(Settings.Current.TestStartDelay);
 
-            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(Settings.Current.RestartPeriod - TimeSpan.FromMinutes(1), Logger);
 
             ServiceClient iotHubServiceClient = null;
             ModuleClient msgModuleClient = null;
@@ -49,7 +40,7 @@ namespace EdgeHubRestartTester
                 if (Settings.Current.MessageEnable)
                 {
                     msgModuleClient = await ModuleUtil.CreateModuleClientAsync(
-                        Settings.Current.MessageTransportType,
+                        Settings.Current.TransportType,
                         ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                         ModuleUtil.DefaultTransientRetryStrategy,
                         Logger);
@@ -59,7 +50,7 @@ namespace EdgeHubRestartTester
                 if (Settings.Current.DirectMethodEnable)
                 {
                     dmModuleClient = await ModuleUtil.CreateModuleClientAsync(
-                        Settings.Current.MessageTransportType,
+                        Settings.Current.TransportType,
                         ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                         ModuleUtil.DefaultTransientRetryStrategy,
                         Logger);
@@ -71,93 +62,43 @@ namespace EdgeHubRestartTester
                 while ((!cts.IsCancellationRequested) && (DateTime.UtcNow < testExpirationTime))
                 {
                     (DateTime restartTime, HttpStatusCode restartStatus) = await RestartModules(iotHubServiceClient);
-                    DateTime eachTestExpirationTime = restartTime.AddMinutes(Settings.Current.RestartIntervalInMins);
+                    DateTime eachTestExpirationTime = restartTime.Add(Settings.Current.RestartPeriod);
 
                     // Increment the counter when issue an edgeHub restart
                     restartCount++;
 
                     // Setup Message Task
                     Task sendMessageTask = Task.CompletedTask;
-
-                    try
+                    if (Settings.Current.MessageEnable)
                     {
-                        if (Settings.Current.MessageEnable)
-                        {
-                            Func<Task> sendMessage =
-                                async () =>
-                                {
-                                    (DateTime msgCompletedTime, HttpStatusCode msgStatusCode) = await SendMessageAsync(
-                                        msgModuleClient,
-                                        Settings.Current.TrackingId,
-                                        batchId,
-                                        Settings.Current.MessageOutputEndpoint,
-                                        eachTestExpirationTime,
-                                        cts.Token).ConfigureAwait(false);
-                                    TestResultBase msgTestResult = CreateTestResult(
-                                        TestOperationResultType.EdgeHubRestartMessage,
-                                        restartTime,
-                                        restartStatus,
-                                        msgCompletedTime,
-                                        msgStatusCode,
-                                        batchId,
-                                        restartCount,
-                                        Interlocked.Read(ref messageCount));
-                                    var reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
-                                    await ModuleUtil.ReportTestResultAsync(
-                                        reportClient,
-                                        Logger,
-                                        msgTestResult,
-                                        cts.Token).ConfigureAwait(false);
-                                };
-                            sendMessageTask = sendMessage();
-                        }
-                    }
-                    catch (HttpRequestException ex)
-                    {
-                        sendMessageTask = Task.CompletedTask;
-                        Logger.LogError($"{nameof(sendMessageTask)} HttpRequestException: {ex}");
+                        sendMessageTask =
+                            new MessageEdgeHubConnector(
+                                msgModuleClient,
+                                batchId,
+                                eachTestExpirationTime,
+                                restartTime,
+                                restartStatus,
+                                restartCount,
+                                Logger,
+                                cts.Token)
+                            .StartAsync();
                     }
 
                     // Setup Direct Method Task
                     Task directMethodTask = Task.CompletedTask;
-
-                    try
+                    if (Settings.Current.DirectMethodEnable)
                     {
-                        if (Settings.Current.DirectMethodEnable)
-                        {
-                            Func<Task> directMethod =
-                                async () =>
-                                {
-                                    (DateTime dmCompletedTime, HttpStatusCode dmStatusCode) = await SendDirectMethodAsync(
-                                        Settings.Current.DeviceId,
-                                        Settings.Current.DirectMethodTargetModuleId,
-                                        dmModuleClient,
-                                        Settings.Current.DirectMethodName,
-                                        eachTestExpirationTime,
-                                        cts.Token).ConfigureAwait(false);
-                                    TestResultBase dmTestResult = CreateTestResult(
-                                        TestOperationResultType.EdgeHubRestartDirectMethod,
-                                        restartTime,
-                                        restartStatus,
-                                        dmCompletedTime,
-                                        dmStatusCode,
-                                        batchId,
-                                        restartCount,
-                                        Interlocked.Read(ref directMethodCount));
-                                    var reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
-                                    await ModuleUtil.ReportTestResultAsync(
-                                        reportClient,
-                                        Logger,
-                                        dmTestResult,
-                                        cts.Token).ConfigureAwait(false);
-                                };
-                            directMethodTask = directMethod();
-                        }
-                    }
-                    catch (HttpRequestException ex)
-                    {
-                        directMethodTask = Task.CompletedTask;
-                        Logger.LogError($"{nameof(directMethodTask)} HttpRequestException: {ex}");
+                        directMethodTask =
+                            new DirectMethodEdgeHubConnector(
+                                dmModuleClient,
+                                batchId,
+                                eachTestExpirationTime,
+                                restartTime,
+                                restartStatus,
+                                restartCount,
+                                Logger,
+                                cts.Token)
+                            .StartAsync();
                     }
 
                     // Wait for the two task to be done before do a restart
@@ -186,119 +127,6 @@ namespace EdgeHubRestartTester
             return 0;
         }
 
-        static TestResultBase CreateTestResult(
-            TestOperationResultType testOperationResultType,
-            DateTime edgeHubRestartedTime,
-            HttpStatusCode edgeHubRestartStatusCode,
-            DateTime completedTime,
-            HttpStatusCode completedStatus,
-            Guid batchId,
-            uint restartSequenceNumber,
-            long sequenceNumber)
-        {
-            switch (testOperationResultType)
-            {
-                case TestOperationResultType.EdgeHubRestartMessage:
-                    return new EdgeHubRestartMessageResult(
-                        Settings.Current.ModuleId + "." + testOperationResultType.ToString(),
-                        DateTime.UtcNow,
-                        Settings.Current.TrackingId,
-                        batchId.ToString(),
-                        sequenceNumber.ToString(),
-                        edgeHubRestartedTime,
-                        edgeHubRestartStatusCode,
-                        completedTime,
-                        completedStatus,
-                        restartSequenceNumber);
-
-                case TestOperationResultType.EdgeHubRestartDirectMethod:
-                    return new EdgeHubRestartDirectMethodResult(
-                        Settings.Current.ModuleId + "." + testOperationResultType.ToString(),
-                        DateTime.UtcNow,
-                        Settings.Current.TrackingId,
-                        batchId,
-                        sequenceNumber.ToString(),
-                        edgeHubRestartedTime,
-                        edgeHubRestartStatusCode,
-                        completedTime,
-                        completedStatus,
-                        restartSequenceNumber);
-
-                default:
-                    throw new NotSupportedException($"{testOperationResultType} is not supported in CreateEdgeHubRestartTestResult()");
-            }
-        }
-
-        static async Task<Tuple<DateTime, HttpStatusCode>> SendDirectMethodAsync(
-            string deviceId,
-            string targetModuleId,
-            ModuleClient moduleClient,
-            string directMethodName,
-            DateTime runExpirationTime,
-            CancellationToken cancellationToken)
-        {
-            while ((!cancellationToken.IsCancellationRequested) && (DateTime.UtcNow < runExpirationTime))
-            {
-                try
-                {
-                    // Direct Method sequence number is always increasing regardless of sending result.
-                    Interlocked.Increment(ref directMethodCount);
-                    MethodRequest request = new MethodRequest(
-                        directMethodName,
-                        Encoding.UTF8.GetBytes($"{{ \"Message\": \"Hello\", \"DirectMethodCount\": \"{Interlocked.Read(ref directMethodCount).ToString()}\" }}"));
-                    MethodResponse result = await moduleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
-                    if ((HttpStatusCode)result.Status == HttpStatusCode.OK)
-                    {
-                        Logger.LogDebug(result.ResultAsJson);
-                    }
-                    else
-                    {
-                        Logger.LogError(result.ResultAsJson);
-                    }
-
-                    Logger.LogInformation($"Invoke DirectMethod with count {Interlocked.Read(ref directMethodCount).ToString()}: finished.");
-                    return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)result.Status);
-                }
-                catch (Exception e)
-                {
-                    Logger.LogError(e, $"Exception caught with count {Interlocked.Read(ref directMethodCount).ToString()}");
-                }
-            }
-
-            return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.InternalServerError);
-        }
-
-        static async Task<Tuple<DateTime, HttpStatusCode>> SendMessageAsync(
-            ModuleClient moduleClient,
-            string trackingId,
-            Guid batchId,
-            string msgOutputEndpoint,
-            DateTime runExpirationTime,
-            CancellationToken cancellationToken)
-        {
-            while ((!cancellationToken.IsCancellationRequested) && (DateTime.UtcNow < runExpirationTime))
-            {
-                Message message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new { data = DateTime.UtcNow.ToString() })));
-                Interlocked.Increment(ref messageCount);
-                message.Properties.Add("sequenceNumber", Interlocked.Read(ref messageCount).ToString());
-                message.Properties.Add("batchId", batchId.ToString());
-                message.Properties.Add("trackingId", trackingId);
-
-                try
-                {
-                    // Sending the result via edgeHub
-                    await moduleClient.SendEventAsync(msgOutputEndpoint, message);
-                    return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.OK);
-                }
-                catch (OperationCanceledException ex)
-                {
-                    Logger.LogError(ex, $"[SendEventAsync] Sequence number {messageCount}, BatchId: {batchId.ToString()};");
-                }
-            }
-
-            return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.InternalServerError);
-        }
-
         static async Task<Tuple<DateTime, HttpStatusCode>> RestartModules(
             ServiceClient iotHubServiceClient)
         {
@@ -313,7 +141,11 @@ namespace EdgeHubRestartTester
                 CloudToDeviceMethodResult response = await iotHubServiceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", c2dMethod);
                 if ((HttpStatusCode)response.Status != HttpStatusCode.OK)
                 {
-                    Logger.LogError($"Calling Direct Method failed with status code {response.Status} : {response.GetPayloadAsJson()} .");
+                    Logger.LogError($"Calling EdgeHub restart failed with status code {response.Status} : {response.GetPayloadAsJson()}.");
+                }
+                else
+                {
+                    Logger.LogInformation($"Calling EdgeHub restart succeeded with status code {response.Status}.");
                 }
 
                 return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)response.Status);
