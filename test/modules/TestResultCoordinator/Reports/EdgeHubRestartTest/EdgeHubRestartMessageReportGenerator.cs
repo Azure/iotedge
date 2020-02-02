@@ -168,12 +168,48 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram)
         {
             // TODO: In report,
-            //    - Calculate min, max, mean, med restartPeriod.
+            //    - Calculate min, max, mean, med, r2 restartPeriod.
             //    - Use Max(completedStatusHistogram[HttpStatusCode.OK]) to check if it always less the PassableThreshold
             //    - Report numFailedToRestart > 0 but does not count towards failure, give a warning though
             //    - Report messagePreRestart > 1 failure the test citing test code malfunction.
             //    - Give a warning if the restart cycle does not contain only a message sent (more than 1 message)
+
+            List<TimeSpan> completedPeriods;
+            completedStatusHistogram.TryGetValue(HttpStatusCode.OK, out completedPeriods);
+            List<TimeSpan> orderedCompletedPeriods = completedPeriods?.OrderBy(p => p.Ticks).ToList();
             
+            TimeSpan minPeriod = orderedCompletedPeriods.First();
+            TimeSpan maxPeriod = orderedCompletedPeriods.Last();
+            TimeSpan medianPeriod;
+            if ((orderedCompletedPeriods.Count & 0b1) == 0b1)
+            {
+                // If odd, pick the middle value
+                medianPeriod = orderedCompletedPeriods[orderedCompletedPeriods.Count >> 1];
+            }
+            else
+            {
+                // If even, average the middle values
+                medianPeriod =
+                    (orderedCompletedPeriods[orderedCompletedPeriods.Count >> 1] + 
+                     orderedCompletedPeriods[(orderedCompletedPeriods.Count >> 1)-1])/2;
+            }
+
+            // Compute Mean
+            TimeSpan totalSpan = TimeSpan.FromTicks(0);
+            double totalSpanSquareInMilisec = 0.0;
+            foreach (TimeSpan eachTimeSpan in orderedCompletedPeriods)
+            {
+                totalSpan += eachTimeSpan;
+                totalSpanSquareInMilisec += Math.Pow(eachTimeSpan.TotalMilliseconds, 2);
+            }
+            // Compute Mean : mean = sum(x) / N
+            TimeSpan meanPeriod = totalSpan/orderedCompletedPeriods.Count();
+            
+            // Compute Variance: var = sum((x - mean)^2) / N 
+            //                       = sum(x^2)/N - mean^2
+            double variancePeriodInMilisec = (totalSpanSquareInMilisec / orderedCompletedPeriods.Count()) - Math.Pow(meanPeriod.TotalMilliseconds, 2);
+            TimeSpan variancePeriod = TimeSpan.FromMilliseconds(variancePeriodInMilisec);
+
             // BEARWASHERE -- TODO
             return new EdgeHubRestartMessageReport(
                 this.TrackingId,
