@@ -412,9 +412,6 @@
                 "ScrapeFrequencyInSecs": {
                     "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
                 },
-                "TestType": {
-                  "value": "longhaul"
-                },
                 "UploadTarget": {
                   "value": "<MetricsCollector.UploadTarget>"
                 }

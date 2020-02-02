@@ -333,9 +333,6 @@
                 "ScrapeFrequencyInSecs": {
                     "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
                 },
-                "TestType": {
-                  "value": "stress"
-                },
                 "UploadTarget": {
                   "value": "<MetricsCollector.UploadTarget>"
                 }
