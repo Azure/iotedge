@@ -142,7 +142,7 @@ $EdgeAgentMemory = [Alert]@{
    Name = "edge-agent-memory"
    Query = $EdgeAgentMemoryQuery
    Comparator = $GreaterThanZero
-   Threshold = "threshold0: $EdgeAgentMemoryThreshold"
+   Threshold = "threshold0: $EdgeAgentMemoryThresholdAmd threshold1: $EdgeAgentMemoryThresholdArm"
 }
 $Alerts.Add($EdgeAgentMemory)
 
@@ -156,7 +156,7 @@ $EdgeHubMemory = [Alert]@{
    Name = "edge-hub-memory"
    Query = $EdgeHubMemoryQuery
    Comparator = $GreaterThanZero
-   Threshold = "threshold0: $EdgeHubMemoryThreshold"
+   Threshold = "threshold0: $EdgeHubMemoryThresholdAmd threshold1: $EdgeHubMemoryThresholdArm"
 }
 $Alerts.Add($EdgeHubMemory)
 
