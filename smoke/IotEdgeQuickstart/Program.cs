@@ -75,7 +75,7 @@ Defaults:
         [Option("-d|--device-id", Description = "Edge device identifier registered with IoT Hub")]
         public string DeviceId { get; } = $"iot-edge-quickstart-{Guid.NewGuid()}";
 
-        [Option("--deploy-agent-directly", Description = "Bypass startup of edge agent 1.0 and start with the desired artifact directly")]
+        [Option("--deploy-agent-directly", Description = "Bypass startup of edge agent 1.0 and start with the desired agent artifact directly")]
         public bool DeployAgentDirectly { get; } = false;
 
         [Option("-e|--eventhub-endpoint <value>", Description = "Event Hub-compatible endpoint for IoT Hub, including EntityPath")]
@@ -200,7 +200,7 @@ Defaults:
                         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                         {
                             string offlineInstallationPath = string.IsNullOrEmpty(this.OfflineInstallationPath) ? this.BootstrapperArchivePath : this.OfflineInstallationPath;
-                            bootstrapper = new IotedgedWindows(offlineInstallationPath, credentials, proxy, upstreamProtocolOption, !this.BypassEdgeInstallation, this.DeployAgentDirectly);
+                            bootstrapper = new IotedgedWindows(offlineInstallationPath, credentials, proxy, upstreamProtocolOption, !this.BypassEdgeInstallation);
                         }
                         else
                         {
@@ -209,7 +209,7 @@ Defaults:
                                 ? Option.Some(string.IsNullOrEmpty(hostname) ? new HttpUris() : new HttpUris(hostname))
                                 : Option.None<HttpUris>();
 
-                            bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris, proxy, upstreamProtocolOption, DeployAgentDirectly);
+                            bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris, proxy, upstreamProtocolOption);
                         }
 
                         break;
@@ -283,6 +283,7 @@ Defaults:
                     this.DeviceCaPk,
                     this.DeviceCaCerts,
                     this.OptimizeForPerformance,
+                    this.DeployAgentDirectly,
                     this.RuntimeLogLevel,
                     this.CleanUpExistingDeviceOnSuccess,
                     dpsAttestation);
