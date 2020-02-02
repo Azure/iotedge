@@ -1,7 +1,7 @@
 Import-Module Az.Monitor
 
+$MegaByteConstant = 1000000;
 $AlertingInterval = 15 # TODO: take as input
-
 $NumberOfMetrics = 40 # TODO: define constants better
 
 # TODO: clean this up by making a func that returns this object
@@ -74,7 +74,7 @@ $NoLocalMessages  = [Alert]@{
 }
 $Alerts.Add($NoLocalMessages)
 
-$TwinTesterUpstreamReportedPropertyUpdatesPerMinThreshold = 2 
+$TwinTesterUpstreamReportedPropertyUpdatesPerMinThreshold = 5 
 $ReportedPropertyRateAlertQuery = Get-Content -Path ".\queries\ReportedPropertyRate.kql" 
 $ReportedPropertyRateAlertQuery = $ReportedPropertyRateAlertQuery.Replace("<ALERTING.INTERVAL>", $AlertingInterval)
 $ReportedPropertyRateAlertQuery = $ReportedPropertyRateAlertQuery.Replace("<TWINTESTER.THRESHOLD>", $TwinTesterUpstreamReportedPropertyUpdatesPerMinThreshold)
@@ -132,9 +132,11 @@ $EdgeHubCpu = [Alert]@{
 }
 $Alerts.Add($EdgeHubCpu)
 
-$EdgeAgentMemoryThreshold = 120000000
+$EdgeAgentMemoryThresholdArm = 100 * $MegaByteConstant
+$EdgeAgentMemoryThresholdAmd = 300 * $MegaByteConstant
 $EdgeAgentMemoryQuery = Get-Content -Path ".\queries\EdgeAgentMemory.kql" 
-$EdgeAgentMemoryQuery = $EdgeAgentMemoryQuery.Replace("<MEMORY.THRESHOLD>", $EdgeAgentMemoryThreshold)
+$EdgeAgentMemoryQuery = $EdgeAgentMemoryQuery.Replace("<MEMORY.THRESHOLD.ARM>", $EdgeAgentMemoryThresholdArm)
+$EdgeAgentMemoryQuery = $EdgeAgentMemoryQuery.Replace("<MEMORY.THRESHOLD.AMD>", $EdgeAgentMemoryThresholdAmd)
 $EdgeAgentMemoryQuery = $EdgeAgentMemoryQuery.Replace("<ALERTING.INTERVAL>", $AlertingInterval)
 $EdgeAgentMemory = [Alert]@{
    Name = "edge-agent-memory"
@@ -144,9 +146,11 @@ $EdgeAgentMemory = [Alert]@{
 }
 $Alerts.Add($EdgeAgentMemory)
 
-$EdgeHubMemoryThreshold = 400000000 
+$EdgeHubMemoryThresholdArm = 250 * $MegaByteConstant 
+$EdgeHubMemoryThresholdAmd = 900 * $MegaByteConstant 
 $EdgeHubMemoryQuery = Get-Content -Path ".\queries\EdgeHubMemory.kql" 
-$EdgeHubMemoryQuery = $EdgeHubMemoryQuery.Replace("<MEMORY.THRESHOLD>", $EdgeHubMemoryThreshold)
+$EdgeHubMemoryQuery = $EdgeHubMemoryQuery.Replace("<MEMORY.THRESHOLD.ARM>", $EdgeHubMemoryThresholdArm)
+$EdgeHubMemoryQuery = $EdgeHubMemoryQuery.Replace("<MEMORY.THRESHOLD.AMD>", $EdgeHubMemoryThresholdAmd)
 $EdgeHubMemoryQuery = $EdgeHubMemoryQuery.Replace("<ALERTING.INTERVAL>", $AlertingInterval)
 $EdgeHubMemory = [Alert]@{
    Name = "edge-hub-memory"

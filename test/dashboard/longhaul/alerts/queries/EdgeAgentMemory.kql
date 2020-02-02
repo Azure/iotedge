@@ -1,6 +1,7 @@
 let environmentPrefix = "<ENVIRONMENT>";
 let platform = "<PLATFORM>";
-let memoryThreshold = todouble("<MEMORY.THRESHOLD>");
+let memoryThresholdAmd = todouble("<MEMORY.THRESHOLD.AMD>");
+let memoryThresholdArm = todouble("<MEMORY.THRESHOLD.ARM>");
 let mostRecentTestId = toscalar(sanitizedTestMetrics 
 | where device contains environmentPrefix and device contains platform
 | order by TimeGenerated
@@ -18,4 +19,4 @@ alertContext
 | where moduleName == "edgeAgent"
 | order by TimeGenerated
 | take 1 
-| where isnan(value) or value > memoryThreshold or isnull(value)
+| where isnan(value) or isnull(value) or value > memoryThresholdAmd and hostPlatform contains "amd64" or value > memoryThresholdArm and hostPlatform contains "arm"
