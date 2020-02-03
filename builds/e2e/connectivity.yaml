@@ -11,7 +11,33 @@ jobs:
 ################################################################################
     displayName: Linux AMD64 Moby
     condition: and(eq(variables['run.linux.amd64.moby'], 'true'), ne(variables['agent.group'], ''))
-    timeoutInMinutes: 120
+    timeoutInMinutes: 180
+    strategy:
+      matrix:
+        Online:
+          testrun.config: 1
+          testrun.network.frequencies: "null null null"
+          testrun.duration: 60
+        Offline(5/5/5):
+          testrun.config: 2
+          testrun.network.frequencies: "00:05:00 00:05:00 5"
+          testrun.duration: 50
+        Offline(10/10/3):
+          testrun.config: 3
+          testrun.network.frequencies: "00:10:00 00:10:00 3"
+          testrun.duration: 60
+        Offline(15/15/3):
+          testrun.config: 4
+          testrun.network.frequencies: "00:15:00 00:15:00 3"
+          testrun.duration: 90
+        Offline(30/30/2):
+          testrun.config: 5
+          testrun.network.frequencies: "00:30:00 00:30:00 2"
+          testrun.duration: 120
+        Offline(5/20/3):
+          testrun.config: 6
+          testrun.network.frequencies: "00:05:00 00:20:00 3"
+          testrun.duration: 75
     pool:
       name: $(pool.name)
       demands:
@@ -22,14 +48,33 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
     steps:
+      - task: Bash@3
+        name: Set_run_flag
+        displayName: 'Set run flag'
+        inputs:
+          targetType: inline
+          script: |
+            output1=$(curl -s -u :$accessToken --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$buildId?api-version=5.1" | grep -oe '"status":"cancel')
+            output2=$(curl -s -u :$(System.AccessToken) --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$(Build.BuildId)/Timeline?api-version=5.1" | grep -oe '"result":"canceled"')
+            
+            if [[ ( "$(testrun.config)" == "$(config.to.run)" || "$(config.to.run)" == "0" ) && ( -z "$output1" ) && ( -z "$output2" ) ]]; then
+              echo "##vso[task.setvariable variable=run.steps]1"
+              echo "run.steps=1"
+            else
+              echo "##vso[task.setvariable variable=run.steps]0"
+              echo "run.steps=0"
+            fi
       - checkout: none
+        condition: eq(variables['run.steps'], 1)
       - task: AzureKeyVault@1
+        condition: eq(variables['run.steps'], 1)
         displayName: 'Azure Key Vault'
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeConnectivityStorageAccountConnString'
       - task: DownloadBuildArtifacts@0
+        condition: eq(variables['run.steps'], 1)
         displayName: 'Download Edgelet Artifacts'
         inputs:
           buildType: specific
@@ -40,6 +85,7 @@ jobs:
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
+        condition: eq(variables['run.steps'], 1)
         displayName: 'Download Images Artifacts'
         inputs:
           buildType: specific
@@ -71,9 +117,9 @@ jobs:
           eventHub.connectionString: '$(EdgeConnectivityEventHubConnString)'
           upstream.protocol: '$(upstream.protocol)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
-          testDuration: '$(testDuration)'
+          testDuration: '$(testrun.duration)'
           testStartDelay: '$(testStartDelay)'
-          networkController.frequencies: '$(networkController.frequencies)'
+          networkController.frequencies: '$(testrun.network.frequencies)'
           networkController.mode: '$(networkController.mode)'
           logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
