@@ -40,16 +40,47 @@ namespace MetricsValidator.Tests
          * *****************************************************************************/
         async Task TestMessageSize(CancellationToken cancellationToken)
         {
-            await this.SendMessages(10, cancellationToken, 250);
-            (await this.GetMessageSize(cancellationToken))
-                 .ForEach(
-                     size =>
+            TestReporter reporter = this.testReporter.MakeSubcategory("Message Size");
+            using (reporter.MeasureDuration())
+            {
+                await this.SendMessages(100, cancellationToken, 1000);
+                (await this.GetMessageSize(cancellationToken))
+                     .ForEach(
+                         size =>
+                             {
+                                 reporter.Assert("Sum is correct", size.Sum, 100000);
+                                 reporter.Assert("Count is correct", size.Sum, 100);
+                                 reporter.Assert("All quartiles have same size", size.Quartiles.Values.All(s => s == 1000));
+                             },
+                         () => reporter.Assert("All same size", false, "Could not get message size"));
+
+                await this.SendMessages(50, cancellationToken, 10);
+                (await this.GetMessageSize(cancellationToken))
+                     .ForEach(
+                         size =>
                          {
-                             this.testReporter.Assert("Sum is correct", size.Sum, 2500);
-                             this.testReporter.Assert("Count is correct", size.Sum, 2500);
-                             this.testReporter.Assert("All quartiles have same size", size.Quartiles.Values.All(s => s == 250));
+                             reporter.Assert("High median is correct", size.Quartiles[".5"] == 1000);
                          },
-                     () => this.testReporter.Assert("Message Size", false, "Could not get message size"));
+                         () => reporter.Assert("High median", false, "Could not get message size"));
+
+                await this.SendMessages(100, cancellationToken, 10);
+                (await this.GetMessageSize(cancellationToken))
+                     .ForEach(
+                         size =>
+                         {
+                             reporter.Assert("Low median is correct", size.Quartiles[".5"] == 1000);
+                         },
+                         () => reporter.Assert("Low median", false, "Could not get message size"));
+
+                await this.SendMessages(1, cancellationToken, 10000);
+                (await this.GetMessageSize(cancellationToken))
+                     .ForEach(
+                         size =>
+                         {
+                             reporter.Assert("Top quartiles are correct", size.Quartiles[".9999"] == 10000 && size.Quartiles[".999"] == 10000);
+                         },
+                         () => reporter.Assert("one bigger", false, "Could not get message size"));
+            }
         }
 
         async Task CountSingleSends(int n, CancellationToken cancellationToken)
