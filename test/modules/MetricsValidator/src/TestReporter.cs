@@ -69,10 +69,12 @@ namespace MetricsValidator
         {
             if (success)
             {
+                Console.WriteLine($"{name} succeeded");
                 this.successes.Add(name);
             }
             else
             {
+                Console.WriteLine($"{name} failed");
                 this.failures.Add(name, message);
             }
         }
