@@ -322,11 +322,11 @@ Param (
 
     [string] $TwinUpdateFailureThreshold = $null,
 
-    [switch] $HostPlatform = $null,
+    [string] $HostPlatform = $null,
+
+    [string] $InitializeWithAgentArtifact = "false"
 
     [switch] $BypassEdgeInstallation,
-
-    [switch] $InitializeWithAgentArtifact = "false"
 )
 
 Add-Type -TypeDefinition @"
