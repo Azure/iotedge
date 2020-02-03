@@ -75,7 +75,7 @@ Defaults:
         [Option("-d|--device-id", Description = "Edge device identifier registered with IoT Hub")]
         public string DeviceId { get; } = $"iot-edge-quickstart-{Guid.NewGuid()}";
 
-        [Option("--initialize-with-agent-artifact", CommandOptionType.SingleOrNoValue, Description = "Boolean specifying whether to bypass startup of edge agent 1.0 and start with the desired agent artifact directly")]
+        [Option("--initialize-with-agent-artifact <true/false>", CommandOptionType.SingleValue, Description = "Boolean specifying whether to bypass startup of edge agent 1.0 and start with the desired agent artifact directly")]
         public bool InitializeWithAgentArtifact { get; } = false;
 
         [Option("-e|--eventhub-endpoint <value>", Description = "Event Hub-compatible endpoint for IoT Hub, including EntityPath")]
