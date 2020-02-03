@@ -11,7 +11,7 @@ namespace IotEdgeQuickstart
         readonly LeaveRunning leaveRunning;
         readonly bool noVerify;
         readonly bool bypassEdgeInstallation;
-        readonly bool deployAgentArifactDirectly;
+        readonly bool initializeWithAgentArtifact;
         readonly string verifyDataFromModule;
         readonly bool dpsProvisionTest;
 
@@ -35,18 +35,18 @@ namespace IotEdgeQuickstart
             string deviceCaPk,
             string deviceCaCerts,
             bool optimizedForPerformance,
-            bool deployAgentArifactDirectly,
+            bool initializeWithAgentArtifact,
             LogLevel runtimeLogLevel,
             bool cleanUpExistingDeviceOnSuccess,
             Option<DPSAttestation> dpsAttestation)
-            : base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, upstreamProtocol, proxy, imageTag, deviceId, hostname, deploymentFileName, twinTestFileName, deviceCaCert, deviceCaPk, deviceCaCerts, optimizedForPerformance, deployAgentArifactDirectly, runtimeLogLevel, cleanUpExistingDeviceOnSuccess, dpsAttestation)
+            : base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, upstreamProtocol, proxy, imageTag, deviceId, hostname, deploymentFileName, twinTestFileName, deviceCaCert, deviceCaPk, deviceCaCerts, optimizedForPerformance, initializeWithAgentArtifact, runtimeLogLevel, cleanUpExistingDeviceOnSuccess, dpsAttestation)
         {
             this.leaveRunning = leaveRunning;
             this.noVerify = noVerify;
             this.bypassEdgeInstallation = bypassEdgeInstallation;
             this.verifyDataFromModule = verifyDataFromModule;
             this.dpsProvisionTest = dpsAttestation.HasValue;
-            this.deployAgentArifactDirectly = deployAgentArifactDirectly;
+            this.initializeWithAgentArtifact = initializeWithAgentArtifact;
         }
 
         public async Task RunAsync()

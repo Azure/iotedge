@@ -128,7 +128,7 @@ namespace IotEdgeQuickstart.Details
 
         readonly bool optimizedForPerformance;
 
-        readonly bool deployAgentArtifactDirectly;
+        readonly bool initializeWithAgentArtifact;
 
         readonly LogLevel runtimeLogLevel;
 
@@ -154,7 +154,7 @@ namespace IotEdgeQuickstart.Details
             string deviceCaPk,
             string deviceCaCerts,
             bool optimizedForPerformance,
-            bool deployAgentArtifactDirectly,
+            bool initializeWithAgentArtifact,
             LogLevel runtimeLogLevel,
             bool cleanUpExistingDeviceOnSuccess,
             Option<DPSAttestation> dpsAttestation)
@@ -192,7 +192,7 @@ namespace IotEdgeQuickstart.Details
             this.deviceCaPk = deviceCaPk;
             this.deviceCaCerts = deviceCaCerts;
             this.optimizedForPerformance = optimizedForPerformance;
-            this.deployAgentArtifactDirectly = deployAgentArtifactDirectly;
+            this.initializeWithAgentArtifact = initializeWithAgentArtifact;
             this.runtimeLogLevel = runtimeLogLevel;
             this.cleanUpExistingDeviceOnSuccess = cleanUpExistingDeviceOnSuccess;
             this.proxy = proxy.Map(p => new WebProxy(p) as IWebProxy);
@@ -265,7 +265,7 @@ namespace IotEdgeQuickstart.Details
                 });
 
             Option<string> agentImage = Option.None<string>();
-            if (this.deployAgentArtifactDirectly)
+            if (this.initializeWithAgentArtifact)
             {
                 agentImage = Option.Some<string>(this.EdgeAgentImage());
             }
