@@ -8,7 +8,6 @@ namespace EdgeHubRestartTester
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -18,21 +17,19 @@ namespace EdgeHubRestartTester
     class MessageEdgeHubConnector : IEdgeHubConnector
     {
         long messageCount = 0;
-        ModuleClient msgModuleClient { get; }
-        Guid batchId { get; }
-        DateTime runExpirationTime { get; }
-        CancellationToken cancellationToken { get; }
-        DateTime edgeHubRestartedTime { get; }
-        HttpStatusCode edgeHubRestartStatusCode { get; }
-        uint restartSequenceNumber { get; }
-        ILogger logger { get; }
+        ModuleClient msgModuleClient;
+        Guid batchId;
+        DateTime runExpirationTime;
+        CancellationToken cancellationToken;
+        DateTime edgeHubRestartedTime;
+        uint restartSequenceNumber;
+        ILogger logger;
 
         public MessageEdgeHubConnector(
             ModuleClient msgModuleClient,
             Guid batchId,
             DateTime runExpirationTime,
             DateTime edgeHubRestartedTime,
-            HttpStatusCode edgeHubRestartStatusCode,
             uint restartSequenceNumber,
             ILogger logger,
             CancellationToken cancellationToken)
@@ -42,7 +39,6 @@ namespace EdgeHubRestartTester
             this.runExpirationTime = runExpirationTime;
             this.cancellationToken = Preconditions.CheckNotNull(cancellationToken, nameof(cancellationToken));
             this.edgeHubRestartedTime = edgeHubRestartedTime;
-            this.edgeHubRestartStatusCode = edgeHubRestartStatusCode;
             this.restartSequenceNumber = restartSequenceNumber;
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
         }
@@ -64,7 +60,6 @@ namespace EdgeHubRestartTester
                 this.batchId.ToString(),
                 Interlocked.Read(ref this.messageCount).ToString(),
                 this.edgeHubRestartedTime,
-                this.edgeHubRestartStatusCode,
                 msgCompletedTime,
                 mgsStatusCode,
                 this.restartSequenceNumber);
@@ -105,6 +100,8 @@ namespace EdgeHubRestartTester
                     // TimeoutException is expected to happen while the EdgeHub is down.
                     // Let's log the attempt and retry the message send until successful
                     this.logger.LogDebug(ex, $"[SendMessageAsync] Exception caught with SequenceNumber {this.messageCount}, BatchId: {batchId.ToString()};");
+                    // Make sure the seqeunce number is not increment when the sent failed.
+                    Interlocked.Decrement(ref this.messageCount);
                 }
             }
 

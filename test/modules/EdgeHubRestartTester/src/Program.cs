@@ -35,7 +35,7 @@ namespace EdgeHubRestartTester
 
             try
             {
-                iotHubServiceClient = ServiceClient.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString);
+                iotHubServiceClient = ServiceClient.CreateFromConnectionString(Settings.Current.IoTHubConnectionString);
 
                 if (Settings.Current.MessageEnable)
                 {
@@ -61,7 +61,7 @@ namespace EdgeHubRestartTester
 
                 while ((!cts.IsCancellationRequested) && (DateTime.UtcNow < testExpirationTime))
                 {
-                    (DateTime restartTime, HttpStatusCode restartStatus) = await RestartModules(iotHubServiceClient);
+                    (DateTime restartTime, _) = await RestartModules(iotHubServiceClient);
                     DateTime eachTestExpirationTime = restartTime.Add(Settings.Current.RestartPeriod);
 
                     // Increment the counter when issue an edgeHub restart
@@ -77,7 +77,6 @@ namespace EdgeHubRestartTester
                                 batchId,
                                 eachTestExpirationTime,
                                 restartTime,
-                                restartStatus,
                                 restartCount,
                                 Logger,
                                 cts.Token)
@@ -94,7 +93,6 @@ namespace EdgeHubRestartTester
                                 batchId,
                                 eachTestExpirationTime,
                                 restartTime,
-                                restartStatus,
                                 restartCount,
                                 Logger,
                                 cts.Token)
@@ -130,29 +128,36 @@ namespace EdgeHubRestartTester
         static async Task<Tuple<DateTime, HttpStatusCode>> RestartModules(
             ServiceClient iotHubServiceClient)
         {
+            bool isRestartNeeded = true;
+
             CloudToDeviceMethod c2dMethod = new CloudToDeviceMethod("RestartModule");
             string payloadSchema = "{{ \"SchemaVersion\": \"1.0\", \"Id\": \"{0}\" }}";
             string payload = string.Format(payloadSchema, "edgeHub");
             Logger.LogInformation("RestartModule Method Payload: {0}", payload);
             c2dMethod.SetPayloadJson(payload);
 
-            try
+            while (isRestartNeeded)
             {
-                CloudToDeviceMethodResult response = await iotHubServiceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", c2dMethod);
-                if ((HttpStatusCode)response.Status != HttpStatusCode.OK)
+                try
                 {
-                    Logger.LogError($"Calling EdgeHub restart failed with status code {response.Status} : {response.GetPayloadAsJson()}.");
-                }
-                else
-                {
-                    Logger.LogInformation($"Calling EdgeHub restart succeeded with status code {response.Status}.");
-                }
+                    // TODO: Introduce the offline scenario to use docker command.
+                    CloudToDeviceMethodResult response = await iotHubServiceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", c2dMethod);
+                    if ((HttpStatusCode)response.Status != HttpStatusCode.OK)
+                    {
+                        Logger.LogError($"Calling EdgeHub restart failed with status code {response.Status} : {response.GetPayloadAsJson()}.");
+                    }
+                    else
+                    {
+                        Logger.LogInformation($"Calling EdgeHub restart succeeded with status code {response.Status}.");
+                    }
 
-                return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)response.Status);
-            }
-            catch (Exception e)
-            {
-                Logger.LogError($"Exception caught for payload {payload}: {e}");
+                    return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)response.Status);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError($"Exception caught for payload {payload}: {e}");
+                    isRestartNeeded = true;
+                }
             }
 
             return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.InternalServerError);

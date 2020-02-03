@@ -15,7 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
             string batchId,
             string sequenceNumber,
             DateTime edgeHubRestartedTime,
-            HttpStatusCode edgeHubRestartStatusCode,
             DateTime messageCompletedTime,
             HttpStatusCode messageCompletedStatusCode,
             uint restartSequenceNumber)
@@ -25,15 +24,12 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
             this.BatchId = batchId;
             this.SequenceNumber = sequenceNumber;
             this.EdgeHubRestartedTime = edgeHubRestartedTime;
-            this.EdgeHubRestartStatusCode = edgeHubRestartStatusCode;
             this.MessageCompletedTime = messageCompletedTime;
             this.MessageCompletedStatusCode = messageCompletedStatusCode;
-            this.RestartSequenceNumber = Preconditions.CheckNotNull(restartSequenceNumber, nameof(restartSequenceNumber));
+            this.RestartSequenceNumber = restartSequenceNumber;
         }
 
         DateTime EdgeHubRestartedTime { get; set; }
-
-        public HttpStatusCode EdgeHubRestartStatusCode { get; set; }
 
         public DateTime MessageCompletedTime { get; set; }
 
