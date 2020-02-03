@@ -1,8 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 {
+    using System;
     using System.Collections.Generic;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using System.Net;
     using Microsoft.Azure.Devices.Edge.Util;
 
     /// <summary>
@@ -13,22 +14,51 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         public EdgeHubRestartMessageReport(
             string trackingId,
             string resultType,
-            string senderSource,
-            string receiverSource
-            )
+            bool isPassing,
+            Dictionary<string, ulong> messageCount,
+            Dictionary<HttpStatusCode, ulong> restartStatusHistogram,
+            Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram,
+            TimeSpan minPeriod,
+            TimeSpan maxPeriod,
+            TimeSpan medianPeriod,
+            TimeSpan meanPeriod,
+            TimeSpan variancePeriod)
             : base(trackingId, resultType)
         {
-            this.ReceiverSource = Preconditions.CheckNonWhiteSpace(resultType, nameof(resultType));
-            this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
+            this.isPassing = isPassing;
+            this.MessageCount = Preconditions.CheckNotNull(messageCount, nameof(messageCount));
+            this.RestartStatusHistogram = Preconditions.CheckNotNull(restartStatusHistogram, nameof(restartStatusHistogram));
+            this.CompletedStatusHistogram = Preconditions.CheckNotNull(completedStatusHistogram, nameof(completedStatusHistogram));
+            this.SourceList = new List<string>(messageCount.Keys);
+            this.MinPeriod = minPeriod;
+            this.MaxPeriod = maxPeriod;
+            this.MedianPeriod = medianPeriod;
+            this.MeanPeriod = meanPeriod;
+            this.VariancePeriod = variancePeriod;
         }
 
-        internal string ReceiverSource { get; }
+        bool isPassing;
 
-        internal string SenderSource { get; }
+        internal Dictionary<string, ulong> MessageCount { get; }
 
-        // BEARWASHERE -- Forever optimism -- TODO
-        public override bool IsPassed => true;
+        internal  Dictionary<HttpStatusCode, ulong> RestartStatusHistogram { get; }
 
-        public override string Title => $"EdgeHubRestartTest Report between [{this.SenderSource}] and [{this.ReceiverSource}] ({this.ResultType})";
+        internal  Dictionary<HttpStatusCode, List<TimeSpan>> CompletedStatusHistogram { get; }
+
+        internal List<string> SourceList { get; }
+
+        internal TimeSpan MinPeriod { get; }
+
+        internal TimeSpan MaxPeriod { get; }
+
+        internal TimeSpan MedianPeriod { get; }
+
+        internal TimeSpan MeanPeriod { get; }
+
+        internal TimeSpan VariancePeriod { get; }
+
+        public override bool IsPassed => this.isPassing;
+
+        public override string Title => $"{this.ResultType} Report between {SourceList}";
     }
 }

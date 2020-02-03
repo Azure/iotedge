@@ -178,44 +178,61 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             completedStatusHistogram.TryGetValue(HttpStatusCode.OK, out completedPeriods);
             List<TimeSpan> orderedCompletedPeriods = completedPeriods?.OrderBy(p => p.Ticks).ToList();
             
-            TimeSpan minPeriod = orderedCompletedPeriods.First();
-            TimeSpan maxPeriod = orderedCompletedPeriods.Last();
-            TimeSpan medianPeriod;
-            if ((orderedCompletedPeriods.Count & 0b1) == 0b1)
+            TimeSpan minPeriod = TimeSpan.FromTicks(0);
+            TimeSpan maxPeriod = TimeSpan.FromTicks(0);
+            TimeSpan medianPeriod = TimeSpan.FromTicks(0);
+            TimeSpan meanPeriod = TimeSpan.FromTicks(0);
+            TimeSpan variancePeriod = TimeSpan.FromTicks(0);
+            if (orderedCompletedPeriods != null)
             {
-                // If odd, pick the middle value
-                medianPeriod = orderedCompletedPeriods[orderedCompletedPeriods.Count >> 1];
-            }
-            else
-            {
-                // If even, average the middle values
-                medianPeriod =
-                    (orderedCompletedPeriods[orderedCompletedPeriods.Count >> 1] + 
-                     orderedCompletedPeriods[(orderedCompletedPeriods.Count >> 1)-1])/2;
+                minPeriod = orderedCompletedPeriods.First();
+                maxPeriod = orderedCompletedPeriods.Last();
+
+                if ((orderedCompletedPeriods.Count & 0b1) == 0b1)
+                {
+                    // If odd, pick the middle value
+                    medianPeriod = orderedCompletedPeriods[orderedCompletedPeriods.Count >> 1];
+                }
+                else
+                {
+                    // If even, average the middle values
+                    medianPeriod =
+                        (orderedCompletedPeriods[orderedCompletedPeriods.Count >> 1] + 
+                        orderedCompletedPeriods[(orderedCompletedPeriods.Count >> 1)-1])/2;
+                }
+
+                // Compute Mean
+                TimeSpan totalSpan = TimeSpan.FromTicks(0);
+                double totalSpanSquareInMilisec = 0.0;
+                foreach (TimeSpan eachTimeSpan in orderedCompletedPeriods)
+                {
+                    totalSpan += eachTimeSpan;
+                    totalSpanSquareInMilisec += Math.Pow(eachTimeSpan.TotalMilliseconds, 2);
+                }
+                // Compute Mean : mean = sum(x) / N
+                meanPeriod = totalSpan/orderedCompletedPeriods.Count();
+                
+                // Compute Variance: var = sum((x - mean)^2) / N 
+                //                       = sum(x^2)/N - mean^2
+                double variancePeriodInMilisec = (totalSpanSquareInMilisec / orderedCompletedPeriods.Count()) - Math.Pow(meanPeriod.TotalMilliseconds, 2);
+                variancePeriod = TimeSpan.FromMilliseconds(variancePeriodInMilisec);
             }
 
-            // Compute Mean
-            TimeSpan totalSpan = TimeSpan.FromTicks(0);
-            double totalSpanSquareInMilisec = 0.0;
-            foreach (TimeSpan eachTimeSpan in orderedCompletedPeriods)
-            {
-                totalSpan += eachTimeSpan;
-                totalSpanSquareInMilisec += Math.Pow(eachTimeSpan.TotalMilliseconds, 2);
-            }
-            // Compute Mean : mean = sum(x) / N
-            TimeSpan meanPeriod = totalSpan/orderedCompletedPeriods.Count();
-            
-            // Compute Variance: var = sum((x - mean)^2) / N 
-            //                       = sum(x^2)/N - mean^2
-            double variancePeriodInMilisec = (totalSpanSquareInMilisec / orderedCompletedPeriods.Count()) - Math.Pow(meanPeriod.TotalMilliseconds, 2);
-            TimeSpan variancePeriod = TimeSpan.FromMilliseconds(variancePeriodInMilisec);
+            // Make sure the maximum restart period is within a passable threshold
+            isPassing &= maxPeriod < this.Metadata.PassableEdgeHubRestartPeriod;
 
-            // BEARWASHERE -- TODO
+
+            // BEARWASHERE -- TODO: what happen if the results contain a dictionary? 
             return new EdgeHubRestartMessageReport(
-                this.TrackingId,
-                this.Metadata.TestReportType.ToString(),
-                this.Metadata.SenderSource,
-                this.Metadata.ReceiverSource);
+                bool isPassing,
+                Dictionary<string, ulong> messageCount,
+                Dictionary<HttpStatusCode, ulong> restartStatusHistogram,
+                Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram,
+                TimeSpan minPeriod,
+                TimeSpan maxPeriod,
+                TimeSpan medianPeriod,
+                TimeSpan meanPeriod,
+                TimeSpan variancePeriod);
         }
 
         async Task IncrementSenderSequenceNumberAsync(
