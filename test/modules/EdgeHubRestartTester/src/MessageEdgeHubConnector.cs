@@ -22,7 +22,6 @@ namespace EdgeHubRestartTester
         DateTime runExpirationTime;
         CancellationToken cancellationToken;
         DateTime edgeHubRestartedTime;
-        uint restartSequenceNumber;
         ILogger logger;
 
         public MessageEdgeHubConnector(
@@ -30,7 +29,6 @@ namespace EdgeHubRestartTester
             Guid batchId,
             DateTime runExpirationTime,
             DateTime edgeHubRestartedTime,
-            uint restartSequenceNumber,
             ILogger logger,
             CancellationToken cancellationToken)
         {
@@ -39,7 +37,6 @@ namespace EdgeHubRestartTester
             this.runExpirationTime = runExpirationTime;
             this.cancellationToken = Preconditions.CheckNotNull(cancellationToken, nameof(cancellationToken));
             this.edgeHubRestartedTime = edgeHubRestartedTime;
-            this.restartSequenceNumber = restartSequenceNumber;
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
         }
 
@@ -61,8 +58,7 @@ namespace EdgeHubRestartTester
                 Interlocked.Read(ref this.messageCount).ToString(),
                 this.edgeHubRestartedTime,
                 msgCompletedTime,
-                mgsStatusCode,
-                this.restartSequenceNumber);
+                mgsStatusCode);
 
             var reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
             await ModuleUtil.ReportTestResultUntilSuccessAsync(
@@ -80,10 +76,10 @@ namespace EdgeHubRestartTester
             DateTime runExpirationTime,
             CancellationToken cancellationToken)
         {
+            Interlocked.Increment(ref this.messageCount);
             while ((!cancellationToken.IsCancellationRequested) && (DateTime.UtcNow < runExpirationTime))
             {
                 Message message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new { data = DateTime.UtcNow.ToString() })));
-                Interlocked.Increment(ref this.messageCount);
                 message.Properties.Add("sequenceNumber", Interlocked.Read(ref this.messageCount).ToString());
                 message.Properties.Add("batchId", batchId.ToString());
                 message.Properties.Add("trackingId", trackingId);
@@ -107,9 +103,6 @@ namespace EdgeHubRestartTester
                     {
                         this.logger.LogError(ex, $"[SendMessageAsync] Exception caught with SequenceNumber {this.messageCount}, BatchId: {batchId.ToString()};");
                     }
-
-                    // Make sure the seqeunce number is not increment when the sent failed.
-                    Interlocked.Decrement(ref this.messageCount);
                 }
             }
 

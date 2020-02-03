@@ -77,7 +77,6 @@ namespace EdgeHubRestartTester
                                 batchId,
                                 eachTestExpirationTime,
                                 restartTime,
-                                restartCount,
                                 Logger,
                                 cts.Token)
                             .StartAsync();
