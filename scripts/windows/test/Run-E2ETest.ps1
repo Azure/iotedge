@@ -324,9 +324,9 @@ Param (
 
     [string] $HostPlatform = $null,
 
-    [string] $InitializeWithAgentArtifact = "false"
+    [string] $InitializeWithAgentArtifact = "false",
 
-    [switch] $BypassEdgeInstallation,
+    [switch] $BypassEdgeInstallation
 )
 
 Add-Type -TypeDefinition @"
