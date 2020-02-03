@@ -10,43 +10,47 @@ namespace CloudToDeviceMessageTester
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using TransportType = Microsoft.Azure.Devices.TransportType;
 
-    sealed class CloudToDeviceMessageSender : CloudToDeviceMessageTesterBase
+    sealed class CloudToDeviceMessageSender : ICloudToDeviceMessageTester
     {
+        readonly ILogger logger;
+        readonly string iotHubConnectionString;
+        readonly string deviceId;
+        readonly string moduleId;
+        readonly TimeSpan testDuration;
+        readonly TestResultReportingClient testResultReportingClient;
         readonly TimeSpan messageDelay;
         readonly TimeSpan testStartDelay;
         readonly string trackingId;
         long messageCount = 0;
         ServiceClient serviceClient;
 
-        public CloudToDeviceMessageSender(
+        internal CloudToDeviceMessageSender(
             ILogger logger,
-            string iotHubConnectionString,
-            string deviceId,
-            string moduleId,
-            TransportType transportType,
-            TimeSpan testDuration,
-            TestResultReportingClient testResultReportingClient,
-            string trackingId,
-            TimeSpan messageDelay,
-            TimeSpan testStartDelay)
-            : base(logger, iotHubConnectionString, deviceId, moduleId, transportType, testDuration, testResultReportingClient)
+            C2DTestSharedSettings sharedMetadata,
+            C2DTestSenderSettings senderMetadata,
+            TestResultReportingClient testResultReportingClient)
         {
-            this.messageDelay = messageDelay;
-            this.testStartDelay = testStartDelay;
-            this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
+            this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
+            this.iotHubConnectionString = Preconditions.CheckNonWhiteSpace(sharedMetadata.IotHubConnectionString, nameof(sharedMetadata.IotHubConnectionString));
+            this.deviceId = Preconditions.CheckNonWhiteSpace(sharedMetadata.DeviceId, nameof(sharedMetadata.DeviceId));
+            this.moduleId = Preconditions.CheckNonWhiteSpace(sharedMetadata.ModuleId, nameof(sharedMetadata.ModuleId));
+            this.trackingId = Preconditions.CheckNonWhiteSpace(senderMetadata.TrackingId, nameof(senderMetadata.TrackingId));
+            this.messageDelay = senderMetadata.MessageDelay;
+            this.testStartDelay = senderMetadata.TestStartDelay;
+            this.testDuration = senderMetadata.TestDuration;
+            this.testResultReportingClient = Preconditions.CheckNotNull(testResultReportingClient, nameof(testResultReportingClient));
         }
 
-        public override void Dispose() => this.serviceClient?.Dispose();
+        public void Dispose() => this.serviceClient?.Dispose();
 
-        public override async Task StartAsync(CancellationToken ct)
+        public async Task StartAsync(CancellationToken ct)
         {
             this.logger.LogInformation($"CloudToDeviceMessageTester in sender mode with delayed start for {this.testStartDelay}.");
             await Task.Delay(this.testStartDelay, ct);
             DateTime testStartAt = DateTime.UtcNow;
 
-            this.serviceClient = ServiceClient.CreateFromConnectionString(this.iotHubConnectionString, this.transportType);
+            this.serviceClient = ServiceClient.CreateFromConnectionString(this.iotHubConnectionString);
             await this.serviceClient.OpenAsync();
 
             Guid batchId = Guid.NewGuid();
@@ -56,11 +60,12 @@ namespace CloudToDeviceMessageTester
             {
                 MessageTestResult testResult = await this.SendCloudToDeviceMessageAsync(batchId, this.trackingId);
                 await ModuleUtil.ReportTestResultAsync(this.testResultReportingClient, this.logger, testResult);
+                this.messageCount++;
                 await Task.Delay(this.messageDelay, ct);
             }
         }
 
-        public async Task<MessageTestResult> SendCloudToDeviceMessageAsync(Guid batchId, string trackingId)
+        internal async Task<MessageTestResult> SendCloudToDeviceMessageAsync(Guid batchId, string trackingId)
         {
             this.logger.LogInformation($"Sending C2D message to deviceId: {this.deviceId} with Sequence Number: {this.messageCount}, batchId: {batchId}, and trackingId: {trackingId}");
             try
@@ -70,7 +75,6 @@ namespace CloudToDeviceMessageTester
                 message.Properties.Add(TestConstants.Message.BatchIdPropertyName, batchId.ToString());
                 message.Properties.Add(TestConstants.Message.TrackingIdPropertyName, trackingId);
                 await this.serviceClient.SendAsync(this.deviceId, message);
-                this.messageCount++;
 
                 return new MessageTestResult(this.moduleId + ".send", DateTime.UtcNow)
                 {
