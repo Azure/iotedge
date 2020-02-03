@@ -24,7 +24,7 @@ namespace MetricsValidator
 
         protected string TestName
         {
-            get { return this.GetType().ToString().Split('.').LastOrDefault(); }
+            get { return this.GetType().ToString().Split('.').Last(); }
         }
 
         public TestBase(TestReporter testReporter, IMetricsScraper scraper, ModuleClient moduleClient)
@@ -38,21 +38,23 @@ namespace MetricsValidator
         public async Task Start(CancellationToken cancellationToken)
         {
             log.LogInformation($"Starting test {this.TestName}");
+            Stopwatch stopwatch = Stopwatch.StartNew();
 
-            using (this.testReporter.MeasureDuration())
+            try
             {
-                try
-                {
-                    await this.Test(cancellationToken);
-                }
-                catch (Exception ex)
-                {
-                    log.LogError(ex, $"{this.TestName} Failed");
-                    this.testReporter.Assert("Test doesn't break", false, $"Test threw exception:\n{ex}");
-                }
+                await this.Test(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, $"{this.TestName} Failed");
+                this.testReporter.Assert("Test doesn't break", false, $"Test threw exception:\n{ex}");
+            }
+            finally
+            {
+                stopwatch.Stop();
             }
 
-            log.LogInformation($"Finished test {this.TestName} in {this.testReporter.Duration}.");
+            log.LogInformation($"Finished test {this.TestName} in {stopwatch.ElapsedMilliseconds} ms.");
         }
 
         protected abstract Task Test(CancellationToken cancellationToken);
