@@ -98,7 +98,3 @@ New-AzScheduledQueryRule `
 -Schedule $Schedule `
 -Source $QuerySource `
 -Name $KpiName
-
-#| where tostring(dimensions.target) != "upstream"
-#| where tostring(trim_start(@"[^/]+/", extractjson("$.to", tostring(dimensions), typeof(string))))
-#| where tostring(dimensions.from) hassuffix "tempSensor2"
