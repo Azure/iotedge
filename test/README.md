@@ -1,4 +1,3 @@
-
 # How to run the end-to-end tests
 
 ## Software Dependency
