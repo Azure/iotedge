@@ -551,7 +551,7 @@ function run_directmethod_test()
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -n "$(hostname)" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
-        --initialize-with-agent-artifact $INITIALIZE_WITH_AGENT_ARTIFACT \
+        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --verify-data-from-module "DirectMethodSender" \
         -l "$deployment_working_file" && ret=$? || ret=$?
 
@@ -684,7 +684,7 @@ function run_dps_provisioning_test() {
         --optimize_for_performance="$optimize_for_performance" \
         $dps_command_flags \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$? \
-        --initialize-with-agent-artifact $INITIALIZE_WITH_AGENT_ARTIFACT
+        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT"
 
     local elapsed_seconds=$SECONDS
     test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -714,7 +714,7 @@ function run_longhaul_test() {
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -n "$(hostname)" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
-        --initialize-with-agent-artifact $INITIALIZE_WITH_AGENT_ARTIFACT \
+        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --leave-running=All \
         -l "$deployment_working_file" \
         --runtime-log-level "Info" \
@@ -747,7 +747,7 @@ function run_quickstartcerts_test() {
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
-        --initialize-with-agent-artifact $INITIALIZE_WITH_AGENT_ARTIFACT \
+        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --leave-running=Core \
         --optimize_for_performance="$optimize_for_performance" \
         --no-verify && ret=$? || ret=$?
@@ -792,7 +792,7 @@ function run_stress_test() {
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -n "$(hostname)" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
-        --initialize-with-agent-artifact $INITIALIZE_WITH_AGENT_ARTIFACT \
+        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --leave-running=All \
         -l "$deployment_working_file" \
         --runtime-log-level "Info" \
@@ -826,7 +826,7 @@ function run_tempfilter_test() {
         -n "$(hostname)" \
         --verify-data-from-module "tempFilter" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
-        --initialize-with-agent-artifact $INITIALIZE_WITH_AGENT_ARTIFACT \
+        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         -l "$deployment_working_file" && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -857,7 +857,7 @@ function run_tempfilterfunctions_test() {
         -n "$(hostname)" \
         --verify-data-from-module "tempFilterFunctions" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
-        --initialize-with-agent-artifact $INITIALIZE_WITH_AGENT_ARTIFACT \
+        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         -l "$deployment_working_file" && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -889,7 +889,7 @@ function run_tempsensor_test() {
         -tw "$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json" \
         --optimize_for_performance="$optimize_for_performance" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$? \
-        --initialize-with-agent-artifact $INITIALIZE_WITH_AGENT_ARTIFACT
+        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT"
 
     local elapsed_seconds=$SECONDS
     test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"
