@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
         }
 
         public static async Task ReportTestResultAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult)
-        {            
+        {
             logger.LogInformation($"Sending test result: Source={testResult.Source}, Type={testResult.ResultType}, CreatedAt={testResult.CreatedAt}, Result={testResult.GetFormattedResult()}");
             await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto());
         }

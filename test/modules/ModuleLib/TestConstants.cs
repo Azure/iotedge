@@ -9,5 +9,10 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             public const string BatchIdPropertyName = "batchId";
             public const string SequenceNumberPropertyName = "sequenceNumber";
         }
+
+        public static class Error
+        {
+            public const string TestResultSource = "error";
+        }
     }
 }
