@@ -20,7 +20,7 @@ let totalDisk = toscalar(alertContext
 | summarize value=sum(value) by TimeGenerated
 | project value
 | take 1);
-let disk = alertContext
+alertContext
 | where Name_s == "edgeAgent_available_disk_space_bytes"
 | order by TimeGenerated
 | take 1 
