@@ -766,6 +766,7 @@
         "imagesBranchName": "<MetricsCollector.Images.BranchName>",
         "edgeletBranchName": "<MetricsCollector.Edgelet.BranchName>",
         "testId": "<TrackingId>",
+        "testBuildNumber": "<MetricsCollector.Test.BuildNumber>",
         "upstreamProtocol": "<UpstreamProtocol>",
         "networkControllerOfflineFrequency": "<NetworkController.OfflineFrequency0>",
         "networkControllerOnlineFrequency": "<NetworkController.OnlineFrequency0>",
