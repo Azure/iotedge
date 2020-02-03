@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             // System resource metrics take 1 minute to start. Wait before testing
             await Task.Delay(TimeSpan.FromMinutes(1.1));
 
-            var result = await this.iotHub.InvokeMethodAsync(Context.Current.DeviceId, ModuleName, new CloudToDeviceMethod("ValidateMetrics"), CancellationToken.None);
+            var result = await this.iotHub.InvokeMethodAsync(Context.Current.DeviceId, ModuleName, new CloudToDeviceMethod("ValidateMetrics"), token);
             Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
 
             string body = result.GetPayloadAsJson();
