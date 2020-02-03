@@ -89,6 +89,7 @@ $QuerySource = New-AzScheduledQueryRuleSource `
 -DataSourceId "/subscriptions/5ed2dcb6-29bb-40de-a855-8c24a8260343/resourceGroups/EdgeBuilds/providers/Microsoft.OperationalInsights/workspaces/iotedgeLogAnalytic" `
 -QueryType "ResultCount"
 
+$AlertName = "$KpiName $TestId"
 New-AzScheduledQueryRule `
 -Location "West US 2" `
 -ResourceGroupName "EdgeBuilds" `
@@ -97,4 +98,6 @@ New-AzScheduledQueryRule `
 -Description "$TestId $MetricName $QueryComparison $QueryTarget" `
 -Schedule $Schedule `
 -Source $QuerySource `
--Name $KpiName
+-Name "$AlertName"
+
+Add-Content .\alertNames.txt "$AlertName`n"

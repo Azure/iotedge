@@ -7,5 +7,5 @@ $tags = @{module_name = "edgeHub"; quartile = ".9" }
 -QueryTarget 0 `
 -KpiName "ConnectivityTestAlert" `
 -Tags $tags `
--TestId "asjkdn" `
+-TestId "aaaaa" `
 -AlertingInterval 15
