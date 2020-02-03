@@ -18,7 +18,10 @@ delete_branch_on_merge = true # default: false
 
 # When enabled, Kodiak will only update PRs that have an automerge label. 
 # When disabled, automatically merge any PR that passes all required checks.
-require_automerge_label = false
+require_automerge_label = true # default: true
+
+# By default, Kodiak will only act on PRs that have this label.
+automerge_label = "ready-to-merge" # default: "automerge"
 
 [merge.message]
 # use title of PR for merge commit.
