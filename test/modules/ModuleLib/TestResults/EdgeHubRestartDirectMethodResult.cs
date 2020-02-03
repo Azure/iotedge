@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
 {
     using System;
     using System.Net;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
     public class EdgeHubRestartDirectMethodResult : DirectMethodTestResult
@@ -27,10 +26,10 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
                 directMethodCompletedStatusCode,
                 TestOperationResultType.EdgeHubRestartDirectMethod)
         {
-            this.EdgeHubRestartedTime = Preconditions.CheckNotNull(edgeHubRestartedTime, nameof(edgeHubRestartedTime));
-            this.DirectMethodCompletedTime = Preconditions.CheckNotNull(directMethodCompletedTime, nameof(directMethodCompletedTime));
-            this.DirectMethodCompletedStatusCode = Preconditions.CheckNotNull(directMethodCompletedStatusCode, nameof(directMethodCompletedStatusCode));
-            this.RestartSequenceNumber = Preconditions.CheckNotNull(restartSequenceNumber, nameof(restartSequenceNumber));
+            this.EdgeHubRestartedTime = edgeHubRestartedTime;
+            this.DirectMethodCompletedTime = directMethodCompletedTime;
+            this.DirectMethodCompletedStatusCode = directMethodCompletedStatusCode;
+            this.RestartSequenceNumber = restartSequenceNumber;
         }
 
         DateTime EdgeHubRestartedTime { get; set; }

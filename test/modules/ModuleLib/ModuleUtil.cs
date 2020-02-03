@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
         public static async Task ReportTestResultUntilSuccessAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult, CancellationToken cancellationToken)
         {
             bool isSuccessful = false;
-            while(!isSuccessful && !cancellationToken.IsCancellationRequested)
+            while (!isSuccessful && !cancellationToken.IsCancellationRequested)
             {
                 try
                 {
