@@ -16,8 +16,6 @@ namespace MetricsValidator.Tests
 
     public class ValidateMessages : TestBase
     {
-        readonly string endpoint = Guid.NewGuid().ToString();
-
         public ValidateMessages(TestReporter testReporter, IMetricsScraper scraper, ModuleClient moduleClient)
             : base(testReporter, scraper, moduleClient)
         {
@@ -30,8 +28,7 @@ namespace MetricsValidator.Tests
              * await this.TestMessageSize(cancellationToken);
              */
 
-            await this.TestMessages(cancellationToken);
-            await this.TestQueueLength(cancellationToken);
+            await Task.WhenAll(this.TestMessages(cancellationToken), this.TestQueueLength(cancellationToken));
         }
 
         /*******************************************************************************
@@ -118,10 +115,12 @@ namespace MetricsValidator.Tests
 
         async Task TestMessageSize(CancellationToken cancellationToken)
         {
+            string endpoint = Guid.NewGuid().ToString();
+
             TestReporter reporter = this.testReporter.MakeSubcategory("Message Size");
             using (reporter.MeasureDuration())
             {
-                await this.SendMessages(100, cancellationToken, 1000);
+                await this.SendMessages(100, cancellationToken, endpoint, 1000);
                 (await this.GetMessageSize(cancellationToken))
                      .ForEach(
                          size =>
@@ -132,7 +131,7 @@ namespace MetricsValidator.Tests
                              },
                          () => reporter.Assert("All same size", false, "Could not get message size"));
 
-                await this.SendMessages(50, cancellationToken, 10);
+                await this.SendMessages(50, cancellationToken, endpoint, 10);
                 (await this.GetMessageSize(cancellationToken))
                      .ForEach(
                          size =>
@@ -141,7 +140,7 @@ namespace MetricsValidator.Tests
                          },
                          () => reporter.Assert("High median", false, "Could not get message size"));
 
-                await this.SendMessages(100, cancellationToken, 10);
+                await this.SendMessages(100, cancellationToken, endpoint, 10);
                 (await this.GetMessageSize(cancellationToken))
                      .ForEach(
                          size =>
@@ -150,7 +149,7 @@ namespace MetricsValidator.Tests
                          },
                          () => reporter.Assert("Low median", false, "Could not get message size"));
 
-                await this.SendMessages(1, cancellationToken, 10000);
+                await this.SendMessages(1, cancellationToken, endpoint, 10000);
                 (await this.GetMessageSize(cancellationToken))
                      .ForEach(
                          size =>
@@ -163,70 +162,74 @@ namespace MetricsValidator.Tests
 
         async Task TestMessages(CancellationToken cancellationToken)
         {
+            string endpoint = Guid.NewGuid().ToString();
+            TimeSpan timePerMessage = TimeSpan.FromMilliseconds(50);
+
             TestReporter reporter = this.testReporter.MakeSubcategory("Messages Sent and Recieved");
             using (reporter.MeasureDuration())
             {
-                await this.CountSingleSends(10, reporter, cancellationToken);
-                await this.CountSingleSends(100, reporter, cancellationToken);
+                async Task CountSingleSends(int n)
+                {
+                    int prevSent = await this.GetNumberOfMessagesSent(cancellationToken, endpoint);
+                    int prevRecieved = await this.GetNumberOfMessagesRecieved(cancellationToken, endpoint);
+                    await this.SendMessages(n, cancellationToken, endpoint);
 
-                await this.CountMultipleSends(1, 1, reporter, cancellationToken);
-                await this.CountMultipleSends(10, 1, reporter, cancellationToken);
-                await this.CountMultipleSends(1, 10, reporter, cancellationToken);
-                await this.CountMultipleSends(10, 10, reporter, cancellationToken);
+                    await Task.Delay(timePerMessage * n + TimeSpan.FromMilliseconds(250)); // Give edgeHub time to send message upstream
+                    int newSent = await this.GetNumberOfMessagesSent(cancellationToken, endpoint);
+                    int newRecieved = await this.GetNumberOfMessagesRecieved(cancellationToken, endpoint);
+
+                    reporter.Assert($"Reports {n} messages recieved", n, newRecieved - prevRecieved);
+                    reporter.Assert($"Reports {n} messages sent", n, newSent - prevSent);
+                }
+
+                await CountSingleSends(1);
+                await CountSingleSends(10);
+                await CountSingleSends(100);
+
+                async Task CountMultipleSends(int n, int m)
+                {
+                    int prevSent = await this.GetNumberOfMessagesSent(cancellationToken, endpoint);
+                    int prevRecieved = await this.GetNumberOfMessagesRecieved(cancellationToken, endpoint);
+                    await this.SendMessageBatches(n, m, cancellationToken, endpoint);
+
+                    await Task.Delay(timePerMessage * n * m + TimeSpan.FromMilliseconds(250)); // Give edgeHub time to send message upstream
+                    int newSent = await this.GetNumberOfMessagesSent(cancellationToken, endpoint);
+                    int newRecieved = await this.GetNumberOfMessagesRecieved(cancellationToken, endpoint);
+
+                    reporter.Assert($"Reports {n * m} recieved for {n} batches of {m}", n * m, newRecieved - prevRecieved);
+                    reporter.Assert($"Reports {n * m} sent for {n} batches of {m}", n * m, newSent - prevSent);
+                }
+
+                await CountMultipleSends(1, 1);
+                await CountMultipleSends(10, 1);
+                await CountMultipleSends(1, 10);
+                await CountMultipleSends(10, 10);
             }
-        }
-
-        async Task CountSingleSends(int n, TestReporter reporter, CancellationToken cancellationToken)
-        {
-            int prevSent = await this.GetNumberOfMessagesSent(cancellationToken);
-            int prevRecieved = await this.GetNumberOfMessagesRecieved(cancellationToken);
-            await this.SendMessages(n, cancellationToken);
-
-            await Task.Delay(1000); // Give edgeHub time to send message upstream
-            int newSent = await this.GetNumberOfMessagesSent(cancellationToken);
-            int newRecieved = await this.GetNumberOfMessagesRecieved(cancellationToken);
-
-            reporter.Assert($"Reports {n} messages recieved", n, newRecieved - prevRecieved);
-            reporter.Assert($"Reports {n} messages sent", n, newSent - prevSent);
-        }
-
-        async Task CountMultipleSends(int n, int m, TestReporter reporter, CancellationToken cancellationToken)
-        {
-            int prevSent = await this.GetNumberOfMessagesSent(cancellationToken);
-            int prevRecieved = await this.GetNumberOfMessagesRecieved(cancellationToken);
-            await this.SendMessageBatches(n, m, cancellationToken);
-
-            await Task.Delay(1000); // Give edgeHub time to send message upstream
-            int newSent = await this.GetNumberOfMessagesSent(cancellationToken);
-            int newRecieved = await this.GetNumberOfMessagesRecieved(cancellationToken);
-
-            reporter.Assert($"Reports {n * m} recieved for {n} batches of {m}", n * m, newRecieved - prevRecieved);
-            reporter.Assert($"Reports {n * m} sent for {n} batches of {m}", n * m, newSent - prevSent);
         }
 
         /*******************************************************************************
          * Helpers
          * *****************************************************************************/
-        async Task<int> GetNumberOfMessagesRecieved(CancellationToken cancellationToken, string endpoint = null)
+        async Task<int> GetNumberOfMessagesRecieved(CancellationToken cancellationToken, string endpoint)
         {
             var metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
-            Metric metric = metrics.FirstOrDefault(m => m.Name == "edgehub_messages_received_total" && m.Tags.TryGetValue("route_output", out string output) && output == (endpoint ?? this.endpoint));
+            Metric metric = metrics.FirstOrDefault(m => m.Name == "edgehub_messages_received_total" && m.Tags.TryGetValue("route_output", out string output) && output == endpoint);
 
             return (int?)metric?.Value ?? 0;
         }
 
-        async Task<int> GetNumberOfMessagesSent(CancellationToken cancellationToken, string endpoint = null)
+        async Task<int> GetNumberOfMessagesSent(CancellationToken cancellationToken, string endpoint)
         {
             var metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
-            Metric metric = metrics.FirstOrDefault(m => m.Name == "edgehub_messages_sent_total" && m.Tags.TryGetValue("from_route_output", out string output) && output == (endpoint ?? this.endpoint));
+            Metric metric = metrics.FirstOrDefault(m => m.Name == "edgehub_messages_sent_total" && m.Tags.TryGetValue("from_route_output", out string output) && output == endpoint);
 
             return (int?)metric?.Value ?? 0;
         }
 
-        async Task<int> GetQueueLength(CancellationToken cancellationToken, string endpoint = null)
+        async Task<int> GetQueueLength(CancellationToken cancellationToken, string endpoint)
         {
             var metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
-            Metric metric = metrics.FirstOrDefault(m => m.Name == "edgehub_queue_length" && m.Tags.TryGetValue("endpoint", out string output) && output.Contains(endpoint ?? this.endpoint));
+            Metric metric = metrics.FirstOrDefault(m => m.Name == "edgehub_queue_length" && m.Tags.TryGetValue("endpoint", out string output) && output.Contains(endpoint));
 
             return (int?)metric?.Value ?? 0;
         }
@@ -238,15 +241,15 @@ namespace MetricsValidator.Tests
             return HistogramQuartiles.CreateFromMetrics(metrics, "edgehub_message_size_bytes");
         }
 
-        Task SendMessages(int n, CancellationToken cancellationToken, int messageSize = 10, string endpoint = null)
+        Task SendMessages(int n, CancellationToken cancellationToken, string endpoint, int messageSize = 10)
         {
             var messagesToSend = Enumerable.Range(1, n).Select(i => new Message(new byte[messageSize]));
-            return Task.WhenAll(messagesToSend.Select(m => this.moduleClient.SendEventAsync(endpoint ?? this.endpoint, m, cancellationToken)));
+            return Task.WhenAll(messagesToSend.Select(m => this.moduleClient.SendEventAsync(endpoint, m, cancellationToken)));
         }
 
-        Task SendMessageBatches(int n, int m, CancellationToken cancellationToken, int messageSize = 10, string endpoint = null)
+        Task SendMessageBatches(int n, int m, CancellationToken cancellationToken, string endpoint, int messageSize = 10)
         {
-            return Task.WhenAll(Enumerable.Range(1, n).Select(i => this.moduleClient.SendEventBatchAsync(endpoint ?? this.endpoint, Enumerable.Range(1, m).Select(j => new Message(new byte[messageSize])), cancellationToken)));
+            return Task.WhenAll(Enumerable.Range(1, n).Select(i => this.moduleClient.SendEventBatchAsync(endpoint, Enumerable.Range(1, m).Select(j => new Message(new byte[messageSize])), cancellationToken)));
         }
     }
 }
