@@ -23,7 +23,6 @@ namespace EdgeHubRestartTester
         DateTime runExpirationTime;
         CancellationToken cancellationToken;
         DateTime edgeHubRestartedTime;
-        HttpStatusCode edgeHubRestartStatusCode;
         uint restartSequenceNumber;
         ILogger logger;
 
@@ -32,7 +31,6 @@ namespace EdgeHubRestartTester
             Guid batchId,
             DateTime runExpirationTime,
             DateTime edgeHubRestartedTime,
-            HttpStatusCode edgeHubRestartStatusCode,
             uint restartSequenceNumber,
             ILogger logger,
             CancellationToken cancellationToken)
@@ -42,7 +40,6 @@ namespace EdgeHubRestartTester
             this.runExpirationTime = runExpirationTime;
             this.cancellationToken = Preconditions.CheckNotNull(cancellationToken, nameof(cancellationToken));
             this.edgeHubRestartedTime = edgeHubRestartedTime;
-            this.edgeHubRestartStatusCode = edgeHubRestartStatusCode;
             this.restartSequenceNumber = restartSequenceNumber;
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
         }
@@ -65,7 +62,6 @@ namespace EdgeHubRestartTester
                 this.batchId,
                 Interlocked.Read(ref this.directMethodCount).ToString(),
                 this.edgeHubRestartedTime,
-                this.edgeHubRestartStatusCode,
                 dmCompletedTime,
                 dmStatusCode,
                 this.restartSequenceNumber);
@@ -109,33 +105,19 @@ namespace EdgeHubRestartTester
                     logger.LogInformation($"[DirectMethodEdgeHubConnector] Invoke DirectMethod with count {Interlocked.Read(ref this.directMethodCount).ToString()}");
                     return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)result.Status);
                 }
-                catch (IotHubCommunicationException e)
+                catch (Exception e)
                 {
                     // Only handle the exception that relevant to our test case; otherwise, re-throw it.
-                    if (this.IsEdgeHubDownDuringDirectMethodSend(e))
+                    if (this.IsEdgeHubDownDuringDirectMethodSend(e) || this.IsDirectMethodReceiverNotConnected(e))
                     {
                         // swallow exeception and retry until success
                         logger.LogDebug(e, $"[DirectMethodEdgeHubConnector] Exception caught with SequenceNumber {Interlocked.Read(ref this.directMethodCount).ToString()}");
                     }
                     else
                     {
-                        // something is wrong, Log and re-throw
+                        // TODO: Use the TRC result type
+                        // something is wrong, Log and send report to TRC
                         logger.LogError(e, $"[DirectMethodEdgeHubConnector] Exception caught with SequenceNumber {Interlocked.Read(ref this.directMethodCount).ToString()}");
-                        throw;
-                    }
-                }
-                catch (DeviceNotFoundException e)
-                {
-                    if (this.IsDirectMethodReceiverNotConnected(e))
-                    {
-                        // swallow exeception and retry until success
-                        logger.LogDebug(e, $"[DirectMethodEdgeHubConnector] Exception caught with SequenceNumber {Interlocked.Read(ref this.directMethodCount).ToString()}");
-                    }
-                    else
-                    {
-                        // something is wrong, Log and re-throw
-                        logger.LogError(e, $"[DirectMethodEdgeHubConnector] Exception caught with SequenceNumber {Interlocked.Read(ref this.directMethodCount).ToString()}");
-                        throw;
                     }
                 }
             }
@@ -143,24 +125,32 @@ namespace EdgeHubRestartTester
             return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.InternalServerError);
         }
 
-        bool IsEdgeHubDownDuringDirectMethodSend(IotHubCommunicationException e)
+        bool IsEdgeHubDownDuringDirectMethodSend(Exception e)
         {
             // This is a socket exception error code when EdgeHub is down.
             const int EdgeHubNotAvailableErrorCode = 111;
 
-            if (e?.InnerException?.InnerException is SocketException)
+            if (e is IotHubCommunicationException)
             {
-                int errorCode = ((SocketException)e.InnerException.InnerException).ErrorCode;
-                return errorCode == EdgeHubNotAvailableErrorCode;
+                if (e?.InnerException?.InnerException is SocketException)
+                {
+                    int errorCode = ((SocketException)e.InnerException.InnerException).ErrorCode;
+                    return errorCode == EdgeHubNotAvailableErrorCode;
+                }
             }
 
             return false;
         }
 
-        bool IsDirectMethodReceiverNotConnected(DeviceNotFoundException e)
+        bool IsDirectMethodReceiverNotConnected(Exception e)
         {
-            string errorMsg = e.Message;
-            return Regex.IsMatch(errorMsg, $"\\b{Settings.Current.DirectMethodTargetModuleId}\\b");
+            if (e is DeviceNotFoundException)
+            {
+                string errorMsg = e.Message;
+                return Regex.IsMatch(errorMsg, $"\\b{Settings.Current.DirectMethodTargetModuleId}\\b");
+            }
+
+            return false;
         }
     }
 }
