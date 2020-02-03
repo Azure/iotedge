@@ -27,7 +27,7 @@ namespace EdgeHubRestartTester
             Logger.LogInformation($"EdgeHubRestartTester delay start for {Settings.Current.TestStartDelay}.");
             await Task.Delay(Settings.Current.TestStartDelay);
 
-            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(Settings.Current.RestartPeriod - TimeSpan.FromMinutes(1), Logger);
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
             ServiceClient iotHubServiceClient = null;
             ModuleClient msgModuleClient = null;

@@ -17,7 +17,7 @@
   "restartPeriod": {
     "value": "00:05:00.000"
   },
-  "sdkRetryTimeoutMilisec": {
+  "sdkRetryTimeout": {
     "value": "00:00:00.020"
   },
   "testDuration": {
