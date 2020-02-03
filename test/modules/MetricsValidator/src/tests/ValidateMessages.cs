@@ -30,7 +30,7 @@ namespace MetricsValidator.Tests
              * await this.TestMessageSize(cancellationToken);
              */
 
-            // await this.TestMessages(cancellationToken);
+            await this.TestMessages(cancellationToken);
             await this.TestQueueLength(cancellationToken);
         }
 
@@ -44,65 +44,75 @@ namespace MetricsValidator.Tests
             {
                 const string input = "FromSelf";
                 const string output = "ToSelf";
+
                 // Setup reciever
                 TaskCompletionSource<MessageResponse> tcs = new TaskCompletionSource<MessageResponse>();
                 tcs.SetResult(MessageResponse.Completed);
                 await this.moduleClient.SetInputMessageHandlerAsync(input, (message, _) => tcs.Task, null, cancellationToken);
 
-                async Task EmptyQueue()
+                // This will assert the queu clears
+                async Task WaitForQueueToClear(string name)
                 {
-                    if (!tcs.Task.IsCompleted)
-                    {
-                        tcs.SetResult(MessageResponse.Completed);
-                    }
+                    TimeSpan maxWaitTime = TimeSpan.FromSeconds(10);
+                    TimeSpan frequency = TimeSpan.FromMilliseconds(50);
 
-                    for (int i = 0; i < 10; i++)
+                    int queueLength = await this.GetQueueLength(cancellationToken, input);
+                    for (int i = 0; i < maxWaitTime / frequency; i++)
                     {
-                        if (await this.GetQueueLength(cancellationToken, input) == 0)
+                        if (queueLength == 0)
                         {
+                            reporter.Assert(name, true);
                             return;
                         }
-                        await Task.Delay(1000);
+
+                        await Task.Delay(frequency);
+                        queueLength = await this.GetQueueLength(cancellationToken, input);
                     }
+
+                    reporter.Assert(name, false, $"After waiting {maxWaitTime.Seconds} seconds, queue length was {queueLength}");
                 }
 
-                int queueLength = await this.GetQueueLength(cancellationToken, input);
-                reporter.Assert("Queue starts empty", 0, queueLength);
+                // Begin tests
+                reporter.Assert("Queue starts empty", 0, await this.GetQueueLength(cancellationToken, input));
 
                 async Task FillAndEmptyQueue(int n)
                 {
-                    await EmptyQueue();
-
                     tcs = new TaskCompletionSource<MessageResponse>();
                     await this.SendMessages(n, cancellationToken, endpoint: output);
-                    queueLength = await this.GetQueueLength(cancellationToken, input);
-                    reporter.Assert($"Empty Queue Test: Queue increases to {n}", n, queueLength);
+                    reporter.Assert($"Empty Queue Test: Queue increases to {n}", n, await this.GetQueueLength(cancellationToken, input));
 
                     tcs.SetResult(MessageResponse.Completed);
-                    await Task.Delay(n * 50); // Give messages time to clear
-                    queueLength = await this.GetQueueLength(cancellationToken, input);
-                    reporter.Assert($"Queue empties from {n}", 0, queueLength);
-                }
-
-                async Task FillAndAbandon(int n)
-                {
-                    await EmptyQueue();
-
-                    tcs = new TaskCompletionSource<MessageResponse>();
-                    await this.SendMessages(n, cancellationToken, endpoint: output);
-                    queueLength = await this.GetQueueLength(cancellationToken, input);
-                    reporter.Assert($"Abandon Queue Test: Queue increases to {n}", n, queueLength);
-
-                    tcs.SetResult(MessageResponse.Abandoned);
-                    await Task.Delay(n * 50); // Give messages time to clear
-                    queueLength = await this.GetQueueLength(cancellationToken, input);
-                    reporter.Assert($"Queue is empty when abandoned from {n}", 0, queueLength);
+                    await WaitForQueueToClear($"Queue empties from {n}");
                 }
 
                 await FillAndEmptyQueue(10);
                 await FillAndEmptyQueue(100);
+
+                async Task FillAndAbandon(int n)
+                {
+                    tcs = new TaskCompletionSource<MessageResponse>();
+                    await this.SendMessages(n, cancellationToken, endpoint: output);
+                    reporter.Assert($"Abandon Queue Test: Queue increases to {n}", n, await this.GetQueueLength(cancellationToken, input));
+
+                    tcs.SetResult(MessageResponse.Abandoned);
+                    await WaitForQueueToClear($"Queue is empty when abandoned from {n}");
+                }
+
                 await FillAndAbandon(10);
                 await FillAndAbandon(100);
+
+                async Task FillAndEmptyBatch(int n, int m)
+                {
+                    tcs = new TaskCompletionSource<MessageResponse>();
+                    await this.SendMessageBatches(n, m, cancellationToken, endpoint: output);
+                    reporter.Assert($"Empty Queue Test: Queue increases to {n * m} for {n} batches of {m}", n * m, await this.GetQueueLength(cancellationToken, input));
+
+                    tcs.SetResult(MessageResponse.Completed);
+                    await WaitForQueueToClear($"Queue empties from {n * m} for {n} batches of {m}");
+                }
+
+                await FillAndEmptyBatch(2, 5);
+                await FillAndEmptyBatch(10, 10);
             }
         }
 
@@ -212,6 +222,7 @@ namespace MetricsValidator.Tests
 
             return (int?)metric?.Value ?? 0;
         }
+
         async Task<int> GetQueueLength(CancellationToken cancellationToken, string endpoint = null)
         {
             var metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
@@ -226,7 +237,6 @@ namespace MetricsValidator.Tests
             metrics = metrics.Where(m => m.Tags["id"].Contains(moduleName));
             return HistogramQuartiles.CreateFromMetrics(metrics, "edgehub_message_size_bytes");
         }
-
 
         Task SendMessages(int n, CancellationToken cancellationToken, int messageSize = 10, string endpoint = null)
         {
