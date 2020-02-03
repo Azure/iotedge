@@ -96,6 +96,18 @@ $NoReportedProperties  = [Alert]@{
 }
 $Alerts.Add($NoReportedProperties)
 
+$DiskSpacePercentThreshold = 99
+$DiskSpaceQuery = Get-Content -Path ".\queries\DiskSpace.kql" 
+$DiskSpaceQuery = $DiskSpaceQuery.Replace("<ALERTING.INTERVAL>", $AlertingInterval)
+$DiskSpaceQuery = $DiskSpaceQuery.Replace("<DISK.THRESHOLD>", $DiskSpacePercentThreshold)
+$DiskSpace  = [Alert]@{
+   Name = "disk-space"
+   Query = $DiskSpaceQuery
+   Comparator = $GreaterThanZero
+   Threshold = "threshold0: $DiskSpacePercentThreshold"
+}
+$Alerts.Add($DiskSpace)
+
 $QueueLengthThreshold = 100 
 $QueueLengthAlertQuery = Get-Content -Path ".\queries\QueueLength.kql" 
 $QueueLengthAlertQuery = $QueueLengthAlertQuery.Replace("<QUEUELENGTH.THRESHOLD>", $QueueLengthThreshold)

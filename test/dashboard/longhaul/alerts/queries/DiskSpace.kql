@@ -1,0 +1,28 @@
+let environmentPrefix = "<ENVIRONMENT>";
+let platform = "<PLATFORM>";
+let diskSpacePercentThreshold = <DISK.THRESHOLD>;
+let mostRecentTestId = toscalar(sanitizedTestMetrics 
+| where device contains environmentPrefix and device contains platform
+| order by TimeGenerated
+| take 1
+| project testId);
+let filtered = sanitizedTestMetrics
+| where testId == mostRecentTestId;
+let filteredWithMaxTime = filtered
+| summarize maxTimeGenerated = max(TimeGenerated);
+let maxTimeGenerated = toscalar(filteredWithMaxTime);
+let alertContext = filtered
+| where TimeGenerated < maxTimeGenerated and TimeGenerated > maxTimeGenerated - <ALERTING.INTERVAL>m;
+let totalDisk = toscalar(alertContext
+| where Name_s == "edgeAgent_total_disk_space_bytes"
+| where value != "" and value > 0
+| order by moduleName, TimeGenerated
+| summarize value=sum(value) by TimeGenerated
+| project value
+| take 1);
+let disk = alertContext
+| where Name_s == "edgeAgent_available_disk_space_bytes"
+| order by TimeGenerated
+| take 1 
+| extend value = (totalDisk-value)/totalDisk * 100
+| where isnan(value) or value > diskSpacePercentThreshold or isnull(value)
