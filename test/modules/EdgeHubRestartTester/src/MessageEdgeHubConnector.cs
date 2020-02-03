@@ -95,11 +95,19 @@ namespace EdgeHubRestartTester
                     this.logger.LogInformation($"[SendMessageAsync] Send Message with count {Interlocked.Read(ref this.messageCount).ToString()}: finished.");
                     return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.OK);
                 }
-                catch (TimeoutException ex)
+                catch (Exception ex)
                 {
-                    // TimeoutException is expected to happen while the EdgeHub is down.
-                    // Let's log the attempt and retry the message send until successful
-                    this.logger.LogDebug(ex, $"[SendMessageAsync] Exception caught with SequenceNumber {this.messageCount}, BatchId: {batchId.ToString()};");
+                    if (ex is TimeoutException)
+                    {
+                        // TimeoutException is expected to happen while the EdgeHub is down.
+                        // Let's log the attempt and retry the message send until successful
+                        this.logger.LogDebug(ex, $"[SendMessageAsync] Exception caught with SequenceNumber {this.messageCount}, BatchId: {batchId.ToString()};");
+                    }
+                    else
+                    {
+                        this.logger.LogError(ex, $"[SendMessageAsync] Exception caught with SequenceNumber {this.messageCount}, BatchId: {batchId.ToString()};");
+                    }
+
                     // Make sure the seqeunce number is not increment when the sent failed.
                     Interlocked.Decrement(ref this.messageCount);
                 }

@@ -9,7 +9,7 @@ set -e
 . $(dirname "$0")/testHelper.sh
 
 function examine_test_result() {
-    found_test_passed="$(docker logs testResultCoordinator 2>&1 | sed -n '/Test result report/,/"TestResultReports"/p' | grep '"IsPassed": true')"
+    found_test_passed="$(docker logs testResultCoordinator 2>&1 | sed -n '/Test summary/,/"TestResultReports"/p' | grep '"IsPassed": true')"
 
     if [[ ! -z "$found_test_passed" ]]; then
         echo 0
@@ -52,12 +52,15 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<TestStartDelay>@$TEST_START_DELAY@g" "$deployment_working_file"
     sed -i -e "s@<TrackingId>@$tracking_id@g" "$deployment_working_file"
     sed -i -e "s@<UpstreamProtocol>@$UPSTREAM_PROTOCOL@g" "$deployment_working_file"
+    sed -i -e "s@<RestartPeriod>@$RESTART_PERIOD@g" "$deployment_working_file"
+    sed -i -e "s@<SdkRetryTimeout>@$SDK_RETRY_TIMEOUT@g" "$deployment_working_file"
 
     sed -i -e "s@<TestResultCoordinator.VerificationDelay>@$VERIFICATION_DELAY@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.OptimizeForPerformance>@$optimize_for_performance@g" "$deployment_working_file"
     sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACEID@g" "$deployment_working_file"
     sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHAREDKEY@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.LogAnalyticsLogType>@$LOG_ANALYTICS_LOGTYPE@g" "$deployment_working_file"
+    sed -i -e "s@<TestResultCoordinator.StorageAccountConnectionString>@$STORAGE_ACCOUNT_CONNECTION_STRING@g" "$deployment_working_file"
 
     sed -i -e "s@<NetworkController.OfflineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[0]}@g" "$deployment_working_file"
     sed -i -e "s@<NetworkController.OnlineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[1]}@g" "$deployment_working_file"
@@ -69,6 +72,9 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<MetricsCollector.MetricsEndpointsCSV>@$METRICS_ENDPOINTS_CSV@g" "$deployment_working_file"
     sed -i -e "s@<MetricsCollector.ScrapeFrequencyInSecs>@$METRICS_SCRAPE_FREQUENCY_IN_SECS@g" "$deployment_working_file"
     sed -i -e "s@<MetricsCollector.UploadTarget>@$METRICS_UPLOAD_TARGET@g" "$deployment_working_file"
+    sed -i -e "s@<MetricsCollector.Images.BranchName>@$IMAGES_BRANCH_NAME@g" "$deployment_working_file"
+    sed -i -e "s@<MetricsCollector.Edgelet.BranchName>@$EDGELET_BRANCH_NAME@g" "$deployment_working_file"
+    sed -i -e "s@<MetricsCollector.Test.BuildNumber>@$TEST_BUILD_NUMBER@g" "$deployment_working_file"
     sed -i -e "s@<MetricsCollector.HostPlatform>@$HOST_PLATFORM@g" "$deployment_working_file"
 }
 
@@ -219,10 +225,28 @@ function process_args() {
             METRICS_UPLOAD_TARGET="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 25 ]; then
-            DEPLOYMENT_FILE_NAME="$arg"
+            IMAGES_BRANCH_NAME="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 26 ]; then
+            EDGELET_BRANCH_NAME="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 27 ]; then
+            TEST_BUILD_NUMBER="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 28 ]; then
             HOST_PLATFORM="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 29 ]; then
+            STORAGE_ACCOUNT_CONNECTION_STRING="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 30 ]; then
+            DEPLOYMENT_FILE_NAME="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 31 ]; then
+            RESTART_PERIOD="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 32 ]; then
+            SDK_RETRY_TIMEOUT="$arg"
             saveNextArg=0
         else
             case "$arg" in
@@ -251,10 +275,15 @@ function process_args() {
                 '-metricsEndpointsCSV' ) saveNextArg=22;;
                 '-metricsScrapeFrequencyInSecs' ) saveNextArg=23;;
                 '-metricsUploadTarget' ) saveNextArg=24;;
-                '-deploymentFileName' ) saveNextArg=25;;
-                '-hostPlatform' ) saveNextArg=26;;
+                '-imagesBranchName' ) saveNextArg=25;;
+                '-edgeletBranchName' ) saveNextArg=26;;
+                '-testBuildNumber' ) saveNextArg=27;;
+                '-hostPlatform' ) saveNextArg=28;;
+                '-storageAccountConnectionString' ) saveNextArg=29;;
+                '-deploymentFileName' ) saveNextArg=30;;
+                '-restartPeriod' ) saveNextArg=31;;
+                '-sdkRetryTimeout' ) saveNextArg=32;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
-
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -267,14 +296,18 @@ function process_args() {
     [[ -z "$CONTAINER_REGISTRY_USERNAME" ]] && { print_error 'Container registry username is required'; exit 1; }
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
     [[ -z "$DEPLOYMENT_FILE_NAME" ]] && { print_error 'Deployment file name is required'; exit 1; }
+    [[ -z "$EDGELET_BRANCH_NAME" ]] && { print_error 'Edgelet branch name is required'; exit 1; }
     [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
     [[ -z "$HOST_PLATFORM" ]] && { print_error 'Host platform is required'; exit 1; }
     [[ -z "$IOT_HUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
-    [[ -z "$LOG_ANALYTICS_WORKSPACEID" ]] && { print_error 'Log analytics workspace id is required'; exit 1; }
+    [[ -z "$IMAGES_BRANCH_NAME" ]] && { print_error 'Images branch name is required'; exit 1; }
     [[ -z "$LOG_ANALYTICS_SHAREDKEY" ]] && { print_error 'Log analytics shared key is required'; exit 1; }
+    [[ -z "$LOG_ANALYTICS_WORKSPACEID" ]] && { print_error 'Log analytics workspace id is required'; exit 1; }
     [[ -z "$METRICS_ENDPOINTS_CSV" ]] && { print_error 'Metrics endpoints csv is required'; exit 1; }
     [[ -z "$METRICS_SCRAPE_FREQUENCY_IN_SECS" ]] && { print_error 'Metrics scrape frequency is required'; exit 1; }
     [[ -z "$METRICS_UPLOAD_TARGET" ]] && { print_error 'Metrics upload target is required'; exit 1; }
+    [[ -z "$STORAGE_ACCOUNT_CONNECTION_STRING" ]] && { print_error 'Storage account connection string is required'; exit 1; }
+    [[ -z "$TEST_BUILD_NUMBER" ]] && { print_error 'Test build number is required'; exit 1; }
 
     echo 'Required parameters are provided'
 }
@@ -424,11 +457,17 @@ function usage() {
     echo ' -deploymentTestUpdatePeriod     duration of updating deployment of target module in deployment test'
     echo ' -timeForReportingGeneration     Time reserved for report generation'
     echo ' -waitForTestComplete            Wait for test to complete if this parameter is provided.  Otherwise it will finish once deployment is done.'
-    echo ' -metricsEndpointsCSV            Optional csv of exposed endpoints for which to scrape metrics.'
-    echo ' -metricsScrapeFrequencyInSecs   Optional frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
-    echo ' -metricsUploadTarget            Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
-    echo ' -deploymentFileName             Deployment file name'
+    echo ' -metricsEndpointsCSV            Csv of exposed endpoints for which to scrape metrics.'
+    echo ' -metricsScrapeFrequencyInSecs   Frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
+    echo ' -metricsUploadTarget            Upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
+    echo ' -imagesBranchName               Branch name that built the image artifacts'
+    echo ' -edgeletBranchName              Branch name that built the edgelet artifacts'
+    echo ' -testBuildNumber                Unique identifier for the main connectivity test run'
     echo ' -hostPlatform                   Describes the host OS and cpu architecture.'
+    echo ' -deploymentFileName             Deployment file name'
+    echo ' -restartPeriod                  EdgeHub restart period (must be greater than 1 minutes)'
+    echo ' -sdkRetryTimeout                SDK retry timeout'
+    echo ' -storageAccountConnectionString Azure storage account connection string with privilege to create blob container.'
 
     echo ' -cleanAll                       Do docker prune for containers, logs and volumes.'
     exit 1;

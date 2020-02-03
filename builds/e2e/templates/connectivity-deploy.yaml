@@ -1,7 +1,10 @@
 parameters:
   release.label: ''
+  test.buildNumber: ''
   edgelet.artifact.name: ''
   images.artifact.name: ''
+  edgelet.branchName: ''
+  images.branchName: ''
   container.registry: ''
   container.registry.username: ''
   container.registry.password: ''
@@ -15,6 +18,7 @@ parameters:
   logAnalyticsSharedKey: ''
   testResultCoordinator.logAnalyticsLogType: ''
   testResultCoordinator.verificationDelay: ''
+  testResultCoordinator.storageAccountConnectionString: ''
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''
@@ -64,8 +68,14 @@ steps:
           -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
           -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
           -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
-          -deploymentFileName "$(deploymentFileName)" \
+          -deploymentFileName "${{ parameters['deploymentFileName'] }}" \
+          -restartPeriod "${{ parameters['restartPeriod'] }}" \
+          -sdkRetryTimeout "${{ parameters['sdkRetryTimeout'] }}" \
+          -testBuildNumber "${{ parameters['test.buildNumber'] }}" \
+          -imagesBranchName "${{ parameters['images.branchName'] }}" \
+          -edgeletBranchName "${{ parameters['edgelet.branchName'] }}" \
           -hostPlatform "${{ parameters['metricsCollector.hostPlatform'] }}" \
+          -storageAccountConnectionString "${{ parameters['testResultCoordinator.storageAccountConnectionString'] }}" \
           -waitForTestComplete \
           -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."
