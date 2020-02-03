@@ -8,7 +8,7 @@ namespace MetricsValidator.Tests
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    using MetricsValidator.Src.Util;
+    using MetricsValidator.Util;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -47,7 +47,7 @@ namespace MetricsValidator.Tests
                 tcs.SetResult(MessageResponse.Completed);
                 await this.moduleClient.SetInputMessageHandlerAsync(input, (message, _) => tcs.Task, null, cancellationToken);
 
-                // This will assert the queu clears
+                // This will assert the queue clears
                 async Task WaitForQueueToClear(string name)
                 {
                     TimeSpan maxWaitTime = TimeSpan.FromSeconds(10);

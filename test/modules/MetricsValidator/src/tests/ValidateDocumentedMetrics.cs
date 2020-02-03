@@ -10,6 +10,7 @@ namespace MetricsValidator.Tests
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
+    using MetricsValidator.Util;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
@@ -26,6 +27,7 @@ namespace MetricsValidator.Tests
         protected override async Task Test(CancellationToken cancellationToken)
         {
             await this.SeedMetrics(cancellationToken);
+            await HostMetricUtil.WaitForHostMetrics(this.scraper, cancellationToken);
 
             // scrape metrics
             var metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);

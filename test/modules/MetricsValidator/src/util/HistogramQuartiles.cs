@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace MetricsValidator.Src.Util
+namespace MetricsValidator.Util
 {
     using System;
     using System.Collections.Generic;
