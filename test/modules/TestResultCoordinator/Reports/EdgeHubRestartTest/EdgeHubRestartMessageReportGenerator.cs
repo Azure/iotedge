@@ -221,18 +221,19 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             // Make sure the maximum restart period is within a passable threshold
             isPassing &= maxPeriod < this.Metadata.PassableEdgeHubRestartPeriod;
 
-
             // BEARWASHERE -- TODO: what happen if the results contain a dictionary? 
             return new EdgeHubRestartMessageReport(
-                bool isPassing,
-                Dictionary<string, ulong> messageCount,
-                Dictionary<HttpStatusCode, ulong> restartStatusHistogram,
-                Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram,
-                TimeSpan minPeriod,
-                TimeSpan maxPeriod,
-                TimeSpan medianPeriod,
-                TimeSpan meanPeriod,
-                TimeSpan variancePeriod);
+                this.TrackingId,
+                this.Metadata.TestReportType.ToString(),
+                isPassing,
+                messageCount,
+                restartStatusHistogram,
+                completedStatusHistogram,
+                minPeriod,
+                maxPeriod,
+                medianPeriod,
+                meanPeriod,
+                variancePeriod);
         }
 
         async Task IncrementSenderSequenceNumberAsync(
