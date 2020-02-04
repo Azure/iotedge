@@ -45,7 +45,7 @@ namespace EdgeHubRestartTester
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.ReportingEndpointUrl = new Uri(Preconditions.CheckNonWhiteSpace(reportingEndpointUrl, nameof(reportingEndpointUrl)));
             this.RestartPeriod = restartPeriod;
-            this.SdkRetryTimeout = (uint)sdkRetryTimeout.TotalMilliseconds;
+            this.SdkRetryTimeout = sdkRetryTimeout;
             this.IoTHubConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, nameof(serviceClientConnectionString));
             this.TestDuration = testDuration;
             this.TestStartDelay = testStartDelay;
@@ -115,7 +115,7 @@ namespace EdgeHubRestartTester
 
         public TimeSpan RestartPeriod { get; }
 
-        public uint SdkRetryTimeout { get; }
+        public TimeSpan SdkRetryTimeout { get; }
 
         public TimeSpan TestStartDelay { get; }
 
