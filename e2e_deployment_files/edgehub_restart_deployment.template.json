@@ -91,13 +91,13 @@
               "IOT_HUB_CONNECTION_STRING": {
                 "value": "<IoTHubConnectionString>"
               },
-              "directMethodEnable": {
+              "directMethodEnabled": {
                 "value": "true"
               },
               "directMethodTargetModuleId": {
                 "value": "directMethodReceiver1"
               },
-              "messageEnable": {
+              "messageEnabled": {
                 "value": "true"
               },
               "reportingEndpointUrl": {
