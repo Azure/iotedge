@@ -97,12 +97,6 @@ namespace TestResultCoordinator
                         case TestReportType.NetworkControllerReport:
                             reportMetadataList.Add(JsonConvert.DeserializeObject<NetworkControllerReportMetadata>(((JProperty)metadata).Value.ToString()));
                             break;
-                        case TestReportType.EdgeHubRestartDirectMethodResult:
-                            reportMetadataList.Add(JsonConvert.DeserializeObject<DirectMethodReportMetadata>(((JProperty)metadata).Value.ToString()));
-                            break;
-                        case TestReportType.EdgeHubRestartMessageResult:
-                            reportMetadataList.Add(JsonConvert.DeserializeObject<CountingReportMetadata>(((JProperty)metadata).Value.ToString()));
-                            break;
                         case TestReportType.ErrorReport:
                             reportMetadataList.Add(new ErrorReportMetadata());
                             break;

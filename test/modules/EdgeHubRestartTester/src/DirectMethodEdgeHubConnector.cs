@@ -95,6 +95,8 @@ namespace EdgeHubRestartTester
                         Settings.Current.SdkRetryTimeout,
                         Settings.Current.SdkRetryTimeout);
                     MethodResponse result = await moduleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
+                    logger.LogInformation($"[DirectMethodEdgeHubConnector] Invoke DirectMethod with count {Interlocked.Read(ref this.directMethodCount).ToString()}");
+
                     if ((HttpStatusCode)result.Status == HttpStatusCode.OK)
                     {
                         logger.LogDebug(result.ResultAsJson);
@@ -104,7 +106,6 @@ namespace EdgeHubRestartTester
                         logger.LogError(result.ResultAsJson);
                     }
 
-                    logger.LogInformation($"[DirectMethodEdgeHubConnector] Invoke DirectMethod with count {Interlocked.Read(ref this.directMethodCount).ToString()}");
                     return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)result.Status);
                 }
                 catch (Exception e)
