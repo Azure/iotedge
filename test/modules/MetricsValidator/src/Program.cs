@@ -45,7 +45,7 @@ namespace MetricsValidator
                         "ValidateMetrics",
                         async (MethodRequest methodRequest, object _) =>
                         {
-                            Console.WriteLine("Validating metrics");
+                            Logger.LogInformation("Validating metrics");
 
                             TestReporter testReporter = new TestReporter("Metrics Validation");
                             List<TestBase> tests = new List<TestBase>
@@ -60,7 +60,7 @@ namespace MetricsValidator
                         },
                         null);
 
-                    Console.WriteLine("Ready to validate metrics");
+                    Logger.LogInformation("Ready to validate metrics");
                     await cts.Token.WhenCanceled();
                 }
 
