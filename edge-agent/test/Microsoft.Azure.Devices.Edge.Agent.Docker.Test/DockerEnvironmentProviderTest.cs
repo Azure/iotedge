@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Docker
+namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 {
     using System.Threading;
     using System.Threading.Tasks;
