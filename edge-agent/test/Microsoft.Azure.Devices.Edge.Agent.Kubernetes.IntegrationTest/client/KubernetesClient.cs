@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -48,5 +49,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
 
             return Option.None<T>();
         }
+
+        internal Task<V1DeploymentList> ListDeployments(string deviceSelector) => this.Kubernetes.ListNamespacedDeploymentAsync(this.DeviceNamespace, labelSelector: deviceSelector);
+
+        internal Task<V1ServiceList> ListServices(string deviceSelector) => this.Kubernetes.ListNamespacedServiceAsync(this.DeviceNamespace, labelSelector: deviceSelector);
+
+        internal Task<V1PersistentVolumeClaimList> ListPeristentVolumeClaims() => this.Kubernetes.ListNamespacedPersistentVolumeClaimAsync(this.DeviceNamespace);
+
+        internal Task<V1ServiceAccountList> ListServiceAccounts(string deviceSelector) => this.Kubernetes.ListNamespacedServiceAccountAsync(this.DeviceNamespace, labelSelector: deviceSelector);
+
     }
 }
