@@ -319,7 +319,7 @@ Param (
 
     [string] $TwinUpdateFailureThreshold = $null,
 
-    [switch] $HostPlatform = $null,
+    [string] $HostPlatform = $null,
 
     [switch] $BypassEdgeInstallation
 )

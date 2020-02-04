@@ -16,7 +16,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             string resultType,
             bool isPassing,
             Dictionary<string, ulong> messageCount,
-            Dictionary<HttpStatusCode, ulong> restartStatusHistogram,
             Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram,
             TimeSpan minPeriod,
             TimeSpan maxPeriod,
@@ -27,7 +26,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         {
             this.isPassing = isPassing;
             this.MessageCount = Preconditions.CheckNotNull(messageCount, nameof(messageCount));
-            this.RestartStatusHistogram = Preconditions.CheckNotNull(restartStatusHistogram, nameof(restartStatusHistogram));
             this.CompletedStatusHistogram = Preconditions.CheckNotNull(completedStatusHistogram, nameof(completedStatusHistogram));
             this.SourceList = new List<string>(messageCount.Keys);
             this.MinPeriod = minPeriod;

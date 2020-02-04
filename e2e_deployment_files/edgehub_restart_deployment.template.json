@@ -29,6 +29,9 @@
               },
               "experimentalfeatures__enableMetrics": {
                   "value": "true"
+              },
+              "ExperimentalFeatures__EnableUploadLogs": {
+                "value": "true"
               }
             },
             "settings": {
@@ -101,10 +104,10 @@
                 "value": "http://localhost:5001"
               },
               "restartPeriod": {
-                "value": "00:05:00.000"
+                "value": "<RestartPeriod>"
               },
-              "sdkRetryTimeoutMilisec": {
-                "value": "00:00:00.020"
+              "sdkRetryTimeout": {
+                "value": "<SdkRetryTimeout>"
               },
               "testDuration": {
                 "value": "<TestDuration>"
@@ -186,6 +189,9 @@
               },
               "IOT_HUB_CONNECTION_STRING": {
                 "value": "<IoTHubConnectionString>"
+              },
+              "STORAGE_ACCOUNT_CONNECTION_STRING": {
+                "value": "<TestResultCoordinator.StorageAccountConnectionString>"
               }
             },
             "settings": {

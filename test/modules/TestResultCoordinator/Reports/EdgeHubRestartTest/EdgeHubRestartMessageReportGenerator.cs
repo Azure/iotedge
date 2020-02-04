@@ -56,9 +56,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 {nameof(this.ReceiverTestResults), 0ul}
             };
 
-            // Value: (restartStatusCode, numOfTimesTheStatusCodeHappened)
-            Dictionary<HttpStatusCode, ulong> restartStatusHistogram = new Dictionary<HttpStatusCode, ulong>();
-
             // Value: (completedStatusCode, MessageCompletedTime - EdgeHubRestartedTime)
             Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram = new Dictionary<HttpStatusCode, List<TimeSpan>>();
 
@@ -94,7 +91,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                         nameof(this.SenderTestResults),
                         receiverSeqNum,
                         messageCount,
-                        restartStatusHistogram,
                         completedStatusHistogram);
 
                     // Fail the test
@@ -124,11 +120,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 // Verified "TrackingId;BatchId;SequenceNumber" altogether.
                 isPassing &= (senderResult.GetMessageTestResult() != receiverResult);
 
-                // Extract restart status code
-                this.IncrementRestartStatusHistogram(
-                    senderResult.EdgeHubRestartStatusCode,
-                    restartStatusHistogram);
-
                 this.AddEntryToCompletedStatusHistogram(
                     senderResult,
                     completedStatusHistogram);
@@ -145,7 +136,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 nameof(this.SenderTestResults),
                 long.MaxValue,
                 messageCount,
-                restartStatusHistogram,
                 completedStatusHistogram);
             
             await IncrementReceiverSequenceNumberAsync(
@@ -157,14 +147,12 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             return VerifyResults(
                 isPassing,
                 messageCount,
-                restartStatusHistogram,
                 completedStatusHistogram);
         }
 
         EdgeHubRestartMessageReport VerifyResults(
             bool isPassing,
             Dictionary<string, ulong> messageCount,
-            Dictionary<HttpStatusCode, ulong> restartStatusHistogram,
             Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram)
         {
             // TODO: In report,
@@ -227,7 +215,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 this.Metadata.TestReportType.ToString(),
                 isPassing,
                 messageCount,
-                restartStatusHistogram,
                 completedStatusHistogram,
                 minPeriod,
                 maxPeriod,
@@ -241,7 +228,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             string key,
             long targetSequenceNumber,
             Dictionary<string, ulong> messageCount,
-            Dictionary<HttpStatusCode, ulong> restartStatusHistogram,
             Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram)
         {
             bool isNotEmpty = true;
@@ -252,11 +238,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             while ((seqNum < targetSequenceNumber) && isNotEmpty)
             {
                 messageCount[key]++;
-
-                // Update histrograms
-                this.IncrementRestartStatusHistogram(
-                    senderResult.EdgeHubRestartStatusCode,
-                    restartStatusHistogram);
 
                 this.AddEntryToCompletedStatusHistogram(
                     senderResult,
@@ -303,16 +284,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         }
 
         //////////////////////////////////////////////////////////////// HELPER LAND
-        void IncrementRestartStatusHistogram(
-            HttpStatusCode key,
-            Dictionary<HttpStatusCode, ulong> histogram)
-        {
-            if (!histogram.TryAdd(key, 1))
-            {
-                histogram[key]++;
-            }
-        }
-
         void AddEntryToCompletedStatusHistogram(
             EdgeHubRestartMessageResult senderResult,
             Dictionary<HttpStatusCode, List<TimeSpan>> histogram)

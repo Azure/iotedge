@@ -2,37 +2,56 @@
 namespace CloudToDeviceMessageTester
 {
     using System;
+    using System.Collections.Generic;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
+    using Microsoft.Azure.Devices.Edge.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using TransportType = Microsoft.Azure.Devices.TransportType;
 
-    sealed class CloudToDeviceMessageReceiver : CloudToDeviceMessageTesterBase
+    sealed class CloudToDeviceMessageReceiver : ICloudToDeviceMessageTester
     {
+        readonly ILogger logger;
+        readonly string iotHubConnectionString;
+        readonly string deviceId;
+        readonly string moduleId;
+        readonly TransportType transportType;
+        readonly TestResultReportingClient testResultReportingClient;
         readonly string gatewayHostName;
+        readonly string workloadUri;
+        readonly string apiVersion;
+        readonly string workloadClientApiVersion = "2019-01-30";
+        readonly string moduleGenerationId;
+        readonly string iotHubHostName;
         DeviceClient deviceClient;
 
-        public CloudToDeviceMessageReceiver(
+        internal CloudToDeviceMessageReceiver(
             ILogger logger,
-            string iotHubConnectionString,
-            string deviceId,
-            string moduleId,
-            string gatewayHostName,
-            TransportType transportType,
-            TimeSpan testDuration,
+            C2DTestSharedSettings sharedMetadata,
+            C2DTestReceiverSettings receiverMetadata,
             TestResultReportingClient testResultReportingClient)
-            : base(logger, iotHubConnectionString, deviceId, moduleId, transportType, testDuration, testResultReportingClient)
         {
-            this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
+            this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
+            this.iotHubConnectionString = Preconditions.CheckNonWhiteSpace(sharedMetadata.IotHubConnectionString, nameof(sharedMetadata.IotHubConnectionString));
+            this.deviceId = Preconditions.CheckNonWhiteSpace(sharedMetadata.DeviceId, nameof(sharedMetadata.DeviceId));
+            this.moduleId = Preconditions.CheckNonWhiteSpace(sharedMetadata.ModuleId, nameof(sharedMetadata.ModuleId));
+            this.transportType = receiverMetadata.TransportType;
+            this.gatewayHostName = Preconditions.CheckNonWhiteSpace(receiverMetadata.GatewayHostName, nameof(receiverMetadata.GatewayHostName));
+            this.workloadUri = Preconditions.CheckNonWhiteSpace(receiverMetadata.WorkloadUri, nameof(receiverMetadata.WorkloadUri));
+            this.apiVersion = Preconditions.CheckNonWhiteSpace(receiverMetadata.ApiVersion, nameof(receiverMetadata.ApiVersion));
+            this.moduleGenerationId = Preconditions.CheckNonWhiteSpace(receiverMetadata.ModuleGenerationId, nameof(receiverMetadata.ModuleGenerationId));
+            this.iotHubHostName = Preconditions.CheckNonWhiteSpace(receiverMetadata.IotHubHostName, nameof(receiverMetadata.IotHubHostName));
+            this.testResultReportingClient = Preconditions.CheckNotNull(testResultReportingClient, nameof(testResultReportingClient));
         }
 
-        public override void Dispose() => this.deviceClient?.Dispose();
+        public void Dispose() => this.deviceClient?.Dispose();
 
-        public async Task ReportTestResult(Message message)
+        internal async Task ReportTestResult(Message message)
         {
             string trackingId = message.Properties[TestConstants.Message.TrackingIdPropertyName];
             string batchId = message.Properties[TestConstants.Message.BatchIdPropertyName];
@@ -46,14 +65,18 @@ namespace CloudToDeviceMessageTester
             await ModuleUtil.ReportTestResultAsync(this.testResultReportingClient, this.logger, testResultReceived);
         }
 
-        public override async Task StartAsync(CancellationToken ct)
+        public async Task StartAsync(CancellationToken ct)
         {
+            // TODO: You cannot install certificate on Windows by script - we need to implement certificate verification callback handler.
+            IEnumerable<X509Certificate2> certs = await CertificateHelper.GetTrustBundleFromEdgelet(new Uri(this.workloadUri), this.apiVersion, this.workloadClientApiVersion, this.moduleId, this.moduleGenerationId);
+            OsPlatform.Current.InstallCaCertificates(certs, ((Protocol)Enum.Parse(typeof(Protocol), this.transportType.ToString())).ToTransportSettings());
             Microsoft.Azure.Devices.RegistryManager registryManager = null;
             try
             {
                 registryManager = Microsoft.Azure.Devices.RegistryManager.CreateFromConnectionString(this.iotHubConnectionString);
-                await registryManager.AddDeviceAsync(new Microsoft.Azure.Devices.Device(this.deviceId + "_leaf"), ct);
-                this.deviceClient = DeviceClient.CreateFromConnectionString(this.iotHubConnectionString + ";" + this.gatewayHostName, this.deviceId, Microsoft.Azure.Devices.Client.TransportType.Amqp_Tcp_Only);
+                Microsoft.Azure.Devices.Device device = await registryManager.AddDeviceAsync(new Microsoft.Azure.Devices.Device(this.deviceId), ct);
+                string deviceConnectionString = $"HostName={this.iotHubHostName};DeviceId={this.deviceId};SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.gatewayHostName}";
+                this.deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, this.transportType);
                 await this.deviceClient.OpenAsync();
 
                 while (!ct.IsCancellationRequested)

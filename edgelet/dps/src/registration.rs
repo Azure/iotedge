@@ -351,7 +351,7 @@ where
                         Method::PUT,
                         &format!("{}/registrations/{}/register", scope_id, registration_id),
                         None,
-                        Some(registration.clone()),
+                        Some(registration),
                         false,
                     )
                     .map_err(|err| {
