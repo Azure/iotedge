@@ -52,8 +52,8 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<TestStartDelay>@$TEST_START_DELAY@g" "$deployment_working_file"
     sed -i -e "s@<TrackingId>@$tracking_id@g" "$deployment_working_file"
     sed -i -e "s@<UpstreamProtocol>@$UPSTREAM_PROTOCOL@g" "$deployment_working_file"
-    sed -i -e "s@<RestartPeriod>@$RESTART_PERIOD@g" "$deployment_working_file"
-    sed -i -e "s@<SdkRetryTimeout>@$SDK_RETRY_TIMEOUT@g" "$deployment_working_file"
+    sed -i -e "s@<EdgeHubRestartTest.RestartPeriod>@$RESTART_TEST_RESTART_PERIOD@g" "$deployment_working_file"
+    sed -i -e "s@<EdgeHubRestartTest.SdkOperationTimeout>@$RESTART_TEST_SDK_OPERATION_TIMEOUT@g" "$deployment_working_file"
 
     sed -i -e "s@<TestResultCoordinator.VerificationDelay>@$VERIFICATION_DELAY@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.OptimizeForPerformance>@$optimize_for_performance@g" "$deployment_working_file"
@@ -249,10 +249,10 @@ function process_args() {
             DEPLOYMENT_FILE_NAME="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 33 ]; then
-            RESTART_PERIOD="$arg"
+            RESTART_TEST_RESTART_PERIOD="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 34 ]; then
-            SDK_RETRY_TIMEOUT="$arg"
+            RESTART_TEST_SDK_OPERATION_TIMEOUT="$arg"
             saveNextArg=0
         else
             case "$arg" in
@@ -289,8 +289,8 @@ function process_args() {
                 '-devOpsAccessToken' ) saveNextArg=30;;
                 '-devOpsBuildId' ) saveNextArg=31;;
                 '-deploymentFileName' ) saveNextArg=32;;
-                '-restartPeriod' ) saveNextArg=33;;
-                '-sdkRetryTimeout' ) saveNextArg=34;;
+                '-EdgeHubRestartTestRestartPeriod' ) saveNextArg=33;;
+                '-EdgeHubRestartTestSdkOperationTimeout' ) saveNextArg=34;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
@@ -481,8 +481,8 @@ function usage() {
     echo ' -testBuildNumber                Unique identifier for the main connectivity test run'
     echo ' -hostPlatform                   Describes the host OS and cpu architecture.'
     echo ' -deploymentFileName             Deployment file name'
-    echo ' -restartPeriod                  EdgeHub restart period (must be greater than 1 minutes)'
-    echo ' -sdkRetryTimeout                SDK retry timeout'
+    echo ' -EdgeHubRestartTestRestartPeriod        EdgeHub restart period (must be greater than 1 minutes)'
+    echo ' -EdgeHubRestartTestSdkOperationTimeout  SDK retry timeout'
     echo ' -storageAccountConnectionString Azure storage account connection string with privilege to create blob container.'
 
     echo ' -cleanAll                       Do docker prune for containers, logs and volumes.'

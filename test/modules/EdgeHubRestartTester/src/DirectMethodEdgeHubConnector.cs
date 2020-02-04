@@ -91,8 +91,12 @@ namespace EdgeHubRestartTester
                     Interlocked.Increment(ref this.directMethodCount);
                     MethodRequest request = new MethodRequest(
                         directMethodName,
-                        Encoding.UTF8.GetBytes($"{{ \"Message\": \"Hello\", \"DirectMethodCount\": \"{Interlocked.Read(ref this.directMethodCount).ToString()}\" }}"));
+                        Encoding.UTF8.GetBytes($"{{ \"Message\": \"Hello\", \"DirectMethodCount\": \"{Interlocked.Read(ref this.directMethodCount).ToString()}\" }}"),
+                        Settings.Current.SdkOperationTimeout,
+                        Settings.Current.SdkOperationTimeout);
                     MethodResponse result = await moduleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
+                    logger.LogInformation($"[DirectMethodEdgeHubConnector] Invoke DirectMethod with count {Interlocked.Read(ref this.directMethodCount).ToString()}");
+
                     if ((HttpStatusCode)result.Status == HttpStatusCode.OK)
                     {
                         logger.LogDebug(result.ResultAsJson);
@@ -102,7 +106,6 @@ namespace EdgeHubRestartTester
                         logger.LogError(result.ResultAsJson);
                     }
 
-                    logger.LogInformation($"[DirectMethodEdgeHubConnector] Invoke DirectMethod with count {Interlocked.Read(ref this.directMethodCount).ToString()}");
                     return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)result.Status);
                 }
                 catch (Exception e)

@@ -73,8 +73,8 @@ steps:
           -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
           -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
           -deploymentFileName "${{ parameters['deploymentFileName'] }}" \
-          -restartPeriod "${{ parameters['restartPeriod'] }}" \
-          -sdkRetryTimeout "${{ parameters['sdkRetryTimeout'] }}" \
+          -EdgeHubRestartTestRestartPeriod "${{ parameters['edgeHubRestartTest.restartPeriod'] }}" \
+          -EdgeHubRestartTestSdkOperationTimeout "${{ parameters['edgeHubRestartTest.sdkOperationTimeout'] }}" \
           -testBuildNumber "${{ parameters['test.buildNumber'] }}" \
           -imagesBranchName "${{ parameters['images.branchName'] }}" \
           -edgeletBranchName "${{ parameters['edgelet.branchName'] }}" \
