@@ -25,6 +25,7 @@ parameters:
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''
+  metricsCollector.hostPlatform: ''
 
 steps:
   - task: CopyFiles@2
@@ -74,5 +75,6 @@ steps:
           -TwinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" `
           -MetricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" `
           -MetricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" `
-          -MetricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}"
+          -MetricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" `
+          -HostPlatform "${{ parameters['metricsCollector.hostPlatform'] }}"
       workingDirectory: "$(Agent.HomeDirectory)/.."

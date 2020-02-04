@@ -9,8 +9,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
     using NUnit.Framework;
 
+    [EndToEnd]
     class Device : SasManualProvisioningFixture
     {
         [Test]
