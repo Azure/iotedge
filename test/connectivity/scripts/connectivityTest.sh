@@ -13,9 +13,9 @@ function examine_test_result() {
 
     if [[ ! -z "$found_test_passed" ]]; then
         echo 0
+    else
+        echo 1
     fi
-
-    echo 1
 }
 
 function prepare_test_from_artifacts() {
@@ -89,7 +89,7 @@ function print_deployment_logs() {
 function print_test_run_logs() {
     local ret=$1
 
-    print_highlighted_message 'test run exit code=$ret'
+    print_highlighted_message "test run exit code=$ret"
     print_highlighted_message 'Print logs'
     print_highlighted_message 'testResultCoordinator LOGS'
     docker logs testResultCoordinator || true
@@ -240,12 +240,18 @@ function process_args() {
             STORAGE_ACCOUNT_CONNECTION_STRING="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 30 ]; then
-            DEPLOYMENT_FILE_NAME="$arg"
+            DEVOPS_ACCESS_TOKEN="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 31 ]; then
-            RESTART_PERIOD="$arg"
+            DEVOPS_BUILDID="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 32 ]; then
+            DEPLOYMENT_FILE_NAME="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 33 ]; then
+            RESTART_PERIOD="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 34 ]; then
             SDK_RETRY_TIMEOUT="$arg"
             saveNextArg=0
         else
@@ -280,9 +286,11 @@ function process_args() {
                 '-testBuildNumber' ) saveNextArg=27;;
                 '-hostPlatform' ) saveNextArg=28;;
                 '-storageAccountConnectionString' ) saveNextArg=29;;
-                '-deploymentFileName' ) saveNextArg=30;;
-                '-restartPeriod' ) saveNextArg=31;;
-                '-sdkRetryTimeout' ) saveNextArg=32;;
+                '-devOpsAccessToken' ) saveNextArg=30;;
+                '-devOpsBuildId' ) saveNextArg=31;;
+                '-deploymentFileName' ) saveNextArg=32;;
+                '-restartPeriod' ) saveNextArg=33;;
+                '-sdkRetryTimeout' ) saveNextArg=34;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
@@ -360,11 +368,19 @@ function run_connectivity_test() {
                                     $(echo $TIME_FOR_REPORT_GENERATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }')))
 
     if [ $WAIT_FOR_TEST_COMPLETE -eq 1 ]; then
-        local sleep_frequency_secs=300
+        local sleep_frequency_secs=60
         local total_wait=0
 
         while [ $total_wait -lt $time_for_test_to_complete ]
         do
+            local is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)
+            
+            if [ $is_build_canceled -eq 1 ]; then
+                print_highlighted_message "build is canceled."
+                stop_iotedge_service || true
+                return 3
+            fi
+        
             sleep "$sleep_frequency_secs"s
             total_wait=$((total_wait+sleep_frequency_secs))
             echo "total wait time=$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$total_wait")"
@@ -472,6 +488,12 @@ function usage() {
     echo ' -cleanAll                       Do docker prune for containers, logs and volumes.'
     exit 1;
 }
+
+is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)         
+if [ $is_build_canceled -eq 1 ]; then
+    print_highlighted_message "build is canceled."
+    exit 3
+fi
 
 process_args "$@"
 
