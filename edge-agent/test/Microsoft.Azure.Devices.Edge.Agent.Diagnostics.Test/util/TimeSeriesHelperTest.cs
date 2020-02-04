@@ -6,8 +6,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
     using System.Collections.Generic;
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
+    [Unit]
     public class TimeSeriesHelperTest
     {
         Random rand = new Random();
