@@ -104,7 +104,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 usePersistentStorage = configuration.GetValue("UsePersistentStorage", true);
                 useHeartbeat = configuration.GetValue("UseHeartbeat", false);
 
-
                 // Note: Keep in sync with iotedge-check's edge-agent-storage-mounted-from-host check (edgelet/iotedge/src/check/checks/storage_mounted_from_host.rs)
                 storagePath = GetOrCreateDirectoryPath(configuration.GetValue<string>("StorageFolder"), EdgeAgentStorageFolder);
                 enableNonPersistentStorageBackup = configuration.GetValue("EnableNonPersistentStorageBackup", false);
@@ -233,7 +232,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                                 idleTimeout,
                                 useHeartbeat,
                                 kubernetesExperimentalFeatures,
-                                moduleOwner,                                
+                                moduleOwner,
                                 runAsNonRoot));
 
                         break;
