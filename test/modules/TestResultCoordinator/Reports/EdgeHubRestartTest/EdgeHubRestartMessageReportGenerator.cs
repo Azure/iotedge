@@ -48,6 +48,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             Logger.LogInformation($"Generating report: {nameof(EdgeHubRestartMessageReport)} for [{this.Metadata.SenderSource}] and [{this.Metadata.ReceiverSource}]");
 
             bool isPassing = true;
+            long previousSeqNum = 0;
             
             // Value: (source, numOfMessage)
             Dictionary<string, ulong> messageCount = new Dictionary<string, ulong>()
@@ -120,6 +121,12 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 // Verified "TrackingId;BatchId;SequenceNumber" altogether.
                 isPassing &= (senderResult.GetMessageTestResult() != receiverResult);
 
+                // Verify the sequence number is incremental
+                senderSeqNum = this.ParseSenderSequenceNumber(senderResult.SequenceNumber);
+                receiverSeqNum = this.ParseReceiverSequenceNumber(receiverResult);
+                isPassing &= (senderSeqNum == receiverSeqNum);
+                isPassing &= ((previousSeqNum + 1) == senderSeqNum);
+
                 this.AddEntryToCompletedStatusHistogram(
                     senderResult,
                     completedStatusHistogram);
@@ -155,13 +162,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             Dictionary<string, ulong> messageCount,
             Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram)
         {
-            // TODO: In report,
-            //    - Calculate min, max, mean, med, r2 restartPeriod.
-            //    - Use Max(completedStatusHistogram[HttpStatusCode.OK]) to check if it always less the PassableThreshold
-            //    - Report numFailedToRestart > 0 but does not count towards failure, give a warning though
-            //    - Report messagePreRestart > 1 failure the test citing test code malfunction.
-            //    - Give a warning if the restart cycle does not contain only a message sent (more than 1 message)
-
             List<TimeSpan> completedPeriods;
             completedStatusHistogram.TryGetValue(HttpStatusCode.OK, out completedPeriods);
             List<TimeSpan> orderedCompletedPeriods = completedPeriods?.OrderBy(p => p.Ticks).ToList();
