@@ -15,8 +15,6 @@ namespace MetricsValidator.Tests
 
     public class ValidateHostRanges : TestBase
     {
-        readonly string endpoint = Guid.NewGuid().ToString();
-
         public ValidateHostRanges(TestReporter testReporter, IMetricsScraper scraper, ModuleClient moduleClient)
             : base(testReporter, scraper, moduleClient)
         {

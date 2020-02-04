@@ -8,11 +8,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
-    using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
     using Newtonsoft.Json;
     using NUnit.Framework;
 
+    [EndToEnd]
     public class Metrics : SasManualProvisioningFixture
     {
         const string ModuleName = "MetricsValidator";
@@ -24,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             CancellationToken token = this.TestToken;
             await this.Deploy(token);
 
-            var result = await this.iotHub.InvokeMethodAsync(Context.Current.DeviceId, ModuleName, new CloudToDeviceMethod("ValidateMetrics"), CancellationToken.None);
+            var result = await this.iotHub.InvokeMethodAsync(Context.Current.DeviceId, ModuleName, new CloudToDeviceMethod("ValidateMetrics"), token);
             Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
 
             string body = result.GetPayloadAsJson();
@@ -48,7 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder =>
                     {
                         builder.AddModule(ModuleName, metricsValidatorImage);
-                        builder.GetModule("$edgeHub")
+
+                        var edgeHub = builder.GetModule("$edgeHub")
                             .WithEnvironment(("experimentalfeatures__enabled", "true"), ("experimentalfeatures__enableMetrics", "true"))
                             .WithDesiredProperties(new Dictionary<string, object>
                             {
@@ -60,6 +62,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                     }
                                 }
                             });
+                        if (OsPlatform.IsWindows())
+                        {
+                            // Note: This overwrites the default port mapping. This if fine for this test.
+                            edgeHub.WithSettings(("createOptions", "{\"User\":\"ContainerAdministrator\"}"));
+                        }
+
                         builder.GetModule("$edgeAgent")
                             .WithEnvironment(("experimentalfeatures__enabled", "true"), ("experimentalfeatures__enableMetrics", "true"));
                     }, token);

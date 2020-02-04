@@ -24,7 +24,7 @@ namespace MetricsValidator
 
         protected string TestName
         {
-            get { return this.GetType().ToString().Split('.').LastOrDefault(); }
+            get { return this.GetType().ToString().Split('.').Last(); }
         }
 
         public TestBase(TestReporter testReporter, IMetricsScraper scraper, ModuleClient moduleClient)
