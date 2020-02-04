@@ -37,6 +37,7 @@ fn main() {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 fn run() -> Result<(), Error> {
     let (default_mgmt_uri, default_config_path, default_container_engine_config_path) =
         if cfg!(windows) {
@@ -55,7 +56,7 @@ fn run() -> Result<(), Error> {
             default_config_path.push("config.yaml");
             let default_config_path = Cow::Owned(default_config_path);
 
-            let mut default_container_engine_config_path = program_data.clone();
+            let mut default_container_engine_config_path = program_data;
             default_container_engine_config_path.push("iotedge-moby");
             default_container_engine_config_path.push("config");
             default_container_engine_config_path.push("daemon.json");
@@ -174,7 +175,7 @@ fn run() -> Result<(), Error> {
                         .long("output")
                         .short("o")
                         .value_name("FORMAT")
-                        .help("Output format. Note that JSON output contains some additional host information like OS name and version.")
+                        .help("Output format. Note that JSON output contains some additional information like OS name, OS version, disk space, etc.")
                         .takes_value(true)
                         .possible_values(&["json", "text"])
                         .default_value("text"),
@@ -263,6 +264,18 @@ fn run() -> Result<(), Error> {
                         .help("Only include logs from Microsoft-owned Edge modules")
                         .long("include-edge-runtime-only")
                         .short("e")
+                        .takes_value(false),
+                ).arg(
+                    Arg::with_name("iothub-hostname")
+                        .long("iothub-hostname")
+                        .value_name("IOTHUB_HOSTNAME")
+                        .help("Sets the hostname of the Azure IoT Hub that this device would connect to. If using manual provisioning, this does not need to be specified.")
+                        .takes_value(true),
+                ).arg(
+                    Arg::with_name("quiet")
+                        .help("Suppress output")
+                        .long("quiet")
+                        .short("q")
                         .takes_value(false),
                 ),
         )
@@ -369,9 +382,18 @@ fn run() -> Result<(), Error> {
                 .with_tail(LogTail::All)
                 .with_since(since);
             let include_ms_only = args.is_present("include-edge-runtime-only");
+            let verbose = !args.is_present("quiet");
+            let iothub_hostname = args.value_of("iothub-hostname").map(ToOwned::to_owned);
             tokio_runtime.block_on(
-                SupportBundle::new(options, location.to_owned(), include_ms_only, runtime()?)
-                    .execute(),
+                SupportBundle::new(
+                    options,
+                    location.to_owned(),
+                    include_ms_only,
+                    verbose,
+                    iothub_hostname,
+                    runtime()?,
+                )
+                .execute(),
             )
         }
         ("version", _) => tokio_runtime.block_on(Version::new().execute()),

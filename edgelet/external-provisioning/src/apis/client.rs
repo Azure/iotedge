@@ -16,7 +16,7 @@ impl APIClient {
 
         APIClient {
             external_provisioning_api: Box::new(crate::apis::ExternalProvisioningApiClient::new(
-                configuration.clone(),
+                configuration,
             )),
         }
     }

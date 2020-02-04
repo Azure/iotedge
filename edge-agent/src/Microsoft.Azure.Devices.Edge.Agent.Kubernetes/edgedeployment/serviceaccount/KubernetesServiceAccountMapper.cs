@@ -8,18 +8,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.ServiceAc
 
     public class KubernetesServiceAccountMapper : IKubernetesServiceAccountMapper
     {
-        public V1ServiceAccount CreateServiceAccount(IModuleIdentity identity, IDictionary<string, string> labels)
+        public V1ServiceAccount CreateServiceAccount(KubernetesModule module, IModuleIdentity identity, IDictionary<string, string> labels)
         {
             string name = identity.DeploymentName();
             var annotations = new Dictionary<string, string>
             {
                 [KubernetesConstants.K8sEdgeOriginalModuleId] = ModuleIdentityHelper.GetModuleName(identity.ModuleId)
             };
-            var metadata = new V1ObjectMeta(annotations, name: name, labels: labels);
+
+            var metadata = new V1ObjectMeta(
+                annotations,
+                name: name,
+                labels: labels,
+                ownerReferences: module.Owner.ToOwnerReferences());
             return new V1ServiceAccount(metadata: metadata);
         }
 
-        public void Update(V1ServiceAccount to, V1ServiceAccount from)
+        public void UpdateServiceAccount(V1ServiceAccount to, V1ServiceAccount from)
         {
             to.Metadata.ResourceVersion = from.Metadata.ResourceVersion;
         }

@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using NUnit.Framework;
 
-    public class CustomCertificatesFixture : ManualProvisioningFixture
+    public class CustomCertificatesFixture : SasManualProvisioningFixture
     {
         protected CertificateAuthority ca;
 
@@ -27,19 +27,23 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     {
                         DateTime startTime = DateTime.Now;
                         CancellationToken token = cts.Token;
+                        string deviceId = Context.Current.DeviceId;
 
                         try
                         {
                             this.ca = await CertificateAuthority.CreateAsync(
-                                Context.Current.DeviceId,
+                                deviceId,
                                 rootCa,
                                 caCertScriptPath,
                                 token);
 
+                            CaCertificates caCert = await this.ca.GenerateCaCertificatesAsync(deviceId, token);
+                            this.ca.EdgeCertificates = caCert;
+
                             await this.daemon.ConfigureAsync(
                                 config =>
                                 {
-                                    config.SetCertificates(this.ca.Certificates);
+                                    config.SetCertificates(caCert);
                                     config.Update();
                                     return Task.FromResult(("with edge certificates", Array.Empty<object>()));
                                 },

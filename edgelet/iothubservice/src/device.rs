@@ -578,7 +578,7 @@ mod tests {
                 .with_module_id("m2".to_string())
                 .with_generation_id("g2".to_string())
                 .with_managed_by("iotedge".to_string())
-                .with_authentication(auth.clone()),
+                .with_authentication(auth),
         ];
         let expected_modules = modules.clone();
 
@@ -627,7 +627,7 @@ mod tests {
             .with_module_id("m1".to_string())
             .with_generation_id("g1".to_string())
             .with_managed_by("iotedge".to_string())
-            .with_authentication(auth.clone());
+            .with_authentication(auth);
         let expected_module = module.clone();
 
         let handler = move |req: Request<Body>| {
@@ -674,7 +674,7 @@ mod tests {
             .with_module_id("$edgeAgent".to_string())
             .with_generation_id("g1".to_string())
             .with_managed_by("iotedge".to_string())
-            .with_authentication(auth.clone());
+            .with_authentication(auth);
         let expected_module = module.clone();
 
         let handler = move |req: Request<Body>| {

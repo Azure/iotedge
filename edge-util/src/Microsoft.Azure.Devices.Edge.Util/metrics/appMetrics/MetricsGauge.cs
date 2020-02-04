@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.AppMetrics
             };
         }
 
-        public void Set(long value, string[] labelValues)
+        public void Set(double value, string[] labelValues)
         {
             var tags = new MetricTags(this.LabelNames, labelValues);
             this.gaugeMetrics.SetValue(this.gaugeOptions, tags, value);

@@ -1,5 +1,5 @@
 iotedge usr/bin
 iotedged usr/bin
 debian/iotedge.mgmt.socket lib/systemd/system
-etc/iotedge/config.yaml
+etc/iotedge/config.yaml.template
 etc/logrotate.d/iotedge

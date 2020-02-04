@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
@@ -9,10 +10,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deployment;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Diff;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.ServiceAccount;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Rest;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
@@ -20,74 +23,104 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     public class EdgeDeploymentController : IEdgeDeploymentController
     {
         readonly IKubernetes client;
-
         readonly ResourceName resourceName;
-        readonly string deploymentSelector;
+        readonly string deviceSelector;
         readonly string deviceNamespace;
         readonly IModuleIdentityLifecycleManager moduleIdentityLifecycleManager;
         readonly IKubernetesServiceMapper serviceMapper;
         readonly IKubernetesDeploymentMapper deploymentMapper;
+        readonly IKubernetesPvcMapper pvcMapper;
         readonly IKubernetesServiceAccountMapper serviceAccountMapper;
 
         public EdgeDeploymentController(
             ResourceName resourceName,
-            string deploymentSelector,
+            string deviceSelector,
             string deviceNamespace,
             IKubernetes client,
             IModuleIdentityLifecycleManager moduleIdentityLifecycleManager,
             IKubernetesServiceMapper serviceMapper,
             IKubernetesDeploymentMapper deploymentMapper,
+            IKubernetesPvcMapper pvcMapper,
             IKubernetesServiceAccountMapper serviceAccountMapper)
         {
             this.resourceName = resourceName;
-            this.deploymentSelector = deploymentSelector;
+            this.deviceSelector = deviceSelector;
             this.deviceNamespace = deviceNamespace;
             this.moduleIdentityLifecycleManager = moduleIdentityLifecycleManager;
             this.client = client;
             this.serviceMapper = serviceMapper;
             this.deploymentMapper = deploymentMapper;
+            this.pvcMapper = pvcMapper;
             this.serviceAccountMapper = serviceAccountMapper;
         }
 
-        public async Task<ModuleSet> DeployModulesAsync(IList<KubernetesModule> modules, ModuleSet currentModules)
+        public async Task<EdgeDeploymentStatus> DeployModulesAsync(ModuleSet desiredModules, ModuleSet currentModules)
         {
-            var desiredModules = ModuleSet.Create(modules.ToArray());
-            var moduleIdentities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModules, currentModules);
+            try
+            {
+                var moduleIdentities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModules, currentModules);
 
-            var labels = modules
-                .ToDictionary(
-                    module => module.Name,
-                    module => new Dictionary<string, string>
-                    {
-                        [KubernetesConstants.K8sEdgeModuleLabel] = moduleIdentities[module.Name].DeploymentName(),
-                        [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue(this.resourceName.DeviceId),
-                        [KubernetesConstants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue(this.resourceName.Hostname)
-                    });
+                // having desired modules an no module identities means that we are unable to obtain a list of module identities
+                if (desiredModules.Modules.Any() && !moduleIdentities.Any())
+                {
+                    Events.NoModuleIdentities();
+                    return EdgeDeploymentStatus.Failure("Unable to obtain identities for desired modules");
+                }
 
-            var desiredServices = modules
-                .Select(module => this.serviceMapper.CreateService(moduleIdentities[module.Name], module, labels[module.Name]))
-                .Where(service => service.HasValue)
-                .Select(service => service.OrDefault())
-                .ToList();
+                var labels = desiredModules.Modules
+                    .ToDictionary(
+                        module => module.Key,
+                        module => new Dictionary<string, string>
+                        {
+                            [KubernetesConstants.K8sEdgeModuleLabel] = moduleIdentities[module.Key].DeploymentName(),
+                            [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue(this.resourceName.DeviceId),
+                            [KubernetesConstants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue(this.resourceName.Hostname)
+                        });
+                var deviceOnlyLabels = new Dictionary<string, string>
+                {
+                    [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue(this.resourceName.DeviceId),
+                    [KubernetesConstants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue(this.resourceName.Hostname)
+                };
 
-            V1ServiceList currentServices = await this.client.ListNamespacedServiceAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
-            await this.ManageServices(currentServices, desiredServices);
+                var desiredServices = desiredModules.Modules
+                    .Select(module => this.serviceMapper.CreateService(moduleIdentities[module.Key], (KubernetesModule)module.Value, labels[module.Key]))
+                    .FilterMap()
+                    .ToList();
 
-            var desiredDeployments = modules
-                .Select(module => this.deploymentMapper.CreateDeployment(moduleIdentities[module.Name], module, labels[module.Name]))
-                .ToList();
+                V1ServiceList currentServices = await this.client.ListNamespacedServiceAsync(this.deviceNamespace, labelSelector: this.deviceSelector);
+                await this.ManageServices(currentServices, desiredServices);
 
-            V1DeploymentList currentDeployments = await this.client.ListNamespacedDeploymentAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
-            await this.ManageDeployments(currentDeployments, desiredDeployments);
+                var desiredDeployments = desiredModules.Modules
+                    .Select(module => this.deploymentMapper.CreateDeployment(moduleIdentities[module.Key], (KubernetesModule)module.Value, labels[module.Key]))
+                    .ToList();
 
-            var desiredServiceAccounts = modules
-                .Select(module => this.serviceAccountMapper.CreateServiceAccount(moduleIdentities[module.Name], labels[module.Name]))
-                .ToList();
+                V1DeploymentList currentDeployments = await this.client.ListNamespacedDeploymentAsync(this.deviceNamespace, labelSelector: this.deviceSelector);
+                await this.ManageDeployments(currentDeployments, desiredDeployments);
 
-            V1ServiceAccountList currentServiceAccounts = await this.client.ListNamespacedServiceAccountAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
-            await this.ManageServiceAccounts(currentServiceAccounts, desiredServiceAccounts);
+                var desiredPvcs = desiredModules.Modules
+                    .Select(module => this.pvcMapper.CreatePersistentVolumeClaims((KubernetesModule)module.Value, deviceOnlyLabels))
+                    .FilterMap()
+                    .SelectMany(x => x)
+                    .Distinct(KubernetesPvcByValueEqualityComparer);
 
-            return desiredModules;
+                // Modules may use PVCs created by the user, we get all PVCs and then work on ours.
+                V1PersistentVolumeClaimList currentPvcList = await this.client.ListNamespacedPersistentVolumeClaimAsync(this.deviceNamespace);
+                await this.ManagePvcs(currentPvcList, desiredPvcs);
+
+                var desiredServiceAccounts = desiredModules.Modules
+                    .Select(module => this.serviceAccountMapper.CreateServiceAccount((KubernetesModule)module.Value, moduleIdentities[module.Key], labels[module.Key]))
+                    .ToList();
+
+                V1ServiceAccountList currentServiceAccounts = await this.client.ListNamespacedServiceAccountAsync(this.deviceNamespace, labelSelector: this.deviceSelector);
+                await this.ManageServiceAccounts(currentServiceAccounts, desiredServiceAccounts);
+
+                return EdgeDeploymentStatus.Success("Successfully deployed");
+            }
+            catch (HttpOperationException e)
+            {
+                Events.DeployModulesException(e);
+                return EdgeDeploymentStatus.Failure(e);
+            }
         }
 
         async Task ManageServices(V1ServiceList existing, IEnumerable<V1Service> desired)
@@ -160,7 +193,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     name =>
                     {
                         Events.DeleteDeployment(name);
-                        return this.client.DeleteNamespacedDeployment1Async(name, this.deviceNamespace);
+                        return this.client.DeleteNamespacedDeploymentAsync(
+                            name,
+                            this.deviceNamespace,
+                            propagationPolicy: KubernetesConstants.DefaultDeletePropagationPolicy,
+                            body: new V1DeleteOptions(propagationPolicy: KubernetesConstants.DefaultDeletePropagationPolicy));
                     });
             await Task.WhenAll(removingTasks);
 
@@ -185,6 +222,84 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
         static IEqualityComparer<V1Deployment> DeploymentByCreationStringEqualityComparer { get; } = new KubernetesDeploymentByCreationStringEqualityComparer();
 
+        async Task ManagePvcs(V1PersistentVolumeClaimList existing, IEnumerable<V1PersistentVolumeClaim> desired)
+        {
+            // Find the difference between desired and existing PVCs
+            var diff = this.FindPvcDiff(desired, existing.Items);
+
+            // Update all PVCs that are in both lists, and are labeled (created by Agent)
+            var updatingTask = diff.Updated
+                .Select(
+                    update =>
+                    {
+                        Events.UpdatePvc(update.To);
+                        this.pvcMapper.UpdatePersistentVolumeClaim(update.To, update.From);
+                        return this.client.ReplaceNamespacedPersistentVolumeClaimAsync(update.To, update.To.Metadata.Name, this.deviceNamespace);
+                    });
+            await Task.WhenAll(updatingTask);
+
+            // Remove all PVCs that are not in the desired list, and are labeled (created by Agent)
+            var removingTasks = diff.Removed
+                .Select(
+                    name =>
+                    {
+                        Events.DeletePvc(name);
+                        return this.client.DeleteNamespacedPersistentVolumeClaimAsync(name, this.deviceNamespace);
+                    });
+            await Task.WhenAll(removingTasks);
+
+            // Create all new desired PVCs.
+            var addingTasks = diff.Added
+                .Select(
+                    pvc =>
+                    {
+                        Events.CreatePvc(pvc);
+                        return this.client.CreateNamespacedPersistentVolumeClaimAsync(pvc, this.deviceNamespace);
+                    });
+            await Task.WhenAll(addingTasks);
+        }
+
+        Diff<V1PersistentVolumeClaim> FindPvcDiff(
+                IEnumerable<V1PersistentVolumeClaim> desired,
+                IEnumerable<V1PersistentVolumeClaim> existing)
+        {
+            var existingDict = existing.ToDictionary(pvc => pvc.Metadata.Name);
+            var desiredSet = new Set<V1PersistentVolumeClaim>(desired.ToDictionary(pvc => pvc.Metadata.Name));
+            var existingSet = new Set<V1PersistentVolumeClaim>(existingDict);
+            var fullDiff = desiredSet.Diff(existingSet, KubernetesPvcByValueEqualityComparer);
+            // In fullDiff:
+            // Added are `desired` PVCs which are named differently that all existing PVCs.
+            //  - these are all new,
+            // Removed are all PVCs which are in `existing` and not in `desired`
+            //  - some of these names may be PVCs created by the user, we don't want to delete them.
+            // Updated are all PVCs which differ between `existing` and `desired`
+            //  - some of the "From" PVCs were created by the user, we shouldn't update these.
+            // Filter Removed and Updated to only select ones created by controller.
+            return new Diff<V1PersistentVolumeClaim>(
+                    fullDiff.Added,
+                    fullDiff.Removed.Where(name => this.IsCreatedByController(existingDict[name])),
+                    fullDiff.Updated.Where(update => this.IsCreatedByController(update.From)));
+        }
+
+        bool IsCreatedByController(V1PersistentVolumeClaim claim)
+        {
+            var labels = claim.Metadata?.Labels;
+            if (labels == null)
+            {
+                return false;
+            }
+
+            if (!labels.ContainsKey(KubernetesConstants.K8sEdgeDeviceLabel) || !labels.ContainsKey(KubernetesConstants.K8sEdgeHubNameLabel))
+            {
+                return false;
+            }
+
+            return labels[KubernetesConstants.K8sEdgeDeviceLabel] == KubeUtils.SanitizeLabelValue(this.resourceName.DeviceId) &&
+                    labels[KubernetesConstants.K8sEdgeHubNameLabel] == KubeUtils.SanitizeLabelValue(this.resourceName.Hostname);
+        }
+
+        static IEqualityComparer<V1PersistentVolumeClaim> KubernetesPvcByValueEqualityComparer { get; } = new KubernetesPvcByValueEqualityComparer();
+
         async Task ManageServiceAccounts(V1ServiceAccountList existing, IReadOnlyCollection<V1ServiceAccount> desired)
         {
             // find difference between desired and existing service accounts
@@ -197,7 +312,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     {
                         Events.UpdateServiceAccount(update.To);
 
-                        this.serviceAccountMapper.Update(update.To, update.From);
+                        this.serviceAccountMapper.UpdateServiceAccount(update.To, update.From);
                         return this.client.ReplaceNamespacedServiceAccountAsync(update.To, update.To.Metadata.Name, this.deviceNamespace);
                     });
             await Task.WhenAll(updatingTasks);
@@ -228,34 +343,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             var desiredSet = new Set<V1ServiceAccount>(desired.ToDictionary(serviceAccount => serviceAccount.Metadata.Name));
             var existingSet = new Set<V1ServiceAccount>(existing.ToDictionary(serviceAccount => serviceAccount.Metadata.Name));
 
-            return desiredSet.Diff(existingSet);
+            return desiredSet.Diff(existingSet, KubernetesServiceAccountByValueEqualityComparer);
         }
 
-        public async Task PurgeModulesAsync()
-        {
-            // Delete all services for current edge deployment
-            V1ServiceList services = await this.client.ListNamespacedServiceAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
-            var serviceTasks = services.Items
-                .Select(service => this.client.DeleteNamespacedServiceAsync(service.Metadata.Name, this.deviceNamespace, new V1DeleteOptions()));
-            await Task.WhenAll(serviceTasks);
-
-            // Delete all deployments for current edge deployment
-            V1DeploymentList deployments = await this.client.ListNamespacedDeploymentAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
-            var deploymentTasks = deployments.Items
-                .Select(
-                    deployment => this.client.DeleteNamespacedDeployment1Async(
-                        deployment.Metadata.Name,
-                        this.deviceNamespace,
-                        new V1DeleteOptions(propagationPolicy: "Foreground"),
-                        propagationPolicy: "Foreground"));
-            await Task.WhenAll(deploymentTasks);
-
-            // Delete the service account for all deployments
-            V1ServiceAccountList serviceAccounts = await this.client.ListNamespacedServiceAccountAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
-            var serviceAccountTasks = serviceAccounts.Items
-                .Select(service => this.client.DeleteNamespacedServiceAsync(service.Metadata.Name, this.deviceNamespace, new V1DeleteOptions()));
-            await Task.WhenAll(serviceAccountTasks);
-        }
+        static IEqualityComparer<V1ServiceAccount> KubernetesServiceAccountByValueEqualityComparer { get; } = new KubernetesServiceAccountByValueEqualityComparer();
 
         static class Events
         {
@@ -271,59 +362,89 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 CreateDeployment,
                 DeleteDeployment,
                 UpdateDeployment,
+                CreatePvc,
+                DeletePvc,
+                UpdatePvc,
                 CreateServiceAccount,
                 DeleteServiceAccount,
-                UpdateServiceAccount
+                UpdateServiceAccount,
+                DeployModulesException,
+                NoModuleIdentities
             }
 
-            public static void DeleteService(string name)
+            internal static void DeleteService(string name)
             {
                 Log.LogInformation((int)EventIds.DeleteService, $"Delete service {name}");
             }
 
-            public static void CreateService(V1Service service)
+            internal static void CreateService(V1Service service)
             {
                 Log.LogInformation((int)EventIds.CreateService, $"Create service {service.Metadata.Name}");
             }
 
-            public static void CreateDeployment(V1Deployment deployment)
+            internal static void CreateDeployment(V1Deployment deployment)
             {
                 Log.LogInformation((int)EventIds.CreateDeployment, $"Create deployment {deployment.Metadata.Name}");
             }
 
-            public static void DeleteDeployment(string name)
+            internal static void DeleteDeployment(string name)
             {
                 Log.LogInformation((int)EventIds.DeleteDeployment, $"Delete deployment {name}");
             }
 
-            public static void UpdateDeployment(V1Deployment deployment)
+            internal static void UpdateDeployment(V1Deployment deployment)
             {
                 Log.LogInformation((int)EventIds.UpdateDeployment, $"Update deployment {deployment.Metadata.Name}");
             }
 
-            public static void InvalidCreationString(string kind, string name)
+            internal static void CreatePvc(V1PersistentVolumeClaim pvc)
+            {
+                Log.LogInformation((int)EventIds.CreatePvc, $"Create PVC {pvc.Metadata.Name}");
+            }
+
+            internal static void DeletePvc(string name)
+            {
+                Log.LogInformation((int)EventIds.DeletePvc, $"Delete PVC {name}");
+            }
+
+            internal static void UpdatePvc(V1PersistentVolumeClaim pvc)
+            {
+                Log.LogInformation((int)EventIds.UpdatePvc, $"Update PVC {pvc.Metadata.Name}");
+            }
+
+            internal static void DeployModulesException(Exception ex)
+            {
+                Log.LogWarning((int)EventIds.DeployModulesException, ex, "Module deployment failed");
+            }
+
+            internal static void InvalidCreationString(string kind, string name)
             {
                 Log.LogDebug((int)EventIds.InvalidCreationString, $"Expected a valid '{kind}' creation string in k8s Object '{name}'.");
             }
 
-            public static void UpdateService(V1Service service)
+            internal static void UpdateService(V1Service service)
             {
                 Log.LogDebug((int)EventIds.UpdateService, $"Update service object '{service.Metadata.Name}'");
             }
 
-            public static void CreateServiceAccount(V1ServiceAccount serviceAccount)
+            internal static void CreateServiceAccount(V1ServiceAccount serviceAccount)
             {
                 Log.LogDebug((int)EventIds.CreateServiceAccount, $"Create Service Account {serviceAccount.Metadata.Name}");
             }
 
-            public static void DeleteServiceAccount(string name)
+            internal static void DeleteServiceAccount(string name)
             {
                 Log.LogDebug((int)EventIds.DeleteServiceAccount, $"Delete Service Account {name}");
             }
 
-            public static void UpdateServiceAccount(V1ServiceAccount serviceAccount)
+            internal static void UpdateServiceAccount(V1ServiceAccount serviceAccount)
             {
                 Log.LogDebug((int)EventIds.UpdateServiceAccount, $"Update Service Account {serviceAccount.Metadata.Name}");
+            }
+
+            internal static void NoModuleIdentities()
+            {
+                Log.LogError((int)EventIds.NoModuleIdentities, "Unable to get identities for desired modules");
             }
         }
     }

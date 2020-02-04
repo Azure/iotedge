@@ -3,7 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
+    using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
@@ -13,15 +13,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     {
         public Option<IDictionary<string, string>> NodeSelector { get; }
 
-        public KubernetesExperimentalCreatePodParameters(Option<IDictionary<string, string>> nodeSelector)
+        public Option<V1ResourceRequirements> Resources { get; }
+
+        public Option<IReadOnlyList<KubernetesModuleVolumeSpec>> Volumes { get; }
+
+        public Option<V1PodSecurityContext> SecurityContext { get; }
+
+        KubernetesExperimentalCreatePodParameters(
+            Option<IDictionary<string, string>> nodeSelector,
+            Option<V1ResourceRequirements> resources,
+            Option<IReadOnlyList<KubernetesModuleVolumeSpec>> volumes,
+            Option<V1PodSecurityContext> securityContext)
         {
             this.NodeSelector = nodeSelector;
+            this.Resources = resources;
+            this.Volumes = volumes;
+            this.SecurityContext = securityContext;
         }
 
         static class ExperimentalParameterNames
         {
             public const string Section = "k8s-experimental";
             public const string NodeSelector = "NodeSelector";
+            public const string Resources = "Resources";
+            public const string Volumes = "Volumes";
+            public const string SecurityContext = "SecurityContext";
         }
 
         public static Option<KubernetesExperimentalCreatePodParameters> Parse(IDictionary<string, JToken> other)
@@ -42,10 +58,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             Dictionary<string, JToken> options = PrepareSupportedOptionsStore(experimental);
 
             Option<IDictionary<string, string>> nodeSelector = options.Get(ExperimentalParameterNames.NodeSelector)
-                .FlatMap(selector => Option.Maybe(selector.ToObject<IDictionary<string, string>>()))
-                .Filter(selector => selector.Any());
+                .FlatMap(option => Option.Maybe(option.ToObject<IDictionary<string, string>>()));
 
-            return new KubernetesExperimentalCreatePodParameters(nodeSelector);
+            var resources = options.Get(ExperimentalParameterNames.Resources)
+                .FlatMap(option => Option.Maybe(option.ToObject<V1ResourceRequirements>()));
+
+            var volumes = options.Get(ExperimentalParameterNames.Volumes)
+                .FlatMap(option => Option.Maybe(option.ToObject<IReadOnlyList<KubernetesModuleVolumeSpec>>()));
+
+            var securityContext = options.Get(ExperimentalParameterNames.SecurityContext)
+                .FlatMap(option => Option.Maybe(option.ToObject<V1PodSecurityContext>()));
+
+            return new KubernetesExperimentalCreatePodParameters(nodeSelector, resources, volumes, securityContext);
         }
 
         static Dictionary<string, JToken> PrepareSupportedOptionsStore(JObject experimental)
@@ -65,7 +89,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             return options;
         }
 
-        static readonly HashSet<string> KnownExperimentalOptions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ExperimentalParameterNames.NodeSelector };
+        static readonly HashSet<string> KnownExperimentalOptions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ExperimentalParameterNames.NodeSelector,
+            ExperimentalParameterNames.Resources,
+            ExperimentalParameterNames.Volumes,
+            ExperimentalParameterNames.SecurityContext
+        };
 
         static class Events
         {

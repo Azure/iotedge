@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         public static ModuleRuntimeInfo ConvertToRuntime(this V1Pod pod, string name)
         {
             Option<V1ContainerStatus> containerStatus = GetContainerByName(name, pod);
-            ReportedModuleStatus moduleStatus = ConvertPodStatusToModuleStatus(containerStatus);
+            ReportedModuleStatus moduleStatus = ConvertPodStatusToModuleStatus(Option.Maybe(pod.Status), containerStatus);
             RuntimeData runtimeData = GetRuntimeData(containerStatus.OrDefault());
 
             string moduleName = string.Empty;
@@ -43,31 +43,67 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             return Option.Maybe(status);
         }
 
-        static ReportedModuleStatus ConvertPodStatusToModuleStatus(Option<V1ContainerStatus> podStatus)
+        static ReportedModuleStatus ConvertPodStatusToModuleStatus(Option<V1PodStatus> podStatus, Option<V1ContainerStatus> containerStatus)
         {
             return podStatus.Map(
-                pod =>
+                status =>
                 {
-                    if (pod.State != null)
+                    switch (status.Phase)
                     {
-                        if (pod.State.Running != null)
-                        {
-                            return new ReportedModuleStatus(ModuleStatus.Running, $"Started at {pod.State.Running.StartedAt.GetValueOrDefault(DateTime.Now)}");
-                        }
+                        case "Running":
+                            {
+                                return containerStatus.Map(c =>
+                                {
+                                    if (c.State.Waiting != null)
+                                    {
+                                        return new ReportedModuleStatus(ModuleStatus.Backoff, $"Module in Back-off reason: {c.State.Waiting.Reason}");
+                                    }
+                                    else if (c.State.Terminated != null)
+                                    {
+                                        if (c.State.Terminated.ExitCode != 0)
+                                            return new ReportedModuleStatus(ModuleStatus.Failed, $"Module Failed reason: {c.State.Terminated.Reason}");
+                                        else
+                                            return new ReportedModuleStatus(ModuleStatus.Stopped, $"Module Stopped reason: {c.State.Terminated.Reason}");
+                                    }
+                                    else
+                                    {
+                                        return new ReportedModuleStatus(ModuleStatus.Running, $"Started at {c.State.Running.StartedAt}");
+                                    }
+                                }).GetOrElse(() => new ReportedModuleStatus(ModuleStatus.Failed, $"Module Failed with container status Unknown More Info: K8s reason: {status.Reason} with message: {status.Message}"));
+                            }
 
-                        if (pod.State.Terminated != null)
-                        {
-                            return new ReportedModuleStatus(ModuleStatus.Failed, pod.State.Terminated.Message);
-                        }
+                        case "Pending":
+                            {
+                                return containerStatus.Map(c =>
+                                {
+                                    if (c.State.Waiting != null)
+                                    {
+                                        return new ReportedModuleStatus(ModuleStatus.Backoff, $"Module in Back-off reason: {c.State.Waiting.Reason}");
+                                    }
+                                    else if (c.State.Terminated != null)
+                                    {
+                                        if (c.State.Terminated.ExitCode != 0)
+                                            return new ReportedModuleStatus(ModuleStatus.Failed, $"Module Failed reason: {c.State.Terminated.Reason}");
+                                        else
+                                            return new ReportedModuleStatus(ModuleStatus.Stopped, $"Module Stopped reason: {c.State.Terminated.Reason}");
+                                    }
+                                    else
+                                    {
+                                        return new ReportedModuleStatus(ModuleStatus.Backoff, $"Started at {c.State.Running.StartedAt}");
+                                    }
+                                }).GetOrElse(() => new ReportedModuleStatus(ModuleStatus.Failed, $"Module Failed with container status Unknown More Info: K8s reason: {status.Reason} with message: {status.Message}"));
+                            }
 
-                        if (pod.State.Waiting != null)
-                        {
-                            return new ReportedModuleStatus(ModuleStatus.Failed, pod.State.Waiting.Message);
-                        }
+                        case "Unknown":
+                            return new ReportedModuleStatus(ModuleStatus.Unknown, $"Module status Unknown reason: {status.Reason}");
+                        case "Succeeded":
+                            return new ReportedModuleStatus(ModuleStatus.Stopped, $"Module Stopped reason: {status.Reason} with message: {status.Message}");
+                        case "Failed":
+                            return new ReportedModuleStatus(ModuleStatus.Failed, $"Module Failed reason: {status.Reason} with message: {status.Message}");
+                        default:
+                            throw new InvalidOperationException($"Invalid pod status {status.Phase}");
                     }
-
-                    return new ReportedModuleStatus(ModuleStatus.Unknown, "Unknown");
-                }).GetOrElse(() => new ReportedModuleStatus(ModuleStatus.Unknown, "Unknown"));
+                }).GetOrElse(() => new ReportedModuleStatus(ModuleStatus.Unknown, "Unable to get pod status"));
         }
 
         static RuntimeData GetRuntimeData(V1ContainerStatus status)

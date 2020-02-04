@@ -1,9 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::collections::HashMap;
 use std::path::Path;
 
 use config::{Config, Environment};
-use docker::models::HostConfig;
+use docker::models::{ContainerCreateBodyNetworkingConfig, EndpointSettings, HostConfig};
 use edgelet_core::{
     Certificates, Connect, Listen, MobyNetwork, ModuleSpec, Provisioning, RuntimeSettings,
     Settings as BaseSettings, UrlExt, WatchdogSettings,
@@ -46,8 +47,9 @@ impl MobyRuntime {
 
 /// This struct is the same as the Settings type from the `edgelet_core` crate
 /// except that it also sets up the volume mounting of workload & management
-/// UDS sockets for the edge agent container and also injects the docker
-/// network name as an environment variable for edge agent.
+/// UDS sockets for the edge agent container and injects the docker network
+/// name both as an environment variable and as an endpoint setting in the
+/// docker create options for edge agent.
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Settings {
     #[serde(flatten)]
@@ -105,7 +107,7 @@ impl RuntimeSettings for Settings {
         self.base.homedir()
     }
 
-    fn certificates(&self) -> Option<&Certificates> {
+    fn certificates(&self) -> &Certificates {
         self.base.certificates()
     }
 
@@ -120,6 +122,9 @@ fn init_agent_spec(settings: &mut Settings) -> Result<(), LoadSettingsError> {
 
     // setup environment variables that are moby/docker specific
     agent_env(settings);
+
+    // setup moby/docker specific networking config
+    agent_networking(settings)?;
 
     Ok(())
 }
@@ -179,6 +184,35 @@ fn agent_env(settings: &mut Settings) {
         .insert(EDGE_NETWORKID_KEY.to_string(), network_id);
 }
 
+fn agent_networking(settings: &mut Settings) -> Result<(), LoadSettingsError> {
+    let network_id = settings.moby_runtime().network().name().to_string();
+
+    let create_options = settings.agent().config().clone_create_options()?;
+
+    let mut network_config = create_options
+        .networking_config()
+        .cloned()
+        .unwrap_or_else(ContainerCreateBodyNetworkingConfig::new);
+
+    let mut endpoints_config = network_config
+        .endpoints_config()
+        .cloned()
+        .unwrap_or_else(HashMap::new);
+
+    if !endpoints_config.contains_key(network_id.as_str()) {
+        endpoints_config.insert(network_id, EndpointSettings::new());
+        network_config = network_config.with_endpoints_config(endpoints_config);
+        let create_options = create_options.with_networking_config(network_config);
+
+        settings
+            .agent_mut()
+            .config_mut()
+            .set_create_options(create_options);
+    }
+
+    Ok(())
+}
+
 #[derive(Debug, Fail)]
 #[fail(display = "Could not load settings")]
 pub struct LoadSettingsError(#[cause] Context<Box<dyn std::fmt::Display + Send + Sync>>);
@@ -230,7 +264,9 @@ mod tests {
     use serde_json::json;
     use tempdir::TempDir;
 
-    use edgelet_core::{AttestationMethod, IpamConfig, ManualAuthMethod, DEFAULT_NETWORKID};
+    use edgelet_core::{
+        AttestationMethod, IpamConfig, ManualAuthMethod, ProvisioningType, DEFAULT_NETWORKID,
+    };
 
     #[cfg(unix)]
     static GOOD_SETTINGS: &str = "test/linux/sample_settings.yaml";
@@ -283,9 +319,18 @@ mod tests {
     #[cfg(unix)]
     static BAD_SETTINGS_MANUAL_X509_AUTH5: &str = "test/linux/bad_settings.manual.x509.5.yaml";
     #[cfg(unix)]
-    static GOOD_SETTINGS_EXTERNAL: &str = "test/linux/sample_settings.external.yaml";
+    static GOOD_SETTINGS_EXTERNAL1: &str = "test/linux/sample_settings.external.1.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_EXTERNAL2: &str = "test/linux/sample_settings.external.2.yaml";
     #[cfg(unix)]
     static GOOD_SETTINGS_NETWORK: &str = "test/linux/sample_settings.network.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_DYNAMIC_REPROVISIONING: &str = "test/linux/sample_settings.dyn.repro.yaml";
+    #[cfg(unix)]
+    static BAD_SETTINGS_DYNAMIC_REPROVISIONING: &str =
+        "test/linux/bad_sample_settings.dyn.repro.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_TLS: &str = "test/linux/sample_settings.tls.yaml";
 
     #[cfg(windows)]
     static GOOD_SETTINGS: &str = "test/windows/sample_settings.yaml";
@@ -338,13 +383,23 @@ mod tests {
     #[cfg(windows)]
     static BAD_SETTINGS_MANUAL_X509_AUTH5: &str = "test/windows/bad_settings.manual.x509.5.yaml";
     #[cfg(windows)]
-    static GOOD_SETTINGS_EXTERNAL: &str = "test/windows/sample_settings.external.yaml";
+    static GOOD_SETTINGS_EXTERNAL1: &str = "test/windows/sample_settings.external.1.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_EXTERNAL2: &str = "test/windows/sample_settings.external.2.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_NETWORK: &str = "test/windows/sample_settings.network.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_DYNAMIC_REPROVISIONING: &str =
+        "test/windows/sample_settings.dyn.repro.yaml";
+    #[cfg(windows)]
+    static BAD_SETTINGS_DYNAMIC_REPROVISIONING: &str =
+        "test/windows/bad_sample_settings.dyn.repro.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_TLS: &str = "test/windows/sample_settings.tls.yaml";
 
-    fn unwrap_manual_provisioning(p: &Provisioning) -> String {
+    fn unwrap_manual_provisioning(p: &ProvisioningType) -> String {
         match p {
-            Provisioning::Manual(manual) => {
+            ProvisioningType::Manual(manual) => {
                 if let ManualAuthMethod::DeviceConnectionString(cs) = manual.authentication_method()
                 {
                     cs.device_connection_string().to_string()
@@ -462,6 +517,9 @@ mod tests {
 
         let settings = Settings::new(Path::new(BAD_SETTINGS_MANUAL_CS_AUTH3));
         assert!(settings.is_err());
+
+        let settings = Settings::new(Path::new(BAD_SETTINGS_DYNAMIC_REPROVISIONING));
+        assert!(settings.is_err());
     }
 
     #[test]
@@ -470,7 +528,9 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        let p = s.provisioning();
+
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), false);
+        let p = s.provisioning().provisioning_type();
         let connection_string = unwrap_manual_provisioning(p);
         assert_eq!(
             connection_string,
@@ -484,7 +544,9 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        let p = s.provisioning();
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), false);
+
+        let p = s.provisioning().provisioning_type();
         let connection_string = unwrap_manual_provisioning(p);
         assert_eq!(
             connection_string,
@@ -498,8 +560,8 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        match s.provisioning() {
-            Provisioning::Manual(manual) => match manual.authentication_method() {
+        match s.provisioning().provisioning_type() {
+            ProvisioningType::Manual(manual) => match manual.authentication_method() {
                 ManualAuthMethod::DeviceConnectionString(cs) => {
                     assert_eq!(cs.device_connection_string(), "");
                     cs.parse_device_connection_string().unwrap_err();
@@ -516,8 +578,8 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        match s.provisioning() {
-            Provisioning::Manual(manual) => match manual.authentication_method() {
+        match s.provisioning().provisioning_type() {
+            ProvisioningType::Manual(manual) => match manual.authentication_method() {
                 ManualAuthMethod::DeviceConnectionString(cs) => {
                     assert_eq!(cs.device_connection_string(), "blah");
                     cs.parse_device_connection_string().unwrap_err();
@@ -534,8 +596,8 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        match s.provisioning() {
-            Provisioning::Manual(manual) => match manual.authentication_method() {
+        match s.provisioning().provisioning_type() {
+            ProvisioningType::Manual(manual) => match manual.authentication_method() {
                 ManualAuthMethod::DeviceConnectionString(cs) => {
                     assert_eq!(cs.device_connection_string(), "");
                     cs.parse_device_connection_string().unwrap_err();
@@ -654,7 +716,7 @@ mod tests {
         );
         let settings = Settings::new(&settings_path).expect("Settings create failed");
         println!("{:?}", settings);
-        let certificates = settings.certificates();
+        let certificates = settings.certificates().device_cert();
         certificates
             .map(|c| {
                 let path = c.device_ca_cert().expect("Did not obtain device CA cert");
@@ -685,7 +747,7 @@ mod tests {
         );
         let settings = Settings::new(&settings_path).unwrap();
         println!("{:?}", settings);
-        let certificates = settings.certificates();
+        let certificates = settings.certificates().device_cert();
         certificates
             .map(|c| {
                 let path = c.device_ca_cert().expect("Did not obtain device CA cert");
@@ -713,8 +775,8 @@ mod tests {
         );
         let settings = Settings::new(&settings_path).unwrap();
         println!("{:?}", settings);
-        match settings.provisioning() {
-            Provisioning::Manual(manual) => match manual.authentication_method() {
+        match settings.provisioning().provisioning_type() {
+            ProvisioningType::Manual(manual) => match manual.authentication_method() {
                 ManualAuthMethod::X509(x509) => {
                     assert_eq!(x509.iothub_hostname(), "something.something.com");
                     assert_eq!(x509.device_id(), "something");
@@ -746,8 +808,9 @@ mod tests {
         let settings = Settings::new(Path::new(GOOD_SETTINGS_DPS_DEFAULT));
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        match s.provisioning() {
-            Provisioning::Dps(ref dps) => {
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), false);
+        match s.provisioning().provisioning_type() {
+            ProvisioningType::Dps(ref dps) => {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
                 assert_eq!(dps.global_endpoint().host_str().unwrap(), "jibba-jabba.net");
                 assert_eq!(dps.scope_id(), "i got no time for the jibba-jabba");
@@ -768,8 +831,9 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        match s.provisioning() {
-            Provisioning::Dps(ref dps) => {
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), false);
+        match s.provisioning().provisioning_type() {
+            ProvisioningType::Dps(ref dps) => {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
                 assert_eq!(dps.global_endpoint().host_str().unwrap(), "jibba-jabba.net");
                 assert_eq!(dps.scope_id(), "i got no time for the jibba-jabba");
@@ -790,8 +854,9 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        match s.provisioning() {
-            Provisioning::Dps(ref dps) => {
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), true);
+        match s.provisioning().provisioning_type() {
+            ProvisioningType::Dps(ref dps) => {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
                 assert_eq!(dps.global_endpoint().host_str().unwrap(), "jibba-jabba.net");
                 assert_eq!(dps.scope_id(), "i got no time for the jibba-jabba");
@@ -853,8 +918,8 @@ mod tests {
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
         let settings = Settings::new(&settings_path).unwrap();
         println!("{:?}", settings);
-        match settings.provisioning() {
-            Provisioning::Dps(ref dps) => {
+        match settings.provisioning().provisioning_type() {
+            ProvisioningType::Dps(ref dps) => {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
                 assert_eq!(dps.global_endpoint().host_str().unwrap(), "jibba-jabba.net");
                 assert_eq!(dps.scope_id(), "i got no time for the jibba-jabba");
@@ -895,8 +960,8 @@ mod tests {
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
         let settings = Settings::new(&settings_path).unwrap();
         println!("{:?}", settings);
-        match settings.provisioning() {
-            Provisioning::Dps(ref dps) => {
+        match settings.provisioning().provisioning_type() {
+            ProvisioningType::Dps(ref dps) => {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
                 assert_eq!(dps.global_endpoint().host_str().unwrap(), "jibba-jabba.net");
                 assert_eq!(dps.scope_id(), "i got no time for the jibba-jabba");
@@ -930,16 +995,49 @@ mod tests {
 
     #[test]
     fn external_prov_get_settings() {
-        let settings = Settings::new(Path::new(GOOD_SETTINGS_EXTERNAL));
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_EXTERNAL1));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        match s.provisioning() {
-            Provisioning::External(ref external) => {
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), false);
+        match s.provisioning().provisioning_type() {
+            ProvisioningType::External(ref external) => {
                 assert_eq!(external.endpoint().as_str(), "http://localhost:9999/");
             }
             _ => unreachable!(),
         };
+    }
+
+    #[test]
+    fn external_prov_get_settings_with_dynamic_reprovisioning() {
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_EXTERNAL2));
+        println!("{:?}", settings);
+        assert!(settings.is_ok());
+        let s = settings.unwrap();
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), true);
+
+        match s.provisioning().provisioning_type() {
+            ProvisioningType::External(ref external) => {
+                assert_eq!(external.endpoint().as_str(), "http://localhost:9999/");
+            }
+            _ => unreachable!(),
+        };
+    }
+
+    #[test]
+    fn manual_provisioning_settings_with_dynamic_reprovisioning() {
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_DYNAMIC_REPROVISIONING));
+        println!("{:?}", settings);
+        assert!(settings.is_ok());
+        let s = settings.unwrap();
+
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), true);
+        let p = s.provisioning().provisioning_type();
+        let connection_string = unwrap_manual_provisioning(p);
+        assert_eq!(
+            connection_string,
+            "HostName=something.something.com;DeviceId=something;SharedAccessKey=QXp1cmUgSW9UIEVkZ2U="
+        );
     }
 
     #[test]
@@ -962,5 +1060,35 @@ mod tests {
         let s = settings.unwrap();
         let watchdog_settings = s.watchdog();
         assert_eq!(watchdog_settings.max_retries().compare(3), Ordering::Equal);
+    }
+
+    #[test]
+    fn tls_settings_are_read() {
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_TLS)).unwrap();
+        assert_eq!(
+            settings.listen().min_tls_version(),
+            edgelet_core::Protocol::Tls12
+        );
+    }
+
+    #[test]
+    fn tls_settings_are_none_by_default() {
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
+        assert_eq!(
+            settings.listen().min_tls_version(),
+            edgelet_core::Protocol::Tls10
+        );
+    }
+
+    #[test]
+    fn networking_config_is_set() {
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
+        let create_options = settings.agent().config().create_options();
+        assert!(create_options
+            .networking_config()
+            .unwrap()
+            .endpoints_config()
+            .unwrap()
+            .contains_key("azure-iot-edge"));
     }
 }

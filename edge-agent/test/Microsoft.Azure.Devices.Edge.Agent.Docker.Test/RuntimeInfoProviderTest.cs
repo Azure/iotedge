@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 RuntimeInfoProvider runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(Client);
 
                 // Act
-                SystemInfo recivedSystemInfo = await runtimeInfoProvider.GetSystemInfo();
+                SystemInfo recivedSystemInfo = await runtimeInfoProvider.GetSystemInfo(CancellationToken.None);
 
                 // Assert
                 Assert.Equal(systemInfo.OSType, recivedSystemInfo.OperatingSystemType);
@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
                     var loggingConfig = new DockerLoggingConfig("json-file");
                     var config = new DockerConfig(Image);
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, null, null);
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, Constants.DefaultPriority, null, null);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
                         new Dictionary<string, string>
@@ -145,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     string createOptions = @"{""Env"": [ ""k1=v1"", ""k2=v2""]}";
                     var config = new DockerConfig(Image, createOptions);
                     var loggingConfig = new DockerLoggingConfig("json-file");
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, null, null);
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, Constants.DefaultPriority, null, null);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
                         new Dictionary<string, string>
@@ -249,7 +249,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             // Act
             var runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(dockerClient);
-            SystemInfo systemInfo = await runtimeInfoProvider.GetSystemInfo();
+            SystemInfo systemInfo = await runtimeInfoProvider.GetSystemInfo(CancellationToken.None);
 
             // Assert
             Assert.NotNull(systemInfo);

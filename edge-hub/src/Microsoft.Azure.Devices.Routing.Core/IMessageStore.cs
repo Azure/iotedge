@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
         /// Creates an entry in the message queue for the given endpoint
         /// and returns the offset of that entry.
         /// </summary>
-        Task<long> Add(string endpointId, IMessage message);
+        Task<IMessage> Add(string endpointId, IMessage message);
 
         /// <summary>
         /// Returns an iterator that allows reading messages starting from the given offset.

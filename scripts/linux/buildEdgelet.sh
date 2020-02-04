@@ -11,7 +11,7 @@ set -e
 # Define Environment Variables
 ###############################################################################
 ARCH=$(uname -m)
-TOOLCHAIN=
+TARGET=
 STRIP=
 SCRIPT_NAME=$(basename "$0")
 PROJECT=
@@ -70,7 +70,7 @@ print_args()
 {
     echo "Project:      $EDGELET_DIR/$PROJECT"
     echo "Arch:         $ARCH"
-    echo "Toolchain:    $TOOLCHAIN"
+    echo "Target:       $TARGET"
     echo "Image:        $DOCKER_IMAGENAME"
     echo "Namespace:    $DOCKER_NAMESPACE"
     echo "Dockerfile:   $DOCKERFILE"
@@ -125,12 +125,12 @@ process_args()
     fi
 
     case ${ARCH}_${LIBC} in
-        amd64_musl) TOOLCHAIN="x86_64-unknown-linux-musl";;
-        amd64_glibc) TOOLCHAIN="x86_64-unknown-linux-gnu";;
-        arm32v7_musl) TOOLCHAIN="armv7-unknown-linux-musleabihf";;
-        arm32v7_glibc) TOOLCHAIN="armv7-unknown-linux-gnueabihf";;
-        arm64v8_musl) TOOLCHAIN="aarch64-unknown-linux-musl";;
-        arm64v8_glibc) TOOLCHAIN="aarch64-unknown-linux-gnu";;
+        amd64_musl) TARGET="x86_64-unknown-linux-musl";;
+        amd64_glibc) TARGET="x86_64-unknown-linux-gnu";;
+        arm32v7_musl) TARGET="armv7-unknown-linux-musleabihf";;
+        arm32v7_glibc) TARGET="armv7-unknown-linux-gnueabihf";;
+        arm64v8_musl) TARGET="aarch64-unknown-linux-musl";;
+        arm64v8_glibc) TARGET="aarch64-unknown-linux-gnu";;
     esac
 
     case ${ARCH} in
@@ -177,8 +177,8 @@ build_project()
     # build project with cross
     cd "$EDGELET_DIR"
 
-    execute cross build -p "$PROJECT" --manifest-path=iotedged/Cargo.toml --no-default-features --features runtime-kubernetes "$BUILD_CONFIG_OPTION" --target "$TOOLCHAIN"
-    execute "$STRIP" "$EDGELET_DIR/target/$TOOLCHAIN/$BUILD_CONFIGURATION/$PROJECT"
+    execute cross build -p "$PROJECT" --manifest-path=iotedged/Cargo.toml --no-default-features --features runtime-kubernetes "$BUILD_CONFIG_OPTION" --target "$TARGET"
+    execute "$STRIP" "$EDGELET_DIR/target/$TARGET/$BUILD_CONFIGURATION/$PROJECT"
 
     # prepare docker folder
     local EXE_DOCKER_DIR="$PUBLISH_DIR/$DOCKER_IMAGENAME/docker/linux/$ARCH"
@@ -189,10 +189,10 @@ build_project()
     execute cp "$DOCKERFILE" "$EXE_DOCKERFILE"
 
     # copy binaries to publish folder
-    execute cp "$EDGELET_DIR/target/$TOOLCHAIN/$BUILD_CONFIGURATION/$PROJECT" "$EXE_DOCKER_DIR/"
+    execute cp "$EDGELET_DIR/target/$TARGET/$BUILD_CONFIGURATION/$PROJECT" "$EXE_DOCKER_DIR/"
 
     if [[ ${PROJECT,,} == "iotedged" ]] && [[ ${BUILD_CONFIGURATION} == "release" ]]; then
-        execute cp "$EDGELET_DIR"/target/"$TOOLCHAIN"/"$BUILD_CONFIGURATION"/build/hsm-sys-*/out/lib/*.so* "$EXE_DOCKER_DIR/"
+        execute cp "$EDGELET_DIR"/target/"$TARGET"/"$BUILD_CONFIGURATION"/build/hsm-sys-*/out/lib/*.so* "$EXE_DOCKER_DIR/"
     fi
 }
 

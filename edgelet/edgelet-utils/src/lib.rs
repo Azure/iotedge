@@ -4,10 +4,12 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::default_trait_access,
+    clippy::doc_markdown, // clippy wants the "IoT" of "IoT Hub" in a code fence
+    clippy::missing_errors_doc,
     clippy::module_name_repetitions,
-    clippy::use_self,
-    // clippy want the "IoT" of "IoT Hub" in a code fence
-    clippy::doc_markdown
+    clippy::must_use_candidate,
+    clippy::too_many_lines,
+    clippy::use_self
 )]
 
 mod error;

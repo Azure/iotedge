@@ -397,8 +397,8 @@ mod tests {
                         InlineResponse200State::new()
                             .with_exit_code(10)
                             .with_status("running".to_string())
-                            .with_started_at(started_at.clone())
-                            .with_finished_at(finished_at.clone()),
+                            .with_started_at(started_at)
+                            .with_finished_at(finished_at),
                     )
                     .with_id("mod1".to_string()),
             ),
@@ -426,8 +426,8 @@ mod tests {
                         InlineResponse200State::new()
                             .with_exit_code(10)
                             .with_status("running".to_string())
-                            .with_started_at(started_at.clone())
-                            .with_finished_at(finished_at.clone()),
+                            .with_started_at(started_at)
+                            .with_finished_at(finished_at),
                     )
                     .with_id("mod1".to_string()),
             ),
@@ -455,8 +455,8 @@ mod tests {
                         InlineResponse200State::new()
                             .with_exit_code(10)
                             .with_status("stopped".to_string())
-                            .with_started_at(started_at.clone())
-                            .with_finished_at(finished_at.clone()),
+                            .with_started_at(started_at)
+                            .with_finished_at(finished_at),
                     )
                     .with_id("mod1".to_string()),
             ),

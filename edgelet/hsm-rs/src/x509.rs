@@ -37,8 +37,8 @@ impl Drop for X509 {
 
 impl X509 {
     /// Create a new x509 implementation for the HSM API.
-    pub fn new() -> Result<Self, Error> {
-        let result = unsafe { hsm_client_x509_init() as isize };
+    pub fn new(auto_generated_cert_lifetime: u64) -> Result<Self, Error> {
+        let result = unsafe { hsm_client_x509_init(auto_generated_cert_lifetime) as isize };
         if result != 0 {
             return Err(result.into());
         }
@@ -58,6 +58,9 @@ impl X509 {
     }
 
     pub fn get_version(&self) -> Result<String, Error> {
+        // We want to enforce Crypto::new is called before this, since ::new() initializes the libiothsm. So silence the allow_unused clippy lint.
+        let _ = self;
+
         let version = unsafe {
             CStr::from_ptr(hsm_get_version())
                 .to_string_lossy()

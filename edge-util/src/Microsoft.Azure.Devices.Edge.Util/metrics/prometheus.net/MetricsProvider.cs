@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
 {
+    using System;
     using System.Collections.Generic;
     using System.Globalization;
     using System.IO;
@@ -20,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
             this.namePrefix = Preconditions.CheckNonWhiteSpace(namePrefix, nameof(namePrefix));
             Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            this.defaultLabelNames = new List<string> { iotHubName, deviceId };
+            this.defaultLabelNames = new List<string> { iotHubName, deviceId, Guid.NewGuid().ToString() };
 
             // TODO:
             // By default, the Prometheus.Net library emits some default metrics.
@@ -66,7 +67,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
             var allLabelNames = new List<string>
             {
                 MetricsConstants.IotHubLabel,
-                MetricsConstants.DeviceIdLabel
+                MetricsConstants.DeviceIdLabel,
+                "instance_number"
             };
             allLabelNames.AddRange(labelNames);
             return allLabelNames;
