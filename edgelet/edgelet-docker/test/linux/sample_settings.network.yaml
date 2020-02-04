@@ -1,4 +1,3 @@
-
 # Configures the provisioning mode
 provisioning:
   source: "manual"
@@ -36,11 +35,11 @@ moby_runtime:
     ipv6: true
     ipam:
       config:
-        - 
+        -
             gateway: '172.18.0.1'
             subnet: '172.18.0.0/16'
             ip_range: '172.18.0.0/16'
-        - 
+        -
             gateway: '2001:4898:e0:3b1:1::1'
             subnet: '2001:4898:e0:3b1:1::/80'
             ip_range: '2001:4898:e0:3b1:1::/80'

@@ -114,29 +114,5 @@ $ ls -l /dev/tpm0
 crw-rw---- 1 root iotedge 10, 224 May 31 15:13 /dev/tpm0
 ```
 
-We also need to set a TPM environment variable in the service. To do that edit
-the service settings and restart it.
-```sh
-# sudo systemctl edit iotedge.service
-```
-
-This will open up an overrides file. Save the following entries in the file:
-```sh
-[Service]
-Environment=IOTEDGE_USE_TPM_DEVICE=ON
-```
-
-Verify the overrides
-```sh
-# sudo systemctl cat iotedge.service
-```
-
-Reload the settings
-```sh
-# sudo systemctl daemon-reload
-```
-
-The iotedged service is ready to run!
-
 Other suggested reading:
 [Create and provision a simulated TPM device using C device SDK for IoT Hub Device Provisioning Service](https://docs.microsoft.com/en-us/azure/iot-dps/quick-create-simulated-device)

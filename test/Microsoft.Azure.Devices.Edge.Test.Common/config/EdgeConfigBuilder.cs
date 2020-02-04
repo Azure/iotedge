@@ -52,7 +52,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             return builder;
         }
 
-        public EdgeConfiguration Build()
+        // Returns two configurations: one with just $edgeAgent and $edgeHub; the other with
+        // everything. This is done to ensure edgeHub's routes are ready before the test modules
+        // start sending messages, to avoid dropped messages. Another way to handle this is to
+        // define all possible routes at the beginning of the test run, but there is added
+        // complexity as module names are assigned dynamically.
+        public IEnumerable<EdgeConfiguration> BuildConfigurationStages()
         {
             // Build all modules *except* edge agent
             List<ModuleConfiguration> modules = this.moduleBuilders
@@ -63,7 +68,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             // Build edge agent
             modules.Insert(0, this.BuildEdgeAgent(modules));
 
-            // Compose edge configuration
             var config = new ConfigurationContent
             {
                 ModulesContent = new Dictionary<string, IDictionary<string, object>>()
@@ -72,21 +76,32 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             var moduleNames = new List<string>();
             var moduleImages = new List<string>();
 
-            foreach (ModuleConfiguration module in modules)
-            {
-                moduleNames.Add(module.Name);
-                moduleImages.Add(module.Image);
+            var modulesLookup = modules.ToLookup(m => m.IsSystemModule() ? "system" : "other");
 
-                if (module.DesiredProperties.Count != 0)
+            // Return a configuration for $edgeHub and $edgeAgent
+            foreach (ModuleConfiguration module in modulesLookup["system"])
+            {
+                AddModuleToConfiguration(module, moduleNames, moduleImages, config);
+            }
+
+            if (modulesLookup.Contains("other"))
+            {
+                Dictionary<string, IDictionary<string, object>> modulesContent =
+                    config.ModulesContent.ToDictionary(entry => entry.Key, entry => entry.Value);
+                yield return new EdgeConfiguration(
+                    this.deviceId,
+                    new List<string>(moduleNames),
+                    new List<string>(moduleImages),
+                    new ConfigurationContent { ModulesContent = modulesContent });
+
+                // Return a configuration for all modules
+                foreach (ModuleConfiguration module in modulesLookup["other"])
                 {
-                    config.ModulesContent[module.Name] = new Dictionary<string, object>
-                    {
-                        ["properties.desired"] = module.DesiredProperties
-                    };
+                    AddModuleToConfiguration(module, moduleNames, moduleImages, config);
                 }
             }
 
-            return new EdgeConfiguration(this.deviceId, moduleNames, moduleImages, config);
+            yield return new EdgeConfiguration(this.deviceId, moduleNames, moduleImages, config);
         }
 
         ModuleConfiguration BuildEdgeAgent(IEnumerable<ModuleConfiguration> configs)
@@ -165,6 +180,29 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             agentBuilder.WithDesiredProperties(desiredProperties);
 
             return agentBuilder.Build();
+        }
+
+        static void AddModuleToConfiguration(
+            ModuleConfiguration module,
+            List<string> moduleNames,
+            List<string> moduleImages,
+            ConfigurationContent config)
+        {
+            moduleNames.Add(module.Name);
+            moduleImages.Add(module.Image);
+
+            if (module.DesiredProperties.Count != 0)
+            {
+                config.ModulesContent[module.Name] = new Dictionary<string, object>
+                {
+                    ["properties.desired"] = module.DesiredProperties
+                };
+            }
+        }
+
+        public IModuleConfigBuilder GetModule(string name)
+        {
+            return this.moduleBuilders[name];
         }
 
         static (string name, bool system) ParseModuleName(string name) =>

@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
-    using global::Docker.DotNet.Models;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
+    using AuthConfig = global::Docker.DotNet.Models.AuthConfig;
 
     public class CombinedDockerConfig
     {

@@ -30,6 +30,9 @@ int hsm_client_tpm_store_init(void)
     {
         const HSM_CLIENT_STORE_INTERFACE* store_if;
         const HSM_CLIENT_KEY_INTERFACE* key_if;
+
+        log_init(LVL_INFO);
+
         if ((store_if = hsm_client_store_interface()) == NULL)
         {
             LOG_ERROR("HSM store interface not available");
@@ -40,7 +43,7 @@ int hsm_client_tpm_store_init(void)
             LOG_ERROR("HSM key interface not available");
             result = __FAILURE__;
         }
-        else if ((status = store_if->hsm_client_store_create(EDGE_STORE_NAME)) != 0)
+        else if ((status = store_if->hsm_client_store_create(EDGE_STORE_NAME, CA_VALIDITY)) != 0)
         {
             LOG_ERROR("Could not create store. Error code %d", status);
             result = __FAILURE__;

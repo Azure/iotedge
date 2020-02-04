@@ -1,21 +1,25 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 {
+    using System;
+    using System.Collections.Generic;
     using System.Net;
     using System.Text;
     using System.Threading.Tasks;
-    using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Mvc.Filters;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
     public class TwinsController : Controller
     {
+        static readonly string supportedContentType = "application/json; charset=utf-8";
+
         readonly Task<IEdgeHub> edgeHubGetter;
         readonly IValidator<MethodRequest> validator;
         IIdentity identity;
@@ -38,30 +42,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
         [HttpPost]
         [Route("twins/{deviceId}/methods")]
-        public Task<IActionResult> InvokeDeviceMethodAsync([FromRoute] string deviceId, [FromBody] MethodRequest methodRequest)
+        public async Task InvokeDeviceMethodAsync([FromRoute] string deviceId, [FromBody] MethodRequest methodRequest)
         {
             deviceId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)));
             this.validator.Validate(methodRequest);
 
             var directMethodRequest = new DirectMethodRequest(deviceId, methodRequest.MethodName, methodRequest.PayloadBytes, methodRequest.ResponseTimeout, methodRequest.ConnectTimeout);
-            return this.InvokeMethodAsync(directMethodRequest);
+            var methodResult = await this.InvokeMethodAsync(directMethodRequest);
+            await this.SendResponse(methodResult);
         }
 
         [HttpPost]
         [Route("twins/{deviceId}/modules/{moduleId}/methods")]
-        public Task<IActionResult> InvokeModuleMethodAsync([FromRoute] string deviceId, [FromRoute] string moduleId, [FromBody] MethodRequest methodRequest)
+        public async Task InvokeModuleMethodAsync([FromRoute] string deviceId, [FromRoute] string moduleId, [FromBody] MethodRequest methodRequest)
         {
             deviceId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)));
             moduleId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId)));
             this.validator.Validate(methodRequest);
 
             var directMethodRequest = new DirectMethodRequest($"{deviceId}/{moduleId}", methodRequest.MethodName, methodRequest.PayloadBytes, methodRequest.ResponseTimeout, methodRequest.ConnectTimeout);
-            return this.InvokeMethodAsync(directMethodRequest);
+            var methodResult = await this.InvokeMethodAsync(directMethodRequest);
+            await this.SendResponse(methodResult);
         }
 
         internal static MethodResult GetMethodResult(DirectMethodResponse directMethodResponse) =>
-            directMethodResponse.Exception.Map(e => new MethodErrorResult(directMethodResponse.Status, null, e.Message, string.Empty) as MethodResult)
-                .GetOrElse(() => new MethodResult(directMethodResponse.Status, GetRawJson(directMethodResponse.Data)));
+            directMethodResponse.Exception.Map(e => new MethodErrorResult(directMethodResponse.HttpStatusCode, e.Message) as MethodResult)
+                .GetOrElse(() => new MethodSuccessResult(directMethodResponse.Status, GetRawJson(directMethodResponse.Data)));
 
         internal static JRaw GetRawJson(byte[] bytes)
         {
@@ -74,27 +80,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             return new JRaw(json);
         }
 
-        static int GetContentLength(MethodResult methodResult)
-        {
-            string json = JsonConvert.SerializeObject(methodResult);
-            return json.Length;
-        }
-
-        async Task<IActionResult> InvokeMethodAsync(DirectMethodRequest directMethodRequest)
+        async Task<MethodResult> InvokeMethodAsync(DirectMethodRequest directMethodRequest)
         {
             Events.ReceivedMethodCall(directMethodRequest, this.identity);
             IEdgeHub edgeHub = await this.edgeHubGetter;
-            DirectMethodResponse directMethodResponse = await edgeHub.InvokeMethodAsync(this.identity.Id, directMethodRequest);
-            Events.ReceivedMethodCallResponse(directMethodRequest, this.identity);
 
-            MethodResult methodResult = GetMethodResult(directMethodResponse);
-            HttpResponse response = this.Request?.HttpContext?.Response;
-            if (response != null)
+            using (Metrics.TimeDirectMethod(this.identity.Id, directMethodRequest.Id))
             {
-                response.ContentLength = GetContentLength(methodResult);
-            }
+                DirectMethodResponse directMethodResponse = await edgeHub.InvokeMethodAsync(this.identity.Id, directMethodRequest);
+                Events.ReceivedMethodCallResponse(directMethodRequest, this.identity);
 
-            return this.StatusCode((int)directMethodResponse.HttpStatusCode, methodResult);
+                MethodResult methodResult = GetMethodResult(directMethodResponse);
+
+                return methodResult;
+            }
+        }
+
+        async Task SendResponse(MethodResult methodResult)
+        {
+            var resultJsonContent = JsonConvert.SerializeObject(methodResult);
+            var resultUtf8Bytes = Encoding.UTF8.GetBytes(resultJsonContent);
+
+            this.Response.ContentLength = resultUtf8Bytes.Length;
+            this.Response.ContentType = supportedContentType;
+            this.Response.StatusCode = (int)methodResult.StatusCode;
+
+            await this.Response.Body.WriteAsync(resultUtf8Bytes, 0, resultUtf8Bytes.Length);
         }
 
         static class Events
@@ -117,6 +128,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             {
                 Log.LogDebug((int)EventIds.ReceivedMethodResponse, $"Received response from call to method {methodRequest.Name} from device or module {methodRequest.Id}. Method invoked by module {identity.Id}");
             }
+        }
+
+        static class Metrics
+        {
+            static readonly IMetricsTimer DirectMethodsTimer = Util.Metrics.Metrics.Instance.CreateTimer(
+                "direct_method_duration_seconds",
+                "Time taken to call direct method",
+                new List<string> { "from", "to" });
+
+            public static IDisposable TimeDirectMethod(string fromId, string toId) => DirectMethodsTimer.GetTimer(new[] { fromId, toId });
         }
     }
 }

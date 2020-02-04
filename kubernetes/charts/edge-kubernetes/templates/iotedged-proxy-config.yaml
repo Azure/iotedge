@@ -1,42 +1,25 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "edge-kubernetes.fullname" . }}-iotedged-proxy-config
+  name: iotedged-proxy-config
   namespace: {{ include "edge-kubernetes.namespace" . | quote }}
   labels:
-    app.kubernetes.io/name: {{ include "edge-kubernetes.name" . }}-iotedged-proxy-config
+    app.kubernetes.io/name: iotedged-proxy-config
     helm.sh/chart: {{ include "edge-kubernetes.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 data:
-  traefik.toml: |-
-    logLevel = "DEBUG"
-    [api]
+  config.yaml: |-
+    services:
+      - name: "management"
+        entrypoint: "http://localhost:{{ .Values.iotedged.ports.management }}"
+        backend: "https://{{ .Values.iotedged.service.name }}:{{ .Values.iotedged.ports.management }}"
+        certificate: "/etc/trust-bundle/trust_bundle.pem"
 
-    [entryPoints]
-      [entryPoints.management]
-      address = "localhost:{{ .Values.iotedged.ports.management }}"
-      [entryPoints.workload]
-      address = "localhost:{{ .Values.iotedged.ports.workload }}"
+      - name: "workload"
+        entrypoint: "http://localhost:{{ .Values.iotedged.ports.workload }}"
+        backend: "https://{{ .Values.iotedged.service.name }}:{{ .Values.iotedged.ports.workload }}"
+        certificate: "/etc/trust-bundle/trust_bundle.pem"
 
-    [file]
-
-    [backends]
-      [backends.management]
-        [backends.management.servers.server1]
-          url = "http://{{ .Values.iotedged.service.name }}:{{ .Values.iotedged.ports.management }}"
-      [backends.workload]
-        [backends.workload.servers.server1]
-          url = "http://{{ .Values.iotedged.service.name }}:{{ .Values.iotedged.ports.workload }}"
-
-    [frontends]
-      [frontends.management]
-        entrypoints = ["management"]
-        backend = "management"
-        [frontends.management.routes.all]
-          rule = "PathPrefix:/"
-      [frontends.workload]
-        entrypoints = ["workload"]
-        backend = "workload"
-        [frontends.workload.routes.all]
-          rule = "PathPrefix:/"
+    api:
+      entrypoint: "http://localhost:8080"

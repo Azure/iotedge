@@ -7,22 +7,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
     using System.Threading;
     using System.Threading.Tasks;
     using global::Docker.DotNet;
-    using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
+    using DockerModels = global::Docker.DotNet.Models;
 
     public class CreateCommand : ICommand
     {
-        readonly CreateContainerParameters createContainerParameters;
-        readonly IDockerClient client;
-
         static readonly Dictionary<string, PortBinding> EdgeHubPortBinding = new Dictionary<string, PortBinding>
         {
             { "8883/tcp", new PortBinding { HostPort = "8883" } },
             { "443/tcp", new PortBinding { HostPort = "443" } }
         };
+
+        readonly CreateContainerParameters createContainerParameters;
+        readonly IDockerClient client;
 
         readonly Lazy<string> id;
 
@@ -80,7 +81,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             return new CreateCommand(client, createContainerParameters);
         }
 
-        public Task ExecuteAsync(CancellationToken token) => this.client.Containers.CreateContainerAsync(this.createContainerParameters, token);
+        public Task ExecuteAsync(CancellationToken token)
+        {
+            // Do a serialization roundtrip to convert the Edge.Agent.Docker.Models.CreateContainerParameters to Docker.DotNet.Models.CreateContainerParameters
+            //
+            // This will lose properties in the former that are not defined in the latter, but this code path is only for the old Docker mode anyway.
+            var createContainerParameters =
+                JsonConvert.DeserializeObject<DockerModels.CreateContainerParameters>(JsonConvert.SerializeObject(this.createContainerParameters));
+
+            // Copy the Name property manually. See the docs of Edge.Agent.Docker.Models.CreateContainerParameters' Name property for an explanation.
+            createContainerParameters.Name = this.createContainerParameters.Name;
+
+            return this.client.Containers.CreateContainerAsync(createContainerParameters, token);
+        }
 
         public string Show() => $"docker create --name {this.createContainerParameters.Name} {this.createContainerParameters.Image}";
 

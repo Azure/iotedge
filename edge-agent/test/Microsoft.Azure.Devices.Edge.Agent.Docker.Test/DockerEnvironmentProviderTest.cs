@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Storage;
@@ -15,12 +16,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         public async Task CreateEnvironmentTest()
         {
             // Arrange
-            var runtimeInfoProvider = Mock.Of<IRuntimeInfoProvider>(m => m.GetSystemInfo() == Task.FromResult(new SystemInfo("linux", "x64", "17.11.0-ce")));
+            var runtimeInfoProvider = Mock.Of<IRuntimeInfoProvider>(m => m.GetSystemInfo(CancellationToken.None) == Task.FromResult(new SystemInfo("linux", "x64", "17.11.0-ce")));
             var entityStore = Mock.Of<IEntityStore<string, ModuleState>>();
             var restartPolicyManager = Mock.Of<IRestartPolicyManager>();
 
             // Act
-            DockerEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, entityStore, restartPolicyManager);
+            DockerEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, entityStore, restartPolicyManager, CancellationToken.None);
 
             // Assert
             Assert.NotNull(dockerEnvironmentProvider);

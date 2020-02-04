@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
+    using CreateContainerParameters = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.CreateContainerParameters;
 
     [ExcludeFromCodeCoverage]
     [Collection("Docker")]

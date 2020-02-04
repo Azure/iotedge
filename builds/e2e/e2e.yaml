@@ -27,7 +27,7 @@ jobs:
         # We use a self-hosted agent for this job, so we need to handle
         # cleanup of root-owned files ourselves (anything created during
         # `sudo dotnet vstest ...`)
-        sudo git clean -ffdx .
+        sudo git clean -ffdx . || true
       displayName: sudo git clean
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml

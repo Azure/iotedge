@@ -242,6 +242,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.Equal("fromDevice1", pgMessage.Properties["$.cdid"]);
             Assert.Equal("fromModule1", pgMessage.Properties["$.cmid"]);
             Assert.False(pgMessage.Properties.ContainsKey("$.on"));
+            Assert.True(DateTime.UtcNow - pgMessage.CreatedTimeUtc < TimeSpan.FromSeconds(3));
         }
 
         [Fact]

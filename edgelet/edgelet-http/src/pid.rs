@@ -128,9 +128,12 @@ mod impl_linux {
         };
         let ucred_size = mem::size_of::<ucred>();
 
-        // These paranoid checks should be optimized-out
-        assert!(mem::size_of::<u32>() <= mem::size_of::<usize>());
-        assert!(ucred_size <= u32::max_value() as usize);
+        // This paranoid check should be optimized-out
+        assert_eq!(
+            <usize as std::convert::TryFrom<_>>::try_from(u32::max_value())
+                .map(|max_u32| ucred_size <= max_u32),
+            Ok(true)
+        );
 
         #[allow(clippy::cast_possible_truncation)]
         let mut ucred_size = ucred_size as u32;

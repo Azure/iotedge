@@ -3,6 +3,7 @@
 use std::cell::RefCell;
 use std::sync::{Arc, Mutex};
 
+use failure::Fail;
 use futures::future::{Either, IntoFuture};
 use futures::{future, Future, Stream};
 use hyper::service::Service;
@@ -12,11 +13,11 @@ use typed_headers::{Authorization, HeaderMapExt};
 
 use edgelet_core::AuthId;
 use edgelet_utils::log_failure;
-use kube_client::{Client as KubeClient, Error as KubeClientError, TokenSource};
+use kube_client::{Client as KubeClient, TokenSource};
 
 use crate::constants::EDGE_ORIGINAL_MODULEID;
 use crate::error::Error;
-use crate::KubeModuleRuntime;
+use crate::{ErrorKind, KubeModuleRuntime};
 
 pub fn authenticate<T, S>(
     runtime: &KubeModuleRuntime<T, S>,
@@ -28,7 +29,7 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     req.headers()
@@ -46,7 +47,7 @@ where
                         .token_review(runtime.settings().namespace(), token.as_str())
                         .map_err(|err| {
                             log_failure(Level::Warn, &err);
-                            Error::from(err)
+                            Error::from(err.context(ErrorKind::Authentication))
                         })
                         .and_then(move |token_review| {
                             token_review
@@ -70,7 +71,7 @@ where
             })
             .unwrap_or_else(|| Either::B(future::ok(AuthId::None)))
         })
-        .map_err(Error::from)
+        .map_err(|err| err.context(ErrorKind::InvalidAuthToken))
         .into_future()
         .flatten()
 }
@@ -86,7 +87,7 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     match username.split(':').last() {
@@ -100,7 +101,7 @@ where
                 .get_service_account(namespace, &name)
                 .map_err(|err| {
                     log_failure(Level::Warn, &err);
-                    Error::from(err)
+                    Error::from(err.context(ErrorKind::KubeClient))
                 })
                 .map(|service_account| {
                     let module_name = service_account
@@ -202,7 +203,7 @@ mod tests {
         let mut runtime = Runtime::new().unwrap();
         let err = runtime.block_on(task).unwrap_err();
 
-        assert_eq!(err.kind(), &ErrorKind::ModuleAuthenticationError);
+        assert_eq!(err.kind(), &ErrorKind::InvalidAuthToken);
     }
 
     #[test]

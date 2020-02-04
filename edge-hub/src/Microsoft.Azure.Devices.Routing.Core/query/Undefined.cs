@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
         static readonly Bool UndefinedBool = Bool.Undefined;
         static readonly double UndefinedDouble = double.NaN;
 
-        public static Undefined Instance { get; } = new Undefined();
+        public static Undefined Instance { get; } = default(Undefined);
 
         // Equal
         public static Bool operator ==(Undefined x, Undefined y) => Bool.Undefined;

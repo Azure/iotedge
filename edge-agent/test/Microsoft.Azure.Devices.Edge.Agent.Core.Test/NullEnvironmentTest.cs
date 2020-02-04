@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             NullEnvironment testNullEnvironment = NullEnvironment.Instance;
             Assert.NotNull(testNullEnvironment);
 
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
             ModuleSet testModuleSet = await testNullEnvironment.GetModulesAsync(token);
 
             Assert.NotNull(testModuleSet);

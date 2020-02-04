@@ -22,9 +22,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             DateTime lastRestartTimeUtc,
             ModuleStatus runtimeStatus,
             ImagePullPolicy imagePullPolicy = ImagePullPolicy.OnCreate,
+            uint priority = Constants.DefaultPriority,
             ConfigurationInfo deploymentInfo = null,
             IDictionary<string, EnvVal> env = null)
-            : base(name, version, type, desiredStatus, config, restartPolicy, imagePullPolicy, deploymentInfo, env)
+            : base(name, version, type, desiredStatus, config, restartPolicy, imagePullPolicy, priority, deploymentInfo, env)
         {
             this.ExitCode = exitCode;
             this.StatusDescription = statusDescription;
@@ -54,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public DateTime LastRestartTimeUtc { get; }
 
         [JsonProperty(PropertyName = "runtimeStatus")]
-        public ModuleStatus RuntimeStatus { get; }
+        public ModuleStatus RuntimeStatus { get; set; }
 
         public override bool Equals(object obj) => this.Equals(obj as TestModuleBase<TestConfig>);
 
@@ -116,6 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             this.LastRestartTimeUtc,
             newStatus,
             this.ImagePullPolicy,
+            this.Priority,
             this.ConfigurationInfo);
     }
 }

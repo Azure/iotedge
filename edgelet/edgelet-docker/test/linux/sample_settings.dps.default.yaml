@@ -1,10 +1,10 @@
-
 # Configures the provisioning mode
 provisioning:
   source: "dps"
   global_endpoint: "scheme://jibba-jabba.net"
   scope_id: "i got no time for the jibba-jabba"
   registration_id: "register me fool"
+  dynamic_reprovisioning: false
 
 agent:
   name: "edgeAgent"
