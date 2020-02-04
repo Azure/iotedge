@@ -1,4 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup Condition="'$(DotNet_Runtime)' != 'netcoreapp3.0'">
     <TargetFramework>netcoreapp2.1</TargetFramework>
   </PropertyGroup>
@@ -6,25 +7,12 @@
   <PropertyGroup Condition="'$(OS)|$(DotNet_Runtime)' == 'Unix|netcoreapp3.0'">
     <TargetFramework>netcoreapp3.0</TargetFramework>
   </PropertyGroup>
-
+  
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-    <Configurations>Debug;Release;CodeCoverage;CheckInBuild</Configurations>
-    <HighEntropyVA>true</HighEntropyVA>
-  </PropertyGroup>
-
-  <!--
-    Normally, the 'Debug' configuration would work for code coverage, but Microsoft.CodeCoverage currently requires '<DebugType>full</DebugType>' for .NET Core.
-    See https://github.com/Microsoft/vstest-docs/blob/06f9dc0aeb47be7204dc4e1a98c110ead3e978c7/docs/analyze.md#setup-a-project.
-    That setting seems to break the "Open Test" context menu in VS IDE, so we'll use a dedicated configuration for code coverage.
-    -->
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'CodeCoverage|AnyCPU' ">
-    <IntermediateOutputPath>obj\CodeCoverage</IntermediateOutputPath>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\CodeCoverage</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <RootNamespace>TwinTester</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Configurations>Debug;Release;CheckInBuild</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
@@ -40,16 +28,22 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.2.0" />
-    <PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="2.2.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
     <ProjectReference Include="..\ModuleLib\Microsoft.Azure.Devices.Edge.ModuleUtil.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="config/appsettings.json">
+    <ProjectReference Include="..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Storage.RocksDb\Microsoft.Azure.Devices.Edge.Storage.RocksDb.csproj" />
+    <ProjectReference Include="..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Storage\Microsoft.Azure.Devices.Edge.Storage.csproj" />
+    <ProjectReference Include="..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="config/settings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
