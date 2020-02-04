@@ -11,20 +11,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-    <Configurations>Debug;Release;CodeCoverage;CheckInBuild</Configurations>
-  </PropertyGroup>
-
-  <!--
-    Normally, the 'Debug' configuration would work for code coverage, but Microsoft.CodeCoverage currently requires '<DebugType>full</DebugType>' for .NET Core.
-    See https://github.com/Microsoft/vstest-docs/blob/06f9dc0aeb47be7204dc4e1a98c110ead3e978c7/docs/analyze.md#setup-a-project.
-    That setting seems to break the "Open Test" context menu in VS IDE, so we'll use a dedicated configuration for code coverage.
-    -->
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'CodeCoverage|AnyCPU' ">
-    <IntermediateOutputPath>obj\CodeCoverage</IntermediateOutputPath>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\CodeCoverage</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <Configurations>Debug;Release;CheckInBuild</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
@@ -32,7 +19,6 @@
     <PackageReference Include="Microsoft.Azure.Devices" Version="1.18.4" />
     <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.22.0" />
     <PackageReference Include="Microsoft.Azure.EventHubs" Version="3.0.0" />
-    <PackageReference Include="Microsoft.CodeCoverage" Version="15.9.0" />
     <PackageReference Include="RunProcessAsTask" Version="1.2.3" />
     <PackageReference Include="YamlDotNet" Version="5.4.0" />
   </ItemGroup>
