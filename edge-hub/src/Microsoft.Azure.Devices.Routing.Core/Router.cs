@@ -8,9 +8,9 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
-    using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
     using Microsoft.Extensions.Logging;
 
     public class Router : IDisposable
@@ -116,7 +116,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             {
                 this.CheckClosed();
                 ImmutableDictionary<string, Route> snapshot = this.routes;
-                this.routes.GetAndSet(snapshot.SetItem(route.Id, route));
+                this.routes.Value = snapshot.SetItem(route.Id, route);
                 this.evaluator.SetRoute(route);
                 await this.dispatcher.SetEndpoints(route.Endpoints);
             }
@@ -131,7 +131,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 this.CheckClosed();
                 ImmutableDictionary<string, Route> snapshot = this.routes;
                 ImmutableHashSet<Endpoint> currentEndpoints = this.Routes.SelectMany(r => r.Endpoints).ToImmutableHashSet();
-                this.routes.GetAndSet(snapshot.Remove(id));
+                this.routes.Value = snapshot.Remove(id);
                 ISet<string> removedEndpointIds = currentEndpoints.Except(this.Routes.SelectMany(r => r.Endpoints))
                     .Select(e => e.Id)
                     .ToImmutableHashSet();
@@ -151,7 +151,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 ImmutableHashSet<Endpoint> endpoints = newRoutes.SelectMany(r => r.Endpoints).ToImmutableHashSet();
                 this.evaluator.ReplaceRoutes(newRoutes);
                 await this.dispatcher.ReplaceEndpoints(endpoints);
-                this.routes.GetAndSet(newRoutes.ToImmutableDictionary(r => r.Id, r => r));
+                this.routes.Value = newRoutes.ToImmutableDictionary(r => r.Id, r => r);
             }
         }
 

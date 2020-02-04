@@ -9,11 +9,11 @@
  */
 
 /// IndexInfo : IndexInfo contains information about a registry.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct IndexInfo {
     /// Name of the registry, such as \"docker.io\".
     #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]

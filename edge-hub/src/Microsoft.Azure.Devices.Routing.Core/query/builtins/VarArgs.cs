@@ -3,8 +3,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
 {
     using System;
     using System.Linq;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
 
     /// <summary>
     /// This adds support for variable sized argument lists. The object takes a list

@@ -5,10 +5,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sources
     using System.Diagnostics.CodeAnalysis;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Routing.Core.Sources;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
     using Xunit;
 
     [ExcludeFromCodeCoverage]

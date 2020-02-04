@@ -20,6 +20,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const int DeviceScopeAuthenticator = EventIdStart + 1400;
         public const int SubscriptionProcessor = EventIdStart + 1500;
         public const int RetryingCloudProxy = EventIdStart + 1600;
+        public const int NullDeviceConnectivityManager = EventIdStart + 1700;
+        public const int EdgeHubConfigParser = EventIdStart + 1800;
+        public const int TwinConfigSource = EventIdStart + 1900;
         const int EventIdStart = 1000;
     }
 }

@@ -37,6 +37,26 @@ pub enum ErrorKind {
     #[fail(display = "An error occurred obtaining the certificate's key")]
     CertificateKey,
 
+    #[fail(
+        display = "The Connection String is empty. Please update the config.yaml and provide the IoTHub connection information."
+    )]
+    ConnectionStringEmpty,
+
+    #[fail(display = "The Connection String is missing required parameter {}", _0)]
+    ConnectionStringMissingRequiredParameter(&'static str),
+
+    #[fail(
+        display = "The Connection String has a malformed value for parameter {}.",
+        _0
+    )]
+    ConnectionStringMalformedParameter(&'static str),
+
+    #[fail(
+        display = "Edge device information is required.\nPlease update config.yaml with the IoT Hub connection information.\nSee {} for more details.",
+        _0
+    )]
+    ConnectionStringNotConfigured(&'static str),
+
     #[fail(display = "An error occurred when obtaining the device identity certificate.")]
     DeviceIdentityCertificate,
 
@@ -54,11 +74,14 @@ pub enum ErrorKind {
     #[fail(display = "An identity manager error occurred.")]
     IdentityManager,
 
+    #[fail(display = "An error occurred when obtaining the HSM version")]
+    HsmVersion,
+
+    #[fail(display = "Invalid image pull policy configuration {:?}", _0)]
+    InvalidImagePullPolicy(String),
+
     #[fail(display = "Invalid or unsupported certificate issuer.")]
     InvalidIssuer,
-
-    #[fail(display = "An error occurred in the key store.")]
-    KeyStore,
 
     #[fail(display = "Invalid log tail {:?}", _0)]
     InvalidLogTail(String),
@@ -69,8 +92,23 @@ pub enum ErrorKind {
     #[fail(display = "Invalid module type {:?}", _0)]
     InvalidModuleType(String),
 
+    #[fail(
+        display = "Error parsing URI {} specified for '{}'. Please check the config.yaml file.",
+        _0, _1
+    )]
+    InvalidSettingsUri(String, &'static str),
+
+    #[fail(
+        display = "Invalid file URI {} path specified for '{}'. Please check the config.yaml file.",
+        _0, _1
+    )]
+    InvalidSettingsUriFilePath(String, &'static str),
+
     #[fail(display = "Invalid URL {:?}", _0)]
     InvalidUrl(String),
+
+    #[fail(display = "An error occurred in the key store.")]
+    KeyStore,
 
     #[fail(display = "Item not found.")]
     KeyStoreItemNotFound,
@@ -86,6 +124,18 @@ pub enum ErrorKind {
 
     #[fail(display = "Signing error occurred. Invalid key length: {}", _0)]
     SignInvalidKeyLength(usize),
+
+    #[fail(
+        display = "URI {} is unsupported for '{}'. Please check the config.yaml file.",
+        _0, _1
+    )]
+    UnsupportedSettingsUri(String, &'static str),
+
+    #[fail(
+        display = "File URI {} is unsupported for '{}'. Please check the config.yaml file.",
+        _0, _1
+    )]
+    UnsupportedSettingsFileUri(String, &'static str),
 }
 
 impl Fail for Error {

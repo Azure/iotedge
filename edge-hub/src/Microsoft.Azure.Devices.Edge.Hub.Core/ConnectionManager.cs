@@ -13,31 +13,37 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
+    using Nito.AsyncEx;
     using static System.FormattableString;
+    using AsyncLock = Microsoft.Azure.Devices.Edge.Util.Concurrency.AsyncLock;
 
     public class ConnectionManager : IConnectionManager
     {
         const int DefaultMaxClients = 101; // 100 Clients + 1 Edgehub
         readonly object deviceConnLock = new object();
+        readonly AsyncReaderWriterLock connectToCloudLock = new AsyncReaderWriterLock();
         readonly ConcurrentDictionary<string, ConnectedDevice> devices = new ConcurrentDictionary<string, ConnectedDevice>();
         readonly ICloudConnectionProvider cloudConnectionProvider;
         readonly int maxClients;
         readonly ICredentialsCache credentialsCache;
         readonly IIdentityProvider identityProvider;
+        readonly IDeviceConnectivityManager connectivityManager;
 
         public ConnectionManager(
             ICloudConnectionProvider cloudConnectionProvider,
             ICredentialsCache credentialsCache,
             IIdentityProvider identityProvider,
+            IDeviceConnectivityManager connectivityManager,
             int maxClients = DefaultMaxClients)
         {
             this.cloudConnectionProvider = Preconditions.CheckNotNull(cloudConnectionProvider, nameof(cloudConnectionProvider));
             this.maxClients = Preconditions.CheckRange(maxClients, 1, nameof(maxClients));
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
             this.identityProvider = Preconditions.CheckNotNull(identityProvider, nameof(identityProvider));
-            Util.Metrics.RegisterGaugeCallback(() => Metrics.SetConnectedClientCountGauge(this));
+            this.connectivityManager = Preconditions.CheckNotNull(connectivityManager, nameof(connectivityManager));
+            this.connectivityManager.DeviceDisconnected += (o, args) => this.HandleDeviceCloudConnectionDisconnected();
+            Util.Metrics.MetricsV0.RegisterGaugeCallback(() => MetricsV0.SetConnectedClientCountGauge(this));
         }
 
         public event EventHandler<IIdentity> CloudConnectionEstablished;
@@ -94,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
 
             Try<ICloudConnection> cloudConnectionTry = await device.GetOrCreateCloudConnection(
-                c => this.cloudConnectionProvider.Connect(c.Identity, this.CloudConnectionStatusChangedHandler));
+                c => this.ConnectToCloud(c.Identity, this.CloudConnectionStatusChangedHandler));
 
             Events.GetCloudConnection(device.Identity, cloudConnectionTry);
             Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(cloudConnectionTry, device.Identity);
@@ -210,7 +216,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                             return Try<ICloudConnection>.Failure(new EdgeHubConnectionException($"Error updating identity for device {device.Identity.Id}", ex));
                         }
                     })
-                .GetOrElse(() => this.cloudConnectionProvider.Connect(credentials, (identity, status) => this.CloudConnectionStatusChangedHandler(identity, status)));
+                .GetOrElse(() => this.ConnectToCloud(credentials, this.CloudConnectionStatusChangedHandler));
 
         async void CloudConnectionStatusChangedHandler(
             string deviceId,
@@ -265,18 +271,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 case CloudConnectionStatus.Disconnected:
                     Events.InvokingCloudConnectionLostEvent(device.Identity);
                     this.CloudConnectionLost?.Invoke(this, device.Identity);
-                    await device.CloudConnection.Filter(cp => cp.IsActive).ForEachAsync(
-                        cp =>
-                        {
-                            Events.CloudConnectionLostClosingClient(device.Identity);
-                            return cp.CloseAsync();
-                        });
                     break;
 
                 case CloudConnectionStatus.ConnectionEstablished:
                     Events.InvokingCloudConnectionEstablishedEvent(device.Identity);
                     this.CloudConnectionEstablished?.Invoke(this, device.Identity);
                     break;
+            }
+        }
+
+        async void HandleDeviceCloudConnectionDisconnected()
+        {
+            using (await this.connectToCloudLock.WriterLockAsync())
+            {
+                KeyValuePair<string, ConnectedDevice>[] snapshot = this.devices.ToArray();
+                Events.CloudConnectionLostClosingAllClients();
+                foreach (var item in snapshot)
+                {
+                    await item.Value.CloudConnection.Filter(cp => cp.IsActive).ForEachAsync(
+                        cp =>
+                        {
+                            Events.CloudConnectionLostClosingClient(item.Value.Identity);
+                            return cp.CloseAsync();
+                        });
+                }
             }
         }
 
@@ -308,6 +326,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
 
                 return new ConnectedDevice(identity);
+            }
+        }
+
+        async Task<Try<ICloudConnection>> ConnectToCloud(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
+        {
+            using (await this.connectToCloudLock.ReaderLockAsync())
+            {
+                return await this.cloudConnectionProvider.Connect(identity, connectionStatusChangedHandler);
+            }
+        }
+
+        async Task<Try<ICloudConnection>> ConnectToCloud(IClientCredentials credentials, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
+        {
+            using (await this.connectToCloudLock.ReaderLockAsync())
+            {
+                return await this.cloudConnectionProvider.Connect(credentials, connectionStatusChangedHandler);
             }
         }
 
@@ -440,7 +474,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 InvokingCloudConnectionLostEvent,
                 InvokingCloudConnectionEstablishedEvent,
                 HandlingConnectionStatusChangedHandler,
-                CloudConnectionLostClosingClient
+                CloudConnectionLostClosingClient,
+                CloudConnectionLostClosingAllClients
             }
 
             public static void NewCloudConnection(IIdentity identity, Try<ICloudConnection> cloudConnection)
@@ -501,9 +536,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     Log.LogInformation((int)EventIds.ObtainCloudConnectionError, cloudConnection.Exception, Invariant($"Error getting cloud connection for device {identity.Id}"));
                 }
             }
+
+            public static void CloudConnectionLostClosingAllClients()
+            {
+                Log.LogDebug((int)EventIds.CloudConnectionLostClosingAllClients, Invariant($"Cloud connection lost, closing all clients."));
+            }
         }
 
-        static class Metrics
+        static class MetricsV0
         {
             static readonly GaugeOptions ConnectedClientGaugeOptions = new GaugeOptions
             {
@@ -515,7 +555,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 // Subtract EdgeHub from the list of connected clients
                 int connectedClients = connectionManager.GetConnectedClients().Count() - 1;
-                Util.Metrics.SetGauge(ConnectedClientGaugeOptions, connectedClients);
+                Util.Metrics.MetricsV0.SetGauge(ConnectedClientGaugeOptions, connectedClients);
             }
         }
     }

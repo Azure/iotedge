@@ -9,9 +9,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
     using System.Reflection;
     using System.Text.RegularExpressions;
     using Antlr4.Runtime;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core.Query.Builtins;
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
 
     public class ConditionVisitor : ConditionBaseVisitor<Expression>
     {

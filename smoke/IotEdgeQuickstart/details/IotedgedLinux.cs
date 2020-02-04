@@ -95,7 +95,7 @@ namespace IotEdgeQuickstart.Details
 
         public async Task VerifyModuleIsRunning(string name)
         {
-            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(20))) // This long timeout is needed for resource constrained devices pulling the large tempFilterFunctions image
             {
                 string errorMessage = null;
 
@@ -174,16 +174,53 @@ namespace IotEdgeQuickstart.Details
                 300); // 5 min timeout because install can be slow on raspberry pi
         }
 
-        public async Task Configure(string connectionString, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
+        public async Task Configure(DeviceProvisioningMethod method, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
         {
-            Console.WriteLine($"Setting up iotedged with agent image '{image}'");
+            Console.WriteLine($"Setting up iotedged with agent image 1.0");
 
             const string YamlPath = "/etc/iotedge/config.yaml";
             Task<string> text = File.ReadAllTextAsync(YamlPath);
-
             var doc = new YamlDocument(await text);
-            doc.ReplaceOrAdd("provisioning.device_connection_string", connectionString);
-            doc.ReplaceOrAdd("agent.config.image", image);
+
+            method.ManualConnectionString.Match(
+                cs =>
+                {
+                    doc.ReplaceOrAdd("provisioning.device_connection_string", cs);
+                    return string.Empty;
+                },
+                () =>
+                {
+                    doc.Remove("provisioning.device_connection_string");
+                    return string.Empty;
+                });
+
+            method.Dps.ForEach(
+                dps =>
+                {
+                    doc.ReplaceOrAdd("provisioning.source", "dps");
+                    doc.ReplaceOrAdd("provisioning.global_endpoint", dps.EndPoint);
+                    doc.ReplaceOrAdd("provisioning.scope_id", dps.ScopeId);
+                    switch (dps.AttestationType)
+                    {
+                        case DPSAttestationType.SymmetricKey:
+                            doc.ReplaceOrAdd("provisioning.attestation.method", "symmetric_key");
+                            doc.ReplaceOrAdd("provisioning.attestation.symmetric_key", dps.SymmetricKey.Expect(() => new ArgumentException("Expected symmetric key")));
+                            break;
+                        case DPSAttestationType.X509:
+                            var certUri = new Uri(dps.DeviceIdentityCertificate.Expect(() => new ArgumentException("Expected path to identity certificate")));
+                            var keyUri = new Uri(dps.DeviceIdentityPrivateKey.Expect(() => new ArgumentException("Expected path to identity private key")));
+                            doc.ReplaceOrAdd("provisioning.attestation.method", "x509");
+                            doc.ReplaceOrAdd("provisioning.attestation.identity_cert", certUri.AbsoluteUri);
+                            doc.ReplaceOrAdd("provisioning.attestation.identity_pk", keyUri.AbsoluteUri);
+                            break;
+                        default:
+                            doc.ReplaceOrAdd("provisioning.attestation.method", "tpm");
+                            break;
+                    }
+
+                    dps.RegistrationId.ForEach(id => { doc.ReplaceOrAdd("provisioning.attestation.registration_id", id); });
+                });
+
             doc.ReplaceOrAdd("hostname", hostname);
 
             foreach (RegistryCredentials c in this.credentials)

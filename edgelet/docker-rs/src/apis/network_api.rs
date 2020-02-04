@@ -156,6 +156,7 @@ where
         if let Some(ref user_agent) = configuration.user_agent {
             req.header(http::header::USER_AGENT, &**user_agent);
         }
+
         let mut req = req
             .body(hyper::Body::from(serialized))
             .expect("could not build hyper::Request");

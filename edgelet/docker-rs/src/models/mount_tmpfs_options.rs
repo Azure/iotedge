@@ -9,11 +9,11 @@
  */
 
 /// MountTmpfsOptions : Optional configuration for the `tmpfs` type.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 pub struct MountTmpfsOptions {
     /// The size for the tmpfs mount in bytes.
     #[serde(rename = "SizeBytes", skip_serializing_if = "Option::is_none")]

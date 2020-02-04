@@ -19,9 +19,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Concurrency
 
         public static implicit operator bool(AtomicBoolean value) => value.Get();
 
-        public bool Get() => Interlocked.Exchange(ref this.underlying, this.underlying) != 0;
+        public bool Get() => Volatile.Read(ref this.underlying) != 0;
 
-        public void Set(bool value) => Interlocked.Exchange(ref this.underlying, value ? 1 : 0);
+        public void Set(bool value) => Volatile.Write(ref this.underlying, value ? 1 : 0);
 
         public bool GetAndSet(bool value) => Interlocked.Exchange(ref this.underlying, value ? 1 : 0) != 0;
 

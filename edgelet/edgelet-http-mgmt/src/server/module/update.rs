@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use failure::ResultExt;
+use futures::future::Either;
 use futures::{future, Future, Stream};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
@@ -11,7 +12,7 @@ use serde::Serialize;
 use serde_json;
 use url::form_urlencoded::parse as parse_query;
 
-use edgelet_core::{Module, ModuleRegistry, ModuleRuntime, ModuleStatus};
+use edgelet_core::{ImagePullPolicy, Module, ModuleRegistry, ModuleRuntime, ModuleStatus};
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 
@@ -77,13 +78,29 @@ where
             })
             .and_then(|(core_spec, spec, name, runtime)| {
                 debug!("Removed existing module {}", name);
-                runtime.registry().pull(core_spec.config()).then(|result| {
-                    result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
-                    Ok((core_spec, spec, name, runtime))
-                })
+
+                match core_spec.image_pull_policy() {
+                    ImagePullPolicy::OnCreate => {
+                        Either::A(runtime.registry().pull(core_spec.config()).then(|result| {
+                            result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
+                            Ok((core_spec, spec, name, runtime, true))
+                        }))
+                    }
+                    ImagePullPolicy::Never => {
+                        Either::B(futures::future::ok((core_spec, spec, name, runtime, false)))
+                    }
+                }
             })
-            .and_then(|(core_spec, spec, name, runtime)| {
-                debug!("Successfully pulled new image for module {}", name);
+            .and_then(|(core_spec, spec, name, runtime, image_pulled)| {
+                if image_pulled {
+                    debug!("Successfully pulled new image for module {}", name)
+                } else {
+                    debug!(
+                        "Skipped pulling image for module {} as per pull policy",
+                        name
+                    )
+                }
+
                 runtime.create(core_spec).then(|result| {
                     result.with_context(|_| ErrorKind::UpdateModule(name.clone()))?;
                     Ok((name, spec, runtime))
@@ -122,8 +139,9 @@ where
 #[cfg(test)]
 mod tests {
     use chrono::prelude::*;
-    use edgelet_core::{ModuleRuntimeState, ModuleStatus};
+    use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
+    use edgelet_test_utils::crypto::TestHsm;
     use edgelet_test_utils::module::*;
     use lazy_static::lazy_static;
     use management::models::{Config, ErrorResponse, ModuleDetails, ModuleSpec};
@@ -133,7 +151,7 @@ mod tests {
     use crate::server::module::tests::Error;
 
     lazy_static! {
-        static ref RUNTIME: TestRuntime<Error> = {
+        static ref RUNTIME: TestRuntime<Error, TestSettings> = {
             let state = ModuleRuntimeState::default()
                 .with_status(ModuleStatus::Running)
                 .with_exit_code(Some(0))
@@ -143,7 +161,14 @@ mod tests {
                 .with_image_id(Some("image-id".to_string()));
             let config = TestConfig::new("microsoft/test-image".to_string());
             let module = TestModule::new("test-module".to_string(), config, Ok(state));
-            TestRuntime::new(Ok(module))
+            TestRuntime::make_runtime(
+                TestSettings::new(),
+                TestProvisioningResult::new(),
+                TestHsm::default(),
+            )
+            .wait()
+            .unwrap()
+            .with_module(Ok(module))
         };
     }
 
@@ -190,7 +215,8 @@ mod tests {
     fn success_start() {
         let handler = UpdateModule::new(RUNTIME.clone());
         let config = Config::new(json!({"image":"microsoft/test-image"}));
-        let spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
+        let mut spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
+        spec.set_image_pull_policy("on-create".to_string());
         let request = Request::put("http://localhost/modules/test-module?start")
             .body(serde_json::to_string(&spec).unwrap().into())
             .unwrap();
@@ -254,7 +280,14 @@ mod tests {
 
     #[test]
     fn runtime_error() {
-        let runtime = TestRuntime::new(Err(Error::General));
+        let runtime = TestRuntime::make_runtime(
+            TestSettings::new(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Err(Error::General));
         let handler = UpdateModule::new(runtime);
         let config = Config::new(json!({"image":"microsoft/test-image"}));
         let spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
@@ -284,7 +317,14 @@ mod tests {
 
     #[test]
     fn bad_settings() {
-        let runtime = TestRuntime::new(Err(Error::General));
+        let runtime = TestRuntime::make_runtime(
+            TestSettings::new(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Err(Error::General));
         let handler = UpdateModule::new(runtime);
         let config = Config::new(json!({}));
         let spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
@@ -306,6 +346,33 @@ mod tests {
                     "Request body is malformed\n\tcaused by: missing field `image`",
                     error.message()
                 );
+                Ok(())
+            })
+            .wait()
+            .unwrap();
+    }
+
+    #[test]
+    fn bad_image_pull_policy() {
+        let handler = UpdateModule::new(RUNTIME.clone());
+        let config = Config::new(json!({"image":"microsoft/test-image"}));
+        let mut spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
+        spec.set_image_pull_policy("what".to_string());
+        let request = Request::put("http://localhost/modules/test-module")
+            .body(serde_json::to_string(&spec).unwrap().into())
+            .unwrap();
+
+        // act
+        let response = handler.handle(request, Parameters::new()).wait().unwrap();
+
+        // assert
+        assert_eq!(StatusCode::BAD_REQUEST, response.status());
+        response
+            .into_body()
+            .concat2()
+            .and_then(|b| {
+                let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
+                assert_eq!("Request body is malformed\n\tcaused by: Invalid image pull policy configuration \"what\"", error.message());
                 Ok(())
             })
             .wait()

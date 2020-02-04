@@ -1,200 +1,81 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use failure::Fail;
-use futures::future::Either;
 use futures::prelude::*;
 use futures::{future, stream, Async, Future, Stream};
+use hyper::client::HttpConnector;
 use hyper::service::Service;
-use hyper::{header, Body, Chunk as HyperChunk, Request};
-use log::Level;
-use url::Url;
+use hyper::{Body, Chunk as HyperChunk, Request};
+use hyper_tls::HttpsConnector;
 
 use edgelet_core::{
-    AuthId, Authenticator, LogOptions, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
-    ModuleSpec, RuntimeOperation, SystemInfo,
+    AuthId, Authenticator, GetTrustBundle, LogOptions, MakeModuleRuntime, ModuleRegistry,
+    ModuleRuntime, ModuleRuntimeState, ModuleSpec, ProvisioningResult as CoreProvisioningResult,
+    RuntimeOperation, SystemInfo, SystemResources,
 };
 use edgelet_docker::DockerConfig;
-use edgelet_utils::{ensure_not_empty_with_context, log_failure, sanitize_dns_label};
-use kube_client::{Client as KubeClient, Error as KubeClientError, TokenSource};
+use kube_client::{get_config, Client as KubeClient, HttpClient, TokenSource, ValueToken};
+use provisioning::ProvisioningResult;
 
-use crate::constants::*;
-use crate::convert::{auth_to_image_pull_secret, pod_to_module, spec_to_deployment};
-use crate::error::{Error, ErrorKind, Result};
-use crate::module::KubeModule;
-use hyper::header::HeaderValue;
+use crate::convert::pod_to_module;
+use crate::error::{Error, ErrorKind};
+use crate::module::{authenticate, create_module, init_trust_bundle, KubeModule};
+use crate::registry::create_image_pull_secrets;
+use crate::settings::Settings;
 
-#[derive(Clone)]
 pub struct KubeModuleRuntime<T, S> {
     client: Arc<Mutex<RefCell<KubeClient<T, S>>>>,
-    namespace: String,
-    use_pvc: bool,
-    iot_hub_hostname: String,
-    device_id: String,
-    edge_hostname: String,
-    proxy_image: String,
-    proxy_config_path: String,
-    proxy_config_map_name: String,
-    image_pull_policy: String,
-    service_account_name: String,
-    workload_uri: Url,
-    management_uri: Url,
-    device_hub_selector: String,
-}
-
-pub trait KubeRuntimeData {
-    fn namespace(&self) -> &str;
-    fn use_pvc(&self) -> bool;
-    fn iot_hub_hostname(&self) -> &str;
-    fn device_id(&self) -> &str;
-    fn edge_hostname(&self) -> &str;
-    fn proxy_image(&self) -> &str;
-    fn proxy_config_path(&self) -> &str;
-    fn proxy_config_map_name(&self) -> &str;
-    fn image_pull_policy(&self) -> &str;
-    fn service_account_name(&self) -> &str;
-    fn workload_uri(&self) -> &Url;
-    fn management_uri(&self) -> &Url;
-}
-
-impl<T, S> KubeRuntimeData for KubeModuleRuntime<T, S> {
-    fn namespace(&self) -> &str {
-        &self.namespace
-    }
-    fn use_pvc(&self) -> bool {
-        self.use_pvc
-    }
-    fn iot_hub_hostname(&self) -> &str {
-        &self.iot_hub_hostname
-    }
-    fn device_id(&self) -> &str {
-        &self.device_id
-    }
-    fn edge_hostname(&self) -> &str {
-        &self.edge_hostname
-    }
-    fn proxy_image(&self) -> &str {
-        &self.proxy_image
-    }
-    fn proxy_config_path(&self) -> &str {
-        &self.proxy_config_path
-    }
-    fn proxy_config_map_name(&self) -> &str {
-        &self.proxy_config_map_name
-    }
-    fn image_pull_policy(&self) -> &str {
-        &self.image_pull_policy
-    }
-    fn service_account_name(&self) -> &str {
-        &self.service_account_name
-    }
-    fn workload_uri(&self) -> &Url {
-        &self.workload_uri
-    }
-    fn management_uri(&self) -> &Url {
-        &self.management_uri
-    }
+    settings: Settings,
 }
 
 impl<T, S> KubeModuleRuntime<T, S> {
-    pub fn new(
-        client: KubeClient<T, S>,
-        namespace: String,
-        use_pvc: bool,
-        iot_hub_hostname: String,
-        device_id: String,
-        edge_hostname: String,
-        proxy_image: String,
-        proxy_config_path: String,
-        proxy_config_map_name: String,
-        image_pull_policy: String,
-        service_account_name: String,
-        workload_uri: Url,
-        management_uri: Url,
-    ) -> Result<Self> {
-        ensure_not_empty_with_context(&namespace, || {
-            ErrorKind::InvalidRunTimeParameter(String::from("namespace"), namespace.clone())
-        })?;
-        ensure_not_empty_with_context(&iot_hub_hostname, || {
-            ErrorKind::InvalidRunTimeParameter(
-                String::from("iot_hub_hostname"),
-                iot_hub_hostname.clone(),
-            )
-        })?;
-        ensure_not_empty_with_context(&device_id, || {
-            ErrorKind::InvalidRunTimeParameter(String::from("device_id"), device_id.clone())
-        })?;
-        ensure_not_empty_with_context(&edge_hostname, || {
-            ErrorKind::InvalidRunTimeParameter(String::from("edge_hostname"), edge_hostname.clone())
-        })?;
-        ensure_not_empty_with_context(&proxy_image, || {
-            ErrorKind::InvalidRunTimeParameter(String::from("proxy_image"), proxy_image.clone())
-        })?;
-        ensure_not_empty_with_context(&proxy_config_path, || {
-            ErrorKind::InvalidRunTimeParameter(
-                String::from("proxy_config_path"),
-                proxy_config_path.clone(),
-            )
-        })?;
-        ensure_not_empty_with_context(&proxy_config_map_name, || {
-            ErrorKind::InvalidRunTimeParameter(
-                String::from("proxy_config_map_name"),
-                proxy_config_map_name.clone(),
-            )
-        })?;
-        ensure_not_empty_with_context(&image_pull_policy, || {
-            ErrorKind::InvalidRunTimeParameter(
-                String::from("image_pull_policy"),
-                image_pull_policy.clone(),
-            )
-        })?;
-        ensure_not_empty_with_context(&service_account_name, || {
-            ErrorKind::InvalidRunTimeParameter(
-                String::from("service_account_name"),
-                service_account_name.clone(),
-            )
-        })?;
-        let device_hub_selector = format!(
-            "{}={},{}={}",
-            EDGE_DEVICE_LABEL,
-            sanitize_dns_label(&device_id),
-            EDGE_HUBNAME_LABEL,
-            sanitize_dns_label(&iot_hub_hostname)
-        );
-
-        Ok(KubeModuleRuntime {
+    pub fn new(client: KubeClient<T, S>, settings: Settings) -> Self {
+        KubeModuleRuntime {
             client: Arc::new(Mutex::new(RefCell::new(client))),
-            namespace,
-            use_pvc,
-            iot_hub_hostname,
-            device_id,
-            edge_hostname,
-            proxy_image,
-            proxy_config_path,
-            proxy_config_map_name,
-            image_pull_policy,
-            service_account_name,
-            workload_uri,
-            management_uri,
-            device_hub_selector,
-        })
+            settings,
+        }
+    }
+
+    pub(crate) fn client(&self) -> Arc<Mutex<RefCell<KubeClient<T, S>>>> {
+        self.client.clone()
+    }
+
+    pub(crate) fn settings(&self) -> &Settings {
+        &self.settings
+    }
+}
+
+// NOTE:
+//  We are manually implementing Clone here for KubeModuleRuntime because
+//  #[derive(Clone] will cause the compiler to implicitly require Clone on
+//  T and S which don't really need to be Clone because we wrap it inside
+//  an Arc (for the "client" field).
+//
+//  Requiring Clone on S in particular is problematic because we typically use
+//  the kube_client::HttpClient struct for this type which does not (and cannot)
+//  implement Clone.
+impl<T, S> Clone for KubeModuleRuntime<T, S> {
+    fn clone(&self) -> Self {
+        KubeModuleRuntime {
+            client: self.client(),
+            settings: self.settings().clone(),
+        }
     }
 }
 
 impl<T, S> ModuleRegistry for KubeModuleRuntime<T, S>
 where
-    T: TokenSource + Clone + Send + 'static,
+    T: TokenSource + Send + 'static,
     S: Service + Send + 'static,
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    <S::ResBody as Stream>::Item: AsRef<[u8]>,
-    <S::ResBody as Stream>::Error: Into<Error>,
-    <S::ResBody as Stream>::Error: Into<KubeClientError>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     type Error = Error;
@@ -203,63 +84,7 @@ where
     type Config = DockerConfig;
 
     fn pull(&self, config: &Self::Config) -> Self::PullFuture {
-        // Find and generate image pull secrets.
-        if let Some(auth) = config.auth() {
-            // Have authorization for this module spec, create this if it doesn't exist.
-            let fut = auth_to_image_pull_secret(self.namespace(), auth)
-                .map_err(Error::from)
-                .map(|(secret_name, pull_secret)| {
-                    let client_copy = self.client.clone();
-                    let namespace_copy = self.namespace().to_owned();
-                    self.client
-                        .lock()
-                        .expect("Unexpected lock error")
-                        .borrow_mut()
-                        .list_secrets(self.namespace(), Some(secret_name.as_str()))
-                        .map_err(Error::from)
-                        .and_then(move |secrets| {
-                            if let Some(current_secret) = secrets.items.into_iter().find(|secret| {
-                                secret.metadata.as_ref().map_or(false, |meta| {
-                                    meta.name.as_ref().map_or(false, |n| *n == secret_name)
-                                })
-                            }) {
-                                if current_secret == pull_secret {
-                                    Either::A(Either::A(future::ok(())))
-                                } else {
-                                    let f = client_copy
-                                        .lock()
-                                        .expect("Unexpected lock error")
-                                        .borrow_mut()
-                                        .replace_secret(
-                                            secret_name.as_str(),
-                                            namespace_copy.as_str(),
-                                            &pull_secret,
-                                        )
-                                        .map_err(Error::from)
-                                        .map(|_| ());
-
-                                    Either::A(Either::B(f))
-                                }
-                            } else {
-                                let f = client_copy
-                                    .lock()
-                                    .expect("Unexpected lock error")
-                                    .borrow_mut()
-                                    .create_secret(namespace_copy.as_str(), &pull_secret)
-                                    .map_err(Error::from)
-                                    .map(|_| ());
-
-                                Either::B(f)
-                            }
-                        })
-                })
-                .into_future()
-                .flatten();
-
-            Box::new(fut)
-        } else {
-            Box::new(future::ok(()))
-        }
+        Box::new(create_image_pull_secrets(self, &config))
     }
 
     fn remove(&self, _: &str) -> Self::RemoveFuture {
@@ -267,17 +92,53 @@ where
     }
 }
 
+impl MakeModuleRuntime
+    for KubeModuleRuntime<ValueToken, HttpClient<HttpsConnector<HttpConnector>, Body>>
+{
+    type Config = DockerConfig;
+    type Settings = Settings;
+    type ProvisioningResult = ProvisioningResult;
+    type ModuleRuntime = Self;
+    type Error = Error;
+    type Future = Box<dyn Future<Item = Self::ModuleRuntime, Error = Self::Error> + Send>;
+
+    fn make_runtime(
+        settings: Self::Settings,
+        provisioning_result: Self::ProvisioningResult,
+        crypto: impl GetTrustBundle + Send + 'static,
+    ) -> Self::Future {
+        let settings = settings
+            .with_device_id(provisioning_result.device_id())
+            .with_iot_hub_hostname(provisioning_result.hub_name());
+
+        let fut = get_config()
+            .map(|config| (config.clone(), KubeClient::new(config)))
+            .map_err(|err| Error::from(err.context(ErrorKind::Initialization)))
+            .map(|(config, mut client)| {
+                client
+                    .is_subject_allowed("nodes".to_string(), "list".to_string())
+                    .map(|subject_review_status| {
+                        settings.with_nodes_rbac(subject_review_status.allowed)
+                    })
+                    .map_err(|err| Error::from(err.context(ErrorKind::Initialization)))
+                    .map(|settings| KubeModuleRuntime::new(KubeClient::new(config), settings))
+                    .and_then(move |runtime| init_trust_bundle(&runtime, crypto).map(|_| runtime))
+            })
+            .into_future()
+            .flatten();
+
+        Box::new(fut)
+    }
+}
+
 impl<T, S> ModuleRuntime for KubeModuleRuntime<T, S>
 where
-    T: TokenSource + Clone + Send + 'static,
-    S: Send + Service + 'static,
+    T: TokenSource + Send + 'static,
+    S: Service + Send + 'static,
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    <S::ResBody as Stream>::Item: AsRef<[u8]>,
-    <S::ResBody as Stream>::Error: Into<Error>,
-    <S::ResBody as Stream>::Error: Into<KubeClientError>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     type Error = Error;
@@ -290,7 +151,6 @@ where
     type CreateFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type GetFuture =
         Box<dyn Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
-    type InitFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type ListFuture = Box<dyn Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
     type ListWithDetailsStream =
         Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
@@ -300,69 +160,12 @@ where
     type StartFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type StopFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type SystemInfoFuture = Box<dyn Future<Item = SystemInfo, Error = Self::Error> + Send>;
+    type SystemResourcesFuture =
+        Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
 
-    fn init(&self) -> Self::InitFuture {
-        Box::new(future::ok(()))
-    }
-
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
-        let f = spec_to_deployment(self, &module)
-            .map_err(Error::from)
-            .map(|(name, new_deployment)| {
-                let client_copy = self.client.clone();
-                let namespace_copy = self.namespace().to_owned();
-                self.client
-                    .lock()
-                    .expect("Unexpected lock error")
-                    .borrow_mut()
-                    .list_deployments(
-                        self.namespace(),
-                        Some(&name),
-                        Some(&self.device_hub_selector),
-                    )
-                    .map_err(Error::from)
-                    .and_then(move |deployments| {
-                        if let Some(current_deployment) =
-                            deployments.items.into_iter().find(|deployment| {
-                                deployment.metadata.as_ref().map_or(false, |meta| {
-                                    meta.name.as_ref().map_or(false, |n| *n == name)
-                                })
-                            })
-                        {
-                            // found deployment, if the deployment found doesn't match, replace it.
-                            if current_deployment == new_deployment {
-                                Either::A(Either::A(future::ok(())))
-                            } else {
-                                let fut = client_copy
-                                    .lock()
-                                    .expect("Unexpected lock error")
-                                    .borrow_mut()
-                                    .replace_deployment(
-                                        name.as_str(),
-                                        namespace_copy.as_str(),
-                                        &new_deployment,
-                                    )
-                                    .map_err(Error::from)
-                                    .map(|_| ());
-                                Either::A(Either::B(fut))
-                            }
-                        } else {
-                            // Not found - create it.
-                            let fut = client_copy
-                                .lock()
-                                .expect("Unexpected lock error")
-                                .borrow_mut()
-                                .create_deployment(namespace_copy.as_str(), &new_deployment)
-                                .map_err(Error::from)
-                                .map(|_| ());
-                            Either::B(fut)
-                        }
-                    })
-            })
-            .into_future()
-            .flatten();
-        Box::new(f)
+        Box::new(create_module(self, module))
     }
 
     fn get(&self, _id: &str) -> Self::GetFuture {
@@ -386,10 +189,73 @@ where
     }
 
     fn system_info(&self) -> Self::SystemInfoFuture {
-        // TODO: Implement this.
-        Box::new(future::ok(SystemInfo::new(
-            "linux".to_string(),
-            "x86_64".to_string(),
+        #[derive(Debug, serde_derive::Serialize)]
+        pub struct Architecture {
+            name: String,
+            nodes_count: u32,
+        };
+        let fut = if self.settings.has_nodes_rbac() {
+            future::Either::A(
+                self.client
+                    .lock()
+                    .expect("Unexpected lock error")
+                    .borrow_mut()
+                    .list_nodes()
+                    .map_err(|err| {
+                        Error::from(
+                            err.context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo)),
+                        )
+                    })
+                    .map(|nodes| {
+                        // Accumulate the architectures and their node counts into a map
+                        let architectures = nodes
+                            .items
+                            .into_iter()
+                            .filter_map(|node| {
+                                node.status.and_then(|status| {
+                                    status.node_info.map(|info| info.architecture)
+                                })
+                            })
+                            .fold(HashMap::new(), |mut architectures, current_arch| {
+                                let count = architectures.entry(current_arch).or_insert(0);
+                                *count += 1;
+                                architectures
+                            });
+
+                        // Convert a map to a list of architectures
+                        let architectures = architectures
+                            .into_iter()
+                            .map(|(name, count)| Architecture {
+                                name,
+                                nodes_count: count,
+                            })
+                            .collect::<Vec<Architecture>>();
+
+                        SystemInfo::new(
+                            "Kubernetes".to_string(),
+                            serde_json::to_string(&architectures).unwrap(),
+                        )
+                    }),
+            )
+        } else {
+            future::Either::B(future::ok(SystemInfo::new(
+                "Kubernetes".to_string(),
+                "Kubernetes".to_string(),
+            )))
+        };
+        Box::new(fut)
+    }
+
+    fn system_resources(&self) -> Self::SystemResourcesFuture {
+        // TODO: add support for system resources on k8s
+        Box::new(future::ok(SystemResources::new(
+            0,
+            0,
+            0.0,
+            0,
+            0,
+            vec![],
+            "".to_owned(),
         )))
     }
 
@@ -399,8 +265,13 @@ where
             .lock()
             .expect("Unexpected lock error")
             .borrow_mut()
-            .list_pods(&self.namespace, Some(&self.device_hub_selector))
-            .map_err(Error::from)
+            .list_pods(
+                self.settings().namespace(),
+                Some(&self.settings().device_hub_selector()),
+            )
+            .map_err(|err| {
+                Error::from(err.context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules)))
+            })
             .and_then(|pods| {
                 pods.items
                     .into_iter()
@@ -436,14 +307,12 @@ where
 
 impl<T, S> Authenticator for KubeModuleRuntime<T, S>
 where
-    T: TokenSource + Clone + 'static,
+    T: TokenSource + Send + 'static,
     S: Service + Send + 'static,
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    <S::ResBody as Stream>::Item: AsRef<[u8]>,
-    <S::ResBody as Stream>::Error: Into<KubeClientError>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     type Error = Error;
@@ -451,47 +320,7 @@ where
     type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error> + Send>;
 
     fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture {
-        let token = req
-            .headers()
-            .get(header::AUTHORIZATION)
-            .map(HeaderValue::to_str)
-            .transpose()
-            .map(|token| {
-                token
-                    .filter(|token| token.len() > 6 && &token[..7].to_uppercase() == "BEARER ")
-                    .map(|token| &token[7..])
-            })
-            .map_err(Error::from);
-
-        let fut = match token {
-            Ok(token) => match token {
-                Some(token) => Either::A(Either::A(
-                    self.client
-                        .lock()
-                        .expect("Unexpected lock error")
-                        .borrow_mut()
-                        .token_review(&self.namespace, token)
-                        .map_err(|err| {
-                            log_failure(Level::Warn, &err);
-                            Error::from(err)
-                        })
-                        .map(|token_review| {
-                            token_review
-                                .status
-                                .as_ref()
-                                .filter(|status| status.authenticated.filter(|x| *x).is_some())
-                                .and_then(|status| {
-                                    status.user.as_ref().and_then(|user| user.username.clone())
-                                })
-                                .map_or(AuthId::None, |name| AuthId::Value(name.into()))
-                        }),
-                )),
-                None => Either::A(Either::B(future::ok(AuthId::None))),
-            },
-            Err(e) => Either::B(future::err(e)),
-        };
-
-        Box::new(fut)
+        Box::new(authenticate(&self.clone(), req))
     }
 }
 
@@ -548,373 +377,136 @@ impl AsRef<[u8]> for Chunk {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use hyper::service::service_fn;
+    use hyper::{Body, Method, Request, StatusCode};
+    use maplit::btreemap;
+    use serde_json::json;
+    use tokio::runtime::Runtime;
 
-    use futures::future::Future;
-    use hyper::service::{service_fn, Service};
-    use hyper::Error as HyperError;
-    use hyper::{header, Body, Request, Response};
-    use native_tls::TlsConnector;
-    use url::Url;
+    use edgelet_core::ModuleRuntime;
+    use edgelet_test_utils::routes;
+    use edgelet_test_utils::web::{
+        make_req_dispatcher, HttpMethod, RequestHandler, RequestPath, ResponseFuture,
+    };
 
-    use edgelet_core::{AuthId, Authenticator};
-    use kube_client::{Client as KubeClient, Config, Error, TokenSource};
+    use crate::tests::{create_runtime, make_settings, not_found_handler, response};
 
-    use crate::error::ErrorKind;
-    use crate::runtime::KubeModuleRuntime;
+    #[test]
+    fn runtime_get_system_info() {
+        let settings = make_settings(None);
 
-    fn get_config() -> Config<TestTokenSource> {
-        Config::new(
-            Url::parse("https://localhost:443").unwrap(),
-            "/api".to_string(),
-            TestTokenSource,
-            TlsConnector::new().unwrap(),
-        )
+        let dispatch_table = routes!(
+            GET "/api/v1/nodes" => list_node_handler(),
+        );
+
+        let handler = make_req_dispatcher(dispatch_table, Box::new(not_found_handler));
+        let service = service_fn(handler);
+        let runtime = create_runtime(settings, service);
+
+        let task = runtime.system_info();
+
+        let mut runtime = Runtime::new().unwrap();
+        let info = runtime.block_on(task).unwrap();
+
+        assert_eq!(
+            info.architecture(),
+            "[{\"name\":\"amd64\",\"nodes_count\":2}]"
+        );
     }
 
     #[test]
-    fn runtime_new() {
-        let namespace = String::from("my-namespace");
-        let iot_hub_hostname = String::from("iothostname");
-        let device_id = String::from("my_device_id");
-        let edge_hostname = String::from("edge-hostname");
-        let proxy_image = String::from("proxy-image");
-        let proxy_config_path = String::from("proxy-confg-path");
-        let proxy_config_map_name = String::from("config-volume");
-        let image_pull_policy = String::from("IfNotPresent");
-        let service_account_name = String::from("iotedge");
-        let workload_uri = Url::from_str("http://localhost:35000").unwrap();
-        let management_uri = Url::from_str("http://localhost:35001").unwrap();
-
-        let result = KubeModuleRuntime::new(
-            KubeClient::new(get_config()),
-            String::default(),
-            true,
-            iot_hub_hostname.clone(),
-            device_id.clone(),
-            edge_hostname.clone(),
-            proxy_image.clone(),
-            proxy_config_path.clone(),
-            proxy_config_map_name.clone(),
-            image_pull_policy.clone(),
-            service_account_name.clone(),
-            workload_uri.clone(),
-            management_uri.clone(),
+    fn runtime_get_system_info_no_rbac() {
+        let more_settings = json!({"has_nodes_rbac" : "false"});
+        let settings = make_settings(Option::Some(more_settings));
+        assert_eq!(settings.has_nodes_rbac(), false);
+        let dispatch_table = routes!(
+            GET "/api/v1/nodes" => list_node_handler(),
         );
 
-        assert!(result.is_err());
+        let handler = make_req_dispatcher(dispatch_table, Box::new(not_found_handler));
+        let service = service_fn(handler);
+        let runtime = create_runtime(settings, service);
 
-        let result = KubeModuleRuntime::new(
-            KubeClient::new(get_config()),
-            namespace.clone(),
-            true,
-            String::default(),
-            device_id.clone(),
-            edge_hostname.clone(),
-            proxy_image.clone(),
-            proxy_config_path.clone(),
-            proxy_config_map_name.clone(),
-            image_pull_policy.clone(),
-            service_account_name.clone(),
-            workload_uri.clone(),
-            management_uri.clone(),
-        );
-        assert!(result.is_err());
+        let task = runtime.system_info();
 
-        let result = KubeModuleRuntime::new(
-            KubeClient::new(get_config()),
-            namespace.clone(),
-            true,
-            iot_hub_hostname.clone(),
-            String::default(),
-            edge_hostname.clone(),
-            proxy_image.clone(),
-            proxy_config_path.clone(),
-            proxy_config_map_name.clone(),
-            image_pull_policy.clone(),
-            service_account_name.clone(),
-            workload_uri.clone(),
-            management_uri.clone(),
-        );
-        assert!(result.is_err());
+        let mut runtime = Runtime::new().unwrap();
+        let info = runtime.block_on(task).unwrap();
 
-        let result = KubeModuleRuntime::new(
-            KubeClient::new(get_config()),
-            namespace.clone(),
-            true,
-            iot_hub_hostname.clone(),
-            device_id.clone(),
-            String::default(),
-            proxy_image.clone(),
-            proxy_config_path.clone(),
-            proxy_config_map_name.clone(),
-            image_pull_policy.clone(),
-            service_account_name.clone(),
-            workload_uri.clone(),
-            management_uri.clone(),
-        );
-        assert!(result.is_err());
-
-        let result = KubeModuleRuntime::new(
-            KubeClient::new(get_config()),
-            namespace.clone(),
-            true,
-            iot_hub_hostname.clone(),
-            device_id.clone(),
-            edge_hostname.clone(),
-            String::default(),
-            proxy_config_path.clone(),
-            proxy_config_map_name.clone(),
-            image_pull_policy.clone(),
-            service_account_name.clone(),
-            workload_uri.clone(),
-            management_uri.clone(),
-        );
-        assert!(result.is_err());
-
-        let result = KubeModuleRuntime::new(
-            KubeClient::new(get_config()),
-            namespace.clone(),
-            true,
-            iot_hub_hostname.clone(),
-            device_id.clone(),
-            edge_hostname.clone(),
-            proxy_image.clone(),
-            String::default(),
-            proxy_config_map_name.clone(),
-            image_pull_policy.clone(),
-            service_account_name.clone(),
-            workload_uri.clone(),
-            management_uri.clone(),
-        );
-        assert!(result.is_err());
-
-        let result = KubeModuleRuntime::new(
-            KubeClient::new(get_config()),
-            namespace.clone(),
-            true,
-            iot_hub_hostname.clone(),
-            device_id.clone(),
-            edge_hostname.clone(),
-            proxy_image.clone(),
-            proxy_config_path.clone(),
-            String::default(),
-            image_pull_policy.clone(),
-            service_account_name.clone(),
-            workload_uri.clone(),
-            management_uri.clone(),
-        );
-        assert!(result.is_err());
-
-        let result = KubeModuleRuntime::new(
-            KubeClient::new(get_config()),
-            namespace.clone(),
-            true,
-            iot_hub_hostname.clone(),
-            device_id.clone(),
-            edge_hostname.clone(),
-            proxy_image.clone(),
-            proxy_config_path.clone(),
-            proxy_config_map_name.clone(),
-            String::default(),
-            service_account_name.clone(),
-            workload_uri.clone(),
-            management_uri.clone(),
-        );
-        assert!(result.is_err());
-
-        let result = KubeModuleRuntime::new(
-            KubeClient::new(get_config()),
-            namespace.clone(),
-            true,
-            iot_hub_hostname.clone(),
-            device_id.clone(),
-            edge_hostname.clone(),
-            proxy_image.clone(),
-            proxy_config_path.clone(),
-            proxy_config_map_name.clone(),
-            image_pull_policy.clone(),
-            String::default(),
-            workload_uri.clone(),
-            management_uri.clone(),
-        );
-        assert!(result.is_err());
-
-        let result = KubeModuleRuntime::new(
-            KubeClient::new(get_config()),
-            namespace.clone(),
-            true,
-            iot_hub_hostname.clone(),
-            device_id.clone(),
-            edge_hostname.clone(),
-            proxy_image.clone(),
-            proxy_config_path.clone(),
-            proxy_config_map_name.clone(),
-            image_pull_policy.clone(),
-            service_account_name.clone(),
-            workload_uri.clone(),
-            management_uri.clone(),
-        );
-        assert!(result.is_ok());
+        assert_eq!(info.architecture(), "Kubernetes");
     }
 
     #[test]
-    fn authenticate_returns_none_when_no_auth_token_provided() {
-        let service = service_fn(
-            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                Ok(Response::new(Body::empty()))
-            },
+    fn runtime_get_system_info_rbac_set() {
+        let more_settings = json!({"has_nodes_rbac" : "true"});
+        let settings = make_settings(Option::Some(more_settings));
+        assert_eq!(settings.has_nodes_rbac(), true);
+        let dispatch_table = routes!(
+            GET "/api/v1/nodes" => list_node_handler(),
         );
-        let req = Request::default();
-        let runtime = prepare_module_runtime_with_defaults(service);
 
-        let auth_id = runtime.authenticate(&req).wait().unwrap();
+        let handler = make_req_dispatcher(dispatch_table, Box::new(not_found_handler));
+        let service = service_fn(handler);
+        let runtime = create_runtime(settings, service);
 
-        assert_eq!(AuthId::None, auth_id);
+        let task = runtime.system_info();
+
+        let mut runtime = Runtime::new().unwrap();
+        let info = runtime.block_on(task).unwrap();
+
+        assert_eq!(
+            info.architecture(),
+            "[{\"name\":\"amd64\",\"nodes_count\":2}]"
+        );
     }
 
-    #[test]
-    fn authenticate_returns_none_when_invalid_auth_header_provided() {
-        let service = service_fn(
-            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                Ok(Response::new(Body::empty()))
-            },
-        );
-        let runtime = prepare_module_runtime_with_defaults(service);
-
-        let mut req = Request::default();
-        req.headers_mut()
-            .insert(header::AUTHORIZATION, "BeErer token".parse().unwrap());
-
-        let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-        assert_eq!(AuthId::None, auth_id);
-    }
-
-    #[test]
-    fn authenticate_returns_none_when_invalid_auth_token_provided() {
-        let service = service_fn(
-            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                Ok(Response::new(Body::empty()))
-            },
-        );
-        let runtime = prepare_module_runtime_with_defaults(service);
-
-        let mut req = Request::default();
-        req.headers_mut().insert(
-            header::AUTHORIZATION,
-            "\u{3aa}\u{3a9}\u{3a4}".parse().unwrap(),
-        );
-
-        let err = runtime.authenticate(&req).wait().err().unwrap();
-
-        assert_eq!(&ErrorKind::ModuleAuthenticationError, err.kind());
-    }
-
-    #[test]
-    fn authenticate_returns_none_when_unknown_auth_token_provided() {
-        let service = service_fn(
-            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                let body = r###"{
-                        "kind": "TokenReview",
-                        "spec": { "token": "token" },
-                        "status": {
-                            "authenticated": false
+    fn list_node_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
+        move |_| {
+            response(StatusCode::OK, || {
+                json!({
+                    "kind" : "NodeList",
+                    "items" : [
+                        {
+                            "kind" : "Node",
+                            "status" :
+                            {
+                                "nodeInfo":
+                                {
+                                  "machineID": "5aedea612a1a481a9f967578995b2930",
+                                  "systemUUID": "0331B348-6DBE-4344-BF93-6A3407C31879",
+                                  "bootID": "e8c73b01-12e6-45d1-a008-aeb3b5ae4225",
+                                  "kernelVersion": "4.15.0-1052-azure",
+                                  "osImage": "Ubuntu 16.04.6 LTS",
+                                  "containerRuntimeVersion": "docker://3.0.6",
+                                  "kubeletVersion": "v1.13.10",
+                                  "kubeProxyVersion": "v1.13.10",
+                                  "operatingSystem": "linux",
+                                  "architecture": "amd64"
+                                },
+                            }
+                        },
+                        {
+                            "kind" : "Node",
+                            "status" :
+                            {
+                                "nodeInfo":
+                                {
+                                  "machineID": "5aedea612a1a481a9f967578995b2930",
+                                  "systemUUID": "0331B348-6DBE-4344-BF93-6A3407C31879",
+                                  "bootID": "e8c73b01-12e6-45d1-a008-aeb3b5ae4225",
+                                  "kernelVersion": "4.15.0-1052-azure",
+                                  "osImage": "Ubuntu 16.04.6 LTS",
+                                  "containerRuntimeVersion": "docker://3.0.6",
+                                  "kubeletVersion": "v1.13.10",
+                                  "kubeProxyVersion": "v1.13.10",
+                                  "operatingSystem": "linux",
+                                  "architecture": "amd64"
+                                },
+                            }
                         }
-                    }"###;
-                Ok(Response::new(Body::from(body)))
-            },
-        );
-        let runtime = prepare_module_runtime_with_defaults(service);
-
-        let mut req = Request::default();
-        req.headers_mut().insert(
-            header::AUTHORIZATION,
-            "Bearer token-unknown".parse().unwrap(),
-        );
-
-        let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-        assert_eq!(AuthId::None, auth_id);
-    }
-
-    #[test]
-    fn authenticate_returns_auth_id_when_module_auth_token_provided() {
-        let service = service_fn(
-            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                let body = r###"{
-                    "kind": "TokenReview",
-                    "spec": { "token": "token" },
-                    "status": {
-                        "authenticated": true,
-                        "user": {
-                            "username": "module-abc"
-                        }
-                    }
-                }"###;
-                Ok(Response::new(Body::from(body)))
-            },
-        );
-
-        let mut req = Request::default();
-        req.headers_mut()
-            .insert(header::AUTHORIZATION, "Bearer token".parse().unwrap());
-
-        let runtime = prepare_module_runtime_with_defaults(service);
-
-        let auth_id = runtime.authenticate(&req).wait().unwrap();
-
-        assert_eq!(AuthId::Value("module-abc".into()), auth_id);
-    }
-
-    fn prepare_module_runtime_with_defaults<S: Service>(
-        service: S,
-    ) -> KubeModuleRuntime<TestTokenSource, S> {
-        let namespace = String::from("my-namespace");
-        let iot_hub_hostname = String::from("iothostname");
-        let device_id = String::from("my_device_id");
-        let edge_hostname = String::from("edge-hostname");
-        let proxy_image = String::from("proxy-image");
-        let proxy_config_path = String::from("proxy-confg-path");
-        let proxy_config_map_name = String::from("config-volume");
-        let image_pull_policy = String::from("IfNotPresent");
-        let service_account_name = String::from("iotedge");
-        let workload_uri = Url::from_str("http://localhost:35000").unwrap();
-        let management_uri = Url::from_str("http://localhost:35001").unwrap();
-
-        let config = Config::new(
-            Url::parse("https://localhost:443").unwrap(),
-            "/api".to_string(),
-            TestTokenSource,
-            TlsConnector::new().unwrap(),
-        );
-
-        KubeModuleRuntime::new(
-            KubeClient::with_client(config, service),
-            namespace.clone(),
-            true,
-            iot_hub_hostname.clone(),
-            device_id.clone(),
-            edge_hostname.clone(),
-            proxy_image.clone(),
-            proxy_config_path.clone(),
-            proxy_config_map_name.clone(),
-            image_pull_policy.clone(),
-            service_account_name.clone(),
-            workload_uri.clone(),
-            management_uri.clone(),
-        )
-        .unwrap()
-    }
-
-    #[derive(Clone)]
-    struct TestTokenSource;
-
-    impl TokenSource for TestTokenSource {
-        type Error = Error;
-
-        fn get(&self) -> kube_client::error::Result<Option<String>> {
-            Ok(None)
+                    ]
+                })
+                .to_string()
+            })
         }
     }
 }

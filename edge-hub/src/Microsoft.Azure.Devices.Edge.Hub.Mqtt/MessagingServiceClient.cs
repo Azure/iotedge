@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Primitives;
@@ -165,6 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 IMessage coreMessage = this.messageConverter.ToMessage(message);
                 Events.ProcessMessage(this.deviceListener.Identity);
+
                 return this.deviceListener.ProcessDeviceMessageAsync(coreMessage);
             }
             catch (Exception e)

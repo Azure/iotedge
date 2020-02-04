@@ -6,10 +6,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query.Builtins
     using System.Linq;
     using System.Linq.Expressions;
     using System.Reflection;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Query.JsonPath;
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
     using Microsoft.Extensions.Logging;
 
     public class TwinChangeIncludes : Builtin

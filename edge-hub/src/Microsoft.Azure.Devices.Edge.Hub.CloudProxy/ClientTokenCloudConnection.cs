@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using static System.FormattableString;
 
     /// <summary>
-    /// This class creates and manages cloud connections (CloudProxy instances)
+    /// This class creates and manages cloud connections (CloudProxy instances).
     /// </summary>
     class ClientTokenCloudConnection : CloudConnection, IClientTokenCloudConnection
     {
@@ -298,29 +298,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogDebug((int)EventIds.ObtainedNewToken, Invariant($"Token received for client {identity.Id} expires in {timeRemaining}, and so is not usable. Getting a fresh token..."));
             }
 
-            internal static void GetNewToken(string id)
-            {
-                Log.LogDebug((int)EventIds.CreateNewToken, Invariant($"Getting new token for {id}."));
-            }
-
-            internal static void UsingExistingToken(string id)
-            {
-                Log.LogInformation((int)EventIds.CreateNewToken, Invariant($"New token requested by client {id}, but using existing token as it is usable."));
-            }
-
-            internal static void SafeCreateNewToken(string id)
-            {
-                Log.LogInformation((int)EventIds.CreateNewToken, Invariant($"Existing token not found for {id}. Getting new token from the client..."));
-            }
-
             internal static void CreateException(Exception ex, IIdentity identity)
             {
                 Log.LogError((int)EventIds.CloudConnectError, ex, Invariant($"Error creating or updating the cloud proxy for client {identity.Id}"));
             }
 
-            internal static void UpdatedCloudConnection(IIdentity identity)
+            internal static void ErrorRenewingToken(Exception ex)
             {
-                Log.LogDebug((int)EventIds.UpdatedCloudConnection, Invariant($"Updated cloud connection for client {identity.Id}"));
+                Log.LogDebug((int)EventIds.ErrorRenewingToken, ex, "Critical Error trying to renew Token.");
+            }
+
+            internal static void GetNewToken(string id)
+            {
+                Log.LogDebug((int)EventIds.CreateNewToken, Invariant($"Getting new token for {id}."));
             }
 
             internal static void NewTokenObtained(IIdentity identity, string newToken)
@@ -329,9 +319,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogInformation((int)EventIds.ObtainedNewToken, Invariant($"Obtained new token for client {identity.Id} that expires in {timeRemaining}"));
             }
 
-            internal static void ErrorRenewingToken(Exception ex)
+            internal static void SafeCreateNewToken(string id)
             {
-                Log.LogDebug((int)EventIds.ErrorRenewingToken, ex, "Critical Error trying to renew Token.");
+                Log.LogInformation((int)EventIds.CreateNewToken, Invariant($"Existing token not found for {id}. Getting new token from the client..."));
+            }
+
+            internal static void UpdatedCloudConnection(IIdentity identity)
+            {
+                Log.LogDebug((int)EventIds.UpdatedCloudConnection, Invariant($"Updated cloud connection for client {identity.Id}"));
+            }
+
+            internal static void UsingExistingToken(string id)
+            {
+                Log.LogInformation((int)EventIds.CreateNewToken, Invariant($"New token requested by client {id}, but using existing token as it is usable."));
             }
         }
     }

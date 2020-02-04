@@ -436,7 +436,7 @@ paths:
         default:
           description: Error
           schema:
-            $ref: '#/definitions/ErrorResponse'            
+            $ref: '#/definitions/ErrorResponse'
 definitions:
   ModuleList:
     type: object
@@ -482,6 +482,12 @@ definitions:
       type:
         type: string
         example: docker
+      imagePullPolicy:
+        type: string
+        enum:
+          - On-Create
+          - Never
+        example: "On-Create"
       config:
         $ref: '#/definitions/Config'
     required:

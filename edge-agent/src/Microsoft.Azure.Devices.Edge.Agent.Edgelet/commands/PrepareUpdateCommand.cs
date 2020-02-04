@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
 
         static ModuleSpec BuildModuleSpec(IModule module, object settings)
         {
-            return new ModuleSpec(module.Name, module.Type, settings);
+            return new ModuleSpec(module.Name, module.Type, module.ImagePullPolicy, settings);
         }
     }
 }

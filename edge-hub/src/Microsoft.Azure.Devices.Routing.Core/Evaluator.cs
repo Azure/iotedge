@@ -7,10 +7,10 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Query;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
-    using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
 
@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             lock (this.sync)
             {
                 ImmutableDictionary<string, CompiledRoute> snapshot = this.compiledRoutes;
-                this.compiledRoutes.GetAndSet(snapshot.SetItem(route.Id, this.Compile(route)));
+                this.compiledRoutes.Value = snapshot.SetItem(route.Id, this.Compile(route));
             }
         }
 
@@ -104,7 +104,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             lock (this.sync)
             {
                 ImmutableDictionary<string, CompiledRoute> snapshot = this.compiledRoutes;
-                this.compiledRoutes.GetAndSet(snapshot.Remove(id));
+                this.compiledRoutes.Value = snapshot.Remove(id);
             }
         }
 
@@ -114,7 +114,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             {
                 ImmutableDictionary<string, CompiledRoute> routesDict = Preconditions.CheckNotNull(newRoutes)
                     .ToImmutableDictionary(r => r.Id, r => this.Compile(r));
-                this.compiledRoutes.GetAndSet(routesDict);
+                this.compiledRoutes.Value = routesDict;
             }
         }
 

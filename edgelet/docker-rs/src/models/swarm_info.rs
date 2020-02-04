@@ -9,11 +9,11 @@
  */
 
 /// SwarmInfo : Represents generic information about swarm.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct SwarmInfo {
     /// Unique identifier of for this node in the swarm.
     #[serde(rename = "NodeID", skip_serializing_if = "Option::is_none")]

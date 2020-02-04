@@ -101,7 +101,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             // both 'from' and 'to' must be objects
             if (fromToken.Type != JTokenType.Object || toToken.Type != JTokenType.Object)
+            {
                 return patch;
+            }
 
             var from = (JObject)fromToken;
             var to = (JObject)toToken;

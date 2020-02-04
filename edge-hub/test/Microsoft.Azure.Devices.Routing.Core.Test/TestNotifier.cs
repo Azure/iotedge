@@ -4,7 +4,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
     using System;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class TestNotifier : INotifier
     {

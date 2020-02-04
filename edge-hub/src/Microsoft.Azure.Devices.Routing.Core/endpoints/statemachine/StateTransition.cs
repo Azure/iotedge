@@ -3,7 +3,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
 {
     using System;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     /// <summary>
     /// Stores next state and optional action to be run during this specific

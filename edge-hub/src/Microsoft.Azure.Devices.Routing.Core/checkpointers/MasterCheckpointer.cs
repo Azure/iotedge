@@ -8,8 +8,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
-    using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
 
@@ -212,7 +212,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
         {
             using (await this.sync.LockAsync())
             {
-                this.childCheckpointers.GetAndSet(this.ChildCheckpointers.SetItem(checkpointer.Id, checkpointer));
+                this.childCheckpointers.Value = this.ChildCheckpointers.SetItem(checkpointer.Id, checkpointer);
             }
         }
 
@@ -220,7 +220,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
         {
             using (await this.sync.LockAsync())
             {
-                this.childCheckpointers.GetAndSet(this.ChildCheckpointers.Remove(id));
+                this.childCheckpointers.Value = this.ChildCheckpointers.Remove(id);
             }
         }
 
@@ -305,24 +305,38 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
                 Close,
             }
 
+            // Wrapped logging in 'IsEnabled' because profiling showed that 'GetContextString' call was quite expensive
+            // for 'CommitFinished'. Wrapped the rest only for sake of symmetry
             public static void CreateStart(string id)
             {
-                Log.LogDebug((int)EventIds.CreateStart, "[MasterCheckpointerCreateStart] MasterCheckpointerId: {0}", id);
+                if (Log.IsEnabled(LogLevel.Debug))
+                {
+                    Log.LogDebug((int)EventIds.CreateStart, "[MasterCheckpointerCreateStart] MasterCheckpointerId: {0}", id);
+                }
             }
 
             public static void CreateFinished(MasterCheckpointer masterCheckpointer)
             {
-                Log.LogDebug((int)EventIds.CreateFinished, "[MasterCheckpointerCreateFinished] {0}", GetContextString(masterCheckpointer));
+                if (Log.IsEnabled(LogLevel.Debug))
+                {
+                    Log.LogDebug((int)EventIds.CreateFinished, "[MasterCheckpointerCreateFinished] {0}", GetContextString(masterCheckpointer));
+                }
             }
 
             public static void CreateChildStart(MasterCheckpointer masterCheckpointer, string id)
             {
-                Log.LogDebug((int)EventIds.CreateChildStart, "[ChildCheckpointerCreateStart] ChildCheckpointerId: {0}, {1}", id, GetContextString(masterCheckpointer));
+                if (Log.IsEnabled(LogLevel.Debug))
+                {
+                    Log.LogDebug((int)EventIds.CreateChildStart, "[ChildCheckpointerCreateStart] ChildCheckpointerId: {0}, {1}", id, GetContextString(masterCheckpointer));
+                }
             }
 
             public static void CreateChildFinished(MasterCheckpointer masterCheckpointer, string id)
             {
-                Log.LogDebug((int)EventIds.CreateChildFinished, "[ChildCheckpointerCreateFinished] ChildCheckpointerId: {0}, {1}", id, GetContextString(masterCheckpointer));
+                if (Log.IsEnabled(LogLevel.Debug))
+                {
+                    Log.LogDebug((int)EventIds.CreateChildFinished, "[ChildCheckpointerCreateFinished] ChildCheckpointerId: {0}, {1}", id, GetContextString(masterCheckpointer));
+                }
             }
 
             public static void ProposeFailed(MasterCheckpointer masterCheckpointer, string id, Exception exception)
@@ -332,17 +346,26 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
 
             public static void Admit(MasterCheckpointer masterCheckpointer, long messageOffset, bool isClosed)
             {
-                Log.LogDebug((int)EventIds.Admit, "[MasterCheckpointerAdmit] jMessageOffset: {0}, IsClosed: {1}, {2}", messageOffset, isClosed, GetContextString(masterCheckpointer));
+                if (Log.IsEnabled(LogLevel.Debug))
+                {
+                    Log.LogDebug((int)EventIds.Admit, "[MasterCheckpointerAdmit] jMessageOffset: {0}, IsClosed: {1}, {2}", messageOffset, isClosed, GetContextString(masterCheckpointer));
+                }
             }
 
             public static void CommitStarted(MasterCheckpointer masterCheckpointer, int successfulCount, int remainingCount)
             {
-                Log.LogDebug((int)EventIds.CommitStarted, "[MasterCheckpointerCommitStarted] SuccessfulCount: {0}, RemainingCount: {1}, {2}", successfulCount, remainingCount, GetContextString(masterCheckpointer));
+                if (Log.IsEnabled(LogLevel.Debug))
+                {
+                    Log.LogDebug((int)EventIds.CommitStarted, "[MasterCheckpointerCommitStarted] SuccessfulCount: {0}, RemainingCount: {1}, {2}", successfulCount, remainingCount, GetContextString(masterCheckpointer));
+                }
             }
 
             public static void CommitFinished(MasterCheckpointer masterCheckpointer)
             {
-                Log.LogDebug((int)EventIds.CommitFinished, "[MasterCheckpointerCommitFinished] {0}", GetContextString(masterCheckpointer));
+                if (Log.IsEnabled(LogLevel.Debug))
+                {
+                    Log.LogDebug((int)EventIds.CommitFinished, "[MasterCheckpointerCommitFinished] {0}", GetContextString(masterCheckpointer));
+                }
             }
 
             public static void Close(MasterCheckpointer masterCheckpointer)

@@ -79,40 +79,10 @@ mod tests {
     use futures::Future;
     use futures::Stream;
 
-    use edgelet_core::{Error as CoreError, ErrorKind as CoreErrorKind};
     use edgelet_test_utils::cert::TestCert;
+    use edgelet_test_utils::crypto::TestHsm;
 
     use super::*;
-
-    #[derive(Clone, Default, Debug)]
-    struct TestHsm {
-        fail_call: bool,
-        cert: TestCert,
-    }
-
-    impl TestHsm {
-        fn with_fail_call(mut self, fail_call: bool) -> Self {
-            self.fail_call = fail_call;
-            self
-        }
-
-        fn with_cert(mut self, cert: TestCert) -> Self {
-            self.cert = cert;
-            self
-        }
-    }
-
-    impl GetTrustBundle for TestHsm {
-        type Certificate = TestCert;
-
-        fn get_trust_bundle(&self) -> Result<Self::Certificate, CoreError> {
-            if self.fail_call {
-                Err(CoreError::from(CoreErrorKind::KeyStore))
-            } else {
-                Ok(self.cert.clone())
-            }
-        }
-    }
 
     #[test]
     fn get_fail() {

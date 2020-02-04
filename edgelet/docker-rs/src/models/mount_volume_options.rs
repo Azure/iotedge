@@ -9,11 +9,11 @@
  */
 
 /// MountVolumeOptions : Optional configuration for the `volume` type.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 pub struct MountVolumeOptions {
     /// Populate volume with data from the target.
     #[serde(rename = "NoCopy", skip_serializing_if = "Option::is_none")]

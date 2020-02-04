@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const int TwinConfigSource = EventIdStart + 200;
         public const int RestartPlanner = EventIdStart + 300;
         public const int OrderedPlanRunner = EventIdStart + 400;
-        public const int FileBackupConfigSource = EventIdStart + 500;
+        public const int DeploymentFileBackup = EventIdStart + 500;
         public const int HealthRestartPlanner = EventIdStart + 600;
         public const int RestartManager = EventIdStart + 700;
         public const int IoTHubReporter = EventIdStart + 800;
@@ -25,12 +25,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const int StreamRequestListener = EventIdStart + 1900;
         public const int LogsStreamRequestHandler = EventIdStart + 2000;
         public const int LogsProvider = EventIdStart + 2100;
-        public const int KubernetesPlanner = EventIdStart + 2200;
-        public const int KubernetesCommand = EventIdStart + 2300;
-        public const int KubernetesOperator = EventIdStart + 2400;
-        public const int LogsUploadRequestHandler = EventIdStart + 2500;
-        public const int ModuleClientProvider = EventIdStart + 2600;
-        public const int LogsRequestHandler = EventIdStart + 2700;
+        public const int LogsUploadRequestHandler = EventIdStart + 2200;
+        public const int ModuleClientProvider = EventIdStart + 2300;
+        public const int LogsRequestHandler = EventIdStart + 2400;
+        public const int TaskStatusRequestHandler = EventIdStart + 2500;
+        public const int RestartRequestHandler = EventIdStart + 2600;
+        public const int BackupConfigSource = EventIdStart + 2700;
         const int EventIdStart = 100000;
     }
 }

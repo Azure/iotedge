@@ -9,11 +9,11 @@
  */
 
 /// MountVolumeOptionsDriverConfig : Map of driver specific options
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 pub struct MountVolumeOptionsDriverConfig {
     /// Name of the driver to use to create the volume.
     #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]

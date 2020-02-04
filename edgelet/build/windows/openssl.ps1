@@ -35,10 +35,6 @@ function Get-OpenSSL
     {
         New-Item -Type Directory "$env:HOMEDRIVE\vcpkg\Downloads" | Out-Null
     }
-    
-    $strawberryPerlUri = "https://edgebuild.blob.core.windows.net/strawberry-perl/strawberry-perl-5.24.1.1-32bit-portable.zip"
-    $strawberryPerlPath = "$env:HOMEDRIVE\vcpkg\Downloads\strawberry-perl-5.24.1.1-32bit-portable.zip"
-    Invoke-WebRequest -Uri $strawberryPerlUri -OutFile $strawberryPerlPath
 
     Write-Host "Installing OpenSSL for $(if ($Arm) { 'arm' } else { 'x64' })..."
     & $env:HOMEDRIVE\vcpkg\vcpkg.exe install $(if ($Arm) { 'openssl-windows:arm-windows' } else { 'openssl:x64-windows' } )
@@ -47,7 +43,7 @@ function Get-OpenSSL
         Throw "Failed to install openssl vcpkg with exit code $LastExitCode"
     }
 
-    Write-Host "Setting env variable OPENSSL_ROOT_DIR..."
+    Write-Host "Setting env variables OPENSSL_ROOT_DIR and OPENSSL_DIR..."
     if ((Test-Path env:TF_BUILD) -and ($env:TF_BUILD -eq $true))
     {
         # When executing within TF (VSTS) environment, install the env variable
@@ -64,6 +60,6 @@ function Get-OpenSSL
         [System.Environment]::SetEnvironmentVariable("OPENSSL_ROOT_DIR", "$env:HOMEDRIVE\vcpkg\installed\$(if ($Arm) { 'arm' } else { 'x64' })-windows", [System.EnvironmentVariableTarget]::User)
         [System.Environment]::SetEnvironmentVariable("OPENSSL_DIR", "$env:HOMEDRIVE\vcpkg\installed\$(if ($Arm) { 'arm' } else { 'x64' })-windows", [System.EnvironmentVariableTarget]::User)
     }
-    
+
     $ErrorActionPreference = 'Stop'
 }

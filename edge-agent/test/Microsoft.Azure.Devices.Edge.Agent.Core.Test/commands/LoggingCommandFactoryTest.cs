@@ -11,8 +11,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
     using Microsoft.Extensions.Logging;
     using Moq;
     using Xunit;
-    using CommandMethodExpr = System.Linq.Expressions.Expression<System.Func<ICommandFactory, System.Threading.Tasks.Task<ICommand>>>;
-    using TestExecutionExpr = System.Func<LoggingCommandFactory, System.Threading.Tasks.Task<ICommand>>;
+    using CommandMethodExpr = System.Linq.Expressions.Expression<System.Func<Microsoft.Azure.Devices.Edge.Agent.Core.ICommandFactory, System.Threading.Tasks.Task<Microsoft.Azure.Devices.Edge.Agent.Core.ICommand>>>;
+    using TestExecutionExpr = System.Func<Microsoft.Azure.Devices.Edge.Agent.Core.LoggingCommandFactory, System.Threading.Tasks.Task<Microsoft.Azure.Devices.Edge.Agent.Core.ICommand>>;
 
     class FailureCommand : ICommand
     {
@@ -35,8 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
     {
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
         static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
-        static readonly TestModule TestModule = new TestModule("module", "version", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
-        static readonly TestModule UpdateModule = new TestModule("module", "version", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+        static readonly TestModule TestModule = new TestModule("module", "version", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+        static readonly TestModule UpdateModule = new TestModule("module", "version", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
         static readonly TestCommand WrapTargetCommand = new TestCommand(TestCommandType.TestCreate, TestModule);
 
         [Fact]
@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
             Task<ICommand> commandBeingDecorated,
             TestExecutionExpr testExpr)
         {
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
             var logFactoryMock = new Mock<ILoggerFactory>();
             var logMock = new Mock<ILogger<LoggingCommandFactory>>();
@@ -114,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
             Task<ICommand> commandBeingDecorated,
             TestExecutionExpr testExpr)
         {
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
             var logFactoryMock = new Mock<ILoggerFactory>();
             var logMock = new Mock<ILogger<LoggingCommandFactory>>();
@@ -144,7 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
             Task<ICommand> commandBeingDecorated,
             TestExecutionExpr testExpr)
         {
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
             var logFactoryMock = new Mock<ILoggerFactory>();
             var logMock = new Mock<ILogger<LoggingCommandFactory>>();
@@ -174,7 +174,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
             Task<ICommand> commandBeingDecorated,
             TestExecutionExpr testExpr)
         {
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
             var logFactoryMock = new Mock<ILoggerFactory>();
             var logMock = new Mock<ILogger<LoggingCommandFactory>>();
             var factoryMock = new Mock<ICommandFactory>();

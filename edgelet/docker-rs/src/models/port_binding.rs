@@ -9,11 +9,11 @@
  */
 
 /// PortBinding : PortBinding represents a binding between a host IP address and a host port.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct PortBinding {
     /// Host IP address that the container's port is mapped to.
     #[serde(rename = "HostIp", skip_serializing_if = "Option::is_none")]

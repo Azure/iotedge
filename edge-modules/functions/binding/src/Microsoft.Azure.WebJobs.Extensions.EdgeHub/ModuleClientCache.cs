@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
 
@@ -13,7 +14,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(RetryCount, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
 
-        readonly AsyncLock asyncLock = new AsyncLock();
+        readonly SemaphoreSlim asyncLock = new SemaphoreSlim(1, 1);
         ModuleClient client;
 
         // Private constructor to ensure single instance
@@ -25,7 +26,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 
         public async Task<ModuleClient> GetOrCreateAsync()
         {
-            using (await this.asyncLock.LockAsync())
+            await this.asyncLock.WaitAsync();
+            try
             {
                 if (this.client == null)
                 {
@@ -42,6 +44,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
                 }
 
                 return this.client;
+            }
+            finally
+            {
+                this.asyncLock.Release();
             }
         }
 

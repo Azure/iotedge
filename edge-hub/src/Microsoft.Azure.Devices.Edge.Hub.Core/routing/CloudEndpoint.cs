@@ -22,8 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using Constants = Microsoft.Azure.Devices.Edge.Hub.Core.Constants;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
-    using ISinkResult = Microsoft.Azure.Devices.Routing.Core.ISinkResult<Devices.Routing.Core.IMessage>;
-    using Option = Microsoft.Azure.Devices.Routing.Core.Util.Option;
+    using ISinkResult = Microsoft.Azure.Devices.Routing.Core.ISinkResult<Microsoft.Azure.Devices.Routing.Core.IMessage>;
     using SystemProperties = Microsoft.Azure.Devices.Edge.Hub.Core.SystemProperties;
 
     public class CloudEndpoint : Endpoint
@@ -101,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             public Task CloseAsync(CancellationToken token) => Task.CompletedTask;
 
             internal static int GetBatchSize(int batchSize, long messageSize) =>
-                Math.Min((int)(Constants.MaxMessageSize / messageSize), batchSize);
+                Math.Min((int)(Constants.MaxMessageSize / Math.Max(1, messageSize)), batchSize);
 
             static bool IsRetryable(Exception ex) => ex != null && RetryableExceptions.Any(re => re.IsInstanceOfType(ex));
 
@@ -137,17 +136,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             async Task<ISinkResult> ProcessByClients(ICollection<IRoutingMessage> routingMessages, CancellationToken token)
             {
+                var result = new MergingSinkResult<IRoutingMessage>();
+
                 var routingMessageGroups = (from r in routingMessages
                                             group r by this.GetIdentity(r)
                                             into g
                                             select new { Id = g.Key, RoutingMessages = g.ToList() })
                     .ToList();
-
-                var succeeded = new List<IRoutingMessage>();
-                var failed = new List<IRoutingMessage>();
-                var invalid = new List<InvalidDetails<IRoutingMessage>>();
-                Devices.Routing.Core.Util.Option<SendFailureDetails> sendFailureDetails =
-                    Option.None<SendFailureDetails>();
 
                 Events.ProcessingMessageGroups(routingMessages, routingMessageGroups.Count, this.cloudEndpoint.FanOutFactor);
 
@@ -156,53 +151,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     IEnumerable<Task<ISinkResult<IRoutingMessage>>> sendTasks = groupBatch
                         .Select(item => this.ProcessClientMessages(item.Id, item.RoutingMessages, token));
                     ISinkResult<IRoutingMessage>[] sinkResults = await Task.WhenAll(sendTasks);
-                    foreach (ISinkResult<IRoutingMessage> res in sinkResults)
+
+                    foreach (var res in sinkResults)
                     {
-                        succeeded.AddRange(res.Succeeded);
-                        failed.AddRange(res.Failed);
-                        invalid.AddRange(res.InvalidDetailsList);
-                        // Different branches could have different results, but only the first one will be reported
-                        if (!sendFailureDetails.HasValue)
-                        {
-                            sendFailureDetails = res.SendFailureDetails;
-                        }
+                        result.Merge(res);
                     }
                 }
 
-                return new SinkResult<IRoutingMessage>(
-                    succeeded,
-                    failed,
-                    invalid,
-                    sendFailureDetails.GetOrElse(null));
+                return result;
             }
 
             // Process all messages for a particular client
             async Task<ISinkResult<IRoutingMessage>> ProcessClientMessages(string id, List<IRoutingMessage> routingMessages, CancellationToken token)
             {
-                var succeeded = new List<IRoutingMessage>();
-                var failed = new List<IRoutingMessage>();
-                var invalid = new List<InvalidDetails<IRoutingMessage>>();
-                Devices.Routing.Core.Util.Option<SendFailureDetails> sendFailureDetails =
-                    Option.None<SendFailureDetails>();
+                var result = new MergingSinkResult<IRoutingMessage>();
 
                 // Find the maximum message size, and divide messages into largest batches
                 // not exceeding max allowed IoTHub message size.
                 long maxMessageSize = routingMessages.Select(r => r.Size()).Max();
                 int batchSize = GetBatchSize(Math.Min(this.cloudEndpoint.maxBatchSize, routingMessages.Count), maxMessageSize);
-                foreach (IEnumerable<IRoutingMessage> batch in routingMessages.Batch(batchSize))
+
+                var iterator = routingMessages.Batch(batchSize).GetEnumerator();
+                while (iterator.MoveNext())
                 {
-                    ISinkResult res = await this.ProcessClientMessagesBatch(id, batch.ToList(), token);
-                    succeeded.AddRange(res.Succeeded);
-                    failed.AddRange(res.Failed);
-                    invalid.AddRange(res.InvalidDetailsList);
-                    sendFailureDetails = res.SendFailureDetails;
+                    result.Merge(await this.ProcessClientMessagesBatch(id, iterator.Current.ToList(), token));
+                    if (!result.IsSuccessful)
+                        break;
                 }
 
-                return new SinkResult<IRoutingMessage>(
-                    succeeded,
-                    failed,
-                    invalid,
-                    sendFailureDetails.GetOrElse(null));
+                // if failed earlier, fast-fail the rest
+                while (iterator.MoveNext())
+                {
+                    result.AddFailed(iterator.Current);
+                }
+
+                return result;
             }
 
             async Task<ISinkResult<IRoutingMessage>> ProcessClientMessagesBatch(string id, List<IRoutingMessage> routingMessages, CancellationToken token)
@@ -227,7 +210,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                                 .Select(r => this.cloudEndpoint.messageConverter.ToMessage(r))
                                 .ToList();
 
-                            using (Metrics.CloudLatency(id))
+                            using (MetricsV0.CloudLatency(id))
                             {
                                 if (messages.Count == 1)
                                 {
@@ -239,7 +222,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                                 }
                             }
 
-                            Metrics.MessageCount(id, messages.Count);
+                            MetricsV0.MessageCount(id, messages.Count);
+
                             return new SinkResult<IRoutingMessage>(routingMessages);
                         }
                         catch (Exception ex)
@@ -346,6 +330,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 Log.LogInformation((int)EventIds.Created, Invariant($"Created cloud endpoint {id} with max batch size {maxbatchSize} and fan-out factor of {fanoutFactor}."));
             }
 
+            public static void DoneProcessing(CancellationToken token)
+            {
+                if (token.IsCancellationRequested)
+                {
+                    Log.LogInformation((int)EventIds.CancelledProcessing, "Stopped sending messages to upstream as the operation was cancelled");
+                }
+                else
+                {
+                    Log.LogDebug((int)EventIds.DoneProcessing, "Finished processing messages to upstream");
+                }
+            }
+
             internal static void IoTHubNotConnected(string id)
             {
                 Log.LogWarning((int)EventIds.IoTHubNotConnected, Invariant($"Could not get an active Iot Hub connection for client {id}"));
@@ -360,21 +356,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             {
                 Log.LogWarning((int)EventIds.InvalidMessage, ex, Invariant($"Non retryable exception occurred while sending message for client {id}."));
             }
-
-            public static void DoneProcessing(CancellationToken token)
-            {
-                if (token.IsCancellationRequested)
-                {
-                    Log.LogInformation((int)EventIds.CancelledProcessing, "Stopped sending messages to upstream as the operation was cancelled");
-                }
-                else
-                {
-                    Log.LogDebug((int)EventIds.DoneProcessing, "Finished processing messages to upstream");
-                }
-            }
         }
 
-        static class Metrics
+        static class MetricsV0
         {
             static readonly CounterOptions EdgeHubToCloudMessageCountOptions = new CounterOptions
             {
@@ -392,10 +376,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             };
 
             public static void MessageCount(string identity, int count)
-                => Util.Metrics.CountIncrement(GetTags(identity), EdgeHubToCloudMessageCountOptions, count);
+                => Util.Metrics.MetricsV0.CountIncrement(GetTags(identity), EdgeHubToCloudMessageCountOptions, count);
 
             public static IDisposable CloudLatency(string identity)
-                => Util.Metrics.Latency(GetTags(identity), EdgeHubToCloudMessageLatencyOptions);
+                => Util.Metrics.MetricsV0.Latency(GetTags(identity), EdgeHubToCloudMessageLatencyOptions);
 
             static MetricTags GetTags(string id)
             {

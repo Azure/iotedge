@@ -2,7 +2,7 @@
 set -ex
 
 main() {
-    local version=2.10.0
+    local version=2.12.0
 
     local arch=$1 \
           os=$2 \
@@ -20,6 +20,7 @@ main() {
         patch
         pkg-config
         zlib1g-dev
+        libpixman-1-dev
     )
 
     apt-get update

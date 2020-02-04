@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     /// <summary>
     /// In-memory checkpointer DAO (data access object)

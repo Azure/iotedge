@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using static System.FormattableString;
     using IMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
     using IRoutingMessage = Microsoft.Azure.Devices.Routing.Core.IMessage;
-    using ISinkResult = Microsoft.Azure.Devices.Routing.Core.ISinkResult<Devices.Routing.Core.IMessage>;
+    using ISinkResult = Microsoft.Azure.Devices.Routing.Core.ISinkResult<Microsoft.Azure.Devices.Routing.Core.IMessage>;
     using Option = Microsoft.Azure.Devices.Edge.Util.Option;
 
     public class ModuleEndpoint : Endpoint
@@ -161,8 +161,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     IMessage message = this.moduleEndpoint.messageConverter.ToMessage(routingMessage);
                     try
                     {
-                        await dp.SendMessageAsync(message, this.moduleEndpoint.Input);
-                        succeeded.Add(routingMessage);
+                        if (failed.Count == 0)
+                        {
+                            await dp.SendMessageAsync(message, this.moduleEndpoint.Input);
+                            succeeded.Add(routingMessage);
+                        }
+                        else
+                        {
+                            // if one failed, fail the rest, so retry will keep message order
+                            failed.Add(routingMessage);
+                        }
                     }
                     catch (Exception ex)
                     {

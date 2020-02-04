@@ -82,15 +82,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
         {
             if (logsContentEncoding == LogsContentEncoding.Gzip)
             {
-                return "gz";
+                return logsContentType == LogsContentType.Json ? "json.gz" : "log.gz";
             }
-
-            if (logsContentType == LogsContentType.Json)
+            else
             {
-                return "json";
+                return logsContentType == LogsContentType.Json ? "json" : "log";
             }
-
-            return "log";
         }
 
         internal string GetBlobName(string id, LogsContentEncoding logsContentEncoding, LogsContentType logsContentType)

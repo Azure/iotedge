@@ -2,7 +2,7 @@
 namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
 {
     using System;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class CheckpointData
     {

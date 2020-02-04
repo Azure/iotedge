@@ -13,6 +13,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+    using Microsoft.Azure.Devices.Routing.Core.Query.Types;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using static System.FormattableString;
@@ -72,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             }
         }
 
-        public async Task<long> Add(string endpointId, IMessage message)
+        public async Task<IMessage> Add(string endpointId, IMessage message)
         {
             Preconditions.CheckNotNull(message, nameof(message));
             if (!this.endpointSequentialStores.TryGetValue(Preconditions.CheckNonWhiteSpace(endpointId, nameof(endpointId)), out ISequentialStore<MessageRef> sequentialStore))
@@ -92,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             // entity store. But that should be rare enough that it might be okay. Also it is better than not being able to forward the message.
             // Alternative is to add retry logic to the pump, but that is more complicated, and could affect performance.
             // TODO - Need to support transactions for these operations. The underlying storage layers support it.
-            using (Metrics.MessageStoreLatency(endpointId))
+            using (MetricsV0.MessageStoreLatency(endpointId))
             {
                 await this.messageEntityStore.PutOrUpdate(
                     edgeMessageId,
@@ -106,11 +108,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
             try
             {
-                using (Metrics.SequentialStoreLatency(endpointId))
+                using (MetricsV0.SequentialStoreLatency(endpointId))
                 {
                     long offset = await sequentialStore.Append(new MessageRef(edgeMessageId));
                     Events.MessageAdded(offset, edgeMessageId, endpointId, this.messageCount);
-                    return offset;
+                    return new MessageWithOffset(message, offset);
                 }
             }
             catch (Exception)
@@ -164,7 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
             public MessageWrapper(IMessage message, DateTime timeStamp, int refCount)
             {
-                Preconditions.CheckArgument(timeStamp != default(DateTime));
+                Preconditions.CheckArgument(timeStamp != default);
                 this.Message = Preconditions.CheckNotNull(message, nameof(message));
                 this.TimeStamp = timeStamp;
                 this.RefCount = Preconditions.CheckRange(refCount, 0, nameof(refCount));
@@ -469,7 +471,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                             else
                             {
                                 messageWrapper
-                                    .Map(m => this.AddMessageOffset(m.Message, item.offset))
+                                    .Map(m => new MessageWithOffset(m.Message, item.offset))
                                     .ForEach(m => messageList.Add(m));
                             }
                         }
@@ -485,18 +487,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 }
 
                 return messageList;
-            }
-
-            IMessage AddMessageOffset(IMessage message, long offset)
-            {
-                return new Message(
-                    message.MessageSource,
-                    message.Body,
-                    message.Properties.ToDictionary(),
-                    message.SystemProperties.ToDictionary(),
-                    offset,
-                    message.EnqueuedTime,
-                    message.DequeuedTime);
             }
         }
 
@@ -523,7 +513,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             public DateTime TimeStamp { get; }
         }
 
-        static class Metrics
+        // Wrapper to allow adding offset to an existing IMessage object
+        class MessageWithOffset : IMessage
+        {
+            readonly IMessage inner;
+
+            public MessageWithOffset(IMessage message, long offset)
+            {
+                this.inner = Preconditions.CheckNotNull(message, nameof(message));
+                this.Offset = Preconditions.CheckRange(offset, 0, nameof(offset));
+            }
+
+            public void Dispose() => this.inner.Dispose();
+
+            public IMessageSource MessageSource => this.inner.MessageSource;
+
+            public byte[] Body => this.inner.Body;
+
+            public IReadOnlyDictionary<string, string> Properties => this.inner.Properties;
+
+            public IReadOnlyDictionary<string, string> SystemProperties => this.inner.SystemProperties;
+
+            public long Offset { get; }
+
+            public DateTime EnqueuedTime => this.inner.EnqueuedTime;
+
+            public DateTime DequeuedTime => this.inner.DequeuedTime;
+
+            public QueryValue GetQueryValue(string queryString) => this.inner.GetQueryValue(queryString);
+
+            public long Size() => this.inner.Size();
+        }
+
+        static class MetricsV0
         {
             static readonly TimerOptions MessageEntityStorePutOrUpdateLatencyOptions = new TimerOptions
             {
@@ -541,9 +563,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 RateUnit = TimeUnit.Seconds
             };
 
-            public static IDisposable MessageStoreLatency(string identity) => Util.Metrics.Latency(GetTags(identity), MessageEntityStorePutOrUpdateLatencyOptions);
+            public static IDisposable MessageStoreLatency(string identity) => Util.Metrics.MetricsV0.Latency(GetTags(identity), MessageEntityStorePutOrUpdateLatencyOptions);
 
-            public static IDisposable SequentialStoreLatency(string identity) => Util.Metrics.Latency(GetTags(identity), SequentialStoreAppendLatencyOptions);
+            public static IDisposable SequentialStoreLatency(string identity) => Util.Metrics.MetricsV0.Latency(GetTags(identity), SequentialStoreAppendLatencyOptions);
 
             internal static MetricTags GetTags(string id)
             {

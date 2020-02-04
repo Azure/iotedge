@@ -15,6 +15,7 @@ use mio_named_pipes::NamedPipe;
 use rand::Rng;
 use tokio::codec::{FramedRead, FramedWrite, LinesCodec};
 use tokio::io as tio;
+use winapi::shared::winerror::ERROR_FILE_NOT_FOUND;
 
 use tokio_named_pipe::PipeStream;
 
@@ -35,9 +36,12 @@ fn server() -> (NamedPipe, String) {
 }
 
 #[test]
-#[should_panic(expected = "The system cannot find the file specified")]
 fn connect_invalid_path() {
-    let _stream = PipeStream::connect(r"\\.\pipe\boo", None).unwrap();
+    let err = PipeStream::connect(r"\\.\pipe\boo", None).unwrap_err();
+    #[allow(clippy::cast_sign_loss)]
+    {
+        assert_eq!(err.raw_os_error().unwrap() as u32, ERROR_FILE_NOT_FOUND);
+    }
 }
 
 #[test]

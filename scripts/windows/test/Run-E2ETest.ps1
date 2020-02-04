@@ -38,17 +38,26 @@
     .PARAMETER ContainerRegistryPassword
         Password of given username for container registory
 
+    .PARAMETER DesiredModulesToRestartCSV
+        Optional CSV string of module names for long haul specifying what modules to restart. If specified, then "RestartIntervalInMins" must be specified as well.
+
     .PARAMETER IoTHubConnectionString
         IoT hub connection string for creating edge device
 
     .PARAMETER EventHubConnectionString
         Event hub connection string for receive D2C messages
 
+    .PARAMETER EventHubConsumerGroupId
+        Event hub consumer group id used by the Analyzer module to subscribe to events from the Event Hub endpoint.
+
     .PARAMETER ProxyUri
         (Optional) The URI of an HTTPS proxy server; if specified, all communications to IoT Hub will go through this proxy.
 
     .PARAMETER LoadGenMessageFrequency
         Frequency to send messages in LoadGen module for long haul and stress test. Default is 00.00.01 for long haul and 00:00:00.03 for stress test.
+
+    .PARAMETER RestartIntervalInMins
+        Optional value for long haul specifying how often a random module will restart. If specified, then "desiredModulesToRestartJsonPath" must be specified as well.
 
     .PARAMETER SnitchAlertUrl
         Alert Url pointing to Azure Logic App for email preparation and sending for long haul and stress test.
@@ -68,23 +77,62 @@
     .PARAMETER SnitchTestDurationInSecs
         Test duration in seconds for long haul and stress test.
 
-    .PARAMETER LoadGen1TransportType
-        Transport type for LoadGen1 for stress test. Default is amqp.
+    .PARAMETER TransportType1
+        Transport type for LoadGen1 and TwinTester1 for stress test. Default is amqp.
 
-    .PARAMETER LoadGen2TransportType
-        Transport type for LoadGen2 for stress test. Default is amqp.
+    .PARAMETER TransportType2
+        Transport type for LoadGen2 and TwinTester2 for stress test. Default is amqp.
 
-    .PARAMETER LoadGen3TransportType
-        Transport type for LoadGen3 for stress test. Default is mqtt.
+    .PARAMETER TransportType3
+        Transport type for LoadGen3 and TwinTester3 for stress test. Default is mqtt.
 
-    .PARAMETER LoadGen4TransportType
-        Transport type for LoadGen4 for stress test. Default is mqtt.
+    .PARAMETER TransportType4
+        Transport type for LoadGen4 and TwinTester4 for stress test. Default is mqtt.
 
     .PARAMETER AmqpSettingsEnabled
         Enable amqp protocol head in Edge Hub.
 
     .PARAMETER MqttSettingsEnabled
-        Enable mqtt protocol head in Edge Hub. 
+        Enable mqtt protocol head in Edge Hub.
+
+    .PARAMETER DpsScopeId
+        DPS scope id. Required only when using DPS to provision the device.
+
+    .PARAMETER DpsMasterSymmetricKey
+        DPS master symmetric key. Required only when using DPS symmetric key to provision the Edge device.
+    
+    .PARAMETER LogAnalyticsEnabled
+        Optional Log Analytics enable string for the Analyzer module. If LogAnalyticsEnabled is set to enable (true), the rest of Log Analytics parameters must be provided.
+
+    .PARAMETER LogAnalyticsWorkspaceId
+        Optional Log Analytics workspace ID for metrics collection and reporting.
+
+    .PARAMETER LogAnalyticsSharedKey
+        Optional Log Analytics shared key for metrics collection and reporting.
+
+    .PARAMETER LogAnalyticsLogType
+        Optional Log Analytics log type for the Analyzer module.
+
+    .PARAMETER TwinUpdateSize
+        Specifies the char count (i.e. size) of each twin update. Default is 1 for long haul and 100 for stress test.
+
+    .PARAMETER TwinUpdateFrequency
+        Frequency to make twin updates. This should be specified in DateTime format. Default is 00:00:15 for long haul and 00:00:05 for stress test.
+
+    .PARAMETER TwinUpdateFailureThreshold
+        Specifies the longest period of time a twin update can take before being marked as a failure. This should be specified in DateTime format. Default is 00:01:00
+
+    .PARAMETER MetricsEndpointsCSV
+        Optional CSV of exposed endpoints for which to scrape metrics.
+
+    .PARAMETER MetricsScrapeFrequencyInSecs
+        Optional frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds. 
+
+    .PARAMETER MetricsUploadTarget
+        Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics. 
+
+    .PARAMETER HostPlatform
+         Describes the host OS and cpu architecture. This information is added to scraped metrics.
 
     .EXAMPLE
         .\Run-E2ETest.ps1
@@ -115,6 +163,38 @@
             -EdgeE2ERootCAKeyRSAFile "file path"   #if not provided, a default path will be checked
             -EdgeE2ETestRootCAPassword "xxxx"
 
+        DPS symmetric key provisioning test command
+        .\Run-E2ETest.ps1
+            -E2ETestFolder "C:\Data\e2etests"
+            -ReleaseLabel "Release-ARM-1"
+            -ArtifactImageBuildNumber "20190101.1"
+            -TestName "DpsSymmetricKeyProvisioning"
+            -ContainerRegistry "yourpipeline.azurecr.io"
+            -ContainerRegistryUsername "xxxx"
+            -ContainerRegistryPassword "xxxx"
+            -IoTHubConnectionString "xxxx"
+            -EventHubConnectionString "xxxx"
+            -ProxyUri "http://proxyserver:3128"
+            -DpsScopeId "scope-id"
+            -DpsMasterSymmetricKey "key"
+
+        DPS X.509 provisioning test command using test generated identity certificates
+        .\Run-E2ETest.ps1
+            -E2ETestFolder "C:\Data\e2etests"
+            -ReleaseLabel "Release-ARM-1"
+            -ArtifactImageBuildNumber "20190101.1"
+            -TestName "DpsX509Provisioning"
+            -ContainerRegistry "yourpipeline.azurecr.io"
+            -ContainerRegistryUsername "xxxx"
+            -ContainerRegistryPassword "xxxx"
+            -IoTHubConnectionString "xxxx"
+            -EventHubConnectionString "xxxx"
+            -ProxyUri "http://proxyserver:3128"
+            -DpsScopeId "scope-id"
+            -EdgeE2ERootCACertRSAFile "file path"  #if not provided, a default path will be checked
+            -EdgeE2ERootCAKeyRSAFile "file path"   #if not provided, a default path will be checked
+            -EdgeE2ETestRootCAPassword "xxxx"
+
     .NOTES
         This script is to make running E2E tests easier and centralize E2E test steps in 1 place for reusability.
         It shares common tasks such as clean up and installation of IoT Edge Security Daemon.
@@ -133,7 +213,21 @@ Param (
     [ValidateNotNullOrEmpty()]
     [string] $ArtifactImageBuildNumber = $(Throw "Artifact image build number is required"),
 
-    [ValidateSet("All", "DirectMethodAmqp", "DirectMethodAmqpMqtt", "DirectMethodMqtt", "DirectMethodMqttAmqp", "LongHaul", "QuickstartCerts", "Stress", "TempFilter", "TempFilterFunctions", "TempSensor", "TransparentGateway")]
+    [ValidateSet("All",
+                 "DirectMethodAmqp",
+                 "DirectMethodAmqpMqtt",
+                 "DirectMethodMqtt",
+                 "DirectMethodMqttAmqp",
+                 "DpsSymmetricKeyProvisioning",
+                 "DpsTpmProvisioning",
+                 "DpsX509Provisioning",
+                 "LongHaul",
+                 "QuickstartCerts",
+                 "Stress",
+                 "TempFilter",
+                 "TempFilterFunctions",
+                 "TempSensor",
+                 "TransparentGateway")]
     [string] $TestName = "All",
 
     [ValidateNotNullOrEmpty()]
@@ -145,30 +239,46 @@ Param (
     [ValidateNotNullOrEmpty()]
     [string] $ContainerRegistryPassword = $(Throw "Container registry password is required"),
 
+    [string] $DesiredModulesToRestartCSV = $null,
+
     [ValidateNotNullOrEmpty()]
-    [string] $IoTHubConnectionString = $(Throw "IoT hub connection string is required"),
+    [string] $DpsScopeId = $null,
+
+    [ValidateNotNullOrEmpty()]
+    [string] $DpsMasterSymmetricKey = $null,
 
     [ValidateNotNullOrEmpty()]
     [string] $EventHubConnectionString = $(Throw "Event hub connection string is required"),
 
-    [ValidateNotNullOrEmpty()]
+    [string] $EventHubConsumerGroupId = '$Default',
+
     [string] $EdgeE2ERootCACertRSAFile = $null,
 
-    [ValidateNotNullOrEmpty()]
     [string] $EdgeE2ERootCAKeyRSAFile = $null,
 
     [ValidateNotNullOrEmpty()]
     [string] $EdgeE2ETestRootCAPassword = $null,
 
+    [ValidateNotNullOrEmpty()]
+    [string] $IoTHubConnectionString = $(Throw "IoT hub connection string is required"),
+
+    [string] $LoadGenMessageFrequency = $null,
+
+    [string] $MetricsEndpointsCSV = $null,
+
+    [string] $MetricsScrapeFrequencyInSecs = $null,
+
+    [string] $MetricsUploadTarget = $null,
+
     [ValidateScript({($_ -as [System.Uri]).AbsoluteUri -ne $null})]
     [string] $ProxyUri = $null,
 
-    [string] $LoadGenMessageFrequency = $null,
+    [string] $RestartIntervalInMins = $null,
 
     [ValidateNotNullOrEmpty()]
     [string] $SnitchAlertUrl = $null,
 
-    [string] $SnitchBuildNumber = "1.1",
+    [string] $SnitchBuildNumber = "1.2",
 
     [string] $SnitchReportingIntervalInSecs = $null,
 
@@ -180,13 +290,13 @@ Param (
 
     [string] $SnitchTestDurationInSecs = $null,
 
-    [string] $LoadGen1TransportType = "amqp",
+    [string] $TransportType1 = "amqp",
 
-    [string] $LoadGen2TransportType = "amqp",
+    [string] $TransportType2 = "amqp",
 
-    [string] $LoadGen3TransportType = "mqtt",
+    [string] $TransportType3 = "mqtt",
 
-    [string] $LoadGen4TransportType = "mqtt",
+    [string] $TransportType4 = "mqtt",
 
     [ValidateSet("true", "false")]
     [string] $AmqpSettingsEnabled = "true",
@@ -194,9 +304,34 @@ Param (
     [ValidateSet("true", "false")]
     [string] $MqttSettingsEnabled = "true",
 
-    [switch] $BypassEdgeInstallation
+    [ValidateSet("true", "false")]
+    [string] $LogAnalyticsEnabled = "false",
 
+    [string] $LogAnalyticsWorkspaceId = $null,
+
+    [string] $LogAnalyticsSharedKey = $null,
+
+    [string] $LogAnalyticsLogType = $null,
+
+    [string] $TwinUpdateSize = $null,
+
+    [string] $TwinUpdateFrequency = $null,
+
+    [string] $TwinUpdateFailureThreshold = $null,
+
+    [string] $HostPlatform = $null,
+
+    [switch] $BypassEdgeInstallation
 )
+
+Add-Type -TypeDefinition @"
+public enum DpsProvisioningType
+{
+    SymmetricKey = 0,
+    Tpm = 1,
+    X509 = 2,
+}
+"@
 
 Set-StrictMode -Version "Latest"
 $ErrorActionPreference = "Stop"
@@ -210,21 +345,6 @@ Function AppendInstallationOption([string] $testCommand)
     }
 
     Return $testCommand += " -a `"$IoTEdgedWorkingFolder`""
-}
-
-Function CleanUp
-{
-    PrintHighlightedMessage "Test Clean Up"
-
-    Write-Host "Uninstall iotedged"
-    Invoke-Expression $InstallationScriptPath
-    Uninstall-IoTEdge -Force
-
-    # This may require once IoT Edge created its only bridge network
-    #Write-Host "Remove nat VM switch"
-    #Remove-VMSwitch -Force 'nat' -ErrorAction SilentlyContinue
-    #Write-Host "Restart Host Network Service"
-    #Restart-Service -name hns
 }
 
 Function GetArchitecture
@@ -317,6 +437,7 @@ Function PrepareTestFromArtifacts
 
     # Deployment file
     If (($TestName -like "DirectMethod*") -Or
+        ($TestName -like "Dps*") -Or
         ($TestName -eq "LongHaul") -Or
         ($TestName -eq "Stress") -Or
         ($TestName -eq "TempFilter") -Or
@@ -354,36 +475,61 @@ Function PrepareTestFromArtifacts
                     }
                 }
             }
+            "Dps.*"
+            {
+                Write-Host "Copy deployment file from $QuickstartDeploymentArtifactFilePath"
+                Copy-Item $QuickstartDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
+            }
             {$_ -in "LongHaul","Stress"}
             {
                 If ($TestName -eq "LongHaul")
                 {
                     Write-Host "Copy deployment file from $LongHaulDeploymentArtifactFilePath"
                     Copy-Item $LongHaulDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
-                    (Get-Content $DeploymentWorkingFilePath).replace('<ServiceClientConnectionString>',$IoTHubConnectionString) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<DesiredModulesToRestartCSV>',$DesiredModulesToRestartCSV) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<RestartIntervalInMins>',$RestartIntervalInMins) | Set-Content $DeploymentWorkingFilePath
                 }
                 Else
                 {
                     Write-Host "Copy deployment file from $StressDeploymentArtifactFilePath"
                     Copy-Item $StressDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
-                    (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen1.TransportType>',$LoadGen1TransportType) | Set-Content $DeploymentWorkingFilePath
-                    (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen2.TransportType>',$LoadGen2TransportType) | Set-Content $DeploymentWorkingFilePath
-                    (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen3.TransportType>',$LoadGen3TransportType) | Set-Content $DeploymentWorkingFilePath
-                    (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen4.TransportType>',$LoadGen4TransportType) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<TransportType1>',$TransportType1) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<TransportType2>',$TransportType2) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<TransportType3>',$TransportType3) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<TransportType4>',$TransportType4) | Set-Content $DeploymentWorkingFilePath
                     (Get-Content $DeploymentWorkingFilePath).replace('<amqpSettings__enabled>',$AmqpSettingsEnabled) | Set-Content $DeploymentWorkingFilePath
                     (Get-Content $DeploymentWorkingFilePath).replace('<mqttSettings__enabled>',$MqttSettingsEnabled) | Set-Content $DeploymentWorkingFilePath
                 }
 
+                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.ConsumerGroupId>',$EventHubConsumerGroupId) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.EventHubConnectionString>',$EventHubConnectionString) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.LogAnalyticsEnabled>',$LogAnalyticsEnabled) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.LogAnalyticsLogType>',$LogAnalyticsLogType) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<LogAnalyticsWorkspaceId>',$LogAnalyticsWorkspaceId) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<LogAnalyticsSharedKey>',$LogAnalyticsSharedKey) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen.MessageFrequency>',$LoadGenMessageFrequency) | Set-Content $DeploymentWorkingFilePath
                 $escapedBuildId= $ArtifactImageBuildNumber -replace "\.",""
+                (Get-Content $DeploymentWorkingFilePath).replace('<ServiceClientConnectionString>',$IoTHubConnectionString) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.MetricsEndpointsCSV>',$MetricsEndpointsCSV) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.ScrapeFrequencyInSecs>',$MetricsScrapeFrequencyInSecs) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.UploadTarget>',$MetricsUploadTarget) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $HostPlatform).replace('<MetricsCollector.HostPlatform>',$HostPlatform) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.AlertUrl>',$SnitchAlertUrl) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildNumber>',$SnitchBuildNumber) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildId>',"$SnitchBuildNumber-$(GetImageArchitectureLabel)-linux-$escapedBuildId") | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildId>',"$ReleaseLabel-$(GetImageArchitectureLabel)-windows-$escapedBuildId") | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.ReportingIntervalInSecs>',$SnitchReportingIntervalInSecs) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.StorageAccount>',$SnitchStorageAccount) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.StorageMasterKey>',$SnitchStorageMasterKey) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.TestDurationInSecs>',$SnitchTestDurationInSecs) | Set-Content $DeploymentWorkingFilePath
+                $SnitcherBinds = "\""$($env:ProgramData.Replace("\", "\\\\"))\\\\iotedge\\\\mgmt:$($env:ProgramData.Replace("\", "\\\\"))\\\\iotedge\\\\mgmt\"""
+                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.Binds>',$SnitcherBinds) | Set-Content $DeploymentWorkingFilePath
+                $ManagementUri = "unix:///$($env:ProgramData.Replace("\", "/"))/iotedge/mgmt/sock"
+                (Get-Content $DeploymentWorkingFilePath).replace('<Management.Uri>',$ManagementUri) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<TwinUpdateSize>',$TwinUpdateSize) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<TwinUpdateFrequency>',$TwinUpdateFrequency) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<TwinUpdateFailureThreshold>',$TwinUpdateFailureThreshold) | Set-Content $DeploymentWorkingFilePath
+                $TrackingId = New-Guid
+                (Get-Content $DeploymentWorkingFilePath).replace('<TrackingId>',$TrackingId) | Set-Content $DeploymentWorkingFilePath
             }
             "TempFilter"
             {
@@ -395,7 +541,7 @@ Function PrepareTestFromArtifacts
                 Write-Host "Copy deployment file from $ModuleToFunctionDeploymentArtifactFilePath"
                 Copy-Item $ModuleToFunctionDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
             }
-            "TempSensor" # Only when $ProxyUri is specified
+            "TempSensor"
             {
                 Write-Host "Copy deployment file from $QuickstartDeploymentArtifactFilePath"
                 Copy-Item $QuickstartDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
@@ -558,35 +704,47 @@ Function RunAllTests
 
     $TestName = "DirectMethodAmqpMqtt"
     $testExitCode = RunDirectMethodAmqpMqttTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "DirectMethodMqtt"
     $testExitCode = RunDirectMethodMqttTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "DirectMethodMqttAmqp"
     $testExitCode = RunDirectMethodMqttAmqpTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
+
+    $TestName = "DpsSymmetricKeyProvisioning"
+    $testExitCode = RunDpsProvisioningTest ([DpsProvisioningType]::SymmetricKey)
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
+
+    $TestName = "DpsTpmProvisioning"
+    $testExitCode = RunDpsProvisioningTest ([DpsProvisioningType]::Tpm)
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
+
+    $TestName = "DpsX509Provisioning"
+    $testExitCode = RunDpsProvisioningTest ([DpsProvisioningType]::X509)
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "QuickstartCerts"
     $testExitCode = RunQuickstartCertsTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "TempFilter"
     $testExitCode = RunTempFilterTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "TempFilterFunctions"
     $testExitCode = RunTempFilterFunctionsTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "TempSensor"
     $testExitCode = RunTempSensorTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "TransparentGateway"
     $testExitCode = RunTransparentGatewayTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     Return $lastTestExitCode
 }
@@ -723,6 +881,79 @@ Function RunDirectMethodMqttAmqpTest
     Return $testExitCode
 }
 
+Function RunDpsProvisioningTest
+{
+    param
+    (
+        [DpsProvisioningType] $provisioningType
+    )
+
+    PrintHighlightedMessage "Run DPS provisioning test $provisioningType"
+    TestSetup
+
+    $testStartAt = Get-Date
+    $registrationId = "e2e-${ReleaseLabel}-Win-${Architecture}-DPS-$provisioningType"
+    PrintHighlightedMessage "Run DPS provisioning test $provisioningType for registration id ""$registrationId"" started at $testStartAt"
+
+    $testCommand = "&$IotEdgeQuickstartExeTestPath ``
+            -d `"$registrationId`" ``
+            -c `"$IoTHubConnectionString`" ``
+            -e `"$EventHubConnectionString`" ``
+            -n `"$env:computername`" ``
+            -r `"$ContainerRegistry`" ``
+            -u `"$ContainerRegistryUsername`" ``
+            -p `"$ContainerRegistryPassword`" ``
+            -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
+            -l `"$DeploymentWorkingFilePath`" ``
+            --dps-scope-id `"$DpsScopeId`" ``
+            $BypassInstallationFlag"
+
+    switch ($provisioningType) {
+        ([DpsProvisioningType]::SymmetricKey)
+        {
+            $testCommand = "$testCommand ``
+                --dps-registration-id `"$registrationId`" ``
+                --dps-master-symmetric-key `"$DpsMasterSymmetricKey`""
+        }
+
+        ([DpsProvisioningType]::Tpm)
+        {
+            $testCommand = "$testCommand ``
+                --dps-registration-id `"$registrationId`""
+        }
+
+        ([DpsProvisioningType]::X509)
+        {
+            # for windows X.509 mutual auth clients to work, the expectation is that the root
+            # and any intermediate certificates (public certs only) be installed in the certificate store
+            $installCACommand = "Import-Certificate -CertStoreLocation 'cert:\LocalMachine\Root' -FilePath $EdgeCertGenScriptDir\certs\azure-iot-test-only.root.ca.cert.pem"
+            Invoke-Expression $installCACommand | Out-Host
+            $installCACommand = "Import-Certificate -CertStoreLocation 'cert:\LocalMachine\Root' -FilePath $EdgeCertGenScriptDir\certs\azure-iot-test-only.intermediate.cert.pem"
+            Invoke-Expression $installCACommand | Out-Host
+
+            New-CACertsDevice "$registrationId"
+            $identityPkPath = "$EdgeCertGenScriptDir\private\iot-device-${registrationId}.key.pem"
+            $identityCertPath = "$EdgeCertGenScriptDir\certs\iot-device-${registrationId}-full-chain.cert.pem"
+
+            $testCommand = "$testCommand ``
+                --device_identity_pk `"$identityPkPath`" ``
+                --device_identity_cert `"$identityCertPath`""
+        }
+    }
+
+    If ($ProxyUri) {
+        $testCommand = "$testCommand ``
+            --upstream-protocol 'AmqpWs' ``
+            --proxy `"$ProxyUri`""
+    }
+    $testCommand = AppendInstallationOption($testCommand)
+    Invoke-Expression $testCommand | Out-Host
+    $testExitCode = $LastExitCode
+
+    PrintLogs $testStartAt $testExitCode
+    Return $testExitCode
+}
+
 Function RunQuickstartCertsTest
 {
     PrintHighlightedMessage "Run Quickstart Certs test for $Architecture"
@@ -781,7 +1012,6 @@ Function RunLongHaulTest
 
     $testStartAt = Get-Date
     $deviceId = "${ReleaseLabel}-Windows-${Architecture}-longHaul"
-    (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.DeviceID>',$deviceId) | Set-Content $DeploymentWorkingFilePath
     PrintHighlightedMessage "Run Long Haul test with -d ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``
@@ -813,7 +1043,6 @@ Function RunStressTest
 
     $testStartAt = Get-Date
     $deviceId = "${ReleaseLabel}-Windows-${Architecture}-stress"
-    (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.DeviceID>',$deviceId) | Set-Content $DeploymentWorkingFilePath
     PrintHighlightedMessage "Run Stress test with -d ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``
@@ -951,9 +1180,15 @@ Function RunLeafDeviceTest
     [ValidateSet("sas","x509CA","x509Thumprint")][string]$authType,
     [ValidateSet("Mqtt","MqttWs","Amqp", "AmqpWs")][string]$protocol,
     [ValidateNotNullOrEmpty()][string]$leafDeviceId,
-    [string]$edgeDeviceId
+    [string]$edgeDeviceId,
+    [bool]$useSecondaryCredential = $False
 )
 {
+
+    if ($leafDeviceId.Length -gt 64) {
+        throw "can't generate cert. asn1 device name length of 64 exceeded. $leafDeviceId"
+    }
+    
     $testCommand = $null
     switch ($authType) {
         "sas"
@@ -1026,6 +1261,11 @@ Function RunLeafDeviceTest
                 -ctsk `"$EdgeCertGenScriptDir\private\iot-device-${leafDeviceId}-sec.key.pem`" ``
                 -ed-id `"$edgeDeviceId`" ``
                 -ed `"$env:computername`""
+
+            If ($useSecondaryCredential) {
+                $testCommand = "$testCommand --use-secondary-credential"
+            }
+
             break
         }
 
@@ -1033,7 +1273,7 @@ Function RunLeafDeviceTest
         {
             $(Throw "Unsupported auth mode $authType")
         }
-     }
+    }
 
     If ($ProxyUri) {
         $testCommand = "$testCommand --proxy `"$ProxyUri`""
@@ -1051,26 +1291,11 @@ Function RunTransparentGatewayTest
 {
     PrintHighlightedMessage "Run Transparent Gateway test for $Architecture"
 
-    if ([string]::IsNullOrWhiteSpace($EdgeE2ERootCACertRSAFile))
-    {
-        $EdgeE2ERootCACertRSAFile=$DefaultInstalledRSARootCACert
-    }
-    if ([string]::IsNullOrWhiteSpace($EdgeE2ERootCAKeyRSAFile))
-    {
-        $EdgeE2ERootCAKeyRSAFile=$DefaultInstalledRSARootCAKey
-    }
     TestSetup
 
     $testStartAt = Get-Date
     $edgeDeviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-TransGW"
     PrintHighlightedMessage "Run transparent gateway test on device ""$edgeDeviceId"" started at $testStartAt."
-
-    # setup certificate generation tools to create the Edge device and leaf device certificates
-    PrepareCertificateTools
-    # dot source the certificate generation script
-    . "$EdgeCertGenScript"
-    # install the provided root CA to seed the certificate chain
-    Install-RootCACertificate $EdgeE2ERootCACertRSAFile $EdgeE2ERootCAKeyRSAFile "rsa" $EdgeE2ETestRootCAPassword
 
     # generate the edge gateway certs
     New-CACertsEdgeDevice $edgeDeviceId
@@ -1102,19 +1327,33 @@ Function RunTransparentGatewayTest
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
 
+    # if the deployment of edge runtime and modules fails, then return immediately.
+    If($LastExitCode -eq 1) {
+      Return $LastExitCode
+    }
+
     # run the various leaf device tests
     $deviceId = "e2e-${ReleaseLabel}-Win-${Architecture}"
-    RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-noscope-leaf" $null
-    RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-noscope-leaf" $null
 
-    RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-inscope-leaf" $edgeDeviceId
-    RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-inscope-leaf" $edgeDeviceId
+    # NOTE: device name cannot be > 64 chars because of asn1 limits for certs
+    # thus we're abbreviating noscope/inscope as no/in and leaf as lf, x509ca as x5c, x509th as x5t, pri as p, sec as s.
+    RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-no-lf" $null
+    RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-no-lf" $null
 
-    RunLeafDeviceTest "x509CA" "Mqtt" "$deviceId-mqtt-x509ca-inscope-leaf" $edgeDeviceId
-    RunLeafDeviceTest "x509CA" "Amqp" "$deviceId-amqp-x509ca-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-in-lf" $edgeDeviceId
+    RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-in-lf" $edgeDeviceId
 
-    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-x509th-inscope-leaf" $edgeDeviceId
-    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-x509th-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "x509CA" "Mqtt" "$deviceId-mqtt-x5c-in-lf" $edgeDeviceId
+    RunLeafDeviceTest "x509CA" "Amqp" "$deviceId-amqp-x5c-in-lf" $edgeDeviceId
+
+    # run thumbprint test using primary cert with MQTT
+    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-p-x5t-in-lf" $edgeDeviceId
+    # run thumbprint test using secondary cert with MQTT
+    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-s-x5t-in-lf" $edgeDeviceId $True
+    # run thumbprint test using primary cert with AMQP
+    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-p-x5t-in-lf" $edgeDeviceId
+    # run thumbprint test using secondary cert with AMQP
+    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-s-x5t-in-lf" $edgeDeviceId $True
 
     Return $testExitCode
 }
@@ -1123,6 +1362,21 @@ Function RunTest
 {
     $testExitCode = 0
 
+    If ($TestName -eq "DpsX509Provisioning" -Or $TestName -eq "TransparentGateway")
+    {
+        # setup certificate generation tools to create the Edge device and leaf device certificates
+        PrepareCertificateTools
+
+        # dot source the certificate generation script
+        . "$EdgeCertGenScript"
+
+        # install the provided root CA to seed the certificate chain
+        If ($EdgeE2ERootCACertRSAFile -and $EdgeE2ERootCAKeyRSAFile)
+        {
+            Install-RootCACertificate $EdgeE2ERootCACertRSAFile $EdgeE2ERootCAKeyRSAFile "rsa" $EdgeE2ETestRootCAPassword
+        }
+    }
+
     Switch ($TestName)
     {
         "All" { $testExitCode = RunAllTests; break }
@@ -1130,6 +1384,9 @@ Function RunTest
         "DirectMethodAmqpMqtt" { $testExitCode = RunDirectMethodAmqpMqttTest; break }
         "DirectMethodMqtt" { $testExitCode = RunDirectMethodMqttTest; break }
         "DirectMethodMqttAmqp" { $testExitCode = RunDirectMethodMqttAmqpTest; break }
+        "DpsSymmetricKeyProvisioning" { $testExitCode = RunDpsProvisioningTest ([DpsProvisioningType]::SymmetricKey); break }
+        "DpsTpmProvisioning" { $testExitCode = RunDpsProvisioningTest ([DpsProvisioningType]::Tpm); break }
+        "DpsX509Provisioning" { $testExitCode = RunDpsProvisioningTest ([DpsProvisioningType]::X509); break }
         "QuickstartCerts" { $testExitCode = RunQuickstartCertsTest; break }
         "LongHaul" { $testExitCode = RunLongHaulTest; break }
         "Stress" { $testExitCode = RunStressTest; break }
@@ -1153,10 +1410,16 @@ Function SetEnvironmentVariable
 
 Function TestSetup
 {
+    Write-Host "Environment setup..."
     ValidateTestParameters
     If (!$BypassEdgeInstallation)
     {
-        CleanUp | Out-Host
+        # Cleanup/Setup
+        $testCommand = "&$EnvSetupScriptPath ``
+            -ArtifactImageBuildNumber `"$ArtifactImageBuildNumber`" ``
+            -E2ETestFolder `"$E2ETestFolder`""
+
+        Invoke-Expression $testCommand | Out-Host
     }
     InitializeWorkingFolder
     PrepareTestFromArtifacts
@@ -1238,6 +1501,7 @@ Function ValidateTestParameters
         If ([string]::IsNullOrEmpty($SnitchAlertUrl)) {Throw "Required snith alert URL."}
         If ([string]::IsNullOrEmpty($SnitchStorageAccount)) {Throw "Required snitch storage account."}
         If ([string]::IsNullOrEmpty($SnitchStorageMasterKey)) {Throw "Required snitch storage master key."}
+        If ([string]::IsNullOrEmpty($HostPlatform)) {Throw "Required host platform."}
         If ($ProxyUri) {Throw "Proxy not supported for $TestName test"}
     }
 }
@@ -1251,12 +1515,13 @@ Function PrintHighlightedMessage
 
 $Architecture = GetArchitecture
 $OptimizeForPerformance=$True
-If ($Architecture -eq "arm32v7") 
+If ($Architecture -eq "arm32v7")
 {
     $OptimizeForPerformance=$False
 }
 $E2ETestFolder = (Resolve-Path $E2ETestFolder).Path
 $DefaultOpensslInstallPath = "C:\vcpkg\installed\x64-windows\tools\openssl"
+$EnvSetupScriptPath = Join-Path $E2ETestFolder "artifacts\core-windows\scripts\windows\test\Setup-Env.ps1"
 $InstallationScriptPath = Join-Path $E2ETestFolder "artifacts\core-windows\scripts\windows\setup\IotEdgeSecurityDaemon.ps1"
 $EdgeCertGenScriptDir = Join-Path $E2ETestFolder "artifacts\core-windows\CACertificates"
 $EdgeCertGenScript = Join-Path $EdgeCertGenScriptDir "ca-certs.ps1"
@@ -1296,11 +1561,40 @@ $IotEdgeQuickstartExeTestPath = (Join-Path $QuickstartWorkingFolder "IotEdgeQuic
 $LeafDeviceExeTestPath = (Join-Path $LeafDeviceWorkingFolder "LeafDevice.exe")
 $DeploymentWorkingFilePath = Join-Path $TestWorkingFolder "deployment.json"
 
+If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCACertRSAFile))
+{
+    $EdgeE2ERootCACertRSAFile=$DefaultInstalledRSARootCACert
+}
+
+If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCAKeyRSAFile))
+{
+    $EdgeE2ERootCAKeyRSAFile=$DefaultInstalledRSARootCAKey
+}
+
+If ([string]::IsNullOrWhiteSpace($TwinUpdateFailureThreshold))
+{
+    $TwinUpdateFailureThreshold="00:00:01"
+}
+
+If ([string]::IsNullOrWhiteSpace($MetricsScrapeFrequencyInSecs))
+{
+    $MetricsScrapeFrequencyInSecs=300;
+}
+
+If ([string]::IsNullOrWhiteSpace($MetricsUploadTarget))
+{
+    $MetricsScrapeFrequencyInSecs="AzureLogAnalytics";
+}
+
 If ($TestName -eq "LongHaul")
 {
+    If ([string]::IsNullOrEmpty($DesiredModulesToRestartCSV)) {$DesiredModulesToRestartCSV = ","}
     If ([string]::IsNullOrEmpty($LoadGenMessageFrequency)) {$LoadGenMessageFrequency = "00:00:01"}
+    If ([string]::IsNullOrEmpty($RestartIntervalInMins)) {$RestartIntervalInMins = "10"}
     If ([string]::IsNullOrEmpty($SnitchReportingIntervalInSecs)) {$SnitchReportingIntervalInSecs = "86400"}
     If ([string]::IsNullOrEmpty($SnitchTestDurationInSecs)) {$SnitchTestDurationInSecs = "604800"}
+    If ([string]::IsNullOrEmpty($TwinUpdateFrequency)) {$TwinUpdateSize = "00:00:15"}
+    If ([string]::IsNullOrEmpty($TwinUpdateSize)) {$TwinUpdateSize = "1"}
 }
 
 If ($TestName -eq "Stress")
@@ -1308,6 +1602,8 @@ If ($TestName -eq "Stress")
     If ([string]::IsNullOrEmpty($LoadGenMessageFrequency)) {$LoadGenMessageFrequency = "00:00:00.03"}
     If ([string]::IsNullOrEmpty($SnitchReportingIntervalInSecs)) {$SnitchReportingIntervalInSecs = "1700000"}
     If ([string]::IsNullOrEmpty($SnitchTestDurationInSecs)) {$SnitchTestDurationInSecs = "14400"}
+    If ([string]::IsNullOrEmpty($TwinUpdateFrequency)) {$TwinUpdateSize = "00:00:01"}
+    If ([string]::IsNullOrEmpty($TwinUpdateSize)) {$TwinUpdateSize = "100"}
 }
 
 If ($BypassEdgeInstallation)
@@ -1319,6 +1615,8 @@ Else
     $BypassInstallationFlag = $null
 }
 
-$retCode = RunTest
+# Evaluate collection of test results for final pass/fail result
+RunTest | ForEach-Object {$retCode = 0} {$retCode = $retCode -bor $_}
 Write-Host "Exit test with code $retCode"
+
 Exit $retCode -gt 0

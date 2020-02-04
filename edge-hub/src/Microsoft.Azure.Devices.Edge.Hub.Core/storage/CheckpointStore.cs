@@ -69,8 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         {
             return new CheckpointData(
                 checkpointEntity.Offset,
-                checkpointEntity.LastFailedRevivalTime.HasValue ? Devices.Routing.Core.Util.Option.Some(checkpointEntity.LastFailedRevivalTime.Value) : Devices.Routing.Core.Util.Option.None<DateTime>(),
-                checkpointEntity.UnhealthySince.HasValue ? Devices.Routing.Core.Util.Option.Some(checkpointEntity.UnhealthySince.Value) : Devices.Routing.Core.Util.Option.None<DateTime>());
+                checkpointEntity.LastFailedRevivalTime.HasValue ? Option.Some(checkpointEntity.LastFailedRevivalTime.Value) : Option.None<DateTime>(),
+                checkpointEntity.UnhealthySince.HasValue ? Option.Some(checkpointEntity.UnhealthySince.Value) : Option.None<DateTime>());
         }
 
         internal class CheckpointEntity

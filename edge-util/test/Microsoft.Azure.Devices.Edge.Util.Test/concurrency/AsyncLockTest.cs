@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util.Test.Concurrency
 {
+    using System;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
@@ -14,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Concurrency
         public void TestUnlockedPermitsLockSynchronously()
         {
             var mutex = new AsyncLock();
-            Task<AsyncLock.Releaser> lockTask = mutex.LockAsync();
+            Task<IDisposable> lockTask = mutex.LockAsync();
 
             Assert.True(lockTask.IsCompleted);
             Assert.False(lockTask.IsFaulted);
@@ -40,8 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Concurrency
                 });
             await locked.Task;
 
-            Task<Task<AsyncLock.Releaser>> t2Start = Task.Factory.StartNew(async () => await mutex.LockAsync());
-            Task<AsyncLock.Releaser> t2 = await t2Start;
+            Task<Task<IDisposable>> t2Start = Task.Factory.StartNew(async () => await mutex.LockAsync());
+            Task<IDisposable> t2 = await t2Start;
 
             Assert.False(t2.IsCompleted);
             cont.SetResult(true);
@@ -60,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Concurrency
             await Task.Run(
                 async () =>
                 {
-                    AsyncLock.Releaser key = await mutex.LockAsync();
+                    IDisposable key = await mutex.LockAsync();
                     key.Dispose();
                     key.Dispose();
                 });
@@ -76,8 +77,45 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Concurrency
                 });
             await t1HasLock.Task;
 
-            Task<Task<AsyncLock.Releaser>> task2Start = Task.Factory.StartNew(async () => await mutex.LockAsync());
-            Task<AsyncLock.Releaser> t2 = await task2Start;
+            Task<Task<IDisposable>> task2Start = Task.Factory.StartNew(async () => await mutex.LockAsync());
+            Task<IDisposable> t2 = await task2Start;
+
+            Assert.False(t2.IsCompleted);
+            t1Continue.SetResult(true);
+            await t2;
+            await t1;
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TestDoubleDisposeOnCopiedReleaserOnlyPermitsOneTask()
+        {
+            var mutex = new AsyncLock();
+            var t1HasLock = new TaskCompletionSource<bool>();
+            var t1Continue = new TaskCompletionSource<bool>();
+
+            await Task.Run(
+                async () =>
+                {
+                    var key1 = await mutex.LockAsync();
+                    var key2 = key1; // when releaser is valuetype, it duplicates mutable state
+                    key1.Dispose();
+                    key2.Dispose();
+                });
+
+            Task t1 = Task.Run(
+                async () =>
+                {
+                    using (await mutex.LockAsync())
+                    {
+                        t1HasLock.SetResult(true);
+                        await t1Continue.Task;
+                    }
+                });
+            await t1HasLock.Task;
+
+            Task<Task<IDisposable>> task2Start = Task.Factory.StartNew(async () => await mutex.LockAsync());
+            Task<IDisposable> t2 = await task2Start;
 
             Assert.False(t2.IsCompleted);
             t1Continue.SetResult(true);
@@ -93,7 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Concurrency
             var cts = new CancellationTokenSource();
 
             await mutex.LockAsync(cts.Token);
-            Task<AsyncLock.Releaser> canceled = mutex.LockAsync(cts.Token);
+            Task<IDisposable> canceled = mutex.LockAsync(cts.Token);
             cts.Cancel();
 
             await Assert.ThrowsAsync<TaskCanceledException>(() => canceled);

@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
 
-    class TwinStore : ITwinStore
+    public class TwinStore : ITwinStore
     {
         readonly IEntityStore<string, TwinStoreEntity> twinEntityStore;
 

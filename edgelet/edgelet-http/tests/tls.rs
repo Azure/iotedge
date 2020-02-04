@@ -1,18 +1,20 @@
 #![cfg(not(windows))]
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
+#![allow(clippy::must_use_candidate)]
 
 use std::env;
 
 use edgelet_core::crypto::CreateCertificate;
-use edgelet_core::{CertificateIssuer, CertificateProperties, CertificateType, IOTEDGED_CA_ALIAS};
+use edgelet_core::{
+    CertificateIssuer, CertificateProperties, CertificateType, Protocol, IOTEDGED_CA_ALIAS,
+};
 use edgelet_hsm::{Crypto, HsmLock};
 use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::route::{Builder, Parameters, RegexRoutesBuilder, Router};
-use edgelet_http::Error as HttpError;
 use edgelet_http::HyperExt;
+use edgelet_http::{Error as HttpError, TlsAcceptorParams};
 use edgelet_http::{Run, Version};
-use edgelet_test_utils::get_unused_tcp_port;
 
 use futures::{future, Future};
 use hyper::server::conn::Http;
@@ -42,9 +44,9 @@ fn tls_functional_test() {
 
     let client = hyper::Client::builder().build::<_, hyper::Body>(https_connector);
 
-    let port = get_unused_tcp_port();
+    let (server, port) = configure_test("https://localhost:0");
+    let server = server.map_err(|err| eprintln!("{}", err));
     let addr = format!("https://localhost:{}", port);
-    let server = configure_test(&addr).map_err(|err| eprintln!("{}", err));
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -57,14 +59,14 @@ fn tls_functional_test() {
     assert_eq!(res.status(), 200);
 }
 
-pub fn configure_test(address: &str) -> Run {
+pub fn configure_test(address: &str) -> (Run, u16) {
     // setup the IOTEDGE_HOMEDIR folder where certs can be generated and stored
     let home_dir = TempDir::new("tls_integration_test").unwrap();
     env::set_var(HOMEDIR_KEY, &home_dir.path());
     println!("IOTEDGE_HOMEDIR set to {:#?}", home_dir.path());
 
     let hsm_lock = HsmLock::new();
-    let crypto = Crypto::new(hsm_lock).unwrap();
+    let crypto = Crypto::new(hsm_lock, 1000).unwrap();
 
     // create the default issuing CA cert properties
     let edgelet_ca_props = CertificateProperties::new(
@@ -85,17 +87,20 @@ pub fn configure_test(address: &str) -> Run {
     )
     .with_issuer(CertificateIssuer::DeviceCa);
 
-    let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).unwrap();
+    let manager = CertificateManager::new(crypto, edgelet_cert_props).unwrap();
 
     let recognizer = RegexRoutesBuilder::default()
         .get(Version::Version2018_06_28, "/route1/hello", route1)
         .finish();
     let router = Router::from(recognizer);
 
-    Http::new()
-        .bind_url(Url::parse(address).unwrap(), router, Some(&manager))
-        .unwrap()
-        .run()
+    let tls_params = TlsAcceptorParams::new(&manager, Protocol::Tls12);
+
+    let server = Http::new()
+        .bind_url(Url::parse(address).unwrap(), router, Some(tls_params))
+        .unwrap();
+    let port = server.port().expect("HTTP server must have port");
+    (server.run(), port)
 }
 
 #[allow(clippy::needless_pass_by_value)]

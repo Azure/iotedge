@@ -26,6 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 string.Empty,
                 lastStartTimeUtc,
                 lastExitTimeUtc,
+                ImagePullPolicy.OnCreate,
                 null,
                 new Dictionary<string, EnvVal>());
 
@@ -42,6 +43,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     lastExitTimeUtc = lastExitTimeUtc,
                     statusDescription = string.Empty,
                     type = "docker",
+                    imagePullPolicy = "on-create",
+                    priority = Constants.HighestPriority,
                     settings = new
                     {
                         image = "booyah:latest",
@@ -87,6 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             // TODO - Change Config for Runtime to DockerReportedConfig.
             // Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig)?.ImageHash);
             Assert.Equal(lastStartTimeUtc, edgeAgent.LastStartTimeUtc);
+            Assert.Equal(Constants.HighestPriority, edgeAgent.Priority);
         }
 
         [Fact]
@@ -121,6 +125,43 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             // TODO - Change Config for Runtime to DockerReportedConfig.
             // Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig)?.ImageHash);
             Assert.Equal("bing", edgeAgent.ConfigurationInfo.Id);
+            Assert.Equal(Constants.HighestPriority, edgeAgent.Priority);
+        }
+
+        [Fact]
+        [Unit]
+        public void TestJsonDeserializeWithNonHighestPriority()
+        {
+            // Arrange
+            string json = JsonConvert.SerializeObject(
+                new
+                {
+                    type = "docker",
+                    runtimeStatus = "running",
+                    settings = new
+                    {
+                        image = "someImage",
+                        createOptions = "{}",
+                        imageHash = "someSha"
+                    },
+                    configuration = new
+                    {
+                        id = "bing"
+                    },
+                    priority = 10
+                });
+
+            // Act
+            var edgeAgent = JsonConvert.DeserializeObject<EdgeAgentDockerRuntimeModule>(json);
+
+            // Assert
+            Assert.Equal("docker", edgeAgent.Type);
+            Assert.Equal(ModuleStatus.Running, edgeAgent.RuntimeStatus);
+            Assert.Equal("someImage:latest", edgeAgent.Config.Image);
+            // TODO - Change Config for Runtime to DockerReportedConfig.
+            // Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig)?.ImageHash);
+            Assert.Equal("bing", edgeAgent.ConfigurationInfo.Id);
+            Assert.Equal(Constants.HighestPriority, edgeAgent.Priority);
         }
 
         [Fact]
@@ -136,6 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 string.Empty,
                 lastStartTimeUtc,
                 lastExitTimeUtc,
+                ImagePullPolicy.OnCreate,
                 new ConfigurationInfo("bing"),
                 new Dictionary<string, EnvVal>());
             var updatedModule1 = (EdgeAgentDockerRuntimeModule)module.WithRuntimeStatus(ModuleStatus.Running);

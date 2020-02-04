@@ -21,11 +21,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public virtual RestartPolicy RestartPolicy => RestartPolicy.Never;
 
+        public virtual ImagePullPolicy ImagePullPolicy => ImagePullPolicy.OnCreate;
+
+        public virtual uint Priority => Constants.DefaultPriority;
+
         public virtual ConfigurationInfo ConfigurationInfo => new ConfigurationInfo();
 
         public IDictionary<string, EnvVal> Env { get; } = ImmutableDictionary<string, EnvVal>.Empty;
 
-        public bool OnlyModuleStatusChanged(IModule other) => other is UnknownModule;
+        public bool IsOnlyModuleStatusChanged(IModule other) => other is UnknownModule;
 
         public bool Equals(IModule other) => other != null && ReferenceEquals(this, other);
     }
@@ -57,6 +61,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         [JsonIgnore]
         public override RestartPolicy RestartPolicy => RestartPolicy.Never;
+
+        [JsonIgnore]
+        public override ImagePullPolicy ImagePullPolicy => ImagePullPolicy.OnCreate;
 
         [JsonIgnore]
         public override ModuleStatus DesiredStatus => ModuleStatus.Unknown;

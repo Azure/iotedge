@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     /// - If a call fails, it goes to the Trying state, and tries to make another Iothub call.
     /// - If this call also fails, it goes into the disconnected state (else goes back to connected state)
     /// - In disconnected state, it tries to connect to IotHub periodically. If a call succeeds, then
-    /// then it goes back to connected state
+    /// then it goes back to connected state.
     /// </summary>
     public class DeviceConnectivityManager : IDeviceConnectivityManager
     {
@@ -282,7 +282,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             internal static void Created(TimeSpan connectedCheckFrequency, TimeSpan disconnectedCheckFrequency)
             {
-                Log.LogDebug((int)EventIds.Created, Invariant($"Created DeviceConnectivityManager with connected check frequency {connectedCheckFrequency} and disconnected check frequency {disconnectedCheckFrequency}"));
+                Log.LogInformation((int)EventIds.Created, Invariant($"Created DeviceConnectivityManager with connected check frequency {connectedCheckFrequency} and disconnected check frequency {disconnectedCheckFrequency}"));
             }
         }
     }

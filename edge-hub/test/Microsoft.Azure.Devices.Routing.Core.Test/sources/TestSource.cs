@@ -4,8 +4,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sources
     using System.Diagnostics.CodeAnalysis;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
-    using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
 
     [ExcludeFromCodeCoverage]
     public class TestSource : Source

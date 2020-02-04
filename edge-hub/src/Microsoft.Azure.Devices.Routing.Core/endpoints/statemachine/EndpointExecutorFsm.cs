@@ -9,10 +9,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Util;
-    using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
     using Microsoft.Extensions.Logging;
 
     public class EndpointExecutorFsm : IDisposable
@@ -484,7 +485,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                     // this router to make progress.
                     ICollection<IMessage> tocheckpoint = thisPtr.currentSendCommand.Messages;
                     Events.Dead(thisPtr, tocheckpoint);
-                    SendFailureDetails persistingFailureDetails = thisPtr.currentCheckpointCommand?.Result?.SendFailureDetails.GetOrElse(null);
+                    SendFailureDetails persistingFailureDetails = thisPtr.currentCheckpointCommand?.Result?.SendFailureDetails.GetOrElse(default(SendFailureDetails));
                     await RunInternalAsync(thisPtr, Commands.Checkpoint(new SinkResult<IMessage>(tocheckpoint, persistingFailureDetails)));
                 }
                 catch (Exception ex)

@@ -21,6 +21,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             int restartCount,
             DateTime lastRestartTime,
             ModuleStatus runtimeStatus,
+            ImagePullPolicy imagePullPolicy,
+            uint priority,
             ConfigurationInfo configuration,
             IDictionary<string, EnvVal> env,
             string version = "")
@@ -37,6 +39,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 restartCount,
                 lastRestartTime,
                 runtimeStatus,
+                imagePullPolicy,
+                priority,
                 configuration,
                 env)
         {
@@ -63,6 +67,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             int restartCount,
             DateTime lastRestartTimeUtc,
             ModuleStatus runtimeStatus,
+            ImagePullPolicy imagePullPolicy,
+            uint priority,
             ConfigurationInfo configurationInfo,
             IDictionary<string, EnvVal> env,
             string version = "")
@@ -77,6 +83,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 restartCount,
                 lastRestartTimeUtc,
                 runtimeStatus,
+                imagePullPolicy,
+                priority,
                 configurationInfo,
                 env,
                 version)
@@ -105,6 +113,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.RestartCount,
             this.LastRestartTimeUtc,
             newStatus,
+            this.ImagePullPolicy,
+            this.Priority,
             this.ConfigurationInfo,
             this.Env);
     }

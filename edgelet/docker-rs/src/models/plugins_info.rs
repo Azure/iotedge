@@ -9,11 +9,11 @@
  */
 
 /// PluginsInfo : Available plugins per type.  <p><br /></p>  > **Note**: Only unmanaged (V1) plugins are included in this list. > V1 plugins are \"lazily\" loaded, and are not returned in this list > if there is no resource using the plugin.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct PluginsInfo {
     /// Names of available volume-drivers, and network-driver plugins.
     #[serde(rename = "Volume", skip_serializing_if = "Option::is_none")]

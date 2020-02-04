@@ -2,6 +2,7 @@
 
 #![deny(unused_extern_crates, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
+#![allow(clippy::must_use_candidate)]
 
 use std::str;
 use std::sync::Mutex;

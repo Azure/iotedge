@@ -9,11 +9,11 @@
  */
 
 /// NodeStatus : NodeStatus represents the status of a node.  It provides the current status of the node, as seen by the manager.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct NodeStatus {
     #[serde(rename = "State", skip_serializing_if = "Option::is_none")]
     state: Option<crate::models::NodeState>,

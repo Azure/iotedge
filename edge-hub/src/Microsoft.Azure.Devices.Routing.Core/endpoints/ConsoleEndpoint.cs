@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
     using System.Globalization;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core.Util;
 

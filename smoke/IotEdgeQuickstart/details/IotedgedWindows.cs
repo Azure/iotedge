@@ -55,7 +55,7 @@ namespace IotEdgeQuickstart.Details
 
         public async Task VerifyModuleIsRunning(string name)
         {
-            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(20))) // This long timeout is needed for resource constrained devices pulling the large tempFilterFunctions image
             {
                 try
                 {
@@ -111,11 +111,11 @@ namespace IotEdgeQuickstart.Details
             return Task.CompletedTask;
         }
 
-        public async Task Configure(string connectionString, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
+        public async Task Configure(DeviceProvisioningMethod method, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
         {
             const string HidePowerShellProgressBar = "$ProgressPreference='SilentlyContinue'";
 
-            Console.WriteLine($"Setting up iotedged with agent image '{image}'");
+            Console.WriteLine($"Setting up iotedged with agent image 1.0");
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
             {
@@ -138,8 +138,8 @@ namespace IotEdgeQuickstart.Details
                 if (this.requireEdgeInstallation)
                 {
                     Console.WriteLine("Installing iotedge...");
-                    args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Install-SecurityDaemon -Manual " +
-                           $"-ContainerOs Windows -DeviceConnectionString '{connectionString}' -AgentImage '{image}'";
+                    args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Install-SecurityDaemon " +
+                           $"-ContainerOs Windows";
 
                     this.proxy.ForEach(proxy => { args += $" -Proxy '{proxy}'"; });
 
@@ -151,19 +151,31 @@ namespace IotEdgeQuickstart.Details
                 else
                 {
                     Console.WriteLine("Initializing iotedge...");
-                    args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Initialize-IoTEdge -Manual " +
-                           $"-ContainerOs Windows -DeviceConnectionString '{connectionString}' -AgentImage '{image}'";
+                    args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Initialize-IoTEdge " +
+                           $"-ContainerOs Windows";
                 }
 
-                string commandForDebug = args;
+                args += method.Dps.Map(
+                    dps =>
+                    {
+                        string dpsArgs = string.Empty;
+                        dpsArgs += $" -Dps -ScopeId '{dps.ScopeId}'";
+                        dps.RegistrationId.ForEach(id => { dpsArgs += $" -RegistrationId '{id}'"; });
+                        dps.DeviceIdentityCertificate.ForEach(certPath => { dpsArgs += $" -X509IdentityCertificate '{certPath}'"; });
+                        dps.DeviceIdentityPrivateKey.ForEach(pkPath => { dpsArgs += $" -X509IdentityPrivateKey '{pkPath}'"; });
+                        dps.SymmetricKey.ForEach(symmKey => { dpsArgs += $" -SymmetricKey '{symmKey}'"; });
+                        return dpsArgs;
+                    }).GetOrElse(string.Empty);
 
-                foreach (RegistryCredentials c in this.credentials)
-                {
-                    args += $" -Username '{c.User}' -Password (ConvertTo-SecureString '{c.Password}' -AsPlainText -Force)";
-                }
+                // ***************************************************************
+                // IMPORTANT: All secret/sensitive argument should be place below.
+                // ***************************************************************
+                Console.WriteLine($"Run command arguments to configure: {args}");
+
+                args += method.ManualConnectionString.Map(
+                    cs => { return $" -Manual -DeviceConnectionString '{cs}'"; }).GetOrElse(string.Empty);
 
                 // note: ignore hostname for now
-                Console.WriteLine($"Run command to configure: {commandForDebug}");
                 string[] result = await Process.RunAsync("powershell", $"{HidePowerShellProgressBar}; {args}", cts.Token);
                 WriteToConsole("Output from Configure iotedge windows service", result);
 
@@ -259,6 +271,15 @@ namespace IotEdgeQuickstart.Details
 
         public Task Reset() => Task.CompletedTask;
 
+        static void WriteToConsole(string header, string[] result)
+        {
+            Console.WriteLine(header);
+            foreach (string r in result)
+            {
+                Console.WriteLine(r);
+            }
+        }
+
         void UpdateConfigYamlFile(string deviceCaCert, string deviceCaPk, string trustBundleCerts, LogLevel runtimeLogLevel)
         {
             string config = File.ReadAllText(this.configYamlFile);
@@ -301,15 +322,6 @@ namespace IotEdgeQuickstart.Details
 
             Console.WriteLine($"Explicitly set environment variable [IOTEDGE_HOST={result.Groups[1].Value}]");
             Environment.SetEnvironmentVariable("IOTEDGE_HOST", result.Groups[1].Value);
-        }
-
-        static void WriteToConsole(string header, string[] result)
-        {
-            Console.WriteLine(header);
-            foreach (string r in result)
-            {
-                Console.WriteLine(r);
-            }
         }
     }
 }

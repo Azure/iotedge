@@ -68,6 +68,9 @@ pub enum ErrorKind {
     #[fail(display = "Invalid module type {:?}", _0)]
     InvalidModuleType(String),
 
+    #[fail(display = "Invalid socket URI: {:?}", _0)]
+    InvalidSocketUri(String),
+
     #[fail(display = "{}", _0)]
     ModuleOperation(ModuleOperation),
 

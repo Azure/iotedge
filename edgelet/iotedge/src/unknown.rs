@@ -18,7 +18,7 @@ impl Unknown {
 impl Command for Unknown {
     type Future = FutureResult<(), Error>;
 
-    fn execute(&mut self) -> Self::Future {
+    fn execute(self) -> Self::Future {
         eprintln!("unknown command: {}", self.command);
         future::ok(())
     }

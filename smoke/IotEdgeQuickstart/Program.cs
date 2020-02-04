@@ -2,7 +2,10 @@
 namespace IotEdgeQuickstart
 {
     using System;
+    using System.IO;
     using System.Runtime.InteropServices;
+    using System.Security.Cryptography;
+    using System.Text;
     using System.Threading.Tasks;
     using IotEdgeQuickstart.Details;
     using McMaster.Extensions.CommandLineUtils;
@@ -48,7 +51,6 @@ Defaults:
                              Sockets, otherwise N/A
                              switch form uses local IP address as hostname
   --username                 anonymous, or Key Vault if --registry is specified
-  --no-deployment            deploy Edge Hub and temperature sensor modules
   --no-verify                false
   --optimize_for_performance true
   --verify-data-from-module  tempSensor
@@ -96,9 +98,6 @@ Defaults:
         [Option("--leave-running=<All/Core/None>", CommandOptionType.SingleOrNoValue, Description = "Leave IoT Edge running when the app is finished")]
         public LeaveRunning LeaveRunning { get; } = LeaveRunning.None;
 
-        [Option("--no-deployment", CommandOptionType.NoValue, Description = "Don't deploy Edge Hub and temperature sensor modules")]
-        public bool NoDeployment { get; } = false;
-
         [Option("--no-verify", CommandOptionType.NoValue, Description = "Don't verify the behavior of the deployment (e.g.: temp sensor)")]
         public bool NoVerify { get; } = false;
 
@@ -140,6 +139,24 @@ Defaults:
 
         [Option("--offline-installation-path <path>", Description = "Packages folder for offline installation")]
         public string OfflineInstallationPath { get; } = string.Empty;
+
+        [Option("--dps-scope-id", Description = "Optional input applicable only when using DPS for provisioning the IoT Edge")]
+        public string DPSScopeId { get; } = string.Empty;
+
+        [Option("--dps-registration-id", Description = "Optional input applicable only when using DPS for provisioning the IoT Edge. This is the expected to be the device id in IoT Hub when provisioning completes.")]
+        public string DPSRegistrationId { get; } = string.Empty;
+
+        [Option("--dps-endpoint", Description = "Optional input applicable only when using DPS for provisioning the IoT Edge")]
+        public string DPSEndpoint { get; } = "https://global.azure-devices-provisioning.net";
+
+        [Option("--dps-master-symmetric-key", Description = "Optional input applicable only when using the DPS symmetric key flow to provisioning the IoT Edge")]
+        public string DPSMasterSymmetricKey { get; } = string.Empty;
+
+        [Option("--device_identity_cert", Description = "Optional path to the device identity full chain certificate. Used for either DPS or manual provisioning flows.")]
+        public string DeviceIdentityCert { get; } = string.Empty;
+
+        [Option("--device_identity_pk", Description = "Optional path to the device identity private key file. Used for either DPS or manual provisioning flows")]
+        public string DeviceIdentityPk { get; } = string.Empty;
 
         // ReSharper disable once UnusedMember.Local
         static int Main(string[] args) => CommandLineApplication.ExecuteAsync<Program>(args).Result;
@@ -192,15 +209,46 @@ Defaults:
                         }
 
                         break;
-                    case BootstrapperType.Iotedgectl:
-                        bootstrapper = new Iotedgectl(this.BootstrapperArchivePath, credentials);
-                        break;
                     default:
                         throw new ArgumentException("Unknown BootstrapperType");
                 }
 
                 string connectionString = this.IotHubConnectionString ??
                                           await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+
+                Option<DPSAttestation> dpsAttestation = Option.None<DPSAttestation>();
+                if (!string.IsNullOrEmpty(this.DPSScopeId))
+                {
+                    if (string.IsNullOrEmpty(this.DPSEndpoint))
+                    {
+                        throw new ArgumentException("DPS Endpoint cannot be null or empty if a DPS is being used");
+                    }
+
+                    if (string.IsNullOrEmpty(this.DPSMasterSymmetricKey))
+                    {
+                        if (string.IsNullOrEmpty(this.DeviceIdentityCert) || !File.Exists(this.DeviceIdentityCert))
+                        {
+                            throw new ArgumentException("Device identity certificate path is invalid");
+                        }
+
+                        if (string.IsNullOrEmpty(this.DeviceIdentityPk) || !File.Exists(this.DeviceIdentityPk))
+                        {
+                            throw new ArgumentException("Device identity private key is invalid");
+                        }
+
+                        dpsAttestation = Option.Some(new DPSAttestation(this.DPSEndpoint, this.DPSScopeId, Option.None<string>(), this.DeviceIdentityCert, this.DeviceIdentityPk));
+                    }
+                    else
+                    {
+                        if (!string.IsNullOrEmpty(this.DeviceIdentityCert) || !string.IsNullOrEmpty(this.DeviceIdentityPk))
+                        {
+                            throw new ArgumentException("Both device identity certificate and DPS symmetric key cannot be set");
+                        }
+
+                        string deviceKey = this.ComputeDerivedSymmetricKey(Convert.FromBase64String(this.DPSMasterSymmetricKey), this.DPSRegistrationId);
+                        dpsAttestation = Option.Some(new DPSAttestation(this.DPSEndpoint, this.DPSScopeId, this.DPSRegistrationId, deviceKey));
+                    }
+                }
 
                 string endpoint = this.EventHubCompatibleEndpointWithEntityPath ??
                                   await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
@@ -222,7 +270,6 @@ Defaults:
                     this.DeviceId,
                     this.EdgeHostname,
                     this.LeaveRunning,
-                    this.NoDeployment,
                     this.NoVerify,
                     this.BypassEdgeInstallation,
                     this.VerifyDataFromModule,
@@ -233,7 +280,8 @@ Defaults:
                     this.DeviceCaCerts,
                     this.OptimizeForPerformance,
                     this.RuntimeLogLevel,
-                    this.CleanUpExistingDeviceOnSuccess);
+                    this.CleanUpExistingDeviceOnSuccess,
+                    dpsAttestation);
                 await test.RunAsync();
             }
             catch (Exception ex)
@@ -256,6 +304,14 @@ Defaults:
             string value = await SecretsHelper.GetSecret(key);
             string[] vals = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             return (vals[0], vals[1]);
+        }
+
+        string ComputeDerivedSymmetricKey(byte[] masterKey, string registrationId)
+        {
+            using (var hmac = new HMACSHA256(masterKey))
+            {
+                return Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(registrationId)));
+            }
         }
     }
 

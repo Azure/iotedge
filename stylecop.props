@@ -1,6 +1,6 @@
 <Project>
-  <ItemGroup  Condition="'$(Configuration)' != 'Debug'">
-    <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta004">
+  <ItemGroup Condition="'$(Configuration)' != 'Debug'">
+    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>

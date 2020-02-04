@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
     using global::Docker.DotNet;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
     using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Reporters;
@@ -40,10 +41,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
             //         "version": "1.0",
             //         "image": "mongo:3.4.4",
             //         "imageCreateOptions": "{\"HostConfig\": {\"PortBindings\": {\"80/tcp\": [{\"HostPort\": \"8080\"}]}}}",
+            //         "imagePullPolicyTestConfig": {
+            //             "imagePullPolicy": "on-create",
+            //             "pullImage": "false"
+            //         },
             //         "validator": {
             //             "$type": "RunCommandValidator",
             //             "command": "docker",
             //             "args": "run --rm --link mongo-server:mongo-server mongo:3.4.4 sh -c \"exec mongo --quiet --eval 'db.serverStatus().version' mongo-server:27017/test\"",
+            //             "exitCode": 0,
             //             "outputEquals": "3.4.4"
             //         }
             //      }
@@ -53,6 +59,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
             // We provide the mapping from the value of "$type" to a fully qualified .NET type name by providing
             // a "serialization binder" - in our case this is an instance of TypeNameSerializationBinder. The JSON
             // deserializer consults the TypeNameSerializationBinder instance to determine what type to instantiate.
+            //
+            // The "pullPolicyTestConfig" configuration is optional. It's intended for cases where we wish to test
+            // the behavior of the Agent based on the pull policy specified for a module.
+            //
+            // The "exitCode" configuration is optional. By default it's expected value is assumed to be 0.
             Type agentTestsType = typeof(AgentTests);
             string format = $"{agentTestsType.Namespace}.{{0}}, {agentTestsType.Assembly.GetName().Name}";
             var settings = new JsonSerializerSettings()
@@ -91,10 +102,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 // from previous test runs.
                 await RemoveContainer(client, testConfig);
 
+                // Remove old images and pull a new image if specified in the test config.
+                await PullImage(client, testConfig);
+
                 // Initialize docker configuration for this module.
                 DockerConfig dockerConfig = testConfig.ImageCreateOptions != null
                     ? new DockerConfig(testConfig.Image, testConfig.ImageCreateOptions)
                     : new DockerConfig(testConfig.Image);
+
+                ImagePullPolicy imagePullPolicy = ImagePullPolicy.OnCreate;
+                testConfig.ImagePullPolicyTestConfig.ForEach(p => imagePullPolicy = p.ImagePullPolicy);
 
                 // Initialize an Edge Agent module object.
                 var dockerModule = new DockerModule(
@@ -103,6 +120,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     ModuleStatus.Running,
                     global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy,
                     dockerConfig,
+                    imagePullPolicy,
+                    Constants.DefaultPriority,
                     null,
                     null);
                 var modules = new Dictionary<string, IModule> { [testConfig.Name] = dockerModule };
@@ -142,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
                 var dockerCommandFactory = new DockerCommandFactory(client, loggingConfig, configSource.Object, new CombinedDockerConfigProvider(Enumerable.Empty<AuthConfig>()));
                 IRuntimeInfoProvider runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(client);
-                IEnvironmentProvider environmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, restartStateStore, restartManager);
+                IEnvironmentProvider environmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, restartStateStore, restartManager, CancellationToken.None);
 
                 var logFactoryMock = new Mock<ILoggerFactory>();
                 var logMock = new Mock<ILogger<LoggingCommandFactory>>();
@@ -160,6 +179,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 }.ToImmutableDictionary();
                 var moduleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
                 moduleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>())).Returns(Task.FromResult(identities));
+                var availabilityMetric = Mock.Of<IAvailabilityMetric>();
 
                 Agent agent = await Agent.Create(
                     configSource.Object,
@@ -170,7 +190,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     environmentProvider,
                     configStore,
                     deploymentConfigInfoSerde,
-                    NullEncryptionProvider.Instance);
+                    NullEncryptionProvider.Instance,
+                    availabilityMetric);
                 await agent.ReconcileAsync(CancellationToken.None);
 
                 // Sometimes the container is still not ready by the time we run the validator.
@@ -215,6 +236,41 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 Force = true
             };
             await Task.WhenAll(toBeRemoved.Select(c => client.Containers.RemoveContainerAsync(c.ID, removeParams)));
+        }
+
+        static async Task PullImage(IDockerClient client, TestConfig testConfig)
+        {
+            // First, delete the image if it's already present.
+            IList<ImagesListResponse> images = await client.Images.ListImagesAsync(
+                new ImagesListParameters
+                {
+                    MatchName = testConfig.Image,
+                });
+
+            foreach (ImagesListResponse image in images)
+            {
+                await client.Images.DeleteImageAsync(
+                    image.ID,
+                    new ImageDeleteParameters
+                    {
+                        Force = true,
+                    });
+            }
+
+            bool pullImage = false;
+            testConfig.ImagePullPolicyTestConfig.ForEach(p => pullImage = p.PullImage);
+
+            // Pull the image if the test config specifies that the image should be pulled.
+            if (pullImage)
+            {
+                await client.Images.CreateImageAsync(
+                    new ImagesCreateParameters
+                    {
+                        FromImage = testConfig.Image,
+                    },
+                    new AuthConfig(),
+                    new Progress<JSONMessage>());
+            }
         }
     }
 }

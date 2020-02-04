@@ -2,12 +2,21 @@
 
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-#![allow(clippy::module_name_repetitions, clippy::use_self)]
+#![allow(
+    clippy::default_trait_access,
+    clippy::doc_markdown, // clippy wants the "IoT" of "IoT Hub" in a code fence
+    clippy::missing_errors_doc,
+    clippy::module_name_repetitions,
+    clippy::must_use_candidate,
+    clippy::too_many_lines,
+    clippy::use_self
+)]
 
 mod error;
 mod logging;
 pub mod macros;
 mod ser_de;
+mod yaml_file_source;
 
 use std::collections::HashMap;
 
@@ -15,6 +24,7 @@ pub use crate::error::{Error, ErrorKind};
 pub use crate::logging::log_failure;
 pub use crate::macros::ensure_not_empty_with_context;
 pub use crate::ser_de::{serde_clone, serialize_ordered, string_or_struct};
+pub use crate::yaml_file_source::YamlFileSource;
 
 pub fn parse_query(query: &str) -> HashMap<&str, &str> {
     query

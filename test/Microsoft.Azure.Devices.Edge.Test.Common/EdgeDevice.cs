@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Serilog;
 
     public class EdgeDevice
@@ -27,15 +28,24 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public string Id => this.device.Id;
 
+        public string HubHostname => this.iotHub.Hostname;
+
         public static Task<EdgeDevice> CreateIdentityAsync(
             string deviceId,
             IotHub iotHub,
+            AuthenticationType authType,
+            X509Thumbprint x509Thumbprint,
             CancellationToken token)
         {
+            if (authType == AuthenticationType.SelfSigned && x509Thumbprint == null)
+            {
+                throw new ArgumentException("A device created with self-signed mechanism must provide an x509 thumbprint.");
+            }
+
             return Profiler.Run(
                 async () =>
                 {
-                    Device device = await iotHub.CreateEdgeDeviceIdentityAsync(deviceId, token);
+                    Device device = await iotHub.CreateEdgeDeviceIdentityAsync(deviceId, authType, x509Thumbprint, token);
                     return new EdgeDevice(device, true, iotHub);
                 },
                 "Created edge device '{Device}' on hub '{IotHub}'",
@@ -43,10 +53,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 iotHub.Hostname);
         }
 
-        public static async Task<EdgeDevice> GetOrCreateIdentityAsync(
+        public static async Task<Option<EdgeDevice>> GetIdentityAsync(
             string deviceId,
             IotHub iotHub,
-            CancellationToken token)
+            CancellationToken token,
+            bool takeOwnership = false)
         {
             Device device = await iotHub.GetDeviceIdentityAsync(deviceId, token);
             if (device != null)
@@ -56,25 +67,39 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     throw new InvalidOperationException($"Device '{device.Id}' exists, but is not an edge device");
                 }
 
-                Log.Information(
-                    "Device '{Device}' already exists on hub '{IotHub}'",
-                    device.Id,
-                    iotHub.Hostname);
-                return new EdgeDevice(device, false, iotHub);
+                return Option.Some(new EdgeDevice(device, takeOwnership, iotHub));
             }
             else
             {
-                return await CreateIdentityAsync(deviceId, iotHub, token);
+                return Option.None<EdgeDevice>();
             }
         }
 
-        public Task DeleteIdentityAsync(CancellationToken token)
+        public static async Task<EdgeDevice> GetOrCreateIdentityAsync(
+            string deviceId,
+            IotHub iotHub,
+            AuthenticationType authType,
+            X509Thumbprint x509Thumbprint,
+            CancellationToken token)
         {
-            return Profiler.Run(
-                () => this.iotHub.DeleteDeviceIdentityAsync(this.device, token),
-                "Deleted device '{Device}'",
-                this.Id);
+            Option<EdgeDevice> device = await GetIdentityAsync(deviceId, iotHub, token);
+            return await device.Match(
+                d =>
+                {
+                    Log.Information(
+                        "Device '{Device}' already exists on hub '{IotHub}'",
+                        d.Id,
+                        iotHub.Hostname);
+                    return Task.FromResult(d);
+                },
+                () => CreateIdentityAsync(deviceId, iotHub, authType, x509Thumbprint, token));
         }
+
+        public Task DeleteIdentityAsync(CancellationToken token) =>
+            Profiler.Run(
+                () => this.iotHub.DeleteDeviceIdentityAsync(this.device, token),
+                "Deleted edge device '{Device}'",
+                this.Id);
 
         public async Task MaybeDeleteIdentityAsync(CancellationToken token)
         {

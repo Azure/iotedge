@@ -9,11 +9,11 @@
  */
 
 /// TaskSpecResources : Resource requirements which apply to each individual container created as part of the service.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct TaskSpecResources {
     /// Define resources limits.
     #[serde(rename = "Limits", skip_serializing_if = "Option::is_none")]

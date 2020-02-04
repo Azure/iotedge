@@ -591,6 +591,8 @@ static void hsm_client_tpm_free_buffer(void* buffer)
 
 int hsm_client_tpm_device_init(void)
 {
+    log_init(LVL_INFO);
+
     return 0;
 }
 

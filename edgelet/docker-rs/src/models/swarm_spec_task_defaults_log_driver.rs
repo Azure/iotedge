@@ -9,11 +9,11 @@
  */
 
 /// SwarmSpecTaskDefaultsLogDriver : The log driver to use for tasks created in the orchestrator if unspecified by a service.  Updating this value only affects new tasks. Existing tasks continue to use their previously configured log driver until recreated.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct SwarmSpecTaskDefaultsLogDriver {
     /// The log driver to use as a default for new tasks.
     #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]

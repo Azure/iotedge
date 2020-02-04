@@ -4,7 +4,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
     using System;
     using System.Globalization;
     using System.Threading;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class AsyncEndpointExecutorOptions
     {

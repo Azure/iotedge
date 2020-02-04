@@ -16,6 +16,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
         public string OutputEquals { get; set; }
 
+        public int ExitCode { get; set; }
+
         public override bool Validate()
         {
             var process = new Process
@@ -34,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
             process.BeginOutputReadLine();
             process.WaitForExit();
 
-            return process.ExitCode == 0 && output == this.OutputEquals;
+            return process.ExitCode == this.ExitCode && output == this.OutputEquals;
         }
     }
 }

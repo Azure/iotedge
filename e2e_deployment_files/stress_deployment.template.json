@@ -23,6 +23,14 @@
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
+            },
+            "env": {
+              "experimentalfeatures__enabled": {
+                  "value": "true"
+              },
+              "experimentalfeatures__enableMetrics": {
+                  "value": "true"
+              }
             }
           },
           "edgeHub": {
@@ -35,17 +43,17 @@
               "CollectMetrics": {
                 "value": "true"
               },
-              "MetricsStoreType": {
-                "value": "influxdb"
-              },
-              "InfluxDbUrl": {
-                "value": "http://influxdb:8086"
-              },
               "amqpSettings__enabled": {
                 "value": "<amqpSettings__enabled>"
               },
               "mqttSettings__enabled": {
                 "value": "<mqttSettings__enabled>"
+              },
+              "experimentalfeatures__enabled": {
+                  "value": "true"
+              },
+              "experimentalfeatures__enableMetrics": {
+                  "value": "true"
               }
             },
             "status": "running",
@@ -63,7 +71,7 @@
                 "value": "<LoadGen.MessageFrequency>"
               },
               "transportType": {
-                "value": "<LoadGen1.TransportType>"
+                "value": "<TransportType1>"
               }
             },
             "settings": {
@@ -81,7 +89,7 @@
                 "value": "<LoadGen.MessageFrequency>"
               },
               "transportType": {
-                "value": "<LoadGen2.TransportType>"
+                "value": "<TransportType2>"
               }
             },
             "settings": {
@@ -99,7 +107,7 @@
                 "value": "<LoadGen.MessageFrequency>"
               },
               "transportType": {
-                "value": "<LoadGen3.TransportType>"
+                "value": "<TransportType3>"
               }
             },
             "settings": {
@@ -117,13 +125,121 @@
                 "value": "<LoadGen.MessageFrequency>"
               },
               "transportType": {
-                "value": "<LoadGen4.TransportType>"
+                "value": "<TransportType4>"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
+          },
+          "twinTester1": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "TransportType": {
+                    "value": "<TransportType1>"
+                },
+                "ServiceClientConnectionString": {
+                    "value": "<ServiceClientConnectionString>"
+                },
+                "TwinUpdateSize": {
+                    "value": "<TwinUpdateSize>"
+                },
+                "TwinUpdateFrequency": {
+                    "value": "<TwinUpdateFrequency>"
+                },
+                "TwinUpdateFailureThreshold": {
+                    "value": "<TwinUpdateFailureThreshold>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
+          },
+          "twinTester2": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "TransportType": {
+                    "value": "<TransportType2>"
+                },
+                "ServiceClientConnectionString": {
+                    "value": "<ServiceClientConnectionString>"
+                },
+                "TwinUpdateSize": {
+                    "value": "<TwinUpdateSize>"
+                },
+                "TwinUpdateFrequency": {
+                    "value": "<TwinUpdateFrequency>"
+                },
+                "TwinUpdateFailureThreshold": {
+                    "value": "<TwinUpdateFailureThreshold>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
+          },
+          "twinTester3": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "TransportType": {
+                    "value": "<TransportType3>"
+                },
+                "ServiceClientConnectionString": {
+                    "value": "<ServiceClientConnectionString>"
+                },
+                "TwinUpdateSize": {
+                    "value": "<TwinUpdateSize>"
+                },
+                "TwinUpdateFrequency": {
+                    "value": "<TwinUpdateFrequency>"
+                },
+                "TwinUpdateFailureThreshold": {
+                    "value": "<TwinUpdateFailureThreshold>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
+          },
+          "twinTester4": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "TransportType": {
+                    "value": "<TransportType4>"
+                },
+                "ServiceClientConnectionString": {
+                    "value": "<ServiceClientConnectionString>"
+                },
+                "TwinUpdateSize": {
+                    "value": "<TwinUpdateSize>"
+                },
+                "TwinUpdateFrequency": {
+                    "value": "<TwinUpdateFrequency>"
+                },
+                "TwinUpdateFailureThreshold": {
+                    "value": "<TwinUpdateFailureThreshold>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
           },
           "snitcher": {
             "version": "2.0",
@@ -143,12 +259,6 @@
               "ALERT_URL": {
                 "value": "<Snitch.AlertUrl>"
               },
-              "INFLUX_URL": {
-                "value": "http://influxdb:8086"
-              },
-              "INFLUX_DB_NAME": {
-                "value": "_internal"
-              },
               "ANALYZER_URL": {
                 "value": "http://analyzer:15000/api/report"
               },
@@ -167,7 +277,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/snitcher:<Snitch.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"]}}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"/var/run/iotedge/mgmt.sock:/var/run/iotedge/mgmt.sock\"]}}"
             }
           },
           "analyzer": {
@@ -178,8 +288,23 @@
               "EventHubConnectionString": {
                 "value": "<Analyzer.EventHubConnectionString>"
               },
-              "DeviceId": {
-                "value": "<Analyzer.DeviceID>"
+              "ConsumerGroupId": {
+                "value": "<Analyzer.ConsumerGroupId>"
+              }, 
+              "LogAnalyticsEnabled": {
+                "value": "<Analyzer.LogAnalyticsEnabled>"
+              },
+              "LogAnalyticsWorkspaceId": {
+                "value": "<LogAnalyticsWorkspaceId>"
+              },
+              "LogAnalyticsSharedKey": {
+                "value": "<LogAnalyticsSharedKey>"
+              },
+              "LogAnalyticsLogType": {
+                "value": "<Analyzer.LogAnalyticsLogType>"
+              },
+              "Logging:LogLevel:Microsoft": {
+                "value": "Error"
               }
             },
             "settings": {
@@ -187,14 +312,34 @@
               "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"15000/tcp\":[{\"HostPort\":\"15000\"}]}}}"
             }
           },
-          "influxdb": {
+          "metricsCollector": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
-            "restartPolicy": "on-unhealthy",
+            "restartPolicy": "always",
+            "env": {
+                "logAnalyticsWorkspaceId": {
+                    "value": "<LogAnalyticsWorkspaceId>"
+                },
+                "logAnalyticsSharedKey": {
+                    "value": "<LogAnalyticsSharedKey>"
+                },
+                "logAnalyticsLogType": {
+                  "value": "testMetrics"
+                },
+                "MetricsEndpointsCSV": {
+                  "value": "<MetricsCollector.MetricsEndpointsCSV>"
+                },
+                "ScrapeFrequencyInSecs": {
+                    "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
+                },
+                "UploadTarget": {
+                  "value": "<MetricsCollector.UploadTarget>"
+                }
+            },
             "settings": {
-              "image": "influxdb:1.7.5",
-              "createOptions": "{\"ExposedPorts\":{\"8086/tcp\":{}},\"HostConfig\":{\"PortBindings\":{\"8086/tcp\":[{\"HostPort\":\"8086\"}]}}}"
+                "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
+                "createOptions": ""
             }
           }
         }
@@ -212,6 +357,14 @@
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
         }
+      }
+    },
+    "metricsCollector": {
+      "properties.desired": {
+        "hostPlatform": "<MetricsCollector.HostPlatform>",
+        "testType": "stress",
+        "testId": "<TrackingId>",
+        "upstreamProtocol": "amqp"
       }
     }
   }

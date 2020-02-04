@@ -3,6 +3,7 @@ name = "prep-mail"
 version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
 publish = false
+edition = "2018"
 
 [dependencies]
 env_logger = "0.5"

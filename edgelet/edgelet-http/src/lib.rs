@@ -4,11 +4,17 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::default_trait_access,
+    clippy::missing_errors_doc,
     clippy::module_name_repetitions,
+    clippy::must_use_candidate,
+    clippy::pub_enum_variant_names,
     clippy::similar_names,
+    clippy::too_many_lines,
     clippy::use_self
 )]
 
+use std::fmt;
+use std::fmt::{Debug, Formatter};
 #[cfg(target_os = "linux")]
 use std::net;
 use std::net::ToSocketAddrs;
@@ -25,6 +31,13 @@ use hyper::server::conn::Http;
 use hyper::service::{NewService, Service};
 use hyper::{Body, Response};
 use log::{debug, error, Level};
+use native_tls::Identity;
+#[cfg(unix)]
+use native_tls::TlsAcceptor;
+use openssl::pkcs12::Pkcs12;
+use openssl::pkey::PKey;
+use openssl::stack::Stack;
+use openssl::x509::X509;
 #[cfg(target_os = "linux")]
 use systemd::Socket;
 use tokio::net::TcpListener;
@@ -32,11 +45,9 @@ use tokio::net::TcpListener;
 use tokio_uds::UnixListener;
 use url::Url;
 
-use edgelet_core::crypto::CreateCertificate;
-use edgelet_core::{UrlExt, UNIX_SCHEME};
+use edgelet_core::crypto::{Certificate, CreateCertificate, KeyBytes, PrivateKey};
+use edgelet_core::{Protocol, UrlExt, UNIX_SCHEME};
 use edgelet_utils::log_failure;
-#[cfg(unix)]
-use native_tls::{Identity, TlsAcceptor};
 
 pub mod authentication;
 pub mod authorization;
@@ -68,6 +79,102 @@ const PIPE_SCHEME: &str = "npipe";
 const TCP_SCHEME: &str = "tcp";
 #[cfg(target_os = "linux")]
 const FD_SCHEME: &str = "fd";
+
+#[derive(Clone)]
+pub struct PemCertificate {
+    cert: Vec<u8>,
+    key: Option<Vec<u8>>,
+    username: Option<String>,
+    password: Option<String>,
+}
+
+impl PemCertificate {
+    pub fn new(
+        cert: Vec<u8>,
+        key: Option<Vec<u8>>,
+        username: Option<String>,
+        password: Option<String>,
+    ) -> Self {
+        PemCertificate {
+            cert,
+            key,
+            username,
+            password,
+        }
+    }
+
+    pub fn get_certificate(&self) -> &[u8] {
+        &self.cert
+    }
+
+    pub fn from<C>(id_cert: &C) -> Result<Self, Error>
+    where
+        C: Certificate,
+    {
+        let cert = id_cert
+            .pem()
+            .map(|cert_buffer| cert_buffer.as_ref().to_owned())
+            .context(ErrorKind::IdentityCertificate)?;
+
+        let key = match id_cert.get_private_key() {
+            Ok(Some(PrivateKey::Ref(ref_))) => Some(ref_.into_bytes()),
+            Ok(Some(PrivateKey::Key(KeyBytes::Pem(buffer)))) => Some(buffer.as_ref().to_vec()),
+            Ok(None) => None,
+            Err(_err) => return Err(Error::from(ErrorKind::IdentityPrivateKey)),
+        };
+
+        Ok(PemCertificate::new(cert, key, None, None))
+    }
+
+    pub fn get_identity(&self) -> Result<Identity, Error> {
+        let mut certs = X509::stack_from_pem(&self.cert).context(ErrorKind::IdentityCertificate)?;
+
+        // the first cert is the identity cert and the other certs are part of the CA
+        // chain; we skip the server cert and build an OpenSSL cert stack with the
+        // other certs
+        let mut ca_certs = Stack::new().context(ErrorKind::IdentityCertificate)?;
+        for cert in certs.drain(1..) {
+            ca_certs
+                .push(cert)
+                .context(ErrorKind::IdentityCertificate)?;
+        }
+
+        let key = match &self.key {
+            Some(k) => PKey::private_key_from_pem(&k)
+                .with_context(|err| ErrorKind::IdentityPrivateKeyRead(err.to_string())),
+            None => return Err(Error::from(ErrorKind::IdentityPrivateKey)),
+        }?;
+
+        let identity_cert = &certs[0];
+
+        let mut builder = Pkcs12::builder();
+        builder.ca(ca_certs);
+        let pkcs_certs = builder
+            .build(
+                self.password.as_ref().map_or("", String::as_str),
+                self.username.as_ref().map_or("", String::as_str),
+                &key,
+                &identity_cert,
+            )
+            .context(ErrorKind::IdentityCertificate)?;
+
+        let der = pkcs_certs
+            .to_der()
+            .context(ErrorKind::IdentityCertificate)?;
+
+        let identity = Identity::from_pkcs12(&der, "")
+            .with_context(|err| ErrorKind::PKCS12Identity(err.to_string()))?;
+
+        Ok(identity)
+    }
+}
+
+impl Debug for PemCertificate {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // do not print either the username, password or private key
+        write!(f, "Certificate: {:?}", self.cert)
+    }
+}
 
 pub trait IntoResponse {
     fn into_response(self) -> Response<Body>;
@@ -167,6 +274,15 @@ where
 
         Run(Box::new(main_execution))
     }
+
+    pub fn port(&self) -> Option<u16> {
+        match &self.incoming {
+            Incoming::Tcp(listener) => listener.local_addr().ok().map(|addr| addr.port()),
+            #[cfg(unix)]
+            Incoming::Tls(listener, _, _) => listener.local_addr().ok().map(|addr| addr.port()),
+            Incoming::Unix(_) => None,
+        }
+    }
 }
 
 pub trait HyperExt {
@@ -174,7 +290,7 @@ pub trait HyperExt {
         &self,
         url: Url,
         new_service: S,
-        cert_manager: Option<&CertificateManager<C>>,
+        cert_manager: Option<TlsAcceptorParams<'_, C>>,
     ) -> Result<Server<S>, Error>
     where
         C: CreateCertificate + Clone,
@@ -182,13 +298,13 @@ pub trait HyperExt {
 }
 
 // This variable is used on Unix but not Windows
-#[allow(unused_variables)]
 impl HyperExt for Http {
+    #[cfg_attr(not(unix), allow(unused_variables))]
     fn bind_url<C, S>(
         &self,
         url: Url,
         new_service: S,
-        cert_manager: Option<&CertificateManager<C>>,
+        tls_params: Option<TlsAcceptorParams<'_, C>>,
     ) -> Result<Server<S>, Error>
     where
         C: CreateCertificate + Clone,
@@ -224,19 +340,29 @@ impl HyperExt for Http {
                         )
                     })?;
 
-                let cert = match cert_manager {
-                    Some(cert_manager) => cert_manager.get_pkcs12_certificate(),
-                    None => return Err(Error::from(ErrorKind::CertificateCreationError)),
-                };
+                let cert = tls_params
+                    .as_ref()
+                    .map(|params| params.cert_manager.get_pkcs12_certificate())
+                    .ok_or(ErrorKind::CertificateCreationError)?;
 
-                let cert = cert.with_context(|_| ErrorKind::TlsBootstrapError)?;
+                let cert = cert.context(ErrorKind::TlsBootstrapError)?;
 
                 let cert_identity = Identity::from_pkcs12(&cert, "")
-                    .with_context(|_| ErrorKind::TlsIdentityCreationError)?;
+                    .context(ErrorKind::TlsIdentityCreationError)?;
+
+                let min_protocol_version =
+                    tls_params
+                        .as_ref()
+                        .map(|params| match params.min_protocol_version {
+                            Protocol::Tls10 => native_tls::Protocol::Tlsv10,
+                            Protocol::Tls11 => native_tls::Protocol::Tlsv11,
+                            Protocol::Tls12 => native_tls::Protocol::Tlsv12,
+                        });
 
                 let tls_acceptor = TlsAcceptor::builder(cert_identity)
+                    .min_protocol_version(min_protocol_version)
                     .build()
-                    .with_context(|_| ErrorKind::TlsBootstrapError)?;
+                    .context(ErrorKind::TlsBootstrapError)?;
                 let tls_acceptor = tokio_tls::TlsAcceptor::from(tls_acceptor);
 
                 let listener = TcpListener::bind(&addr)
@@ -285,16 +411,21 @@ impl HyperExt for Http {
                             })?,
                         )
                     }
-                    Socket::Unknown => Err(ErrorKind::InvalidUrlWithReason(
-                        url.to_string(),
-                        InvalidUrlReason::UnrecognizedSocket,
-                    ))?,
+                    Socket::Unknown => {
+                        return Err(ErrorKind::InvalidUrlWithReason(
+                            url.to_string(),
+                            InvalidUrlReason::UnrecognizedSocket,
+                        )
+                        .into())
+                    }
                 }
             }
-            _ => Err(Error::from(ErrorKind::InvalidUrlWithReason(
-                url.to_string(),
-                InvalidUrlReason::InvalidScheme,
-            )))?,
+            _ => {
+                return Err(Error::from(ErrorKind::InvalidUrlWithReason(
+                    url.to_string(),
+                    InvalidUrlReason::InvalidScheme,
+                )))
+            }
         };
 
         Ok(Server {
@@ -302,5 +433,26 @@ impl HyperExt for Http {
             new_service,
             incoming,
         })
+    }
+}
+
+#[cfg_attr(not(unix), allow(dead_code))]
+pub struct TlsAcceptorParams<'a, C>
+where
+    C: CreateCertificate + Clone,
+{
+    cert_manager: &'a CertificateManager<C>,
+    min_protocol_version: Protocol,
+}
+
+impl<'a, C> TlsAcceptorParams<'a, C>
+where
+    C: CreateCertificate + Clone,
+{
+    pub fn new(cert_manager: &'a CertificateManager<C>, min_protocol_version: Protocol) -> Self {
+        Self {
+            cert_manager,
+            min_protocol_version,
+        }
     }
 }

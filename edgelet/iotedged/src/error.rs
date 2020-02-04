@@ -28,6 +28,9 @@ pub enum ErrorKind {
     #[fail(display = "The certificate management expiration timer encountered a failure.")]
     CertificateExpirationManagement,
 
+    #[fail(display = "The device has been de-provisioned")]
+    DeviceDeprovisioned,
+
     #[fail(display = "The daemon could not start up successfully: {}", _0)]
     Initialize(InitializeErrorReason),
 
@@ -36,6 +39,9 @@ pub enum ErrorKind {
 
     #[fail(display = "The management service encountered an error")]
     ManagementService,
+
+    #[fail(display = "The reprovisioning operation failed")]
+    ReprovisionFailure,
 
     #[fail(display = "The symmetric key string is malformed")]
     SymmetricKeyMalformed,
@@ -144,7 +150,8 @@ impl From<&ErrorKind> for i32 {
             ErrorKind::Initialize(InitializeErrorReason::InvalidDeviceConfig) => 150,
             ErrorKind::Initialize(InitializeErrorReason::InvalidHubConfig) => 151,
             ErrorKind::InvalidSignedToken => 152,
-            ErrorKind::Initialize(InitializeErrorReason::NotConfigured) => 153,
+            ErrorKind::Initialize(InitializeErrorReason::LoadSettings) => 153,
+            ErrorKind::DeviceDeprovisioned => 154,
             _ => 1,
         }
     }
@@ -152,27 +159,36 @@ impl From<&ErrorKind> for i32 {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum InitializeErrorReason {
+    CertificateSettings,
     CreateCertificateManager,
     CreateMasterEncryptionKey,
     CreateSettingsDirectory,
+    CreateCacheDirectory,
     CreateTlsCertificate,
     DestroyWorkloadCa,
     DeviceClient,
     DpsProvisioningClient,
     EdgeRuntime,
-    ExternalProvisioningClient,
+    ExternalProvisioningClient(ExternalProvisioningErrorReason),
     Hsm,
     HttpClient,
+    HybridAuthDirCreate,
+    HybridAuthKeyCreate,
+    HybridAuthKeyGet,
+    HybridAuthKeyLoad,
+    HybridAuthKeyInvalid,
+    HybridAuthKeySign,
+    IncompatibleHsmVersion,
+    IdentityCertificateSettings,
+    InvalidDeviceCertCredentials,
     InvalidDeviceConfig,
     InvalidHubConfig,
     InvalidProxyUri,
-    InvalidSocketUri,
     IssuerCAExpiration,
     LoadSettings,
     ManagementService,
     ManualProvisioningClient,
     ModuleRuntime,
-    NotConfigured,
     PrepareWorkloadCa,
     #[cfg(windows)]
     RegisterWindowsService,
@@ -184,9 +200,27 @@ pub enum InitializeErrorReason {
     WorkloadService,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ExternalProvisioningErrorReason {
+    ClientInitialization,
+    DownloadIdentityCertificate,
+    DownloadIdentityPrivateKey,
+    ExternalProvisioningDirCreate,
+    HsmInitialization,
+    HsmKeyRetrieval,
+    HybridKeyPreparation,
+    InvalidAuthenticationType,
+    InvalidCredentials,
+    Provisioning,
+}
+
 impl fmt::Display for InitializeErrorReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            InitializeErrorReason::CertificateSettings => {
+                write!(f, "Could not configure Edge gateway certificates")
+            }
+
             InitializeErrorReason::CreateCertificateManager => {
                 write!(f, "Could not create the certificate manager.")
             }
@@ -197,6 +231,10 @@ impl fmt::Display for InitializeErrorReason {
 
             InitializeErrorReason::CreateSettingsDirectory => {
                 write!(f, "Could not create settings directory")
+            }
+
+            InitializeErrorReason::CreateCacheDirectory => {
+                write!(f, "Could not create cache directory")
             }
 
             InitializeErrorReason::CreateTlsCertificate => {
@@ -215,13 +253,52 @@ impl fmt::Display for InitializeErrorReason {
 
             InitializeErrorReason::EdgeRuntime => write!(f, "Could not initialize edge runtime"),
 
-            InitializeErrorReason::ExternalProvisioningClient => {
-                write!(f, "Could not initialize external provisioning client")
-            }
+            InitializeErrorReason::ExternalProvisioningClient(x) => write!(
+                f,
+                "Could not initialize external provisioning client. {}",
+                x
+            ),
 
             InitializeErrorReason::Hsm => write!(f, "Could not initialize HSM"),
 
             InitializeErrorReason::HttpClient => write!(f, "Could not initialize HTTP client"),
+
+            InitializeErrorReason::HybridAuthDirCreate => {
+                write!(f, "Could not create the hybrid identity key directory")
+            }
+
+            InitializeErrorReason::HybridAuthKeyCreate => {
+                write!(f, "Could not create the hybrid identity key")
+            }
+
+            InitializeErrorReason::HybridAuthKeyGet => write!(
+                f,
+                "Could not get the hybrid identity key from the key store"
+            ),
+
+            InitializeErrorReason::HybridAuthKeyLoad => {
+                write!(f, "Could not load the hybrid identity key")
+            }
+
+            InitializeErrorReason::HybridAuthKeyInvalid => {
+                write!(f, "The loaded hybrid identity key was invalid")
+            }
+
+            InitializeErrorReason::HybridAuthKeySign => {
+                write!(f, "Could not sign using the hybrid identity key")
+            }
+
+            InitializeErrorReason::IncompatibleHsmVersion => {
+                write!(f, "Incompatible HSM lib version")
+            }
+
+            InitializeErrorReason::IdentityCertificateSettings => {
+                write!(f, "Could not configure Edge X.509 identity certificate")
+            }
+
+            InitializeErrorReason::InvalidDeviceCertCredentials => {
+                write!(f, "Invalid identity certificate")
+            }
 
             InitializeErrorReason::InvalidDeviceConfig => {
                 write!(f, "Invalid device configuration was provided")
@@ -232,8 +309,6 @@ impl fmt::Display for InitializeErrorReason {
             }
 
             InitializeErrorReason::InvalidProxyUri => write!(f, "Invalid proxy URI"),
-
-            InitializeErrorReason::InvalidSocketUri => write!(f, "Invalid socket URI"),
 
             InitializeErrorReason::IssuerCAExpiration => {
                 write!(f, "Edge device CA has expired or is near expiration")
@@ -252,18 +327,6 @@ impl fmt::Display for InitializeErrorReason {
             InitializeErrorReason::ModuleRuntime => {
                 write!(f, "Could not initialize module runtime")
             }
-
-            InitializeErrorReason::NotConfigured => write!(
-                f,
-                "Edge device information is required.\n\
-                 Please update the config.yaml and provide the IoTHub connection information.\n\
-                 See {} for more details.",
-                if cfg!(windows) {
-                    "https://aka.ms/iot-edge-configure-windows"
-                } else {
-                    "https://aka.ms/iot-edge-configure-linux"
-                }
-            ),
 
             InitializeErrorReason::PrepareWorkloadCa => {
                 write!(f, "Could not prepare workload CA certificate")
@@ -288,6 +351,55 @@ impl fmt::Display for InitializeErrorReason {
             InitializeErrorReason::Tokio => write!(f, "Could not initialize tokio runtime"),
 
             InitializeErrorReason::WorkloadService => write!(f, "Could not start workload service"),
+        }
+    }
+}
+
+impl fmt::Display for ExternalProvisioningErrorReason {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ExternalProvisioningErrorReason::ClientInitialization => {
+                write!(f, "Could not create the external provisioning client.")
+            }
+
+            ExternalProvisioningErrorReason::DownloadIdentityCertificate => write!(
+                f,
+                "The download of the identity certificate from the external environment failed."
+            ),
+
+            ExternalProvisioningErrorReason::DownloadIdentityPrivateKey => write!(
+                f,
+                "The download of the identity private key from the external environment failed."
+            ),
+
+            ExternalProvisioningErrorReason::ExternalProvisioningDirCreate => {
+                write!(f, "Could not create the external provisioning directory.")
+            }
+
+            ExternalProvisioningErrorReason::HsmInitialization => {
+                write!(f, "Could not initialize the HSM interface.")
+            }
+
+            ExternalProvisioningErrorReason::HsmKeyRetrieval => {
+                write!(f, "Could not retrieve the device's key from the HSM.")
+            }
+
+            ExternalProvisioningErrorReason::HybridKeyPreparation => {
+                write!(f, "Could not prepare the hybrid key.")
+            }
+
+            ExternalProvisioningErrorReason::InvalidAuthenticationType => {
+                write!(f, "Invalid authentication type specified.")
+            }
+
+            ExternalProvisioningErrorReason::InvalidCredentials => write!(
+                f,
+                "Invalid credentials retrieved from the external environment."
+            ),
+
+            ExternalProvisioningErrorReason::Provisioning => {
+                write!(f, "Could not provision the device.")
+            }
         }
     }
 }

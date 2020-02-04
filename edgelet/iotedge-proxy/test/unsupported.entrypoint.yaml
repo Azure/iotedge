@@ -1,0 +1,9 @@
+services:
+  - name: "management"
+    entrypoint: "https://localhost:3000"
+    backend: "https://iotedged:35000"
+    certificate: "management.pem"
+
+api:
+  entrypoint: "http://example:443"
+                                  

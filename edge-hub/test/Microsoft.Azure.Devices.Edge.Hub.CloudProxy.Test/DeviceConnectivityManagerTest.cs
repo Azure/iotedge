@@ -107,18 +107,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var device1UnderlyingClient = new Mock<IClient>();
             device1UnderlyingClient.Setup(c => c.SendEventAsync(It.IsAny<Message>()))
                 .Returns(Task.CompletedTask);
+            device1UnderlyingClient.Setup(d => d.OpenAsync()).Returns(Task.CompletedTask);
             var device1Client = new ConnectivityAwareClient(device1UnderlyingClient.Object, deviceConnectivityManager, deviceIdentity);
             device1Client.SetConnectionStatusChangedHandler(ConnectionStatusChangedHandler);
 
             var device2UnderlyingClient = new Mock<IClient>();
             device2UnderlyingClient.Setup(c => c.SendEventAsync(It.IsAny<Message>()))
                 .Throws<TimeoutException>();
+            device2UnderlyingClient.Setup(d => d.OpenAsync()).Returns(Task.CompletedTask);
             var device2Client = new ConnectivityAwareClient(device2UnderlyingClient.Object, deviceConnectivityManager, deviceIdentity);
             device2Client.SetConnectionStatusChangedHandler(ConnectionStatusChangedHandler);
 
             var edgeHubUnderlyingClient = new Mock<IClient>();
             edgeHubUnderlyingClient.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                 .Throws<TimeoutException>();
+            edgeHubUnderlyingClient.Setup(d => d.OpenAsync()).Returns(Task.CompletedTask);
             IClient edgeHubClient = new ConnectivityAwareClient(edgeHubUnderlyingClient.Object, deviceConnectivityManager, deviceIdentity);
             edgeHubClient.SetConnectionStatusChangedHandler(ConnectionStatusChangedHandler);
             ICloudProxy cloudProxy = new CloudProxy(edgeHubClient, Mock.Of<IMessageConverterProvider>(), "d1/m1", null, Mock.Of<ICloudListener>(), TimeSpan.FromHours(1), true);
@@ -130,6 +133,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             deviceConnectivityManager.DeviceDisconnected += (_, __) => connected = false;
 
             // Act
+            await device1Client.OpenAsync();
+            await device2Client.OpenAsync();
+            await edgeHubClient.OpenAsync();
+
             var cts = new CancellationTokenSource();
             Task t = Task.Run(
                 async () =>

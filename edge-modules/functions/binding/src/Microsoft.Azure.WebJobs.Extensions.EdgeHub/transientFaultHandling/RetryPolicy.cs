@@ -11,7 +11,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
     class RetryPolicy
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.WebJobs.Extensions.EdgeHub.RetryPolicy" /> class with the specified number of retry attempts and parameters defining the progressive delay between retries.
+        /// Initializes a new instance of the <see cref="Microsoft.Azure.WebJobs.Extensions.EdgeHub.RetryPolicy" /> class with the specified number of retry attempts and parameters defining the progressive delay between retries.
         /// </summary>
         /// <param name="errorDetectionStrategy">The <see cref="T:Microsoft.Azure.WebJobs.Extensions.EdgeHub.ITransientErrorDetectionStrategy" /> that is responsible for detecting transient conditions.</param>
         /// <param name="retryStrategy">The strategy to use for this retry policy.</param>
@@ -29,7 +29,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.WebJobs.Extensions.EdgeHub.RetryPolicy" /> class with the specified number of retry attempts and default fixed time interval between retries.
+        /// Initializes a new instance of the <see cref="Microsoft.Azure.WebJobs.Extensions.EdgeHub.RetryPolicy" /> class with the specified number of retry attempts and default fixed time interval between retries.
         /// </summary>
         /// <param name="errorDetectionStrategy">The <see cref="T:Microsoft.Azure.WebJobs.Extensions.EdgeHub.ITransientErrorDetectionStrategy" /> that is responsible for detecting transient conditions.</param>
         /// <param name="retryCount">The number of retry attempts.</param>
@@ -39,7 +39,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.WebJobs.Extensions.EdgeHub.RetryPolicy" /> class with the specified number of retry attempts and fixed time interval between retries.
+        /// Initializes a new instance of the <see cref="Microsoft.Azure.WebJobs.Extensions.EdgeHub.RetryPolicy" /> class with the specified number of retry attempts and fixed time interval between retries.
         /// </summary>
         /// <param name="errorDetectionStrategy">The <see cref="T:Microsoft.Azure.WebJobs.Extensions.EdgeHub.ITransientErrorDetectionStrategy" /> that is responsible for detecting transient conditions.</param>
         /// <param name="retryCount">The number of retry attempts.</param>
@@ -50,7 +50,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.WebJobs.Extensions.EdgeHub.RetryPolicy" /> class with the specified number of retry attempts and backoff parameters for calculating the exponential delay between retries.
+        /// Initializes a new instance of the <see cref="Microsoft.Azure.WebJobs.Extensions.EdgeHub.RetryPolicy" /> class with the specified number of retry attempts and backoff parameters for calculating the exponential delay between retries.
         /// </summary>
         /// <param name="errorDetectionStrategy">The <see cref="T:Microsoft.Azure.WebJobs.Extensions.EdgeHub.ITransientErrorDetectionStrategy" /> that is responsible for detecting transient conditions.</param>
         /// <param name="retryCount">The number of retry attempts.</param>
@@ -63,7 +63,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="T:Microsoft.Azure.WebJobs.Extensions.EdgeHub.RetryPolicy" /> class with the specified number of retry attempts and parameters defining the progressive delay between retries.
+        /// Initializes a new instance of the <see cref="Microsoft.Azure.WebJobs.Extensions.EdgeHub.RetryPolicy" /> class with the specified number of retry attempts and parameters defining the progressive delay between retries.
         /// </summary>
         /// <param name="errorDetectionStrategy">The <see cref="T:Microsoft.Azure.WebJobs.Extensions.EdgeHub.ITransientErrorDetectionStrategy" /> that is responsible for detecting transient conditions.</param>
         /// <param name="retryCount">The number of retry attempts.</param>
@@ -80,24 +80,24 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         public event EventHandler<RetryingEventArgs> Retrying;
 
         /// <summary>
-        /// Returns a default policy that performs no retries, but invokes the action only once.
+        /// Gets a default policy that performs no retries, but invokes the action only once.
         /// </summary>
         public static RetryPolicy NoRetry { get; } = new RetryPolicy(new TransientErrorIgnoreStrategy(), RetryStrategy.NoRetry);
 
         /// <summary>
-        /// Returns a default policy that implements a fixed retry interval configured with the default <see cref="T:Microsoft.Azure.WebJobs.Extensions.EdgeHub.FixedInterval" /> retry strategy.
+        /// Gets a default policy that implements a fixed retry interval configured with the default <see cref="Microsoft.Azure.WebJobs.Extensions.EdgeHub.FixedInterval" /> retry strategy.
         /// The default retry policy treats all caught exceptions as transient errors.
         /// </summary>
         public static RetryPolicy DefaultFixed { get; } = new RetryPolicy(new TransientErrorCatchAllStrategy(), RetryStrategy.DefaultFixed);
 
         /// <summary>
-        /// Returns a default policy that implements a progressive retry interval configured with the default <see cref="T:Microsoft.Azure.WebJobs.Extensions.EdgeHub.Incremental" /> retry strategy.
+        /// Gets a default policy that implements a progressive retry interval configured with the default <see cref="Microsoft.Azure.WebJobs.Extensions.EdgeHub.Incremental" /> retry strategy.
         /// The default retry policy treats all caught exceptions as transient errors.
         /// </summary>
         public static RetryPolicy DefaultProgressive { get; } = new RetryPolicy(new TransientErrorCatchAllStrategy(), RetryStrategy.DefaultProgressive);
 
         /// <summary>
-        /// Returns a default policy that implements a random exponential retry interval configured with the default <see cref="T:Microsoft.Azure.WebJobs.Extensions.EdgeHub.FixedInterval" /> retry strategy.
+        /// Gets a default policy that implements a random exponential retry interval configured with the default <see cref="Microsoft.Azure.WebJobs.Extensions.EdgeHub.FixedInterval" /> retry strategy.
         /// The default retry policy treats all caught exceptions as transient errors.
         /// </summary>
         public static RetryPolicy DefaultExponential { get; } = new RetryPolicy(new TransientErrorCatchAllStrategy(), RetryStrategy.DefaultExponential);
@@ -120,7 +120,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         {
             Guard.ArgumentNotNull(action, "action");
             this.ExecuteAction<object>(
-                delegate
+                () =>
                 {
                     action();
                     return null;
@@ -221,6 +221,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         /// <summary>
         /// Repeatedly executes the specified asynchronous task while it satisfies the current retry policy.
         /// </summary>
+        /// <typeparam name="TResult">Result type.</typeparam>
         /// <param name="taskFunc">A function that returns a started task (also known as "hot" task).</param>
         /// <returns>
         /// Returns a task that will run to completion if the original task completes successfully (either the
@@ -235,6 +236,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
         /// <summary>
         /// Repeatedly executes the specified asynchronous task while it satisfies the current retry policy.
         /// </summary>
+        /// <typeparam name="TResult">Result type.</typeparam>
         /// <param name="taskFunc">A function that returns a started task (also known as "hot" task).</param>
         /// <param name="cancellationToken">The token used to cancel the retry operation. This token does not cancel the execution of the asynchronous task.</param>
         /// <returns>

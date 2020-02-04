@@ -20,7 +20,13 @@ where
     K: NameValue,
 {
     fn get(&self, name: &str) -> Option<&K::Item> {
-        self.iter().find(|v| v.name() == name).map(K::value)
+        self.iter().find_map(|v| {
+            if v.name() == name {
+                Some(v.value())
+            } else {
+                None
+            }
+        })
     }
 }
 

@@ -7,8 +7,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
     using System.Globalization;
     using System.Linq;
     using System.Text;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core.Query.Errors;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
 
     public class RouteCompilationException : Exception
     {

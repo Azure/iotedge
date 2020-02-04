@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core.MessageSources
 {
-    using Microsoft.Azure.Devices.Routing.Core.Util;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
     class CustomMessageSource : BaseMessageSource

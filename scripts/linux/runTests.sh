@@ -76,6 +76,7 @@ fi
 for testDll in ${testProjectDllsRunSerially[@]}
 do
   testCommand="$testCommandPrefix $testDll"
+  testCommand=${testCommand/result.trx/$(basename "$testDll" ".dll").trx}
   echo "Run test command serially:$testCommand"
   $testCommand
   
@@ -86,6 +87,7 @@ do
 done
 
 testCommand="$testCommandPrefix$testProjectDlls"
+testCommand=${testCommand/result.trx/$(mktemp result.XXXXXXXX.trx)}
 echo "Run test command:$testCommand"
 $testCommand
 

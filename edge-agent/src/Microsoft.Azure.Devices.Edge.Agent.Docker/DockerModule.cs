@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.ComponentModel;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
@@ -17,6 +18,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             ModuleStatus desiredStatus,
             RestartPolicy restartPolicy,
             DockerConfig config,
+            ImagePullPolicy imagePullPolicy,
+            uint priority,
             ConfigurationInfo configurationInfo,
             IDictionary<string, EnvVal> env)
         {
@@ -25,6 +28,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.DesiredStatus = Preconditions.CheckIsDefined(desiredStatus);
             this.Config = Preconditions.CheckNotNull(config, nameof(config));
             this.RestartPolicy = Preconditions.CheckIsDefined(restartPolicy);
+            this.ImagePullPolicy = Preconditions.CheckIsDefined(imagePullPolicy);
+            this.Priority = priority;
             this.ConfigurationInfo = configurationInfo ?? new ConfigurationInfo(string.Empty);
             this.Env = env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
         }
@@ -40,6 +45,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         [JsonProperty(PropertyName = "restartPolicy")]
         public virtual RestartPolicy RestartPolicy { get; }
+
+        [JsonProperty(PropertyName = "imagePullPolicy")]
+        public virtual ImagePullPolicy ImagePullPolicy { get; }
+
+        [JsonProperty(
+            PropertyName = "priority",
+            Required = Required.DisallowNull,
+            DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [DefaultValue(Core.Constants.DefaultPriority)]
+        public virtual uint Priority { get; }
 
         [JsonProperty(Required = Required.Always, PropertyName = "type")]
         public virtual string Type => "docker";
@@ -70,15 +85,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             }
 
             return string.Equals(this.Name, other.Name) &&
-                   string.Equals(this.Version, other.Version) &&
-                   string.Equals(this.Type, other.Type) &&
-                   this.DesiredStatus == other.DesiredStatus &&
-                   this.Config.Equals(other.Config) &&
-                   this.RestartPolicy == other.RestartPolicy &&
-                   EnvDictionaryComparer.Equals(this.Env, other.Env);
+                string.Equals(this.Version, other.Version) &&
+                string.Equals(this.Type, other.Type) &&
+                this.DesiredStatus == other.DesiredStatus &&
+                this.Config.Equals(other.Config) &&
+                this.RestartPolicy == other.RestartPolicy &&
+                this.ImagePullPolicy == other.ImagePullPolicy &&
+                this.Priority == other.Priority &&
+                EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 
-        public virtual bool OnlyModuleStatusChanged(IModule other)
+        public virtual bool IsOnlyModuleStatusChanged(IModule other)
         {
             return other is DockerModule dockerModule &&
                 string.Equals(this.Name, other.Name) &&
@@ -87,6 +104,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 this.DesiredStatus != other.DesiredStatus &&
                 this.Config.Equals(dockerModule.Config) &&
                 this.RestartPolicy == other.RestartPolicy &&
+                this.ImagePullPolicy == other.ImagePullPolicy &&
+                this.Priority == other.Priority &&
                 EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 
@@ -104,6 +123,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 hashCode = (hashCode * 397) ^ (int)this.DesiredStatus;
                 hashCode = (hashCode * 397) ^ (this.Config != null ? this.Config.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ this.RestartPolicy.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.ImagePullPolicy.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.Priority.GetHashCode();
                 hashCode = (hashCode * 397) ^ EnvDictionaryComparer.GetHashCode(this.Env);
                 return hashCode;
             }

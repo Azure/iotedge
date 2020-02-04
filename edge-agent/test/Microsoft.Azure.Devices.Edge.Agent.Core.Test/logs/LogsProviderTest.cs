@@ -309,7 +309,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
 
             Task Callback(ArraySegment<byte> bytes)
             {
-                receivedBytes.Add(bytes.ToArray());
+                lock (receivedBytes)
+                {
+                    receivedBytes.Add(bytes.ToArray());
+                }
+
                 return Task.CompletedTask;
             }
 
@@ -380,7 +384,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
 
             Task Callback(ArraySegment<byte> bytes)
             {
-                receivedBytes.Add(bytes.ToArray());
+                lock (receivedBytes)
+                {
+                    receivedBytes.Add(bytes.ToArray());
+                }
+
                 return Task.CompletedTask;
             }
 

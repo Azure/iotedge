@@ -9,11 +9,11 @@
  */
 
 /// DeviceMapping : A device mapping between the host and container
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 pub struct DeviceMapping {
     #[serde(rename = "PathOnHost", skip_serializing_if = "Option::is_none")]
     path_on_host: Option<String>,

@@ -19,9 +19,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Concurrency
 
         public static implicit operator long(AtomicLong value) => value.Get();
 
-        public long Get() => this.underlying;
+        public long Get() => Volatile.Read(ref this.underlying);
 
-        public long Set(long value) => Interlocked.Exchange(ref this.underlying, value);
+        public void Set(long value) => Volatile.Write(ref this.underlying, value);
 
         public long GetAndSet(long value) => Interlocked.Exchange(ref this.underlying, value);
 

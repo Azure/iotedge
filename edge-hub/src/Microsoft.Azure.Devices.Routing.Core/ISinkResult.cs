@@ -2,7 +2,7 @@
 namespace Microsoft.Azure.Devices.Routing.Core
 {
     using System.Collections.Generic;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public interface ISinkResult<T>
     {

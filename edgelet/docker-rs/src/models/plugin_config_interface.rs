@@ -9,11 +9,11 @@
  */
 
 /// PluginConfigInterface : The interface between Docker and the plugin
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct PluginConfigInterface {
     #[serde(rename = "Types")]
     types: Vec<crate::models::PluginInterfaceType>,

@@ -7,9 +7,9 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using System.Globalization;
     using System.Linq;
     using System.Text;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Query.Types;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
     using Newtonsoft.Json;
     using SystemPropertiesList = SystemProperties;
 
@@ -43,11 +43,23 @@ namespace Microsoft.Azure.Devices.Routing.Core
         }
 
         public Message(IMessageSource messageSource, byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties, long offset, DateTime enqueuedTime, DateTime dequeuedTime)
+            : this(
+                messageSource,
+                body,
+                new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(Preconditions.CheckNotNull(properties), StringComparer.OrdinalIgnoreCase)) as IReadOnlyDictionary<string, string>,
+                new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(Preconditions.CheckNotNull(systemProperties), StringComparer.OrdinalIgnoreCase)),
+                offset,
+                enqueuedTime,
+                dequeuedTime)
+        {
+        }
+
+        public Message(IMessageSource messageSource, byte[] body, IReadOnlyDictionary<string, string> properties, IReadOnlyDictionary<string, string> systemProperties, long offset, DateTime enqueuedTime, DateTime dequeuedTime)
         {
             this.MessageSource = messageSource;
             this.Body = Preconditions.CheckNotNull(body);
-            this.Properties = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(Preconditions.CheckNotNull(properties), StringComparer.OrdinalIgnoreCase));
-            this.SystemProperties = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(Preconditions.CheckNotNull(systemProperties), StringComparer.OrdinalIgnoreCase));
+            this.Properties = Preconditions.CheckNotNull(properties);
+            this.SystemProperties = Preconditions.CheckNotNull(systemProperties);
             this.Offset = offset;
             this.EnqueuedTime = enqueuedTime;
             this.DequeuedTime = dequeuedTime;
@@ -94,13 +106,13 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
 
             return this.MessageSource.Equals(other.MessageSource) &&
-                   this.Offset == other.Offset &&
-                   this.Body.SequenceEqual(other.Body) &&
-                   this.Properties.Keys.Count() == other.Properties.Keys.Count() &&
-                   this.Properties.Keys.All(
-                       key => other.Properties.ContainsKey(key) && Equals(this.Properties[key], other.Properties[key]) &&
-                              this.SystemProperties.Keys.Count() == other.SystemProperties.Keys.Count() &&
-                              this.SystemProperties.Keys.All(skey => other.SystemProperties.ContainsKey(skey) && Equals(this.SystemProperties[skey], other.SystemProperties[skey])));
+                this.Offset == other.Offset &&
+                this.Body.SequenceEqual(other.Body) &&
+                this.Properties.Keys.Count() == other.Properties.Keys.Count() &&
+                this.Properties.Keys.All(
+                    key => other.Properties.ContainsKey(key) && Equals(this.Properties[key], other.Properties[key]) &&
+                        this.SystemProperties.Keys.Count() == other.SystemProperties.Keys.Count() &&
+                        this.SystemProperties.Keys.All(skey => other.SystemProperties.ContainsKey(skey) && Equals(this.SystemProperties[skey], other.SystemProperties[skey])));
         }
 
         public override bool Equals(object obj)

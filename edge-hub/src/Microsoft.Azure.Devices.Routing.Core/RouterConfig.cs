@@ -4,7 +4,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Linq;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class RouterConfig
     {

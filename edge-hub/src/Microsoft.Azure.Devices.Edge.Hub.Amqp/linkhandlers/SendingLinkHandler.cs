@@ -59,6 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                 }
 
                 Events.MessageSent(this, message);
+                this.OnMessageSent(message);
             }
             catch (Exception ex)
             {
@@ -66,6 +67,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             }
 
             return Task.CompletedTask;
+        }
+
+        protected virtual void OnMessageSent(IMessage message)
+        {
         }
 
         protected override Task OnOpenAsync(TimeSpan timeout)

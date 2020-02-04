@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             Preconditions.CheckNotNull(key, nameof(key));
 
             Option<byte[]> returnValue;
-            using (Metrics.DbGetLatency("all"))
+            using (MetricsV0.DbGetLatency("all"))
             {
                 Func<byte[]> operation = () => this.db.Get(key, this.Handle);
                 byte[] value = await operation.ExecuteUntilCancelled(cancellationToken);
@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             Preconditions.CheckNotNull(key, nameof(key));
             Preconditions.CheckNotNull(value, nameof(value));
 
-            using (Metrics.DbPutLatency("all"))
+            using (MetricsV0.DbPutLatency("all"))
             {
                 Action operation = () => this.db.Put(key, value, this.Handle);
                 return operation.ExecuteUntilCancelled(cancellationToken);
@@ -168,7 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             }
         }
 
-        static class Metrics
+        static class MetricsV0
         {
             static readonly TimerOptions DbPutLatencyOptions = new TimerOptions
             {
@@ -186,9 +186,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
                 RateUnit = TimeUnit.Seconds
             };
 
-            public static IDisposable DbPutLatency(string identity) => Util.Metrics.Latency(GetTags(identity), DbPutLatencyOptions);
+            public static IDisposable DbPutLatency(string identity) => Util.Metrics.MetricsV0.Latency(GetTags(identity), DbPutLatencyOptions);
 
-            public static IDisposable DbGetLatency(string identity) => Util.Metrics.Latency(GetTags(identity), DbGetLatencyOptions);
+            public static IDisposable DbGetLatency(string identity) => Util.Metrics.MetricsV0.Latency(GetTags(identity), DbGetLatencyOptions);
 
             static MetricTags GetTags(string id)
             {

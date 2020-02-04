@@ -9,11 +9,11 @@
  */
 
 /// ServiceSpec : User modifiable configuration for a service.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct ServiceSpec {
     /// Name of the service.
     #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]

@@ -28,5 +28,3 @@ external-provisioning = { path = "../external-provisioning" }
 [dev_dependencies]
 tempdir = "0.3.7"
 tokio = "0.1.8"
-
-edgelet-config = { path = "../edgelet-config" }

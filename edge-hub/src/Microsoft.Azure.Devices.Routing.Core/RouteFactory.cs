@@ -6,9 +6,9 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using Antlr4.Runtime;
     using Antlr4.Runtime.Misc;
     using Antlr4.Runtime.Tree;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Query;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
 
     public abstract class RouteFactory
     {
@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             public override void ExitFuncEndpoint(RouteParser.FuncEndpointContext context)
             {
                 string funcName = context.func.Text;
-                string address = context.endpoint.Text.Trim('"');
+                string address = context.endpoint.Text.Substring(1, context.endpoint.Text.Length - 2);
                 Endpoint endpoint = this.endpointFactory.CreateFunctionEndpoint(funcName, address);
                 this.Endpoint = endpoint;
             }

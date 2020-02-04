@@ -3,7 +3,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
 {
     using System;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     /// <summary>
     /// Actions to be run when entering and/or exiting a state.

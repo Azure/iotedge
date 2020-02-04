@@ -9,11 +9,11 @@
  */
 
 /// InlineResponse200State : The state of the container.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct InlineResponse200State {
     /// The status of the container. For example, `\"running\"` or `\"exited\"`.
     #[serde(rename = "Status", skip_serializing_if = "Option::is_none")]
