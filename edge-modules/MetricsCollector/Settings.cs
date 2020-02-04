@@ -19,13 +19,18 @@ namespace MetricsCollector
             string logAnalyticsLogType,
             string endpoints,
             int scrapeFrequencySecs,
-            UploadTarget uploadTarget)
+            UploadTarget uploadTarget,
+            string messageIdentifier)
         {
             if (uploadTarget == UploadTarget.AzureLogAnalytics)
             {
                 this.LogAnalyticsWorkspaceId = Preconditions.CheckNonWhiteSpace(logAnalyticsWorkspaceId, nameof(logAnalyticsWorkspaceId));
                 this.LogAnalyticsWorkspaceKey = Preconditions.CheckNonWhiteSpace(logAnalyticsWorkspaceKey, nameof(logAnalyticsWorkspaceKey));
                 this.LogAnalyticsLogType = Preconditions.CheckNonWhiteSpace(logAnalyticsLogType, nameof(logAnalyticsLogType));
+            }
+            else
+            {
+                this.MessageIdentifier = Preconditions.CheckNonWhiteSpace(messageIdentifier, nameof(messageIdentifier));
             }
 
             this.Endpoints = new List<string>();
@@ -57,10 +62,11 @@ namespace MetricsCollector
             return new Settings(
                 configuration.GetValue<string>("logAnalyticsWorkspaceId"),
                 configuration.GetValue<string>("logAnalyticsSharedKey"),
-                configuration.GetValue<string>("logAnalyticsLogType"),
+                configuration.GetValue<string>("logAnalyticsLogType", "IoTEdgeMetrics"),
                 configuration.GetValue<string>("MetricsEndpointsCSV", "http://edgeHub:9600/metrics,http://edgeAgent:9600/metrics"),
                 configuration.GetValue<int>("ScrapeFrequencyInSecs", 300),
-                configuration.GetValue<UploadTarget>("UploadTarget", UploadTarget.AzureLogAnalytics));
+                configuration.GetValue<UploadTarget>("UploadTarget", UploadTarget.AzureLogAnalytics),
+                configuration.GetValue<string>("MessageIdentifier", "IoTEdgeMetrics"));
         }
 
         public string LogAnalyticsWorkspaceId { get; }
@@ -74,6 +80,8 @@ namespace MetricsCollector
         public int ScrapeFrequencySecs { get; }
 
         public UploadTarget UploadTarget { get; }
+
+        public string MessageIdentifier { get; }
 
         public override string ToString()
         {
@@ -92,7 +100,7 @@ namespace MetricsCollector
 
     public enum UploadTarget
     {
-        EventHub,
+        IoTHub,
         AzureLogAnalytics
     }
 }
