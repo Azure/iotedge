@@ -719,10 +719,10 @@
             "restartPolicy": "always",
             "env": {
               "LogAnalyticsWorkspaceId": {
-                  "value": "<LogAnalyticsWorkspaceId>"
+                "value": "<LogAnalyticsWorkspaceId>"
               },
               "LogAnalyticsSharedKey": {
-                  "value": "<LogAnalyticsSharedKey>"
+                "value": "<LogAnalyticsSharedKey>"
               },
               "LogAnalyticsLogType": {
                 "value": "testMetrics"
@@ -731,7 +731,7 @@
                 "value": "<MetricsCollector.MetricsEndpointsCSV>"
               },
               "ScrapeFrequencyInSecs": {
-                  "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
+                "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
               },
               "UploadTarget": {
                 "value": "<MetricsCollector.UploadTarget>"
