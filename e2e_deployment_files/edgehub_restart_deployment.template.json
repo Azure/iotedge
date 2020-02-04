@@ -106,7 +106,7 @@
               "restartPeriod": {
                 "value": "<EdgeHubRestartTest.RestartPeriod>"
               },
-              "sdkRetryTimeout": {
+              "sdkOperationTimeout": {
                 "value": "<EdgeHubRestartTest.SdkOperationTimeout>"
               },
               "testDuration": {

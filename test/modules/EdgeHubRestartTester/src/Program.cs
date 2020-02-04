@@ -45,7 +45,7 @@ namespace EdgeHubRestartTester
                         ModuleUtil.DefaultTransientRetryStrategy,
                         Logger);
 
-                    msgModuleClient.OperationTimeoutInMilliseconds = (uint)Settings.Current.SdkRetryTimeout.TotalMilliseconds;
+                    msgModuleClient.OperationTimeoutInMilliseconds = (uint)Settings.Current.SdkOperationTimeout.TotalMilliseconds;
                 }
 
                 if (Settings.Current.DirectMethodEnable)
