@@ -7,6 +7,7 @@ namespace TestResultCoordinator
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
@@ -36,7 +37,8 @@ namespace TestResultCoordinator
             bool optimizeForPerformance,
             TimeSpan testStartDelay,
             TimeSpan testDuration,
-            TimeSpan verificationDelay)
+            TimeSpan verificationDelay,
+            string storageAccountConnectionString)
         {
             Preconditions.CheckRange(testDuration.Ticks, 1);
 
@@ -55,6 +57,7 @@ namespace TestResultCoordinator
             this.TestStartDelay = testStartDelay;
             this.DurationBeforeVerification = verificationDelay;
             this.ConsumerGroupName = "$Default";
+            this.StorageAccountConnectionString = Preconditions.CheckNonWhiteSpace(storageAccountConnectionString, nameof(storageAccountConnectionString));
         }
 
         static Settings Create()
@@ -79,7 +82,8 @@ namespace TestResultCoordinator
                 configuration.GetValue<bool>("optimizeForPerformance", true),
                 configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
                 configuration.GetValue("testDuration", TimeSpan.FromHours(1)),
-                configuration.GetValue("verificationDelay", TimeSpan.FromMinutes(15)));
+                configuration.GetValue("verificationDelay", TimeSpan.FromMinutes(15)),
+                configuration.GetValue<string>("STORAGE_ACCOUNT_CONNECTION_STRING"));
         }
 
         public string EventHubConnectionString { get; }
@@ -111,6 +115,8 @@ namespace TestResultCoordinator
         public TimeSpan DurationBeforeVerification { get; }
 
         public string ConsumerGroupName { get; }
+
+        public string StorageAccountConnectionString { get; }
 
         public override string ToString()
         {
@@ -147,10 +153,7 @@ namespace TestResultCoordinator
         internal async Task<HashSet<string>> GetResultSourcesAsync(ILogger logger)
         {
             HashSet<string> sources = (await this.GetReportMetadataListAsync(logger)).SelectMany(r => r.ResultSources).ToHashSet();
-            string[] additionalResultSources = new string[]
-            {
-                "networkController"
-            };
+            string[] additionalResultSources = new string[] { };
 
             foreach (string rs in additionalResultSources)
             {
