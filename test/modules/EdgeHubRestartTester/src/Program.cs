@@ -6,7 +6,6 @@ namespace EdgeHubRestartTester
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
-    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
@@ -30,8 +29,8 @@ namespace EdgeHubRestartTester
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
             ServiceClient iotHubServiceClient = null;
-            ModuleClient msgModuleClient = null;
-            ModuleClient dmModuleClient = null;
+            IEdgeHubConnector edgeHubMessageConnector = null;
+            IEdgeHubConnector edgeHubDirectMethodConnector = null;
 
             try
             {
@@ -39,21 +38,15 @@ namespace EdgeHubRestartTester
 
                 if (Settings.Current.MessageEnabled)
                 {
-                    msgModuleClient = await ModuleUtil.CreateModuleClientAsync(
-                        Settings.Current.TransportType,
-                        ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                        ModuleUtil.DefaultTransientRetryStrategy,
+                    edgeHubMessageConnector = new MessageEdgeHubConnector(
+                        batchId,
                         Logger);
-
-                    msgModuleClient.OperationTimeoutInMilliseconds = (uint)Settings.Current.SdkOperationTimeout.TotalMilliseconds;
                 }
 
                 if (Settings.Current.DirectMethodEnabled)
                 {
-                    dmModuleClient = await ModuleUtil.CreateModuleClientAsync(
-                        Settings.Current.TransportType,
-                        ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                        ModuleUtil.DefaultTransientRetryStrategy,
+                    edgeHubDirectMethodConnector = new DirectMethodEdgeHubConnector(
+                        batchId,
                         Logger);
                 }
 
@@ -72,31 +65,20 @@ namespace EdgeHubRestartTester
                     Task sendMessageTask = Task.CompletedTask;
                     if (Settings.Current.MessageEnabled)
                     {
-                        sendMessageTask =
-                            new MessageEdgeHubConnector(
-                                msgModuleClient,
-                                batchId,
-                                eachTestExpirationTime,
-                                restartTime,
-                                Logger,
-                                cts.Token)
-                            .StartAsync();
+                        sendMessageTask = edgeHubMessageConnector.StartAsync(
+                            eachTestExpirationTime,
+                            restartTime,
+                            cts.Token);
                     }
 
                     // Setup Direct Method Task
                     Task directMethodTask = Task.CompletedTask;
                     if (Settings.Current.DirectMethodEnabled)
                     {
-                        directMethodTask =
-                            new DirectMethodEdgeHubConnector(
-                                dmModuleClient,
-                                batchId,
-                                eachTestExpirationTime,
-                                restartTime,
-                                restartCount,
-                                Logger,
-                                cts.Token)
-                            .StartAsync();
+                        directMethodTask = edgeHubDirectMethodConnector.StartAsync(
+                            eachTestExpirationTime,
+                            restartTime,
+                            cts.Token);
                     }
 
                     // Wait for the two task to be done before do a restart
@@ -114,8 +96,8 @@ namespace EdgeHubRestartTester
             finally
             {
                 iotHubServiceClient?.Dispose();
-                dmModuleClient?.Dispose();
-                msgModuleClient?.Dispose();
+                edgeHubDirectMethodConnector?.Dispose();
+                edgeHubMessageConnector?.Dispose();
             }
 
             await cts.Token.WhenCanceled();

@@ -57,29 +57,10 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             return new LoggerFactory().AddSerilog().CreateLogger(categoryName);
         }
 
-        public static async Task ReportTestResultAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult)
+        public static async Task ReportTestResultAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult, CancellationToken cancellationToken = default(CancellationToken))
         {
             logger.LogInformation($"Sending test result: Source={testResult.Source}, Type={testResult.ResultType}, CreatedAt={testResult.CreatedAt}, Result={testResult.GetFormattedResult()}");
-            await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto());
-        }
-
-        // TODO: Remove this function once the TRC support the two new endpoint properly.
-        public static async Task ReportTestResultUntilSuccessAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult, CancellationToken cancellationToken)
-        {
-            bool isSuccessful = false;
-            while (!isSuccessful && !cancellationToken.IsCancellationRequested)
-            {
-                try
-                {
-                    logger.LogInformation($"Sending test result: Source={testResult.Source}, Type={testResult.ResultType}, CreatedAt={testResult.CreatedAt}, Result={testResult.GetFormattedResult()}");
-                    await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto(), cancellationToken);
-                    isSuccessful = true;
-                }
-                catch (Exception ex)
-                {
-                    logger.LogDebug(ex, "Exception caught in ReportTestResultAsync()");
-                }
-            }
+            await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto(), cancellationToken);
         }
 
         static async Task<ModuleClient> InitializeModuleClientAsync(TransportType transportType, ILogger logger)
