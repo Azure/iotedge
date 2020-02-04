@@ -351,6 +351,11 @@ function run_connectivity_test() {
                                     $(echo $TEST_DURATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
                                     $(echo $VERIFICATION_DELAY | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
                                     $(echo $TIME_FOR_REPORT_GENERATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }')))
+    echo "test start delay=$TEST_START_DELAY"
+    echo "test duration=$TEST_DURATION"
+    echo "verificaiton delay=$VERIFICATION_DELAY"
+    echo "time for report generation=$TIME_FOR_REPORT_GENERATION"
+    echo "time for test to complete in seconds=$time_for_test_to_complete"
 
     if [ $WAIT_FOR_TEST_COMPLETE -eq 1 ]; then
         local sleep_frequency_secs=60
