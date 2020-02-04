@@ -332,9 +332,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
         [Theory]
         [MemberData(nameof(UpstreamProtocolTransportSettingsData))]
-        public void GetTransportSettingsTest(Option<UpstreamProtocol> upstreamProtocol, int connectionPoolSize, Option<IWebProxy> proxy, ITransportSettings[] expectedTransportSettingsList, bool useHeartbeat)
+        public void GetTransportSettingsTest(Option<UpstreamProtocol> upstreamProtocol, int connectionPoolSize, Option<IWebProxy> proxy, ITransportSettings[] expectedTransportSettingsList, bool useServerHeartbeat)
         {
-            ITransportSettings[] transportSettingsList = CloudConnectionProvider.GetTransportSettings(upstreamProtocol, connectionPoolSize, proxy, useHeartbeat);
+            ITransportSettings[] transportSettingsList = CloudConnectionProvider.GetTransportSettings(upstreamProtocol, connectionPoolSize, proxy, useServerHeartbeat);
 
             Assert.NotNull(transportSettingsList);
             Assert.Equal(expectedTransportSettingsList.Length, transportSettingsList.Length);
