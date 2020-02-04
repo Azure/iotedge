@@ -4,9 +4,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
     using System.Collections.Generic;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
+    [Unit]
     public class KubernetesImagePullSecretBySecretDataEqualityComparerTest
     {
         static readonly KubernetesImagePullSecretBySecretDataEqualityComparer Comparer = new KubernetesImagePullSecretBySecretDataEqualityComparer();

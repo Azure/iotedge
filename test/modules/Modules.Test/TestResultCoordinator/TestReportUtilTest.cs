@@ -8,10 +8,12 @@ namespace Modules.Test.TestResultCoordinator
     using global::TestResultCoordinator.Reports;
     using global::TestResultCoordinator.Reports.DirectMethod;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Logging;
     using Moq;
     using Xunit;
 
+    [Unit]
     public class TestReportUtilTest
     {
         [Fact]

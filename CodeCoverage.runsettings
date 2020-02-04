@@ -33,10 +33,45 @@ Included items must then not match any entries in the exclude list to remain inc
                 <ModulePath>.*\.exe$</ModulePath>
               </Include>
               <Exclude>
-                <ModulePath>.*CPPUnitTestFramework.*</ModulePath>
-                <ModulePath>.*test\..*</ModulePath>
+                <!-- test/prod dependencies -->
                 <ModulePath>.*windowsazure\..*</ModulePath>
                 <ModulePath>.*moq\..*</ModulePath>
+                <ModulePath>.*app.metrics.*\..*</ModulePath>
+                <ModulePath>.*autofac.*</ModulePath>
+                <ModulePath>.*bouncycastle\..*</ModulePath>
+                <ModulePath>.*fluentassertions.*</ModulePath>
+                <ModulePath>.*microsoft.codeanalysis\..*</ModulePath>
+                <ModulePath>.*microsoft.identitymodel\..*</ModulePath>
+                <ModulePath>.*newtonsoft\..*</ModulePath>
+                <ModulePath>.*nito\..*</ModulePath>
+                <ModulePath>.*nunit.framework\..*</ModulePath>
+                <ModulePath>.*nunit3.testadapter\..*</ModulePath>
+                <ModulePath>.*prometheus-net.*</ModulePath>
+                <ModulePath>.*protobuf-net.*</ModulePath>
+                <ModulePath>.*stackexchange\..*</ModulePath>
+                <ModulePath>.*system.identitymodel\..*</ModulePath>
+                <ModulePath>.*system.reactive.*</ModulePath>
+                <ModulePath>.*xunit\..*</ModulePath>
+                <!-- test binaries -->
+                <ModulePath>.*test\..*</ModulePath>
+                <!-- test/sample edge modules -->
+                <ModulePath>.*cloudtodevicemessagetester\..*</ModulePath>
+                <ModulePath>.*deploymenttester\..*</ModulePath>
+                <ModulePath>.*directmethodreceiver\..*</ModulePath>
+                <ModulePath>.*directmethodsender\..*</ModulePath>
+                <ModulePath>.*iotedgequickstart\..*</ModulePath>
+                <ModulePath>.*leafdevice\..*</ModulePath>
+                <ModulePath>.*load-gen\..*</ModulePath>
+                <ModulePath>.*metricscollector\..*</ModulePath>
+                <ModulePath>.*metricsvalidator\..*</ModulePath>
+                <ModulePath>.*modulerestarter\..*</ModulePath>
+                <ModulePath>.*networkcontroller\..*</ModulePath>
+                <ModulePath>.*relayer\..*</ModulePath>
+                <ModulePath>.*simulatedtemperaturesensor\..*</ModulePath>
+                <ModulePath>.*temperaturefilter\..*</ModulePath>
+                <ModulePath>.*testanalyzer\..*</ModulePath>
+                <ModulePath>.*testresultcoordinator\..*</ModulePath>
+                <ModulePath>.*twintester\..*</ModulePath>
               </Exclude>
             </ModulePaths>
 
