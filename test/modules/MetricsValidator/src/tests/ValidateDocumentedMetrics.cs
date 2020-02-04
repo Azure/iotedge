@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace MetricsValidator
+namespace MetricsValidator.Tests
 {
     using System;
     using System.Collections.Generic;
@@ -23,11 +23,9 @@ namespace MetricsValidator
         {
         }
 
-        public override async Task Start(CancellationToken cancellationToken)
+        protected override async Task Test(CancellationToken cancellationToken)
         {
-            log.LogInformation($"Starting {nameof(ValidateDocumentedMetrics)}");
-
-            await this.moduleClient.SendEventAsync(new Message(Encoding.UTF8.GetBytes("Test message to seed metrics")));
+            await this.SeedMetrics(cancellationToken);
 
             // scrape metrics
             var metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
@@ -87,6 +85,17 @@ namespace MetricsValidator
                 this.testReporter.Assert("Read metrics docs", false, ex.Message);
                 return new Dictionary<string, string[]>();
             }
+        }
+
+        async Task SeedMetrics(CancellationToken cancellationToken)
+        {
+            await this.moduleClient.SendEventAsync(new Message(Encoding.UTF8.GetBytes("Test message to seed metrics")), cancellationToken);
+
+            const string methodName = "FakeDirectMethod";
+            await this.moduleClient.SetMethodHandlerAsync(methodName, (_, __) => Task.FromResult(new MethodResponse(200)), null);
+            await this.moduleClient.InvokeMethodAsync(Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID"), Environment.GetEnvironmentVariable("IOTEDGE_MODULEID"), new MethodRequest(methodName), cancellationToken);
+
+            await Task.Delay(TimeSpan.FromSeconds(10));
         }
     }
 }
