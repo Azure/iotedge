@@ -444,6 +444,7 @@
     },
     "metricsCollector": {
       "properties.desired": {
+        "hostPlatform": "<MetricsCollector.HostPlatform>",
         "testType": "longhaul",
         "testId": "<TrackingId>",
         "upstreamProtocol": "amqp"

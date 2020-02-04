@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
@@ -8,8 +8,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
     using NUnit.Framework;
 
+    [EndToEnd]
     class DeviceWithCustomCertificates : CustomCertificatesFixture
     {
         [Test]
@@ -17,22 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             [Values] TestAuthenticationType testAuth,
             [Values(Protocol.Mqtt, Protocol.Amqp)] Protocol protocol)
         {
-            if (!OsPlatform.IsWindows() && (protocol == Protocol.Amqp))
-            {
-                switch (testAuth)
-                {
-                    case TestAuthenticationType.SelfSignedPrimary:
-                    case TestAuthenticationType.SelfSignedSecondary:
-                    case TestAuthenticationType.CertificateAuthority:
-                        Assert.Ignore("Skipping the test case due to BUG 5234369");
-                        break;
-
-                    default:
-                        // Intentionally left blank
-                        break;
-                }
-            }
-
             CancellationToken token = this.TestToken;
 
             string leafDeviceId = IdentityLimits.CheckLeafId(
