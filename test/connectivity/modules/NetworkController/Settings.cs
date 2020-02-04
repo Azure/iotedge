@@ -4,6 +4,7 @@ namespace NetworkController
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
 
@@ -26,8 +27,7 @@ namespace NetworkController
             string dockerUri,
             string networkId,
             IList<Frequency> frequencies,
-            string networkRunProfile,
-            IDictionary<string, NetworkProfile> profileSettings,
+            NetworkProfile runProfileSettings,
             Uri testResultCoordinatorEndpoint,
             string trackingId,
             string moduleId,
@@ -38,10 +38,7 @@ namespace NetworkController
             this.DockerUri = Preconditions.CheckNonWhiteSpace(dockerUri, nameof(dockerUri));
             this.NetworkId = Preconditions.CheckNonWhiteSpace(networkId, nameof(networkId));
             this.TestResultCoordinatorEndpoint = Preconditions.CheckNotNull(testResultCoordinatorEndpoint, nameof(testResultCoordinatorEndpoint));
-            Preconditions.CheckNonWhiteSpace(networkRunProfile, nameof(networkRunProfile));
-            Preconditions.CheckNotNull(profileSettings, nameof(profileSettings));
-            Preconditions.CheckArgument(profileSettings.ContainsKey(networkRunProfile));
-            this.NetworkRunProfile = profileSettings[networkRunProfile];
+            this.NetworkRunProfile = Preconditions.CheckNotNull(runProfileSettings, nameof(runProfileSettings));
             Preconditions.CheckRange<uint>(this.NetworkRunProfile.ProfileSetting.PackageLoss, 0, 101, nameof(this.NetworkRunProfile));
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
@@ -79,16 +76,18 @@ namespace NetworkController
             var frequencies = new List<Frequency>();
             configuration.GetSection(FrequencyPropertyName).Bind(frequencies);
 
-            IDictionary<string, NetworkProfile> defaultProfiles = new Dictionary<string, NetworkProfile>();
-            configuration.GetSection(DefaultProfilesPropertyName).Bind(defaultProfiles);
+            string runProfileName = configuration.GetValue<string>(NetworkControllerRunProfilePropertyName);
+            NetworkProfile runProfileSettings = configuration.GetSection($"{DefaultProfilesPropertyName}:{runProfileName}").Get<NetworkProfile>();
+            if (runProfileSettings == null) {
+                runProfileSettings = NetworkProfile.Online;
+            }
 
             return new Settings(
                 configuration.GetValue<TimeSpan>(StartAfterPropertyName),
                 configuration.GetValue<string>(DockerUriPropertyName),
                 configuration.GetValue<string>(NetworkIdPropertyName),
                 frequencies,
-                configuration.GetValue<string>(NetworkControllerRunProfilePropertyName),
-                defaultProfiles,
+                runProfileSettings,
                 configuration.GetValue<Uri>(TestResultCoordinatorEndpointPropertyName),
                 configuration.GetValue<string>(TrackingIdPropertyName),
                 configuration.GetValue<string>(ModuleIdPropertyName),

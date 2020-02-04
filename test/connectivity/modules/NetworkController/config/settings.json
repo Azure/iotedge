@@ -2,7 +2,7 @@
   "StartAfter": "00:05:00",
   "DockerUri": "unix:///var/run/docker.sock",
   "NetworkId": "azure-iot-edge",
-  "NetworkControllerRunProfile": "Cellular3G",
+  "NetworkControllerRunProfile": "Online",
   "DefaultProfiles": {
     "Offline": {
       "ProfileType": "Offline",

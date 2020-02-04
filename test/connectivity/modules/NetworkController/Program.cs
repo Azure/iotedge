@@ -33,8 +33,7 @@ namespace NetworkController
                         var controllers = new List<INetworkController>() { offline, satellite, cellular };
                         await RemoveAllControllingRules(controllers, cts.Token);
 
-                        Enum.TryParse(Settings.Current.NetworkRunProfile.ProfileType, out NetworkControllerType ncType);
-                        switch (ncType)
+                        switch (Settings.Current.NetworkRunProfile.ProfileType)
                         {
                             case NetworkControllerType.Offline:
                                 await StartAsync(offline, cts.Token);
@@ -44,6 +43,9 @@ namespace NetworkController
                                 break;
                             case NetworkControllerType.Cellular:
                                 await StartAsync(cellular, cts.Token);
+                                break;
+                            case NetworkControllerType.Online:
+                                Log.LogInformation($"No restrictions to be set, running as online");
                                 break;
                             default:
                                 throw new NotSupportedException($"Network type {Settings.Current.NetworkRunProfile.ProfileType} is not supported.");
