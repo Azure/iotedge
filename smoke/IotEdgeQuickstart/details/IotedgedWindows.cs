@@ -148,15 +148,6 @@ namespace IotEdgeQuickstart.Details
                     Console.WriteLine("Installing iotedge...");
                     args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Install-SecurityDaemon " + $"-ContainerOs Windows";
 
-                    agentImage.ForEach(image =>
-                    {
-                        args += $" -AgentImage '{image}'";
-                        foreach (RegistryCredentials c in this.credentials)
-                        {
-                            args += $" -Username '{c.User}' -Password (ConvertTo-SecureString '{c.Password}' -AsPlainText -Force)";
-                        }
-                    });
-
                     this.proxy.ForEach(proxy => { args += $" -Proxy '{proxy}'"; });
 
                     if (!string.IsNullOrEmpty(this.offlineInstallationPath))
@@ -170,6 +161,15 @@ namespace IotEdgeQuickstart.Details
                     args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Initialize-IoTEdge " +
                            $"-ContainerOs Windows";
                 }
+
+                agentImage.ForEach(image =>
+                {
+                    args += $" -AgentImage '{image}'";
+                    foreach (RegistryCredentials c in this.credentials)
+                    {
+                        args += $" -Username '{c.User}' -Password (ConvertTo-SecureString '{c.Password}' -AsPlainText -Force)";
+                    }
+                });
 
                 args += method.Dps.Map(
                     dps =>
