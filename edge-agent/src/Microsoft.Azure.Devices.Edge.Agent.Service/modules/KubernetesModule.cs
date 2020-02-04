@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Option<IWebProxy> proxy;
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
-        readonly bool useHearbeat;
+        readonly bool useServerHeartbeat;
         readonly KubernetesExperimentalFeatures experimentalFeatures;
         readonly KubernetesModuleOwner moduleOwner;
         readonly bool runAsNonRoot;
@@ -92,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             Option<IWebProxy> proxy,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
-            bool useHearbeat,
+            bool useServerHeartbeat,
             KubernetesExperimentalFeatures experimentalFeatures,
             KubernetesModuleOwner moduleOwner,
             bool runAsNonRoot)
@@ -123,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.proxy = proxy;
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
-            this.useHearbeat = useHearbeat;
+            this.useServerHeartbeat = useServerHeartbeat;
             this.experimentalFeatures = experimentalFeatures;
             this.moduleOwner = moduleOwner;
             this.runAsNonRoot = runAsNonRoot;
@@ -165,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         this.productInfo.OrDefault(),
                         this.closeOnIdleTimeout,
                         this.idleTimeout,
-                        this.useHearbeat))
+                        this.useServerHeartbeat))
                 .As<IModuleClientProvider>()
                 .SingleInstance();
 
