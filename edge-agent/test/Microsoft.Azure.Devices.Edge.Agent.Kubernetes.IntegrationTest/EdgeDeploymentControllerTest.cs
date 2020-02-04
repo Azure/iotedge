@@ -54,10 +54,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             var kubernetesServiceMapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
             string proxyImagePullSecretName = null;
             IDictionary<string, bool> experimentalFeatures = null;
-            var persistentVolumeName = "";
-            var storageClassName = "";
+            var persistentVolumeName = string.Empty;
+            var storageClassName = string.Empty;
             var deploymentMapper = new KubernetesDeploymentMapper(
-                client.DeviceNamespace,
+                this.client.DeviceNamespace,
                 "edgehub",
                 "proxy",
                 Option.Maybe(proxyImagePullSecretName),
@@ -82,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             var controller = new EdgeDeploymentController(
                 resourceName,
                 deviceSelector,
-                client.DeviceNamespace,
+                this.client.DeviceNamespace,
                 this.client.Kubernetes,
                 moduleLifeCycleManager,
                 kubernetesServiceMapper,
@@ -121,10 +121,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             var kubernetesServiceMapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
             string proxyImagePullSecretName = null;
             IDictionary<string, bool> experimentalFeatures = null;
-            var persistentVolumeName = "";
-            var storageClassName = "";
+            var persistentVolumeName = string.Empty;
+            var storageClassName = string.Empty;
             var deploymentMapper = new KubernetesDeploymentMapper(
-                client.DeviceNamespace,
+                this.client.DeviceNamespace,
                 "edgehub",
                 "proxy",
                 Option.Maybe(proxyImagePullSecretName),
@@ -149,7 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             var controller = new EdgeDeploymentController(
                 resourceName,
                 deviceSelector,
-                client.DeviceNamespace,
+                this.client.DeviceNamespace,
                 this.client.Kubernetes,
                 moduleLifeCycleManager,
                 kubernetesServiceMapper,
@@ -190,10 +190,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             var kubernetesServiceMapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
             string proxyImagePullSecretName = null;
             IDictionary<string, bool> experimentalFeatures = null;
-            var persistentVolumeName = "";
-            var storageClassName = "";
+            var persistentVolumeName = string.Empty;
+            var storageClassName = string.Empty;
             var deploymentMapper = new KubernetesDeploymentMapper(
-                client.DeviceNamespace,
+                this.client.DeviceNamespace,
                 "edgehub",
                 "proxy",
                 Option.Maybe(proxyImagePullSecretName),
@@ -218,7 +218,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             var controller = new EdgeDeploymentController(
                 resourceName,
                 deviceSelector,
-                client.DeviceNamespace,
+                this.client.DeviceNamespace,
                 this.client.Kubernetes,
                 moduleLifeCycleManager,
                 kubernetesServiceMapper,
@@ -248,12 +248,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
 
         public class DummyModuleIdentityLifecycleManager : IModuleIdentityLifecycleManager
         {
-            private IImmutableDictionary<string, IModuleIdentity> identites = ImmutableDictionary<string, IModuleIdentity>.Empty;
             readonly string hostName;
             readonly string gatewayHostname;
             readonly string deviceId;
             readonly string moduleId;
             readonly ICredentials credentials;
+            private IImmutableDictionary<string, IModuleIdentity> identites = ImmutableDictionary<string, IModuleIdentity>.Empty;
             public DummyModuleIdentityLifecycleManager(string hostName, string gatewayHostname, string deviceId, string moduleId, ICredentials credentials)
             {
                 this.hostName = hostName;
@@ -273,4 +273,3 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         }
     }
 }
-
