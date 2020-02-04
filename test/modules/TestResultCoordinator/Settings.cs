@@ -7,6 +7,7 @@ namespace TestResultCoordinator
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
@@ -152,10 +153,7 @@ namespace TestResultCoordinator
         internal async Task<HashSet<string>> GetResultSourcesAsync(ILogger logger)
         {
             HashSet<string> sources = (await this.GetReportMetadataListAsync(logger)).SelectMany(r => r.ResultSources).ToHashSet();
-            string[] additionalResultSources = new string[]
-            {
-                "networkController"
-            };
+            string[] additionalResultSources = new string[] { };
 
             foreach (string rs in additionalResultSources)
             {

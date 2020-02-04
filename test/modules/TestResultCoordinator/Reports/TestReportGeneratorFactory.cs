@@ -96,10 +96,23 @@ namespace TestResultCoordinator.Reports
                         var metadata = (NetworkControllerReportMetadata)testReportMetadata;
                         var testResults = this.GetResults(metadata.Source);
 
-                        return new NetworkControllerReportGenerator(
+                        return new SimpleReportGenerator(
                             trackingId,
                             metadata.Source,
-                            testResults);
+                            testResults,
+                            TestOperationResultType.Network);
+                    }
+
+                case TestReportType.ErrorReport:
+                    {
+                        var metadata = (ErrorReportMetadata)testReportMetadata;
+                        var testResults = this.GetResults(metadata.Source);
+
+                        return new SimpleReportGenerator(
+                            trackingId,
+                            metadata.Source,
+                            testResults,
+                            TestOperationResultType.Error);
                     }
 
                 default:

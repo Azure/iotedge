@@ -103,6 +103,9 @@ namespace TestResultCoordinator
                         case TestReportType.EdgeHubRestartMessageResult:
                             reportMetadataList.Add(JsonConvert.DeserializeObject<CountingReportMetadata>(((JProperty)metadata).Value.ToString()));
                             break;
+                        case TestReportType.ErrorReport:
+                            reportMetadataList.Add(new ErrorReportMetadata());
+                            break;
                         default:
                             throw new NotImplementedException("{testReportType} doesn't implement to construct report metadata from Twin.");
                     }
