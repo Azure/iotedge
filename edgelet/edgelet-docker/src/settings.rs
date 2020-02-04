@@ -1,9 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::collections::HashMap;
 use std::path::Path;
 
 use config::{Config, Environment};
-use docker::models::HostConfig;
+use docker::models::{ContainerCreateBodyNetworkingConfig, EndpointSettings, HostConfig};
 use edgelet_core::{
     Certificates, Connect, Listen, MobyNetwork, ModuleSpec, Provisioning, RuntimeSettings,
     Settings as BaseSettings, UrlExt, WatchdogSettings,
@@ -46,8 +47,9 @@ impl MobyRuntime {
 
 /// This struct is the same as the Settings type from the `edgelet_core` crate
 /// except that it also sets up the volume mounting of workload & management
-/// UDS sockets for the edge agent container and also injects the docker
-/// network name as an environment variable for edge agent.
+/// UDS sockets for the edge agent container and injects the docker network
+/// name both as an environment variable and as an endpoint setting in the
+/// docker create options for edge agent.
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Settings {
     #[serde(flatten)]
@@ -121,6 +123,9 @@ fn init_agent_spec(settings: &mut Settings) -> Result<(), LoadSettingsError> {
     // setup environment variables that are moby/docker specific
     agent_env(settings);
 
+    // setup moby/docker specific networking config
+    agent_networking(settings)?;
+
     Ok(())
 }
 
@@ -177,6 +182,35 @@ fn agent_env(settings: &mut Settings) {
         .agent_mut()
         .env_mut()
         .insert(EDGE_NETWORKID_KEY.to_string(), network_id);
+}
+
+fn agent_networking(settings: &mut Settings) -> Result<(), LoadSettingsError> {
+    let network_id = settings.moby_runtime().network().name().to_string();
+
+    let create_options = settings.agent().config().clone_create_options()?;
+
+    let mut network_config = create_options
+        .networking_config()
+        .cloned()
+        .unwrap_or_else(ContainerCreateBodyNetworkingConfig::new);
+
+    let mut endpoints_config = network_config
+        .endpoints_config()
+        .cloned()
+        .unwrap_or_else(HashMap::new);
+
+    if !endpoints_config.contains_key(network_id.as_str()) {
+        endpoints_config.insert(network_id, EndpointSettings::new());
+        network_config = network_config.with_endpoints_config(endpoints_config);
+        let create_options = create_options.with_networking_config(network_config);
+
+        settings
+            .agent_mut()
+            .config_mut()
+            .set_create_options(create_options);
+    }
+
+    Ok(())
 }
 
 #[derive(Debug, Fail)]
@@ -295,6 +329,8 @@ mod tests {
     #[cfg(unix)]
     static BAD_SETTINGS_DYNAMIC_REPROVISIONING: &str =
         "test/linux/bad_sample_settings.dyn.repro.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_TLS: &str = "test/linux/sample_settings.tls.yaml";
 
     #[cfg(windows)]
     static GOOD_SETTINGS: &str = "test/windows/sample_settings.yaml";
@@ -358,6 +394,8 @@ mod tests {
     #[cfg(windows)]
     static BAD_SETTINGS_DYNAMIC_REPROVISIONING: &str =
         "test/windows/bad_sample_settings.dyn.repro.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_TLS: &str = "test/windows/sample_settings.tls.yaml";
 
     fn unwrap_manual_provisioning(p: &ProvisioningType) -> String {
         match p {
@@ -1022,5 +1060,35 @@ mod tests {
         let s = settings.unwrap();
         let watchdog_settings = s.watchdog();
         assert_eq!(watchdog_settings.max_retries().compare(3), Ordering::Equal);
+    }
+
+    #[test]
+    fn tls_settings_are_read() {
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_TLS)).unwrap();
+        assert_eq!(
+            settings.listen().min_tls_version(),
+            edgelet_core::Protocol::Tls12
+        );
+    }
+
+    #[test]
+    fn tls_settings_are_none_by_default() {
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
+        assert_eq!(
+            settings.listen().min_tls_version(),
+            edgelet_core::Protocol::Tls10
+        );
+    }
+
+    #[test]
+    fn networking_config_is_set() {
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
+        let create_options = settings.agent().config().create_options();
+        assert!(create_options
+            .networking_config()
+            .unwrap()
+            .endpoints_config()
+            .unwrap()
+            .contains_key("azure-iot-edge"));
     }
 }

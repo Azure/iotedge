@@ -34,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 DateTime.MinValue,
                 runtimeStatus,
                 imagePullPolicy,
+                Core.Constants.HighestPriority,
                 configuration,
                 env)
         {

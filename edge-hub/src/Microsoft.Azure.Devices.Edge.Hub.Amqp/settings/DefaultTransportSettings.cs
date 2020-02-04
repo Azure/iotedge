@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
 {
     using System;
+    using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
     using Microsoft.Azure.Amqp.Transport;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -17,7 +18,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
             X509Certificate2 tlsCertificate,
             bool clientCertAuthAllowed,
             IAuthenticator authenticator,
-            IClientCredentialsFactory clientCredentialsProvider)
+            IClientCredentialsFactory clientCredentialsProvider,
+            SslProtocols sslProtocols)
         {
             this.HostName = Preconditions.CheckNonWhiteSpace(hostName, nameof(hostName));
             Preconditions.CheckNotNull(clientCredentialsProvider, nameof(clientCredentialsProvider));
@@ -42,7 +44,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Settings
                 Certificate = Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate)),
                 // NOTE: The following property doesn't appear to be used by the AMQP library.
                 //       Not sure that setting this to true/false makes any difference!
-                CheckCertificateRevocation = false
+                CheckCertificateRevocation = false,
+                Protocols = sslProtocols
             };
 
             if (clientCertAuthAllowed == true)

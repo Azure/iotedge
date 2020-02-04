@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
     using System.Collections.Generic;
+    using System.Security.Authentication;
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
@@ -24,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     public class Program
     {
         const int DefaultShutdownWaitPeriod = 60;
+        const SslProtocols DefaultSslProtocols = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12;
 
         public static int Main()
         {
@@ -47,12 +49,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 Routing.LoggerFactory = Logger.Factory;
             }
 
-            EdgeHubCertificates certificates = await EdgeHubCertificates.LoadAsync(configuration);
+            ILogger logger = Logger.Factory.CreateLogger("EdgeHub");
+
+            EdgeHubCertificates certificates = await EdgeHubCertificates.LoadAsync(configuration, logger);
             bool clientCertAuthEnabled = configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);
-            Hosting hosting = Hosting.Initialize(configuration, certificates.ServerCertificate, new DependencyManager(configuration, certificates.ServerCertificate, certificates.TrustBundle), clientCertAuthEnabled);
+
+            string sslProtocolsConfig = configuration.GetValue(Constants.ConfigKey.SslProtocols, string.Empty);
+            SslProtocols sslProtocols = SslProtocolsHelper.Parse(sslProtocolsConfig, DefaultSslProtocols, logger);
+            logger.LogInformation($"Enabling SSL protocols: {sslProtocols.Print()}");
+
+            IDependencyManager dependencyManager = new DependencyManager(configuration, certificates.ServerCertificate, certificates.TrustBundle, sslProtocols);
+            Hosting hosting = Hosting.Initialize(configuration, certificates.ServerCertificate, dependencyManager, clientCertAuthEnabled, sslProtocols);
             IContainer container = hosting.Container;
 
-            ILogger logger = container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
             logger.LogInformation("Initializing Edge Hub");
             LogLogo(logger);
             LogVersionInfo(logger);

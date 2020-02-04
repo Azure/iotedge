@@ -23,6 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public virtual ImagePullPolicy ImagePullPolicy => ImagePullPolicy.OnCreate;
 
+        public virtual uint Priority => Constants.DefaultPriority;
+
         public virtual ConfigurationInfo ConfigurationInfo => new ConfigurationInfo();
 
         public IDictionary<string, EnvVal> Env { get; } = ImmutableDictionary<string, EnvVal>.Empty;

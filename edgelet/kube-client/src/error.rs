@@ -143,6 +143,7 @@ pub enum RequestType {
     SecretCreate,
     SecretReplace,
     TokenReview,
+    SelfSubjectAccessReviewCreate,
     ServiceAccountList,
     ServiceAccountCreate,
     ServiceAccountReplace,

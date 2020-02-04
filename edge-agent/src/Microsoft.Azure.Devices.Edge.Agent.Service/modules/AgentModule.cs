@@ -32,9 +32,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Option<string> moduleGenerationId;
         readonly bool useBackupAndRestore;
         readonly Option<string> storageBackupPath;
+        readonly Option<ulong> storageTotalMaxWalSize;
 
-        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, bool usePersistentStorage, string storagePath, bool useBackupAndRestore, Option<string> storageBackupPath)
-            : this(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.None<Uri>(), Option.None<string>(), Constants.EdgeAgentModuleIdentityName, Option.None<string>(), useBackupAndRestore, storageBackupPath)
+        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, bool usePersistentStorage, string storagePath, bool useBackupAndRestore, Option<string> storageBackupPath, Option<ulong> storageTotalMaxWalSize)
+            : this(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.None<Uri>(), Option.None<string>(), Constants.EdgeAgentModuleIdentityName, Option.None<string>(), useBackupAndRestore, storageBackupPath, storageTotalMaxWalSize)
         {
         }
 
@@ -49,7 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string moduleId,
             Option<string> moduleGenerationId,
             bool useBackupAndRestore,
-            Option<string> storageBackupPath)
+            Option<string> storageBackupPath,
+            Option<ulong> storageTotalMaxWalSize)
         {
             this.maxRestartCount = maxRestartCount;
             this.intensiveCareTime = intensiveCareTime;
@@ -62,6 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.moduleGenerationId = moduleGenerationId;
             this.useBackupAndRestore = useBackupAndRestore;
             this.storageBackupPath = storageBackupPath;
+            this.storageTotalMaxWalSize = storageTotalMaxWalSize;
         }
 
         static Dictionary<Type, IDictionary<string, Type>> DeploymentConfigTypeMapping
@@ -138,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // IRocksDbOptionsProvider
             // For EdgeAgent, we don't need high performance from RocksDb, so always turn off optimizeForPerformance
-            builder.Register(c => new RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), false))
+            builder.Register(c => new RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), false, this.storageTotalMaxWalSize))
                 .As<IRocksDbOptionsProvider>()
                 .SingleInstance();
 
@@ -200,8 +203,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             // IEntityStore<string, ModuleState>
             builder.Register(async c =>
                 {
-                IStoreProvider storeProvider = await c.Resolve<Task<IStoreProvider>>();
-                return storeProvider.GetEntityStore<string, ModuleState>("moduleState");
+                    IStoreProvider storeProvider = await c.Resolve<Task<IStoreProvider>>();
+                    return storeProvider.GetEntityStore<string, ModuleState>("moduleState");
                 })
                 .As<Task<IEntityStore<string, ModuleState>>>()
                 .SingleInstance();
@@ -209,8 +212,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             // IEntityStore<string, DeploymentConfigInfo>
             builder.Register(async c =>
                 {
-                IStoreProvider storeProvider = await c.Resolve<Task<IStoreProvider>>();
-                return storeProvider.GetEntityStore<string, string>("deploymentConfig");
+                    IStoreProvider storeProvider = await c.Resolve<Task<IStoreProvider>>();
+                    return storeProvider.GetEntityStore<string, string>("deploymentConfig");
                 })
                 .As<Task<IEntityStore<string, string>>>()
                 .SingleInstance();
@@ -222,11 +225,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // IPlanner
             builder.Register(
-                    async c => new HealthRestartPlanner(
-                        await c.Resolve<Task<ICommandFactory>>(),
-                        await c.Resolve<Task<IEntityStore<string, ModuleState>>>(),
-                        this.intensiveCareTime,
-                        c.Resolve<IRestartPolicyManager>()) as IPlanner)
+                    async c =>
+                    {
+                        var commandFactory = c.Resolve<Task<ICommandFactory>>();
+                        var entityStore = c.Resolve<Task<IEntityStore<string, ModuleState>>>();
+                        var policyManager = c.Resolve<IRestartPolicyManager>();
+
+                        return new HealthRestartPlanner(await commandFactory, await entityStore, this.intensiveCareTime, policyManager) as IPlanner;
+                    })
                 .As<Task<IPlanner>>()
                 .SingleInstance();
 
@@ -259,7 +265,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IAvailabilityMetric
-            builder.Register(c => new AvailabilityMetrics(c.Resolve<IMetricsProvider>(), SystemTime.Instance))
+            builder.Register(c => new AvailabilityMetrics(c.Resolve<IMetricsProvider>(), this.storagePath))
                 .As<IAvailabilityMetric>()
                 .SingleInstance();
 

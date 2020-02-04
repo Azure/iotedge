@@ -119,6 +119,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
+        public async Task SendEventAsync(Message message)
+        {
+            Events.UpdatingReportedProperties();
+            try
+            {
+                Option<IModuleClient> moduleClient = this.moduleConnection.GetModuleClient();
+                if (!moduleClient.HasValue)
+                {
+                    Events.SendEventClientEmpty();
+                    return;
+                }
+
+                await moduleClient.ForEachAsync(d => d.SendEventAsync(message));
+                Events.SendEvent();
+            }
+            catch (Exception e)
+            {
+                Events.ErrorSendingEvent(e);
+                throw;
+            }
+        }
+
         internal static void ValidateSchemaVersion(string schemaVersion)
         {
             if (ExpectedSchemaVersion.CompareMajorVersion(schemaVersion, "desired properties schema") != 0)
@@ -143,17 +165,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     this.ModuleConnection.GetModuleClient().Map(x => x.UpstreamProtocol).GetOrElse(UpstreamProtocol.Amqp);
                 Events.ConnectionStatusChanged(status, reason);
 
-                // Notify the IoT Edge daemon that a device has been deprovisioned and it should check
-                // if the device has been provisioned to a different IoT hub instead.
+                // We want to notify the IoT Edge daemon in the following two cases -
+                // 1. The device has been deprovisioned and might have been reprovisioned on another IoT hub.
+                // 2. The IoT Hub that the device belongs to is no longer in existence and the device might have been
+                // moved to a different IoT hub.
+                //
                 // When the Amqp or AmqpWs protocol is used, the SDK returns a connection status change reason of
                 // Device_Disabled when a device is either disabled or deleted in IoT hub.
                 // For the Mqtt and MqttWs protocol however, the SDK returns a Bad_Credential status as it's not
                 // possible for IoT hub to distinguish between 'device does not exist', 'device is disabled' and
                 // 'device exists but wrong credentials were supplied' cases.
+                //
+                // When an IoT hub is no longer in existence (i.e., it has been deleted), the SDK returns the
+                // connection status change reason of Bad_Credential for all the Amqp and Mqtt protocols.
                 if ((reason == ConnectionStatusChangeReason.Device_Disabled &&
                     (protocol == UpstreamProtocol.Amqp || protocol == UpstreamProtocol.AmqpWs)) ||
-                    (reason == ConnectionStatusChangeReason.Bad_Credential &&
-                    (protocol == UpstreamProtocol.Mqtt || protocol == UpstreamProtocol.MqttWs)))
+                    reason == ConnectionStatusChangeReason.Bad_Credential)
                 {
                     await this.deviceManager.ReprovisionDeviceAsync();
                 }
@@ -331,7 +358,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 UpdatedReportedProperties,
                 ErrorUpdatingReportedProperties,
                 GotModuleClient,
-                GettingModuleClient
+                GettingModuleClient,
+                SendEvent,
+                SendEventClientEmpty,
+                ErrorSendingEvent,
             }
 
             public static void DesiredPropertiesPatchFailed(Exception exception)
@@ -446,6 +476,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             internal static void RetryingGetTwin(RetryingEventArgs args)
             {
                 Log.LogDebug((int)EventIds.RetryingGetTwin, $"Edge agent is retrying GetTwinAsync. Attempt #{args.CurrentRetryCount}. Last error: {args.LastException?.Message}");
+            }
+
+            internal static void SendEvent()
+            {
+                Log.LogDebug((int)EventIds.SendEvent, $"Edge agent is sending a diagnostic message.");
+            }
+
+            public static void SendEventClientEmpty()
+            {
+                Log.LogDebug((int)EventIds.SendEventClientEmpty, "Client empty.");
+            }
+
+            public static void ErrorSendingEvent(Exception ex)
+            {
+                Log.LogDebug((int)EventIds.ErrorSendingEvent, ex, "Error sending event");
             }
         }
     }

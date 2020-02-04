@@ -36,10 +36,8 @@ where
     let module = Arc::new(module);
     let module_name = module.name().to_string();
 
-    get_module_owner(&runtime.clone(), "iotedged")
+    get_module_owner(&runtime, "iotedged")
         .and_then({
-            let runtime = runtime.clone();
-            let module = module.clone();
             move |module_owner| {
                 let owner = Arc::new(module_owner);
 
@@ -129,7 +127,7 @@ where
     spec_to_service_account(runtime.settings(), module, module_owner)
         .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
         .map(|(name, new_service_account)| {
-            let client_copy = runtime.client().clone();
+            let client_copy = runtime.client();
             let namespace_copy = runtime.settings().namespace().to_owned();
 
             runtime
@@ -243,7 +241,7 @@ where
     spec_to_deployment(runtime.settings(), module, module_owner)
         .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
         .map(|(name, new_deployment)| {
-            let client_copy = runtime.client().clone();
+            let client_copy = runtime.client();
             let namespace_copy = runtime.settings().namespace().to_owned();
 
             runtime

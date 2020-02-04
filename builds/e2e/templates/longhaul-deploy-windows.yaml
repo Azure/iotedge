@@ -19,6 +19,13 @@ parameters:
   analyzer.logAnalytics.logType: ''
   logAnalytics.workspaceId: ''
   logAnalytics.sharedKey: ''
+  twinTester.twinUpdateSize: ''
+  twinTester.twinUpdateFrequency: ''
+  twinTester.twinUpdateFailureThreshold: ''
+  metricsCollector.metricsEndpointsCSV: ''
+  metricsCollector.scrapeFrequencyInSecs: ''
+  metricsCollector.uploadTarget: ''
+  metricsCollector.hostPlatform: ''
 
 steps:
   - task: CopyFiles@2
@@ -62,5 +69,12 @@ steps:
           -LogAnalyticsEnabled "${{ parameters['analyzer.logAnalytics.enabled'] }}" `
           -LogAnalyticsLogType "${{ parameters['analyzer.logAnalytics.logType'] }}" `
           -LogAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" `
-          -LogAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}"
+          -LogAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" `
+          -TwinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" `
+          -TwinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" `
+          -TwinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" `
+          -MetricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" `
+          -MetricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" `
+          -MetricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" `
+          -HostPlatform "${{ parameters['metricsCollector.hostPlatform'] }}"
       workingDirectory: "$(Agent.HomeDirectory)/.."

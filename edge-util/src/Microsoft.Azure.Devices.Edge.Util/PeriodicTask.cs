@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         readonly string operationName;
         readonly Timer checkTimer;
         readonly CancellationTokenSource cts = new CancellationTokenSource();
+        readonly bool verbose;
 
         Task currentTask;
 
@@ -24,7 +25,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
             TimeSpan frequency,
             TimeSpan startAfter,
             ILogger logger,
-            string operationName)
+            string operationName,
+            bool verbose = true)
         {
             Preconditions.CheckArgument(frequency > TimeSpan.Zero, "Frequency should be > 0");
             Preconditions.CheckArgument(startAfter >= TimeSpan.Zero, "startAfter should be >= 0");
@@ -36,6 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             this.operationName = Preconditions.CheckNonWhiteSpace(operationName, nameof(operationName));
             this.currentTask = this.DoWork();
             this.checkTimer = new Timer(this.EnsureWork, null, startAfter, frequency);
+            this.verbose = verbose;
             this.logger.LogInformation($"Started operation {this.operationName}");
         }
 
@@ -44,8 +47,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
             TimeSpan frequency,
             TimeSpan startAfter,
             ILogger logger,
-            string operationName)
-            : this(_ => Preconditions.CheckNotNull(work, nameof(work))(), frequency, startAfter, logger, operationName)
+            string operationName,
+            bool verbose = true)
+            : this(_ => Preconditions.CheckNotNull(work, nameof(work))(), frequency, startAfter, logger, operationName, verbose)
         {
         }
 
@@ -85,9 +89,22 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 {
                     try
                     {
-                        this.logger.LogInformation($"Starting periodic operation {this.operationName}...");
+                        // void Log(string message) => this.verbose ? this.logger.LogInformation(message) : this.logger.LogDebug(message);
+                        void Log(string message)
+                        {
+                            if (this.verbose)
+                            {
+                                this.logger.LogInformation(message);
+                            }
+                            else
+                            {
+                                this.logger.LogDebug(message);
+                            }
+                        }
+
+                        Log($"Starting periodic operation {this.operationName}...");
                         await this.work(cancellationToken);
-                        this.logger.LogInformation($"Successfully completed periodic operation {this.operationName}");
+                        Log($"Successfully completed periodic operation {this.operationName}");
                     }
                     catch (Exception e)
                     {
