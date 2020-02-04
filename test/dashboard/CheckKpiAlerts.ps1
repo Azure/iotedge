@@ -1,4 +1,15 @@
-az login --service-principal -u "" -p "" --tenant "" --verbose
+Param (
+    [ValidateNotNullOrEmpty()]
+    [string] $User = $null,
+
+    [ValidateNotNullOrEmpty()]
+    [string] $Password = $null,
+
+    [ValidateNotNullOrEmpty()]
+    [string] $Tenant = $null
+)
+
+az login --service-principal -u $User -p $Password --tenant $Tenant --verbose
 
 $alertNames = Get-Content .\alertNames.txt
 $alertNames = $alertNames -Join "', '"
