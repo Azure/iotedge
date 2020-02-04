@@ -174,9 +174,9 @@ namespace IotEdgeQuickstart.Details
                 300); // 5 min timeout because install can be slow on raspberry pi
         }
 
-        public async Task Configure(DeviceProvisioningMethod method, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
+        public async Task Configure(DeviceProvisioningMethod method, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
         {
-            Console.WriteLine($"Setting up iotedged with agent image '{image}'");
+            Console.WriteLine($"Setting up iotedged with agent image 1.0");
 
             const string YamlPath = "/etc/iotedge/config.yaml";
             Task<string> text = File.ReadAllTextAsync(YamlPath);
@@ -221,7 +221,6 @@ namespace IotEdgeQuickstart.Details
                     dps.RegistrationId.ForEach(id => { doc.ReplaceOrAdd("provisioning.attestation.registration_id", id); });
                 });
 
-            doc.ReplaceOrAdd("agent.config.image", image);
             doc.ReplaceOrAdd("hostname", hostname);
 
             foreach (RegistryCredentials c in this.credentials)

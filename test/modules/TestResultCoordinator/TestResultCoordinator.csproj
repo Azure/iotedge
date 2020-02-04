@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.2.0" />
     <PackageReference Include="Microsoft.Azure.Devices" Version="1.18.2" />
     <PackageReference Include="Microsoft.Azure.EventHubs" Version="3.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="2.2.0" />
@@ -35,7 +36,7 @@
     <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Storage.RocksDb\Microsoft.Azure.Devices.Edge.Storage.RocksDb.csproj" />
     <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Storage\Microsoft.Azure.Devices.Edge.Storage.csproj" />
     <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
-    <ProjectReference Include="..\..\..\edge-modules\ModuleLib\Microsoft.Azure.Devices.Edge.ModuleUtil.csproj" />
+    <ProjectReference Include="..\ModuleLib\Microsoft.Azure.Devices.Edge.ModuleUtil.csproj" />
   </ItemGroup>
 
   <ItemGroup>

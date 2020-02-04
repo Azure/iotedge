@@ -41,6 +41,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public const string K8sPullSecretData = ".dockerconfigjson";
 
+        public const string K8sBackupSecretType = "Opaque";
+
+        public const string EdgeAgentBackupName = "edgeagent-backup-config";
+
         public const string PortMappingServiceType = "PortMappingServiceType";
 
         public const string EnableK8sServiceCallTracingName = "EnableK8sServiceCallTracing";
@@ -78,5 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public const string EdgeK8sObjectOwnerUidKey = "EdgeK8sObjectOwnerUid";
 
         public const string RunAsNonRootKey = "RunAsNonRoot";
+
+        public const string UnknownImage = "unknown";
     }
 }
