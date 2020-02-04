@@ -37,7 +37,7 @@ namespace EdgeHubRestartTester
             {
                 iotHubServiceClient = ServiceClient.CreateFromConnectionString(Settings.Current.IoTHubConnectionString);
 
-                if (Settings.Current.MessageEnable)
+                if (Settings.Current.MessageEnabled)
                 {
                     msgModuleClient = await ModuleUtil.CreateModuleClientAsync(
                         Settings.Current.TransportType,
@@ -48,7 +48,7 @@ namespace EdgeHubRestartTester
                     msgModuleClient.OperationTimeoutInMilliseconds = (uint)Settings.Current.SdkOperationTimeout.TotalMilliseconds;
                 }
 
-                if (Settings.Current.DirectMethodEnable)
+                if (Settings.Current.DirectMethodEnabled)
                 {
                     dmModuleClient = await ModuleUtil.CreateModuleClientAsync(
                         Settings.Current.TransportType,
@@ -70,7 +70,7 @@ namespace EdgeHubRestartTester
 
                     // Setup Message Task
                     Task sendMessageTask = Task.CompletedTask;
-                    if (Settings.Current.MessageEnable)
+                    if (Settings.Current.MessageEnabled)
                     {
                         sendMessageTask =
                             new MessageEdgeHubConnector(
@@ -85,7 +85,7 @@ namespace EdgeHubRestartTester
 
                     // Setup Direct Method Task
                     Task directMethodTask = Task.CompletedTask;
-                    if (Settings.Current.DirectMethodEnable)
+                    if (Settings.Current.DirectMethodEnabled)
                     {
                         directMethodTask =
                             new DirectMethodEdgeHubConnector(

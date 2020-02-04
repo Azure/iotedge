@@ -21,10 +21,10 @@ namespace EdgeHubRestartTester
             TimeSpan restartPeriod,
             TimeSpan testStartDelay,
             TimeSpan testDuration,
-            bool directMethodEnable,
+            bool directMethodEnabled,
             string directMethodName,
             string directMethodTargetModuleId,
-            bool messageEnable,
+            bool messageEnabled,
             string messageOutputEndpoint,
             TransportType transportType,
             string moduleId,
@@ -36,11 +36,11 @@ namespace EdgeHubRestartTester
             Preconditions.CheckRange(testDuration.Ticks, 0);
 
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            this.DirectMethodEnable = directMethodEnable;
-            this.DirectMethodName = this.DirectMethodEnable ? Preconditions.CheckNonWhiteSpace(directMethodName, nameof(directMethodName)) : string.Empty;
-            this.DirectMethodTargetModuleId = this.DirectMethodEnable ? Preconditions.CheckNonWhiteSpace(directMethodTargetModuleId, nameof(directMethodTargetModuleId)) : string.Empty;
-            this.MessageEnable = messageEnable;
-            this.MessageOutputEndpoint = this.MessageEnable ? Preconditions.CheckNonWhiteSpace(messageOutputEndpoint, nameof(messageOutputEndpoint)) : string.Empty;
+            this.DirectMethodEnabled = directMethodEnabled;
+            this.DirectMethodName = this.DirectMethodEnabled ? Preconditions.CheckNonWhiteSpace(directMethodName, nameof(directMethodName)) : string.Empty;
+            this.DirectMethodTargetModuleId = this.DirectMethodEnabled ? Preconditions.CheckNonWhiteSpace(directMethodTargetModuleId, nameof(directMethodTargetModuleId)) : string.Empty;
+            this.MessageEnabled = messageEnabled;
+            this.MessageOutputEndpoint = this.MessageEnabled ? Preconditions.CheckNonWhiteSpace(messageOutputEndpoint, nameof(messageOutputEndpoint)) : string.Empty;
             this.TransportType = transportType;
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.ReportingEndpointUrl = new Uri(Preconditions.CheckNonWhiteSpace(reportingEndpointUrl, nameof(reportingEndpointUrl)));
@@ -51,9 +51,9 @@ namespace EdgeHubRestartTester
             this.TestStartDelay = testStartDelay;
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
 
-            if (!(this.DirectMethodEnable || this.MessageEnable))
+            if (!(this.DirectMethodEnabled || this.MessageEnabled))
             {
-                throw new NotSupportedException("EdgeHubRestartTester requires at least one of the sending methods {DirectMethodEnable, MessageEnable} to be enabled to perform the EdgeHub restarting test.");
+                throw new NotSupportedException("EdgeHubRestartTester requires at least one of the sending methods {DirectMethodEnabled, MessageEnabled} to be enabled to perform the EdgeHub restarting test.");
             }
 
             if (restartPeriod < sdkOperationTimeout)
@@ -83,10 +83,10 @@ namespace EdgeHubRestartTester
                 configuration.GetValue("restartPeriod", TimeSpan.FromMinutes(5)),
                 configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
                 configuration.GetValue("testDuration", TimeSpan.Zero),
-                configuration.GetValue<bool>("directMethodEnable", false),
+                configuration.GetValue<bool>("directMethodEnabled", false),
                 configuration.GetValue<string>("directMethodName", "HelloWorldMethod"),
                 configuration.GetValue<string>("directMethodTargetModuleId", "DirectMethodReceiver"),
-                configuration.GetValue<bool>("messageEnable", false),
+                configuration.GetValue<bool>("messageEnabled", false),
                 configuration.GetValue("messageOutputEndpoint", "output1"),
                 configuration.GetValue("transportType", TransportType.Amqp_Tcp_Only),
                 configuration.GetValue<string>("IOTEDGE_MODULEID"),
@@ -97,13 +97,13 @@ namespace EdgeHubRestartTester
 
         public string DeviceId { get; }
 
-        public bool DirectMethodEnable { get; }
+        public bool DirectMethodEnabled { get; }
 
         public string DirectMethodName { get; }
 
         public string DirectMethodTargetModuleId { get; }
 
-        public bool MessageEnable { get; }
+        public bool MessageEnabled { get; }
 
         public string MessageOutputEndpoint { get; }
 
@@ -129,10 +129,10 @@ namespace EdgeHubRestartTester
             var fields = new Dictionary<string, string>
             {
                 { nameof(this.DeviceId), this.DeviceId },
-                { nameof(this.DirectMethodEnable), this.DirectMethodEnable.ToString() },
+                { nameof(this.DirectMethodEnabled), this.DirectMethodEnabled.ToString() },
                 { nameof(this.DirectMethodName), this.DirectMethodName },
                 { nameof(this.DirectMethodTargetModuleId), this.DirectMethodTargetModuleId },
-                { nameof(this.MessageEnable), this.MessageEnable.ToString() },
+                { nameof(this.MessageEnabled), this.MessageEnabled.ToString() },
                 { nameof(this.MessageOutputEndpoint), this.MessageOutputEndpoint },
                 { nameof(this.TransportType), this.TransportType.ToString() },
                 { nameof(this.ModuleId), this.ModuleId },
