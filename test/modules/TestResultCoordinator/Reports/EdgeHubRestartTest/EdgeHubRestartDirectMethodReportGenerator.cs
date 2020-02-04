@@ -13,11 +13,11 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    sealed class EdgeHubRestartMessageReportGenerator : ITestResultReportGenerator
+    sealed class EdgeHubRestartDirectMethodReportGenerator : ITestResultReportGenerator
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(EdgeHubRestartMessageReportGenerator));
+        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(EdgeHubRestartDirectMethodReportGenerator));
 
-        internal EdgeHubRestartMessageReportGenerator(
+        internal EdgeHubRestartDirectMethodReportGenerator(
             string trackingId,
             EdgeHubRestartMessageReportMetadata metadata,
             ITestResultCollection<TestOperationResult> senderTestResults,
@@ -82,9 +82,14 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
                 // Adjust seqeunce number from both source to be equal before doing any comparison
                 EdgeHubRestartMessageResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(this.SenderTestResults.Current.Result);
-                long receiverSeqNum = ParseReceiverSequenceNumber(this.ReceiverTestResults.Current.Result);
-                long senderSeqNum = ParseSenderSequenceNumber(senderResult.SequenceNumber);
+                EdgeHubRestartMessageResult receiverResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(this.ReceiverTestResults.Current.Result);
 
+                long senderSeqNum = ConvertStringToLong(senderResult.SequenceNumber);
+                long receiverSeqNum = ConvertStringToLong(receiverResult.SequenceNumber);
+
+
+                // BEARWASHERE -- TODO
+                
                 if (receiverSeqNum > senderSeqNum)
                 {
                     // Increment sender result to have the same seq as the receiver
@@ -144,7 +149,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 hasReceiverResult = await this.ReceiverTestResults.MoveNextAsync();
             }
 
-            // Fail the test if both of the source didn't have the same amount of messages
+            // Fail the test
             isPassing &= !(hasSenderResult ^ hasReceiverResult);
             
             await IncrementSenderSequenceNumberAsync(
@@ -245,7 +250,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             bool isNotEmpty = true;
 
             EdgeHubRestartMessageResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(resultCollection.Current.Result);
-            long seqNum = ParseSenderSequenceNumber(senderResult.SequenceNumber);
+            long seqNum = ConvertStringToLong(senderResult.SequenceNumber);
 
             while ((seqNum < targetSequenceNumber) && isNotEmpty)
             {
@@ -257,25 +262,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
                 isNotEmpty = await resultCollection.MoveNextAsync();
                 senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(resultCollection.Current.Result);
-                seqNum = ParseSenderSequenceNumber(senderResult.SequenceNumber);
-            }
-        }
-
-        async Task IncrementReceiverSequenceNumberAsync(
-            ITestResultCollection<TestOperationResult> resultCollection,
-            string key,
-            long targetSequenceNumber,
-            Dictionary<string, ulong> messageCount)
-        {
-            bool isNotEmpty = true;
-            long seqNum = ParseReceiverSequenceNumber(resultCollection.Current.Result);
-
-            while ((seqNum < targetSequenceNumber) && isNotEmpty)
-            {
-                messageCount[key]++;
-
-                isNotEmpty = await resultCollection.MoveNextAsync();
-                seqNum = ParseReceiverSequenceNumber(resultCollection.Current.Result);
+                seqNum = ConvertStringToLong(senderResult.SequenceNumber);
             }
         }
 
@@ -307,17 +294,10 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             histogram[completedStatus].Add(completedPeriod);
         }
 
-        long ParseReceiverSequenceNumber(string result)
+        long ConvertStringToLong(string result)
         {
             long seqNum;
             long.TryParse(result.Split(';').LastOrDefault(), out seqNum);
-            return seqNum;
-        }
-
-        long ParseSenderSequenceNumber(string seqNumString)
-        {
-            long seqNum;
-            long.TryParse(seqNumString, out seqNum);
             return seqNum;
         }
     }

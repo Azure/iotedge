@@ -4,12 +4,9 @@ namespace TestResultCoordinator
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Text;
-    using System.Threading;
     using System.Threading.Tasks;
     using Azure.Storage.Blobs;
     using Microsoft.Azure.Devices;
-    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Microsoft.WindowsAzure.Storage;
@@ -87,7 +84,8 @@ namespace TestResultCoordinator
                             reportMetadataList.Add(JsonConvert.DeserializeObject<CountingReportMetadata>(((JProperty)metadata).Value.ToString()));
                             break;
                         case TestReportType.EdgeHubRestartDirectMethodResult:
-                            // BEARWASHERE -- TODO: Implement
+                            reportMetadataList.Add(JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodReportMetadata>(((JProperty)metadata).Value.ToString()));
+                            break;
                         case TestReportType.EdgeHubRestartMessageResult:
                             reportMetadataList.Add(JsonConvert.DeserializeObject<EdgeHubRestartMessageReportMetadata>(((JProperty)metadata).Value.ToString()));
                             break;

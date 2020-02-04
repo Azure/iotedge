@@ -15,6 +15,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             string trackingId,
             string resultType,
             bool isPassing,
+            long passedMessageCount,
             Dictionary<string, ulong> messageCount,
             Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram,
             TimeSpan minPeriod,
@@ -25,6 +26,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             : base(trackingId, resultType)
         {
             this.isPassing = isPassing;
+            this.PassedMessageCount = passedMessageCount;
             this.MessageCount = Preconditions.CheckNotNull(messageCount, nameof(messageCount));
             this.CompletedStatusHistogram = Preconditions.CheckNotNull(completedStatusHistogram, nameof(completedStatusHistogram));
             this.SourceList = new List<string>(messageCount.Keys);
@@ -36,6 +38,8 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         }
 
         bool isPassing;
+
+        internal long PassedMessageCount { get; }
 
         internal Dictionary<string, ulong> MessageCount { get; }
 

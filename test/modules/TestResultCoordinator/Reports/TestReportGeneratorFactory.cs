@@ -92,13 +92,28 @@ namespace TestResultCoordinator.Reports
                             networkStatusTimeline);
                     }
 
+                case TestReportType.EdgeHubRestartDirectMethodResult:
+                    {
+                        var metadata = (EdgeHubRestartDirectMethodReportMetadata)testReportMetadata;
+                        var senderTestResults = this.GetResults(metadata.SenderSource);
+                        var receiverTestResults = this.GetResults(metadata.ReceiverSource);
+                        var passableEdgeHubRestartPeriod = metadata.PassableEdgeHubRestartPeriod;
+
+                        return new EdgeHubRestartDirectMethodReportGenerator(
+                            trackingId,
+                            metadata,
+                            senderTestResults,
+                            receiverTestResults,
+                            passableEdgeHubRestartPeriod);
+                    }
+
                 case TestReportType.EdgeHubRestartMessageResult:
                     {
                         var metadata = (EdgeHubRestartMessageReportMetadata)testReportMetadata;
                         var senderTestResults = this.GetResults(metadata.SenderSource);
                         var receiverTestResults = this.GetResults(metadata.ReceiverSource);
                         var passableEdgeHubRestartPeriod = metadata.PassableEdgeHubRestartPeriod;
-                        // BEARWASHERE -- DO the report generator
+
                         return new EdgeHubRestartMessageReportGenerator(
                             trackingId,
                             metadata,
