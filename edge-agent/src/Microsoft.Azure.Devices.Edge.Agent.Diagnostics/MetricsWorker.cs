@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         readonly IMetricsPublisher uploader;
         readonly AsyncLock scrapeUploadLock = new AsyncLock();
         static readonly ILogger Log = Logger.Factory.CreateLogger<MetricsScraper>();
-        readonly MetricFilter metricFilter;
+        readonly MetricTransformer metricFilter;
 
         PeriodicTask scrape;
         PeriodicTask upload;
@@ -39,9 +39,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
             this.uploader = Preconditions.CheckNotNull(uploader, nameof(uploader));
 
-            this.metricFilter = new MetricFilter()
+            this.metricFilter = new MetricTransformer()
                 .AddAllowedTags(new KeyValuePair<string, string>(MetricsConstants.MsTelemetry, true.ToString()))
-                .AddTagsToRemove(MetricsConstants.MsTelemetry, MetricsConstants.IotHubLabel, MetricsConstants.DeviceIdLabel);
+                .AddTagsToRemove(MetricsConstants.MsTelemetry, MetricsConstants.IotHubLabel, MetricsConstants.DeviceIdLabel)
+                .AddTagsToModify(("id", this.ReplaceDeviceId), ("module_name", name => name.CreateSha256()));
         }
 
         public void Start(TimeSpan scrapingInterval, TimeSpan uploadInterval)
@@ -56,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             {
                 Log.LogInformation("Scraping Metrics");
                 IEnumerable<Metric> scrapedMetrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
-                scrapedMetrics = this.metricFilter.FilterMetrics(scrapedMetrics);
+                scrapedMetrics = this.metricFilter.TransformMetrics(scrapedMetrics);
                 Log.LogInformation("Storing Metrics");
                 await this.storage.StoreMetricsAsync(scrapedMetrics);
                 Log.LogInformation("Scraped and Stored Metrics");
@@ -123,6 +124,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 await this.storage.RemoveAllReturnedMetricsAsync();
                 Log.LogInformation($"Deleted stored metrics.");
             }
+        }
+
+        /// <summary>
+        /// Replaces the device id in some edgeHub metrics with "device".
+        ///
+        /// EdgeHub metrics id comes in the form of 'deviceId/moduleName' in the case of an edgeDevice
+        /// and 'deviceId' in the case of downstream leaf devices.
+        /// </summary>
+        /// <param name="id">Metric id tag.</param>
+        /// <returns>Id tag with deviceId removed.</returns>
+        string ReplaceDeviceId(string id)
+        {
+            const string deviceIdReplacement = "device";
+
+            // Id is in the form of 'deviceId/moduleId'
+            string[] parts = id.Split('/');
+            if (parts.Length == 2)
+            {
+                parts[0] = deviceIdReplacement;
+
+                if (!parts[1].StartsWith("$")) // Don't hash system modules
+                {
+                    parts[1] = parts[1].CreateSha256(); // Hash moduleId
+                }
+
+                return $"{parts[0]}/{parts[1]}";
+            }
+
+            // Id is just 'deviceId'
+            return deviceIdReplacement;
         }
 
         public void Dispose()

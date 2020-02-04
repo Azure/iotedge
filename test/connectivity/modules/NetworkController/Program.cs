@@ -19,36 +19,44 @@ namespace NetworkController
 
             Log.LogInformation($"Starting with {Settings.Current.NetworkControllerMode}");
 
-            var networkInterfaceName = DockerHelper.GetDockerInterfaceName();
-            if (networkInterfaceName.HasValue)
+            try
             {
-                await networkInterfaceName.ForEachAsync(
-                    async name =>
-                    {
-                        var firewall = new FirewallOfflineController(name, Settings.Current.IotHubHostname);
-                        var satellite = new SatelliteController(name);
-                        var controllers = new List<INetworkController>() { firewall, satellite };
-                        await RemoveAllControllingRules(controllers, cts.Token);
+                var networkInterfaceName = DockerHelper.GetDockerInterfaceName();
 
-                        switch (Settings.Current.NetworkControllerMode)
+                if (networkInterfaceName.HasValue)
+                {
+                    await networkInterfaceName.ForEachAsync(
+                        async name =>
                         {
-                            case NetworkControllerMode.OfflineTrafficController:
-                                await StartAsync(firewall, cts.Token);
-                                break;
-                            case NetworkControllerMode.SatelliteTrafficController:
-                                await StartAsync(satellite, cts.Token);
-                                break;
-                        }
-                    });
+                            var firewall = new FirewallOfflineController(name, Settings.Current.IotHubHostname);
+                            var satellite = new SatelliteController(name);
+                            var controllers = new List<INetworkController>() { firewall, satellite };
+                            await RemoveAllControllingRules(controllers, cts.Token);
 
-                await cts.Token.WhenCanceled();
-                completed.Set();
-                handler.ForEach(h => GC.KeepAlive(h));
+                            switch (Settings.Current.NetworkControllerMode)
+                            {
+                                case NetworkControllerMode.OfflineTrafficController:
+                                    await StartAsync(firewall, cts.Token);
+                                    break;
+                                case NetworkControllerMode.SatelliteTrafficController:
+                                    await StartAsync(satellite, cts.Token);
+                                    break;
+                            }
+                        });
+                }
+                else
+                {
+                    Log.LogError($"No network interface found for docker network {Settings.Current.NetworkId}");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                Log.LogError($"No network interface found for docker network {Settings.Current.NetworkId}");
+                Log.LogError(ex, $"Unexpected exception thrown from {nameof(Main)} method");
             }
+
+            await cts.Token.WhenCanceled();
+            completed.Set();
+            handler.ForEach(h => GC.KeepAlive(h));
         }
 
         static async Task StartAsync(INetworkController controller, CancellationToken cancellationToken)
