@@ -19,22 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             [Values] TestAuthenticationType testAuth,
             [Values(Protocol.Mqtt, Protocol.Amqp)] Protocol protocol)
         {
-            if (!OsPlatform.IsWindows() && (protocol == Protocol.Amqp))
-            {
-                switch (testAuth)
-                {
-                    case TestAuthenticationType.SelfSignedPrimary:
-                    case TestAuthenticationType.SelfSignedSecondary:
-                    case TestAuthenticationType.CertificateAuthority:
-                        Assert.Ignore("Skipping the test case due to BUG 5234369");
-                        break;
-
-                    default:
-                        // Intentionally left blank
-                        break;
-                }
-            }
-
             CancellationToken token = this.TestToken;
 
             string leafDeviceId = IdentityLimits.CheckLeafId(

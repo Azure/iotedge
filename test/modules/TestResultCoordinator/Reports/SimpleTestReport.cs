@@ -6,26 +6,27 @@ namespace TestResultCoordinator.Reports
     using Microsoft.Azure.Devices.Edge.Util;
 
     /// <summary>
-    /// This is a network controller report to list out all the network controller status change during test.
+    /// This is a simple report to list out all reported test results during test.
+    /// Currently it is used for network controller report and error report.
     /// </summary>
-    class NetworkControllerReport : TestResultReportBase
+    class SimpleTestReport : TestResultReportBase
     {
-        public NetworkControllerReport(
+        public SimpleTestReport(
             string trackingId,
             string source,
             string resultType,
-            IReadOnlyList<TestOperationResult> networkControllerResults)
+            IReadOnlyList<TestOperationResult> testResults)
             : base(trackingId, resultType)
         {
             this.Source = Preconditions.CheckNonWhiteSpace(source, nameof(source));
-            this.Results = Preconditions.CheckNotNull(networkControllerResults, nameof(networkControllerResults));
+            this.Results = Preconditions.CheckNotNull(testResults, nameof(testResults));
         }
 
         public string Source { get; }
 
         public IReadOnlyList<TestOperationResult> Results { get; }
 
-        public override string Title => $"Network Controller Report for [{this.Source}] ({this.ResultType})";
+        public override string Title => $"Simple Test Report for [{this.Source}] ({this.ResultType})";
 
         public override bool IsPassed => true;
     }
