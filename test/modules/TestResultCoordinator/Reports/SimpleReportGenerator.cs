@@ -5,26 +5,26 @@ namespace TestResultCoordinator.Reports
     using System.Collections.Generic;
     using System.IO;
     using System.Threading.Tasks;
-    using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    sealed class NetworkControllerReportGenerator : ITestResultReportGenerator
+    sealed class SimpleReportGenerator : ITestResultReportGenerator
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(DeploymentTestReportGenerator));
+        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(SimpleReportGenerator));
 
         readonly string trackingId;
 
-        internal NetworkControllerReportGenerator(
+        internal SimpleReportGenerator(
             string trackingId,
             string source,
-            ITestResultCollection<TestOperationResult> testResults)
+            ITestResultCollection<TestOperationResult> testResults,
+            TestOperationResultType testOperationResultType)
         {
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.Source = Preconditions.CheckNonWhiteSpace(source, nameof(source));
             this.TestResults = Preconditions.CheckNotNull(testResults, nameof(testResults));
-            this.ResultType = TestOperationResultType.Network.ToString();
+            this.ResultType = testOperationResultType.ToString();
         }
 
         internal string Source { get; }
@@ -35,7 +35,7 @@ namespace TestResultCoordinator.Reports
 
         public async Task<ITestResultReport> CreateReportAsync()
         {
-            Logger.LogInformation($"Start to generate report by {nameof(NetworkControllerReportGenerator)} for Source [{this.Source}].");
+            Logger.LogInformation($"Start to generate report by {nameof(SimpleReportGenerator)} for Source [{this.Source}].");
 
             var results = new List<TestOperationResult>();
 
@@ -45,7 +45,7 @@ namespace TestResultCoordinator.Reports
                 results.Add(this.TestResults.Current);
             }
 
-            return new NetworkControllerReport(
+            return new SimpleTestReport(
                 this.trackingId,
                 this.Source,
                 this.ResultType,
