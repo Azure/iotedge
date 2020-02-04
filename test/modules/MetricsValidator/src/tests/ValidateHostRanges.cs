@@ -52,7 +52,7 @@ namespace MetricsValidator.Tests
                     var moduleQuartile = moduleCpu.Where(m => m.Tags["quantile"] == hostCpuQuartile.Key);
                     foreach (var module in moduleQuartile)
                     {
-                        reporter.Assert($"{hostCpuQuartile.Key} {module.Tags["module"]} CPU <= {hostCpuQuartile.Key} host CPU", module.Value <= hostCpuQuartile.Value);
+                        reporter.Assert($"{hostCpuQuartile.Key} {module.Tags["module_name"]} CPU <= {hostCpuQuartile.Key} host CPU", module.Value <= hostCpuQuartile.Value);
                     }
                 }
             }

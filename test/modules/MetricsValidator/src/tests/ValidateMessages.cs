@@ -174,7 +174,7 @@ namespace MetricsValidator.Tests
                     int prevRecieved = await this.GetNumberOfMessagesRecieved(cancellationToken, endpoint);
                     await this.SendMessages(n, cancellationToken, endpoint);
 
-                    await Task.Delay(timePerMessage * n + TimeSpan.FromMilliseconds(250)); // Give edgeHub time to send message upstream
+                    await Task.Delay(timePerMessage * n + TimeSpan.FromMilliseconds(500)); // Give edgeHub time to send message upstream
                     int newSent = await this.GetNumberOfMessagesSent(cancellationToken, endpoint);
                     int newRecieved = await this.GetNumberOfMessagesRecieved(cancellationToken, endpoint);
 
@@ -192,7 +192,7 @@ namespace MetricsValidator.Tests
                     int prevRecieved = await this.GetNumberOfMessagesRecieved(cancellationToken, endpoint);
                     await this.SendMessageBatches(n, m, cancellationToken, endpoint);
 
-                    await Task.Delay(timePerMessage * n * m + TimeSpan.FromMilliseconds(250)); // Give edgeHub time to send message upstream
+                    await Task.Delay(timePerMessage * n * m + TimeSpan.FromMilliseconds(500)); // Give edgeHub time to send message upstream
                     int newSent = await this.GetNumberOfMessagesSent(cancellationToken, endpoint);
                     int newRecieved = await this.GetNumberOfMessagesRecieved(cancellationToken, endpoint);
 
