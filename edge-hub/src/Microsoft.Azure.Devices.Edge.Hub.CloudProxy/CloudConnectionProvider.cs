@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     {
         // Minimum value allowed by the SDK for Connection Idle timeout for AMQP Multiplexed connections.
         static readonly TimeSpan MinAmqpConnectionMuxIdleTimeout = TimeSpan.FromSeconds(5);
+        static readonly TimeSpan HeartbeatTimeout = TimeSpan.FromSeconds(60);
 
         readonly ITransportSettings[] transportSettings;
         readonly IMessageConverterProvider messageConverterProvider;
@@ -26,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly ITokenProvider edgeHubTokenProvider;
         readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
         readonly bool closeOnIdleTimeout;
+        readonly bool useHeartbeat;
         readonly ICredentialsCache credentialsCache;
         readonly IIdentity edgeHubIdentity;
         readonly TimeSpan operationTimeout;
@@ -44,16 +46,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             TimeSpan idleTimeout,
             bool closeOnIdleTimeout,
             TimeSpan operationTimeout,
+            bool useHeartbeat,
             Option<IWebProxy> proxy,
             IProductInfoStore productInfoStore)
         {
             Preconditions.CheckRange(connectionPoolSize, 1, nameof(connectionPoolSize));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
             this.clientProvider = Preconditions.CheckNotNull(clientProvider, nameof(clientProvider));
-            this.transportSettings = GetTransportSettings(upstreamProtocol, connectionPoolSize, proxy);
+            this.transportSettings = GetTransportSettings(upstreamProtocol, connectionPoolSize, proxy, useHeartbeat);
             this.edgeHub = Option.None<IEdgeHub>();
             this.idleTimeout = idleTimeout;
             this.closeOnIdleTimeout = closeOnIdleTimeout;
+            this.useHeartbeat = useHeartbeat;
             this.edgeHubTokenProvider = Preconditions.CheckNotNull(edgeHubTokenProvider, nameof(edgeHubTokenProvider));
             this.deviceScopeIdentitiesCache = Preconditions.CheckNotNull(deviceScopeIdentitiesCache, nameof(deviceScopeIdentitiesCache));
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
@@ -168,7 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        static ITransportSettings[] GetAmqpTransportSettings(TransportType type, int connectionPoolSize, Option<IWebProxy> proxy)
+        static ITransportSettings[] GetAmqpTransportSettings(TransportType type, int connectionPoolSize, Option<IWebProxy> proxy, bool useHeartbeat)
         {
             var settings = new AmqpTransportSettings(type)
             {
@@ -179,6 +183,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     ConnectionIdleTimeout = MinAmqpConnectionMuxIdleTimeout
                 }
             };
+
+            if (useHeartbeat)
+            {
+                settings.IdleTimeout = HeartbeatTimeout;
+            }
+
             proxy.ForEach(p => settings.Proxy = p);
             return new ITransportSettings[] { settings };
         }
@@ -190,7 +200,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return new ITransportSettings[] { settings };
         }
 
-        internal static ITransportSettings[] GetTransportSettings(Option<UpstreamProtocol> upstreamProtocol, int connectionPoolSize, Option<IWebProxy> proxy)
+        internal static ITransportSettings[] GetTransportSettings(Option<UpstreamProtocol> upstreamProtocol, int connectionPoolSize, Option<IWebProxy> proxy, bool useHeartbeat)
         {
             return upstreamProtocol
                 .Map(
@@ -199,10 +209,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         switch (up)
                         {
                             case UpstreamProtocol.Amqp:
-                                return GetAmqpTransportSettings(TransportType.Amqp_Tcp_Only, connectionPoolSize, proxy);
+                                return GetAmqpTransportSettings(TransportType.Amqp_Tcp_Only, connectionPoolSize, proxy, useHeartbeat);
 
                             case UpstreamProtocol.AmqpWs:
-                                return GetAmqpTransportSettings(TransportType.Amqp_WebSocket_Only, connectionPoolSize, proxy);
+                                return GetAmqpTransportSettings(TransportType.Amqp_WebSocket_Only, connectionPoolSize, proxy, useHeartbeat);
 
                             case UpstreamProtocol.Mqtt:
                                 return GetMqttTransportSettings(TransportType.Mqtt_Tcp_Only, proxy);
@@ -215,7 +225,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         }
                     })
                 .GetOrElse(
-                    () => GetAmqpTransportSettings(TransportType.Amqp_Tcp_Only, connectionPoolSize, proxy));
+                    () => GetAmqpTransportSettings(TransportType.Amqp_Tcp_Only, connectionPoolSize, proxy, useHeartbeat));
         }
 
         static class Events
