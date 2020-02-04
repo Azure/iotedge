@@ -1,0 +1,34 @@
+# .kodiak.toml
+version = 1
+
+# https://kodiakhq.com/docs/config-reference contains all parameters explained
+[update]
+# Update a PR whenever out of date with the base branch.
+always = true # default: false
+
+# When enabled, Kodiak will only update PRs that have an automerge label. When disabled, any PR.
+require_automerge_label = false # default: true
+
+[merge]
+# Merge method for Kodiak to use.
+method = "squash" # default: "merge"
+
+# Once a PR is merged, delete the branch.
+delete_branch_on_merge = true # default: false
+
+# When enabled, Kodiak will only update PRs that have an automerge label. 
+# When disabled, automatically merge any PR that passes all required checks.
+require_automerge_label = true # default: true
+
+# By default, Kodiak will only act on PRs that have this label.
+automerge_label = "ready-to-merge" # default: "automerge"
+
+[merge.message]
+# use title of PR for merge commit.
+title = "pull_request_title" # default: "github_default"
+
+# use body of PR for merge commit.
+body = "pull_request_body" # default: "github_default"
+
+# remove html comments to auto remove PR templates.
+strip_html_comments = true # default: false
