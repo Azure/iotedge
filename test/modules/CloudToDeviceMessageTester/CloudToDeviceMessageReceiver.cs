@@ -90,6 +90,7 @@ namespace CloudToDeviceMessageTester
                             $"batchId: {message.Properties[TestConstants.Message.BatchIdPropertyName]}, " +
                             $"trackingId: {message.Properties[TestConstants.Message.TrackingIdPropertyName]}.");
                         await this.ReportTestResult(message);
+                        await this.deviceClient.CompleteAsync(message);
                     }
                     catch (Exception ex)
                     {
