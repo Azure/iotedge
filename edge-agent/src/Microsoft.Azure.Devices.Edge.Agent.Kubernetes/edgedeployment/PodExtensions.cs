@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                                         else
                                         {
                                             return new ReportedModuleStatus(ModuleStatus.Stopped, $"Module Stopped reason: {c.State.Terminated.Reason}");
-                                        }                
+                                        }
                                     }
                                     else
                                     {
@@ -89,11 +89,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                                         if (c.State.Terminated.ExitCode != 0)
                                         {
                                             return new ReportedModuleStatus(ModuleStatus.Failed, $"Module Failed reason: {c.State.Terminated.Reason}");
-                                        }   
+                                        }
                                         else
                                         {
                                             return new ReportedModuleStatus(ModuleStatus.Stopped, $"Module Stopped reason: {c.State.Terminated.Reason}");
-                                        }            
+                                        }
                                     }
                                     else
                                     {
