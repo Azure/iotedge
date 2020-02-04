@@ -34,11 +34,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeConnectivityStorageAccountConnString'
-      - pwsh: |
-          echo $testTrackingId
-          echo ""
-          env
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeConnectivityStorageAccountConnString,LogAnalyticSpTenant,LogAnalyticSpPassword,LogAnalyticSpUser'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -96,6 +92,33 @@ jobs:
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
           metricsCollector.hostPlatform: 'linux_amd64_moby'
           testTrackingId: '$(testTrackingId)'
+      - pwsh: |
+          Param (
+              [ValidateNotNullOrEmpty()]
+              [string] $User = $null,
+
+              [ValidateNotNullOrEmpty()]
+              [string] $Password = $null,
+
+              [ValidateNotNullOrEmpty()]
+              [string] $Tenant = $null
+          )
+
+          az login --service-principal -u $User -p $Password --tenant $Tenant --verbose
+          az extension add --name log-analytics
+
+          $alertNames = Get-Content .\alertNames.txt
+          $alertNames = $alertNames -Join "', '"
+          $query = "Alert | where AlertName in ('$alertNames')"
+
+          $query
+          $triggeredAlerts = az monitor log-analytics query -w fdf47b96-87f3-4b86-90b9-d83e2deae8a0 --analytics-query $query --verbose
+
+          return $triggeredAlerts.length -lt 100
+        parameters:
+          User: '$(kvLogAnalyticSpUser)'
+          Password: '$(kvLogAnalyticSpPassword)'
+          Tenant: '$(kvLogAnalyticSpTenant)'
 
 ################################################################################
   - job: linux_arm32v7_moby

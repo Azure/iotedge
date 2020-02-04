@@ -10,6 +10,7 @@ Param (
 )
 
 az login --service-principal -u $User -p $Password --tenant $Tenant --verbose
+az extension add --name log-analytics
 
 $alertNames = Get-Content .\alertNames.txt
 $alertNames = $alertNames -Join "', '"
@@ -18,4 +19,4 @@ $query = "Alert | where AlertName in ('$alertNames')"
 $query
 $triggeredAlerts = az monitor log-analytics query -w fdf47b96-87f3-4b86-90b9-d83e2deae8a0 --analytics-query $query --verbose
 
-$triggeredAlerts > ./temp.json
+return $triggeredAlerts.length -lt 100
