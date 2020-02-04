@@ -25,34 +25,76 @@ namespace MetricsValidator.Tests
         {
             List<Metric> metrics = (await this.scraper.ScrapeEndpointsAsync(cancellationToken)).ToList();
             this.CheckCPU(metrics);
+            this.CheckMemory(metrics);
         }
 
         void CheckCPU(List<Metric> metrics)
         {
-            const string cpuMetricName = "edgeAgent_used_cpu_percent";
-            var cpuMetrics = metrics.Where(m => m.Name == cpuMetricName);
-            this.testReporter.Assert($"{cpuMetricName} metric exists", cpuMetrics.Any(), $"Missing {cpuMetricName}");
+            var reporter = this.testReporter.MakeSubcategory("CPU");
 
-            const int numQuantiles = 6; // Our histograms return 6 quantiles: 50, 90, 95, 99, 99.9, 99.99
-            var hostCpu = cpuMetrics.Where(m => m.Tags.TryGetValue("module", out string module) && module == "host").ToDictionary(m => m.Tags["quantile"], m => m.Value);
-            this.testReporter.Assert("Host has all quantiles", hostCpu.Count == numQuantiles, $"Host had the following quantiles: {string.Join(", ", hostCpu.Keys)}");
-
-            var moduleCpu = cpuMetrics.Where(m => m.Tags.TryGetValue("module", out string module) && module != "host").ToList();
-            this.testReporter.Assert("At least 1 docker module reports cpu", moduleCpu.Any(), $"No modules reported cpu");
-
-            foreach (var hostCpuQuartile in hostCpu)
+            using (reporter.MeasureDuration())
             {
-                this.testReporter.Assert($"{hostCpuQuartile.Key} host CPU <= 100% and >= 0%", hostCpuQuartile.Value <= 100 && hostCpuQuartile.Value >= 0);
+                const string cpuMetricName = "edgeAgent_used_cpu_percent";
+                var cpuMetrics = metrics.Where(m => m.Name == cpuMetricName);
+                reporter.Assert($"{cpuMetricName} metric exists", cpuMetrics.Any(), $"Missing {cpuMetricName}");
 
-                var moduleQuartile = moduleCpu.Where(m => m.Tags["quantile"] == hostCpuQuartile.Key);
-                double totalModuleCpu = 0;
-                foreach (var module in moduleQuartile)
+                var hostCpu = cpuMetrics.Where(m => m.Tags.TryGetValue("module", out string module) && module == "host").ToDictionary(m => m.Tags["quantile"], m => m.Value);
+                reporter.Assert("Host has all quantiles", hostCpu.Count == 6, $"Host had the following quantiles: {string.Join(", ", hostCpu.Keys)}");
+
+                var moduleCpu = cpuMetrics.Where(m => m.Tags.TryGetValue("module", out string module) && module != "host").ToList();
+                reporter.Assert("At least 1 docker module reports cpu", moduleCpu.Any(), $"No modules reported cpu");
+
+                foreach (var hostCpuQuartile in hostCpu)
                 {
-                    this.testReporter.Assert($"{hostCpuQuartile.Key} {module.Tags["module"]} CPU <= {hostCpuQuartile.Key} host CPU", module.Value <= hostCpuQuartile.Value);
-                    totalModuleCpu += module.Value;
+                    reporter.Assert($"{hostCpuQuartile.Key} host CPU < 100%", hostCpuQuartile.Value < 100);
+
+                    var moduleQuartile = moduleCpu.Where(m => m.Tags["quantile"] == hostCpuQuartile.Key);
+                    foreach (var module in moduleQuartile)
+                    {
+                        reporter.Assert($"{hostCpuQuartile.Key} {module.Tags["module"]} CPU <= {hostCpuQuartile.Key} host CPU", module.Value <= hostCpuQuartile.Value);
+                    }
+                }
+            }
+        }
+
+        void CheckMemory(List<Metric> metrics)
+        {
+            var reporter = this.testReporter.MakeSubcategory("Memory and Disk");
+
+            using (reporter.MeasureDuration())
+            {
+                var avaliableDisk = metrics.Where(m => m.Name == "edgeAgent_available_disk_space_bytes").ToDictionary(m => m.Tags["disk_name"], m => m.Value);
+                var totalDisk = metrics.Where(m => m.Name == "edgeAgent_total_disk_space_bytes").ToDictionary(m => m.Tags["disk_name"], m => m.Value);
+
+                foreach (var avaliable in avaliableDisk)
+                {
+                    double total = totalDisk[avaliable.Key];
+                    reporter.Assert($"Disk {avaliable.Key} total space > avaliable space", total > avaliable.Value, $"\n\tTotal: {total}\n\tAvaliable:{avaliable.Value}");
                 }
 
-                this.testReporter.Assert($"Sum of {hostCpuQuartile.Key} modules' cpu < host", totalModuleCpu < hostCpuQuartile.Value, $"Module cpu values were: {string.Join(", ", moduleQuartile.Select(m => $"{m.Tags["module"]}:{m.Value}"))}");
+                var usedMemory = metrics.Where(m => m.Name == "edgeAgent_used_memory_bytes").ToDictionary(m => m.Tags["module"], m => m.Value);
+                var totalMemory = metrics.Where(m => m.Name == "edgeAgent_total_memory_bytes").ToDictionary(m => m.Tags["module"], m => m.Value);
+
+                if (!usedMemory.ContainsKey("host") && totalMemory.ContainsKey("host"))
+                {
+                    reporter.Assert("Host reports memory", false, $"Could not find host memory usage. Found usage for: {string.Join(", ", usedMemory.Keys)}");
+                }
+
+                double usedSum = 0;
+                foreach (var used in usedMemory)
+                {
+                    double total = totalMemory[used.Key];
+                    reporter.Assert($"{used.Key} used RAM < total RAM", used.Value < total, $"\n\tTotal: {total}\n\tAvaliable:{used.Value}");
+
+                    if (used.Key != "host")
+                    {
+                        usedSum += used.Value;
+                        reporter.Assert($"{used.Key} used RAM < host used RAM", used.Value < usedMemory["host"], $"\n\t{used.Key}: {used.Value}\n\thost: {usedMemory["host"]}");
+                        reporter.Assert($"{used.Key} total RAM < host used RAM", total < totalMemory["host"], $"\n\t{used.Key}: {total}\n\thost: {totalMemory["host"]}");
+                    }
+                }
+
+                reporter.Assert($"All module's used RAM < host used", usedSum < usedMemory["host"], $"\n\tmodules: {usedSum}\n\thost used:{usedMemory["host"]}");
             }
         }
     }
