@@ -14,58 +14,71 @@ namespace EdgeHubRestartTester
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    class MessageEdgeHubConnector : IEdgeHubConnector
+    class MessageEdgeHubConnector : IEdgeHubConnector, IDisposable
     {
         long messageCount = 0;
-        ModuleClient msgModuleClient;
+        ModuleClient msgModuleClient = null;
         Guid batchId;
-        DateTime runExpirationTime;
-        CancellationToken cancellationToken;
-        DateTime edgeHubRestartedTime;
         ILogger logger;
 
-        public MessageEdgeHubConnector(
-            ModuleClient msgModuleClient,
-            Guid batchId,
-            DateTime runExpirationTime,
-            DateTime edgeHubRestartedTime,
-            ILogger logger,
-            CancellationToken cancellationToken)
+        ModuleClient MsgModuleClient
         {
-            this.msgModuleClient = Preconditions.CheckNotNull(msgModuleClient, nameof(msgModuleClient));
+            get
+            {
+                if (this.msgModuleClient == null)
+                {
+                    this.msgModuleClient = ModuleUtil.CreateModuleClientAsync(
+                        Settings.Current.TransportType,
+                        ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
+                        ModuleUtil.DefaultTransientRetryStrategy,
+                        this.logger).Result;
+
+                    this.msgModuleClient.OperationTimeoutInMilliseconds = (uint)Settings.Current.SdkOperationTimeout.TotalMilliseconds;
+                }
+
+                return this.msgModuleClient;
+            }
+        }
+
+        public MessageEdgeHubConnector(
+            Guid batchId,
+            ILogger logger)
+        {
             this.batchId = batchId;
-            this.runExpirationTime = runExpirationTime;
-            this.cancellationToken = Preconditions.CheckNotNull(cancellationToken, nameof(cancellationToken));
-            this.edgeHubRestartedTime = edgeHubRestartedTime;
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
         }
 
-        public async Task StartAsync()
+        public void Dispose() => this.msgModuleClient?.Dispose();
+
+        public async Task StartAsync(
+            DateTime runExpirationTime,
+            DateTime edgeHubRestartedTime,
+            CancellationToken cancellationToken)
         {
             (DateTime msgCompletedTime, HttpStatusCode mgsStatusCode) = await this.SendMessageAsync(
-                this.msgModuleClient,
+                this.MsgModuleClient,
                 Settings.Current.TrackingId,
                 this.batchId,
                 Settings.Current.MessageOutputEndpoint,
-                this.runExpirationTime,
-                this.cancellationToken).ConfigureAwait(false);
+                runExpirationTime,
+                cancellationToken).ConfigureAwait(false);
 
             TestResultBase msgTestResult = new EdgeHubRestartMessageResult(
                 Settings.Current.ModuleId + "." + TestOperationResultType.EdgeHubRestartMessage.ToString(),
                 DateTime.UtcNow,
                 Settings.Current.TrackingId,
                 this.batchId.ToString(),
-                Interlocked.Read(ref this.messageCount).ToString(),
-                this.edgeHubRestartedTime,
+                this.messageCount.ToString(),
+                edgeHubRestartedTime,
                 msgCompletedTime,
                 mgsStatusCode);
 
             var reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
-            await ModuleUtil.ReportTestResultUntilSuccessAsync(
+            await ModuleUtil.ReportTestResultAsync(
                 reportClient,
                 this.logger,
                 msgTestResult,
-                this.cancellationToken).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
         }
 
         async Task<Tuple<DateTime, HttpStatusCode>> SendMessageAsync(
@@ -76,11 +89,11 @@ namespace EdgeHubRestartTester
             DateTime runExpirationTime,
             CancellationToken cancellationToken)
         {
-            Interlocked.Increment(ref this.messageCount);
+            this.messageCount++;
             while ((!cancellationToken.IsCancellationRequested) && (DateTime.UtcNow < runExpirationTime))
             {
                 Message message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new { data = DateTime.UtcNow.ToString() })));
-                message.Properties.Add("sequenceNumber", Interlocked.Read(ref this.messageCount).ToString());
+                message.Properties.Add("sequenceNumber", this.messageCount.ToString());
                 message.Properties.Add("batchId", batchId.ToString());
                 message.Properties.Add("trackingId", trackingId);
 
@@ -88,7 +101,7 @@ namespace EdgeHubRestartTester
                 {
                     // Sending the result via edgeHub
                     await moduleClient.SendEventAsync(msgOutputEndpoint, message);
-                    this.logger.LogInformation($"[SendMessageAsync] Send Message with count {Interlocked.Read(ref this.messageCount).ToString()}: finished.");
+                    this.logger.LogInformation($"[SendMessageAsync] Send Message with count {this.messageCount.ToString()}: finished.");
                     return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.OK);
                 }
                 catch (Exception ex)
