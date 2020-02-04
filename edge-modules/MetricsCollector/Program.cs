@@ -42,7 +42,7 @@ namespace MetricsCollector
                 }
                 else
                 {
-                    publisher = new EventHubMetricsUpload(moduleClient);
+                    publisher = new IotHubMetricsUpload(moduleClient, Settings.Current.MessageIdentifier);
                 }
 
                 using (MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher, additionalTags))

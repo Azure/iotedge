@@ -12,14 +12,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    public class EventHubMetricsUpload : IMetricsPublisher
+    public class IotHubMetricsUpload : IMetricsPublisher
     {
+        const string IdentifierPropertyName = "MessageIdentifier";
         readonly ModuleClient moduleClient;
+
+        readonly string identifier;
         static readonly ILogger Log = Logger.Factory.CreateLogger<LogAnalyticsUpload>();
 
-        public EventHubMetricsUpload(ModuleClient moduleClient)
+        public IotHubMetricsUpload(ModuleClient moduleClient, string identifier)
         {
             this.moduleClient = Preconditions.CheckNotNull(moduleClient, nameof(moduleClient));
+            this.identifier = identifier;
         }
 
         public async Task<bool> PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
@@ -29,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
                 Preconditions.CheckNotNull(metrics, nameof(metrics));
                 byte[] metricsData = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(metrics));
                 Message metricsMessage = new Message(metricsData);
+                metricsMessage.Properties[IdentifierPropertyName] = this.identifier;
 
                 await this.moduleClient.SendEventAsync(metricsMessage);
 
