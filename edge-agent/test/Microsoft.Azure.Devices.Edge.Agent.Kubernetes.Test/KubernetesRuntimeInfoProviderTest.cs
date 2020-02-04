@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using Akka.Actor;
     using k8s;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -189,7 +190,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 }
             };
 
-        public static V1Pod CreatePodWithPodParametersOnly(string podPhase, string podReason, string podMessage)
+        public static V1Pod CreatePodWithPodParametersOnly(string podPhase, string podReason, string podMessage, string containerReason, string containerMessage)
             => new V1Pod
             {
                 Metadata = new V1ObjectMeta
@@ -204,7 +205,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                         [KubernetesConstants.K8sEdgeOriginalModuleId] = "Module-A"
                     }
                 },
-                Status = new V1PodStatus { Phase = podPhase, Reason = podReason, Message = podMessage },
+                Status = new V1PodStatus
+                {
+                    Phase = podPhase,
+                    Message = podMessage,
+                    Reason = podReason,
+                    Conditions = new List<V1PodCondition>()
+                    {
+                        new V1PodCondition
+                        {
+                            Reason = containerReason,
+                            Message = containerMessage
+                        }
+                    }
+                }
             };
 
         public static IEnumerable<object[]> GetListOfPodsInRunningPhase()
@@ -305,25 +319,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             {
                 new object[]
                 {
-                    CreatePodWithPodParametersOnly("Running", "Unschedulable", "persistentvolumeclaim module-a-pvc not found"),
+                    CreatePodWithPodParametersOnly("Pending", null, null, "Unschedulable", "persistentvolumeclaim module-a-pvc not found"),
                     "Module Failed with container status Unknown More Info: K8s reason: Unschedulable with message: persistentvolumeclaim module-a-pvc not found",
                     ModuleStatus.Failed
                 },
                 new object[]
                 {
-                    CreatePodWithPodParametersOnly("Unknown", "Unknown", "Unknown"),
-                    "Module status Unknown reason: Unknown",
+                    CreatePodWithPodParametersOnly("Unknown", "Unknown","Unknown", null, null),
+                    "Module status Unknown reason: Unknown with message: Unknown",
                     ModuleStatus.Unknown
                 },
                 new object[]
                 {
-                    CreatePodWithPodParametersOnly("Failed", "Terminated", "Non-zero exit code"),
+                    CreatePodWithPodParametersOnly("Failed", "Terminated", "Non-zero exit code", null, null),
                     "Module Failed reason: Terminated with message: Non-zero exit code",
                     ModuleStatus.Failed
                 },
                 new object[]
                 {
-                    CreatePodWithPodParametersOnly("Succeeded", "Completed", "Zero exit code"),
+                    CreatePodWithPodParametersOnly("Succeeded", "Completed", "Zero exit code", null, null),
                     "Module Stopped reason: Completed with message: Zero exit code",
                     ModuleStatus.Stopped
                 }
