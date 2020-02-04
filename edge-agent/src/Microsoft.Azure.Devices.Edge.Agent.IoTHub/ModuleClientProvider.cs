@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
         readonly ISdkModuleClientProvider sdkModuleClientProvider;
-        readonly bool useServerHeartbeat;
+        readonly bool useHeartbeat;
 
         public ModuleClientProvider(
             string connectionString,
@@ -44,8 +44,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             string productInfo,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
-            bool useServerHeartbeat)
-            : this(Option.Maybe(connectionString), sdkModuleClientProvider, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat)
+            bool useHeartbeat)
+            : this(Option.Maybe(connectionString), sdkModuleClientProvider, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useHeartbeat)
         {
         }
 
@@ -56,8 +56,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             string productInfo,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
-            bool useServerHeartbeat)
-            : this(Option.None<string>(), sdkModuleClientProvider, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat)
+            bool useHeartbeat)
+            : this(Option.None<string>(), sdkModuleClientProvider, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useHeartbeat)
         {
         }
 
@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             string productInfo,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
-            bool useServerHeartbeat)
+            bool useHeartbeat)
         {
             this.connectionString = connectionString;
             this.sdkModuleClientProvider = sdkModuleClientProvider;
@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.proxy = proxy;
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
-            this.useServerHeartbeat = useServerHeartbeat;
+            this.useHeartbeat = useHeartbeat;
         }
 
         public async Task<IModuleClient> Create(ConnectionStatusChangesHandler statusChangedHandler)
@@ -88,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             return moduleClient;
         }
 
-        static ITransportSettings GetTransportSettings(UpstreamProtocol protocol, Option<IWebProxy> proxy, bool useServerHeartbeat)
+        static ITransportSettings GetTransportSettings(UpstreamProtocol protocol, Option<IWebProxy> proxy, bool useHeartbeat)
         {
             switch (protocol)
             {
@@ -107,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             {
                 var settings = new AmqpTransportSettings(transportType);
 
-                if (useServerHeartbeat)
+                if (useHeartbeat)
                 {
                     settings.IdleTimeout = HeartbeatTimeout;
                 }
@@ -180,7 +180,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         async Task<ISdkModuleClient> CreateAndOpenSdkModuleClient(UpstreamProtocol upstreamProtocol, ConnectionStatusChangesHandler statusChangedHandler)
         {
-            ITransportSettings settings = GetTransportSettings(upstreamProtocol, this.proxy, this.useServerHeartbeat);
+            ITransportSettings settings = GetTransportSettings(upstreamProtocol, this.proxy, this.useHeartbeat);
             Events.AttemptingConnectionWithTransport(settings.GetTransportType());
 
             ISdkModuleClient moduleClient = await this.connectionString

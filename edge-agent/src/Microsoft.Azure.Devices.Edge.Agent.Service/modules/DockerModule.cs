@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string productInfo;
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
-        readonly bool useServerHeartbeat;
+        readonly bool useHeartbeat;
         readonly string backupConfigFilePath;
 
         public DockerModule(
@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string productInfo,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
-            bool useServerHeartbeat,
+            bool useHeartbeat,
             string backupConfigFilePath)
         {
             this.edgeDeviceConnectionString = Preconditions.CheckNonWhiteSpace(edgeDeviceConnectionString, nameof(edgeDeviceConnectionString));
@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.productInfo = Preconditions.CheckNotNull(productInfo, nameof(productInfo));
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
-            this.useServerHeartbeat = useServerHeartbeat;
+            this.useHeartbeat = useHeartbeat;
             this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
         }
 
@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         this.productInfo,
                         this.closeOnIdleTimeout,
                         this.idleTimeout,
-                        this.useServerHeartbeat))
+                        this.useHeartbeat))
                 .As<IModuleClientProvider>()
                 .SingleInstance();
 
