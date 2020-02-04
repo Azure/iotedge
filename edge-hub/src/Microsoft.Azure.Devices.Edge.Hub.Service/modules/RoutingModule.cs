@@ -43,7 +43,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly TimeSpan cloudConnectionIdleTimeout;
         readonly bool closeCloudConnectionOnIdleTimeout;
         readonly TimeSpan operationTimeout;
-        readonly bool useHeartbeat;
         readonly Option<TimeSpan> minTwinSyncPeriod;
         readonly Option<TimeSpan> reportedPropertiesSyncFrequency;
         readonly bool useV1TwinManager;
@@ -70,7 +69,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             TimeSpan cloudConnectionIdleTimeout,
             bool closeCloudConnectionOnIdleTimeout,
             TimeSpan operationTimeout,
-            bool useHeartbeat,
             Option<TimeSpan> minTwinSyncPeriod,
             Option<TimeSpan> reportedPropertiesSyncFrequency,
             bool useV1TwinManager,
@@ -96,7 +94,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.cloudConnectionIdleTimeout = cloudConnectionIdleTimeout;
             this.closeCloudConnectionOnIdleTimeout = closeCloudConnectionOnIdleTimeout;
             this.operationTimeout = operationTimeout;
-            this.useHeartbeat = useHeartbeat;
             this.minTwinSyncPeriod = minTwinSyncPeriod;
             this.reportedPropertiesSyncFrequency = reportedPropertiesSyncFrequency;
             this.useV1TwinManager = useV1TwinManager;
@@ -224,7 +221,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             this.cloudConnectionIdleTimeout,
                             this.closeCloudConnectionOnIdleTimeout,
                             this.operationTimeout,
-                            this.useHeartbeat,
                             proxy,
                             productInfoStore);
                         return cloudConnectionProvider;
