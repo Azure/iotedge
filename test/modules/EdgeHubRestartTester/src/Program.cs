@@ -6,10 +6,6 @@ namespace EdgeHubRestartTester
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
-<<<<<<< HEAD
-=======
-    using Microsoft.Azure.Devices.Client;
->>>>>>> e206650f630d1ce5d1e2a40f79bd7421845542d9
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
@@ -94,13 +90,8 @@ namespace EdgeHubRestartTester
             finally
             {
                 iotHubServiceClient?.Dispose();
-<<<<<<< HEAD
                 edgeHubDirectMethodConnector?.Dispose();
                 edgeHubMessageConnector?.Dispose();
-=======
-                dmModuleClient?.Dispose();
-                msgModuleClient?.Dispose();
->>>>>>> e206650f630d1ce5d1e2a40f79bd7421845542d9
             }
 
             await cts.Token.WhenCanceled();

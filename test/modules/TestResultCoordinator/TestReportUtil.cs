@@ -4,9 +4,12 @@ namespace TestResultCoordinator
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Text;
+    using System.Threading;
     using System.Threading.Tasks;
     using Azure.Storage.Blobs;
     using Microsoft.Azure.Devices;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Microsoft.WindowsAzure.Storage;
@@ -15,7 +18,6 @@ namespace TestResultCoordinator
     using Newtonsoft.Json.Linq;
     using TestResultCoordinator.Reports;
     using TestResultCoordinator.Reports.DirectMethod;
-    using TestResultCoordinator.Reports.EdgeHubRestartTest;
 
     static class TestReportUtil
     {
@@ -82,12 +84,6 @@ namespace TestResultCoordinator
                     {
                         case TestReportType.CountingReport:
                             reportMetadataList.Add(JsonConvert.DeserializeObject<CountingReportMetadata>(((JProperty)metadata).Value.ToString()));
-                            break;
-                        case TestReportType.EdgeHubRestartDirectMethodReport:
-                            reportMetadataList.Add(JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodReportMetadata>(((JProperty)metadata).Value.ToString()));
-                            break;
-                        case TestReportType.EdgeHubRestartMessageReport:
-                            reportMetadataList.Add(JsonConvert.DeserializeObject<EdgeHubRestartMessageReportMetadata>(((JProperty)metadata).Value.ToString()));
                             break;
                         case TestReportType.TwinCountingReport:
                             reportMetadataList.Add(JsonConvert.DeserializeObject<TwinCountingReportMetadata>(((JProperty)metadata).Value.ToString()));
