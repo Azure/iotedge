@@ -12,6 +12,8 @@ Param (
     [string] $Tenant = $null
 )
 
+Get-Location
+
 $passwd = ConvertTo-SecureString $Password -AsPlainText -Force
 $pscredential = New-Object System.Management.Automation.PSCredential($User, $passwd)
 Connect-AzAccount -ServicePrincipal -Credential $pscredential -Tenant $Tenant
