@@ -15,7 +15,7 @@ namespace EdgeHubRestartTester
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    class DirectMethodEdgeHubConnector : IEdgeHubConnector
+    class DirectMethodEdgeHubConnectorTest : IEdgeHubConnector
     {
         readonly ModuleClient dmModuleClient;
         readonly Guid batchId;
@@ -26,7 +26,7 @@ namespace EdgeHubRestartTester
         readonly ILogger logger;
         long directMethodCount = 0;
 
-        public DirectMethodEdgeHubConnector(
+        public DirectMethodEdgeHubConnectorTest(
             ModuleClient dmModuleClient,
             Guid batchId,
             DateTime runExpirationTime,

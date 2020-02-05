@@ -73,7 +73,7 @@ namespace EdgeHubRestartTester
                     if (Settings.Current.MessageEnabled)
                     {
                         sendMessageTask =
-                            new MessageEdgeHubConnector(
+                            new MessageEdgeHubConnectorTest(
                                 msgModuleClient,
                                 batchId,
                                 eachTestExpirationTime,
@@ -88,7 +88,7 @@ namespace EdgeHubRestartTester
                     if (Settings.Current.DirectMethodEnabled)
                     {
                         directMethodTask =
-                            new DirectMethodEdgeHubConnector(
+                            new DirectMethodEdgeHubConnectorTest(
                                 dmModuleClient,
                                 batchId,
                                 eachTestExpirationTime,

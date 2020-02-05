@@ -14,7 +14,7 @@ namespace EdgeHubRestartTester
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    class MessageEdgeHubConnector : IEdgeHubConnector
+    class MessageEdgeHubConnectorTest : IEdgeHubConnector
     {
         readonly ModuleClient msgModuleClient;
         readonly Guid batchId;
@@ -24,7 +24,7 @@ namespace EdgeHubRestartTester
         readonly ILogger logger;
         long messageCount = 0;
 
-        public MessageEdgeHubConnector(
+        public MessageEdgeHubConnectorTest(
             ModuleClient msgModuleClient,
             Guid batchId,
             DateTime runExpirationTime,
