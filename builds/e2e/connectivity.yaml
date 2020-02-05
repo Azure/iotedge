@@ -63,8 +63,8 @@ jobs:
             $(images.artifact.name.linux)/kpis.yaml
 
       - pwsh: |
-          ls
-          pwd
+          Get-ChildItem
+          Get-Location
           .\scripts\KpiGenerator.ps1 -TestId $TestId -User $User -Password $Password -Tenant $Tenant
         env:
           TestId: '$(testTrackingId)'
