@@ -17,27 +17,10 @@ namespace EdgeHubRestartTester
 
     class DirectMethodEdgeHubConnector : IEdgeHubConnector
     {
+        readonly Guid batchId;
+        readonly ILogger logger;
         long directMethodCount = 0;
-        ModuleClient dmModuleClient = null;
-        Guid batchId;
-        ILogger logger;
-
-        ModuleClient DmModuleClient
-        {
-            get
-            {
-                if (this.dmModuleClient == null)
-                {
-                    this.dmModuleClient = ModuleUtil.CreateModuleClientAsync(
-                        Settings.Current.TransportType,
-                        ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                        ModuleUtil.DefaultTransientRetryStrategy,
-                        this.logger).Result;
-                }
-
-                return this.dmModuleClient;
-            }
-        }
+        ModuleClient dmModuleClient;
 
         public DirectMethodEdgeHubConnector(
             Guid batchId,
@@ -57,7 +40,7 @@ namespace EdgeHubRestartTester
             (DateTime dmCompletedTime, HttpStatusCode dmStatusCode) = await this.SendDirectMethodAsync(
                 Settings.Current.DeviceId,
                 Settings.Current.DirectMethodTargetModuleId,
-                this.DmModuleClient,
+                await this.GetModuleClientAsync(),
                 Settings.Current.DirectMethodName,
                 runExpirationTime,
                 cancellationToken,
@@ -133,6 +116,20 @@ namespace EdgeHubRestartTester
             }
 
             return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.InternalServerError);
+        }
+
+        async Task<ModuleClient> GetModuleClientAsync()
+        {
+            if (this.dmModuleClient == null)
+            {
+                this.dmModuleClient = await ModuleUtil.CreateModuleClientAsync(
+                    Settings.Current.TransportType,
+                    ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
+                    ModuleUtil.DefaultTransientRetryStrategy,
+                    this.logger);
+            }
+
+            return this.dmModuleClient;
         }
 
         bool IsEdgeHubDownDuringDirectMethodSend(Exception e)
