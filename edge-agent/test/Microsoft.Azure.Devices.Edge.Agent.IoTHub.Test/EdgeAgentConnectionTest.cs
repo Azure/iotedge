@@ -166,7 +166,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     Option.None<IWebProxy>(),
                     Constants.IoTEdgeAgentProductInfoIdentifier,
                     false,
-                    TimeSpan.FromDays(1));
+                    TimeSpan.FromDays(1),
+                    false);
 
                 var moduleDeserializerTypes = new Dictionary<string, Type>
                 {
@@ -288,7 +289,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     Option.None<IWebProxy>(),
                     Constants.IoTEdgeAgentProductInfoIdentifier,
                     false,
-                    TimeSpan.FromDays(1));
+                    TimeSpan.FromDays(1),
+                    false);
 
                 var moduleDeserializerTypes = new Dictionary<string, Type>
                 {
@@ -944,7 +946,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     Option.None<IWebProxy>(),
                     Constants.IoTEdgeAgentProductInfoIdentifier,
                     false,
-                    TimeSpan.FromDays(1));
+                    TimeSpan.FromDays(1),
+                    false);
 
                 var moduleDeserializerTypes = new Dictionary<string, Type>
                 {
@@ -1042,7 +1045,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     Option.None<IWebProxy>(),
                     Constants.IoTEdgeAgentProductInfoIdentifier,
                     false,
-                    TimeSpan.FromDays(1));
+                    TimeSpan.FromDays(1),
+                    false);
 
                 var moduleDeserializerTypes = new Dictionary<string, Type>
                 {

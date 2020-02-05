@@ -44,6 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly TimeSpan idleTimeout;
         readonly TimeSpan performanceMetricsUpdateFrequency;
         readonly string backupConfigFilePath;
+        readonly bool useServerHeartbeat;
 
         public EdgeletModule(
             string iotHubHostname,
@@ -59,7 +60,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
             TimeSpan performanceMetricsUpdateFrequency,
-            string backupConfigFilePath)
+            string backupConfigFilePath,
+            bool useServerHeartbeat)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
@@ -75,6 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.idleTimeout = idleTimeout;
             this.performanceMetricsUpdateFrequency = performanceMetricsUpdateFrequency;
             this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
+            this.useServerHeartbeat = useServerHeartbeat;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -87,7 +90,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         this.proxy,
                         this.productInfo,
                         this.closeOnIdleTimeout,
-                        this.idleTimeout))
+                        this.idleTimeout,
+                        this.useServerHeartbeat))
                 .As<IModuleClientProvider>()
                 .SingleInstance();
 
