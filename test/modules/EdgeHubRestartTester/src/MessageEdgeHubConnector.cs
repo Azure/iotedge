@@ -16,29 +16,10 @@ namespace EdgeHubRestartTester
 
     class MessageEdgeHubConnector : IEdgeHubConnector, IDisposable
     {
+        readonly Guid batchId;
+        readonly ILogger logger;
         long messageCount = 0;
-        ModuleClient msgModuleClient = null;
-        Guid batchId;
-        ILogger logger;
-
-        ModuleClient MsgModuleClient
-        {
-            get
-            {
-                if (this.msgModuleClient == null)
-                {
-                    this.msgModuleClient = ModuleUtil.CreateModuleClientAsync(
-                        Settings.Current.TransportType,
-                        ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                        ModuleUtil.DefaultTransientRetryStrategy,
-                        this.logger).Result;
-
-                    this.msgModuleClient.OperationTimeoutInMilliseconds = (uint)Settings.Current.SdkOperationTimeout.TotalMilliseconds;
-                }
-
-                return this.msgModuleClient;
-            }
-        }
+        ModuleClient msgModuleClient;
 
         public MessageEdgeHubConnector(
             Guid batchId,
@@ -56,7 +37,7 @@ namespace EdgeHubRestartTester
             CancellationToken cancellationToken)
         {
             (DateTime msgCompletedTime, HttpStatusCode mgsStatusCode) = await this.SendMessageAsync(
-                this.MsgModuleClient,
+                await this.GetModuleClientAsync(),
                 Settings.Current.TrackingId,
                 this.batchId,
                 Settings.Current.MessageOutputEndpoint,
@@ -79,6 +60,22 @@ namespace EdgeHubRestartTester
                 this.logger,
                 msgTestResult,
                 cancellationToken).ConfigureAwait(false);
+        }
+
+        async Task<ModuleClient> GetModuleClientAsync()
+        {
+            if (this.msgModuleClient == null)
+            {
+                this.msgModuleClient = await ModuleUtil.CreateModuleClientAsync(
+                    Settings.Current.TransportType,
+                    ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
+                    ModuleUtil.DefaultTransientRetryStrategy,
+                    this.logger);
+
+                this.msgModuleClient.OperationTimeoutInMilliseconds = (uint)Settings.Current.SdkOperationTimeout.TotalMilliseconds;
+            }
+
+            return this.msgModuleClient;
         }
 
         async Task<Tuple<DateTime, HttpStatusCode>> SendMessageAsync(

@@ -134,6 +134,9 @@
     .PARAMETER HostPlatform
          Describes the host OS and cpu architecture. This information is added to scraped metrics.
 
+    .PARAMETER InitializeWithAgentArtifact
+         Boolean specifying if the iotedge installation should initialize edge agent with the official 1.0 image or the desired artifact. If false, the deployment after installation will start the desired agent artifact.
+
     .EXAMPLE
         .\Run-E2ETest.ps1
             -E2ETestFolder "C:\Data\e2etests"
@@ -320,6 +323,8 @@ Param (
     [string] $TwinUpdateFailureThreshold = $null,
 
     [string] $HostPlatform = $null,
+
+    [string] $InitializeWithAgentArtifact = "false",
 
     [switch] $BypassEdgeInstallation
 )
@@ -768,6 +773,7 @@ Function RunDirectMethodAmqpTest
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`" ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -801,6 +807,7 @@ Function RunDirectMethodAmqpMqttTest
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`" ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -834,6 +841,7 @@ Function RunDirectMethodMqttTest
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`" ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -867,6 +875,7 @@ Function RunDirectMethodMqttAmqpTest
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`" ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -906,6 +915,7 @@ Function RunDpsProvisioningTest
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`" ``
             --dps-scope-id `"$DpsScopeId`" ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
 
     switch ($provisioningType) {
@@ -975,6 +985,7 @@ Function RunQuickstartCertsTest
         --optimize_for_performance=`"$OptimizeForPerformance`" ``
         --leave-running=All ``
         --no-verify ``
+        --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
         $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -1027,6 +1038,7 @@ Function RunLongHaulTest
             -l `"$DeploymentWorkingFilePath`" ``
             --runtime-log-level `"Info`" ``
             --no-verify ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
@@ -1058,6 +1070,7 @@ Function RunStressTest
             -l `"$DeploymentWorkingFilePath`" ``
             --runtime-log-level `"Info`" ``
             --no-verify ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
@@ -1086,6 +1099,7 @@ Function RunTempFilterTest
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"tempFilter`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`" ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -1125,6 +1139,7 @@ Function RunTempFilterFunctionsTest
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"tempFilterFunctions`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`" ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -1159,6 +1174,7 @@ Function RunTempSensorTest
         -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
         -tw `"$TwinTestFileArtifactFilePath`" ``
         --optimize_for_performance=`"$OptimizeForPerformance`" ``
+        --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
         $BypassInstallationFlag"
 
     If ($ProxyUri) {
@@ -1316,6 +1332,7 @@ Function RunTransparentGatewayTest
         --optimize_for_performance=`"$OptimizeForPerformance`" ``
         --leave-running=All ``
         --no-verify ``
+        --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
         $BypassInstallationFlag"
 
     If ($ProxyUri) {
