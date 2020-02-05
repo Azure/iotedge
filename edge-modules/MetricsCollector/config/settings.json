@@ -1,7 +1,7 @@
 {
-  "AzMonWorkspaceId": "",
-  "AzMonWorkspaceKey": "",
-  "AzMonLogType": "IoTEdgeMetrics",
+  "LogAnalyticsWorkspaceId": "",
+  "LogAnalyticsSharedKey": "",
+  "LogAnalyticsLogType": "IoTEdgeMetrics",
   "MetricsEndpointsCSV": "http://edgeHub:9600/metrics,http://edgeAgent:9600/metrics",
   "ScrapeFrequencyInSecs": 300,
   "UploadTarget": "AzureLogAnalytics",
