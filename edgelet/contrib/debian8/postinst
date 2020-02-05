@@ -10,6 +10,9 @@ case "$1" in
             if [ ! -d /var/lib/iotedge ]; then
                 mkdir -p /var/lib/iotedge
             fi
+            if [ ! -d /var/log/iotedge ]; then
+                mkdir -p /var/log/iotedge
+            fi
             chown ${USER}:${GROUP} /var/lib/iotedge
             chown ${USER}:${GROUP} /var/log/iotedge
             chown ${USER}:${GROUP} /etc/iotedge/config.yaml.template
