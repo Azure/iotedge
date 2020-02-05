@@ -38,14 +38,14 @@ namespace EdgeHubRestartTester
 
                 if (Settings.Current.MessageEnabled)
                 {
-                    edgeHubMessageConnector = new MessageEdgeHubConnector(
+                    edgeHubMessageConnector = new MessageEdgeHubConnectorTest(
                         batchId,
                         Logger);
                 }
 
                 if (Settings.Current.DirectMethodEnabled)
                 {
-                    edgeHubDirectMethodConnector = new DirectMethodEdgeHubConnector(
+                    edgeHubDirectMethodConnector = new DirectMethodEdgeHubConnectorTest(
                         batchId,
                         Logger);
                 }
