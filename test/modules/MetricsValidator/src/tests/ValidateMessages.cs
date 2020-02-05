@@ -28,7 +28,8 @@ namespace MetricsValidator.Tests
              * await this.TestMessageSize(cancellationToken);
              */
 
-            await Task.WhenAll(this.TestMessages(cancellationToken), this.TestQueueLength(cancellationToken));
+            await this.TestMessages(cancellationToken);
+            await this.TestQueueLength(cancellationToken);
         }
 
         /*******************************************************************************
@@ -163,7 +164,7 @@ namespace MetricsValidator.Tests
         async Task TestMessages(CancellationToken cancellationToken)
         {
             string endpoint = Guid.NewGuid().ToString();
-            TimeSpan timePerMessage = TimeSpan.FromMilliseconds(50);
+            TimeSpan timePerMessage = TimeSpan.FromMilliseconds(100);
 
             TestReporter reporter = this.testReporter.MakeSubcategory("Messages Sent and Recieved");
             using (reporter.MeasureDuration())
@@ -174,14 +175,17 @@ namespace MetricsValidator.Tests
                     int prevRecieved = await this.GetNumberOfMessagesRecieved(cancellationToken, endpoint);
                     await this.SendMessages(n, cancellationToken, endpoint);
 
-                    await Task.Delay(timePerMessage * n + TimeSpan.FromMilliseconds(500)); // Give edgeHub time to send message upstream
+                    await Task.Delay(timePerMessage * n + TimeSpan.FromMilliseconds(1000)); // Give edgeHub time to send message upstream
                     int newSent = await this.GetNumberOfMessagesSent(cancellationToken, endpoint);
                     int newRecieved = await this.GetNumberOfMessagesRecieved(cancellationToken, endpoint);
 
                     reporter.Assert($"Reports {n} messages recieved", n, newRecieved - prevRecieved);
                     reporter.Assert($"Reports {n} messages sent", n, newSent - prevSent);
+
+                    await Task.Delay(TimeSpan.FromMilliseconds(100));
                 }
 
+                await Task.Delay(TimeSpan.FromMilliseconds(2000));
                 await CountSingleSends(1);
                 await CountSingleSends(10);
                 await CountSingleSends(100);
@@ -192,12 +196,14 @@ namespace MetricsValidator.Tests
                     int prevRecieved = await this.GetNumberOfMessagesRecieved(cancellationToken, endpoint);
                     await this.SendMessageBatches(n, m, cancellationToken, endpoint);
 
-                    await Task.Delay(timePerMessage * n * m + TimeSpan.FromMilliseconds(500)); // Give edgeHub time to send message upstream
+                    await Task.Delay(timePerMessage * n * m + TimeSpan.FromMilliseconds(1000)); // Give edgeHub time to send message upstream
                     int newSent = await this.GetNumberOfMessagesSent(cancellationToken, endpoint);
                     int newRecieved = await this.GetNumberOfMessagesRecieved(cancellationToken, endpoint);
 
                     reporter.Assert($"Reports {n * m} recieved for {n} batches of {m}", n * m, newRecieved - prevRecieved);
                     reporter.Assert($"Reports {n * m} sent for {n} batches of {m}", n * m, newSent - prevSent);
+
+                    await Task.Delay(TimeSpan.FromMilliseconds(100));
                 }
 
                 await CountMultipleSends(1, 1);

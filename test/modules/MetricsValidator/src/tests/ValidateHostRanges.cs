@@ -39,10 +39,10 @@ namespace MetricsValidator.Tests
                 var cpuMetrics = metrics.Where(m => m.Name == cpuMetricName);
                 reporter.Assert($"{cpuMetricName} metric exists", cpuMetrics.Any(), $"Missing {cpuMetricName}");
 
-                var hostCpu = cpuMetrics.Where(m => m.Tags.TryGetValue("module", out string module) && module == "host").ToDictionary(m => m.Tags["quantile"], m => m.Value);
+                var hostCpu = cpuMetrics.Where(m => m.Tags.TryGetValue("module_name", out string module) && module == "host").ToDictionary(m => m.Tags["quantile"], m => m.Value);
                 reporter.Assert("Host has all quantiles", hostCpu.Count == 6, $"Host had the following quantiles: {string.Join(", ", hostCpu.Keys)}");
 
-                var moduleCpu = cpuMetrics.Where(m => m.Tags.TryGetValue("module", out string module) && module != "host").ToList();
+                var moduleCpu = cpuMetrics.Where(m => m.Tags.TryGetValue("module_name", out string module) && module != "host").ToList();
                 reporter.Assert("At least 1 docker module reports cpu", moduleCpu.Any(), $"No modules reported cpu");
 
                 foreach (var hostCpuQuartile in hostCpu)
@@ -73,8 +73,8 @@ namespace MetricsValidator.Tests
                     reporter.Assert($"Disk {avaliable.Key} total space > avaliable space", total > avaliable.Value, $"\n\tTotal: {total}\n\tAvaliable:{avaliable.Value}");
                 }
 
-                var usedMemory = metrics.Where(m => m.Name == "edgeAgent_used_memory_bytes").ToDictionary(m => m.Tags["module"], m => m.Value);
-                var totalMemory = metrics.Where(m => m.Name == "edgeAgent_total_memory_bytes").ToDictionary(m => m.Tags["module"], m => m.Value);
+                var usedMemory = metrics.Where(m => m.Name == "edgeAgent_used_memory_bytes").ToDictionary(m => m.Tags["module_name"], m => m.Value);
+                var totalMemory = metrics.Where(m => m.Name == "edgeAgent_total_memory_bytes").ToDictionary(m => m.Tags["module_name"], m => m.Value);
 
                 if (!usedMemory.ContainsKey("host") && totalMemory.ContainsKey("host"))
                 {
