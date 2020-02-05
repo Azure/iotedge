@@ -9,9 +9,9 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
     /// <summary>
     /// This is a counting report to show test result counts, e.g. expect and match counts; and contains a list of unmatched test results.
     /// </summary>
-    class EdgeHubRestartMessageReport : TestResultReportBase
+    class EdgeHubRestartDirectMethodReport : TestResultReportBase
     {
-        public EdgeHubRestartMessageReport(
+        public EdgeHubRestartDirectMethodReport(
             string trackingId,
             string resultType,
             bool isPassing,
