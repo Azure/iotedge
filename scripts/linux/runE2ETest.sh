@@ -406,6 +406,9 @@ function process_args() {
         elif [ $saveNextArg -eq 42 ]; then
             HOST_PLATFORM="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 43 ]; then
+            INITIALIZE_WITH_AGENT_ARTIFACT="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -451,6 +454,7 @@ function process_args() {
                 '-metricsScrapeFrequencyInSecs' ) saveNextArg=40;;
                 '-metricsUploadTarget' ) saveNextArg=41;;
                 '-hostPlatform' ) saveNextArg=42;;
+                '-initializeWithAgentArtifact' ) saveNextArg=43;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -547,6 +551,7 @@ function run_directmethod_test()
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -n "$(hostname)" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --verify-data-from-module "DirectMethodSender" \
         -l "$deployment_working_file" && ret=$? || ret=$?
 
@@ -678,7 +683,8 @@ function run_dps_provisioning_test() {
         -tw "$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json" \
         --optimize_for_performance="$optimize_for_performance" \
         $dps_command_flags \
-        -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$?
+        -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$? \
+        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT"
 
     local elapsed_seconds=$SECONDS
     test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -708,6 +714,7 @@ function run_longhaul_test() {
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -n "$(hostname)" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --leave-running=All \
         -l "$deployment_working_file" \
         --runtime-log-level "Info" \
@@ -740,6 +747,7 @@ function run_quickstartcerts_test() {
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --leave-running=Core \
         --optimize_for_performance="$optimize_for_performance" \
         --no-verify && ret=$? || ret=$?
@@ -784,6 +792,7 @@ function run_stress_test() {
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -n "$(hostname)" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --leave-running=All \
         -l "$deployment_working_file" \
         --runtime-log-level "Info" \
@@ -817,6 +826,7 @@ function run_tempfilter_test() {
         -n "$(hostname)" \
         --verify-data-from-module "tempFilter" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         -l "$deployment_working_file" && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -847,6 +857,7 @@ function run_tempfilterfunctions_test() {
         -n "$(hostname)" \
         --verify-data-from-module "tempFilterFunctions" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         -l "$deployment_working_file" && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -877,7 +888,8 @@ function run_tempsensor_test() {
         -n "$(hostname)" \
         -tw "$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json" \
         --optimize_for_performance="$optimize_for_performance" \
-        -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$?
+        -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$? \
+        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT"
 
     local elapsed_seconds=$SECONDS
     test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -1051,12 +1063,14 @@ function usage() {
     echo ' -metricsScrapeFrequencyInSecs     Optional frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
     echo ' -metricsUploadTarget              Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
     echo ' -hostPlatform                     Describes the host OS and cpu architecture. This information is added to scraped metrics.'
+    echo ' -initializeWithAgentArtifact      Boolean specifying if the iotedge installation should initialize edge agent with the official 1.0 image or the desired artifact. If false, the deployment after installation will start the desired agent artifact.'
     exit 1;
 }
 
 process_args "$@"
 
 CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
+INITIALIZE_WITH_AGENT_ARTIFACT="${INITIALIZE_WITH_AGENT_ARTIFACT:-false}"
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
 EVENT_HUB_CONSUMER_GROUP_ID=${EVENT_HUB_CONSUMER_GROUP_ID:-\$Default}
 SNITCH_BUILD_NUMBER="${SNITCH_BUILD_NUMBER:-1.2}"
