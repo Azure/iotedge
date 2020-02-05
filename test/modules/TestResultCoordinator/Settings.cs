@@ -153,7 +153,13 @@ namespace TestResultCoordinator
         internal async Task<HashSet<string>> GetResultSourcesAsync(ILogger logger)
         {
             HashSet<string> sources = (await this.GetReportMetadataListAsync(logger)).SelectMany(r => r.ResultSources).ToHashSet();
-            string[] additionalResultSources = new string[] { };
+            string[] additionalResultSources = new string[]
+            {
+                "edgeHubRestartTester1.EdgeHubRestartDirectMethod",
+                "directMethodReceiver1.receive",
+                "edgeHubRestartTester1.EdgeHubRestartMessage",
+                "relayer1.receive"
+            };
 
             foreach (string rs in additionalResultSources)
             {
