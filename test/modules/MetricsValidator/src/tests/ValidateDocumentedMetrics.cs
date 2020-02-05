@@ -14,6 +14,7 @@ namespace MetricsValidator.Tests
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
+    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
@@ -96,6 +97,9 @@ namespace MetricsValidator.Tests
             const string methodName = "FakeDirectMethod";
             await this.moduleClient.SetMethodHandlerAsync(methodName, (_, __) => Task.FromResult(new MethodResponse(200)), null);
             await this.moduleClient.InvokeMethodAsync(Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID"), Environment.GetEnvironmentVariable("IOTEDGE_MODULEID"), new MethodRequest(methodName), cancellationToken);
+
+            await this.moduleClient.UpdateReportedPropertiesAsync(new TwinCollection(), cancellationToken);
+            await this.moduleClient.GetTwinAsync(cancellationToken);
 
             await Task.Delay(TimeSpan.FromSeconds(10));
         }

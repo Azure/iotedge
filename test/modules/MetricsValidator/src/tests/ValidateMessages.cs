@@ -52,7 +52,7 @@ namespace MetricsValidator.Tests
                 async Task WaitForQueueToClear(string name)
                 {
                     TimeSpan maxWaitTime = TimeSpan.FromSeconds(10);
-                    TimeSpan frequency = TimeSpan.FromMilliseconds(50);
+                    TimeSpan frequency = TimeSpan.FromMilliseconds(100);
 
                     int queueLength = await this.GetQueueLength(cancellationToken, input);
                     for (int i = 0; i < maxWaitTime / frequency; i++)
