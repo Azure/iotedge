@@ -169,6 +169,7 @@ To run `iotedged` locally:
     cargo run -p iotedged -- -c /absolute/path/to/config.yaml
     ```
 
+
 ### Run tests
 
 ```sh
@@ -246,12 +247,14 @@ cargo test --all
 
 - IDE
 
-    VS Code has good support for Rust. Consider installing the following extensions:
+    [VS Code](https://code.visualstudio.com/) has good support for Rust. Consider installing the following extensions:
 
     * [Rust (rls)](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust) - Syntax highlighting and Intellisense support
     * [Better TOML](https://marketplace.visualstudio.com/items?itemName=bungcip.better-toml) - Syntax highlighting for `Cargo.toml`
     * [C/C++](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) - Native debugger support
     * [Vim](https://marketplace.visualstudio.com/items?itemName=vscodevim.vim) - For a more sophisticated editor experience :)
+
+    Alternatively, [IntelliJ IDEA Community Edition](https://www.jetbrains.com/idea/) with the [Rust plugin](https://intellij-rust.github.io/) provides a full IDE experience for programming in Rust.
 
 
 ### Test IoT Edge daemon API endpoints
