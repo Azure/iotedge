@@ -1,0 +1,13 @@
+[workspace]
+members = [
+    "containrs",
+    "containrs-cli",
+    "docker-reference",
+    "docker-scope",
+    "oci-common",
+    "oci-digest",
+    "oci-distribution",
+    "oci-image",
+    "oci-runtime",
+    "www-authenticate",
+]

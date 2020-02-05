@@ -11,6 +11,7 @@ members = [
     "edgelet-http-workload",
     "edgelet-iothub",
     "edgelet-kube",
+    "edgelet-shell",
     "edgelet-test-utils",
     "edgelet-utils",
     "external-provisioning",

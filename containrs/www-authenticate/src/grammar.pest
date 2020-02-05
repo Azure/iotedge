@@ -1,0 +1,87 @@
+// # from RFC-2617 (HTTP Basic and Digest authentication)
+// challenge      = auth-scheme 1*SP 1#auth-param
+// auth-scheme    = token
+// auth-param     = token "=" ( token | quoted-string )
+ 
+// # from RFC2616 (HTTP/1.1)
+// #rule == ( *LWS element *( *LWS "," *LWS element ))
+// 
+// in PEG: element_list = { LWS* ~ element? ~ ((LWS* ~ ",")+ ~ LWS* ~ element?)* }
+
+root = { SOI ~ LWS* ~ challenge_list ~ LWS* ~ EOI }
+
+challenge_list = { LWS* ~ challenge? ~ ((LWS* ~ ",")+ ~ LWS* ~ challenge?)* }
+// a bit more more lenient than standard, allowing line-folding
+challenge = { auth_scheme ~ (CRLF? ~ " "+ ~ auth_param_list)? }
+
+auth_param_list = _{ LWS* ~ auth_param? ~ ((LWS* ~ ",")+ ~ LWS* ~ auth_param)* }
+auth_scheme = @{ token }
+// a bit more more lenient than standard, allowing whitespace between "="
+auth_param = { auth_param_name ~ LWS* ~ "=" ~ LWS* ~ auth_param_arg }
+auth_param_name = @{ token }
+auth_param_arg = @{ token | quoted_string }
+
+// # from RFC2616 (HTTP/1.1)
+//
+// CHAR           = <any US-ASCII character (octets 0 - 127)>
+// CTL            = <any US-ASCII control character (octets 0 - 31) and DEL (127)>
+// HT             = "\t"
+// SP             = " "
+// LWS            = [CRLF] 1*( SP | HT )
+// separators     = "(" | ")" | "<" | ">" | "@"
+//                | "," | ";" | ":" | "\" | <">
+//                | "/" | "[" | "]" | "?" | "="
+//                | "{" | "}" | SP | HT
+// quoted-string  = ( <"> *(qdtext | quoted-pair ) <"> )
+// qdtext         = <any TEXT except <">>
+// quoted-pair    = "\" CHAR
+//
+// token          = 1*<any CHAR except CTLs or separators>
+
+CRLF = _{ "\r\n" | "\n" } // technically not standards conformant, as we allow a bare "\n" as well
+CHAR = { ASCII }
+CTL = _{ '\x00'..'\x1f' | "\x7f" }
+HT = _{  "\t" }
+SP = _{ " " }
+LWS = _{ CRLF? ~ (SP | HT)+ }
+separators = { "(" | ")" | "<" | ">" | "@" | "," | ";" | ":" | "\\" | "\"" | "/" | "[" | "]" | "?" | "=" | "{" | "}" | SP | HT }
+// stolen from JSON grammar
+quoted_string  = @{ "\"" ~ qdtext ~ "\"" }
+qdtext = @{ (!("\"" | "\\") ~ ANY)* ~ (quoted_pair ~ qdtext)? }
+quoted_pair  = @{ "\\" ~ CHAR }
+
+token = @{ (!CTL ~ !separators ~ CHAR)+ }
+
+// EXAMPLE: (via https://pest.rs/#editor)
+// r#"Digest realm="htt\"p\"-auth@example.org", qop="auth, auth-int",
+//    algorithm=MD5,
+//    nonce="7ypf/xlj9XXwfDPEoM4URrv/xwf94BcCAzFZH4GiTo0v",
+//    opaque="FQhe/qaU925kfnzjCev0ciny7QMkPqMAFRtzCUYo5tdS",
+//  Basic realm="example.com""#
+//
+// is parsed as
+//
+// - root
+//   - challenge_list
+//     - challenge
+//       - auth_scheme: "Digest"
+//       - auth_param
+//         - auth_param_name: "realm"
+//         - auth_param_arg: "\"htt\\\"p\\\"-auth@example.org\""
+//       - auth_param
+//         - auth_param_name: "qop"
+//         - auth_param_arg: "\"auth, auth-int\""
+//       - auth_param
+//         - auth_param_name: "algorithm"
+//         - auth_param_arg: "MD5"
+//       - auth_param
+//         - auth_param_name: "nonce"
+//         - auth_param_arg: "\"7ypf/xlj9XXwfDPEoM4URrv/xwf94BcCAzFZH4GiTo0v\""
+//       - auth_param
+//         - auth_param_name: "opaque"
+//         - auth_param_arg: "\"FQhe/qaU925kfnzjCev0ciny7QMkPqMAFRtzCUYo5tdS\""
+//     - challenge
+//       - auth_scheme: "Basic"
+//       - auth_param
+//         - auth_param_name: "realm"
+//         - auth_param_arg: "\"example.com\""

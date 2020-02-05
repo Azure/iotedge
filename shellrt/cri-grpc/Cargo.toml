@@ -1,0 +1,30 @@
+[package]
+name = "cri-grpc"
+version = "0.1.0-alpha.2"
+authors = ["Azure IoT Edge Devs"]
+edition = "2018"
+
+[dependencies]
+bytes = "0.4"
+futures = "0.3"
+log = "0.4"
+prost = "0.5"
+prost-derive = "0.5"
+prost-types = "0.5"
+tokio = "0.2"
+
+# NOTE: at some point in the future, it might be beneficial to turn off the
+# default transport (over HTTPS), and implement our own socket-based transport.
+[dependencies.tonic]
+# TODO: switch to verson = "0.1" once released
+git = "https://github.com/hyperium/tonic.git"
+# default-features = false
+# features = ["codegen"]
+
+[build-dependencies]
+
+[build-dependencies.tonic-build]
+# TODO: switch to verson = "0.1" once released
+git = "https://github.com/hyperium/tonic.git"
+# default-features = false
+# features = ["rustfmt"]

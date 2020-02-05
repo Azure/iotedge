@@ -1,0 +1,48 @@
+// Grammar, as specified in github.com/docker/distribution/reference/reference.go
+//
+//  reference                       := name [ ":" tag ] [ "@" digest ]
+//  name                            := [domain '/'] path-component ['/' path-component]*
+//  domain                          := domain-component ['.' domain-component]* [':' port-number]
+//  domain-component                := /([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])/
+//  port-number                     := /[0-9]+/
+//  path-component                  := alpha-numeric [separator alpha-numeric]*
+//  alpha-numeric                   := /[a-z0-9]+/
+//  separator                       := /[_.]|__|[-]*/
+//
+//  tag                             := /[\w][\w.-]{0,127}/
+//
+//  digest                          := digest-algorithm ":" digest-hex
+//  digest-algorithm                := digest-algorithm-component [ digest-algorithm-separator digest-algorithm-component ]*
+//  digest-algorithm-separator      := /[+.-_]/
+//  digest-algorithm-component      := /[A-Za-z][A-Za-z0-9]*/
+//  digest-hex                      := /[0-9a-fA-F]{32,}/ ; At least 128 bit digest value
+//
+//  identifier                      := /[a-f0-9]{64}/
+//  short-identifier                := /[a-f0-9]{6,64}/
+
+refstr = { SOI ~ reference ~ EOI }
+
+reference = ${ name ~ (":" ~ tag)? ~ ("@" ~ digest)? }
+name = { (domain ~ "/")? ~ path }
+domain = @{ domain_component ~ ("." ~ domain_component)* ~ (":" ~ port_number)? }
+path = @{ path_component ~ ("/" ~ path_component)* } 
+
+domain_component = { ASCII_ALPHANUMERIC ~ ("-"+ ~ ASCII_ALPHANUMERIC | ASCII_ALPHANUMERIC)* }
+port_number = { ASCII_DIGIT+ }
+
+path_component = { alpha_numeric ~ (separator ~ alpha_numeric)* }
+alpha_numeric = { (ASCII_ALPHA_LOWER | ASCII_DIGIT)+ }
+separator = { "__" | ( "_" | "." ) | "-"* }
+
+tag = @{ REGEX_w ~ (REGEX_w | "." | "-"){0, 127} }
+
+digest = { digest_algorithm ~ ":" ~ digest_hex }
+digest_algorithm = { digest_algorithm_component ~ (digest_algorithm_separator ~ digest_algorithm_component)* }
+digest_algorithm_separator = _{ ("+" | "." | "-" | "_") }
+digest_algorithm_component = { ASCII_ALPHA ~ ASCII_ALPHANUMERIC* }
+digest_hex = { (ASCII_HEX_DIGIT){32,} }
+
+identifier = { ('a'..'f' | ASCII_DIGIT){64} }
+short_identifier = { ('a'..'f' | ASCII_DIGIT){6, 64} }
+
+REGEX_w = { ASCII_ALPHANUMERIC | "_" }

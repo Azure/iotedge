@@ -12,6 +12,8 @@ use edgelet_core;
 use edgelet_docker::Settings;
 #[cfg(feature = "runtime-kubernetes")]
 use edgelet_kube::Settings;
+#[cfg(feature = "runtime-shell")]
+use edgelet_shell::Settings;
 
 use crate::error::{Error, ErrorKind, InitializeErrorReason};
 use crate::logging;
