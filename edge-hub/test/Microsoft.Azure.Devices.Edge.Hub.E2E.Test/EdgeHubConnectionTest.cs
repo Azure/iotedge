@@ -75,6 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
+                false,
                 Option.None<IWebProxy>(),
                 productInfoStore);
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
