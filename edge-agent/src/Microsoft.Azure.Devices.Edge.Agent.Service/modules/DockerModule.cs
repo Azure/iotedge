@@ -31,7 +31,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
         readonly bool useServerHeartbeat;
-        readonly string backupConfigFilePath;
 
         public DockerModule(
             string edgeDeviceConnectionString,
@@ -40,11 +39,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             IEnumerable<AuthConfig> dockerAuthConfig,
             Option<UpstreamProtocol> upstreamProtocol,
             Option<IWebProxy> proxy,
-            string productInfo,
+            Option<string> productInfo,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
-            bool useServerHeartbeat,
-            string backupConfigFilePath)
+            bool useServerHeartbeat)
         {
             this.edgeDeviceConnectionString = Preconditions.CheckNonWhiteSpace(edgeDeviceConnectionString, nameof(edgeDeviceConnectionString));
             this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
@@ -59,7 +57,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
             this.useServerHeartbeat = useServerHeartbeat;
-            this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
         }
 
         protected override void Load(ContainerBuilder builder)
