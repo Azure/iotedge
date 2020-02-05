@@ -2,13 +2,13 @@
   "IOT_HUB_CONNECTION_STRING": {
     "value": ""
   },
-  "directMethodEnable": {
+  "directMethodEnabled": {
     "value": "true"
   },
   "directMethodTargetModuleId": {
     "value": "directMethodReceiver1"
   },
-  "messageEnable": {
+  "messageEnabled": {
     "value": "true"
   },
   "reportingEndpointUrl": {
@@ -17,7 +17,7 @@
   "restartPeriod": {
     "value": "00:05:00.000"
   },
-  "sdkRetryTimeout": {
+  "sdkOperationTimeout": {
     "value": "00:00:00.020"
   },
   "testDuration": {
