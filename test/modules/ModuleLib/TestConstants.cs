@@ -14,5 +14,10 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
         {
             public const string TestResultSource = "error";
         }
+
+        public static class TestInfo
+        {
+            public const string TestResultSource = "testinfo";
+        }
     }
 }

@@ -115,6 +115,18 @@ namespace TestResultCoordinator.Reports
                             TestOperationResultType.Error);
                     }
 
+                case TestReportType.TestInfoReport:
+                    {
+                        var metadata = (TestInfoReportMetadata)testReportMetadata;
+                        var testResults = this.GetResults(metadata.Source);
+
+                        return new SimpleReportGenerator(
+                            trackingId,
+                            metadata.Source,
+                            testResults,
+                            TestOperationResultType.TestInfo);
+                    }
+
                 default:
                     {
                         throw new NotSupportedException($"Report type {testReportMetadata.TestReportType} is not supported.");

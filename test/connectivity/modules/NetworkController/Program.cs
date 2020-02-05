@@ -3,9 +3,12 @@ namespace NetworkController
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -22,6 +25,8 @@ namespace NetworkController
             try
             {
                 var networkInterfaceName = DockerHelper.GetDockerInterfaceName();
+
+                await ReportTestInfoAsync();
 
                 if (networkInterfaceName.HasValue)
                 {
@@ -57,6 +62,19 @@ namespace NetworkController
             await cts.Token.WhenCanceled();
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
+        }
+
+        private static async Task ReportTestInfoAsync()
+        {
+            var testResultReportingClient = new TestResultReportingClient() { BaseUrl = Settings.Current.TestResultCoordinatorEndpoint.AbsoluteUri };
+            await ModuleUtil.ReportTestResultAsync(
+                testResultReportingClient,
+                Log,
+                new TestInfoResult(
+                    Settings.Current.TrackingId,
+                    Settings.Current.ModuleId,
+                    $"Network Controller Mode={Settings.Current.NetworkControllerMode};Frequencies={string.Join(",", Settings.Current.Frequencies.Select(f => $"[offline:{f.OfflineFrequency},Online:{f.OnlineFrequency},Runs:{f.RunsCount}]"))}",
+                    DateTime.UtcNow));
         }
 
         static async Task StartAsync(INetworkController controller, CancellationToken cancellationToken)
