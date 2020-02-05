@@ -139,6 +139,13 @@ jobs:
         inputs:
           filePath: scripts/linux/buildImage.sh
           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-deployment-tester -n microsoft -P DeploymentTester --target-arch aarch64
+
+      # CloudToDeviceMessageTester - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Image - Cloud To Device Message Receiver Tester - aarch64
+        inputs:
+          filePath: scripts/linux/buildImage.sh
+          arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-c2dmessage-tester -n microsoft -P CloudToDeviceMessageTester --target-arch aarch64
           
 ################################################################################
   - job: linux_dotnet_projects
@@ -283,6 +290,13 @@ jobs:
           name: DeploymentTester
           imageName: azureiotedge-deployment-tester
           project: DeploymentTester
+
+     # Cloud To Device Message Tester
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Cloud To Device Message Tester
+          imageName: azureiotedge-c2dmessage-tester
+          project: CloudToDeviceMessageTester
 
 ################################################################################
 # linux - Rust amd64
@@ -465,6 +479,13 @@ jobs:
           name: Deployment Tester
           imageName: azureiotedge-deployment-tester
           project: DeploymentTester
+
+     # Cloud To Device Message Tester
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Cloud To Device Message Tester
+          imageName: azureiotedge-c2dmessage-tester
+          project: CloudToDeviceMessageTester
 
       - powershell: docker system prune -a -f
         displayName: Clean Machine

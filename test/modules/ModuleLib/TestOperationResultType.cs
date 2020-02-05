@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
         DirectMethod,
         Twin,
         Network,
-        Deployment
+        Deployment,
+        Error
     }
 }

@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace MetricsValidator
+namespace MetricsValidator.Tests
 {
     using System;
     using System.Collections.Generic;
@@ -21,9 +21,8 @@ namespace MetricsValidator
         {
         }
 
-        public override async Task Start(CancellationToken cancellationToken)
+        protected override async Task Test(CancellationToken cancellationToken)
         {
-            log.LogInformation($"Starting {nameof(ValidateNumberOfMessagesSent)}");
             await this.TestNumberSent(10, cancellationToken);
             await this.TestNumberSent(100, cancellationToken);
 
