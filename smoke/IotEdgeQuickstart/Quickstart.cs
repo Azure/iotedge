@@ -11,7 +11,6 @@ namespace IotEdgeQuickstart
         readonly LeaveRunning leaveRunning;
         readonly bool noVerify;
         readonly bool bypassEdgeInstallation;
-        readonly bool initializeWithAgentArtifact;
         readonly string verifyDataFromModule;
         readonly bool dpsProvisionTest;
 
@@ -46,7 +45,6 @@ namespace IotEdgeQuickstart
             this.bypassEdgeInstallation = bypassEdgeInstallation;
             this.verifyDataFromModule = verifyDataFromModule;
             this.dpsProvisionTest = dpsAttestation.HasValue;
-            this.initializeWithAgentArtifact = initializeWithAgentArtifact;
         }
 
         public async Task RunAsync()
