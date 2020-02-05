@@ -128,6 +128,8 @@ namespace IotEdgeQuickstart.Details
 
         readonly bool optimizedForPerformance;
 
+        readonly bool initializeWithAgentArtifact;
+
         readonly LogLevel runtimeLogLevel;
 
         readonly bool cleanUpExistingDeviceOnSuccess;
@@ -152,6 +154,7 @@ namespace IotEdgeQuickstart.Details
             string deviceCaPk,
             string deviceCaCerts,
             bool optimizedForPerformance,
+            bool initializeWithAgentArtifact,
             LogLevel runtimeLogLevel,
             bool cleanUpExistingDeviceOnSuccess,
             Option<DPSAttestation> dpsAttestation)
@@ -189,6 +192,7 @@ namespace IotEdgeQuickstart.Details
             this.deviceCaPk = deviceCaPk;
             this.deviceCaCerts = deviceCaCerts;
             this.optimizedForPerformance = optimizedForPerformance;
+            this.initializeWithAgentArtifact = initializeWithAgentArtifact;
             this.runtimeLogLevel = runtimeLogLevel;
             this.cleanUpExistingDeviceOnSuccess = cleanUpExistingDeviceOnSuccess;
             this.proxy = proxy.Map(p => new WebProxy(p) as IWebProxy);
@@ -259,7 +263,14 @@ namespace IotEdgeQuickstart.Details
 
                     return new DeviceProvisioningMethod(connectionString);
                 });
-            return this.bootstrapper.Configure(method, this.hostname, this.deviceCaCert, this.deviceCaPk, this.deviceCaCerts, this.runtimeLogLevel);
+
+            Option<string> agentImage = Option.None<string>();
+            if (this.initializeWithAgentArtifact)
+            {
+                agentImage = Option.Some<string>(this.EdgeAgentImage());
+            }
+
+            return this.bootstrapper.Configure(method, agentImage, this.hostname, this.deviceCaCert, this.deviceCaPk, this.deviceCaCerts, this.runtimeLogLevel);
         }
 
         protected Task StartBootstrapper()
