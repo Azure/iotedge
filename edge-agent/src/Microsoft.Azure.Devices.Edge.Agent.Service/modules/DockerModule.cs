@@ -30,6 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Option<string> productInfo;
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
+        readonly bool useServerHeartbeat;
 
         public DockerModule(
             string edgeDeviceConnectionString,
@@ -40,7 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             Option<IWebProxy> proxy,
             Option<string> productInfo,
             bool closeOnIdleTimeout,
-            TimeSpan idleTimeout)
+            TimeSpan idleTimeout,
+            bool useServerHeartbeat)
         {
             this.edgeDeviceConnectionString = Preconditions.CheckNonWhiteSpace(edgeDeviceConnectionString, nameof(edgeDeviceConnectionString));
             this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
@@ -54,6 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.productInfo = productInfo;
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
+            this.useServerHeartbeat = useServerHeartbeat;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -69,7 +72,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         this.proxy,
                         this.productInfo,
                         this.closeOnIdleTimeout,
-                        this.idleTimeout))
+                        this.idleTimeout,
+                        this.useServerHeartbeat))
                 .As<IModuleClientProvider>()
                 .SingleInstance();
 
