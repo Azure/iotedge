@@ -1,26 +1,24 @@
-$yaml = Invoke-WebRequest https://raw.githubusercontent.com/and-rewsmith/iotedge/andsmi/dashboard-alerts/test/dashboard/kpis.yaml
-# $yaml = Get-Content C:\Users\Lee\source\repos\edge\and\iotedge\test\dashboard\kpis.yaml -Raw
+Param (
+    [ValidateNotNullOrEmpty()]
+    [int] $TestId = $null
+)
+
+$yaml = Get-Content ..\kpis.yaml -Raw
 
 $obj = ConvertFrom-Yaml $yaml
+$kpis = $obj["Connectivity"]
 
-foreach ($testType in $obj.Keys) {
-    echo "Test: $testType"
-    $kpis = $obj[$testType]
-
-    foreach ($kpi in $kpis) {
-        $kpiName = $kpi.keys
-        echo "  Kpi: $kpiName"
-       
-        $kpiSettings = $kpi.values
-
-        $mn = $kpiSettings.metricName
-        echo "    metricName: $mn"
-
-        $kpiSettings.tags
-        echo ""
-        # $fakeTags = @{module_name = "edgeHub"; quartile = .9 }
-        # $fakeTags
-    }    
-}
-
-# ConvertTo-Yaml -JsonCompatible $obj
+foreach ($kpi in $kpis) {
+    $kpiName = $kpi.keys
+    Write-Output "KPI: $kpiName"
+     
+    .\Create-Alert.ps1 `
+        -MetricName $kpiSettings.metricName `
+        -QueryType $kpiSettings.query_type `
+        -QueryComparison $kpiSettings.comparison `
+        -QueryTarget $kpiSettings.target `
+        -KpiName $kpiName `
+        -Tags $kpiSettings.tags `
+        -TestId $TestId `
+        -AlertingInterval 15
+}    

@@ -12,7 +12,7 @@ Connectivity:
             - module_name: edgeHub
             - quartile: .9
         comparison: <
-        query-type: value
+        query_type: value
         target: 50
     - EdgeAgentCPU:
         metricName: edgeAgent_used_cpu_percent
