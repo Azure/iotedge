@@ -14,14 +14,14 @@ namespace EdgeHubRestartTester
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    class MessageEdgeHubConnector : IEdgeHubConnector, IDisposable
+    class MessageEdgeHubConnectorTest : IEdgeHubConnector, IDisposable
     {
         readonly Guid batchId;
         readonly ILogger logger;
         long messageCount = 0;
         ModuleClient msgModuleClient;
 
-        public MessageEdgeHubConnector(
+        public MessageEdgeHubConnectorTest(
             Guid batchId,
             ILogger logger)
         {
@@ -42,7 +42,7 @@ namespace EdgeHubRestartTester
                 this.batchId,
                 Settings.Current.MessageOutputEndpoint,
                 runExpirationTime,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken);
 
             TestResultBase msgTestResult = new EdgeHubRestartMessageResult(
                 Settings.Current.ModuleId + "." + TestOperationResultType.EdgeHubRestartMessage.ToString(),
@@ -59,7 +59,7 @@ namespace EdgeHubRestartTester
                 reportClient,
                 this.logger,
                 msgTestResult,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken);
         }
 
         async Task<ModuleClient> GetModuleClientAsync()
