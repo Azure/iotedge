@@ -53,7 +53,7 @@ namespace EdgeHubRestartTester
                 Settings.Current.DirectMethodName,
                 this.runExpirationTime,
                 this.cancellationToken,
-                this.logger).ConfigureAwait(false);
+                this.logger);
 
             TestResultBase dmTestResult = new EdgeHubRestartDirectMethodResult(
                 Settings.Current.ModuleId + "." + TestOperationResultType.EdgeHubRestartDirectMethod.ToString(),
@@ -71,7 +71,7 @@ namespace EdgeHubRestartTester
                 reportClient,
                 this.logger,
                 dmTestResult,
-                this.cancellationToken).ConfigureAwait(false);
+                this.cancellationToken);
         }
 
         async Task<Tuple<DateTime, HttpStatusCode>> SendDirectMethodAsync(

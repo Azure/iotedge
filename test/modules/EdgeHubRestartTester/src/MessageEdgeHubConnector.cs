@@ -48,7 +48,7 @@ namespace EdgeHubRestartTester
                 this.batchId,
                 Settings.Current.MessageOutputEndpoint,
                 this.runExpirationTime,
-                this.cancellationToken).ConfigureAwait(false);
+                this.cancellationToken);
 
             TestResultBase msgTestResult = new EdgeHubRestartMessageResult(
                 Settings.Current.ModuleId + "." + TestOperationResultType.EdgeHubRestartMessage.ToString(),
@@ -65,7 +65,7 @@ namespace EdgeHubRestartTester
                 reportClient,
                 this.logger,
                 msgTestResult,
-                this.cancellationToken).ConfigureAwait(false);
+                this.cancellationToken);
         }
 
         async Task<Tuple<DateTime, HttpStatusCode>> SendMessageAsync(
