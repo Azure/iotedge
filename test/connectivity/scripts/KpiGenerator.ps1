@@ -12,6 +12,7 @@ Param (
     [string] $Tenant = $null
 )
 
+Write-Output "Making Kpi Alerts"
 Get-Location
 
 $passwd = ConvertTo-SecureString $Password -AsPlainText -Force
