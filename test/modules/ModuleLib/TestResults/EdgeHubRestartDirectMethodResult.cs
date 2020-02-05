@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
             this.DirectMethodCompletedStatusCode = directMethodCompletedStatusCode;
         }
 
-        DateTime EdgeHubRestartedTime { get; set; }
+        public DateTime EdgeHubRestartedTime { get; set; }
 
         public DateTime DirectMethodCompletedTime { get; set; }
 
