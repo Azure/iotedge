@@ -454,7 +454,7 @@ function usage() {
     echo ' -testStartDelay                 Connectivity test start after delay'
     echo ' -loadGenMessageFrequency        Message frequency sent by load gen' 
     echo ' -networkControllerFrequency     Frequency for controlling the network with offlineFrequence, onlineFrequence, runsCount. Example "00:05:00 00:05:00 6"' 
-    echo ' -networkControllerRunProfile    Offline, SatelliteGood or Cellular3G'
+    echo ' -networkControllerRunProfile    Online, Offline, SatelliteGood or Cellular3G'
     echo ' -logAnalyticsWorkspaceId        Log Analytics Workspace Id'
     echo ' -logAnalyticsSharedKey          Log Analytics shared key'
     echo ' -logAnalyticsLogType            Log Analytics log type'
