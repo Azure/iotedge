@@ -16,7 +16,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         {
             Preconditions.CheckRange(passableEdgeHubRestartPeriod.Ticks, 0);
 
-            this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));;
+            this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
             this.ReceiverSource = Preconditions.CheckNonWhiteSpace(receiverSource, nameof(receiverSource));
             this.PassableEdgeHubRestartPeriod = passableEdgeHubRestartPeriod;
         }
@@ -29,8 +29,8 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
         public TimeSpan PassableEdgeHubRestartPeriod { get; }
 
-        public TestReportType TestReportType => TestReportType.EdgeHubRestartDirectMethodResult;
+        public TestReportType TestReportType => TestReportType.EdgeHubRestartDirectMethodReport;
 
-        public TestOperationResultType TestOperationResultType => (TestOperationResultType)Enum.Parse(typeof(TestOperationResultType), SenderSource.Split('.').LastOrDefault()) ;
+        public TestOperationResultType TestOperationResultType => (TestOperationResultType)Enum.Parse(typeof(TestOperationResultType), this.SenderSource.Split('.').LastOrDefault());
     }
 }

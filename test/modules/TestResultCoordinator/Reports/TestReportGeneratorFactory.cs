@@ -92,7 +92,7 @@ namespace TestResultCoordinator.Reports
                             networkStatusTimeline);
                     }
 
-                case TestReportType.EdgeHubRestartDirectMethodResult:
+                case TestReportType.EdgeHubRestartDirectMethodReport:
                     {
                         var metadata = (EdgeHubRestartDirectMethodReportMetadata)testReportMetadata;
                         var senderTestResults = this.GetResults(metadata.SenderSource);
@@ -107,7 +107,7 @@ namespace TestResultCoordinator.Reports
                             passableEdgeHubRestartPeriod);
                     }
 
-                case TestReportType.EdgeHubRestartMessageResult:
+                case TestReportType.EdgeHubRestartMessageReport:
                     {
                         var metadata = (EdgeHubRestartMessageReportMetadata)testReportMetadata;
                         var senderTestResults = this.GetResults(metadata.SenderSource);

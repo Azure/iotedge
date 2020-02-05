@@ -50,12 +50,12 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             bool isPassing = true;
             long previousSeqNum = 0;
             long passedMessageCount = 0;
-            
+
             // Value: (source, numOfMessage)
             Dictionary<string, ulong> messageCount = new Dictionary<string, ulong>()
             {
-                {nameof(this.SenderTestResults), 0ul},
-                {nameof(this.ReceiverTestResults), 0ul}
+                { nameof(this.SenderTestResults), 0ul },
+                { nameof(this.ReceiverTestResults), 0ul }
             };
 
             // Value: (completedStatusCode, MessageCompletedTime - EdgeHubRestartedTime)
@@ -82,13 +82,13 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
                 // Adjust seqeunce number from both source to be equal before doing any comparison
                 EdgeHubRestartMessageResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(this.SenderTestResults.Current.Result);
-                long receiverSeqNum = ParseReceiverSequenceNumber(this.ReceiverTestResults.Current.Result);
-                long senderSeqNum = ParseSenderSequenceNumber(senderResult.SequenceNumber);
+                long receiverSeqNum = this.ParseReceiverSequenceNumber(this.ReceiverTestResults.Current.Result);
+                long senderSeqNum = this.ParseSenderSequenceNumber(senderResult.SequenceNumber);
 
                 if (receiverSeqNum > senderSeqNum)
                 {
                     // Increment sender result to have the same seq as the receiver
-                    await IncrementSenderSequenceNumberAsync(
+                    await this.IncrementSenderSequenceNumberAsync(
                         this.SenderTestResults,
                         nameof(this.SenderTestResults),
                         receiverSeqNum,
@@ -102,7 +102,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 if (receiverSeqNum < senderSeqNum)
                 {
                     // Increment receiver result to have the same seq as the sender
-                    await IncrementReceiverSequenceNumberAsync(
+                    await this.IncrementReceiverSequenceNumberAsync(
                         this.ReceiverTestResults,
                         nameof(this.ReceiverTestResults),
                         senderSeqNum,
@@ -112,8 +112,8 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                     isPassing = false;
                 }
 
-                // Note: In the current verification, if the receiver obtained more result message than 
-                //   sender, the test is consider a fail. We are disregarding duplicated/unique seqeunce number 
+                // Note: In the current verification, if the receiver obtained more result message than
+                //   sender, the test is consider a fail. We are disregarding duplicated/unique seqeunce number
                 //   of receiver's result.
 
                 // Check if the current message is passing
@@ -123,13 +123,16 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 string receiverResult = this.ReceiverTestResults.Current.Result;
 
                 // Verified "TrackingId;BatchId;SequenceNumber" altogether.
-                isCurrentMessagePassing &= (senderResult.GetMessageTestResult() != receiverResult);
+                isCurrentMessagePassing &= senderResult.GetMessageTestResult() == receiverResult;
 
                 // Verify the sequence number is incremental
                 senderSeqNum = this.ParseSenderSequenceNumber(senderResult.SequenceNumber);
                 receiverSeqNum = this.ParseReceiverSequenceNumber(receiverResult);
-                isCurrentMessagePassing &= (senderSeqNum == receiverSeqNum);
-                isCurrentMessagePassing &= ((previousSeqNum + 1) == senderSeqNum);
+                isCurrentMessagePassing &= senderSeqNum == receiverSeqNum;
+                isCurrentMessagePassing &= (previousSeqNum + 1) == senderSeqNum;
+
+                // Verify if the report status is passable
+                isCurrentMessagePassing &= senderResult.MessageCompletedStatusCode == HttpStatusCode.OK;
 
                 this.AddEntryToCompletedStatusHistogram(
                     senderResult,
@@ -146,21 +149,21 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
             // Fail the test if both of the source didn't have the same amount of messages
             isPassing &= !(hasSenderResult ^ hasReceiverResult);
-            
-            await IncrementSenderSequenceNumberAsync(
+
+            await this.IncrementSenderSequenceNumberAsync(
                 this.SenderTestResults,
                 nameof(this.SenderTestResults),
                 long.MaxValue,
                 messageCount,
                 completedStatusHistogram);
-            
-            await IncrementReceiverSequenceNumberAsync(
+
+            await this.IncrementReceiverSequenceNumberAsync(
                 this.ReceiverTestResults,
                 nameof(this.ReceiverTestResults),
                 long.MaxValue,
                 messageCount);
 
-            return CalculateStatistic(
+            return this.CalculateStatistic(
                 isPassing,
                 passedMessageCount,
                 messageCount,
@@ -176,7 +179,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             List<TimeSpan> completedPeriods;
             completedStatusHistogram.TryGetValue(HttpStatusCode.OK, out completedPeriods);
             List<TimeSpan> orderedCompletedPeriods = completedPeriods?.OrderBy(p => p.Ticks).ToList();
-            
+
             TimeSpan minPeriod = TimeSpan.FromTicks(0);
             TimeSpan maxPeriod = TimeSpan.FromTicks(0);
             TimeSpan medianPeriod = TimeSpan.FromTicks(0);
@@ -196,8 +199,8 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 {
                     // If even, average the middle values
                     medianPeriod =
-                        (orderedCompletedPeriods[orderedCompletedPeriods.Count >> 1] + 
-                        orderedCompletedPeriods[(orderedCompletedPeriods.Count >> 1)-1])/2;
+                        (orderedCompletedPeriods[orderedCompletedPeriods.Count >> 1] +
+                        orderedCompletedPeriods[(orderedCompletedPeriods.Count >> 1) - 1]) / 2;
                 }
 
                 // Compute Mean
@@ -208,11 +211,12 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                     totalSpan += eachTimeSpan;
                     totalSpanSquareInMilisec += Math.Pow(eachTimeSpan.TotalMilliseconds, 2);
                 }
+
                 // Compute Mean : mean = sum(x) / N
-                meanPeriod = totalSpan/orderedCompletedPeriods.Count();
-                
-                // Compute Variance: var = sum((x - mean)^2) / N 
-                //                       = sum(x^2)/N - mean^2
+                meanPeriod = totalSpan / orderedCompletedPeriods.Count();
+
+                // Compute Variance: var = sum((x - mean)^2) / N
+                //                       = sum(x^2) / N - mean^2
                 double variancePeriodInMilisec = (totalSpanSquareInMilisec / orderedCompletedPeriods.Count()) - Math.Pow(meanPeriod.TotalMilliseconds, 2);
                 variancePeriod = TimeSpan.FromMilliseconds(variancePeriodInMilisec);
             }
@@ -220,7 +224,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             // Make sure the maximum restart period is within a passable threshold
             isPassing &= maxPeriod < this.Metadata.PassableEdgeHubRestartPeriod;
 
-            // BEARWASHERE -- TODO: what happen if the results contain a dictionary? 
             return new EdgeHubRestartMessageReport(
                 this.TrackingId,
                 this.Metadata.TestReportType.ToString(),
@@ -245,7 +248,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             bool isNotEmpty = true;
 
             EdgeHubRestartMessageResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(resultCollection.Current.Result);
-            long seqNum = ParseSenderSequenceNumber(senderResult.SequenceNumber);
+            long seqNum = this.ParseSenderSequenceNumber(senderResult.SequenceNumber);
 
             while ((seqNum < targetSequenceNumber) && isNotEmpty)
             {
@@ -257,7 +260,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
                 isNotEmpty = await resultCollection.MoveNextAsync();
                 senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(resultCollection.Current.Result);
-                seqNum = ParseSenderSequenceNumber(senderResult.SequenceNumber);
+                seqNum = this.ParseSenderSequenceNumber(senderResult.SequenceNumber);
             }
         }
 
@@ -268,14 +271,14 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             Dictionary<string, ulong> messageCount)
         {
             bool isNotEmpty = true;
-            long seqNum = ParseReceiverSequenceNumber(resultCollection.Current.Result);
+            long seqNum = this.ParseReceiverSequenceNumber(resultCollection.Current.Result);
 
             while ((seqNum < targetSequenceNumber) && isNotEmpty)
             {
                 messageCount[key]++;
 
                 isNotEmpty = await resultCollection.MoveNextAsync();
-                seqNum = ParseReceiverSequenceNumber(resultCollection.Current.Result);
+                seqNum = this.ParseReceiverSequenceNumber(resultCollection.Current.Result);
             }
         }
 

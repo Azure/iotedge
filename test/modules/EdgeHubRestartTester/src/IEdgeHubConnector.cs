@@ -11,7 +11,5 @@ namespace EdgeHubRestartTester
             DateTime runExpirationTime,
             DateTime edgeHubRestartedTime,
             CancellationToken cancellationToken);
-
-        void Dispose();
     }
 }
