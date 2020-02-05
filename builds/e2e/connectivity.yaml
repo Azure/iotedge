@@ -17,27 +17,27 @@ jobs:
         Online:
           testrun.config: 1
           testrun.network.frequencies: "null null null"
-          testrun.duration: 60
+          testrun.duration: "01:00:00"
         Offline(5/5/5):
           testrun.config: 2
           testrun.network.frequencies: "00:05:00 00:05:00 5"
-          testrun.duration: 50
+          testrun.duration: "00:50:00"
         Offline(10/10/3):
           testrun.config: 3
           testrun.network.frequencies: "00:10:00 00:10:00 3"
-          testrun.duration: 60
+          testrun.duration: "01:00:00"
         Offline(15/15/3):
           testrun.config: 4
           testrun.network.frequencies: "00:15:00 00:15:00 3"
-          testrun.duration: 90
+          testrun.duration: "01:30:00"
         Offline(30/30/2):
           testrun.config: 5
           testrun.network.frequencies: "00:30:00 00:30:00 2"
-          testrun.duration: 120
+          testrun.duration: "02:00:00"
         Offline(5/20/3):
           testrun.config: 6
           testrun.network.frequencies: "00:05:00 00:20:00 3"
-          testrun.duration: 75
+          testrun.duration: "01:15:00"
     pool:
       name: $(pool.name)
       demands:
@@ -54,6 +54,11 @@ jobs:
         inputs:
           targetType: inline
           script: |
+            # print all matrix variables here
+            echo "testrun.config=$(testrun.config)"
+            echo "testrun.network.frequencies=$(testrun.network.frequencies)"
+            echo "testrun.duration=$(testrun.duration)"
+          
             output1=$(curl -s -u :$accessToken --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$buildId?api-version=5.1" | grep -oe '"status":"cancel')
             output2=$(curl -s -u :$(System.AccessToken) --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$(Build.BuildId)/Timeline?api-version=5.1" | grep -oe '"result":"canceled"')
             
