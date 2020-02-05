@@ -63,8 +63,8 @@ jobs:
             $(images.artifact.name.linux)/kpis.yaml
 
       - pwsh: |
-          .\scripts\KpiGenerator.ps1
-        parameters:
+          .\scripts\KpiGenerator.ps1 -TestId $TestId -User $User -Password $Password -Tenant $Tenant
+        env:
           TestId: '$(testTrackingId)'
           User: '$(kvLogAnalyticSpUser)'
           Password: '$(kvLogAnalyticSpPassword)'
@@ -100,8 +100,8 @@ jobs:
       #     metricsCollector.hostPlatform: 'linux_amd64_moby'
       #     testTrackingId: '$(testTrackingId)'
       - pwsh: |
-          .\scripts\CheckKpiAlerts.ps1
-        parameters:
+          .\scripts\CheckKpiAlerts.ps1 -User $User -Password $Password -Tenant $Tenant
+        env:
           User: '$(kvLogAnalyticSpUser)'
           Password: '$(kvLogAnalyticSpPassword)'
           Tenant: '$(kvLogAnalyticSpTenant)'
