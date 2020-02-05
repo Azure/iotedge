@@ -106,6 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
+                false,
                 Option.None<IWebProxy>(),
                 productInfoStore);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
@@ -255,6 +256,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
+                false,
                 Option.None<IWebProxy>(),
                 productInfoStore);
 
@@ -365,6 +367,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
+                false,
                 Option.None<IWebProxy>(),
                 productInfoStore);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
@@ -498,6 +501,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
+                false,
                 Option.None<IWebProxy>(),
                 productInfoStore);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
@@ -557,6 +561,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
+                false,
                 Option.None<IWebProxy>(),
                 productInfoStore);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
@@ -837,6 +842,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
+                false,
                 Option.None<IWebProxy>(),
                 productInfoStore);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
@@ -894,6 +900,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
+                false,
                 Option.None<IWebProxy>(),
                 productInfoStore);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
