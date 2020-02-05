@@ -45,7 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 webProxy,
                 productInfo,
                 closeOnIdleTimeout,
-                idleTimeout);
+                idleTimeout,
+                false);
             IModuleClient moduleClient = await moduleClientProvider.Create(handler);
 
             // Assert
@@ -113,7 +114,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 webProxy,
                 productInfo,
                 closeOnIdleTimeout,
-                idleTimeout);
+                idleTimeout,
+                false);
             IModuleClient moduleClient = await moduleClientProvider.Create(handler);
 
             // Assert
