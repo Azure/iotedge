@@ -52,6 +52,8 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<TestStartDelay>@$TEST_START_DELAY@g" "$deployment_working_file"
     sed -i -e "s@<TrackingId>@$tracking_id@g" "$deployment_working_file"
     sed -i -e "s@<UpstreamProtocol>@$UPSTREAM_PROTOCOL@g" "$deployment_working_file"
+    sed -i -e "s@<EdgeHubRestartTest.RestartPeriod>@$RESTART_TEST_RESTART_PERIOD@g" "$deployment_working_file"
+    sed -i -e "s@<EdgeHubRestartTest.SdkOperationTimeout>@$RESTART_TEST_SDK_OPERATION_TIMEOUT@g" "$deployment_working_file"
 
     sed -i -e "s@<TestResultCoordinator.VerificationDelay>@$VERIFICATION_DELAY@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.OptimizeForPerformance>@$optimize_for_performance@g" "$deployment_working_file"
@@ -243,6 +245,15 @@ function process_args() {
         elif [ $saveNextArg -eq 31 ]; then
             DEVOPS_BUILDID="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 32 ]; then
+            DEPLOYMENT_FILE_NAME="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 33 ]; then
+            RESTART_TEST_RESTART_PERIOD="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 34 ]; then
+            RESTART_TEST_SDK_OPERATION_TIMEOUT="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -277,6 +288,9 @@ function process_args() {
                 '-storageAccountConnectionString' ) saveNextArg=29;;
                 '-devOpsAccessToken' ) saveNextArg=30;;
                 '-devOpsBuildId' ) saveNextArg=31;;
+                '-deploymentFileName' ) saveNextArg=32;;
+                '-EdgeHubRestartTestRestartPeriod' ) saveNextArg=33;;
+                '-EdgeHubRestartTestSdkOperationTimeout' ) saveNextArg=34;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
@@ -289,6 +303,7 @@ function process_args() {
     [[ -z "$ARTIFACT_IMAGE_BUILD_NUMBER" ]] && { print_error 'Artifact image build number is required'; exit 1; }
     [[ -z "$CONTAINER_REGISTRY_USERNAME" ]] && { print_error 'Container registry username is required'; exit 1; }
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
+    [[ -z "$DEPLOYMENT_FILE_NAME" ]] && { print_error 'Deployment file name is required'; exit 1; }
     [[ -z "$EDGELET_BRANCH_NAME" ]] && { print_error 'Edgelet branch name is required'; exit 1; }
     [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
     [[ -z "$HOST_PLATFORM" ]] && { print_error 'Host platform is required'; exit 1; }
@@ -470,6 +485,9 @@ function usage() {
     echo ' -edgeletBranchName              Branch name that built the edgelet artifacts'
     echo ' -testBuildNumber                Unique identifier for the main connectivity test run'
     echo ' -hostPlatform                   Describes the host OS and cpu architecture.'
+    echo ' -deploymentFileName             Deployment file name'
+    echo ' -EdgeHubRestartTestRestartPeriod        EdgeHub restart period (must be greater than 1 minutes)'
+    echo ' -EdgeHubRestartTestSdkOperationTimeout  SDK retry timeout'
     echo ' -storageAccountConnectionString Azure storage account connection string with privilege to create blob container.'
 
     echo ' -cleanAll                       Do docker prune for containers, logs and volumes.'
@@ -509,7 +527,7 @@ fi
 
 iotedged_artifact_folder="$(get_iotedged_artifact_folder $E2E_TEST_DIR)"
 iotedge_quickstart_artifact_file="$(get_iotedge_quickstart_artifact_file $E2E_TEST_DIR)"
-connectivity_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/connectivity_deployment.template.json"
+connectivity_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/$DEPLOYMENT_FILE_NAME"
 deployment_working_file="$working_folder/deployment.json"
 
 testRet=0
