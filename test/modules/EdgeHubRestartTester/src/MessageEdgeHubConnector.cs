@@ -16,13 +16,13 @@ namespace EdgeHubRestartTester
 
     class MessageEdgeHubConnector : IEdgeHubConnector
     {
+        readonly ModuleClient msgModuleClient;
+        readonly Guid batchId;
+        readonly DateTime runExpirationTime;
+        readonly CancellationToken cancellationToken;
+        readonly DateTime edgeHubRestartedTime;
+        readonly ILogger logger;
         long messageCount = 0;
-        ModuleClient msgModuleClient;
-        Guid batchId;
-        DateTime runExpirationTime;
-        CancellationToken cancellationToken;
-        DateTime edgeHubRestartedTime;
-        ILogger logger;
 
         public MessageEdgeHubConnector(
             ModuleClient msgModuleClient,

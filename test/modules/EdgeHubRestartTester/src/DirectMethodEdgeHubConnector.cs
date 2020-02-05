@@ -17,14 +17,14 @@ namespace EdgeHubRestartTester
 
     class DirectMethodEdgeHubConnector : IEdgeHubConnector
     {
+        readonly ModuleClient dmModuleClient;
+        readonly Guid batchId;
+        readonly DateTime runExpirationTime;
+        readonly CancellationToken cancellationToken;
+        readonly DateTime edgeHubRestartedTime;
+        readonly uint restartSequenceNumber;
+        readonly ILogger logger;
         long directMethodCount = 0;
-        ModuleClient dmModuleClient;
-        Guid batchId;
-        DateTime runExpirationTime;
-        CancellationToken cancellationToken;
-        DateTime edgeHubRestartedTime;
-        uint restartSequenceNumber;
-        ILogger logger;
 
         public DirectMethodEdgeHubConnector(
             ModuleClient dmModuleClient,
