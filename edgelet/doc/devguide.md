@@ -54,8 +54,10 @@ rustup self update   # Update rustup itself to the latest version
 git clone --recurse-submodules 'https://github.com/Azure/iotedge'
 cd iotedge/edgelet/
 
-rustup update   # Install / update the toolchain used to build the daemon binaries. This is controlled by the rust-toolchain file in this directory.
-                # For the master branch, this is the latest "stable" toolchain. For release branches, this is a pinned Rust release.
+rustup update   # Install / update the toolchain used to build the daemon binaries.
+                # This is controlled by the rust-toolchain file in this directory.
+                # For the master branch, this is the latest "stable" toolchain.
+                # For release branches, this is a pinned Rust release.
 ```
 
 In addition, building the daemon binaries also requires these dependencies to be installed:
@@ -145,7 +147,7 @@ To run `iotedged` locally:
 
 1. Create a directory that it will use as its home directory, such as `~/iotedge`
 
-    - Linux
+    - Linux / macOS
 
         ```sh
         export IOTEDGE_HOMEDIR=~/iotedge
