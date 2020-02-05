@@ -140,6 +140,13 @@ jobs:
           filePath: scripts/linux/buildImage.sh
           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-deployment-tester -n microsoft -P DeploymentTester --target-arch aarch64
 
+      # EdgeHubRestartTester - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Image - EdgeHub Restart Tester - aarch64
+        inputs:
+          filePath: scripts/linux/buildImage.sh
+          arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-edgehub-restart-tester -n microsoft -P EdgeHubRestartTester --target-arch aarch64
+
       # CloudToDeviceMessageTester - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
         displayName: Build Image - Cloud To Device Message Receiver Tester - aarch64
@@ -290,6 +297,13 @@ jobs:
           name: DeploymentTester
           imageName: azureiotedge-deployment-tester
           project: DeploymentTester
+
+     # EdgeHub Restart Tester
+      - template: templates/image-linux.yaml
+        parameters:
+          name: EdgeHubRestartTester
+          imageName: azureiotedge-edgehub-restart-tester
+          project: EdgeHubRestartTester
 
      # Cloud To Device Message Tester
       - template: templates/image-linux.yaml
@@ -479,6 +493,13 @@ jobs:
           name: Deployment Tester
           imageName: azureiotedge-deployment-tester
           project: DeploymentTester
+
+     # EdgeHub Restart Tester
+      - template: templates/image-windows.yaml
+        parameters:
+          name: EdgeHubRestartTester
+          imageName: azureiotedge-edgehub-restart-tester
+          project: EdgeHubRestartTester
 
      # Cloud To Device Message Tester
       - template: templates/image-windows.yaml
