@@ -7,6 +7,7 @@ namespace EdgeHubRestartTester
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -55,7 +56,9 @@ namespace EdgeHubRestartTester
 
                 while ((!cts.IsCancellationRequested) && (DateTime.UtcNow < testExpirationTime))
                 {
-                    (DateTime restartTime, _) = await RestartEdgeHub(iotHubServiceClient);
+                    (DateTime restartTime, _) = await RestartEdgeHub(
+                        iotHubServiceClient,
+                        cts.Token);
                     DateTime eachTestExpirationTime = restartTime.Add(Settings.Current.RestartPeriod);
 
                     // Increment the counter when issue an edgeHub restart
@@ -102,7 +105,8 @@ namespace EdgeHubRestartTester
         }
 
         static async Task<Tuple<DateTime, HttpStatusCode>> RestartEdgeHub(
-            ServiceClient iotHubServiceClient)
+            ServiceClient iotHubServiceClient,
+            CancellationToken cancellationToken)
         {
             const uint maxRetry = 3;
             uint restartCount = 0;
@@ -137,12 +141,29 @@ namespace EdgeHubRestartTester
 
                     if (restartCount == maxRetry - 1)
                     {
-                        throw;
+                        string errorMessage = $"Failed to restart EdgeHub with payload: {payload}: {e}";
+                        TestResultBase errorResult = new ErrorTestResult(
+                            Settings.Current.TrackingId,
+                            GetSourceString(),
+                            errorMessage,
+                            DateTime.UtcNow);
+
+                        var reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
+                        await ModuleUtil.ReportTestResultAsync(
+                            reportClient,
+                            Logger,
+                            errorResult,
+                            cancellationToken);
                     }
                 }
             }
 
             return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.InternalServerError);
         }
+
+        static string GetSourceString() =>
+            Settings.Current.MessageEnabled ?
+                Settings.Current.ModuleId + "." + TestOperationResultType.EdgeHubRestartMessage.ToString() :
+                Settings.Current.ModuleId + "." + TestOperationResultType.EdgeHubRestartDirectMethod.ToString();
     }
 }

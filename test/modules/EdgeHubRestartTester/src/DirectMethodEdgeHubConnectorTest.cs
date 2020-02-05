@@ -20,7 +20,8 @@ namespace EdgeHubRestartTester
         readonly Guid batchId;
         readonly ILogger logger;
         long directMethodCount = 0;
-        ModuleClient dmModuleClient;
+        ModuleClient dmModuleClient = null;
+        TestResultReportingClient reportClient = null;
 
         public DirectMethodEdgeHubConnectorTest(
             Guid batchId,
@@ -47,7 +48,7 @@ namespace EdgeHubRestartTester
                 this.logger);
 
             TestResultBase dmTestResult = new EdgeHubRestartDirectMethodResult(
-                Settings.Current.ModuleId + "." + TestOperationResultType.EdgeHubRestartDirectMethod.ToString(),
+                this.GetSourceString(),
                 DateTime.UtcNow,
                 Settings.Current.TrackingId,
                 this.batchId,
@@ -56,9 +57,8 @@ namespace EdgeHubRestartTester
                 dmCompletedTime,
                 dmStatusCode);
 
-            var reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
             await ModuleUtil.ReportTestResultAsync(
-                reportClient,
+                this.GetReportClient(),
                 this.logger,
                 dmTestResult,
                 cancellationToken);
@@ -108,9 +108,21 @@ namespace EdgeHubRestartTester
                     }
                     else
                     {
-                        // TODO: Use the TRC result type
                         // something is wrong, Log and send report to TRC
-                        logger.LogError(e, $"[DirectMethodEdgeHubConnector] Exception caught with SequenceNumber {this.directMethodCount.ToString()}");
+                        string errorMessage = $"[DirectMethodEdgeHubConnector] Exception caught with SequenceNumber {this.directMethodCount.ToString()}";
+                        logger.LogError(e, errorMessage);
+
+                        TestResultBase errorResult = new ErrorTestResult(
+                            Settings.Current.TrackingId,
+                            this.GetSourceString(),
+                            errorMessage,
+                            DateTime.UtcNow);
+
+                        await ModuleUtil.ReportTestResultAsync(
+                            this.GetReportClient(),
+                            this.logger,
+                            errorResult,
+                            cancellationToken);
                     }
                 }
             }
@@ -131,6 +143,18 @@ namespace EdgeHubRestartTester
 
             return this.dmModuleClient;
         }
+
+        TestResultReportingClient GetReportClient()
+        {
+            if (this.reportClient == null)
+            {
+                this.reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
+            }
+
+            return this.reportClient;
+        }
+
+        string GetSourceString() => Settings.Current.ModuleId + "." + TestOperationResultType.EdgeHubRestartDirectMethod.ToString();
 
         bool IsEdgeHubDownDuringDirectMethodSend(Exception e)
         {
