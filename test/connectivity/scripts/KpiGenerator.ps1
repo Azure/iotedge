@@ -1,7 +1,20 @@
 Param (
     [ValidateNotNullOrEmpty()]
-    [int] $TestId = $null
+    [int] $TestId = $null,
+
+    [ValidateNotNullOrEmpty()]
+    [string] $User = $null,
+
+    [ValidateNotNullOrEmpty()]
+    [string] $Password = $null,
+
+    [ValidateNotNullOrEmpty()]
+    [string] $Tenant = $null
 )
+
+$passwd = ConvertTo-SecureString $Password -AsPlainText -Force
+$pscredential = New-Object System.Management.Automation.PSCredential($User, $passwd)
+Connect-AzAccount -ServicePrincipal -Credential $pscredential -Tenant $Tenant
 
 $yaml = Get-Content ..\kpis.yaml -Raw
 
