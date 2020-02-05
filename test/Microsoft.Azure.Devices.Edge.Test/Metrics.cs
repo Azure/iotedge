@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             // System resource metrics take 1 minute to start. Wait before testing
             await Task.Delay(TimeSpan.FromMinutes(1.1));
 
-            var result = await this.iotHub.InvokeMethodAsync(Context.Current.DeviceId, ModuleName, new CloudToDeviceMethod("ValidateMetrics"), CancellationToken.None);
+            var result = await this.iotHub.InvokeMethodAsync(Context.Current.DeviceId, ModuleName, new CloudToDeviceMethod("ValidateMetrics"), token);
             Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
 
             string body = result.GetPayloadAsJson();
@@ -53,9 +53,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder =>
                     {
                         builder.AddModule(ModuleName, metricsValidatorImage);
-                        builder.GetModule("$edgeHub")
+
+                        var edgeHub = builder.GetModule("$edgeHub")
                             .WithEnvironment(("experimentalfeatures__enabled", "true"), ("experimentalfeatures__enableMetrics", "true"))
                             .WithDesiredProperties(new Dictionary<string, object> { { "routes", new { All = "FROM /messages/* INTO $upstream" } } });
+                        if (OsPlatform.IsWindows())
+                        {
+                            // Note: This overwrites the default port mapping. This if fine for this test.
+                            edgeHub.WithSettings(("createOptions", "{\"User\":\"ContainerAdministrator\"}"));
+                        }
+
                         builder.GetModule("$edgeAgent")
                             .WithEnvironment(("experimentalfeatures__enabled", "true"), ("experimentalfeatures__enableMetrics", "true"));
                     }, token);
