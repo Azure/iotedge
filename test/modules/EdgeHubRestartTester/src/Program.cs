@@ -7,6 +7,7 @@ namespace EdgeHubRestartTester
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -55,7 +56,9 @@ namespace EdgeHubRestartTester
 
                 while ((!cts.IsCancellationRequested) && (DateTime.UtcNow < testExpirationTime))
                 {
-                    (DateTime restartTime, _) = await RestartEdgeHub(iotHubServiceClient);
+                    (DateTime restartTime, _) = await RestartEdgeHub(
+                        iotHubServiceClient,
+                        cts.Token);
                     DateTime eachTestExpirationTime = restartTime.Add(Settings.Current.RestartPeriod);
 
                     // Increment the counter when issue an edgeHub restart
@@ -102,9 +105,11 @@ namespace EdgeHubRestartTester
         }
 
         static async Task<Tuple<DateTime, HttpStatusCode>> RestartEdgeHub(
-            ServiceClient iotHubServiceClient)
+            ServiceClient iotHubServiceClient,
+            CancellationToken cancellationToken)
         {
-            bool isRestartNeeded = true;
+            const uint maxRetry = 3;
+            uint restartCount = 0;
 
             CloudToDeviceMethod c2dMethod = new CloudToDeviceMethod("RestartModule");
             string payloadSchema = "{{ \"SchemaVersion\": \"1.0\", \"Id\": \"{0}\" }}";
@@ -112,7 +117,7 @@ namespace EdgeHubRestartTester
             Logger.LogInformation("RestartModule Method Payload: {0}", payload);
             c2dMethod.SetPayloadJson(payload);
 
-            while (isRestartNeeded)
+            while (restartCount < maxRetry)
             {
                 try
                 {
@@ -132,11 +137,32 @@ namespace EdgeHubRestartTester
                 catch (Exception e)
                 {
                     Logger.LogError($"Exception caught for payload {payload}: {e}");
-                    isRestartNeeded = true;
+
+                    if (restartCount == maxRetry - 1)
+                    {
+                        string errorMessage = $"Failed to restart EdgeHub with payload: {payload}: {e}";
+                        TestResultBase errorResult = new ErrorTestResult(
+                            Settings.Current.TrackingId,
+                            GetSourceString(),
+                            errorMessage,
+                            DateTime.UtcNow);
+
+                        var reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
+                        await ModuleUtil.ReportTestResultAsync(
+                            reportClient,
+                            Logger,
+                            errorResult,
+                            cancellationToken);
+                    }
                 }
             }
 
             return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.InternalServerError);
         }
+
+        static string GetSourceString() =>
+            Settings.Current.MessageEnabled ?
+                Settings.Current.ModuleId + "." + TestOperationResultType.EdgeHubRestartMessage.ToString() :
+                Settings.Current.ModuleId + "." + TestOperationResultType.EdgeHubRestartDirectMethod.ToString();
     }
 }

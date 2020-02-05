@@ -19,7 +19,8 @@ namespace EdgeHubRestartTester
         readonly Guid batchId;
         readonly ILogger logger;
         long messageCount = 0;
-        ModuleClient msgModuleClient;
+        ModuleClient msgModuleClient = null;
+        TestResultReportingClient reportClient = null;
 
         public MessageEdgeHubConnector(
             Guid batchId,
@@ -45,7 +46,7 @@ namespace EdgeHubRestartTester
                 cancellationToken).ConfigureAwait(false);
 
             TestResultBase msgTestResult = new EdgeHubRestartMessageResult(
-                Settings.Current.ModuleId + "." + TestOperationResultType.EdgeHubRestartMessage.ToString(),
+                this.GetSourceString(),
                 DateTime.UtcNow,
                 Settings.Current.TrackingId,
                 this.batchId.ToString(),
@@ -54,9 +55,8 @@ namespace EdgeHubRestartTester
                 msgCompletedTime,
                 mgsStatusCode);
 
-            var reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
             await ModuleUtil.ReportTestResultAsync(
-                reportClient,
+                this.GetReportClient(),
                 this.logger,
                 msgTestResult,
                 cancellationToken).ConfigureAwait(false);
@@ -77,6 +77,18 @@ namespace EdgeHubRestartTester
 
             return this.msgModuleClient;
         }
+
+        TestResultReportingClient GetReportClient()
+        {
+            if (this.reportClient == null)
+            {
+                this.reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
+            }
+
+            return this.reportClient;
+        }
+
+        string GetSourceString() => Settings.Current.ModuleId + "." + TestOperationResultType.EdgeHubRestartMessage.ToString();
 
         async Task<Tuple<DateTime, HttpStatusCode>> SendMessageAsync(
             ModuleClient moduleClient,
@@ -107,11 +119,24 @@ namespace EdgeHubRestartTester
                     {
                         // TimeoutException is expected to happen while the EdgeHub is down.
                         // Let's log the attempt and retry the message send until successful
-                        this.logger.LogDebug(ex, $"[SendMessageAsync] Exception caught with SequenceNumber {this.messageCount}, BatchId: {batchId.ToString()};");
+                        this.logger.LogDebug(ex, $"[SendMessageAsync] Exception caught with SequenceNumber {this.messageCount}, BatchId: {batchId.ToString()}");
                     }
                     else
                     {
-                        this.logger.LogError(ex, $"[SendMessageAsync] Exception caught with SequenceNumber {this.messageCount}, BatchId: {batchId.ToString()};");
+                        string errorMessage = $"[SendMessageAsync] Exception caught with SequenceNumber {this.messageCount}, BatchId: {batchId.ToString()}";
+                        this.logger.LogError(ex, errorMessage);
+
+                        TestResultBase errorResult = new ErrorTestResult(
+                            Settings.Current.TrackingId,
+                            this.GetSourceString(),
+                            errorMessage,
+                            DateTime.UtcNow);
+
+                        await ModuleUtil.ReportTestResultAsync(
+                            this.GetReportClient(),
+                            this.logger,
+                            errorResult,
+                            cancellationToken);
                     }
                 }
             }
