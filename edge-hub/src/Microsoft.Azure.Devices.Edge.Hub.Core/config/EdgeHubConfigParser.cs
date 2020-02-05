@@ -21,7 +21,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             var routes = new Dictionary<string, RouteConfig>();
             if (desiredProperties.Routes != null)
             {
-                foreach (KeyValuePair<string, string> inputRoute in desiredProperties.Routes)
+                // Process routes with priority and TTL
+                foreach (KeyValuePair<string, RouteConfiguration> inputRoute in desiredProperties.Routes)
+                {
+                    try
+                    {
+                        Route route = routeFactory.Create(inputRoute.Value.Route, inputRoute.Value.Priority, inputRoute.Value.TimeToLiveSecs);
+                        routes.Add(inputRoute.Key, new RouteConfig(inputRoute.Key, inputRoute.Value.Route, route));
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidOperationException($"Error parsing route {inputRoute.Key} - {ex.Message}", ex);
+                    }
+                }
+
+                // Process legacy routes
+                foreach (KeyValuePair<string, string> inputRoute in desiredProperties.LegacyRoutes)
                 {
                     try
                     {

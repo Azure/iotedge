@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core
 {
     using System.Collections.Generic;
@@ -12,6 +12,12 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
     public abstract class RouteFactory
     {
+        // Default route priority at half of uint.MaxValue,
+        // so that routes with no custom priority fall below
+        // everything else, and reserve room for routes that
+        // are below default priority.
+        public const uint DefaultPriority = uint.MaxValue / 2;
+
         const string DefaultCondition = "true";
 
         readonly IEndpointFactory endpointFactory;
@@ -25,11 +31,14 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         public abstract string GetNextRouteId();
 
-        public Route Create(string routeString)
+        public Route Create(string routeString) =>
+            this.Create(routeString, DefaultPriority, 0);
+
+        public Route Create(string routeString, uint priority, uint timeToLiveSecs)
         {
             // Parse route into constituents
             this.ParseRoute(Preconditions.CheckNotNull(routeString, nameof(routeString)), out IMessageSource messageSource, out string condition, out Endpoint endpoint);
-            var route = new Route(this.GetNextRouteId(), condition, this.IotHubName, messageSource, new HashSet<Endpoint> { endpoint });
+            var route = new Route(this.GetNextRouteId(), condition, this.IotHubName, messageSource, endpoint, priority, timeToLiveSecs);
             return route;
         }
 

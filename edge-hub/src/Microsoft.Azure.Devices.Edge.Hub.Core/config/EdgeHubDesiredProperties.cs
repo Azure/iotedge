@@ -7,16 +7,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     public class EdgeHubDesiredProperties
     {
         [JsonConstructor]
-        public EdgeHubDesiredProperties(string schemaVersion, IDictionary<string, string> routes, StoreAndForwardConfiguration storeAndForwardConfiguration)
+        public EdgeHubDesiredProperties(string schemaVersion, IDictionary<string, RouteConfiguration> routes, IDictionary<string, string> legacyRoutes, StoreAndForwardConfiguration storeAndForwardConfiguration)
         {
             this.SchemaVersion = schemaVersion;
             this.Routes = routes;
+            this.LegacyRoutes = legacyRoutes;
             this.StoreAndForwardConfiguration = storeAndForwardConfiguration;
         }
 
         public string SchemaVersion { get; }
 
-        public IDictionary<string, string> Routes { get; }
+        public IDictionary<string, RouteConfiguration> Routes;
+
+        public IDictionary<string, string> LegacyRoutes { get; }
 
         public StoreAndForwardConfiguration StoreAndForwardConfiguration { get; }
     }

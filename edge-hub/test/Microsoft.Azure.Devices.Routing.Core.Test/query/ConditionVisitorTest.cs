@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Query;
+    using Moq;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
@@ -96,7 +97,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
                 "true",
                 nameof(ConditionVisitorTest),
                 TelemetryMessageSource.Instance,
-                new HashSet<Endpoint>());
+                new Mock<Endpoint>("id1").Object,
+                0,
+                0);
 
             var visitor = new ConditionVisitor(parameter, errorListener, testRoute, RouteCompilerFlags.All);
 

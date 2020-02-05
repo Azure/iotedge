@@ -16,8 +16,6 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
     public class Evaluator
     {
-        static readonly ISet<Endpoint> NoEndpoints = ImmutableHashSet<Endpoint>.Empty;
-
         readonly object sync = new object();
 
         // ReSharper disable once InconsistentlySynchronizedField - compiledRoutes is immutable
@@ -53,9 +51,9 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
         }
 
-        public ISet<Endpoint> Evaluate(IMessage message)
+        public ISet<RouteResult> Evaluate(IMessage message)
         {
-            var endpoints = new HashSet<Endpoint>();
+            var results = new HashSet<RouteResult>();
 
             // Because we are only reading here, it doesn't matter that it is under a lock
             // ReSharper disable once InconsistentlySynchronizedField - compiledRoutes is immutable
@@ -64,30 +62,43 @@ namespace Microsoft.Azure.Devices.Routing.Core
             {
                 if (EvaluateInternal(compiledRoute, message))
                 {
-                    endpoints.UnionWith(compiledRoute.Route.Endpoints);
+                    RouteResult toAdd = new RouteResult(compiledRoute.Route.Endpoint, compiledRoute.Route.Priority, compiledRoute.Route.TimeToLiveSecs);
+
+                    // Multiple routes for the same endpoint can exist, in which case
+                    // the message should be routed with the highest available priority
+                    IEnumerable<RouteResult> dupeResults = results.Where(r => r.Endpoint.Equals(compiledRoute.Route.Endpoint));
+
+                    if (dupeResults.Count() > 0)
+                    {
+                        // Only overwrite if the priority is higher (numerically lower)
+                        if (compiledRoute.Route.Priority < dupeResults.First().Priority)
+                        {
+                            results.Remove(dupeResults.First());
+                            results.Add(toAdd);
+                        }
+                    }
+                    else
+                    {
+                        // Base case
+                        results.Add(toAdd);
+                    }
                 }
             }
 
             // only use the fallback for telemetry messages
-            if (endpoints.Any() || !message.MessageSource.IsTelemetry())
-            {
-                return endpoints;
-            }
-            else
+            if (!results.Any() && message.MessageSource.IsTelemetry())
             {
                 // Handle fallback case
-                ISet<Endpoint> fallbackEndpoints = this.fallback
+                this.fallback
                     .Filter(cr => EvaluateInternal(cr, message))
-                    .Map(cr => cr.Route.Endpoints)
-                    .GetOrElse(NoEndpoints);
-
-                if (fallbackEndpoints.Any())
-                {
-                    Events.EvaluateFallback(fallbackEndpoints.First());
-                }
-
-                return fallbackEndpoints;
+                    .ForEach(cr =>
+                    {
+                            results.Add(new RouteResult(cr.Route.Endpoint, cr.Route.Priority, cr.Route.TimeToLiveSecs));
+                            Events.EvaluateFallback(cr.Route.Endpoint);
+                    });
             }
+
+            return results;
         }
 
         public void SetRoute(Route route)
