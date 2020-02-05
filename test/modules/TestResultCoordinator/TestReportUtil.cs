@@ -83,10 +83,10 @@ namespace TestResultCoordinator
                         case TestReportType.CountingReport:
                             reportMetadataList.Add(JsonConvert.DeserializeObject<CountingReportMetadata>(((JProperty)metadata).Value.ToString()));
                             break;
-                        case TestReportType.EdgeHubRestartDirectMethodResult:
+                        case TestReportType.EdgeHubRestartDirectMethodReport:
                             reportMetadataList.Add(JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodReportMetadata>(((JProperty)metadata).Value.ToString()));
                             break;
-                        case TestReportType.EdgeHubRestartMessageResult:
+                        case TestReportType.EdgeHubRestartMessageReport:
                             reportMetadataList.Add(JsonConvert.DeserializeObject<EdgeHubRestartMessageReportMetadata>(((JProperty)metadata).Value.ToString()));
                             break;
                         case TestReportType.TwinCountingReport:
