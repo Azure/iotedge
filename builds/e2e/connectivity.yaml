@@ -28,6 +28,8 @@ jobs:
         inputs:
           targetType: inline
           script: |
+            ls
+            pwd
             echo "##vso[task.setvariable variable=testTrackingId]$(cat /proc/sys/kernel/random/uuid)"
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'
@@ -63,9 +65,9 @@ jobs:
             $(images.artifact.name.linux)/kpis.yaml
 
       - pwsh: |
+          Write-Output "test"
           Write-Output $(Get-ChildItem)
           Write-Output $(Get-Location)
-          .\scripts\KpiGenerator.ps1 -TestId $TestId -User $User -Password $Password -Tenant $Tenant
         env:
           TestId: '$(testTrackingId)'
           User: '$(kvLogAnalyticSpUser)'
