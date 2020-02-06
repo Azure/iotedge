@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             CancellationToken token = this.TestToken;
             await this.Deploy(token);
 
-            var result = await this.iotHub.InvokeMethodAsync(Context.Current.DeviceId, ModuleName, new CloudToDeviceMethod("ValidateMetrics", TimeSpan.FromDays(1), TimeSpan.FromDays(1)), token, false);
+            var result = await this.iotHub.InvokeMethodAsync(Context.Current.DeviceId, ModuleName, new CloudToDeviceMethod("ValidateMetrics", TimeSpan.FromDays(1), TimeSpan.FromSeconds(300)), token, false);
             Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
 
             string body = result.GetPayloadAsJson();
