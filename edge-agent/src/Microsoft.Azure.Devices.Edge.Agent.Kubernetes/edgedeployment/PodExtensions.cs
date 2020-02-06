@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                                     {
                                         return new ReportedModuleStatus(ModuleStatus.Running, $"Started at {c.State.Running.StartedAt}");
                                     }
-                                }).GetOrElse(() => new ReportedModuleStatus(ModuleStatus.Failed, $"Module Failed with container status Unknown More Info: K8s reason: {status.Conditions.Last().Reason} with message: {status.Conditions.Last().Message}"));
+                                }).GetOrElse(() => new ReportedModuleStatus(ModuleStatus.Failed, "Module Failed with Unknown container status"));
                             }
 
                         case "Pending":
@@ -99,7 +99,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                                     {
                                         return new ReportedModuleStatus(ModuleStatus.Backoff, $"Started at {c.State.Running.StartedAt}");
                                     }
-                                }).GetOrElse(() => new ReportedModuleStatus(ModuleStatus.Failed, $"Module Failed with container status Unknown More Info: K8s reason: {status.Conditions.Last().Reason} with message: {status.Conditions.Last().Message}"));
+                                }).GetOrElse(() => {
+                                    var lastProbeTime = status.Conditions.Where(p => p.LastProbeTime.HasValue).Max(p => p.LastProbeTime);
+                                    var podConditions = status.Conditions.Where(p => p.LastProbeTime == lastProbeTime).Select(p => p).FirstOrDefault();                                   
+                                    return new ReportedModuleStatus(ModuleStatus.Failed, $"Module Failed with container status Unknown More Info: {podConditions.Message} K8s reason: {podConditions.Reason}");
+                                });
                             }
 
                         case "Unknown":
