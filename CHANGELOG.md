@@ -1,3 +1,35 @@
+# 1.0.9-rc5 (2020-02-10)
+## Edge Hub
+### Features
+* Update Microsoft.Azure.Devices to version 1.18.4 and Microsoft.Azure.Devices.Client to version 1.22.0 ([f155469])(https://github.com/Azure/iotedge/commit/f1554690f539dc53fac0cacb4fc226a159baa45d)
+* AMQP Heartbeat feature for edgeHub ([8f26e82])(https://github.com/Azure/iotedge/commit/8f26e82e74e68282cd09be7137eec37e99474ed2)
+
+### Bug fixes
+* Dispose all clients when network disconnection ([4269881])(https://github.com/Azure/iotedge/commit/42698815243b5ec4746b47d09e61b0c0a9d84bba)
+* Fix Connect to cloud lock ([fbcc45a]) (https://github.com/Azure/iotedge/commit/fbcc45a1f819a85053e7a8e1a2c8114c4aa8fa2f)
+* Fix offline restart for edgeHub ([faa2bfb])(https://github.com/Azure/iotedge/commit/faa2bfb35b7cdcc1d621d3ee2c86ab318f8ede33)
+* Metrics fixes ([c1f5ae4])(https://github.com/Azure/iotedge/commit/c1f5ae483c6c7206043b2919b1b7267659dfa489)
+* Update Windows base images for arm32 and amd64
+
+## Edge Agent
+### Features
+* Update Microsoft.Azure.Devices to version 1.18.4 and Microsoft.Azure.Devices.Client to version 1.22.0 ([f155469])(https://github.com/Azure/iotedge/commit/f1554690f539dc53fac0cacb4fc226a159baa45d)
+* AMQP Heartbeat feature for edgeAgent ([daa4e54])(https://github.com/Azure/iotedge/commit/daa4e5418aa7788ebb37563bfff82a35cf397a6f)
+
+### Bug fixes
+* Metrics fixes ([c1f5ae4])(https://github.com/Azure/iotedge/commit/c1f5ae483c6c7206043b2919b1b7267659dfa489)
+* Update Windows base images for arm32 and amd64
+
+## iotedged
+### Features
+* Add rust-toolchain file instead of always using stable ([2676621])(https://github.com/Azure/iotedge/commit/267662113d876dc17dd9a83cbc54007a99a9edef)
+
+### Bug fixes
+* Fix Windows build to compile against openssl 1.1.1 ([acf6bf3])(https://github.com/Azure/iotedge/commit/acf6bf3ca051e00371493a37003701bc408415ed)
+* Make auto_generated_cert_lifetime not required ([319a020])(https://github.com/Azure/iotedge/commit/319a0203a17326d8ad853b0131ae1ec8eab3e928)
+* Fix verbiage for edge check certificate warning ([e468d03])(https://github.com/Azure/iotedge/commit/e468d03d79b71bb0bdcc254fe08e1e3028fbab7d)
+* Changed ASN1 encoding of Basic Constrains/CA ([3fee6d2])(https://github.com/Azure/iotedge/commit/3fee6d29b1148dda0d78860f1a1e3fcc0e7db70b)
+
 # 1.0.9-rc4 (2020-01-10)
 
 ## Edge Hub
