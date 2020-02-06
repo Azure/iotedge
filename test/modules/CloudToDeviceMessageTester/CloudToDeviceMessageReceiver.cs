@@ -69,14 +69,15 @@ namespace CloudToDeviceMessageTester
         {
             // TODO: You cannot install certificate on Windows by script - we need to implement certificate verification callback handler.
             IEnumerable<X509Certificate2> certs = await CertificateHelper.GetTrustBundleFromEdgelet(new Uri(this.workloadUri), this.apiVersion, this.workloadClientApiVersion, this.moduleId, this.moduleGenerationId);
-            OsPlatform.Current.InstallCaCertificates(certs, ((Protocol)Enum.Parse(typeof(Protocol), this.transportType.ToString())).ToTransportSettings());
+            ITransportSettings transportSettings = ((Protocol)Enum.Parse(typeof(Protocol), this.transportType.ToString())).ToTransportSettings();
+            OsPlatform.Current.InstallCaCertificates(certs, transportSettings);
             Microsoft.Azure.Devices.RegistryManager registryManager = null;
             try
             {
                 registryManager = Microsoft.Azure.Devices.RegistryManager.CreateFromConnectionString(this.iotHubConnectionString);
                 Microsoft.Azure.Devices.Device device = await registryManager.AddDeviceAsync(new Microsoft.Azure.Devices.Device(this.deviceId), ct);
                 string deviceConnectionString = $"HostName={this.iotHubHostName};DeviceId={this.deviceId};SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.gatewayHostName}";
-                this.deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, this.transportType);
+                this.deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, new ITransportSettings[] { transportSettings });
                 await this.deviceClient.OpenAsync();
 
                 while (!ct.IsCancellationRequested)

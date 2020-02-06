@@ -1,0 +1,32 @@
+{
+  "IOT_HUB_CONNECTION_STRING": {
+    "value": ""
+  },
+  "directMethodEnabled": {
+    "value": "true"
+  },
+  "directMethodTargetModuleId": {
+    "value": "directMethodReceiver1"
+  },
+  "messageEnabled": {
+    "value": "true"
+  },
+  "reportingEndpointUrl": {
+    "value": "http://localhost:5001"
+  },
+  "restartPeriod": {
+    "value": "00:05:00.000"
+  },
+  "sdkOperationTimeout": {
+    "value": "00:00:00.020"
+  },
+  "testDuration": {
+    "value": "01:00:00.000"
+  },
+  "testStartDelay": {
+    "value": "00:02:00.000"
+  },
+  "trackingId": {
+    "value": ""
+  }
+}
