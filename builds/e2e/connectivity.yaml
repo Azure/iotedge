@@ -66,10 +66,10 @@ jobs:
 
       - pwsh: |
           env
-          ../a/core-linux/scripts/KpiGenerator.ps1 -TestId $TestId -User $User -Password $Password -Tenant $Tenant
+          ../a/core-linux/scripts/KpiGenerator.ps1 -TestId $TestId -User $UserName -Password $Password -Tenant $Tenant
         env:
           TestId: '$(testTrackingId)'
-          User: '$(kvLogAnalyticSpUser)'
+          UserName: '$(kvLogAnalyticSpUser)'
           Password: '$(kvLogAnalyticSpPassword)'
           Tenant: '$(kvLogAnalyticSpTenant)'
       # Deploy connectivity test
@@ -103,9 +103,9 @@ jobs:
       #     metricsCollector.hostPlatform: 'linux_amd64_moby'
       #     testTrackingId: '$(testTrackingId)'
       - pwsh: |
-          .\scripts\CheckKpiAlerts.ps1 -User $User -Password $Password -Tenant $Tenant
+          .\scripts\CheckKpiAlerts.ps1 -User $UserName -Password $Password -Tenant $Tenant
         env:
-          User: '$(kvLogAnalyticSpUser)'
+          UserName: '$(kvLogAnalyticSpUser)'
           Password: '$(kvLogAnalyticSpPassword)'
           Tenant: '$(kvLogAnalyticSpTenant)'
 
