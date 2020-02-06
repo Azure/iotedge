@@ -40,6 +40,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<TestResultCoordinator.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
     sed -i -e "s@<Architecture>@$image_architecture_label@g" "$deployment_working_file"
     sed -i -e "s/<Build.BuildNumber>/$ARTIFACT_IMAGE_BUILD_NUMBER/g" "$deployment_working_file"
+    sed -i -e "s/<EdgeRuntime.BuildNumber>/$EDGE_RUNTIME_BUILD_NUMBER/g" "$deployment_working_file"
     sed -i -e "s@<Container_Registry>@$CONTAINER_REGISTRY@g" "$deployment_working_file"
     sed -i -e "s@<CR.Username>@$CONTAINER_REGISTRY_USERNAME@g" "$deployment_working_file"
     sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
@@ -254,6 +255,9 @@ function process_args() {
         elif [ $saveNextArg -eq 34 ]; then
             RESTART_TEST_SDK_OPERATION_TIMEOUT="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 35 ]; then
+            EDGE_RUNTIME_BUILD_NUMBER="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -291,6 +295,7 @@ function process_args() {
                 '-deploymentFileName' ) saveNextArg=32;;
                 '-EdgeHubRestartTestRestartPeriod' ) saveNextArg=33;;
                 '-EdgeHubRestartTestSdkOperationTimeout' ) saveNextArg=34;;
+                '-edgeRuntimeBuildNumber' ) saveNextArg=35;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
@@ -489,6 +494,7 @@ function usage() {
     echo ' -EdgeHubRestartTestRestartPeriod        EdgeHub restart period (must be greater than 1 minutes)'
     echo ' -EdgeHubRestartTestSdkOperationTimeout  SDK retry timeout'
     echo ' -storageAccountConnectionString Azure storage account connection string with privilege to create blob container.'
+    echo ' -edgeRuntimeBuildNumber         Build number for specifying edge runtime (edgeHub and edgeAgent)'
 
     echo ' -cleanAll                       Do docker prune for containers, logs and volumes.'
     exit 1;
@@ -507,6 +513,7 @@ E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
 TEST_DURATION="${TEST_DURATION:-01:00:00}"
 DEPLOYMENT_TEST_UPDATE_PERIOD="${DEPLOYMENT_TEST_UPDATE_PERIOD:-00:03:00}"
 EVENT_HUB_CONSUMER_GROUP_ID=${EVENT_HUB_CONSUMER_GROUP_ID:-\$Default}
+EDGE_RUNTIME_BUILD_NUMBER=${EDGE_RUNTIME_BUILD_NUMBER:-$ARTIFACT_IMAGE_BUILD_NUMBER}
 LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:01}"
 NETWORK_CONTROLLER_FREQUENCIES=${NETWORK_CONTROLLER_FREQUENCIES:(null)}
 NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Offline}
