@@ -309,44 +309,38 @@ function Initialize-IoTEdge {
     Set-StrictMode -Version 5
 
     if (-not (Test-EdgeAlreadyInstalled)) {
-        $error = ('IoT Edge is not yet installed. ' + $InstallMessage)
         Write-HostRed
-        Write-HostRed $error
-        throw $error
+        Write-HostRed ('IoT Edge is not yet installed. ' + $InstallMessage)
+        throw
     }
 
     if (-not (Test-VcRuntimePresent)) {
-        $error = 'VC Runtime must be installed before IoT Edge can be initialized.'
-        Write-HostRed $error
-        throw $error
+        Write-HostRed 'VC Runtime must be installed before IoT Edge can be initialized.'
+        throw
     }
 
     if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
-        $error = ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
         Write-HostRed
-        Write-HostRed $error
-        throw $error
+        Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
+        throw
     }
 
     if (-not (Test-MobyAlreadyInstalled)) {
-        $error = ('IoT Edge Moby Engine is not yet installed. ' + $ReinstallMessage)
         Write-HostRed
-        Write-HostRed $error
-        throw $error
+        Write-HostRed ('IoT Edge Moby Engine is not yet installed. ' + $ReinstallMessage)
+        throw
     }
 
     if (-not (Test-AgentRegistryArgs)) {
-        $error = 'Invalid parameters ''AgentImage'', ''Username'' or ''Password'''
-        throw $error
+        throw
     }
 
     Setup-Environment -ContainerOs $ContainerOs -SkipBatteryCheck
 
     $configPath = Join-Path -Path $EdgeDataDirectory -ChildPath 'config.yaml'
     if (Test-Path $configPath) {
-        $error =  "$configPath already exists."
         Write-HostRed
-        Write-HostRed $error
+        Write-HostRed "$configPath already exists."
         if (Test-IotCore) {
             Write-HostRed ('You must reflash the device and then ' +
                 're-run "Deploy-IoTEdge" and "Initialize-IoTEdge"')
@@ -354,7 +348,7 @@ function Initialize-IoTEdge {
             Write-HostRed ('Delete it using "Uninstall-IoTEdge -Force" and then ' +
                 're-run "Deploy-IoTEdge" and "Initialize-IoTEdge"')
         }
-        throw $error
+        throw
     }
 
     New-Sockets $EdgeDataDirectory
@@ -867,18 +861,16 @@ function Uninstall-IoTEdge {
     $legacyInstaller = Test-LegacyInstaller
 
     if ((Test-IoTCore) -and (-not $legacyInstaller)) {
-        $error = ('Uninstall-IoTEdge is only supported on IoTCore to uninstall legacy installation. ' +
-            'For new installations, please use "Update-IoTEdge" directly to update.')
         Write-HostRed
-        Write-HostRed $error
-        throw $error
+        Write-HostRed ('Uninstall-IoTEdge is only supported on IoTCore to uninstall legacy installation. ' +
+            'For new installations, please use "Update-IoTEdge" directly to update.')
+        throw
     }
 
     if (-not $Force -and -not ((Test-EdgeAlreadyInstalled) -or (Test-MobyAlreadyInstalled))) {
-        $error = 'IoT Edge is not installed. Use "-Force" to uninstall anyway.'
         Write-HostRed
-        Write-HostRed $error
-        throw $error
+        Write-HostRed 'IoT Edge is not installed. Use "-Force" to uninstall anyway.'
+        throw
     }
 
     Write-Host 'Uninstalling...'
@@ -944,24 +936,21 @@ function Install-Packages(
 
     if ($Update) {
         if (-not (Test-EdgeAlreadyInstalled)) {
-            $error = ('IoT Edge is not yet installed. ' + $InstallMessage)
             Write-HostRed
-            Write-HostRed $error
-            throw $error
+            Write-HostRed ('IoT Edge is not yet installed. ' + $InstallMessage)
+            throw
         }
 
         if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
-            $error = ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
             Write-HostRed
-            Write-HostRed $error
-            throw $error
+            Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
+            throw
         }
 
         if (-not (Test-MobyAlreadyInstalled)) {
-            $error = ('IoT Edge Moby Engine is not yet installed. ' + $ReinstallMessage)
             Write-HostRed
-            Write-HostRed $error
-            throw $error
+            Write-HostRed ('IoT Edge Moby Engine is not yet installed. ' + $ReinstallMessage)
+            throw
         }
     }
     else {
@@ -975,7 +964,7 @@ function Install-Packages(
                 Write-HostRed ('IoT Edge is already installed. To update, run "Update-IoTEdge". ' +
                     'Alternatively, if you want to finalize the installation, run "Initialize-IoTEdge".')
             }
-            throw 'IoT Edge is already installed.'
+            throw
         }
 
         if (Test-MobyAlreadyInstalled) {
@@ -988,7 +977,7 @@ function Install-Packages(
                 Write-HostRed ('IoT Edge Moby Engine is already installed, but IoT Edge is not. ' +
                     $ReinstallMessage)
             }
-            throw 'IoT Edge Moby Engine is already installed,'
+            throw
         }
     }
 
@@ -1016,10 +1005,9 @@ function Install-Packages(
             Start-Service $EdgeServiceName
         }
         catch {
-            $error = 'Failed to start Security Daemon, make sure to initialize config file by running "Initialize-IoTEdge".'
             Write-HostRed
-            Write-HostRed $error
-            throw $error
+            Write-HostRed 'Failed to start Security Daemon, make sure to initialize config file by running "Initialize-IoTEdge".'
+            throw
         }
     }
 
@@ -1092,11 +1080,10 @@ function Setup-Environment {
         Set-ContainerOs
     }
     else {
-        $error = ('The prerequisites for installation of the IoT Edge Security daemon are not met. ' +
-            'Please fix all known issues before rerunning this script.')
         Write-HostRed
-        Write-HostRed $error
-        throw $error
+        Write-HostRed ('The prerequisites for installation of the IoT Edge Security daemon are not met. ' +
+            'Please fix all known issues before rerunning this script.')
+        throw
     }
 
     if (-not (Test-IotCore)) {
@@ -1123,10 +1110,9 @@ function Setup-Environment {
                     'before using these power states.')
 
                 if (-not $PSCmdlet.ShouldContinue('Do you want to continue with installation?', '')) {
-                    $error = 'Aborting installation.'
                     Write-HostRed
-                    Write-HostRed $error
-                    throw $error
+                    Write-HostRed 'Aborting installation.'
+                    throw
                 }
             }
         }
@@ -1184,20 +1170,18 @@ function Set-ContainerOs {
                 $dockerCliExe = "$ProgramFilesDirectory\Docker\Docker\DockerCli.exe"
 
                 if (-not (Test-Path -Path $dockerCliExe)) {
-                    $error = 'Unable to switch to Linux containers: could not find $dockerCliExe'
                     Write-HostRed
-                    Write-HostRed $error
-                    throw $error
+                    Write-HostRed "Unable to switch to Linux containers: could not find $dockerCliExe"
+                    throw
                 }
 
                 Invoke-Native """$dockerCliExe"" -SwitchDaemon"
 
                 $newExternalDockerServerOs = Get-ExternalDockerServerOs
                 if ($newExternalDockerServerOs -ne 'Linux') {
-                    $error = 'Unable to switch to Linux containers: Docker is still set to use $newExternalDockerServerOs containers'
                     Write-HostRed
-                    Write-HostRed $error
-                    throw $error
+                    Write-HostRed "Unable to switch to Linux containers: Docker is still set to use $newExternalDockerServerOs containers"
+                    throw
                 }
 
                 Write-HostGreen 'Switched Docker to use Linux containers.'
@@ -1384,14 +1368,14 @@ function Get-IoTEdge([ref] $RestartNeeded, [bool] $Update) {
             Write-HostRed
             Write-HostRed "Failed to deploy, consider rebooting. Please refer to the following for more information:"
             Write-HostRed "$output"
-            throw 'Failed to deploy.'
+            throw
         }
         Start-Sleep -Seconds 120
         $output = Invoke-Native 'ApplyUpdate -status' -DoNotThrow -Passthru
         Write-HostRed
         Write-HostRed "Failed to deploy. Please refer to the following for more information:"
         Write-HostRed "$output"
-        throw 'Failed to deploy.'
+        throw
     }
 }
 
@@ -1724,22 +1708,19 @@ function Validate-GatewaySettings {
     $certFilesProvided = $false
     if ($DeviceCACertificate -or $DeviceCAPrivateKey -or $DeviceTrustbundle) {
         if (-Not (Test-Path -Path $DeviceCACertificate)) {
-            $error = 'Device CA certificate file $DeviceCACertificate not found. When configuring device certificates, a certificate file is required.'
             Write-HostRed
-            Write-HostRed $error
-            throw $error
+            Write-HostRed "Device CA certificate file $DeviceCACertificate not found. When configuring device certificates, a certificate file is required."
+            throw
         }
         if (-Not (Test-Path -Path $DeviceCAPrivateKey)) {
-            $error = 'Device CA private key file $DeviceCAPrivateKey not found. When configuring device certificates, a private key file is required.'
             Write-HostRed
-            Write-HostRed $error
-            throw $error
+            Write-HostRed "Device CA private key file $DeviceCAPrivateKey not found. When configuring device certificates, a private key file is required."
+            throw
         }
         if (-Not (Test-Path -Path $DeviceTrustbundle)) {
-            $error = 'Device trustbundle file $DeviceTrustbundle not found. When configuring device certificates, a trust bundle file is required.'
             Write-HostRed
-            Write-HostRed $error
-            throw $error
+            Write-HostRed "Device trustbundle file $DeviceTrustbundle not found. When configuring device certificates, a trust bundle file is required."
+            throw
         }
         $certFilesProvided = $true
     }
@@ -1759,10 +1740,9 @@ function Get-DpsProvisioningSettings {
         $attestationMethod = 'x509'
     }
     else {
-        $error = ('Unsupported DPS attestation mechanism. Please re-run Initialize-IoTEdge or Install-IoTEdge with the correct parameters.')
         Write-HostRed
-        Write-HostRed $error
-        throw $error
+        Write-HostRed ('Unsupported DPS attestation mechanism. Please re-run Initialize-IoTEdge or Install-IoTEdge with the correct parameters.')
+        throw
     }
 
     return $attestationMethod
@@ -1778,10 +1758,9 @@ function Get-ManualAuthSettings {
         $authenticationMethod = 'x509'
     }
     else {
-        $error = ('Unsupported manual authentication mechanism. Please re-run Initialize-IoTEdge or Install-IoTEdge with the correct parameters.')
         Write-HostRed
-        Write-HostRed $error
-        throw $error
+        Write-HostRed ('Unsupported manual authentication mechanism. Please re-run Initialize-IoTEdge or Install-IoTEdge with the correct parameters.')
+        throw
     }
 
     return $authenticationMethod
@@ -2197,11 +2176,10 @@ function Remove-BuiltinWritePermissions([string] $Path) {
 function Download-File([string] $Description, [string] $Url, [string] $DownloadFilename, [string] $LocalCacheGlob, [ref] $Delete) {
     if ($OfflineInstallationPath -ne '') {
         if (-not (Test-Path "$OfflineInstallationPath\$LocalCacheGlob")) {
-            $error = 'Could not find $Description at $OfflineInstallationPath\$LocalCacheGlob'
             Write-HostRed
-            Write-HostRed $error
+            Write-HostRed "Could not find $Description at $OfflineInstallationPath\$LocalCacheGlob"
             Write-HostRed "Please download it from $Url and save it under $OfflineInstallationPath"
-            throw $error
+            throw
         }
 
         $result = (Get-Item "$OfflineInstallationPath\$LocalCacheGlob" | Select-Object -First 1).FullName
