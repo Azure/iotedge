@@ -231,10 +231,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             KubernetesModule km1 = new KubernetesModule(m1, config, new KubernetesModuleOwner("v1", "Deployment", "iotedged", "123"));
             string newImage = "test-image:2";
 
-            // await this.client.AddModuleDeploymentAsync(moduleName, new Dictionary<string, string> { ["a"] = "b" }, null);
+            await this.client.AddModuleDeploymentAsync(moduleName, new Dictionary<string, string> { ["a"] = "b" }, null);
             moduleLifeCycleManager.SetModules(moduleName);
-            await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
             await this.client.ReplaceModuleImageAsync(moduleName, newImage);
+            await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
 
             V1DeploymentList currentDeployments = await this.client.ListDeployments(deviceSelector);
             V1ServiceAccountList currentServiceAccounts = await this.client.ListServiceAccounts(deviceSelector);
