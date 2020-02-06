@@ -490,6 +490,46 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             factory.Recorder.ForEach(r => Assert.Equal(runningGreatModules.Count(), r.WrappedCommmandList.Count));
         }
 
+        [Fact]
+        [Unit]
+        public async Task TestResetStatsForUnhealthyModules()
+        {
+            // Arrange
+            IRuntimeModule[] unhealthyModules = new[]
+            {
+                new TestRuntimeModule(
+                    "resetStatsModule1",
+                    "version1",
+                    RestartPolicy.Always,
+                    "test",
+                    ModuleStatus.Running,
+                    Config1,
+                    0,
+                    string.Empty,
+                    DateTime.UtcNow - IntensiveCareTime - TimeSpan.FromMinutes(-1), // module started < IntensiveCareTime min ago
+                    DateTime.UtcNow - IntensiveCareTime - TimeSpan.FromMinutes(1),  // module exited > IntensiveCareTime min ago
+                    0,
+                    DateTime.MinValue,
+                    ModuleStatus.Running)
+            };
+
+            (TestCommandFactory factory, Mock<IEntityStore<string, ModuleState>> store, _, HealthRestartPlanner planner) = CreatePlanner();
+
+            store.Setup(s => s.Contains(It.IsAny<string>()))
+                .Returns(() => Task.FromResult(true));
+
+            ModuleSet currentModuleSet = ModuleSet.Create(unhealthyModules);
+            ModuleSet desiredModuleSet = ModuleSet.Create(unhealthyModules);
+
+            // Act
+            Plan plan = await planner.PlanAsync(desiredModuleSet, currentModuleSet, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty);
+            var planRunner = new OrderedPlanRunner();
+            await planRunner.ExecuteAsync(1, plan, CancellationToken.None);
+
+            // Assert that module health was NOT reset (because it has not been running for IntensiveCareTime min)
+            factory.Recorder.ForEach(r => Assert.Empty(r.WrappedCommmandList));
+        }
+
         [Unit]
         [Fact]
         public async Task CreateShutdownPlanTest()
@@ -2396,7 +2436,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     Config1,
                     0,
                     string.Empty,
-                    DateTime.MinValue,
+                    DateTime.UtcNow - IntensiveCareTime - TimeSpan.FromMinutes(3),
                     DateTime.UtcNow - IntensiveCareTime - TimeSpan.FromMinutes(5),
                     0,
                     DateTime.MinValue,
@@ -2631,7 +2671,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     Config1,
                     0,
                     string.Empty,
-                    DateTime.MinValue,
+                    DateTime.UtcNow - IntensiveCareTime - TimeSpan.FromMinutes(3),
                     DateTime.UtcNow - IntensiveCareTime - TimeSpan.FromMinutes(5),
                     0,
                     DateTime.MinValue,
@@ -2866,7 +2906,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     Config1,
                     0,
                     string.Empty,
-                    DateTime.MinValue,
+                    DateTime.UtcNow - IntensiveCareTime - TimeSpan.FromMinutes(3),
                     DateTime.UtcNow - IntensiveCareTime - TimeSpan.FromMinutes(5),
                     0,
                     DateTime.MinValue,
@@ -3101,7 +3141,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     Config1,
                     0,
                     string.Empty,
-                    DateTime.MinValue,
+                    DateTime.UtcNow - IntensiveCareTime - TimeSpan.FromMinutes(3),
                     DateTime.UtcNow - IntensiveCareTime - TimeSpan.FromMinutes(5),
                     0,
                     DateTime.MinValue,
