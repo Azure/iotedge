@@ -65,7 +65,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<NetworkController.OfflineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[0]}@g" "$deployment_working_file"
     sed -i -e "s@<NetworkController.OnlineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[1]}@g" "$deployment_working_file"
     sed -i -e "s@<NetworkController.RunsCount0>@${NETWORK_CONTROLLER_FREQUENCIES[2]}@g" "$deployment_working_file"
-    sed -i -e "s@<NetworkController.Mode>@$NETWORK_CONTROLLER_MODE@g" "$deployment_working_file"
+    sed -i -e "s@<NetworkController.RunProfile>@$NETWORK_CONTROLLER_RUNPROFILE@g" "$deployment_working_file"
     
     sed -i -e "s@<DeploymentTester1.DeploymentUpdatePeriod>@$DEPLOYMENT_TEST_UPDATE_PERIOD@g" "$deployment_working_file"
 
@@ -192,7 +192,7 @@ function process_args() {
             NETWORK_CONTROLLER_FREQUENCIES=($arg)
             saveNextArg=0
         elif [ $saveNextArg -eq 14 ]; then
-            NETWORK_CONTROLLER_MODE="$arg"
+            NETWORK_CONTROLLER_RUNPROFILE="$arg"
             saveNextArg=0    
         elif [ $saveNextArg -eq 15 ]; then
             LOG_ANALYTICS_WORKSPACEID="$arg"
@@ -270,7 +270,7 @@ function process_args() {
                 '-testStartDelay' ) saveNextArg=11;;
                 '-loadGenMessageFrequency' ) saveNextArg=12;;
                 '-networkControllerFrequency' ) saveNextArg=13;;
-                '-networkControllerMode' ) saveNextArg=14;;
+                '-networkControllerRunProfile' ) saveNextArg=14;;
                 '-logAnalyticsWorkspaceId' ) saveNextArg=15;;
                 '-logAnalyticsSharedKey' ) saveNextArg=16;;
                 '-logAnalyticsLogType' ) saveNextArg=17;;
@@ -469,7 +469,7 @@ function usage() {
     echo ' -testStartDelay                 Connectivity test start after delay'
     echo ' -loadGenMessageFrequency        Message frequency sent by load gen' 
     echo ' -networkControllerFrequency     Frequency for controlling the network with offlineFrequence, onlineFrequence, runsCount. Example "00:05:00 00:05:00 6"' 
-    echo ' -networkControllerMode          OfflineNetworkInterface, OfflineTrafficController or SatelliteTrafficController' 
+    echo ' -networkControllerRunProfile    Online, Offline, SatelliteGood or Cellular3G'
     echo ' -logAnalyticsWorkspaceId        Log Analytics Workspace Id'
     echo ' -logAnalyticsSharedKey          Log Analytics shared key'
     echo ' -logAnalyticsLogType            Log Analytics log type'
@@ -509,7 +509,7 @@ DEPLOYMENT_TEST_UPDATE_PERIOD="${DEPLOYMENT_TEST_UPDATE_PERIOD:-00:03:00}"
 EVENT_HUB_CONSUMER_GROUP_ID=${EVENT_HUB_CONSUMER_GROUP_ID:-\$Default}
 LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:01}"
 NETWORK_CONTROLLER_FREQUENCIES=${NETWORK_CONTROLLER_FREQUENCIES:(null)}
-NETWORK_CONTROLLER_MODE=${NETWORK_CONTROLLER_MODE:-OfflineTrafficController}
+NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Offline}
 TEST_START_DELAY="${TEST_START_DELAY:-00:02:00}"
 LOG_ANALYTICS_LOGTYPE="${LOG_ANALYTICS_LOGTYPE:-connectivity}"
 VERIFICATION_DELAY="${VERIFICATION_DELAY:-00:15:00}"

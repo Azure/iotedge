@@ -16,28 +16,44 @@ jobs:
       matrix:
         Online:
           testrun.config: 1
-          testrun.network.frequencies: "null null null"
+          testrun.network.runProfile: "Online"
+          testrun.network.frequencies: "00:00:00 00:00:00 0"
           testrun.duration: "01:00:00"
         Offline(5/5/5):
           testrun.config: 2
           testrun.network.frequencies: "00:05:00 00:05:00 5"
+          testrun.network.runProfile: "Offline"
           testrun.duration: "00:50:00"
         Offline(10/10/3):
           testrun.config: 3
           testrun.network.frequencies: "00:10:00 00:10:00 3"
+          testrun.network.runProfile: "Offline"
           testrun.duration: "01:00:00"
         Offline(15/15/3):
           testrun.config: 4
           testrun.network.frequencies: "00:15:00 00:15:00 3"
+          testrun.network.runProfile: "Offline"
           testrun.duration: "01:30:00"
         Offline(30/30/2):
           testrun.config: 5
           testrun.network.frequencies: "00:30:00 00:30:00 2"
+          testrun.network.runProfile: "Offline"
           testrun.duration: "02:00:00"
         Offline(5/20/3):
           testrun.config: 6
           testrun.network.frequencies: "00:05:00 00:20:00 3"
+          testrun.network.runProfile: "Offline"
           testrun.duration: "01:15:00"
+        SatelliteGood(60/0/1):
+          testrun.config: 7
+          testrun.network.frequencies: "01:00:00 00:00:00 1"
+          testrun.network.runProfile: "SatelliteGood"
+          testrun.duration: "01:00:00"
+        Cellular3G(60/0/1):
+          testrun.config: 8
+          testrun.network.frequencies: "01:00:00 00:00:00 1"
+          testrun.network.runProfile: "Cellular3G"
+          testrun.duration: "01:00:00"          
     pool:
       name: $(pool.name)
       demands:
@@ -57,6 +73,7 @@ jobs:
             # print all matrix variables here
             echo "testrun.config=$(testrun.config)"
             echo "testrun.network.frequencies=$(testrun.network.frequencies)"
+            echo "testrun.network.runProfile=$(testrun.network.runProfile)"
             echo "testrun.duration=$(testrun.duration)"
           
             output1=$(curl -s -u :$accessToken --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$buildId?api-version=5.1" | grep -oe '"status":"cancel')
@@ -128,7 +145,7 @@ jobs:
           testDuration: '$(testrun.duration)'
           testStartDelay: '$(testStartDelay)'
           networkController.frequencies: '$(testrun.network.frequencies)'
-          networkController.mode: '$(networkController.mode)'
+          networkController.runProfile: '$(testrun.network.runProfile)'
           logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
           testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
@@ -208,7 +225,7 @@ jobs:
           testDuration: '$(testDuration)'
           testStartDelay: '$(testStartDelay.arm32)'
           networkController.frequencies: '$(networkController.frequencies)'
-          networkController.mode: '$(networkController.mode)'
+          networkController.runProfile: '$(networkController.runProfile)'
           logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
           testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
