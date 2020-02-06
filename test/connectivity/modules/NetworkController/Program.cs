@@ -17,7 +17,7 @@ namespace NetworkController
         {
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Log);
 
-            Log.LogInformation($"Starting with {Settings.Current.NetworkControllerMode}");
+            Log.LogInformation($"Starting with {Settings.Current.NetworkRunProfile.ProfileType} Settings: {Settings.Current.NetworkRunProfile.ProfileSetting}");
 
             try
             {
@@ -25,24 +25,32 @@ namespace NetworkController
 
                 if (networkInterfaceName.HasValue)
                 {
-                    await networkInterfaceName.ForEachAsync(
-                        async name =>
-                        {
-                            var firewall = new FirewallOfflineController(name, Settings.Current.IotHubHostname);
-                            var satellite = new SatelliteController(name);
-                            var controllers = new List<INetworkController>() { firewall, satellite };
-                            await RemoveAllControllingRules(controllers, cts.Token);
+                    await networkInterfaceName.ForEachAsync(async name =>
+                    {
+                        var offline = new OfflineController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
+                        var satellite = new SatelliteController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
+                        var cellular = new CellularController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
+                        var controllers = new List<INetworkController>() { offline, satellite, cellular };
+                        await RemoveAllControllingRules(controllers, cts.Token);
 
-                            switch (Settings.Current.NetworkControllerMode)
-                            {
-                                case NetworkControllerMode.OfflineTrafficController:
-                                    await StartAsync(firewall, cts.Token);
-                                    break;
-                                case NetworkControllerMode.SatelliteTrafficController:
-                                    await StartAsync(satellite, cts.Token);
-                                    break;
-                            }
-                        });
+                        switch (Settings.Current.NetworkRunProfile.ProfileType)
+                        {
+                            case NetworkControllerType.Offline:
+                                await StartAsync(offline, cts.Token);
+                                break;
+                            case NetworkControllerType.Satellite:
+                                await StartAsync(satellite, cts.Token);
+                                break;
+                            case NetworkControllerType.Cellular:
+                                await StartAsync(cellular, cts.Token);
+                                break;
+                            case NetworkControllerType.Online:
+                                Log.LogInformation($"No restrictions to be set, running as online");
+                                break;
+                            default:
+                                throw new NotSupportedException($"Network type {Settings.Current.NetworkRunProfile.ProfileType} is not supported.");
+                        }
+                    });
                 }
                 else
                 {
@@ -92,7 +100,7 @@ namespace NetworkController
         {
             await reporter.ReportNetworkStatusAsync(NetworkControllerOperation.SettingRule, networkControllerStatus, controller.NetworkControllerType);
             bool success = await controller.SetNetworkControllerStatusAsync(networkControllerStatus, cs);
-            success = await CheckSetNetworkControllerStatusAsyncResult(success, NetworkControllerStatus.Disabled, controller, cs);
+            success = await CheckSetNetworkControllerStatusAsyncResult(success, networkControllerStatus, controller, cs);
             await reporter.ReportNetworkStatusAsync(NetworkControllerOperation.RuleSet, networkControllerStatus, controller.NetworkControllerType, success);
         }
 
