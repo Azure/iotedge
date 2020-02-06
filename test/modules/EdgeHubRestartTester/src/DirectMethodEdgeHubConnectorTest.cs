@@ -15,7 +15,7 @@ namespace EdgeHubRestartTester
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    class DirectMethodEdgeHubConnectorTest : IEdgeHubConnector
+    class DirectMethodEdgeHubConnectorTest : IEdgeHubConnectorTest
     {
         readonly Guid batchId;
         readonly ILogger logger;
@@ -41,14 +41,12 @@ namespace EdgeHubRestartTester
             (DateTime dmCompletedTime, HttpStatusCode dmStatusCode) = await this.SendDirectMethodAsync(
                 Settings.Current.DeviceId,
                 Settings.Current.DirectMethodTargetModuleId,
-                await this.GetModuleClientAsync(),
                 Settings.Current.DirectMethodName,
                 runExpirationTime,
-                cancellationToken,
-                this.logger);
+                cancellationToken);
 
             TestResultBase dmTestResult = new EdgeHubRestartDirectMethodResult(
-                this.GetSourceString(),
+                this.GetSource(),
                 DateTime.UtcNow,
                 Settings.Current.TrackingId,
                 this.batchId,
@@ -67,12 +65,11 @@ namespace EdgeHubRestartTester
         async Task<Tuple<DateTime, HttpStatusCode>> SendDirectMethodAsync(
             string deviceId,
             string targetModuleId,
-            ModuleClient moduleClient,
             string directMethodName,
             DateTime runExpirationTime,
-            CancellationToken cancellationToken,
-            ILogger logger)
+            CancellationToken cancellationToken)
         {
+            ModuleClient moduleClient = await this.GetModuleClientAsync();
             while ((!cancellationToken.IsCancellationRequested) && (DateTime.UtcNow < runExpirationTime))
             {
                 try
@@ -81,19 +78,19 @@ namespace EdgeHubRestartTester
                     this.directMethodCount++;
                     MethodRequest request = new MethodRequest(
                         directMethodName,
-                        Encoding.UTF8.GetBytes($"{{ \"Message\": \"Hello\", \"DirectMethodCount\": \"{this.directMethodCount.ToString()}\" }}"),
+                        Encoding.UTF8.GetBytes($"{{ \"Message\": \"Hello\", \"DirectMethodCount\": \"{this.directMethodCount}\" }}"),
                         Settings.Current.SdkOperationTimeout,
                         Settings.Current.SdkOperationTimeout);
                     MethodResponse result = await moduleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
-                    logger.LogInformation($"[DirectMethodEdgeHubConnector] Invoke DirectMethod with count {this.directMethodCount.ToString()}");
+                    this.logger.LogInformation($"[DirectMethodEdgeHubConnector] Invoke DirectMethod with count {this.directMethodCount}");
 
                     if ((HttpStatusCode)result.Status == HttpStatusCode.OK)
                     {
-                        logger.LogDebug(result.ResultAsJson);
+                        this.logger.LogDebug(result.ResultAsJson);
                     }
                     else
                     {
-                        logger.LogError(result.ResultAsJson);
+                        this.logger.LogError(result.ResultAsJson);
                     }
 
                     return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)result.Status);
@@ -104,17 +101,17 @@ namespace EdgeHubRestartTester
                     if (this.IsEdgeHubDownDuringDirectMethodSend(e) || this.IsDirectMethodReceiverNotConnected(e))
                     {
                         // swallow exeception and retry until success
-                        logger.LogDebug(e, $"[DirectMethodEdgeHubConnector] Exception caught with SequenceNumber {this.directMethodCount.ToString()}");
+                        this.logger.LogDebug(e, $"[DirectMethodEdgeHubConnector] Exception caught with SequenceNumber {this.directMethodCount}");
                     }
                     else
                     {
                         // something is wrong, Log and send report to TRC
-                        string errorMessage = $"[DirectMethodEdgeHubConnector] Exception caught with SequenceNumber {this.directMethodCount.ToString()}";
-                        logger.LogError(e, errorMessage);
+                        string errorMessage = $"[DirectMethodEdgeHubConnector] Exception caught with SequenceNumber {this.directMethodCount}";
+                        this.logger.LogError(e, errorMessage);
 
                         TestResultBase errorResult = new ErrorTestResult(
                             Settings.Current.TrackingId,
-                            this.GetSourceString(),
+                            this.GetSource(),
                             errorMessage,
                             DateTime.UtcNow);
 
@@ -154,7 +151,7 @@ namespace EdgeHubRestartTester
             return this.reportClient;
         }
 
-        string GetSourceString() => Settings.Current.ModuleId + "." + TestOperationResultType.EdgeHubRestartDirectMethod.ToString();
+        string GetSource() => $"{Settings.Current.ModuleId}.{TestOperationResultType.EdgeHubRestartDirectMethod.ToString()}";
 
         bool IsEdgeHubDownDuringDirectMethodSend(Exception e)
         {

@@ -5,7 +5,7 @@ namespace EdgeHubRestartTester
     using System.Threading;
     using System.Threading.Tasks;
 
-    public interface IEdgeHubConnector : IDisposable
+    public interface IEdgeHubConnectorTest : IDisposable
     {
         Task StartAsync(
             DateTime runExpirationTime,

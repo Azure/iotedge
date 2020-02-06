@@ -19,8 +19,6 @@ namespace EdgeHubRestartTester
 
         static async Task<int> MainAsync()
         {
-            uint restartCount = 0;
-
             Guid batchId = Guid.NewGuid();
             Logger.LogInformation($"Starting EdgeHubRestartTester ({batchId}) with the following settings:\r\n{Settings.Current}");
 
@@ -30,8 +28,8 @@ namespace EdgeHubRestartTester
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
             ServiceClient iotHubServiceClient = null;
-            IEdgeHubConnector edgeHubMessageConnector = null;
-            IEdgeHubConnector edgeHubDirectMethodConnector = null;
+            IEdgeHubConnectorTest edgeHubMessageConnector = null;
+            IEdgeHubConnectorTest edgeHubDirectMethodConnector = null;
 
             try
             {
@@ -60,9 +58,6 @@ namespace EdgeHubRestartTester
                         iotHubServiceClient,
                         cts.Token);
                     DateTime eachTestExpirationTime = restartTime.Add(Settings.Current.RestartPeriod);
-
-                    // Increment the counter when issue an edgeHub restart
-                    restartCount++;
 
                     // Setup Message Task
                     Task sendMessageTask = Task.CompletedTask;
@@ -144,7 +139,7 @@ namespace EdgeHubRestartTester
                         string errorMessage = $"Failed to restart EdgeHub with payload: {payload}: {e}";
                         TestResultBase errorResult = new ErrorTestResult(
                             Settings.Current.TrackingId,
-                            GetSourceString(),
+                            GetSource(),
                             errorMessage,
                             DateTime.UtcNow);
 
@@ -161,9 +156,6 @@ namespace EdgeHubRestartTester
             return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.InternalServerError);
         }
 
-        static string GetSourceString() =>
-            Settings.Current.MessageEnabled ?
-                Settings.Current.ModuleId + "." + TestOperationResultType.EdgeHubRestartMessage.ToString() :
-                Settings.Current.ModuleId + "." + TestOperationResultType.EdgeHubRestartDirectMethod.ToString();
+        static string GetSource() => $"{Settings.Current.ModuleId}";
     }
 }
