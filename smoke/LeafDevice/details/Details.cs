@@ -181,6 +181,8 @@ namespace LeafDeviceTest
                         catch (Exception e)
                         {
                             savedException = e;
+                            Console.WriteLine("Exception thrown when sending message");
+                            Console.WriteLine(e.ToString());
                         }
                     }
                 }
