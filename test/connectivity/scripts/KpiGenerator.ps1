@@ -19,7 +19,7 @@ $passwd = ConvertTo-SecureString $Password -AsPlainText -Force
 $pscredential = New-Object System.Management.Automation.PSCredential($User, $passwd)
 Connect-AzAccount -ServicePrincipal -Credential $pscredential -Tenant $Tenant
 
-$yaml = Get-Content ..\kpis.yaml -Raw
+$yaml = Get-Content ../a/core-linux/kpis.yaml -Raw
 
 $obj = ConvertFrom-Yaml $yaml
 $kpis = $obj["Connectivity"]
