@@ -8,12 +8,12 @@ namespace NetworkController
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    class FirewallOfflineController : INetworkController
+    class OfflineController : INetworkController
     {
-        static readonly ILogger Log = Logger.Factory.CreateLogger<FirewallOfflineController>();
+        static readonly ILogger Log = Logger.Factory.CreateLogger<OfflineController>();
         readonly INetworkController underlyingController;
 
-        public FirewallOfflineController(string networkInterfaceName, string iotHubHostname)
+        public OfflineController(string networkInterfaceName, string iotHubHostname, NetworkProfileSetting settings)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -21,7 +21,7 @@ namespace NetworkController
             }
             else
             {
-                this.underlyingController = new LinuxFirewallOfflineController(networkInterfaceName, iotHubHostname);
+                this.underlyingController = new LinuxTrafficControlController(settings, networkInterfaceName, iotHubHostname);
             }
         }
 

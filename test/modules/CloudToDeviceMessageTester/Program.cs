@@ -22,7 +22,7 @@ namespace CloudToDeviceMessageTester
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
-            CloudToDeviceMessageTesterBase cloudToDeviceMessageTester = null;
+            ICloudToDeviceMessageTester cloudToDeviceMessageTester = null;
             TestResultReportingClient reportClient = new TestResultReportingClient() { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
             try
             {
@@ -30,27 +30,17 @@ namespace CloudToDeviceMessageTester
                 {
                     cloudToDeviceMessageTester = new CloudToDeviceMessageReceiver(
                         Logger,
-                        Settings.Current.IoTHubConnectionString,
-                        Settings.Current.DeviceId,
-                        Settings.Current.ModuleId,
-                        Settings.Current.GatewayHostName,
-                        Settings.Current.TransportType,
-                        Settings.Current.TestDuration,
+                        Settings.Current.SharedSettings,
+                        Settings.Current.ReceiverSettings,
                         reportClient);
                 }
                 else
                 {
                     cloudToDeviceMessageTester = new CloudToDeviceMessageSender(
                         Logger,
-                        Settings.Current.IoTHubConnectionString,
-                        Settings.Current.DeviceId,
-                        Settings.Current.ModuleId,
-                        Settings.Current.TransportType,
-                        Settings.Current.TestDuration,
-                        reportClient,
-                        Settings.Current.TrackingId,
-                        Settings.Current.MessageDelay,
-                        Settings.Current.TestStartDelay);
+                        Settings.Current.SharedSettings,
+                        Settings.Current.SenderSettings,
+                        reportClient);
                 }
 
                 await cloudToDeviceMessageTester.StartAsync(cts.Token);

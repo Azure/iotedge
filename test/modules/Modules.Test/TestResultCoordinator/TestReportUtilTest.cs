@@ -8,10 +8,12 @@ namespace Modules.Test.TestResultCoordinator
     using global::TestResultCoordinator.Reports;
     using global::TestResultCoordinator.Reports.DirectMethod;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Logging;
     using Moq;
     using Xunit;
 
+    [Unit]
     public class TestReportUtilTest
     {
         [Fact]
@@ -288,6 +290,26 @@ namespace Modules.Test.TestResultCoordinator
             Assert.Equal(TestOperationResultType.Network, reportMetadata.TestOperationResultType);
             Assert.Equal(TestReportType.NetworkControllerReport, reportMetadata.TestReportType);
             Assert.Equal("networkController", reportMetadata.Source);
+        }
+
+        [Fact]
+        public void ParseReportMetadataList_ParseErrorReportMetadata()
+        {
+            const string testDataJson =
+                @"{
+                    ""reportMetadata"": {
+                        ""TestReportType"": ""ErrorReport""
+                    }
+                }";
+
+            List<ITestReportMetadata> results = TestReportUtil.ParseReportMetadataJson(testDataJson, new Mock<ILogger>().Object);
+
+            Assert.Single(results);
+            var reportMetadata = results[0] as ErrorReportMetadata;
+            Assert.NotNull(reportMetadata);
+            Assert.Equal(TestOperationResultType.Error, reportMetadata.TestOperationResultType);
+            Assert.Equal(TestReportType.ErrorReport, reportMetadata.TestReportType);
+            Assert.Equal(TestConstants.Error.TestResultSource, reportMetadata.Source);
         }
 
         [Fact]

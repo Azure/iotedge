@@ -7,6 +7,7 @@ namespace TestResultCoordinator
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
@@ -154,7 +155,10 @@ namespace TestResultCoordinator
             HashSet<string> sources = (await this.GetReportMetadataListAsync(logger)).SelectMany(r => r.ResultSources).ToHashSet();
             string[] additionalResultSources = new string[]
             {
-                "networkController"
+                "edgeHubRestartTester1.EdgeHubRestartDirectMethod",
+                "directMethodReceiver1.receive",
+                "edgeHubRestartTester1.EdgeHubRestartMessage",
+                "relayer1.receive"
             };
 
             foreach (string rs in additionalResultSources)
