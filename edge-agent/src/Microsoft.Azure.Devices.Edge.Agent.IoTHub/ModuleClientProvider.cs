@@ -92,28 +92,48 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             switch (protocol)
             {
-                case UpstreamProtocol.Amqp: return CreateSettings(TransportType.Amqp_Tcp_Only);
-                case UpstreamProtocol.AmqpWs: return CreateSettings(TransportType.Amqp_WebSocket_Only);
-                case UpstreamProtocol.Mqtt: return CreateSettings(TransportType.Mqtt_Tcp_Only);
-                case UpstreamProtocol.MqttWs: return CreateSettings(TransportType.Mqtt_WebSocket_Only);
+                case UpstreamProtocol.Amqp:
+                    {
+                        var settings = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
+                        if (useServerHeartbeat)
+                        {
+                            settings.IdleTimeout = HeartbeatTimeout;
+                        }
+
+                        proxy.ForEach(p => settings.Proxy = p);
+                        return settings;
+                    }
+
+                case UpstreamProtocol.AmqpWs:
+                    {
+                        var settings = new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only);
+                        if (useServerHeartbeat)
+                        {
+                            settings.IdleTimeout = HeartbeatTimeout;
+                        }
+
+                        proxy.ForEach(p => settings.Proxy = p);
+                        return settings;
+                    }
+
+                case UpstreamProtocol.Mqtt:
+                    {
+                        var settings = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
+                        proxy.ForEach(p => settings.Proxy = p);
+                        return settings;
+                    }
+
+                case UpstreamProtocol.MqttWs:
+                    {
+                        var settings = new MqttTransportSettings(TransportType.Mqtt_WebSocket_Only);
+                        proxy.ForEach(p => settings.Proxy = p);
+                        return settings;
+                    }
 
                 default:
-                {
-                    throw new InvalidEnumArgumentException();
-                }
-            }
-
-            AmqpTransportSettings CreateSettings(TransportType transportType)
-            {
-                var settings = new AmqpTransportSettings(transportType);
-
-                if (useServerHeartbeat)
-                {
-                    settings.IdleTimeout = HeartbeatTimeout;
-                }
-
-                proxy.ForEach(p => settings.Proxy = p);
-                return settings;
+                    {
+                        throw new InvalidEnumArgumentException();
+                    }
             }
         }
 
