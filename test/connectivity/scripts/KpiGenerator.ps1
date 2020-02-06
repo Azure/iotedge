@@ -1,6 +1,6 @@
 Param (
     [ValidateNotNullOrEmpty()]
-    [int] $TestId = $null,
+    [string] $TestId = $null,
 
     [ValidateNotNullOrEmpty()]
     [string] $User = $null,
