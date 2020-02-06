@@ -90,6 +90,7 @@ namespace LeafDeviceTest
             chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
             chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
 
+            Console.WriteLine($"Revocation Mode={chain.ChainPolicy.RevocationMode}");
             Console.WriteLine("*****************************************************************");
             Console.WriteLine($"Chain Information: {chain.ChainElements.Count}");
             Console.WriteLine("Chain revocation flag: {0}", chain.ChainPolicy.RevocationFlag);
@@ -109,9 +110,14 @@ namespace LeafDeviceTest
             foreach (X509ChainElement element in chain.ChainElements)
             {
                 Console.WriteLine("Element issuer name: {0}", element.Certificate.Issuer);
+                Console.WriteLine("Element subject: {0}", element.Certificate.Subject);
                 Console.WriteLine("Element certificate valid until: {0}", element.Certificate.NotAfter);
                 Console.WriteLine("Element certificate is valid: {0}", element.Certificate.Verify());
                 Console.WriteLine("Element error status length: {0}", element.ChainElementStatus.Length);
+                foreach (X509ChainStatus status in element.ChainElementStatus)
+                {
+                    Console.WriteLine($"Status: {status.Status};{status.StatusInformation}");
+                }
                 Console.WriteLine("Element information: {0}", element.Information);
                 Console.WriteLine("Number of element extensions: {0}{1}", element.Certificate.Extensions.Count, Environment.NewLine);
 
