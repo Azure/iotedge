@@ -99,7 +99,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                                     {
                                         return new ReportedModuleStatus(ModuleStatus.Backoff, $"Started at {c.State.Running.StartedAt}");
                                     }
-                                }).GetOrElse(() => {
+                                }).GetOrElse(() =>
+                                {
                                     var lastProbeTime = status.Conditions.Where(p => p.LastProbeTime.HasValue).Max(p => p.LastProbeTime);
                                     var podConditions = status.Conditions.Where(p => p.LastProbeTime == lastProbeTime).Select(p => p).FirstOrDefault();                                   
                                     return new ReportedModuleStatus(ModuleStatus.Failed, $"Module Failed with container status Unknown More Info: {podConditions.Message} K8s reason: {podConditions.Reason}");
