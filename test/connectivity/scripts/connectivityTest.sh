@@ -11,7 +11,7 @@ set -e
 function examine_test_result() {
     found_test_passed="$(docker logs testResultCoordinator 2>&1 | sed -n '/Test summary/,/"TestResultReports"/p' | grep '"IsPassed": true')"
 
-    if [[ ! -z "$found_test_passed" ]]; then
+    if [[ -z "$found_test_passed" ]]; then
         echo 0
     else
         echo 1
