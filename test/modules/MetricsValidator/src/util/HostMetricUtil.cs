@@ -13,7 +13,7 @@ namespace MetricsValidator.Util
         public static async Task WaitForHostMetrics(IMetricsScraper scraper, CancellationToken cancellationToken)
         {
             TimeSpan maxWaitTime = TimeSpan.FromMinutes(2);
-            TimeSpan frequency = TimeSpan.FromMilliseconds(100);
+            TimeSpan frequency = TimeSpan.FromSeconds(100);
 
             for (int i = 0; i < maxWaitTime / frequency; i++)
             {
