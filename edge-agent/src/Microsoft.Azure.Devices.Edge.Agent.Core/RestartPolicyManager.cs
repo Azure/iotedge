@@ -104,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 TimeSpan timeLeft = coolOffPeriod - elapsedTime;
                 Log.LogInformation(
                     (int)EventIds.ScheduledModule,
-                    $"Module '{module.Name}' scheduled to restart after {coolOffPeriod.Humanize()} ({timeLeft.Humanize()} left).");
+                    $">>>\nModule '{module.Name}' scheduled to restart after {coolOffPeriod.Humanize()} ({timeLeft.Humanize()} left).\n<<<");
             }
         }
     }

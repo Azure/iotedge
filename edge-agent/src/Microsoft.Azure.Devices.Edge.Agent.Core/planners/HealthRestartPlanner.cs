@@ -304,6 +304,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             {
                 if (await this.store.Contains(module.Name))
                 {
+                    Events.DumpModuleInfo(module);
                     // this value comes from docker; if this is equal to DateTime.MinValue then the container
                     // never exited before; if it is anything else then we check if it has been up for "IntensiveCareTime"
                     // and if yes, then we clear the health stats on it;
@@ -407,7 +408,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                 UnableToUpdateEdgeAgent,
                 UnableToProcessModule,
                 CurrentModuleNotFound,
-                InvalidDesiredState
+                InvalidDesiredState,
+                XxDebugInfoxX
+            }
+
+            public static void DumpModuleInfo(IRuntimeModule module)
+            {
+                Log.LogInformation((int)EventIds.XxDebugInfoxX, $">>>\n{module.ToJson()}\n<<<\n");
             }
 
             public static void PlanCreated(IList<ICommand> commands)
