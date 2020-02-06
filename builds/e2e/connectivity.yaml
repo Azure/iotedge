@@ -60,7 +60,6 @@ jobs:
             $(images.artifact.name.linux)/e2e_deployment_files/connectivity_deployment.template.json
             $(images.artifact.name.linux)/scripts/*
             $(images.artifact.name.linux)/artifactInfo.txt
-            $(images.artifact.name.linux)/kpis.yaml
 
       - pwsh: |
           env
