@@ -304,9 +304,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             {
                 if (await this.store.Contains(module.Name))
                 {
-                    Events.DumpModuleInfo(module);
                     // this value comes from docker; if this is equal to DateTime.MinValue then the container was
-                    // created by never started (which shouldn't happen); if it is anything else then we check if
+                    // created but never started (which shouldn't happen); if it is anything else then we check if
                     // it has been up for "IntensiveCareTime" and if yes, then we clear the health stats on it;
                     //
                     // the time returned by docker is in UTC timezone
@@ -408,13 +407,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                 UnableToUpdateEdgeAgent,
                 UnableToProcessModule,
                 CurrentModuleNotFound,
-                InvalidDesiredState,
-                XxDebugInfoxX
-            }
-
-            public static void DumpModuleInfo(IRuntimeModule module)
-            {
-                Log.LogInformation((int)EventIds.XxDebugInfoxX, $">>>\n{module.ToJson()}\n<<<\n");
+                InvalidDesiredState
             }
 
             public static void PlanCreated(IList<ICommand> commands)
