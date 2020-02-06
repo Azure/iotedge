@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    using Akka.Actor;
     using k8s;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
