@@ -15,7 +15,7 @@ namespace EdgeHubRestartTester
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    class DirectMethodEdgeHubConnector : IEdgeHubConnector
+    class DirectMethodEdgeHubConnectorTest : IEdgeHubConnector
     {
         readonly Guid batchId;
         readonly ILogger logger;
@@ -23,7 +23,7 @@ namespace EdgeHubRestartTester
         ModuleClient dmModuleClient = null;
         TestResultReportingClient reportClient = null;
 
-        public DirectMethodEdgeHubConnector(
+        public DirectMethodEdgeHubConnectorTest(
             Guid batchId,
             ILogger logger)
         {
@@ -45,7 +45,7 @@ namespace EdgeHubRestartTester
                 Settings.Current.DirectMethodName,
                 runExpirationTime,
                 cancellationToken,
-                this.logger).ConfigureAwait(false);
+                this.logger);
 
             TestResultBase dmTestResult = new EdgeHubRestartDirectMethodResult(
                 this.GetSourceString(),
@@ -61,7 +61,7 @@ namespace EdgeHubRestartTester
                 this.GetReportClient(),
                 this.logger,
                 dmTestResult,
-                cancellationToken).ConfigureAwait(false);
+                cancellationToken);
         }
 
         async Task<Tuple<DateTime, HttpStatusCode>> SendDirectMethodAsync(

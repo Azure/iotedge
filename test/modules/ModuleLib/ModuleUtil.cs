@@ -63,6 +63,25 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto(), cancellationToken);
         }
 
+        // TODO: Remove this function once the TRC support the two new endpoint properly.
+        public static async Task ReportTestResultUntilSuccessAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult, CancellationToken cancellationToken)
+        {
+            bool isSuccessful = false;
+            while (!isSuccessful && !cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    logger.LogInformation($"Sending test result: Source={testResult.Source}, Type={testResult.ResultType}, CreatedAt={testResult.CreatedAt}, Result={testResult.GetFormattedResult()}");
+                    await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto(), cancellationToken);
+                    isSuccessful = true;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogDebug(ex, "Exception caught in ReportTestResultAsync()");
+                }
+            }
+        }
+
         static async Task<ModuleClient> InitializeModuleClientAsync(TransportType transportType, ILogger logger)
         {
             ITransportSettings[] GetTransportSettings()

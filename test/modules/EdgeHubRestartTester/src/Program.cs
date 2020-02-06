@@ -39,14 +39,14 @@ namespace EdgeHubRestartTester
 
                 if (Settings.Current.MessageEnabled)
                 {
-                    edgeHubMessageConnector = new MessageEdgeHubConnector(
+                    edgeHubMessageConnector = new MessageEdgeHubConnectorTest(
                         batchId,
                         Logger);
                 }
 
                 if (Settings.Current.DirectMethodEnabled)
                 {
-                    edgeHubDirectMethodConnector = new DirectMethodEdgeHubConnector(
+                    edgeHubDirectMethodConnector = new DirectMethodEdgeHubConnectorTest(
                         batchId,
                         Logger);
                 }
@@ -121,6 +121,7 @@ namespace EdgeHubRestartTester
             {
                 try
                 {
+                    restartCount++;
                     // TODO: Introduce the offline scenario to use docker command.
                     CloudToDeviceMethodResult response = await iotHubServiceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", c2dMethod);
                     if ((HttpStatusCode)response.Status != HttpStatusCode.OK)

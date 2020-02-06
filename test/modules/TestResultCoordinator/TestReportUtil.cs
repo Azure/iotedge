@@ -4,9 +4,12 @@ namespace TestResultCoordinator
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Text;
+    using System.Threading;
     using System.Threading.Tasks;
     using Azure.Storage.Blobs;
     using Microsoft.Azure.Devices;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Microsoft.WindowsAzure.Storage;
