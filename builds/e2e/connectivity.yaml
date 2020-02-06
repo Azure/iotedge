@@ -64,12 +64,7 @@ jobs:
 
       - pwsh: |
           env
-          ../a/core-linux/scripts/KpiGenerator.ps1 -TestId $TestId -User $UserName -Password $Password -Tenant $Tenant
-        env:
-          TestId: $(testTrackingId)
-          UserName: $(LogAnalyticSpUser)
-          Password: $(LogAnalyticSpPassword)
-          Tenant: $(LogAnalyticSpTenant)
+          ../a/core-linux/scripts/KpiGenerator.ps1 -TestId $(testTrackingId) -User $(LogAnalyticSpUser) -Password $(LogAnalyticSpPassword) -Tenant $(LogAnalyticSpTenant)
       # Deploy connectivity test
       # - template: templates/connectivity-deploy.yaml
       #   parameters:
