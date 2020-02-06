@@ -28,8 +28,6 @@ jobs:
         inputs:
           targetType: inline
           script: |
-            ls
-            pwd
             echo "##vso[task.setvariable variable=testTrackingId]$(cat /proc/sys/kernel/random/uuid)"
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'
@@ -68,10 +66,10 @@ jobs:
           env
           ../a/core-linux/scripts/KpiGenerator.ps1 -TestId $TestId -User $UserName -Password $Password -Tenant $Tenant
         env:
-          TestId: '$(testTrackingId)'
-          UserName: '$(kvLogAnalyticSpUser)'
-          Password: '$(kvLogAnalyticSpPassword)'
-          Tenant: '$(kvLogAnalyticSpTenant)'
+          TestId: $(testTrackingId)
+          UserName: $(kvLogAnalyticSpUser)
+          Password: $(kvLogAnalyticSpPassword)
+          Tenant: $(kvLogAnalyticSpTenant)
       # Deploy connectivity test
       # - template: templates/connectivity-deploy.yaml
       #   parameters:
