@@ -398,14 +398,20 @@ function run_connectivity_test() {
 
         test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"
         print_highlighted_message "Connectivity test should be completed at $test_end_time."
-        testResult=$(examine_test_result)
-        print_test_run_logs $testResult
+        testExitCode=$(examine_test_result)
+        if [[ "$(examine_test_result)" -eq '0' ]]; then
+            testExitCode=1
+        else
+            testExitCode=0
+        fi
+
+        print_test_run_logs $testExitCode
 
         # stop IoT Edge service after test complete to prevent sending metrics
         sudo systemctl stop iotedge
     fi
 
-    return $testResult
+    return $testExitCode
 }
 
 function test_setup() {
