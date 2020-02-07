@@ -212,6 +212,16 @@
           "timeToLiveSecs": 86400
         }
       }
+    },
+    "testResultCoordinator": {
+      "properties.desired": {
+        "schemaVersion": "1.0",
+        "reportMetadataList": {
+          "reportMetadata1": {
+            "TestReportType": "ErrorReport"
+          }
+        }
+      }
     }
   }
 }
