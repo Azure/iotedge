@@ -15,8 +15,12 @@ Param (
 Write-Output "Making Kpi Alerts"
 Get-Location
 
-Install-Module -Name Az -AllowClobber -Scope CurrentUser -Force -Verbose
-Install-Module powershell-yaml -Verbose
+if (-Not $(Get-InstalledModule -Name Az)) {
+    Install-Module -Name Az -AllowClobber -Scope CurrentUser -Force -Verbose
+}
+if (-Not $(Get-InstalledModule -Name powershell-yaml)) {
+    Install-Module -Name powershell-yaml -Force -Verbose
+}
 
 $passwd = ConvertTo-SecureString $Password -AsPlainText -Force
 $pscredential = New-Object System.Management.Automation.PSCredential($User, $passwd)
@@ -31,7 +35,7 @@ foreach ($kpi in $kpis) {
     $kpiName = $kpi.keys
     Write-Output "KPI: $kpiName"
      
-    .\Create-Alert.ps1 `
+    ../a/core-linux/scripts/Create-Alert.ps1 `
         -MetricName $kpiSettings.metricName `
         -QueryType $kpiSettings.query_type `
         -QueryComparison $kpiSettings.comparison `
