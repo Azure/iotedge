@@ -6,8 +6,8 @@ namespace EdgeHubRestartTester
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
-    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -19,8 +19,6 @@ namespace EdgeHubRestartTester
 
         static async Task<int> MainAsync()
         {
-            uint restartCount = 0;
-
             Guid batchId = Guid.NewGuid();
             Logger.LogInformation($"Starting EdgeHubRestartTester ({batchId}) with the following settings:\r\n{Settings.Current}");
 
@@ -30,8 +28,8 @@ namespace EdgeHubRestartTester
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
             ServiceClient iotHubServiceClient = null;
-            ModuleClient msgModuleClient = null;
-            ModuleClient dmModuleClient = null;
+            IEdgeHubConnectorTest edgeHubMessageConnector = null;
+            IEdgeHubConnectorTest edgeHubDirectMethodConnector = null;
 
             try
             {
@@ -39,21 +37,15 @@ namespace EdgeHubRestartTester
 
                 if (Settings.Current.MessageEnabled)
                 {
-                    msgModuleClient = await ModuleUtil.CreateModuleClientAsync(
-                        Settings.Current.TransportType,
-                        ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                        ModuleUtil.DefaultTransientRetryStrategy,
+                    edgeHubMessageConnector = new MessageEdgeHubConnectorTest(
+                        batchId,
                         Logger);
-
-                    msgModuleClient.OperationTimeoutInMilliseconds = (uint)Settings.Current.SdkOperationTimeout.TotalMilliseconds;
                 }
 
                 if (Settings.Current.DirectMethodEnabled)
                 {
-                    dmModuleClient = await ModuleUtil.CreateModuleClientAsync(
-                        Settings.Current.TransportType,
-                        ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                        ModuleUtil.DefaultTransientRetryStrategy,
+                    edgeHubDirectMethodConnector = new DirectMethodEdgeHubConnectorTest(
+                        batchId,
                         Logger);
                 }
 
@@ -62,42 +54,24 @@ namespace EdgeHubRestartTester
 
                 while ((!cts.IsCancellationRequested) && (DateTime.UtcNow < testExpirationTime))
                 {
-                    (DateTime restartTime, _) = await RestartEdgeHub(iotHubServiceClient);
+                    DateTime restartTime = await RestartEdgeHubAsync(
+                        iotHubServiceClient,
+                        cts.Token);
                     DateTime eachTestExpirationTime = restartTime.Add(Settings.Current.RestartPeriod);
-
-                    // Increment the counter when issue an edgeHub restart
-                    restartCount++;
 
                     // Setup Message Task
                     Task sendMessageTask = Task.CompletedTask;
-                    if (Settings.Current.MessageEnabled)
-                    {
-                        sendMessageTask =
-                            new MessageEdgeHubConnectorTest(
-                                msgModuleClient,
-                                batchId,
-                                eachTestExpirationTime,
-                                restartTime,
-                                Logger,
-                                cts.Token)
-                            .StartAsync();
-                    }
+                    sendMessageTask = edgeHubMessageConnector?.StartAsync(
+                        eachTestExpirationTime,
+                        restartTime,
+                        cts.Token);
 
                     // Setup Direct Method Task
                     Task directMethodTask = Task.CompletedTask;
-                    if (Settings.Current.DirectMethodEnabled)
-                    {
-                        directMethodTask =
-                            new DirectMethodEdgeHubConnectorTest(
-                                dmModuleClient,
-                                batchId,
-                                eachTestExpirationTime,
-                                restartTime,
-                                restartCount,
-                                Logger,
-                                cts.Token)
-                            .StartAsync();
-                    }
+                    directMethodTask = edgeHubDirectMethodConnector?.StartAsync(
+                        eachTestExpirationTime,
+                        restartTime,
+                        cts.Token);
 
                     // Wait for the two task to be done before do a restart
                     await Task.WhenAll(new[] { sendMessageTask, directMethodTask });
@@ -114,8 +88,8 @@ namespace EdgeHubRestartTester
             finally
             {
                 iotHubServiceClient?.Dispose();
-                dmModuleClient?.Dispose();
-                msgModuleClient?.Dispose();
+                edgeHubDirectMethodConnector?.Dispose();
+                edgeHubMessageConnector?.Dispose();
             }
 
             await cts.Token.WhenCanceled();
@@ -125,8 +99,9 @@ namespace EdgeHubRestartTester
             return 0;
         }
 
-        static async Task<Tuple<DateTime, HttpStatusCode>> RestartEdgeHub(
-            ServiceClient iotHubServiceClient)
+        static async Task<DateTime> RestartEdgeHubAsync(
+            ServiceClient iotHubServiceClient,
+            CancellationToken cancellationToken)
         {
             const uint maxRetry = 3;
             uint restartCount = 0;
@@ -153,7 +128,7 @@ namespace EdgeHubRestartTester
                         Logger.LogInformation($"Calling EdgeHub restart succeeded with status code {response.Status}.");
                     }
 
-                    return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)response.Status);
+                    return DateTime.UtcNow;
                 }
                 catch (Exception e)
                 {
@@ -161,12 +136,28 @@ namespace EdgeHubRestartTester
 
                     if (restartCount == maxRetry - 1)
                     {
+                        string errorMessage = $"Failed to restart EdgeHub with payload: {payload}: {e}";
+                        TestResultBase errorResult = new ErrorTestResult(
+                            Settings.Current.TrackingId,
+                            GetSource(),
+                            errorMessage,
+                            DateTime.UtcNow);
+
+                        var reportClient = new TestResultReportingClient { BaseUrl = Settings.Current.ReportingEndpointUrl.AbsoluteUri };
+                        await ModuleUtil.ReportTestResultAsync(
+                            reportClient,
+                            Logger,
+                            errorResult,
+                            cancellationToken);
+
                         throw;
                     }
                 }
             }
 
-            return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.InternalServerError);
+            return DateTime.UtcNow;
         }
+
+        static string GetSource() => $"{Settings.Current.ModuleId}";
     }
 }
