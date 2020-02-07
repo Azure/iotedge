@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
     using System.Collections.Immutable;
     using System.Linq;
     using System.Threading.Tasks;
-    using Akka.Streams.Util;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
@@ -20,7 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.VisualStudio.TestPlatform.ObjectModel.Utilities;
     using Xunit;
 
     [Integration]
@@ -39,18 +37,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
 
         public Task DisposeAsync() => Task.CompletedTask;
 
-        [Fact]
-        public async Task CheckIfCreateDeploymentIsSuccessful()
+        private EdgeDeploymentController CreateDeploymentController(string moduleName, string deviceSelector, DummyModuleIdentityLifecycleManager moduleLifeCycleManager)
         {
-            var moduleName = "module-a";
-            var resourceName = new ResourceName("hostname", "deviceid");
-            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
-            var moduleLifeCycleManager = new DummyModuleIdentityLifecycleManager(
-                "hostname",
-                "gatewayhostname",
-                "deviceid",
-                moduleName,
-                new ConnectionStringCredentials("connectionString"));
+            var resourceName = new ResourceName("hostname", "deviceid");     
             var kubernetesServiceMapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
             string proxyImagePullSecretName = null;
             IDictionary<string, bool> experimentalFeatures = null;
@@ -79,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
                 experimentalFeatures == null ? new Dictionary<string, bool>() : experimentalFeatures);
             var pvcMapper = new KubernetesPvcMapper(persistentVolumeName, storageClassName, 100);
             var serviceAccountMapper = new KubernetesServiceAccountMapper();
-            var controller = new EdgeDeploymentController(
+            return new EdgeDeploymentController(
                 resourceName,
                 deviceSelector,
                 this.client.DeviceNamespace,
@@ -89,10 +78,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
                 deploymentMapper,
                 pvcMapper,
                 serviceAccountMapper);
+        }
+
+        private KubernetesModule CreateKubernetesModule(string moduleName)
+        {
             var creatOptions = CreatePodParameters.Create();
             KubernetesConfig config = new KubernetesConfig("image", creatOptions, Option.None<AuthConfig>());
             IModule m1 = new DockerModule(moduleName, "v1", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig("test-image:1"), ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, null, null);
-            KubernetesModule km1 = new KubernetesModule(m1, config, new KubernetesModuleOwner("v1", "Deployment", "iotedged", "123"));
+            return new KubernetesModule(m1, config, new KubernetesModuleOwner("v1", "Deployment", "iotedged", "123"));
+        }
+
+        [Fact]
+        public async Task CheckIfCreateDeploymentIsSuccessful()
+        {
+            var moduleName = "module-a";
+            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
+            var moduleLifeCycleManager = new DummyModuleIdentityLifecycleManager(
+                "hostname",
+                "gatewayhostname",
+                "deviceid",
+                moduleName,
+                new ConnectionStringCredentials("connectionString"));
+            var controller = CreateDeploymentController(moduleName, deviceSelector, moduleLifeCycleManager);
+            KubernetesModule km1 = CreateKubernetesModule(moduleName);
 
             moduleLifeCycleManager.SetModules(moduleName);
             await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Empty);
@@ -106,11 +114,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             Assert.Empty(currentServices.Items);
             Assert.Empty(currentPvcList.Items);
         }
+
         [Fact]
         public async Task CheckIfDeleteDeploymentIsSuccessful()
         {
             var moduleName = "module-a";
-            var resourceName = new ResourceName("hostname", "deviceid");
             var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
             var moduleLifeCycleManager = new DummyModuleIdentityLifecycleManager(
                 "hostname",
@@ -118,48 +126,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
                 "deviceid",
                 moduleName,
                 new ConnectionStringCredentials("connectionString"));
-            var kubernetesServiceMapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
-            string proxyImagePullSecretName = null;
-            IDictionary<string, bool> experimentalFeatures = null;
-            var persistentVolumeName = string.Empty;
-            var storageClassName = string.Empty;
-            var deploymentMapper = new KubernetesDeploymentMapper(
-                this.client.DeviceNamespace,
-                "edgehub",
-                "proxy",
-                Option.Maybe(proxyImagePullSecretName),
-                "configPath",
-                "config-volume",
-                "configMapName",
-                "trustBundlePath",
-                "trust-bundle-volume",
-                "trustBundleConfigMapName",
-                PortMapServiceType.ClusterIP,
-                persistentVolumeName,
-                storageClassName,
-                Option.Some<uint>(100),
-                "apiVersion",
-                new Uri("http://localhost:35001"),
-                new Uri("http://localhost:35000"),
-                false,
-                false,
-                experimentalFeatures == null ? new Dictionary<string, bool>() : experimentalFeatures);
-            var pvcMapper = new KubernetesPvcMapper(persistentVolumeName, storageClassName, 100);
-            var serviceAccountMapper = new KubernetesServiceAccountMapper();
-            var controller = new EdgeDeploymentController(
-                resourceName,
-                deviceSelector,
-                this.client.DeviceNamespace,
-                this.client.Kubernetes,
-                moduleLifeCycleManager,
-                kubernetesServiceMapper,
-                deploymentMapper,
-                pvcMapper,
-                serviceAccountMapper);
-            var creatOptions = CreatePodParameters.Create();
-            KubernetesConfig config = new KubernetesConfig("image", creatOptions, Option.None<AuthConfig>());
-            IModule m1 = new DockerModule(moduleName, "v1", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig("test-image:1"), ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, null, null);
-            KubernetesModule km1 = new KubernetesModule(m1, config, new KubernetesModuleOwner("v1", "Deployment", "iotedged", "123"));
+            var controller = CreateDeploymentController(moduleName, deviceSelector, moduleLifeCycleManager);
+            KubernetesModule km1 = CreateKubernetesModule(moduleName);
 
             await this.client.AddModuleDeploymentAsync(moduleName, new Dictionary<string, string> { ["a"] = "b" }, null);
             moduleLifeCycleManager.SetModules(moduleName);
@@ -179,7 +147,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         public async Task CheckIfUpdateDeploymentWithImageUpdateIsSuccessful()
         {
             var moduleName = "module-a";
-            var resourceName = new ResourceName("hostname", "deviceid");
             var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
             var moduleLifeCycleManager = new DummyModuleIdentityLifecycleManager(
                 "hostname",
@@ -187,48 +154,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
                 "deviceid",
                 moduleName,
                 new ConnectionStringCredentials("connectionString"));
-            var kubernetesServiceMapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
-            string proxyImagePullSecretName = null;
-            IDictionary<string, bool> experimentalFeatures = null;
-            var persistentVolumeName = string.Empty;
-            var storageClassName = string.Empty;
-            var deploymentMapper = new KubernetesDeploymentMapper(
-                this.client.DeviceNamespace,
-                "edgehub",
-                "proxy",
-                Option.Maybe(proxyImagePullSecretName),
-                "configPath",
-                "config-volume",
-                "configMapName",
-                "trustBundlePath",
-                "trust-bundle-volume",
-                "trustBundleConfigMapName",
-                PortMapServiceType.ClusterIP,
-                persistentVolumeName,
-                storageClassName,
-                Option.Some<uint>(100),
-                "apiVersion",
-                new Uri("http://localhost:35001"),
-                new Uri("http://localhost:35000"),
-                false,
-                false,
-                experimentalFeatures == null ? new Dictionary<string, bool>() : experimentalFeatures);
-            var pvcMapper = new KubernetesPvcMapper(persistentVolumeName, storageClassName, 100);
-            var serviceAccountMapper = new KubernetesServiceAccountMapper();
-            var controller = new EdgeDeploymentController(
-                resourceName,
-                deviceSelector,
-                this.client.DeviceNamespace,
-                this.client.Kubernetes,
-                moduleLifeCycleManager,
-                kubernetesServiceMapper,
-                deploymentMapper,
-                pvcMapper,
-                serviceAccountMapper);
-            var creatOptions = CreatePodParameters.Create();
-            KubernetesConfig config = new KubernetesConfig("image", creatOptions, Option.None<AuthConfig>());
-            IModule m1 = new DockerModule(moduleName, "v1", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig("test-image:1"), ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, null, null);
-            KubernetesModule km1 = new KubernetesModule(m1, config, new KubernetesModuleOwner("v1", "Deployment", "iotedged", "123"));
+            var controller = CreateDeploymentController(moduleName, deviceSelector, moduleLifeCycleManager);
+            KubernetesModule km1 = CreateKubernetesModule(moduleName);
             string newImage = "test-image:2";
 
             await this.client.AddModuleDeploymentAsync(moduleName, new Dictionary<string, string> { ["a"] = "b" }, null);
