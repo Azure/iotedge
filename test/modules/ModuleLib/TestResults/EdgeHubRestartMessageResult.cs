@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
             this.MessageCompletedStatusCode = messageCompletedStatusCode;
         }
 
-        DateTime EdgeHubRestartedTime { get; set; }
+        public DateTime EdgeHubRestartedTime { get; set; }
 
         public DateTime MessageCompletedTime { get; set; }
 
