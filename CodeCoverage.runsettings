@@ -59,6 +59,7 @@ Included items must then not match any entries in the exclude list to remain inc
                 <ModulePath>.*deploymenttester\..*</ModulePath>
                 <ModulePath>.*directmethodreceiver\..*</ModulePath>
                 <ModulePath>.*directmethodsender\..*</ModulePath>
+                <ModulePath>.*edgehubrestarttester\..*</ModulePath>
                 <ModulePath>.*iotedgequickstart\..*</ModulePath>
                 <ModulePath>.*leafdevice\..*</ModulePath>
                 <ModulePath>.*load-gen\..*</ModulePath>
