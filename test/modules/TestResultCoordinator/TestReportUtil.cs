@@ -100,6 +100,9 @@ namespace TestResultCoordinator
                         case TestReportType.ErrorReport:
                             reportMetadataList.Add(new ErrorReportMetadata());
                             break;
+                        case TestReportType.TestInfoReport:
+                            reportMetadataList.Add(new TestInfoReportMetadata());
+                            break;
                         default:
                             throw new NotImplementedException("{testReportType} doesn't implement to construct report metadata from Twin.");
                     }

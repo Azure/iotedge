@@ -10,6 +10,7 @@ namespace TestResultCoordinator.Reports
         DeploymentTestReport,
         DirectMethodReport,
         NetworkControllerReport,
-        ErrorReport
+        ErrorReport,
+        TestInfoReport
     }
 }

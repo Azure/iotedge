@@ -304,12 +304,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             {
                 if (await this.store.Contains(module.Name))
                 {
-                    // this value comes from docker; if this is equal to DateTime.MinValue then the container
-                    // never exited before; if it is anything else then we check if it has been up for "IntensiveCareTime"
-                    // and if yes, then we clear the health stats on it;
+                    // this value comes from docker; if this is equal to DateTime.MinValue then the container was
+                    // created but never started (which shouldn't happen); if it is anything else then we check if
+                    // it has been up for "IntensiveCareTime" and if yes, then we clear the health stats on it;
                     //
                     // the time returned by docker is in UTC timezone
-                    if (module.LastExitTimeUtc != DateTime.MinValue && DateTime.UtcNow - module.LastExitTimeUtc > this.intensiveCareTime)
+                    if (module.LastStartTimeUtc != DateTime.MinValue && DateTime.UtcNow - module.LastStartTimeUtc > this.intensiveCareTime)
                     {
                         // NOTE: This is a "special" command in that it doesn't come from an "ICommandFactory". This
                         // command clears the health stats from the store.
