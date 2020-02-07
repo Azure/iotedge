@@ -37,7 +37,7 @@ namespace MetricsValidator
                     .AddEnvironmentVariables()
                     .Build();
 
-                if(Environment.OSVersion.Platform != PlatformID.Unix)
+                if (Environment.OSVersion.Platform != PlatformID.Unix)
                 {
                     Logger.LogInformation("Windows detected, delaying");
                     await Task.Delay(TimeSpan.FromMinutes(2));
