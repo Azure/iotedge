@@ -37,10 +37,19 @@ namespace MetricsValidator
                     .AddEnvironmentVariables()
                     .Build();
 
+                if(Environment.OSVersion.Platform != PlatformID.Unix)
+                {
+                    Logger.LogInformation("Windows detected, delaying");
+                    await Task.Delay(TimeSpan.FromMinutes(2));
+                }
+
                 using (ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync())
                 using (MetricsScraper scraper = new MetricsScraper(new List<string> { "http://edgeHub:9600/metrics", "http://edgeAgent:9600/metrics" }))
                 {
+                    Logger.LogInformation("Open Async");
                     await moduleClient.OpenAsync();
+
+                    Logger.LogInformation("Set method handler");
                     await moduleClient.SetMethodHandlerAsync(
                         "ValidateMetrics",
                         async (MethodRequest methodRequest, object _) =>
