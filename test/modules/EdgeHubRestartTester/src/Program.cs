@@ -19,8 +19,6 @@ namespace EdgeHubRestartTester
 
         static async Task<int> MainAsync()
         {
-            uint restartCount = 0;
-
             Guid batchId = Guid.NewGuid();
             Logger.LogInformation($"Starting EdgeHubRestartTester ({batchId}) with the following settings:\r\n{Settings.Current}");
 
@@ -30,8 +28,13 @@ namespace EdgeHubRestartTester
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
             ServiceClient iotHubServiceClient = null;
+<<<<<<< HEAD
             IEdgeHubConnector edgeHubMessageConnector = null;
             IEdgeHubConnector edgeHubDirectMethodConnector = null;
+=======
+            IEdgeHubConnectorTest edgeHubMessageConnector = null;
+            IEdgeHubConnectorTest edgeHubDirectMethodConnector = null;
+>>>>>>> 10178027ad60b14bdff8e0754c667e90aded5c95
 
             try
             {
@@ -56,13 +59,14 @@ namespace EdgeHubRestartTester
 
                 while ((!cts.IsCancellationRequested) && (DateTime.UtcNow < testExpirationTime))
                 {
+<<<<<<< HEAD
                     (DateTime restartTime, _) = await RestartEdgeHub(
+=======
+                    DateTime restartTime = await RestartEdgeHubAsync(
+>>>>>>> 10178027ad60b14bdff8e0754c667e90aded5c95
                         iotHubServiceClient,
                         cts.Token);
                     DateTime eachTestExpirationTime = restartTime.Add(Settings.Current.RestartPeriod);
-
-                    // Increment the counter when issue an edgeHub restart
-                    restartCount++;
 
                     // Setup Message Task
                     Task sendMessageTask = Task.CompletedTask;
@@ -104,7 +108,11 @@ namespace EdgeHubRestartTester
             return 0;
         }
 
+<<<<<<< HEAD
         static async Task<Tuple<DateTime, HttpStatusCode>> RestartEdgeHub(
+=======
+        static async Task<DateTime> RestartEdgeHubAsync(
+>>>>>>> 10178027ad60b14bdff8e0754c667e90aded5c95
             ServiceClient iotHubServiceClient,
             CancellationToken cancellationToken)
         {
@@ -133,7 +141,7 @@ namespace EdgeHubRestartTester
                         Logger.LogInformation($"Calling EdgeHub restart succeeded with status code {response.Status}.");
                     }
 
-                    return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)response.Status);
+                    return DateTime.UtcNow;
                 }
                 catch (Exception e)
                 {
@@ -144,7 +152,11 @@ namespace EdgeHubRestartTester
                         string errorMessage = $"Failed to restart EdgeHub with payload: {payload}: {e}";
                         TestResultBase errorResult = new ErrorTestResult(
                             Settings.Current.TrackingId,
+<<<<<<< HEAD
                             GetSourceString(),
+=======
+                            GetSource(),
+>>>>>>> 10178027ad60b14bdff8e0754c667e90aded5c95
                             errorMessage,
                             DateTime.UtcNow);
 
@@ -154,16 +166,25 @@ namespace EdgeHubRestartTester
                             Logger,
                             errorResult,
                             cancellationToken);
+<<<<<<< HEAD
+=======
+
+                        throw;
+>>>>>>> 10178027ad60b14bdff8e0754c667e90aded5c95
                     }
                 }
             }
 
-            return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.InternalServerError);
+            return DateTime.UtcNow;
         }
 
+<<<<<<< HEAD
         static string GetSourceString() =>
             Settings.Current.MessageEnabled ?
                 Settings.Current.ModuleId + "." + TestOperationResultType.EdgeHubRestartMessage.ToString() :
                 Settings.Current.ModuleId + "." + TestOperationResultType.EdgeHubRestartDirectMethod.ToString();
+=======
+        static string GetSource() => $"{Settings.Current.ModuleId}";
+>>>>>>> 10178027ad60b14bdff8e0754c667e90aded5c95
     }
 }

@@ -9,16 +9,18 @@ namespace NetworkController
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    class LinuxFirewallOfflineController : INetworkController
+    class LinuxTrafficControlController : INetworkController
     {
-        static readonly ILogger Log = Logger.Factory.CreateLogger<LinuxFirewallOfflineController>();
+        static readonly ILogger Log = Logger.Factory.CreateLogger<LinuxTrafficControlController>();
         readonly string networkInterfaceName;
         readonly string iotHubHostname;
+        readonly NetworkProfileSetting profileRuleSettings;
 
-        public LinuxFirewallOfflineController(string networkInterfaceName, string iotHubHostname)
+        public LinuxTrafficControlController(NetworkProfileSetting settings, string networkInterfaceName, string iotHubHostname)
         {
             this.networkInterfaceName = networkInterfaceName;
             this.iotHubHostname = iotHubHostname;
+            this.profileRuleSettings = settings;
         }
 
         public NetworkControllerType NetworkControllerType => NetworkControllerType.Offline;
@@ -28,17 +30,19 @@ namespace NetworkController
             try
             {
                 string output = await CommandExecutor.Execute(
-                    "tc",
-                    $"qdisc show dev {this.networkInterfaceName}",
+                    LinuxTrafficControllerHelper.CommandName,
+                    LinuxTrafficControllerHelper.GetShowRules(this.networkInterfaceName),
                     cs);
 
                 // parse output to see if online or offline
                 if (output.Contains("qdisc noqueue"))
                 {
+                    Log.LogDebug("No rule is set");
                     return NetworkControllerStatus.Disabled;
                 }
                 else
                 {
+                    Log.LogDebug($"Found rules {output}");
                     return NetworkControllerStatus.Enabled;
                 }
             }
@@ -68,9 +72,9 @@ namespace NetworkController
             {
                 // Delete the root rules cleans the chilldren rules
                 await CommandExecutor.Execute(
-                   "tc",
-                   $"qdisc delete dev {this.networkInterfaceName} root",
-                   cs);
+                    LinuxTrafficControllerHelper.CommandName,
+                    LinuxTrafficControllerHelper.GetRemoveAllArguments(this.networkInterfaceName),
+                    cs);
 
                 return true;
             }
@@ -99,19 +103,19 @@ namespace NetworkController
                 // Adding rules to filter packages by iotHub IP
                 // Details about how the rules work https://wiki.archlinux.org/index.php/Advanced_traffic_control
                 await CommandExecutor.Execute(
-                    "tc",
-                    $"qdisc add dev {this.networkInterfaceName} root handle 1: prio priomap 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0",
+                    LinuxTrafficControllerHelper.CommandName,
+                    LinuxTrafficControllerHelper.GetRootRule(this.networkInterfaceName),
                     cs);
 
                 await CommandExecutor.Execute(
-                    "tc",
-                    $"qdisc add dev {this.networkInterfaceName} parent 1:2 handle 20: netem loss 100%",
+                    LinuxTrafficControllerHelper.CommandName,
+                    LinuxTrafficControllerHelper.GetNetworkEmulatorAddRule(this.networkInterfaceName, this.profileRuleSettings),
                     cs);
 
                 await CommandExecutor.Execute(
-                   "tc",
-                   $"filter add dev {this.networkInterfaceName} parent 1:0 protocol ip u32 match ip src {iothubAddresses[0]} flowid 1:2",
-                   cs);
+                    LinuxTrafficControllerHelper.CommandName,
+                    LinuxTrafficControllerHelper.GetIpFilter(this.networkInterfaceName, iothubAddresses),
+                    cs);
 
                 return true;
             }

@@ -14,7 +14,7 @@ namespace EdgeHubRestartTester
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    class MessageEdgeHubConnectorTest : IEdgeHubConnector, IDisposable
+    class MessageEdgeHubConnectorTest : IEdgeHubConnectorTest, IDisposable
     {
         readonly Guid batchId;
         readonly ILogger logger;
@@ -38,7 +38,6 @@ namespace EdgeHubRestartTester
             CancellationToken cancellationToken)
         {
             (DateTime msgCompletedTime, HttpStatusCode mgsStatusCode) = await this.SendMessageAsync(
-                await this.GetModuleClientAsync(),
                 Settings.Current.TrackingId,
                 this.batchId,
                 Settings.Current.MessageOutputEndpoint,
@@ -46,7 +45,7 @@ namespace EdgeHubRestartTester
                 cancellationToken);
 
             TestResultBase msgTestResult = new EdgeHubRestartMessageResult(
-                this.GetSourceString(),
+                this.GetSource(),
                 DateTime.UtcNow,
                 Settings.Current.TrackingId,
                 this.batchId.ToString(),
@@ -88,17 +87,18 @@ namespace EdgeHubRestartTester
             return this.reportClient;
         }
 
-        string GetSourceString() => Settings.Current.ModuleId + "." + TestOperationResultType.EdgeHubRestartMessage.ToString();
+        string GetSource() => $"{Settings.Current.ModuleId}.{TestOperationResultType.EdgeHubRestartMessage.ToString()}";
 
         async Task<Tuple<DateTime, HttpStatusCode>> SendMessageAsync(
-            ModuleClient moduleClient,
             string trackingId,
             Guid batchId,
             string msgOutputEndpoint,
             DateTime runExpirationTime,
             CancellationToken cancellationToken)
         {
+            ModuleClient moduleClient = await this.GetModuleClientAsync();
             this.messageCount++;
+
             while ((!cancellationToken.IsCancellationRequested) && (DateTime.UtcNow < runExpirationTime))
             {
                 Message message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new { data = DateTime.UtcNow.ToString() })));
@@ -110,7 +110,7 @@ namespace EdgeHubRestartTester
                 {
                     // Sending the result via edgeHub
                     await moduleClient.SendEventAsync(msgOutputEndpoint, message);
-                    this.logger.LogInformation($"[SendMessageAsync] Send Message with count {this.messageCount.ToString()}: finished.");
+                    this.logger.LogInformation($"[SendMessageAsync] Send Message with count {this.messageCount}: finished.");
                     return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.OK);
                 }
                 catch (Exception ex)
@@ -128,7 +128,7 @@ namespace EdgeHubRestartTester
 
                         TestResultBase errorResult = new ErrorTestResult(
                             Settings.Current.TrackingId,
-                            this.GetSourceString(),
+                            this.GetSource(),
                             errorMessage,
                             DateTime.UtcNow);
 
