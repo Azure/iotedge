@@ -864,8 +864,11 @@
             "TestReportType": "NetworkControllerReport",
             "Source": "networkController"
           },
-          "reportMetadata14": {
+          "reportMetadata16": {
             "TestReportType": "ErrorReport"
+          },
+          "reportMetadata17": {
+            "TestReportType": "TestInfoReport"
           }
         }
       }
