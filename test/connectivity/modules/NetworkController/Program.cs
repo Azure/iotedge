@@ -3,9 +3,12 @@ namespace NetworkController
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -67,14 +70,42 @@ namespace NetworkController
             handler.ForEach(h => GC.KeepAlive(h));
         }
 
+        static async Task ReportTestInfoAsync()
+        {
+            var testInfoResults = new string[]
+            {
+                $"Network Run Profile={Settings.Current.NetworkRunProfile}",
+                $"Network Network Id={Settings.Current.NetworkId}",
+                $"Network Profile Settings={Settings.Current.ProfileSettings.ToString()}",
+                $"Network Frequencies={string.Join(",", Settings.Current.Frequencies.Select(f => $"[offline:{f.OfflineFrequency},Online:{f.OnlineFrequency},Runs:{f.RunsCount}]"))}"
+            };
+
+            var testResultReportingClient = new TestResultReportingClient() { BaseUrl = Settings.Current.TestResultCoordinatorEndpoint.AbsoluteUri };
+
+            foreach (string testInfo in testInfoResults)
+            {
+                await ModuleUtil.ReportTestResultAsync(
+                    testResultReportingClient,
+                    Log,
+                    new TestInfoResult(
+                        Settings.Current.TrackingId,
+                        Settings.Current.ModuleId,
+                        testInfo,
+                        DateTime.UtcNow));
+            }
+        }
+
         static async Task StartAsync(INetworkController controller, CancellationToken cancellationToken)
         {
-            var delay = Settings.Current.StartAfter;
+            TimeSpan delay = Settings.Current.StartAfter;
 
             INetworkStatusReporter reporter = new NetworkStatusReporter(Settings.Current.TestResultCoordinatorEndpoint, Settings.Current.ModuleId, Settings.Current.TrackingId);
             foreach (Frequency item in Settings.Current.Frequencies)
             {
                 Log.LogInformation($"Schedule task for type {controller.NetworkControllerType} to start after {delay} Offline frequency {item.OfflineFrequency} Online frequency {item.OnlineFrequency} Run times {item.RunsCount}");
+
+                await Task.Delay(delay, cancellationToken);
+                await ReportTestInfoAsync();
 
                 var taskExecutor = new CountedTaskExecutor(
                     async cs =>
@@ -83,7 +114,7 @@ namespace NetworkController
                         await Task.Delay(item.OfflineFrequency, cs);
                         await SetNetworkControllerStatus(controller, NetworkControllerStatus.Disabled, reporter, cs);
                     },
-                    delay,
+                    TimeSpan.Zero,
                     item.OnlineFrequency,
                     item.RunsCount,
                     Log,
