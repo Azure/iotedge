@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Pvc
 {
     using System.Collections.Generic;
+    using System.Linq;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -139,39 +140,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Pvc
         [Fact]
         public void SuccessComparisonTest()
         {
-            var x = new V1PersistentVolumeClaim
-            {
-                Metadata = new V1ObjectMeta(
-                    name: "pvc1",
-                    labels: new Dictionary<string, string>
-                    {
-                        [KubernetesConstants.K8sEdgeDeviceLabel] = "device1",
-                        [KubernetesConstants.K8sEdgeHubNameLabel] = "hostname"
-                    }),
-                Spec = new V1PersistentVolumeClaimSpec
-                {
-                    VolumeName = "steve",
-                    AccessModes = new List<string> { "ReadOnce" },
-                    Resources = new V1ResourceRequirements { Requests = new Dictionary<string, ResourceQuantity> { ["storage"] = new ResourceQuantity("10M") } }
-                }
-            };
-            var y = new V1PersistentVolumeClaim
-            {
-                Metadata = new V1ObjectMeta(
-                    name: "pvc1",
-                    labels: new Dictionary<string, string>
-                    {
-                        [KubernetesConstants.K8sEdgeDeviceLabel] = "device1",
-                        [KubernetesConstants.K8sEdgeHubNameLabel] = "hostname"
-                    }),
-                Spec = new V1PersistentVolumeClaimSpec
-                {
-                    VolumeName = "steve",
-                    AccessModes = new List<string> { "ReadOnce" },
-                    Resources = new V1ResourceRequirements { Requests = new Dictionary<string, ResourceQuantity> { ["storage"] = new ResourceQuantity("10M") } }
-                }
-            };
+            (var x, var y) = MakeIdenticalPVCs();
             Assert.True(Comparer.Equals(x, y));
+        }
+
+        [Fact]
+        public void DistictionTest()
+        {
+            (var x, var y) = MakeIdenticalPVCs();
+            var distinct = new List<V1PersistentVolumeClaim> { x, y }.Distinct(Comparer);
+
+            Assert.Equal(1, distinct.LongCount());
         }
 
         [Fact]
@@ -212,6 +191,43 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Pvc
                 }
             };
             Assert.False(Comparer.Equals(pvcWithOwnerRefMetadata, pvcWithoutOwnerRefMetadata));
+        }
+
+        static (V1PersistentVolumeClaim, V1PersistentVolumeClaim) MakeIdenticalPVCs()
+        {
+            var x = new V1PersistentVolumeClaim
+            {
+                Metadata = new V1ObjectMeta(
+                    name: "pvc1",
+                    labels: new Dictionary<string, string>
+                    {
+                        [KubernetesConstants.K8sEdgeDeviceLabel] = "device1",
+                        [KubernetesConstants.K8sEdgeHubNameLabel] = "hostname"
+                    }),
+                Spec = new V1PersistentVolumeClaimSpec
+                {
+                    VolumeName = "steve",
+                    AccessModes = new List<string> { "ReadOnce" },
+                    Resources = new V1ResourceRequirements { Requests = new Dictionary<string, ResourceQuantity> { ["storage"] = new ResourceQuantity("10M") } }
+                }
+            };
+            var y = new V1PersistentVolumeClaim
+            {
+                Metadata = new V1ObjectMeta(
+                    name: "pvc1",
+                    labels: new Dictionary<string, string>
+                    {
+                        [KubernetesConstants.K8sEdgeDeviceLabel] = "device1",
+                        [KubernetesConstants.K8sEdgeHubNameLabel] = "hostname"
+                    }),
+                Spec = new V1PersistentVolumeClaimSpec
+                {
+                    VolumeName = "steve",
+                    AccessModes = new List<string> { "ReadOnce" },
+                    Resources = new V1ResourceRequirements { Requests = new Dictionary<string, ResourceQuantity> { ["storage"] = new ResourceQuantity("10M") } }
+                }
+            };
+            return (x, y);
         }
     }
 }
