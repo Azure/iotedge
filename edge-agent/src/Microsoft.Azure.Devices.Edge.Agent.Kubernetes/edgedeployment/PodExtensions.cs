@@ -61,15 +61,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                                     else if (c.State.Terminated != null)
                                     {
                                         if (c.State.Terminated.ExitCode != 0)
+                                        {
                                             return new ReportedModuleStatus(ModuleStatus.Failed, $"Module Failed reason: {c.State.Terminated.Reason}");
+                                        }
                                         else
+                                        {
                                             return new ReportedModuleStatus(ModuleStatus.Stopped, $"Module Stopped reason: {c.State.Terminated.Reason}");
+                                        }
                                     }
                                     else
                                     {
                                         return new ReportedModuleStatus(ModuleStatus.Running, $"Started at {c.State.Running.StartedAt}");
                                     }
-                                }).GetOrElse(() => new ReportedModuleStatus(ModuleStatus.Failed, $"Module Failed with container status Unknown More Info: K8s reason: {status.Reason} with message: {status.Message}"));
+                                }).GetOrElse(() => new ReportedModuleStatus(ModuleStatus.Failed, "Module Failed with Unknown container status"));
                             }
 
                         case "Pending":
@@ -83,19 +87,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                                     else if (c.State.Terminated != null)
                                     {
                                         if (c.State.Terminated.ExitCode != 0)
+                                        {
                                             return new ReportedModuleStatus(ModuleStatus.Failed, $"Module Failed reason: {c.State.Terminated.Reason}");
+                                        }
                                         else
+                                        {
                                             return new ReportedModuleStatus(ModuleStatus.Stopped, $"Module Stopped reason: {c.State.Terminated.Reason}");
+                                        }
                                     }
                                     else
                                     {
                                         return new ReportedModuleStatus(ModuleStatus.Backoff, $"Started at {c.State.Running.StartedAt}");
                                     }
-                                }).GetOrElse(() => new ReportedModuleStatus(ModuleStatus.Failed, $"Module Failed with container status Unknown More Info: K8s reason: {status.Reason} with message: {status.Message}"));
+                                }).GetOrElse(() =>
+                                {
+                                    var lastProbeTime = status.Conditions.Where(p => p.LastProbeTime.HasValue).Max(p => p.LastProbeTime);
+                                    var podConditions = status.Conditions.Where(p => p.LastProbeTime == lastProbeTime).Select(p => p).FirstOrDefault();
+                                    return new ReportedModuleStatus(ModuleStatus.Failed, $"Module Failed with container status Unknown More Info: {podConditions.Message} K8s reason: {podConditions.Reason}");
+                                });
                             }
 
                         case "Unknown":
-                            return new ReportedModuleStatus(ModuleStatus.Unknown, $"Module status Unknown reason: {status.Reason}");
+                            return new ReportedModuleStatus(ModuleStatus.Unknown, $"Module status Unknown reason: {status.Reason} with message: {status.Message}");
                         case "Succeeded":
                             return new ReportedModuleStatus(ModuleStatus.Stopped, $"Module Stopped reason: {status.Reason} with message: {status.Message}");
                         case "Failed":
