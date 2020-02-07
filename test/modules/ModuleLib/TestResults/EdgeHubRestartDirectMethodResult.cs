@@ -15,8 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
             string sequenceNumber,
             DateTime edgeHubRestartedTime,
             DateTime directMethodCompletedTime,
-            HttpStatusCode directMethodCompletedStatusCode,
-            uint restartSequenceNumber)
+            HttpStatusCode directMethodCompletedStatusCode)
             : base(
                 source,
                 createdAt,
@@ -29,16 +28,13 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
             this.EdgeHubRestartedTime = edgeHubRestartedTime;
             this.DirectMethodCompletedTime = directMethodCompletedTime;
             this.DirectMethodCompletedStatusCode = directMethodCompletedStatusCode;
-            this.RestartSequenceNumber = restartSequenceNumber;
         }
 
-        DateTime EdgeHubRestartedTime { get; set; }
+        public DateTime EdgeHubRestartedTime { get; set; }
 
         public DateTime DirectMethodCompletedTime { get; set; }
 
         public HttpStatusCode DirectMethodCompletedStatusCode { get; set; }
-
-        public uint RestartSequenceNumber { get; set; }
 
         public override string GetFormattedResult()
         {
