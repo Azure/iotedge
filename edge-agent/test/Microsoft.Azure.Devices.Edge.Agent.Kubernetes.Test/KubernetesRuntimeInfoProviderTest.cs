@@ -148,13 +148,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 }
             };
         }
+
         public static IEnumerable<object[]> GetListOfPodsInAbnormalPhase()
         {
             return new[]
             {
                 new object[]
                 {
-                    CreatePodWithPodParametersOnly("Unknown", "Unknown","Unknown"),
+                    CreatePodWithPodParametersOnly("Unknown", "Unknown", "Unknown"),
                     "Module status Unknown reason: Unknown with message: Unknown",
                     ModuleStatus.Unknown
                 },
