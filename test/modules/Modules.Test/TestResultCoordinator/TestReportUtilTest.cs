@@ -313,6 +313,26 @@ namespace Modules.Test.TestResultCoordinator
         }
 
         [Fact]
+        public void ParseReportMetadataList_ParseTestInfoReportMetadata()
+        {
+            const string testDataJson =
+                @"{
+                    ""reportMetadata"": {
+                        ""TestReportType"": ""TestInfoReport""
+                    }
+                }";
+
+            List<ITestReportMetadata> results = TestReportUtil.ParseReportMetadataJson(testDataJson, new Mock<ILogger>().Object);
+
+            Assert.Single(results);
+            var reportMetadata = results[0] as TestInfoReportMetadata;
+            Assert.NotNull(reportMetadata);
+            Assert.Equal(TestOperationResultType.TestInfo, reportMetadata.TestOperationResultType);
+            Assert.Equal(TestReportType.TestInfoReport, reportMetadata.TestReportType);
+            Assert.Equal(TestConstants.TestInfo.TestResultSource, reportMetadata.Source);
+        }
+
+        [Fact]
         public void ParseReportMetadataList_ThrowExceptionWhenParseInvalidData()
         {
             const string testDataJson =
