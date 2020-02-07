@@ -15,7 +15,8 @@ Param (
 Write-Output "Making Kpi Alerts"
 Get-Location
 
-Install-Module -Name Az -AllowClobber -Scope CurrentUser -Force
+Install-Module -Name Az -AllowClobber -Scope CurrentUser -Force -Verbose
+Install-Module powershell-yaml -Verbose
 
 $passwd = ConvertTo-SecureString $Password -AsPlainText -Force
 $pscredential = New-Object System.Management.Automation.PSCredential($User, $passwd)
