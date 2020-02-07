@@ -35,6 +35,145 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             yield return new object[] { new V1NodeList(new List<V1Node> { nodeFilled }), new SystemInfo("Kubernetes", "Kubernetes", "Kubernetes") };
         }
 
+        public static V1Pod CreatePodWithPodParametersOnly(string podPhase, string podReason, string podMessage)
+            => new V1Pod
+            {
+                Metadata = new V1ObjectMeta
+                {
+                    Name = "module-a-abc123",
+                    Labels = new Dictionary<string, string>
+                    {
+                        [KubernetesConstants.K8sEdgeModuleLabel] = "module-a"
+                    },
+                    Annotations = new Dictionary<string, string>
+                    {
+                        [KubernetesConstants.K8sEdgeOriginalModuleId] = "Module-A"
+                    }
+                },
+                Status = new V1PodStatus
+                {
+                    Phase = podPhase,
+                    Message = podMessage,
+                    Reason = podReason,
+                }
+            };
+
+        public static V1Pod CreatePodInPhaseWithContainerStatus(string podPhase, V1ContainerState containerState)
+            => new V1Pod
+            {
+                Metadata = new V1ObjectMeta
+                {
+                    Name = "module-a-abc123",
+                    Labels = new Dictionary<string, string>
+                    {
+                        [KubernetesConstants.K8sEdgeModuleLabel] = "module-a"
+                    },
+                    Annotations = new Dictionary<string, string>
+                    {
+                        [KubernetesConstants.K8sEdgeOriginalModuleId] = "Module-A"
+                    }
+                },
+                Status = new V1PodStatus
+                {
+                    Phase = podPhase,
+                    ContainerStatuses = new List<V1ContainerStatus>()
+                    {
+                        new V1ContainerStatus
+                        {
+                            Name = "module-a",
+                            State = containerState,
+                        }
+                    }
+                }
+            };
+
+        public static IEnumerable<object[]> GetListOfPodsInRunningPhase()
+        {
+            return new[]
+            {
+                new object[]
+                {
+                    CreatePodInPhaseWithContainerStatus("Running", new V1ContainerState(waiting: new V1ContainerStateWaiting("Waiting", "CrashBackLoopOff"))),
+                    "Module in Back-off reason: CrashBackLoopOff",
+                    ModuleStatus.Backoff
+                },
+                new object[]
+                {
+                    CreatePodInPhaseWithContainerStatus("Running", new V1ContainerState(terminated: new V1ContainerStateTerminated(0, reason: "Completed"))),
+                    "Module Stopped reason: Completed",
+                    ModuleStatus.Stopped
+                },
+                new object[]
+                {
+                    CreatePodInPhaseWithContainerStatus("Running", new V1ContainerState(terminated: new V1ContainerStateTerminated(139, reason: "Segmentation Fault"))),
+                    "Module Failed reason: Segmentation Fault",
+                    ModuleStatus.Failed
+                },
+                new object[]
+                {
+                    CreatePodInPhaseWithContainerStatus("Running", new V1ContainerState(running: new V1ContainerStateRunning(startedAt: DateTime.Parse("2019-06-12T16:11:22Z")))),
+                    "Started at " + DateTime.Parse("2019-06-12T16:11:22Z"),
+                    ModuleStatus.Running
+                }
+            };
+        }
+
+        public static IEnumerable<object[]> GetListOfPodsInPendingPhase()
+        {
+            return new[]
+            {
+                new object[]
+                {
+                    CreatePodInPhaseWithContainerStatus("Pending", new V1ContainerState(waiting: new V1ContainerStateWaiting("Waiting", "CrashBackLoopOff"))),
+                    "Module in Back-off reason: CrashBackLoopOff",
+                    ModuleStatus.Backoff
+                },
+                new object[]
+                {
+                    CreatePodInPhaseWithContainerStatus("Pending", new V1ContainerState(terminated: new V1ContainerStateTerminated(0, reason: "Completed"))),
+                    "Module Stopped reason: Completed",
+                    ModuleStatus.Stopped
+                },
+                new object[]
+                {
+                    CreatePodInPhaseWithContainerStatus("Pending", new V1ContainerState(terminated: new V1ContainerStateTerminated(139, reason: "Segmentation Fault"))),
+                    "Module Failed reason: Segmentation Fault",
+                    ModuleStatus.Failed
+                },
+                new object[]
+                {
+                    CreatePodInPhaseWithContainerStatus("Pending", new V1ContainerState(running: new V1ContainerStateRunning(startedAt: DateTime.Parse("2019-06-12T16:11:22Z")))),
+                    "Started at " + DateTime.Parse("2019-06-12T16:11:22Z"),
+                    ModuleStatus.Backoff
+                }
+            };
+        }
+
+        public static IEnumerable<object[]> GetListOfPodsInAbnormalPhase()
+        {
+            return new[]
+            {
+                new object[]
+                {
+                    CreatePodWithPodParametersOnly("Unknown", "Unknown", "Unknown"),
+                    "Module status Unknown reason: Unknown with message: Unknown",
+                    ModuleStatus.Unknown
+                },
+                new object[]
+                {
+                    CreatePodWithPodParametersOnly("Failed", "Terminated", "Non-zero exit code"),
+                    "Module Failed reason: Terminated with message: Non-zero exit code",
+                    ModuleStatus.Failed
+                },
+                new object[]
+                {
+                    CreatePodWithPodParametersOnly("Succeeded", "Completed", "Zero exit code"),
+                    "Module Stopped reason: Completed with message: Zero exit code",
+                    ModuleStatus.Stopped
+                }
+            };
+        }
+
         [Fact]
         public void ConstructorChecksNull()
         {
@@ -160,82 +299,35 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             }
         }
 
-        public static V1Pod CreatePodInPhaseWithContainerStatus(string podPhase, V1ContainerState containerState)
-            => new V1Pod
-            {
-                Metadata = new V1ObjectMeta
-                {
-                    Name = "module-a-abc123",
-                    Labels = new Dictionary<string, string>
-                    {
-                        [KubernetesConstants.K8sEdgeModuleLabel] = "module-a"
-                    },
-                    Annotations = new Dictionary<string, string>
-                    {
-                        [KubernetesConstants.K8sEdgeOriginalModuleId] = "Module-A"
-                    }
-                },
-                Status = new V1PodStatus
-                {
-                    Phase = podPhase,
-                    ContainerStatuses = new List<V1ContainerStatus>()
-                    {
-                        new V1ContainerStatus
-                        {
-                            Name = "module-a",
-                            State = containerState,
-                        }
-                    }
-                }
-            };
-
-        public static V1Pod CreatePodWithPodParametersOnly(string podPhase, string podReason, string podMessage)
-            => new V1Pod
-            {
-                Metadata = new V1ObjectMeta
-                {
-                    Name = "module-a-abc123",
-                    Labels = new Dictionary<string, string>
-                    {
-                        [KubernetesConstants.K8sEdgeModuleLabel] = "module-a"
-                    },
-                    Annotations = new Dictionary<string, string>
-                    {
-                        [KubernetesConstants.K8sEdgeOriginalModuleId] = "Module-A"
-                    }
-                },
-                Status = new V1PodStatus { Phase = podPhase, Reason = podReason, Message = podMessage },
-            };
-
-        public static IEnumerable<object[]> GetListOfPodsInRunningPhase()
+        [Fact]
+        public async Task ReturnModuleStatusWithPodConditionsWhenThereAreNoContainers()
         {
-            return new[]
+            var client = new Mock<IKubernetes>(MockBehavior.Strict);
+            var moduleManager = new Mock<IModuleManager>(MockBehavior.Strict);
+            var runtimeInfo = new KubernetesRuntimeInfoProvider(Namespace, client.Object, moduleManager.Object);
+            V1Pod pod = CreatePodWithPodParametersOnly("Pending", string.Empty, string.Empty);
+            pod.Status.Conditions = new List<V1PodCondition>()
             {
-                new object[]
+                new V1PodCondition
                 {
-                    CreatePodInPhaseWithContainerStatus("Running", new V1ContainerState(waiting: new V1ContainerStateWaiting("Waiting", "CrashBackLoopOff"))),
-                    "Module in Back-off reason: CrashBackLoopOff",
-                    ModuleStatus.Backoff
+                    LastProbeTime = new DateTime(2020, 02, 05, 10, 10, 10),
+                    Message = "Ready",
+                    Reason = "Scheduling",
                 },
-                new object[]
+                new V1PodCondition
                 {
-                    CreatePodInPhaseWithContainerStatus("Running", new V1ContainerState(terminated: new V1ContainerStateTerminated(0, reason: "Completed"))),
-                    "Module Stopped reason: Completed",
-                    ModuleStatus.Stopped
-                },
-                new object[]
-                {
-                    CreatePodInPhaseWithContainerStatus("Running", new V1ContainerState(terminated: new V1ContainerStateTerminated(139, reason: "Segmentation Fault"))),
-                    "Module Failed reason: Segmentation Fault",
-                    ModuleStatus.Failed
-                },
-                new object[]
-                {
-                    CreatePodInPhaseWithContainerStatus("Running", new V1ContainerState(running: new V1ContainerStateRunning(startedAt: DateTime.Parse("2019-06-12T16:11:22Z")))),
-                    "Started at " + DateTime.Parse("2019-06-12T16:11:22Z"),
-                    ModuleStatus.Running
+                    LastProbeTime = new DateTime(2020, 02, 05, 10, 10, 15),
+                    Message = "persistentvolumeclaim module-a-pvc not found",
+                    Reason = "Unschedulable",
                 }
             };
+            runtimeInfo.CreateOrUpdateAddPodInfo(pod);
+            string expectedDescription = "Module Failed with container status Unknown More Info: persistentvolumeclaim module-a-pvc not found K8s reason: Unschedulable";
+
+            ModuleRuntimeInfo info = (await runtimeInfo.GetModules(CancellationToken.None)).Single();
+
+            Assert.Equal(ModuleStatus.Failed, info.ModuleStatus);
+            Assert.Equal(expectedDescription, info.Description);
         }
 
         [Theory]
@@ -253,37 +345,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.Equal(description, info.Description);
         }
 
-        public static IEnumerable<object[]> GetListOfPodsInPendingPhase()
-        {
-            return new[]
-            {
-                new object[]
-                {
-                    CreatePodInPhaseWithContainerStatus("Pending", new V1ContainerState(waiting: new V1ContainerStateWaiting("Waiting", "CrashBackLoopOff"))),
-                    "Module in Back-off reason: CrashBackLoopOff",
-                    ModuleStatus.Backoff
-                },
-                new object[]
-                {
-                    CreatePodInPhaseWithContainerStatus("Pending", new V1ContainerState(terminated: new V1ContainerStateTerminated(0, reason: "Completed"))),
-                    "Module Stopped reason: Completed",
-                    ModuleStatus.Stopped
-                },
-                new object[]
-                {
-                    CreatePodInPhaseWithContainerStatus("Pending", new V1ContainerState(terminated: new V1ContainerStateTerminated(139, reason: "Segmentation Fault"))),
-                    "Module Failed reason: Segmentation Fault",
-                    ModuleStatus.Failed
-                },
-                new object[]
-                {
-                    CreatePodInPhaseWithContainerStatus("Pending", new V1ContainerState(running: new V1ContainerStateRunning(startedAt: DateTime.Parse("2019-06-12T16:11:22Z")))),
-                    "Started at " + DateTime.Parse("2019-06-12T16:11:22Z"),
-                    ModuleStatus.Backoff
-                }
-            };
-        }
-
         [Theory]
         [MemberData(nameof(GetListOfPodsInPendingPhase))]
         public async Task ReturnModuleStatusWhenPodIsPending(V1Pod pod, string description, ModuleStatus status)
@@ -297,37 +358,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             Assert.Equal(status, info.ModuleStatus);
             Assert.Equal(description, info.Description);
-        }
-
-        public static IEnumerable<object[]> GetListOfPodsInAbnormalPhase()
-        {
-            return new[]
-            {
-                new object[]
-                {
-                    CreatePodWithPodParametersOnly("Running", "Unschedulable", "persistentvolumeclaim module-a-pvc not found"),
-                    "Module Failed with container status Unknown More Info: K8s reason: Unschedulable with message: persistentvolumeclaim module-a-pvc not found",
-                    ModuleStatus.Failed
-                },
-                new object[]
-                {
-                    CreatePodWithPodParametersOnly("Unknown", "Unknown", "Unknown"),
-                    "Module status Unknown reason: Unknown",
-                    ModuleStatus.Unknown
-                },
-                new object[]
-                {
-                    CreatePodWithPodParametersOnly("Failed", "Terminated", "Non-zero exit code"),
-                    "Module Failed reason: Terminated with message: Non-zero exit code",
-                    ModuleStatus.Failed
-                },
-                new object[]
-                {
-                    CreatePodWithPodParametersOnly("Succeeded", "Completed", "Zero exit code"),
-                    "Module Stopped reason: Completed with message: Zero exit code",
-                    ModuleStatus.Stopped
-                }
-            };
         }
 
         [Theory]
