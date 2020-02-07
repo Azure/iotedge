@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
         Deployment,
         EdgeHubRestartMessage,
         EdgeHubRestartDirectMethod,
-        Error
+        Error,
+        TestInfo
     }
 }
