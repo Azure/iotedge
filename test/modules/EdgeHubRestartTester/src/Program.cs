@@ -54,7 +54,7 @@ namespace EdgeHubRestartTester
 
                 while ((!cts.IsCancellationRequested) && (DateTime.UtcNow < testExpirationTime))
                 {
-                    (DateTime restartTime, _) = await RestartEdgeHub(
+                    DateTime restartTime = await RestartEdgeHubAsync(
                         iotHubServiceClient,
                         cts.Token);
                     DateTime eachTestExpirationTime = restartTime.Add(Settings.Current.RestartPeriod);
@@ -99,7 +99,7 @@ namespace EdgeHubRestartTester
             return 0;
         }
 
-        static async Task<Tuple<DateTime, HttpStatusCode>> RestartEdgeHub(
+        static async Task<DateTime> RestartEdgeHubAsync(
             ServiceClient iotHubServiceClient,
             CancellationToken cancellationToken)
         {
@@ -128,7 +128,7 @@ namespace EdgeHubRestartTester
                         Logger.LogInformation($"Calling EdgeHub restart succeeded with status code {response.Status}.");
                     }
 
-                    return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, (HttpStatusCode)response.Status);
+                    return DateTime.UtcNow;
                 }
                 catch (Exception e)
                 {
@@ -149,11 +149,13 @@ namespace EdgeHubRestartTester
                             Logger,
                             errorResult,
                             cancellationToken);
+
+                        throw;
                     }
                 }
             }
 
-            return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.InternalServerError);
+            return DateTime.UtcNow;
         }
 
         static string GetSource() => $"{Settings.Current.ModuleId}";
