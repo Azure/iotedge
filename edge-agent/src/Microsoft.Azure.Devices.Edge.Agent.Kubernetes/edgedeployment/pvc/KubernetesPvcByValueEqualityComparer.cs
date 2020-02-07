@@ -59,7 +59,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
                 int hashCode = obj.Spec?.AccessModes != null ? this.GetAccessHash(obj.Spec.AccessModes) : 0;
                 hashCode = (hashCode * 397) ^ (obj.Metadata?.Name != null ? obj.Metadata.Name.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (obj.Metadata?.Labels != null ? this.GetLabelHash(obj.Metadata.Labels) : 0);
-                hashCode = (hashCode * 397) ^ (obj.Spec?.Resources != null ? obj.Spec.Resources.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (obj.Spec?.StorageClassName != null ? obj.Spec.StorageClassName.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (obj.Spec?.VolumeName != null ? obj.Spec.VolumeName.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ this.GetStorage(obj).GetHashCode();
