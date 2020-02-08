@@ -30,7 +30,7 @@ namespace LeafDeviceTest
             {
                 if (result.ExitCode != 0)
                 {
-                    throw new Win32Exception(result.ExitCode, $"'{name}' failed with: {string.Join("\n", result.StandardError)}");
+                    throw new Win32Exception(result.ExitCode, $"{string.Join("\n", result.StandardOutput)}\n\n'{name}' failed with: {string.Join("\n", result.StandardError)}");
                 }
 
                 return result.StandardOutput;
