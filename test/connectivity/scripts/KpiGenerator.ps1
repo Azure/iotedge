@@ -12,6 +12,9 @@ Param (
     [string] $Tenant = $null
 )
 
+# $scriptsDirectory = "../a/core-linux/scripts"
+$scriptsDirectory = "C:/Users/Lee/source/repos/edge/and/iotedge/test/connectivity/scripts"
+
 Write-Output "Making Kpi Alerts"
 Get-Location
 
@@ -26,7 +29,7 @@ $passwd = ConvertTo-SecureString $Password -AsPlainText -Force
 $pscredential = New-Object System.Management.Automation.PSCredential($User, $passwd)
 Connect-AzAccount -ServicePrincipal -Credential $pscredential -Tenant $Tenant
 
-$yaml = Get-Content ../a/core-linux/scripts/kpis.yaml -Raw
+$yaml = Get-Content "$scriptsDirectory/kpis.yaml" -Raw
 
 $obj = ConvertFrom-Yaml $yaml
 $kpis = $obj["Connectivity"]
@@ -34,8 +37,10 @@ $kpis = $obj["Connectivity"]
 foreach ($kpi in $kpis) {
     $kpiName = $kpi.keys
     Write-Output "KPI: $kpiName"
-     
-    ../a/core-linux/scripts/Create-Alert.ps1 `
+
+    $kpiSettings = $kpi.values
+    
+    C:\Users\Lee\source\repos\edge\and\iotedge\test\connectivity\scripts\Create-Alert.ps1 `
         -MetricName $kpiSettings.metricName `
         -QueryType $kpiSettings.query_type `
         -QueryComparison $kpiSettings.comparison `
@@ -44,4 +49,15 @@ foreach ($kpi in $kpis) {
         -Tags $kpiSettings.tags `
         -TestId $TestId `
         -AlertingInterval 15
+
+
+    # Invoke-Expression "$scriptsDirectory/Create-Alert.ps1 `
+    #     -MetricName $($kpiSettings.metricName) `
+    #     -QueryType $($kpiSettings.query_type) `
+    #     -QueryComparison '$($kpiSettings.comparison)' `
+    #     -QueryTarget $($kpiSettings.target) `
+    #     -KpiName $kpiName `
+    #     -Tags $($kpiSettings.tags) `
+    #     -TestId $TestId `
+    #     -AlertingInterval 15"
 }    

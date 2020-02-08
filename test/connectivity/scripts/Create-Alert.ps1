@@ -31,7 +31,7 @@ Param (
     [string] $QueryTarget = $null,
 
     [ValidateNotNullOrEmpty()]
-    [hashtable] $Tags = $null,
+    [hashtable[]] $Tags = $null,
 
     [ValidateNotNullOrEmpty()]
     [string] $TestId = $null
@@ -41,24 +41,24 @@ Write-Host "Generating alert for $MetricName $QueryComparison $QueryTarget"
 
 if ($QueryType -eq "value")
 {
-    $ValueQuery = Get-Content -Path ".\queries\value.kql" -Raw
+    $ValueQuery = Get-Content -Path "C:\Users\Lee\source\repos\edge\and\iotedge\test\dashboard\connectivity\alerts\queries\value.kql" -Raw
 }
 else
 {
-    $ValueQuery = Get-Content -Path ".\queries\rate.kql" -Raw
+    $ValueQuery = Get-Content -Path "C:\Users\Lee\source\repos\edge\and\iotedge\test\dashboard\connectivity\alerts\queries\rate.kql" -Raw
 }
 
 $TagFiltersToAppendToQuery = ""
 foreach ($Tag in $Tags.GetEnumerator())
 {
     $TagFilter = "";
-    if ($Tag.Name -eq "to")
+    if ($Tag.Keys -eq "to")
     {
-        $TagFilter =  "| where tostring(trim_start(@`"[^/]+/`", extractjson(`"$.to`", tostring(dimensions), typeof(string)))) == $($Tag.Name)"
+        $TagFilter =  "| where tostring(trim_start(@`"[^/]+/`", extractjson(`"$.to`", tostring(dimensions), typeof(string)))) == $($Tag.Keys)"
     }
     else
     {
-        $TagFilter = "| where tostring(dimensions.$($Tag.Name)) == `"$($Tag.Value)`""
+        $TagFilter = "| where tostring(dimensions.$($Tag.Keys)) == `"$($Tag.Values)`""
     }
     $TagFiltersToAppendToQuery += "`n$TagFilter"
 }

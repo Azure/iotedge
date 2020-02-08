@@ -20,5 +20,5 @@ Connectivity:
             - module_name: edgeAgent
             - quartile: .9
         comparison: <
-        query-type: value
+        query_type: value
         target: 25
