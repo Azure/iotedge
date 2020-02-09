@@ -112,14 +112,12 @@ namespace TestResultCoordinator.Reports
                         var metadata = (EdgeHubRestartMessageReportMetadata)testReportMetadata;
                         var senderTestResults = this.GetResults(metadata.SenderSource);
                         var receiverTestResults = this.GetResults(metadata.ReceiverSource);
-                        var passableEdgeHubRestartPeriod = metadata.PassableEdgeHubRestartPeriod;
 
                         return new EdgeHubRestartMessageReportGenerator(
                             trackingId,
                             metadata,
                             senderTestResults,
-                            receiverTestResults,
-                            passableEdgeHubRestartPeriod);
+                            receiverTestResults);
                     }
 
                 case TestReportType.NetworkControllerReport:

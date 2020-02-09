@@ -19,7 +19,9 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
         internal EdgeHubRestartDirectMethodReportGenerator(
             string trackingId,
-            EdgeHubRestartDirectMethodReportMetadata metadata,
+            string senderSource,
+            string receiverSource,
+            TestReportType testReportType,
             ITestResultCollection<TestOperationResult> senderTestResults,
             ITestResultCollection<TestOperationResult> receiverTestResults,
             TimeSpan passableEdgeHubRestartPeriod)
@@ -27,7 +29,9 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             Preconditions.CheckRange(passableEdgeHubRestartPeriod.Ticks, 0);
 
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
-            this.Metadata = Preconditions.CheckNotNull(metadata, nameof(metadata));
+            this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
+            this.ReceiverSource = Preconditions.CheckNonWhiteSpace(receiverSource, nameof(receiverSource));
+            this.TestReportType = testReportType;
             this.SenderTestResults = Preconditions.CheckNotNull(senderTestResults, nameof(senderTestResults));
             this.ReceiverTestResults = Preconditions.CheckNotNull(receiverTestResults, nameof(receiverTestResults));
             this.PassableEdgeHubRestartPeriod = passableEdgeHubRestartPeriod;
@@ -35,7 +39,11 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
         internal string TrackingId { get; }
 
-        internal EdgeHubRestartDirectMethodReportMetadata Metadata { get; }
+        internal string SenderSource { get; }
+
+        internal string ReceiverSource { get; }
+
+        internal TestReportType TestReportType { get; }
 
         internal ITestResultCollection<TestOperationResult> SenderTestResults { get; }
 
@@ -45,18 +53,13 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
         public async Task<ITestResultReport> CreateReportAsync()
         {
-            Logger.LogInformation($"Generating report: {nameof(EdgeHubRestartDirectMethodReport)} for [{this.Metadata.SenderSource}] and [{this.Metadata.ReceiverSource}]");
+            Logger.LogInformation($"Generating report: {nameof(EdgeHubRestartDirectMethodReport)} for [{this.SenderSource}] and [{this.ReceiverSource}]");
 
             bool isPassing = true;
             long previousSeqNum = 0;
-            long passedDirectMethodCount = 0;
-
-            // Value: (source, numOfResults)
-            Dictionary<string, ulong> resultCount = new Dictionary<string, ulong>()
-            {
-                { nameof(this.SenderTestResults), 0ul },
-                { nameof(this.ReceiverTestResults), 0ul }
-            };
+            ulong passedDirectMethodCount = 0;
+            ulong senderResultCount = 0;
+            ulong receiverResultCount = 0;
 
             // Value: (completedStatusCode, DirectMethodCompletedTime - EdgeHubRestartedTime)
             Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram = new Dictionary<HttpStatusCode, List<TimeSpan>>();
@@ -68,17 +71,17 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             {
                 this.ValidateResult(
                     this.SenderTestResults.Current,
-                    this.Metadata.SenderSource,
+                    this.SenderSource,
                     TestOperationResultType.EdgeHubRestartDirectMethod.ToString());
 
                 this.ValidateResult(
                     this.ReceiverTestResults.Current,
-                    this.Metadata.ReceiverSource,
+                    this.ReceiverSource,
                     TestOperationResultType.DirectMethod.ToString());
 
                 // Both sender & receiver have their dm results
-                resultCount[nameof(this.SenderTestResults)]++;
-                resultCount[nameof(this.ReceiverTestResults)]++;
+                senderResultCount++;
+                receiverResultCount++;
 
                 // Adjust seqeunce number from both source to be equal before doing any comparison
                 EdgeHubRestartDirectMethodResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodResult>(this.SenderTestResults.Current.Result);
@@ -90,11 +93,10 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 if (receiverSeqNum > senderSeqNum)
                 {
                     // Increment sender result to have the same seq as the receiver
-                    await this.IncrementSequenceNumberAsync(
+                    senderResultCount = await this.IncrementSequenceNumberAsync(
                         this.SenderTestResults,
-                        nameof(this.SenderTestResults),
                         receiverSeqNum,
-                        resultCount,
+                        senderResultCount,
                         completedStatusHistogram);
 
                     // Fail the test
@@ -104,11 +106,10 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 if (receiverSeqNum < senderSeqNum)
                 {
                     // Increment receiver result to have the same seq as the sender
-                    await this.IncrementSequenceNumberAsync(
+                    receiverResultCount = await this.IncrementSequenceNumberAsync(
                         this.ReceiverTestResults,
-                        nameof(this.ReceiverTestResults),
                         senderSeqNum,
-                        resultCount,
+                        receiverResultCount,
                         completedStatusHistogram);
 
                     // Fail the test
@@ -140,7 +141,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                     completedStatusHistogram);
 
                 // If the current DM result is passed, increment the count for a good dm
-                passedDirectMethodCount += isCurrentDirectMethodPassing ? 1 : 0;
+                passedDirectMethodCount += isCurrentDirectMethodPassing ? 1UL : 0UL;
                 // Update the overall test status
                 isPassing &= isCurrentDirectMethodPassing;
 
@@ -151,31 +152,31 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             // Fail the test
             isPassing &= !(hasSenderResult ^ hasReceiverResult);
 
-            await this.IncrementSequenceNumberAsync(
+            senderResultCount = await this.IncrementSequenceNumberAsync(
                 this.SenderTestResults,
-                nameof(this.SenderTestResults),
                 long.MaxValue,
-                resultCount,
+                senderResultCount,
                 completedStatusHistogram);
 
-            await this.IncrementSequenceNumberAsync(
+            receiverResultCount = await this.IncrementSequenceNumberAsync(
                 this.ReceiverTestResults,
-                nameof(this.ReceiverTestResults),
                 long.MaxValue,
-                resultCount,
+                receiverResultCount,
                 completedStatusHistogram);
 
             return this.CalculateStatistic(
                 isPassing,
                 passedDirectMethodCount,
-                resultCount,
+                senderResultCount,
+                receiverResultCount,
                 completedStatusHistogram);
         }
 
         EdgeHubRestartDirectMethodReport CalculateStatistic(
             bool isPassing,
-            long passedDirectMethodCount,
-            Dictionary<string, ulong> resultCount,
+            ulong passedDirectMethodCount,
+            ulong senderResultCount,
+            ulong receiverResultCount,
             Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram)
         {
             List<TimeSpan> completedPeriods;
@@ -224,14 +225,17 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             }
 
             // Make sure the maximum restart period is within a passable threshold
-            isPassing &= maxPeriod < this.Metadata.PassableEdgeHubRestartPeriod;
+            isPassing &= maxPeriod < this.PassableEdgeHubRestartPeriod;
 
             return new EdgeHubRestartDirectMethodReport(
                 this.TrackingId,
-                this.Metadata.TestReportType.ToString(),
+                this.TestReportType.ToString(),
                 isPassing,
                 passedDirectMethodCount,
-                resultCount,
+                this.SenderSource,
+                this.ReceiverSource,
+                senderResultCount,
+                receiverResultCount,
                 completedStatusHistogram,
                 minPeriod,
                 maxPeriod,
@@ -240,11 +244,10 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 variancePeriod);
         }
 
-        async Task IncrementSequenceNumberAsync(
+        async Task<ulong> IncrementSequenceNumberAsync(
             ITestResultCollection<TestOperationResult> resultCollection,
-            string key,
             long targetSequenceNumber,
-            Dictionary<string, ulong> resultCount,
+            ulong resultCount,
             Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram)
         {
             bool isNotEmpty = true;
@@ -254,7 +257,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
             while ((seqNum < targetSequenceNumber) && isNotEmpty)
             {
-                resultCount[key]++;
+                resultCount++;
 
                 this.AddEntryToCompletedStatusHistogram(
                     senderResult,
@@ -264,6 +267,8 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 senderResult = JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodResult>(resultCollection.Current.Result);
                 seqNum = this.ConvertStringToLong(senderResult.SequenceNumber);
             }
+
+            return resultCount;
         }
 
         void ValidateResult(

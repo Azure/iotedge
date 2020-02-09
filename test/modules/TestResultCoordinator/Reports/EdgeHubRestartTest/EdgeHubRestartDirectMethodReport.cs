@@ -7,7 +7,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
     using Microsoft.Azure.Devices.Edge.Util;
 
     /// <summary>
-    /// This is a counting report to show test result counts, e.g. expect and match counts; and contains a list of unmatched test results.
+    /// This is a EdgeHub Restarter report. It is a result of EdgeHub Restarter that include the SDK connection time for the Direct Method receiver.
     /// </summary>
     class EdgeHubRestartDirectMethodReport : TestResultReportBase
     {
@@ -15,8 +15,11 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             string trackingId,
             string resultType,
             bool isPassing,
-            long passedMessageCount,
-            Dictionary<string, ulong> messageCount,
+            ulong passedDirectMethodCount,
+            string senderSource, 
+            string receiverSource,
+            ulong senderMessageCount,
+            ulong receiverMessageCount,
             Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram,
             TimeSpan minPeriod,
             TimeSpan maxPeriod,
@@ -26,10 +29,12 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             : base(trackingId, resultType)
         {
             this.isPassing = isPassing;
-            this.PassedMessageCount = passedMessageCount;
-            this.MessageCount = Preconditions.CheckNotNull(messageCount, nameof(messageCount));
+            this.PassedDirectMethodCount = passedDirectMethodCount;
+            this.SenderMessageCount = senderMessageCount;
+            this.ReceiverMessageCount = receiverMessageCount;
             this.CompletedStatusHistogram = Preconditions.CheckNotNull(completedStatusHistogram, nameof(completedStatusHistogram));
-            this.SourceList = new List<string>(messageCount.Keys);
+            this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
+            this.ReceiverSource = Preconditions.CheckNonWhiteSpace(receiverSource, nameof(receiverSource));
             this.MinPeriod = minPeriod;
             this.MaxPeriod = maxPeriod;
             this.MedianPeriod = medianPeriod;
@@ -39,28 +44,32 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
         bool isPassing;
 
-        internal long PassedMessageCount { get; }
+        public ulong PassedDirectMethodCount { get; }
 
-        internal Dictionary<string, ulong> MessageCount { get; }
+        public Dictionary<HttpStatusCode, ulong> RestartStatusHistogram { get; }
 
-        internal Dictionary<HttpStatusCode, ulong> RestartStatusHistogram { get; }
+        public Dictionary<HttpStatusCode, List<TimeSpan>> CompletedStatusHistogram { get; }
 
-        internal Dictionary<HttpStatusCode, List<TimeSpan>> CompletedStatusHistogram { get; }
+        public string SenderSource { get; }
 
-        internal List<string> SourceList { get; }
+        public ulong SenderMessageCount { get; }
 
-        internal TimeSpan MinPeriod { get; }
+        public string ReceiverSource { get; }
 
-        internal TimeSpan MaxPeriod { get; }
+        public ulong ReceiverMessageCount { get; }
 
-        internal TimeSpan MedianPeriod { get; }
+        public TimeSpan MinPeriod { get; }
 
-        internal TimeSpan MeanPeriod { get; }
+        public TimeSpan MaxPeriod { get; }
 
-        internal TimeSpan VariancePeriod { get; }
+        public TimeSpan MedianPeriod { get; }
+
+        public TimeSpan MeanPeriod { get; }
+
+        public TimeSpan VariancePeriod { get; }
 
         public override bool IsPassed => this.isPassing;
 
-        public override string Title => $"{this.ResultType} Report between {this.SourceList}";
+        public override string Title => $"{this.ResultType} Report between {this.SenderSource} and {this.ReceiverSource}";
     }
 }
