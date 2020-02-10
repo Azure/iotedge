@@ -101,7 +101,9 @@ namespace TestResultCoordinator.Reports
 
                         return new EdgeHubRestartDirectMethodReportGenerator(
                             trackingId,
-                            metadata,
+                            metadata.SenderSource,
+                            metadata.ReceiverSource,
+                            metadata.TestReportType,
                             senderTestResults,
                             receiverTestResults,
                             passableEdgeHubRestartPeriod);
@@ -115,7 +117,9 @@ namespace TestResultCoordinator.Reports
 
                         return new EdgeHubRestartMessageReportGenerator(
                             trackingId,
-                            metadata,
+                            metadata.SenderSource,
+                            metadata.ReceiverSource,
+                            metadata.TestReportType,
                             senderTestResults,
                             receiverTestResults);
                     }
