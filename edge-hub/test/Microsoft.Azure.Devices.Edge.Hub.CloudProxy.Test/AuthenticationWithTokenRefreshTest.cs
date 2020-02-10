@@ -41,9 +41,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
         [Theory]
         [MemberData(nameof(GetObjectUnderTest))]
-        public async Task SafeCreateNewTokenWrapsHsmExceptions(ObjectUnderTestFn get)
+        public async Task SafeCreateNewTokenWrapsTokenExceptions(ObjectUnderTestFn get)
         {
-            var src = new HttpHsmCommunicationException("hello", 123);
+            var src = new TokenProviderException(new Exception("hello"));
             var auth = get(new ThrowingTestTokenProvider(src));
 
             var dst = await Assert.ThrowsAnyAsync<IotHubCommunicationException>(
@@ -68,9 +68,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
     class ThrowingTestTokenProvider : ITokenProvider
     {
-        HttpHsmCommunicationException e;
+        TokenProviderException e;
 
-        public ThrowingTestTokenProvider(HttpHsmCommunicationException e)
+        public ThrowingTestTokenProvider(TokenProviderException e)
         {
             this.e = e;
         }

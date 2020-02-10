@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Edged;
 
     public class ModuleAuthentication : ModuleAuthenticationWithTokenRefresh
     {
@@ -24,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 return this.tokenProvider.GetTokenAsync(Option.Some(TimeSpan.FromSeconds(suggestedTimeToLive)));
             }
-            catch (HttpHsmCommunicationException ex)
+            catch (TokenProviderException ex)
             {
                 // ModuleAuthentication plugs into the device SDK, and we don't
                 // want to leak our internal exceptions into the device SDK
