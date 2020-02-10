@@ -9,7 +9,7 @@
 * Fix Connect to cloud lock ([fbcc45a]) (https://github.com/Azure/iotedge/commit/fbcc45a1f819a85053e7a8e1a2c8114c4aa8fa2f)
 * Fix offline restart for edgeHub ([faa2bfb])(https://github.com/Azure/iotedge/commit/faa2bfb35b7cdcc1d621d3ee2c86ab318f8ede33)
 * Metrics fixes ([c1f5ae4])(https://github.com/Azure/iotedge/commit/c1f5ae483c6c7206043b2919b1b7267659dfa489)
-* Update Windows base images for arm32 and amd64
+* Update Windows base images for arm32 and amd64 ([dcebcd1])(https://github.com/Azure/iotedge/commit/dcebcd1a423b8963750feb7ba3f317c176bc6db9)
 
 ## Edge Agent
 ### Features
@@ -18,7 +18,7 @@
 
 ### Bug fixes
 * Metrics fixes ([c1f5ae4])(https://github.com/Azure/iotedge/commit/c1f5ae483c6c7206043b2919b1b7267659dfa489)
-* Update Windows base images for arm32 and amd64
+* Update Windows base images for arm32 and amd64 ([dcebcd1])(https://github.com/Azure/iotedge/commit/dcebcd1a423b8963750feb7ba3f317c176bc6db9)
 
 ## iotedged
 ### Features
