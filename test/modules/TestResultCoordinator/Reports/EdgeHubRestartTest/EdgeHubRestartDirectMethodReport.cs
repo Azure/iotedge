@@ -16,7 +16,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             string resultType,
             bool isPassing,
             ulong passedDirectMethodCount,
-            string senderSource, 
+            string senderSource,
             string receiverSource,
             ulong senderMessageCount,
             ulong receiverMessageCount,

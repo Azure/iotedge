@@ -79,7 +79,7 @@ namespace EdgeHubRestartTester
                     MethodRequest request = new MethodRequest(
                         directMethodName,
                         Encoding.UTF8.GetBytes($"{{ \"Message\": \"Hello\", \"DirectMethodCount\": \"{this.directMethodCount}\" }}"),
-                        Settings.Current.SdkOperationTimeout,
+                        TimeSpan.FromSeconds(5),   // Minimum value accepted by SDK
                         Settings.Current.SdkOperationTimeout);
                     MethodResponse result = await moduleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
                     this.logger.LogInformation($"[DirectMethodEdgeHubConnector] Invoke DirectMethod with count {this.directMethodCount}");

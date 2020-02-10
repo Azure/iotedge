@@ -93,7 +93,8 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 if (receiverSeqNum > senderSeqNum)
                 {
                     // Increment sender result to have the same seq as the receiver
-                    senderResultCount = await this.IncrementSequenceNumberAsync(
+                    (senderResultCount, hasReceiverResult) = await this.IncrementSequenceNumberAsync(
+                        hasSenderResult,
                         this.SenderTestResults,
                         receiverSeqNum,
                         senderResultCount,
@@ -106,7 +107,8 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 if (receiverSeqNum < senderSeqNum)
                 {
                     // Increment receiver result to have the same seq as the sender
-                    receiverResultCount = await this.IncrementSequenceNumberAsync(
+                    (receiverResultCount, hasSenderResult) = await this.IncrementSequenceNumberAsync(
+                        hasReceiverResult,
                         this.ReceiverTestResults,
                         senderSeqNum,
                         receiverResultCount,
@@ -114,6 +116,11 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
                     // Fail the test
                     isPassing = false;
+                }
+
+                if (hasSenderResult ^ hasReceiverResult)
+                {
+                    break;
                 }
 
                 // Note: In the current verification, if the receiver obtained more result dm than
@@ -152,13 +159,15 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             // Fail the test
             isPassing &= !(hasSenderResult ^ hasReceiverResult);
 
-            senderResultCount = await this.IncrementSequenceNumberAsync(
+            (senderResultCount, _) = await this.IncrementSequenceNumberAsync(
+                hasSenderResult,
                 this.SenderTestResults,
                 long.MaxValue,
                 senderResultCount,
                 completedStatusHistogram);
 
-            receiverResultCount = await this.IncrementSequenceNumberAsync(
+            (receiverResultCount, _) = await this.IncrementSequenceNumberAsync(
+                hasReceiverResult,
                 this.ReceiverTestResults,
                 long.MaxValue,
                 receiverResultCount,
@@ -244,14 +253,13 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 variancePeriod);
         }
 
-        async Task<ulong> IncrementSequenceNumberAsync(
+        async Task<(ulong resultCount, bool isNotEmpty)> IncrementSequenceNumberAsync(
+            bool isNotEmpty,
             ITestResultCollection<TestOperationResult> resultCollection,
             long targetSequenceNumber,
             ulong resultCount,
             Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram)
         {
-            bool isNotEmpty = true;
-
             EdgeHubRestartDirectMethodResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodResult>(resultCollection.Current.Result);
             long seqNum = this.ConvertStringToLong(senderResult.SequenceNumber);
 
@@ -264,11 +272,15 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                     completedStatusHistogram);
 
                 isNotEmpty = await resultCollection.MoveNextAsync();
-                senderResult = JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodResult>(resultCollection.Current.Result);
-                seqNum = this.ConvertStringToLong(senderResult.SequenceNumber);
+
+                if (isNotEmpty)
+                {
+                    senderResult = JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodResult>(resultCollection.Current.Result);
+                    seqNum = this.ConvertStringToLong(senderResult.SequenceNumber);
+                }
             }
 
-            return resultCount;
+            return (resultCount: resultCount, isNotEmpty: isNotEmpty);
         }
 
         void ValidateResult(
