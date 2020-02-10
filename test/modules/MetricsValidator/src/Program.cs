@@ -37,11 +37,7 @@ namespace MetricsValidator
                     .AddEnvironmentVariables()
                     .Build();
 
-                using (ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
-                    configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only),
-                    ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                    ModuleUtil.DefaultTransientRetryStrategy,
-                    Logger))
+                ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync()
                 using (MetricsScraper scraper = new MetricsScraper(new List<string> { "http://edgeHub:9600/metrics", "http://edgeAgent:9600/metrics" }))
                 {
                     Logger.LogInformation("Open Async");
