@@ -6,6 +6,7 @@ namespace MetricsValidator.Tests
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Runtime.InteropServices;
     using System.Text;
     using System.Text.RegularExpressions;
     using System.Threading;
@@ -17,6 +18,7 @@ namespace MetricsValidator.Tests
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
+    using NUnit.Framework.Internal;
 
     public class ValidateDocumentedMetrics : TestBase
     {
@@ -34,6 +36,12 @@ namespace MetricsValidator.Tests
             var metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
 
             var expected = this.GetExpectedMetrics();
+            if (RuntimeInformation.OSArchitecture == Architecture.Arm || RuntimeInformation.OSArchitecture == Architecture.Arm64)
+            {
+                // Docker doesn't return this on arm
+                expected.Remove("edgeAgent_created_pids_total");
+            }
+
             HashSet<string> unreturnedMetrics = new HashSet<string>(expected.Keys);
             if (expected.Count == 0)
             {
