@@ -1,28 +1,32 @@
 // Copyright (c) Microsoft. All rights reserved.
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Azure.Devices.Client;
-using Microsoft.Azure.Devices.Client.Exceptions;
-using Microsoft.Azure.Devices.Edge.Util;
-using Microsoft.Azure.Devices.Edge.Util.Edged;
-using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-using Xunit;
-
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
-    using ObjectUnderTestFn = Func<ITokenProvider, AuthenticationWithTokenRefresh>;
+    using System;
+    using System.Collections.Generic;
+    using System.Text;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Exceptions;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Edged;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Xunit;
+
+    using ObjectUnderTestFn = System.Func<
+        Microsoft.Azure.Devices.Edge.Util.ITokenProvider,
+        Microsoft.Azure.Devices.Client.AuthenticationWithTokenRefresh>;
 
     [Unit]
     public class AuthenticationWithTokenRefreshTest
     {
         public static IEnumerable<object[]> GetObjectUnderTest()
         {
-            yield return new ObjectUnderTestFn[] {
+            yield return new ObjectUnderTestFn[]
+            {
                 p => new DeviceAuthentication(p, "d")
             };
-            yield return new ObjectUnderTestFn[] {
+            yield return new ObjectUnderTestFn[]
+            {
                 p => new ModuleAuthentication(p, "d", "m")
             };
         }
@@ -73,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
         public Task<string> GetTokenAsync(Option<TimeSpan> ttl)
         {
-            throw e;
+            throw this.e;
         }
     }
 }

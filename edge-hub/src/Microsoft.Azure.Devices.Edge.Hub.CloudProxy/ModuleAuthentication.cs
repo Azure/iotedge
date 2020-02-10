@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 return this.tokenProvider.GetTokenAsync(Option.Some(TimeSpan.FromSeconds(suggestedTimeToLive)));
             }
-            catch(HttpHsmCommunicationException ex)
+            catch (HttpHsmCommunicationException ex)
             {
                 // ModuleAuthentication plugs into the device SDK, and we don't
                 // want to leak our internal exceptions into the device SDK
