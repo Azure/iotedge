@@ -1,5 +1,0 @@
-dependencies:
-  - name: edge-kubernetes-crd
-    version: 0.1.7
-    repository: "https://edgek8s.blob.core.windows.net/helm/" #TODO change to real repository once uploaded
-    condition: edge-kubernetes-crd.enabled
