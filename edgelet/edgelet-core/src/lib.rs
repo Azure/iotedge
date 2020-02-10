@@ -28,6 +28,7 @@ mod network;
 mod settings;
 pub mod watchdog;
 pub mod workload;
+pub mod parse_since;
 
 pub use authentication::Authenticator;
 pub use authorization::{AuthId, ModuleId, Policy};
