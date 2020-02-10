@@ -48,6 +48,15 @@ mod tests {
         );
 
         assert_near(
+            parse_since("1h").unwrap(),
+            (Local::now() - Duration::hours(1))
+                .timestamp()
+                .try_into()
+                .unwrap(),
+            10,
+        );
+
+        assert_near(
             parse_since("1 hour 20 minutes").unwrap(),
             (Local::now() - Duration::hours(1) - Duration::minutes(20))
                 .timestamp()
@@ -57,7 +66,25 @@ mod tests {
         );
 
         assert_near(
+            parse_since("1 hour 20m").unwrap(),
+            (Local::now() - Duration::hours(1) - Duration::minutes(20))
+                .timestamp()
+                .try_into()
+                .unwrap(),
+            10,
+        );
+
+        assert_near(
             parse_since("1 day").unwrap(),
+            (Local::now() - Duration::days(1))
+                .timestamp()
+                .try_into()
+                .unwrap(),
+            10,
+        );
+
+        assert_near(
+            parse_since("1d").unwrap(),
             (Local::now() - Duration::days(1))
                 .timestamp()
                 .try_into()

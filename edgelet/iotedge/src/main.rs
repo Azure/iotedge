@@ -14,7 +14,7 @@ use failure::{Fail, ResultExt};
 use futures::Future;
 use url::Url;
 
-use edgelet_core::{parse_since::parse_since, LogOptions, LogTail};
+use edgelet_core::{parse_since, LogOptions, LogTail};
 use edgelet_http_mgmt::ModuleClient;
 
 use iotedge::*;
