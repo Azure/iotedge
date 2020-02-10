@@ -2,7 +2,7 @@
 iotedged:
   image:
     repository: azureiotedge/azureiotedge-iotedged
-    tag: 0.1.0-beta3
+    tag: 0.1.0-beta4
     pullPolicy: Always
   service:
     name: iotedged
@@ -88,7 +88,7 @@ iotedged:
 iotedgedProxy:
   image:
     repository: azureiotedge/azureiotedge-proxy
-    tag: 0.1.0-beta3
+    tag: 0.1.0-beta4
     pullPolicy: Always
 
 # Edge Agent image configuration
@@ -102,7 +102,7 @@ edgeAgent:
   containerName: edgeagent
   image:
     repository: azureiotedge/azureiotedge-agent
-    tag: 0.1.0-beta3
+    tag: 0.1.0-beta4
     pullPolicy: Always
   hostname: "localhost"
   env:
@@ -284,7 +284,3 @@ provisioning:
 #   source: "external"
 #   endpoint: "http://localhost:9999"
 #   dynamicReprovisioning: false
-
-# TODO: Re-enable edge-deployment-crd dependency when namespace specific CRD is supported in Helm
-edge-kubernetes-crd:
-  enabled: false

@@ -8,16 +8,16 @@ namespace NetworkController
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    class SatelliteController : INetworkController
+    class CellularController : INetworkController
     {
-        static readonly ILogger Log = Logger.Factory.CreateLogger<SatelliteController>();
+        static readonly ILogger Log = Logger.Factory.CreateLogger<CellularController>();
         readonly INetworkController underlyingController;
 
-        public SatelliteController(string networkInterfaceName, string iotHubHostname, NetworkProfileSetting settings)
+        public CellularController(string networkInterfaceName, string iotHubHostname, NetworkProfileSetting settings)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                this.underlyingController = new WindowsSatelliteController(networkInterfaceName);
+                this.underlyingController = new WindowsCellularController(networkInterfaceName);
             }
             else
             {
@@ -25,7 +25,7 @@ namespace NetworkController
             }
         }
 
-        public NetworkControllerType NetworkControllerType => NetworkControllerType.Satellite;
+        public NetworkControllerType NetworkControllerType => NetworkControllerType.Cellular;
 
         public Task<bool> SetNetworkControllerStatusAsync(NetworkControllerStatus networkControllerStatus, CancellationToken cs) => this.underlyingController.SetNetworkControllerStatusAsync(networkControllerStatus, cs);
 
