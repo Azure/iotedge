@@ -156,6 +156,19 @@ namespace Modules.Test.TestResultCoordinator
                         ""TestReportType"": ""DirectMethodReport"",
                         ""SenderSource"": ""senderSource1.send"",
                         ""TolerancePeriod"": ""00:00:00.005""
+                    },
+                    ""reportMetadata6"": {
+                        ""TestReportType"": ""EdgeHubRestartMessageReport"",
+                        ""TestOperationResultType"": ""EdgeHubRestartMessage"",
+                        ""SenderSource"": ""edgeHubRestartTester1.EdgeHubRestartMessage"",
+                        ""ReceiverSource"": ""relayer1.receive""
+                    },
+                    ""reportMetadata7"": {
+                        ""TestReportType"": ""EdgeHubRestartDirectMethodReport"",
+                        ""TestOperationResultType"": ""EdgeHubRestartDirectMethod"",
+                        ""SenderSource"": ""edgeHubRestartTester1.EdgeHubRestartDirectMethod"",
+                        ""ReceiverSource"": ""directMethodReceiver1.receive"",
+                        ""PassableEdgeHubRestartPeriod"": ""00:01:00.000""
                     }
                 }";
 
@@ -325,6 +338,56 @@ namespace Modules.Test.TestResultCoordinator
             Assert.Equal(TestOperationResultType.Error, reportMetadata.TestOperationResultType);
             Assert.Equal(TestReportType.ErrorReport, reportMetadata.TestReportType);
             Assert.Equal(TestConstants.Error.TestResultSource, reportMetadata.Source);
+        }
+
+        [Fact]
+        public void ParseReportMetadataList_ParseEdgeHubRestartMessageReportMetadata()
+        {
+            const string testDataJson =
+                @"{
+                    ""reportMetadata"": {
+                        ""TestReportType"": ""EdgeHubRestartMessageReport"",
+                        ""TestOperationResultType"": ""EdgeHubRestartMessage"",
+                        ""SenderSource"": ""edgeHubRestartTester1.EdgeHubRestartMessage"",
+                        ""ReceiverSource"": ""relayer1.receive""
+                    }
+                }";
+
+            List<ITestReportMetadata> results = TestReportUtil.ParseReportMetadataJson(testDataJson, new Mock<ILogger>().Object);
+
+            Assert.Single(results);
+            var reportMetadata = results[0] as EdgeHubRestartMessageReportMetadata;
+            Assert.NotNull(reportMetadata);
+            Assert.Equal(TestOperationResultType.EdgeHubRestartMessage, reportMetadata.TestOperationResultType);
+            Assert.Equal(TestReportType.EdgeHubRestartMessageReport, reportMetadata.TestReportType);
+            Assert.Equal("edgeHubRestartTester1.EdgeHubRestartMessage", reportMetadata.SenderSource);
+            Assert.Equal("relayer1.receive", reportMetadata.ReceiverSource);
+        }
+
+        [Fact]
+        public void ParseReportMetadataList_ParseEdgeHubRestartDirectMethodReportMetadata()
+        {
+            const string testDataJson =
+                @"{
+                    ""reportMetadata7"": {
+                        ""TestReportType"": ""EdgeHubRestartDirectMethodReport"",
+                        ""TestOperationResultType"": ""EdgeHubRestartDirectMethod"",
+                        ""SenderSource"": ""edgeHubRestartTester1.EdgeHubRestartDirectMethod"",
+                        ""ReceiverSource"": ""directMethodReceiver1.receive"",
+                        ""PassableEdgeHubRestartPeriod"": ""00:01:00.000""
+                    }
+                }";
+
+            List<ITestReportMetadata> results = TestReportUtil.ParseReportMetadataJson(testDataJson, new Mock<ILogger>().Object);
+
+            Assert.Single(results);
+            var reportMetadata = results[0] as EdgeHubRestartDirectMethodReportMetadata;
+            Assert.NotNull(reportMetadata);
+            Assert.Equal(TestOperationResultType.EdgeHubRestartDirectMethod, reportMetadata.TestOperationResultType);
+            Assert.Equal(TestReportType.EdgeHubRestartDirectMethodReport, reportMetadata.TestReportType);
+            Assert.Equal("edgeHubRestartTester1.EdgeHubRestartDirectMethod", reportMetadata.SenderSource);
+            Assert.Equal("directMethodReceiver1.receive", reportMetadata.ReceiverSource);
+            Assert.Equal("00:01:00.000", reportMetadata.PassableEdgeHubRestartPeriod.ToString());
         }
 
         [Fact]

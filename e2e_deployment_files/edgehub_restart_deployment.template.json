@@ -224,7 +224,8 @@
             "TestReportType": "EdgeHubRestartDirectMethodReport",
             "TestOperationResultType": "EdgeHubRestartDirectMethod",
             "SenderSource": "edgeHubRestartTester1.EdgeHubRestartDirectMethod",
-            "ReceiverSource": "directMethodReceiver1.receive"
+            "ReceiverSource": "directMethodReceiver1.receive",
+            "PassableEdgeHubRestartPeriod": "00:01:00.000"
           },
           "reportMetadata3": {
             "TestReportType": "EdgeHubRestartMessageReport",
