@@ -50,11 +50,12 @@ namespace Modules.Test.TestResultCoordinator
         }
 
         [Theory]
-        [InlineData(false, false, false, false, false, false, false, 5)]
-        [InlineData(true, false, true, false, true, false, true, 3)]
-        [InlineData(true, false, false, false, false, false, false, 4)]
+        [InlineData(true, true, true, true, true, true, true, 0)]
         [InlineData(false, false, true, true, true, true, true, 2)]
-        [InlineData(true, true, true, true, false, false, false, 1)]
+        [InlineData(true, true, true, true, false, false, false, 3)]
+        [InlineData(true, false, true, false, true, false, true, 3)]
+        [InlineData(true, false, false, false, false, false, false, 6)]
+        [InlineData(false, false, false, false, false, false, false, 7)]
         public async Task TestGenerateTestResultReportsAsync_ReportGeneration(
             bool throwExceptionForTestReport1,
             bool throwExceptionForTestReport2,
@@ -63,7 +64,7 @@ namespace Modules.Test.TestResultCoordinator
             bool throwExceptionForTestReport5,
             bool throwExceptionForTestReport6,
             bool throwExceptionForTestReport7,
-            int expectedReportCount)
+            int expectedExceptionCount)
         {
             var mockLogger = new Mock<ILogger>();
             var mockTestReportGeneratorFactory = new Mock<ITestReportGeneratorFactory>();
@@ -121,7 +122,7 @@ namespace Modules.Test.TestResultCoordinator
                 mockTestReportGeneratorFactory.Object,
                 mockLogger.Object);
 
-            Assert.Equal(expectedReportCount, reports.Length);
+            Assert.Equal(expectedExceptionCount, reports.Length);
         }
 
         [Fact]
@@ -174,7 +175,7 @@ namespace Modules.Test.TestResultCoordinator
 
             List<ITestReportMetadata> results = TestReportUtil.ParseReportMetadataJson(testDataJson, new Mock<ILogger>().Object);
 
-            Assert.Equal(5, results.Count);
+            Assert.Equal(7, results.Count);
         }
 
         [Fact]
@@ -387,7 +388,7 @@ namespace Modules.Test.TestResultCoordinator
             Assert.Equal(TestReportType.EdgeHubRestartDirectMethodReport, reportMetadata.TestReportType);
             Assert.Equal("edgeHubRestartTester1.EdgeHubRestartDirectMethod", reportMetadata.SenderSource);
             Assert.Equal("directMethodReceiver1.receive", reportMetadata.ReceiverSource);
-            Assert.Equal("00:01:00.000", reportMetadata.PassableEdgeHubRestartPeriod.ToString());
+            Assert.Equal("00:01:00", reportMetadata.PassableEdgeHubRestartPeriod.ToString());
         }
 
         [Fact]
