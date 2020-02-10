@@ -361,7 +361,7 @@ fn run() -> Result<(), Error> {
                 .value_of("since")
                 .map(|s| parse_since(s))
                 .transpose()
-                .map_err(|err| Error::from(err.context(ErrorKind::BadSinceParameter)))?
+                .context(ErrorKind::BadSinceParameter)?
                 .expect("arg has a default value");
             let options = LogOptions::new()
                 .with_follow(follow)
@@ -375,7 +375,7 @@ fn run() -> Result<(), Error> {
                 .value_of("since")
                 .map(|s| parse_since(s))
                 .transpose()
-                .map_err(|err| Error::from(err.context(ErrorKind::BadSinceParameter)))?
+                .context(ErrorKind::BadSinceParameter)?
                 .expect("arg has a default value");
             let options = LogOptions::new()
                 .with_follow(false)
