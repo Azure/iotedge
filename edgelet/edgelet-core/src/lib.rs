@@ -25,10 +25,10 @@ mod identity;
 mod logs;
 mod module;
 mod network;
+pub mod parse_since;
 mod settings;
 pub mod watchdog;
 pub mod workload;
-pub mod parse_since;
 
 pub use authentication::Authenticator;
 pub use authorization::{AuthId, ModuleId, Policy};
