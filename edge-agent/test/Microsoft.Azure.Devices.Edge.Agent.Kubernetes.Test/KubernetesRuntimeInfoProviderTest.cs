@@ -195,7 +195,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var moduleManager = new Mock<IModuleManager>(MockBehavior.Strict);
             var runtimeInfo = new KubernetesRuntimeInfoProvider(Namespace, client.Object, moduleManager.Object);
 
-            var result = await runtimeInfo.GetModuleLogs("module", true, Option.None<int>(), Option.None<int>(), CancellationToken.None);
+            var result = await runtimeInfo.GetModuleLogs("module", true, Option.None<int>(), Option.None<string>(), CancellationToken.None);
 
             Assert.True(result.Length == logs.Length);
         }
