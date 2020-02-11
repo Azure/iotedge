@@ -53,8 +53,6 @@ impl WellFormedConnectionString {
                             To run connectivity checks in this configuration please specify the backing IoT Hub name using --iothub-hostname switch if you have that information.\n\
                             If no hostname is provided, all hub connectivity tests will be skipped.";
             return Ok(CheckResult::Warning(Context::new(warning).into()));
-        } else {
-            return Ok(CheckResult::Skipped);
         }
 
         Ok(CheckResult::Ok)
