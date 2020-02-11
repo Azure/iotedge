@@ -190,7 +190,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// For example, createOptions, createOptions01, createOptions02, etc.
         /// The iterator assumes that these fields are string sortable.
         /// </summary>
-        /// <param name="self">The JObject</param>
+        /// <param name="self">The JObject. </param>
         /// <param name="name">The base name of the field. For example, createOptions</param>
         /// <returns></returns>
         public static IEnumerable<JToken> ChunkedValue(this JObject self, string name) => new ChunkedProperty(self, name);
