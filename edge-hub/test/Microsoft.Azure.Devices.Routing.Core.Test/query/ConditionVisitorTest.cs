@@ -14,7 +14,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
     using Moq;
     using Xunit;
 
-    [ExcludeFromCodeCoverage]
     public class ConditionVisitorTest : RoutingUnitTestBase
     {
         [Theory]
