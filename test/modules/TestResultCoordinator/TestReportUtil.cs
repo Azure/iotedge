@@ -39,6 +39,7 @@ namespace TestResultCoordinator
             {
                 foreach (ITestReportMetadata reportMetadata in reportMetadatalist)
                 {
+                    logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: TestReportUtil : {reportMetadata.GetType()}");
                     ITestResultReportGenerator testResultReportGenerator = await testReportGeneratorFactory.CreateAsync(trackingId, reportMetadata);
                     testResultReportTasks.Add(testResultReportGenerator.CreateReportAsync());
                 }
