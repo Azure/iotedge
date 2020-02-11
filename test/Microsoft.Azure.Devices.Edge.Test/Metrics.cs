@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         if (OsPlatform.IsWindows())
                         {
                             // Note: This overwrites the default port mapping. This if fine for this test.
-                            // edgeHub.WithSettings(("createOptions", "{\"User\":\"ContainerAdministrator\"}"));
+                            edgeHub.WithSettings(("createOptions", "{\"User\":\"ContainerAdministrator\"}"));
                         }
 
                         builder.GetModule("$edgeAgent")
