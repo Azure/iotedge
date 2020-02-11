@@ -260,8 +260,14 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             ulong resultCount,
             Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram)
         {
-            EdgeHubRestartDirectMethodResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodResult>(resultCollection.Current.Result);
-            long seqNum = this.ConvertStringToLong(senderResult.SequenceNumber);
+
+            long seqNum = targetSequenceNumber;
+            EdgeHubRestartDirectMethodResult senderResult = null;
+            if (isNotEmpty)
+            {
+                senderResult = JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodResult>(resultCollection.Current.Result);
+                seqNum = this.ConvertStringToLong(senderResult.SequenceNumber);
+            }
 
             while ((seqNum < targetSequenceNumber) && isNotEmpty)
             {
