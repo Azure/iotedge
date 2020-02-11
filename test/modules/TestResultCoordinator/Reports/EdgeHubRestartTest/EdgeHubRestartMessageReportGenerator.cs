@@ -220,11 +220,11 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 }
 
                 // Compute Mean : mean = sum(x) / N
-                meanPeriod = totalSpan / Math.Max( orderedCompletedPeriods.Count(), 1);
+                meanPeriod = totalSpan / Math.Max(orderedCompletedPeriods.Count(), 1);
 
                 // Compute Sample Variance: var = sum((x - mean)^2) / (N - 1)
                 //                              = sum(x^2) / (N - 1) - mean^2
-                variancePeriodInMilisec = (totalSpanSquareInMilisec / Math.Max( orderedCompletedPeriods.Count() - 1, 1)) - Math.Pow(meanPeriod.TotalMilliseconds, 2);
+                variancePeriodInMilisec = (totalSpanSquareInMilisec / Math.Max(orderedCompletedPeriods.Count() - 1, 1)) - Math.Pow(meanPeriod.TotalMilliseconds, 2);
             }
 
             return new EdgeHubRestartMessageReport(
