@@ -25,7 +25,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             TimeSpan maxPeriod,
             TimeSpan medianPeriod,
             TimeSpan meanPeriod,
-            TimeSpan variancePeriod)
+            double variancePeriodInMilisec)
             : base(trackingId, resultType)
         {
             this.isPassing = isPassing;
@@ -39,14 +39,12 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             this.MaxPeriod = maxPeriod;
             this.MedianPeriod = medianPeriod;
             this.MeanPeriod = meanPeriod;
-            this.VariancePeriod = variancePeriod;
+            this.VariancePeriodInMilisec = variancePeriodInMilisec;
         }
 
         bool isPassing;
 
         public ulong PassedMessageCount { get; }
-
-        public Dictionary<HttpStatusCode, ulong> RestartStatusHistogram { get; }
 
         public Dictionary<HttpStatusCode, List<TimeSpan>> CompletedStatusHistogram { get; }
 
@@ -66,7 +64,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
         public TimeSpan MeanPeriod { get; }
 
-        public TimeSpan VariancePeriod { get; }
+        public double VariancePeriodInMilisec { get; }
 
         public override bool IsPassed => this.isPassing;
 

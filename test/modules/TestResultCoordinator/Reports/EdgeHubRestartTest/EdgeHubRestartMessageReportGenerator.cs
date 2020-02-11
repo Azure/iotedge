@@ -77,8 +77,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 senderMessageCount++;
                 receiverMessageCount++;
 
-                Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: Start (hasSenderResult && hasReceiverResult) : {senderMessageCount}  {receiverMessageCount}");
-
                 // Adjust seqeunce number from both source to be equal before doing any comparison
                 EdgeHubRestartMessageResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(this.SenderTestResults.Current.Result);
                 long receiverSeqNum = this.ParseReceiverSequenceNumber(this.ReceiverTestResults.Current.Result);
@@ -86,8 +84,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
                 if (receiverSeqNum > senderSeqNum)
                 {
-                    Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: Start (receiverSeqNum > senderSeqNum): {receiverSeqNum}  {senderSeqNum}");
-
                     // Increment sender result to have the same seq as the receiver
                     (senderMessageCount, hasSenderResult) = await this.IncrementSenderSequenceNumberAsync(
                         hasSenderResult,
@@ -96,16 +92,12 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                         senderMessageCount,
                         completedStatusHistogram);
 
-                    Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: End (receiverSeqNum > senderSeqNum): {receiverSeqNum}  {senderSeqNum}");
-
                     // Fail the test
                     isPassing = false;
                 }
 
                 if (receiverSeqNum < senderSeqNum)
                 {
-                    Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: Start (receiverSeqNum < senderSeqNum): {receiverSeqNum}  {senderSeqNum}");
-
                     // Increment receiver result to have the same seq as the sender
                     (receiverMessageCount, hasReceiverResult) = await this.IncrementReceiverSequenceNumberAsync(
                         hasReceiverResult,
@@ -113,23 +105,18 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                         senderSeqNum,
                         receiverMessageCount);
 
-                    Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: End (receiverSeqNum < senderSeqNum): {receiverSeqNum}  {senderSeqNum}");
-
                     // Fail the test
                     isPassing = false;
                 }
 
                 if (hasSenderResult ^ hasReceiverResult)
                 {
-                    Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: (hasSenderResult ^ hasReceiverResult): {hasSenderResult}  {hasReceiverResult}");
                     break;
                 }
 
                 // Note: In the current verification, if the receiver obtained more result message than
                 //   sender, the test is consider a fail. We are disregarding duplicated/unique seqeunce number
                 //   of receiver's result.
-
-                Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: Match (hasSenderResult && hasReceiverResult) : {senderMessageCount}  {receiverMessageCount}");
 
                 // Check if the current message is passing
                 bool isCurrentMessagePassing = true;
@@ -144,7 +131,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 senderSeqNum = this.ParseSenderSequenceNumber(senderResult.SequenceNumber);
                 receiverSeqNum = this.ParseReceiverSequenceNumber(receiverResult);
                 isCurrentMessagePassing &= senderSeqNum == receiverSeqNum;
-                isCurrentMessagePassing &= (previousSeqNum + 1) == senderSeqNum;
 
                 // Verify if the report status is passable
                 isCurrentMessagePassing &= senderResult.MessageCompletedStatusCode == HttpStatusCode.OK;
@@ -155,20 +141,19 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
                 // If this message passed, increment the count for a good message
                 passedMessageCount += isCurrentMessagePassing ? 1UL : 0UL;
+
+                // Make sure the sequence number is incremental
+                isPassing &= (previousSeqNum + 1) == senderSeqNum;
+
                 // Update the overall test status
                 isPassing &= isCurrentMessagePassing;
 
                 hasSenderResult = await this.SenderTestResults.MoveNextAsync();
                 hasReceiverResult = await this.ReceiverTestResults.MoveNextAsync();
-
-                Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: End (hasSenderResult && hasReceiverResult) : {hasSenderResult}  {hasReceiverResult}");
             }
 
             // Fail the test if both of the source didn't have the same amount of messages
             isPassing &= !(hasSenderResult ^ hasReceiverResult);
-
-            Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: Exit (hasSenderResult && hasReceiverResult) : {hasSenderResult}  {hasReceiverResult}");
-            Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: Before IncrementSenderSequenceNumberAsync(Sender) : {hasSenderResult}  {senderMessageCount}");
 
             (senderMessageCount, _) = await this.IncrementSenderSequenceNumberAsync(
                 hasSenderResult,
@@ -177,16 +162,11 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 senderMessageCount,
                 completedStatusHistogram);
 
-            Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: After IncrementSenderSequenceNumberAsync(Sender) : {hasSenderResult}  {senderMessageCount}");
-            Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: Before IncrementReceiverSequenceNumberAsync(Recv) : {hasReceiverResult}  {receiverMessageCount}");
-
             (receiverMessageCount, _) = await this.IncrementReceiverSequenceNumberAsync(
                 hasReceiverResult,
                 this.ReceiverTestResults,
                 long.MaxValue,
                 receiverMessageCount);
-
-            Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: After IncrementReceiverSequenceNumberAsync(Recv) : {hasReceiverResult}  {receiverMessageCount}");
 
             return this.CalculateStatistic(
                 isPassing,
@@ -203,8 +183,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             ulong receiverMessageCount,
             Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram)
         {
-            Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: Start CalculateStatistic(Recv) : {isPassing}  {passedMessageCount} {senderMessageCount} {receiverMessageCount}");
-
             List<TimeSpan> completedPeriods;
             completedStatusHistogram.TryGetValue(HttpStatusCode.OK, out completedPeriods);
             List<TimeSpan> orderedCompletedPeriods = completedPeriods?.OrderBy(p => p.Ticks).ToList();
@@ -213,7 +191,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             TimeSpan maxPeriod = TimeSpan.FromTicks(0);
             TimeSpan medianPeriod = TimeSpan.FromTicks(0);
             TimeSpan meanPeriod = TimeSpan.FromTicks(0);
-            TimeSpan variancePeriod = TimeSpan.FromTicks(0);
+            double variancePeriodInMilisec = 0.0;
             if (orderedCompletedPeriods != null)
             {
                 minPeriod = orderedCompletedPeriods.First();
@@ -242,15 +220,12 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 }
 
                 // Compute Mean : mean = sum(x) / N
-                meanPeriod = totalSpan / orderedCompletedPeriods.Count();
+                meanPeriod = totalSpan / Math.Max( orderedCompletedPeriods.Count(), 1);
 
-                // Compute Variance: var = sum((x - mean)^2) / N
-                //                       = sum(x^2) / N - mean^2
-                double variancePeriodInMilisec = (totalSpanSquareInMilisec / orderedCompletedPeriods.Count()) - Math.Pow(meanPeriod.TotalMilliseconds, 2);
-                variancePeriod = TimeSpan.FromMilliseconds(variancePeriodInMilisec);
+                // Compute Sample Variance: var = sum((x - mean)^2) / (N - 1)
+                //                              = sum(x^2) / (N - 1) - mean^2
+                variancePeriodInMilisec = (totalSpanSquareInMilisec / Math.Max( orderedCompletedPeriods.Count() - 1, 1)) - Math.Pow(meanPeriod.TotalMilliseconds, 2);
             }
-
-            Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: End CalculateStatistic(Recv) : {isPassing}  {passedMessageCount} {senderMessageCount} {receiverMessageCount}");
 
             return new EdgeHubRestartMessageReport(
                 this.TrackingId,
@@ -266,7 +241,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 maxPeriod,
                 medianPeriod,
                 meanPeriod,
-                variancePeriod);
+                variancePeriodInMilisec);
         }
 
         async Task<(ulong messageCount, bool isNotEmpty)> IncrementSenderSequenceNumberAsync(
@@ -276,8 +251,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             ulong messageCount,
             Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram)
         {
-            Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: Before IncrementSenderSequenceNumberAsync() : {targetSequenceNumber} {isNotEmpty} {messageCount}");
-
             long seqNum = targetSequenceNumber;
             EdgeHubRestartMessageResult senderResult = null;
             if (isNotEmpty)
@@ -288,7 +261,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
             while ((seqNum < targetSequenceNumber) && isNotEmpty)
             {
-                Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: Start IncrementSenderSequenceNumberAsync() while : {seqNum} {targetSequenceNumber} {isNotEmpty} {messageCount}");
                 messageCount++;
 
                 this.AddEntryToCompletedStatusHistogram(
@@ -302,10 +274,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                     senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(resultCollection.Current.Result);
                     seqNum = this.ParseSenderSequenceNumber(senderResult.SequenceNumber);
                 }
-                Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: End IncrementSenderSequenceNumberAsync() while : {seqNum} {targetSequenceNumber} {isNotEmpty} {messageCount}");
             }
-
-            Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: IncrementSenderSequenceNumberAsync() Exit while : {targetSequenceNumber} {isNotEmpty} {messageCount}");
 
             return (messageCount: messageCount, isNotEmpty: isNotEmpty);
         }
@@ -316,8 +285,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             long targetSequenceNumber,
             ulong messageCount)
         {
-            Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: Star IncrementReceiverSequenceNumberAsync() : {targetSequenceNumber} {isNotEmpty} {messageCount}");
-
             long seqNum = targetSequenceNumber;
             if (isNotEmpty)
             {
@@ -326,7 +293,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
             while ((seqNum < targetSequenceNumber) && isNotEmpty)
             {
-                Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: Start IncrementReceiverSequenceNumberAsync() while : {seqNum} {targetSequenceNumber} {isNotEmpty} {messageCount}");
                 messageCount++;
 
                 isNotEmpty = await resultCollection.MoveNextAsync();
@@ -335,11 +301,8 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 {
                     seqNum = this.ParseReceiverSequenceNumber(resultCollection.Current.Result);
                 }
-                Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: End IncrementReceiverSequenceNumberAsync() while : {seqNum} {targetSequenceNumber} {isNotEmpty} {messageCount}");
             }
 
-
-            Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: IncrementReceiverSequenceNumberAsync() Exit while : {targetSequenceNumber} {isNotEmpty} {messageCount}");
             return (messageCount: messageCount, isNotEmpty: isNotEmpty);
         }
 

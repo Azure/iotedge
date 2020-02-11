@@ -129,7 +129,6 @@ namespace EdgeHubRestartTester
 
         async Task<ModuleClient> GetModuleClientAsync()
         {
-            this.logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: [DirectMethodEdgeHubConnectorTest] GetModuleClientAsync {this.dmModuleClient?.GetType()}");
             if (this.dmModuleClient == null)
             {
                 this.dmModuleClient = await ModuleUtil.CreateModuleClientAsync(

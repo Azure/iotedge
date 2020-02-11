@@ -140,9 +140,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 isCurrentDirectMethodPassing &= this.ConvertStringToLong(senderResult.SequenceNumber) > previousSeqNum;
                 previousSeqNum = this.ConvertStringToLong(senderResult.SequenceNumber);
 
-                // Verified the BatchId is the same
-                isCurrentDirectMethodPassing &= senderResult.BatchId == receiverResult.BatchId;
-
                 this.AddEntryToCompletedStatusHistogram(
                     senderResult,
                     completedStatusHistogram);
@@ -196,7 +193,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             TimeSpan maxPeriod = TimeSpan.FromTicks(0);
             TimeSpan medianPeriod = TimeSpan.FromTicks(0);
             TimeSpan meanPeriod = TimeSpan.FromTicks(0);
-            TimeSpan variancePeriod = TimeSpan.FromTicks(0);
+            double variancePeriodInMilisec = 0.0;
             if (orderedCompletedPeriods != null)
             {
                 minPeriod = orderedCompletedPeriods.First();
@@ -225,12 +222,11 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 }
 
                 // Compute Mean : mean = sum(x) / N
-                meanPeriod = totalSpan / orderedCompletedPeriods.Count();
+                meanPeriod = totalSpan / Math.Max( orderedCompletedPeriods.Count(), 1);
 
-                // Compute Variance: var = sum((x - mean)^2) / N
-                //                       = sum(x^2) / N - mean^2
-                double variancePeriodInMilisec = (totalSpanSquareInMilisec / orderedCompletedPeriods.Count()) - Math.Pow(meanPeriod.TotalMilliseconds, 2);
-                variancePeriod = TimeSpan.FromMilliseconds(variancePeriodInMilisec);
+                // Compute Sample Variance: var = sum((x - mean)^2) / (N - 1)
+                //                              = sum(x^2) / (N - 1) - mean^2
+                variancePeriodInMilisec = (totalSpanSquareInMilisec / Math.Max( orderedCompletedPeriods.Count() - 1, 1)) - Math.Pow(meanPeriod.TotalMilliseconds, 2);
             }
 
             // Make sure the maximum restart period is within a passable threshold
@@ -250,7 +246,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 maxPeriod,
                 medianPeriod,
                 meanPeriod,
-                variancePeriod);
+                variancePeriodInMilisec);
         }
 
         async Task<(ulong resultCount, bool isNotEmpty)> IncrementSequenceNumberAsync(
