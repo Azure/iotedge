@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         public Option<int> Tail { get; }
 
         [JsonProperty("since")]
-        [JsonConverter(typeof(OptionConverter<int>), true)]
+        [JsonConverter(typeof(OptionConverter<string>), true)]
         public Option<string> Since { get; }
 
         [JsonProperty("loglevel")]
