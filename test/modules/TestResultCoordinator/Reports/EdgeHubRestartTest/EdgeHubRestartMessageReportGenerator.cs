@@ -278,8 +278,13 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         {
             Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: Before IncrementSenderSequenceNumberAsync() : {targetSequenceNumber} {isNotEmpty} {messageCount}");
 
-            EdgeHubRestartMessageResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(resultCollection.Current.Result);
-            long seqNum = this.ParseSenderSequenceNumber(senderResult.SequenceNumber);
+            long seqNum = targetSequenceNumber;
+            EdgeHubRestartMessageResult senderResult = null;
+            if (isNotEmpty)
+            {
+                senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(resultCollection.Current.Result);
+                seqNum = this.ParseSenderSequenceNumber(senderResult.SequenceNumber);
+            }
 
             while ((seqNum < targetSequenceNumber) && isNotEmpty)
             {
@@ -300,7 +305,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: End IncrementSenderSequenceNumberAsync() while : {seqNum} {targetSequenceNumber} {isNotEmpty} {messageCount}");
             }
 
-            Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: IncrementSenderSequenceNumberAsync() Exit while : {seqNum} {targetSequenceNumber} {isNotEmpty} {messageCount}");
+            Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: IncrementSenderSequenceNumberAsync() Exit while : {targetSequenceNumber} {isNotEmpty} {messageCount}");
 
             return (messageCount: messageCount, isNotEmpty: isNotEmpty);
         }
@@ -312,7 +317,12 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             ulong messageCount)
         {
             Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: Star IncrementReceiverSequenceNumberAsync() : {targetSequenceNumber} {isNotEmpty} {messageCount}");
-            long seqNum = this.ParseReceiverSequenceNumber(resultCollection.Current.Result);
+
+            long seqNum = targetSequenceNumber;
+            if (isNotEmpty)
+            {
+                seqNum = this.ParseReceiverSequenceNumber(resultCollection.Current.Result);
+            }
 
             while ((seqNum < targetSequenceNumber) && isNotEmpty)
             {
@@ -328,7 +338,8 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: End IncrementReceiverSequenceNumberAsync() while : {seqNum} {targetSequenceNumber} {isNotEmpty} {messageCount}");
             }
 
-            Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: IncrementReceiverSequenceNumberAsync() Exit while : {seqNum} {targetSequenceNumber} {isNotEmpty} {messageCount}");
+
+            Logger.LogInformation($">>>>>>>>>>>>>>>>>>> BEARWASHERE: IncrementReceiverSequenceNumberAsync() Exit while : {targetSequenceNumber} {isNotEmpty} {messageCount}");
             return (messageCount: messageCount, isNotEmpty: isNotEmpty);
         }
 
