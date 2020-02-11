@@ -49,8 +49,11 @@ impl WellFormedConnectionString {
             check.iothub_hostname = Some(hub);
             self.iothub_hostname = check.iothub_hostname.clone();
         } else if check.iothub_hostname.is_none() {
-            return Err(Context::new("Device is not using manual provisioning, so Azure IoT Hub hostname needs to be specified with --iothub-hostname").into());
-        };
+            let warning = "Device not configured with manual provisioning, in this configuration 'iotedge check' is not able to discover the device's backing IoT Hub.\n\
+                            To run connectivity checks in this configuration please specify the backing IoT Hub name using --iothub-hostname switch if you have that information.\n\
+                            If no hostname is provided, all hub connectivity tests will be skipped.";
+            return Ok(CheckResult::Warning(Context::new(warning).into()));
+        }
 
         Ok(CheckResult::Ok)
     }
