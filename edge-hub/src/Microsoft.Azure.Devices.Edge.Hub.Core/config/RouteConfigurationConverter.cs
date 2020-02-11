@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
-    using Org.BouncyCastle.Security;
 
     public class RouteConfigurationConverter : JsonConverter<IDictionary<string, RouteConfiguration>>
     {

@@ -8,6 +8,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
     public class RouteConfiguration
     {
+        // For legacy route definitions, we use 0 for the TTL.
+        // Since messages can't realistically have zero TTL,
+        // we use it as a special value to signify that the TTL
+        // property was not specified, in which case the global
+        // TTL value in StoreAndFowardConfiguration will kick in.
         public RouteConfiguration(string route)
             : this(route, RouteFactory.DefaultPriority, 0)
         {

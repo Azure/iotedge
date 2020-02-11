@@ -2,17 +2,19 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
 {
     using System;
+    using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core;
     using Newtonsoft.Json;
     using Xunit;
+    using Xunit.Sdk;
 
     [Unit]
     public class EdgeHubDesiredPropertiesTest
     {
         [Fact]
-        public void RoutesSectionTest()
+        public void RoutesSmokeTest()
         {
             string normal =
                 @"{
@@ -42,7 +44,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             Assert.Equal(7200u, desiredProperties.Routes["route2"].TimeToLiveSecs);
 
             Assert.Equal(20, desiredProperties.StoreAndForwardConfiguration.TimeToLiveSecs);
+        }
 
+        [Fact]
+        public void RoutesEmptyTest()
+        {
             string emptyRoutesSection =
                 @"{
                   'schemaVersion': '1.0',
@@ -52,9 +58,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                   },
                   '$version': 2
                 }";
-            desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(emptyRoutesSection);
+            var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(emptyRoutesSection);
             Assert.Equal(0, desiredProperties.Routes.Count);
+        }
 
+        [Fact]
+        public void RoutesNoPriorityTest()
+        {
             string noPriority =
                 @"{
                   'schemaVersion': '1.0',
@@ -69,10 +79,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                   },
                   '$version': 2
                 }";
-            desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(noPriority);
+            var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(noPriority);
             Assert.Equal(1, desiredProperties.Routes.Count);
             Assert.Equal(RouteFactory.DefaultPriority, desiredProperties.Routes["route2"].Priority);
+        }
 
+        [Fact]
+        public void RoutesNoTtlTest()
+        {
             string noTTL =
                 @"{
                   'schemaVersion': '1.0',
@@ -87,10 +101,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                   },
                   '$version': 2
                 }";
-            desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(noTTL);
+            var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(noTTL);
             Assert.Equal(1, desiredProperties.Routes.Count);
             Assert.Equal(0u, desiredProperties.Routes["route2"].TimeToLiveSecs);
+        }
 
+        [Fact]
+        public void RoutesNoPriorityOrTtlTest()
+        {
             string noPriorityOrTTL =
                 @"{
                   'schemaVersion': '1.0',
@@ -104,14 +122,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                   },
                   '$version': 2
                 }";
-            desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(noPriorityOrTTL);
+            var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(noPriorityOrTTL);
             Assert.Equal(1, desiredProperties.Routes.Count);
             Assert.Equal(RouteFactory.DefaultPriority, desiredProperties.Routes["route2"].Priority);
             Assert.Equal(0u, desiredProperties.Routes["route2"].TimeToLiveSecs);
         }
 
-        [Fact]
-        public void RoutesSectionMalformedTest()
+        [Theory]
+        [MemberData(nameof(GetMalformedData))]
+        public void RoutesSectionMalformedTest(string manifest, Type expectedException)
+        {
+            var ex = Assert.ThrowsAny<Exception>(() => JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(manifest));
+            Assert.Equal(expectedException, ex.GetType());
+        }
+
+        public static IEnumerable<object[]> GetMalformedData()
         {
             string noRoutesSection =
                 @"{
@@ -121,7 +146,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                   },
                   '$version': 2
                 }";
-            Assert.Throws<ArgumentNullException>(() => JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(noRoutesSection));
 
             string emptyRouteName1 =
                 @"{
@@ -134,7 +158,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                   },
                   '$version': 2
                 }";
-            Assert.Throws<ArgumentException>(() => JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(emptyRouteName1));
 
             string emptyRouteName2 =
                 @"{
@@ -149,7 +172,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                   },
                   '$version': 2
                 }";
-            Assert.Throws<ArgumentException>(() => JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(emptyRouteName2));
 
             string emptyRouteString1 =
                 @"{
@@ -162,7 +184,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                   },
                   '$version': 2
                 }";
-            Assert.Throws<ArgumentException>(() => JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(emptyRouteString1));
 
             string emptyRouteString2 =
                 @"{
@@ -179,7 +200,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                   },
                   '$version': 2
                 }";
-            Assert.Throws<ArgumentException>(() => JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(emptyRouteString2));
 
             string noRouteString =
                 @"{
@@ -192,7 +212,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                   },
                   '$version': 2
                 }";
-            Assert.Throws<ArgumentException>(() => JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(noRouteString));
+
+            yield return new object[] { noRoutesSection, typeof(ArgumentNullException) };
+            yield return new object[] { emptyRouteName1, typeof(ArgumentException) };
+            yield return new object[] { emptyRouteName2, typeof(ArgumentException) };
+            yield return new object[] { emptyRouteString1, typeof(ArgumentException) };
+            yield return new object[] { emptyRouteString2, typeof(ArgumentException) };
+            yield return new object[] { noRouteString, typeof(ArgumentException) };
         }
     }
 }

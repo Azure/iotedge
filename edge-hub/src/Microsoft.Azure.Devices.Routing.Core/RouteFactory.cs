@@ -15,8 +15,9 @@ namespace Microsoft.Azure.Devices.Routing.Core
         // Default route priority at half of uint.MaxValue,
         // so that routes with no custom priority fall below
         // everything else, and reserve room for routes that
-        // are below default priority.
-        public const uint DefaultPriority = uint.MaxValue / 2;
+        // are below default priority.  We round down to an
+        // even 2bn for easy remembering.
+        public const uint DefaultPriority = 2000000000;
 
         const string DefaultCondition = "true";
 
@@ -31,6 +32,8 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         public abstract string GetNextRouteId();
 
+        // If TTL is not provided for the route, we just set it
+        // to zero so that the global TTL value takes over
         public Route Create(string routeString) =>
             this.Create(routeString, DefaultPriority, 0);
 
