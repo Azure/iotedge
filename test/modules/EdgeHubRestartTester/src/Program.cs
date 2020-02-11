@@ -61,17 +61,23 @@ namespace EdgeHubRestartTester
 
                     // Setup Message Task
                     Task sendMessageTask = Task.CompletedTask;
-                    sendMessageTask = edgeHubMessageConnector?.StartAsync(
-                        eachTestExpirationTime,
-                        restartTime,
-                        cts.Token);
+                    if (edgeHubMessageConnector != null)
+                    {
+                        sendMessageTask = edgeHubMessageConnector.StartAsync(
+                                eachTestExpirationTime,
+                                restartTime,
+                                cts.Token);
+                    }
 
                     // Setup Direct Method Task
                     Task directMethodTask = Task.CompletedTask;
-                    directMethodTask = edgeHubDirectMethodConnector?.StartAsync(
-                        eachTestExpirationTime,
-                        restartTime,
-                        cts.Token);
+                    if (edgeHubDirectMethodConnector != null)
+                    {
+                        directMethodTask = edgeHubDirectMethodConnector.StartAsync(
+                            eachTestExpirationTime,
+                            restartTime,
+                            cts.Token);
+                    }
 
                     // Wait for the two task to be done before do a restart
                     await Task.WhenAll(new[] { sendMessageTask, directMethodTask });
