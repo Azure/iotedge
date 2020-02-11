@@ -2,19 +2,20 @@
 namespace Microsoft.Azure.Devices.Routing.Core
 {
     using System;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class RouteResult : IEquatable<RouteResult>
     {
         public RouteResult(Endpoint endpoint, uint priority, uint timeToLiveSecs)
         {
-            this.Endpoint = endpoint;
+            this.Endpoint = Preconditions.CheckNotNull(endpoint, nameof(endpoint));
             this.Priority = priority;
             this.TimeToLiveSecs = timeToLiveSecs;
         }
 
-        public readonly Endpoint Endpoint;
-        public readonly uint Priority;
-        public readonly uint TimeToLiveSecs;
+        public Endpoint Endpoint { get; }
+        public uint Priority { get; }
+        public uint TimeToLiveSecs { get; }
 
         public bool Equals(RouteResult other)
         {
@@ -23,35 +24,30 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 return false;
             }
 
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
             // Check endpoint, priority, and TTL
             bool areEqual =
                 this.Endpoint.Equals(other.Endpoint) &&
                 this.Priority == other.Priority &&
                 this.TimeToLiveSecs == other.TimeToLiveSecs;
 
-            return ReferenceEquals(this, other) || areEqual;
+            return areEqual;
         }
 
-        public override bool Equals(object obj)
-        {
-            if (ReferenceEquals(null, obj))
-            {
-                return false;
-            }
-
-            if (ReferenceEquals(this, obj))
-            {
-                return true;
-            }
-
-            return obj.GetType() == this.GetType() && this.Equals((RouteResult)obj);
-        }
+        public override bool Equals(object obj) => obj.GetType() == this.GetType() && this.Equals((RouteResult)obj);
 
         public override int GetHashCode()
         {
-            // Not an accurate cast from uint to int, but for hashing purposes
-            // we'd rather get negative values than an overflow
-            return this.Endpoint.Id.GetHashCode() + unchecked((int)this.Priority) + unchecked((int)this.TimeToLiveSecs);
+            // Not accurate to cast from uint to int, but for hashing purposes
+            // that's okay, and much better than getting an int overflow
+            unchecked
+            {
+                return this.Endpoint.Id.GetHashCode() + (int)this.Priority + (int)this.TimeToLiveSecs;
+            }
         }
     }
 }

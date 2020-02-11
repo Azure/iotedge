@@ -135,7 +135,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 {
                     this.routes.Value = snapshot.Remove(id);
                     this.evaluator.RemoveRoute(id);
-                    await this.dispatcher.RemoveEndpoint(removedRoute.Id);
+                    await this.dispatcher.RemoveEndpoint(removedRoute.Endpoint.Id);
                 }
             }
         }

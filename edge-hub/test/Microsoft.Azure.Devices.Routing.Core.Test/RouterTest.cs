@@ -148,9 +148,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             var message2 = new Message(TelemetryMessageSource.Instance, new byte[] { 2, 3, 1 }, new Dictionary<string, string> { { "key1", "value2" }, { "key2", "value2" } });
             var message3 = new Message(TelemetryMessageSource.Instance, new byte[] { 3, 1, 2 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } });
 
-            var endpoint1 = new TestEndpoint("id1");
-            var endpoint2 = new TestEndpoint("id2");
-            var endpoint3 = new TestEndpoint("id3");
+            var endpoint1 = new TestEndpoint("endpoint1");
+            var endpoint2 = new TestEndpoint("endpoint2");
+            var endpoint3 = new TestEndpoint("endpoint3");
 
             var allEndpoints = new HashSet<Endpoint> { endpoint1, endpoint2, endpoint3 };
 

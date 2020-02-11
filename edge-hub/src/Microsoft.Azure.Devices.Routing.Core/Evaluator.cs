@@ -53,37 +53,19 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         public ISet<RouteResult> Evaluate(IMessage message)
         {
-            var results = new HashSet<RouteResult>();
-
             // Because we are only reading here, it doesn't matter that it is under a lock
             // ReSharper disable once InconsistentlySynchronizedField - compiledRoutes is immutable
             ImmutableDictionary<string, CompiledRoute> snapshot = this.compiledRoutes;
-            foreach (CompiledRoute compiledRoute in snapshot.Values.Where(cr => cr.Route.Source.Match(message.MessageSource)))
-            {
-                if (EvaluateInternal(compiledRoute, message))
-                {
-                    RouteResult toAdd = new RouteResult(compiledRoute.Route.Endpoint, compiledRoute.Route.Priority, compiledRoute.Route.TimeToLiveSecs);
 
-                    // Multiple routes for the same endpoint can exist, in which case
-                    // the message should be routed with the highest available priority
-                    IEnumerable<RouteResult> dupeResults = results.Where(r => r.Endpoint.Equals(compiledRoute.Route.Endpoint));
+            // Multiple routes for the same endpoint can exist, in which case
+            // the message should be routed with the highest available priority
+            var routes = snapshot.Values
+                .Where(cr => cr.Route.Source.Match(message.MessageSource) && EvaluateInternal(cr, message))
+                .Select(cr => new RouteResult(cr.Route.Endpoint, cr.Route.Priority, cr.Route.TimeToLiveSecs))
+                .GroupBy(r => r.Endpoint)
+                .Select(dupes => dupes.OrderBy(r => r.Priority).First());
 
-                    if (dupeResults.Count() > 0)
-                    {
-                        // Only overwrite if the priority is higher (numerically lower)
-                        if (compiledRoute.Route.Priority < dupeResults.First().Priority)
-                        {
-                            results.Remove(dupeResults.First());
-                            results.Add(toAdd);
-                        }
-                    }
-                    else
-                    {
-                        // Base case
-                        results.Add(toAdd);
-                    }
-                }
-            }
+            var results = new HashSet<RouteResult>(routes);
 
             // only use the fallback for telemetry messages
             if (!results.Any() && message.MessageSource.IsTelemetry())
