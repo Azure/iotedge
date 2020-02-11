@@ -37,7 +37,7 @@ namespace MetricsValidator
                     .AddEnvironmentVariables()
                     .Build();
 
-                ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync()
+                ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync();
                 using (MetricsScraper scraper = new MetricsScraper(new List<string> { "http://edgeHub:9600/metrics", "http://edgeAgent:9600/metrics" }))
                 {
                     Logger.LogInformation("Open Async");
