@@ -51,6 +51,29 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
         internal TimeSpan PassableEdgeHubRestartPeriod { get; }
 
+private async Task<(ulong resultCount, bool isNotEmpty, long sequenceNumber)> MoveNextSenderResultAsync(
+    ulong senderResultCount,
+    Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram)
+{
+    bool isNotEmpty = await this.SenderTestResults.MoveNextAsync();
+    long seqNum = 0;
+    if (isNotEmpty)
+    {
+        senderResultCount++;
+
+        EdgeHubRestartDirectMethodResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodResult>(this.SenderTestResults.Current.Result);
+        seqNum = this.ConvertStringToLong(senderResult.SequenceNumber);
+
+        this.AddEntryToCompletedStatusHistogram(
+            senderResult,
+            completedStatusHistogram);
+    }
+
+    return (resultCount: senderResultCount,
+        isNotEmpty: isNotEmpty,
+        sequenceNumber: seqNum);
+}
+
         public async Task<ITestResultReport> CreateReportAsync()
         {
             Logger.LogInformation($"Generating report: {nameof(EdgeHubRestartDirectMethodReport)} for [{this.SenderSource}] and [{this.ReceiverSource}]");
@@ -64,7 +87,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             // Value: (completedStatusCode, DirectMethodCompletedTime - EdgeHubRestartedTime)
             Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram = new Dictionary<HttpStatusCode, List<TimeSpan>>();
 
-            bool hasSenderResult = await this.SenderTestResults.MoveNextAsync();
+//            bool hasSenderResult = await this.SenderTestResults.MoveNextAsync();  BEARWASHERE
             bool hasReceiverResult = await this.ReceiverTestResults.MoveNextAsync();
 
             while (hasSenderResult && hasReceiverResult)
@@ -80,11 +103,11 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                     TestOperationResultType.DirectMethod.ToString());
 
                 // Both sender & receiver have their dm results
-                senderResultCount++;
+                //senderResultCount++;   BEARWASHERE
                 receiverResultCount++;
 
                 // Adjust seqeunce number from both source to be equal before doing any comparison
-                EdgeHubRestartDirectMethodResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodResult>(this.SenderTestResults.Current.Result);
+                //EdgeHubRestartDirectMethodResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodResult>(this.SenderTestResults.Current.Result);   BEARWASHERE
                 DirectMethodTestResult receiverResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(this.ReceiverTestResults.Current.Result);
 
                 long senderSeqNum = this.ConvertStringToLong(senderResult.SequenceNumber);
@@ -93,7 +116,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 if (receiverSeqNum > senderSeqNum)
                 {
                     // Increment sender result to have the same seq as the receiver
-                    (senderResultCount, hasReceiverResult) = await this.IncrementSequenceNumberAsync(
+                    (senderResultCount, hasSenderResult) = await this.IncrementSequenceNumberAsync(
                         hasSenderResult,
                         this.SenderTestResults,
                         receiverSeqNum,
@@ -107,7 +130,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 if (receiverSeqNum < senderSeqNum)
                 {
                     // Increment receiver result to have the same seq as the sender
-                    (receiverResultCount, hasSenderResult) = await this.IncrementSequenceNumberAsync(
+                    (receiverResultCount, hasReceiverResult) = await this.IncrementSequenceNumberAsync(
                         hasReceiverResult,
                         this.ReceiverTestResults,
                         senderSeqNum,
