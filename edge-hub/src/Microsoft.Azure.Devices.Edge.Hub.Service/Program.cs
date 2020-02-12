@@ -57,9 +57,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             string sslProtocolsConfig = configuration.GetValue(Constants.ConfigKey.SslProtocols, string.Empty);
             SslProtocols sslProtocols = SslProtocolsHelper.Parse(sslProtocolsConfig, DefaultSslProtocols, logger);
+            TlsVersions.SetMinimumTlsVersions(sslProtocols);
             logger.LogInformation($"Enabling SSL protocols: {sslProtocols.Print()}");
-
-            TlsVersions.SetMinimumTlsVersions(SslProtocols.Tls12);
 
             IDependencyManager dependencyManager = new DependencyManager(configuration, certificates.ServerCertificate, certificates.TrustBundle, sslProtocols);
             Hosting hosting = Hosting.Initialize(configuration, certificates.ServerCertificate, dependencyManager, clientCertAuthEnabled, sslProtocols);
