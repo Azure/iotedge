@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
         public EndpointExecutorStatus Status => this.machine.Status;
 
-        public virtual Task Invoke(IMessage message) => this.SendToTplHead(message);
+        public virtual Task Invoke(IMessage message, uint _, uint __) => this.SendToTplHead(message);
 
         public async Task SetEndpoint(Endpoint newEndpoint)
         {
