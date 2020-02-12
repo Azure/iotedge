@@ -11,13 +11,15 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
     public class Route : IEquatable<Route>
     {
-        public Route(string id, string condition, string iotHubName, IMessageSource source, ISet<Endpoint> endpoints)
+        public Route(string id, string condition, string iotHubName, IMessageSource source, Endpoint endpoint, uint priority, uint timeToLiveSecs)
         {
             this.Id = Preconditions.CheckNotNull(id);
             this.Condition = Preconditions.CheckNotNull(condition);
             this.IotHubName = Preconditions.CheckNotNull(iotHubName);
             this.Source = source;
-            this.Endpoints = Preconditions.CheckNotNull(endpoints).ToImmutableHashSet();
+            this.Endpoint = Preconditions.CheckNotNull(endpoint);
+            this.Priority = priority;
+            this.TimeToLiveSecs = timeToLiveSecs;
         }
 
         public string Id { get; }
@@ -28,7 +30,11 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         public IMessageSource Source { get; }
 
-        public ISet<Endpoint> Endpoints { get; }
+        public Endpoint Endpoint { get; }
+
+        public uint Priority { get; }
+
+        public uint TimeToLiveSecs { get; }
 
         public bool Equals(Route other)
         {
@@ -45,7 +51,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             return string.Equals(this.Id, other.Id) &&
                    string.Equals(this.Condition, other.Condition) &&
                    this.Source.Equals(other.Source) &&
-                   this.Endpoints.SetEquals(other.Endpoints);
+                   this.Endpoint.Equals(other.Endpoint);
         }
 
         public override bool Equals(object obj)
@@ -71,12 +77,12 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 hash = hash * 31 + this.Id.GetHashCode();
                 hash = hash * 31 + this.Condition.GetHashCode();
                 hash = hash * 31 + this.Source.GetHashCode();
-                hash = this.Endpoints.Aggregate(hash, (acc, b) => acc * 31 + b.GetHashCode());
+                hash = hash * 31 + this.Endpoint.GetHashCode();
                 return hash;
             }
         }
 
         public override string ToString() =>
-            string.Format(CultureInfo.InvariantCulture, "Route(\"{0}\", {1}, \"{2}\" => ({3})", this.Id, this.Source, this.Condition, string.Join(", ", this.Endpoints));
+            string.Format(CultureInfo.InvariantCulture, "Route(\"{0}\", {1}, \"{2}\" => ({3})", this.Id, this.Source, this.Condition, this.Endpoint);
     }
 }

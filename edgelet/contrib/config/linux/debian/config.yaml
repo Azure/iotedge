@@ -158,9 +158,8 @@ provisioning:
 #                        Optionally can be specified as a file path.
 #
 # Note:
-# The values of all of these fields can be specified either as a
-# "file" scheme URI such as "file:///path/cert_key.pem" or a
-#  file path such as "/path/cert_key.pem"
+# The values of all of these fields must be specified as a
+# "file" scheme URI such as "file:///path/cert_key.pem"
 ###############################################################################
 
 # certificates:
