@@ -59,5 +59,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
         internal Task<V1ServiceAccountList> ListServiceAccounts(string deviceSelector) => this.Kubernetes.ListNamespacedServiceAccountAsync(this.DeviceNamespace, labelSelector: deviceSelector);
 
         internal V1Status DeleteServiceAccount(string moduleName) => this.Kubernetes.DeleteNamespacedServiceAccount(moduleName, this.DeviceNamespace);
+
+        internal void DeleteDeployment(string moduleName) => this.Kubernetes.DeleteNamespacedDeployment(moduleName, this.DeviceNamespace);
+
+        internal void DeleteService(string moduleName) => this.Kubernetes.DeleteNamespacedService(moduleName, this.DeviceNamespace);
+
+        internal void DeletePvc(string moduleName) => this.Kubernetes.DeleteNamespacedPersistentVolumeClaim(moduleName, this.DeviceNamespace);
     }
 }
