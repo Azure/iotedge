@@ -82,7 +82,7 @@ namespace TestResultCoordinator.Services
                 this.logger.LogError(ex, "Exception happened when uploading logs");
             }
 
-            var testSummary = new TestSummary(Settings.Current.DeviceId, testResultReports, blobContainerUri);
+            var testSummary = new TestSummary(Settings.Current.TestBuildNumber, Settings.Current.DeviceId, testResultReports, blobContainerUri);
             string reportsContent = JsonConvert.SerializeObject(testSummary, Formatting.Indented);
             this.logger.LogInformation($"Test summary{Environment.NewLine}{reportsContent}");
 
