@@ -76,7 +76,7 @@ namespace Modules.Test.TestResultCoordinator
             var directMethodReportMetadata = new DirectMethodReportMetadata("DirectMethodSenderSource", new TimeSpan(0, 0, 0, 0, 5), "DirectMethodReceiverSource");
             var directMethodReportMetadataWithoutReceiverSource = new DirectMethodReportMetadata("DirectMethodSenderSource", new TimeSpan(0, 0, 0, 0, 5), "DirectMethodReceiverSource");
             var edgeHubRestartMessageReportMetadata = new EdgeHubRestartMessageReportMetadata("edgeHubRestartTester1.EdgeHubRestartMessage", "relayer1.receive");
-            var edgeHubRestartDirectMethodReportMetadata = new EdgeHubRestartDirectMethodReportMetadata("edgeHubRestartTester1.EdgeHubRestartDirectMethod", "directMethodReceiver1.receive", new TimeSpan(0, 1, 0));
+            var edgeHubRestartDirectMethodReportMetadata = new EdgeHubRestartDirectMethodReportMetadata("edgeHubRestartTester1.EdgeHubRestartDirectMethod", "directMethodReceiver1.receive");
 
             var mockTestReportGenerator1 = new Mock<ITestResultReportGenerator>();
             mockTestReportGenerator1.Setup(g => g.CreateReportAsync()).Returns(this.MockTestResultReport(throwExceptionForTestReport1));
@@ -168,8 +168,7 @@ namespace Modules.Test.TestResultCoordinator
                         ""TestReportType"": ""EdgeHubRestartDirectMethodReport"",
                         ""TestOperationResultType"": ""EdgeHubRestartDirectMethod"",
                         ""SenderSource"": ""edgeHubRestartTester1.EdgeHubRestartDirectMethod"",
-                        ""ReceiverSource"": ""directMethodReceiver1.receive"",
-                        ""PassableEdgeHubRestartPeriod"": ""00:01:00.000""
+                        ""ReceiverSource"": ""directMethodReceiver1.receive""
                     }
                 }";
 
@@ -374,8 +373,7 @@ namespace Modules.Test.TestResultCoordinator
                         ""TestReportType"": ""EdgeHubRestartDirectMethodReport"",
                         ""TestOperationResultType"": ""EdgeHubRestartDirectMethod"",
                         ""SenderSource"": ""edgeHubRestartTester1.EdgeHubRestartDirectMethod"",
-                        ""ReceiverSource"": ""directMethodReceiver1.receive"",
-                        ""PassableEdgeHubRestartPeriod"": ""00:01:00.000""
+                        ""ReceiverSource"": ""directMethodReceiver1.receive""
                     }
                 }";
 
@@ -388,7 +386,6 @@ namespace Modules.Test.TestResultCoordinator
             Assert.Equal(TestReportType.EdgeHubRestartDirectMethodReport, reportMetadata.TestReportType);
             Assert.Equal("edgeHubRestartTester1.EdgeHubRestartDirectMethod", reportMetadata.SenderSource);
             Assert.Equal("directMethodReceiver1.receive", reportMetadata.ReceiverSource);
-            Assert.Equal("00:01:00", reportMetadata.PassableEdgeHubRestartPeriod.ToString());
         }
 
         [Fact]
