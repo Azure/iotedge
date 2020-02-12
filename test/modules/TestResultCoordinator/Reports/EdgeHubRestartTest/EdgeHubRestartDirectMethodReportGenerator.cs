@@ -51,28 +51,45 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
         internal TimeSpan PassableEdgeHubRestartPeriod { get; }
 
-private async Task<(ulong resultCount, bool isNotEmpty, long sequenceNumber)> MoveNextSenderResultAsync(
-    ulong senderResultCount,
-    Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram)
-{
-    bool isNotEmpty = await this.SenderTestResults.MoveNextAsync();
-    long seqNum = 0;
-    if (isNotEmpty)
-    {
-        senderResultCount++;
+        private async Task<(ulong resultCount, bool isNotEmpty, long sequenceNumber)> MoveNextSenderResultAsync(
+            ulong senderResultCount,
+            Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram)
+        {
+            bool isNotEmpty = await this.SenderTestResults.MoveNextAsync();
+            long seqNum = 0;
+            if (isNotEmpty)
+            {
+                senderResultCount++;
 
-        EdgeHubRestartDirectMethodResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodResult>(this.SenderTestResults.Current.Result);
-        seqNum = this.ConvertStringToLong(senderResult.SequenceNumber);
+                EdgeHubRestartDirectMethodResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodResult>(this.SenderTestResults.Current.Result);
+                seqNum = this.ConvertStringToLong(senderResult.SequenceNumber);
 
-        this.AddEntryToCompletedStatusHistogram(
-            senderResult,
-            completedStatusHistogram);
-    }
+                this.AddEntryToCompletedStatusHistogram(
+                    senderResult,
+                    completedStatusHistogram);
+            }
 
-    return (resultCount: senderResultCount,
-        isNotEmpty: isNotEmpty,
-        sequenceNumber: seqNum);
-}
+            return (resultCount: senderResultCount,
+                isNotEmpty: isNotEmpty,
+                sequenceNumber: seqNum);
+        }
+
+        private async Task<(ulong resultCount, bool isNotEmpty, long sequenceNumber)> MoveNextReceiverResultAsync(ulong receiverResultCount)
+        {
+            bool isNotEmpty = await this.ReceiverTestResults.MoveNextAsync();
+            long seqNum = 0;
+            if (isNotEmpty)
+            {
+                receiverResultCount++;
+
+                DirectMethodTestResult receiverResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(this.ReceiverTestResults.Current.Result);
+                seqNum = this.ConvertStringToLong(receiverResult.SequenceNumber);
+            }
+
+            return (resultCount: receiverResultCount,
+                isNotEmpty: isNotEmpty,
+                sequenceNumber: seqNum);
+        }
 
         public async Task<ITestResultReport> CreateReportAsync()
         {
@@ -88,7 +105,19 @@ private async Task<(ulong resultCount, bool isNotEmpty, long sequenceNumber)> Mo
             Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram = new Dictionary<HttpStatusCode, List<TimeSpan>>();
 
 //            bool hasSenderResult = await this.SenderTestResults.MoveNextAsync();  BEARWASHERE
-            bool hasReceiverResult = await this.ReceiverTestResults.MoveNextAsync();
+            bool hasSenderResult = true;
+            long senderSeqNum = 0;
+
+            (senderResultCount, hasSenderResult, senderSeqNum) =
+                await this.MoveNextSenderResultAsync(
+                    senderResultCount,
+                    completedStatusHistogram);
+
+// bool hasReceiverResult = await this.ReceiverTestResults.MoveNextAsync();
+            bool hasReceiverResult = true;
+            long receiverSeqNum = 0;
+            (receiverResultCount, hasReceiverResult, receiverSeqNum) =
+                await this.MoveNextReceiverResultAsync(receiverResultCount);
 
             while (hasSenderResult && hasReceiverResult)
             {
@@ -107,11 +136,11 @@ private async Task<(ulong resultCount, bool isNotEmpty, long sequenceNumber)> Mo
                 receiverResultCount++;
 
                 // Adjust seqeunce number from both source to be equal before doing any comparison
-                //EdgeHubRestartDirectMethodResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodResult>(this.SenderTestResults.Current.Result);   BEARWASHERE
-                DirectMethodTestResult receiverResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(this.ReceiverTestResults.Current.Result);
+//EdgeHubRestartDirectMethodResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodResult>(this.SenderTestResults.Current.Result);   BEARWASHERE
+//DirectMethodTestResult receiverResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(this.ReceiverTestResults.Current.Result);
 
-                long senderSeqNum = this.ConvertStringToLong(senderResult.SequenceNumber);
-                long receiverSeqNum = this.ConvertStringToLong(receiverResult.SequenceNumber);
+                //long senderSeqNum = this.ConvertStringToLong(senderResult.SequenceNumber); BEARWASHERE
+                //long receiverSeqNum = this.ConvertStringToLong(receiverResult.SequenceNumber);
 
                 if (receiverSeqNum > senderSeqNum)
                 {
@@ -153,8 +182,8 @@ private async Task<(ulong resultCount, bool isNotEmpty, long sequenceNumber)> Mo
                 // Check if the current dm is passing
                 bool isCurrentDirectMethodPassing = true;
 
-                senderResult = JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodResult>(this.SenderTestResults.Current.Result);
-                receiverResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(this.ReceiverTestResults.Current.Result);
+                EdgeHubRestartDirectMethodResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodResult>(this.SenderTestResults.Current.Result);
+                DirectMethodTestResult receiverResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(this.ReceiverTestResults.Current.Result);
 
                 // Verified the sequence numbers are the same
                 isCurrentDirectMethodPassing &= senderResult.SequenceNumber == receiverResult.SequenceNumber;
