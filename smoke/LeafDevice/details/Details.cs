@@ -120,18 +120,7 @@ namespace LeafDeviceTest
         {
             if (!string.IsNullOrEmpty(this.trustedCACertificateFileName))
             {
-                // Since Windows will pop up security warning when add certificate to current user store location;
-                // Therefore we will use CustomCertificateValidator instead.
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    Console.WriteLine("Hook up callback on device transport settings to validate with given certificate");
-                    CustomCertificateValidator.Create(new List<X509Certificate2> { this.GetTrustedCertificate() }, this.deviceTransportSettings);
-                }
-                else
-                {
-                    Console.WriteLine("Install trusted CA certificates");
-                    InstallTrustedCACerts(new List<X509Certificate2> { this.GetTrustedCertificate() });
-                }
+                InstallTrustedCACerts(new List<X509Certificate2> { this.GetTrustedCertificate() });
             }
 
             // for dotnet runtime, in order to provide the entire client certificate chain when
