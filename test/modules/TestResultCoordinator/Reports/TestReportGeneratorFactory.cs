@@ -97,7 +97,6 @@ namespace TestResultCoordinator.Reports
                         var metadata = (EdgeHubRestartDirectMethodReportMetadata)testReportMetadata;
                         var senderTestResults = this.GetResults(metadata.SenderSource);
                         var receiverTestResults = this.GetResults(metadata.ReceiverSource);
-                        var passableEdgeHubRestartPeriod = metadata.PassableEdgeHubRestartPeriod;
 
                         return new EdgeHubRestartDirectMethodReportGenerator(
                             trackingId,
@@ -105,8 +104,7 @@ namespace TestResultCoordinator.Reports
                             metadata.ReceiverSource,
                             metadata.TestReportType,
                             senderTestResults,
-                            receiverTestResults,
-                            passableEdgeHubRestartPeriod);
+                            receiverTestResults);
                     }
 
                 case TestReportType.EdgeHubRestartMessageReport:

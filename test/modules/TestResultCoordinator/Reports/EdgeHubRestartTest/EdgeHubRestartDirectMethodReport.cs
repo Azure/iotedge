@@ -14,7 +14,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         public EdgeHubRestartDirectMethodReport(
             string trackingId,
             string resultType,
-            bool isPassing,
             ulong passedDirectMethodCount,
             string senderSource,
             string receiverSource,
@@ -28,7 +27,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             double variancePeriodInMilisec)
             : base(trackingId, resultType)
         {
-            this.isPassing = isPassing;
             this.PassedDirectMethodCount = passedDirectMethodCount;
             this.SenderMessageCount = senderMessageCount;
             this.ReceiverMessageCount = receiverMessageCount;
@@ -41,8 +39,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             this.MeanPeriod = meanPeriod;
             this.VariancePeriodInMilisec = variancePeriodInMilisec;
         }
-
-        bool isPassing;
 
         public ulong PassedDirectMethodCount { get; }
 
@@ -66,7 +62,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
         public double VariancePeriodInMilisec { get; }
 
-        public override bool IsPassed => this.isPassing;
+        public override bool IsPassed => (this.PassedDirectMethodCount == this.SenderMessageCount) && (this.SenderMessageCount > 0);
 
         public override string Title => $"{this.ResultType} Report between {this.SenderSource} and {this.ReceiverSource}";
     }

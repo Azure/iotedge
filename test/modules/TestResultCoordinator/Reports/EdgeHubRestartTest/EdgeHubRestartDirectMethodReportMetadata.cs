@@ -11,14 +11,10 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
     {
         public EdgeHubRestartDirectMethodReportMetadata(
             string senderSource,
-            string receiverSource,
-            TimeSpan passableEdgeHubRestartPeriod)
+            string receiverSource)
         {
-            Preconditions.CheckRange(passableEdgeHubRestartPeriod.Ticks, 0);
-
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
             this.ReceiverSource = Preconditions.CheckNonWhiteSpace(receiverSource, nameof(receiverSource));
-            this.PassableEdgeHubRestartPeriod = passableEdgeHubRestartPeriod;
         }
 
         public string SenderSource { get; }
@@ -26,8 +22,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         public string ReceiverSource { get; }
 
         public string[] ResultSources => new string[] { this.SenderSource, this.ReceiverSource };
-
-        public TimeSpan PassableEdgeHubRestartPeriod { get; }
 
         public TestReportType TestReportType => TestReportType.EdgeHubRestartDirectMethodReport;
 
