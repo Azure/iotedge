@@ -1,4 +1,4 @@
-# How to configure priorities for modules
+# How to configure module startup order
 
 By default, IoT Edge does not impose an ordering in the sequence in which modules are started, updated or stopped. Edge Agent by default is the first module that gets started and based on the edge deployment specification, it figures out which modules need to be started, updated or stopped and executes those operations in a non-deterministic order.
 
@@ -24,7 +24,7 @@ Modules that possess the same priority will be created at the same time and will
 
 Modules that do not have a `priority` value specified will be started in a non-deterministic order and will be assigned a priority of 4294967295 which indicates the lowest possible priority. Edge Agent will trigger the creation of these modules after all modules with a higher priority have been created.
 
-**It must be noted that module boot ordering will initially not be supported for the Kubernetes execution mode of IoT Edge.**
+**Please note that Kubernetes mode of IoT Edge does not support module startup order priorities.**
 
 ## __Example__
 
@@ -124,21 +124,7 @@ In the sample deployment manifest shown above:
 
 When this deployment manifest is deployed to a device that does not have any modules running, `$edgeHub` is the first module that will come up followed by the `SimulatedTemperatureSensor` module and then the `filtermodule`.
 
-To deploy the deployment.json file to your device, you can use the Az CLI ([How to install][2]) with the Az CLI IoT Extension.
-
-How to install the Az CLI IoT extension:
-
-```bash
-az extension add --name azure-cli-iot-ext
-```
-
-Deploy the deployment manifest created to your device:
-
-```bash
-az iot edge set-modules --device-id <your device ID> --hub-name <your hub name> --content .\deployment.json
-```
-
-The Edge Hub module running on your device should now start honoring the store size limit of 1000000 bytes as per your deployment manifest.
+Please refer to [Deploy Azure IoT Edge modules with Azure CLI][2] for steps on how to deploy the deployment.json file to your device.
 
 [1]: https://docs.microsoft.com/azure/iot-edge/module-composition
-[2]: https://docs.microsoft.com/cli/azure/install-azure-cli?view=azure-cli-latest
+[2]: https://docs.microsoft.com/en-us/azure/iot-edge/how-to-deploy-modules-cli
