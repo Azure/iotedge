@@ -237,9 +237,16 @@ namespace IotEdgeQuickstart.Details
                 Console.WriteLine($"Device '{device.Id}' already registered on IoT hub '{builder.HostName}'");
                 Console.WriteLine($"Clean up Existing device? {this.cleanUpExistingDeviceOnSuccess}");
             }
-            catch (IotHubCommunicationException e)
+            catch (Exception e)
             {
-                Console.WriteLine($"Device '{this.deviceId}' not registered on IoT hub '{builder.HostName}': {e}");
+                if (e is IotHubException || e is IotHubCommunicationException)
+                {
+                    Console.WriteLine($"Device '{this.deviceId}' not registered on IoT hub '{builder.HostName}': {e}");
+                }
+                else
+                {
+                    throw;
+                }
             }
 
             if (device != null)
