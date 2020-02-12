@@ -406,14 +406,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
                     }
                 }
             };
+            var persistentVolumeName = "pvcname";
             var creatOptions = new CreatePodParameters(null, null, hostConfigs, null, null);
-            var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, "pvcname", "storageClassName");
+            var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, persistentVolumeName, "storageClassName");
             string imageName = "test-image:1";
             KubernetesModule km1 = this.CreateKubernetesModule(moduleName, creatOptions, imageName);
 
             await this.client.AddModuleDeploymentAsync(moduleName, new Dictionary<string, string> { ["a"] = "b" }, null);
             moduleLifeCycleManager.SetModules(moduleName);
-            this.client.DeletePvc(moduleName);
+            this.client.DeletePvc($"{moduleName}-{persistentVolumeName}");
             await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
 
             V1DeploymentList currentDeployments = await this.client.ListDeployments(deviceSelector);

@@ -52,18 +52,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
 
         internal Task<V1DeploymentList> ListDeployments(string deviceSelector) => this.Kubernetes.ListNamespacedDeploymentAsync(this.DeviceNamespace, labelSelector: deviceSelector);
 
+        internal Task<V1ServiceAccountList> ListServiceAccounts(string deviceSelector) => this.Kubernetes.ListNamespacedServiceAccountAsync(this.DeviceNamespace, labelSelector: deviceSelector);
+
         internal Task<V1ServiceList> ListServices(string deviceSelector) => this.Kubernetes.ListNamespacedServiceAsync(this.DeviceNamespace, labelSelector: deviceSelector);
 
         internal Task<V1PersistentVolumeClaimList> ListPeristentVolumeClaims() => this.Kubernetes.ListNamespacedPersistentVolumeClaimAsync(this.DeviceNamespace);
 
-        internal Task<V1ServiceAccountList> ListServiceAccounts(string deviceSelector) => this.Kubernetes.ListNamespacedServiceAccountAsync(this.DeviceNamespace, labelSelector: deviceSelector);
+        internal void DeleteDeployment(string moduleName) => this.Kubernetes.DeleteNamespacedDeployment(moduleName, this.DeviceNamespace);
 
         internal V1Status DeleteServiceAccount(string moduleName) => this.Kubernetes.DeleteNamespacedServiceAccount(moduleName, this.DeviceNamespace);
 
-        internal void DeleteDeployment(string moduleName) => this.Kubernetes.DeleteNamespacedDeployment(moduleName, this.DeviceNamespace);
-
         internal void DeleteService(string moduleName) => this.Kubernetes.DeleteNamespacedService(moduleName, this.DeviceNamespace);
 
-        internal void DeletePvc(string moduleName) => this.Kubernetes.DeleteNamespacedPersistentVolumeClaim(moduleName, this.DeviceNamespace);
+        internal void DeletePvc(string persistentVolumeName) => this.Kubernetes.DeleteNamespacedPersistentVolumeClaim(persistentVolumeName, this.DeviceNamespace);
     }
 }
