@@ -224,11 +224,20 @@ namespace IotEdgeQuickstart.Details
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString(), settings);
 
-            Device device = await rm.GetDeviceAsync(this.deviceId);
-            if (device != null)
+            Device device = null;
+            try
             {
+                device = await rm.GetDeviceAsync(this.deviceId);
                 Console.WriteLine($"Device '{device.Id}' already registered on IoT hub '{builder.HostName}'");
                 Console.WriteLine($"Clean up Existing device? {this.cleanUpExistingDeviceOnSuccess}");
+            }
+            catch (TimeoutException)
+            {
+                Console.WriteLine($"Device '{this.deviceId}' not registered on IoT hub '{builder.HostName}'");
+            }
+
+            if (device != null)
+            {
                 this.context = new DeviceContext(device, this.iothubConnectionString, rm, this.cleanUpExistingDeviceOnSuccess);
             }
             else
