@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Query;
+    using Moq;
     using Xunit;
 
     public class TwinChangeIncludesTest : RoutingUnitTestBase
@@ -50,7 +51,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         [InlineData("twin_change_includes(properties.reported.WeatherTwin.Location.City) AND Not(twin_change_includes(properties.reported.WeatherTwin.Temperature123))")]
         public void TestTwinChangeIncludesSuccess(string condition)
         {
-            var route = new Route("id", condition, "hub", TwinChangeEventMessageSource.Instance, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TwinChangeEventMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
             Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route, RouteCompilerFlags.TwinChangeIncludes);
             Assert.Equal(rule(Message1), Bool.True);
         }
@@ -61,7 +62,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         [InlineData("twin_change_includes(properties.reported.WeatherTwin.Location.City) AND twin_change_includes(properties.reported.WeatherTwin.Temperature123)")]
         public void TestTwinChangeIncludesFailure(string condition)
         {
-            var route = new Route("id", condition, "hub", TwinChangeEventMessageSource.Instance, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TwinChangeEventMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
             Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route, RouteCompilerFlags.TwinChangeIncludes);
             Assert.Equal(rule(Message1), Bool.False);
         }
@@ -72,7 +73,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         {
             string condition = "twin_change_includes(properties.reported.WeatherTwin)";
 
-            var route = new Route("id", condition, "hub", TwinChangeEventMessageSource.Instance, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TwinChangeEventMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
             Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route, RouteCompilerFlags.TwinChangeIncludes);
             Assert.Equal(rule(Message1), Bool.True);
         }
@@ -96,7 +97,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         [InlineData("twin_change_includes(properties[123].props11, abc)")]
         public void TestTwinChangeIncludesCompilationFailure(string condition)
         {
-            var route = new Route("id", condition, "hub", TwinChangeEventMessageSource.Instance, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TwinChangeEventMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
             Assert.Throws<RouteCompilationException>(() => RouteCompiler.Instance.Compile(route, RouteCompilerFlags.TwinChangeIncludes));
         }
 
@@ -105,7 +106,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         public void TestTwinChangeIncludes_NotSupported_RouteCompilerFlag()
         {
             string condition = "twin_change_includes(properties.reported.WeatherTwin)";
-            var route = new Route("id", condition, "hub", TwinChangeEventMessageSource.Instance, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TwinChangeEventMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
             Assert.Throws<RouteCompilationException>(() => RouteCompiler.Instance.Compile(route, RouteCompilerFlags.None));
         }
 
@@ -114,7 +115,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         public void TestTwinChangeIncludes_NotSupported_MessageSource()
         {
             string condition = "twin_change_includes(properties.reportedWeatherTwin)";
-            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
             Assert.Throws<RouteCompilationException>(() => RouteCompiler.Instance.Compile(route, RouteCompilerFlags.TwinChangeIncludes));
         }
 
@@ -125,7 +126,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         public void TestTwinChangeIncludes_ValidateMessage(string messageBody)
         {
             string condition = "twin_change_includes(properties.reported.WeatherTwin)";
-            var route = new Route("id", condition, "hub", TwinChangeEventMessageSource.Instance, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TwinChangeEventMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
             Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route, RouteCompilerFlags.TwinChangeIncludes);
 
             var invalidMessage = new Message(
@@ -146,7 +147,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         public void TestTwinChangeIncludes_InvalidEncoding()
         {
             string condition = "twin_change_includes(properties.reported.WeatherTwin)";
-            var route = new Route("id", condition, "hub", TwinChangeEventMessageSource.Instance, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TwinChangeEventMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
             Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route, RouteCompilerFlags.TwinChangeIncludes);
 
             var invalidMessage = new Message(

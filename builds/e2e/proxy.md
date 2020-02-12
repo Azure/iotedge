@@ -109,7 +109,7 @@ az group deployment create --resource-group "$resource_group_name" --name 'e2e-p
             "windows_vm_password": { "value": $windows_vm_password }
         }'
 )"
-
+```
 
 ## PowerShell notes:
 

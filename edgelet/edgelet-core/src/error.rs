@@ -119,6 +119,9 @@ pub enum ErrorKind {
     #[fail(display = "A module runtime error occurred.")]
     ModuleRuntime,
 
+    #[fail(display = "Unable to parse since.")]
+    ParseSince,
+
     #[fail(display = "Signing error occurred.")]
     Sign,
 

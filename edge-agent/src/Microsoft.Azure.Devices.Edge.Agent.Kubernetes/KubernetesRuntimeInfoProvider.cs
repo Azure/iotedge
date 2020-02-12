@@ -76,14 +76,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             return await Task.FromResult(moduleRuntimeInfoList);
         }
 
-        public async Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<int> since, CancellationToken cancellationToken) =>
-            await this.client.ReadNamespacedPodLogAsync(
-                module,
-                this.deviceNamespace,
-                follow: follow,
-                tailLines: tail.Map(lines => (int?)lines).OrDefault(),
-                sinceSeconds: since.Map(sec => (int?)sec).OrDefault(),
-                cancellationToken: cancellationToken);
+        public Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<string> since, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(Stream.Null);
+        }
 
         public Task<SystemInfo> GetSystemInfo(CancellationToken cancellationToken) => this.moduleManager.GetSystemInfoAsync(cancellationToken);
     }
