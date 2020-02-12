@@ -57,8 +57,6 @@ namespace NetworkController
 
         public NetworkProfile NetworkRunProfile { get; }
 
-        public NetworkProfileSetting ProfileSettings { get; }
-
         public string TrackingId { get; }
 
         public string ModuleId { get; }
@@ -78,7 +76,8 @@ namespace NetworkController
 
             string runProfileName = configuration.GetValue<string>(NetworkControllerRunProfilePropertyName);
             NetworkProfile runProfileSettings = configuration.GetSection($"{DefaultProfilesPropertyName}:{runProfileName}").Get<NetworkProfile>();
-            if (runProfileSettings == null) {
+            if (runProfileSettings == null)
+            {
                 runProfileSettings = NetworkProfile.Online;
             }
 

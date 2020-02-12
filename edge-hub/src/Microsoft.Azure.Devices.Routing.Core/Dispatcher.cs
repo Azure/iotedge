@@ -75,20 +75,20 @@ namespace Microsoft.Azure.Devices.Routing.Core
             return new Dispatcher(id, iotHubName, executors, executorFactory, masterCheckpointer);
         }
 
-        public Task DispatchAsync(IMessage message, ISet<Endpoint> endpoints)
+        public Task DispatchAsync(IMessage message, ISet<RouteResult> routeResults)
         {
             this.CheckClosed();
 
-            if (endpoints.Any())
+            if (routeResults.Any())
             {
                 IList<Task> tasks = new List<Task>();
                 // TODO handle case where endpoint is not in dispatcher's list of endpoints
-                foreach (Endpoint endpoint in endpoints)
+                foreach (RouteResult result in routeResults)
                 {
                     IEndpointExecutor exec;
-                    if (this.Executors.TryGetValue(endpoint.Id, out exec))
+                    if (this.Executors.TryGetValue(result.Endpoint.Id, out exec))
                     {
-                        tasks.Add(this.DispatchInternal(exec, message));
+                        tasks.Add(this.DispatchInternal(exec, message, result.Priority, result.TimeToLiveSecs));
                     }
                 }
 
@@ -215,11 +215,11 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
         }
 
-        async Task DispatchInternal(IEndpointExecutor exec, IMessage message)
+        async Task DispatchInternal(IEndpointExecutor exec, IMessage message, uint priority, uint timeToLiveSecs)
         {
             try
             {
-                await exec.Invoke(message);
+                await exec.Invoke(message, priority, timeToLiveSecs);
             }
             catch (Exception ex) when (ex is InvalidOperationException || ex is OperationCanceledException)
             {
