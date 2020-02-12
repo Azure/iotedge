@@ -133,7 +133,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
                 // Both sender & receiver have their dm results
                 //senderResultCount++;   BEARWASHERE
-                receiverResultCount++;
+                //receiverResultCount++;
 
                 // Adjust seqeunce number from both source to be equal before doing any comparison
 //EdgeHubRestartDirectMethodResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodResult>(this.SenderTestResults.Current.Result);   BEARWASHERE
@@ -144,6 +144,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
                 if (receiverSeqNum > senderSeqNum)
                 {
+                    // BEARWASHERE -- Send an increment delegate to the function for the iteration
                     // Increment sender result to have the same seq as the receiver
                     (senderResultCount, hasSenderResult) = await this.IncrementSequenceNumberAsync(
                         hasSenderResult,
