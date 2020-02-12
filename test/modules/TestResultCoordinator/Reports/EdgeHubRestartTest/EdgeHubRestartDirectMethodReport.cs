@@ -17,8 +17,8 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             ulong passedDirectMethodCount,
             string senderSource,
             string receiverSource,
-            ulong senderMessageCount,
-            ulong receiverMessageCount,
+            ulong senderResultCount,
+            ulong receiverResultCount,
             Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram,
             TimeSpan minPeriod,
             TimeSpan maxPeriod,
@@ -28,8 +28,8 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             : base(trackingId, resultType)
         {
             this.PassedDirectMethodCount = passedDirectMethodCount;
-            this.SenderMessageCount = senderMessageCount;
-            this.ReceiverMessageCount = receiverMessageCount;
+            this.SenderResultCount = senderResultCount;
+            this.ReceiverResultCount = receiverResultCount;
             this.CompletedStatusHistogram = Preconditions.CheckNotNull(completedStatusHistogram, nameof(completedStatusHistogram));
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
             this.ReceiverSource = Preconditions.CheckNonWhiteSpace(receiverSource, nameof(receiverSource));
@@ -46,11 +46,11 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
         public string SenderSource { get; }
 
-        public ulong SenderMessageCount { get; }
+        public ulong SenderResultCount { get; }
 
         public string ReceiverSource { get; }
 
-        public ulong ReceiverMessageCount { get; }
+        public ulong ReceiverResultCount { get; }
 
         public TimeSpan MinPeriod { get; }
 
@@ -62,7 +62,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
         public double VariancePeriodInMilisec { get; }
 
-        public override bool IsPassed => (this.PassedDirectMethodCount == this.SenderMessageCount) && (this.SenderMessageCount > 0);
+        public override bool IsPassed => (this.PassedDirectMethodCount == this.SenderResultCount) && (this.SenderResultCount > 0);
 
         public override string Title => $"{this.ResultType} Report between {this.SenderSource} and {this.ReceiverSource}";
     }

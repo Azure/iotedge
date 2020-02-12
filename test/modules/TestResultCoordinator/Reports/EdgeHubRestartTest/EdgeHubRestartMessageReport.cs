@@ -14,7 +14,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         public EdgeHubRestartMessageReport(
             string trackingId,
             string resultType,
-            bool isPassing,
+            bool isIncrementalSeqeunce,
             ulong passedMessageCount,
             string senderSource,
             string receiverSource,
@@ -28,7 +28,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             double variancePeriodInMilisec)
             : base(trackingId, resultType)
         {
-            this.isPassing = isPassing;
+            this.isIncrementalSeqeunce = isIncrementalSeqeunce;
             this.PassedMessageCount = passedMessageCount;
             this.CompletedStatusHistogram = Preconditions.CheckNotNull(completedStatusHistogram, nameof(completedStatusHistogram));
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
@@ -42,7 +42,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             this.VariancePeriodInMilisec = variancePeriodInMilisec;
         }
 
-        bool isPassing;
+        bool isIncrementalSeqeunce;
 
         public ulong PassedMessageCount { get; }
 
@@ -66,7 +66,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
         public double VariancePeriodInMilisec { get; }
 
-        public override bool IsPassed => this.isPassing;
+        public override bool IsPassed => this.isIncrementalSeqeunce && (this.PassedMessageCount == this.SenderMessageCount) && (this.SenderMessageCount > 0);
 
         public override string Title => $"{this.ResultType} Report between {this.SenderSource} and {this.ReceiverSource}";
     }
