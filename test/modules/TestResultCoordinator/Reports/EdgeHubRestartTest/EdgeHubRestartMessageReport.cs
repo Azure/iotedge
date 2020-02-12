@@ -28,7 +28,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             double variancePeriodInMilisec)
             : base(trackingId, resultType)
         {
-            this.isIncrementalSeqeunce = isIncrementalSeqeunce;
+            this.IsIncrementalSeqeunce = isIncrementalSeqeunce;
             this.PassedMessageCount = passedMessageCount;
             this.CompletedStatusHistogram = Preconditions.CheckNotNull(completedStatusHistogram, nameof(completedStatusHistogram));
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
@@ -42,19 +42,23 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             this.VariancePeriodInMilisec = variancePeriodInMilisec;
         }
 
-        bool isIncrementalSeqeunce;
+        public override string Title => $"{this.ResultType} Report between {this.SenderSource} and {this.ReceiverSource}";
+
+        public override bool IsPassed => this.IsIncrementalSeqeunce && (this.PassedMessageCount == this.SenderMessageCount) && (this.SenderMessageCount > 0);
+
+        public bool IsIncrementalSeqeunce { get; }
 
         public ulong PassedMessageCount { get; }
 
-        public Dictionary<HttpStatusCode, List<TimeSpan>> CompletedStatusHistogram { get; }
+        public ulong SenderMessageCount { get; }
+
+        public ulong ReceiverMessageCount { get; }
 
         public string SenderSource { get; }
 
-        public ulong SenderMessageCount { get; }
-
         public string ReceiverSource { get; }
 
-        public ulong ReceiverMessageCount { get; }
+        public Dictionary<HttpStatusCode, List<TimeSpan>> CompletedStatusHistogram { get; }
 
         public TimeSpan MinPeriod { get; }
 
@@ -65,9 +69,5 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         public TimeSpan MeanPeriod { get; }
 
         public double VariancePeriodInMilisec { get; }
-
-        public override bool IsPassed => this.isIncrementalSeqeunce && (this.PassedMessageCount == this.SenderMessageCount) && (this.SenderMessageCount > 0);
-
-        public override string Title => $"{this.ResultType} Report between {this.SenderSource} and {this.ReceiverSource}";
     }
 }

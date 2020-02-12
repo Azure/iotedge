@@ -40,17 +40,21 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             this.VariancePeriodInMilisec = variancePeriodInMilisec;
         }
 
+        public override string Title => $"{this.ResultType} Report between {this.SenderSource} and {this.ReceiverSource}";
+
+        public override bool IsPassed => (this.PassedDirectMethodCount == this.SenderResultCount) && (this.SenderResultCount > 0);
+
         public ulong PassedDirectMethodCount { get; }
-
-        public Dictionary<HttpStatusCode, List<TimeSpan>> CompletedStatusHistogram { get; }
-
-        public string SenderSource { get; }
 
         public ulong SenderResultCount { get; }
 
+        public ulong ReceiverResultCount { get; }
+
+        public string SenderSource { get; }
+
         public string ReceiverSource { get; }
 
-        public ulong ReceiverResultCount { get; }
+        public Dictionary<HttpStatusCode, List<TimeSpan>> CompletedStatusHistogram { get; }
 
         public TimeSpan MinPeriod { get; }
 
@@ -61,9 +65,5 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         public TimeSpan MeanPeriod { get; }
 
         public double VariancePeriodInMilisec { get; }
-
-        public override bool IsPassed => (this.PassedDirectMethodCount == this.SenderResultCount) && (this.SenderResultCount > 0);
-
-        public override string Title => $"{this.ResultType} Report between {this.SenderSource} and {this.ReceiverSource}";
     }
 }
