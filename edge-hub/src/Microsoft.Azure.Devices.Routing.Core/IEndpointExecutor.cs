@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         EndpointExecutorStatus Status { get; }
 
-        Task Invoke(IMessage message);
+        Task Invoke(IMessage message, uint priority, uint timeToLiveSecs);
 
         Task SetEndpoint(Endpoint endpoint);
 
