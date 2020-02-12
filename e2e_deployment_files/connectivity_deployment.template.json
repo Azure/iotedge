@@ -337,6 +337,9 @@
               "Logging:LogLevel:Microsoft": {
                 "value": "Error"
               },
+              "TEST_BUILD_NUMBER": {
+                "value": "<Test.BuildNumber>"
+              },
               "trackingId": {
                 "value": "<TrackingId>"
               },
@@ -766,7 +769,7 @@
         "imagesBranchName": "<MetricsCollector.Images.BranchName>",
         "edgeletBranchName": "<MetricsCollector.Edgelet.BranchName>",
         "testId": "<TrackingId>",
-        "testBuildNumber": "<MetricsCollector.Test.BuildNumber>",
+        "testBuildNumber": "<Test.BuildNumber>",
         "upstreamProtocol": "<UpstreamProtocol>",
         "networkControllerOfflineFrequency": "<NetworkController.OfflineFrequency0>",
         "networkControllerOnlineFrequency": "<NetworkController.OnlineFrequency0>",

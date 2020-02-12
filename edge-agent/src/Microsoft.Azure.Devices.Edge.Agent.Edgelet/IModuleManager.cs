@@ -34,6 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         Task PrepareUpdateAsync(ModuleSpec moduleSpec);
 
-        Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail, Option<int> since, CancellationToken cancellationToken);
+        Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail, Option<string> since, CancellationToken cancellationToken);
     }
 }
