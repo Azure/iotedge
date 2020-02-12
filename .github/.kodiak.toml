@@ -1,13 +1,13 @@
-# .kodiak.toml
+# https://kodiakhq.com/docs/config-reference contains all parameters explained
 version = 1
 
-# https://kodiakhq.com/docs/config-reference contains all parameters explained
 [update]
-# Update a PR whenever out of date with the base branch.
-always = true # default: false
+# Update a PR whenever out of date with the base branch. The PR will be updated regardless of 
+# merge requirements (e.g. failing status checks, missing reviews, blacklist labels).
+always = false # default: false
 
 # When enabled, Kodiak will only update PRs that have an automerge label. When disabled, any PR.
-require_automerge_label = false # default: true
+require_automerge_label = true # default: true
 
 [merge]
 # Merge method for Kodiak to use.
