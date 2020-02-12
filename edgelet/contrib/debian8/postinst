@@ -7,6 +7,12 @@ GROUP=iotedge
 case "$1" in
     configure)
         if id -u $USER > /dev/null 2>&1; then
+            if [ ! -d /var/lib/iotedge ]; then
+                mkdir -p /var/lib/iotedge
+            fi
+            if [ ! -d /var/log/iotedge ]; then
+                mkdir -p /var/log/iotedge
+            fi
             chown ${USER}:${GROUP} /var/lib/iotedge
             chown ${USER}:${GROUP} /var/log/iotedge
             chown ${USER}:${GROUP} /etc/iotedge/config.yaml.template

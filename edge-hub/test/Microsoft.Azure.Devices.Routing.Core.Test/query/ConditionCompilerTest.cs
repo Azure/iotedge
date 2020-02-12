@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Query;
+    using Moq;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
@@ -23,7 +24,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         [MemberData(nameof(TestSuccessDataSource.TestData), MemberType = typeof(TestSuccessDataSource))]
         public void TestSuccess(string condition, Bool expected)
         {
-            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
             Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route);
             Assert.Equal(expected, rule(Message1));
         }
@@ -35,7 +36,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             string condition = "as_number(key2) = 3";
             Bool expected = Bool.True;
 
-            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
             Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route);
             Assert.Equal(expected, rule(Message1));
         }
@@ -47,7 +48,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             for (int i = -10; i <= 10; i++)
             {
                 string condition = $"substring('hello', {i}) = 'he'";
-                var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
+                var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
 
                 // assert doesn't throw
                 Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route);
@@ -59,7 +60,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
                 for (int j = -10; j <= 10; j++)
                 {
                     string condition = $"substring('hello', {i}, {j}) = 'he'";
-                    var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
+                    var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
 
                     // assert doesn't throw
                     Func<IMessage, Bool> rule = RouteCompiler.Instance.Compile(route);
@@ -73,7 +74,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         [MemberData(nameof(TestCompilationFailureDataSource.TestData), MemberType = typeof(TestCompilationFailureDataSource))]
         public void TestCompilationFailure(string condition)
         {
-            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
             Assert.Throws<RouteCompilationException>(() => RouteCompiler.Instance.Compile(route));
         }
 

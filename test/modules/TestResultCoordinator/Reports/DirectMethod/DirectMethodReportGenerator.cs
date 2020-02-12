@@ -28,7 +28,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
             string resultType,
             NetworkStatusTimeline networkStatusTimeline)
         {
-            if ((receiverSource.HasValue && !receiverTestResults.HasValue) || (!receiverSource.HasValue && receiverTestResults.HasValue))
+            if (receiverSource.HasValue ^ receiverTestResults.HasValue)
             {
                 throw new ArgumentException("Provide both receiverSource and receiverTestResults or neither.");
             }
