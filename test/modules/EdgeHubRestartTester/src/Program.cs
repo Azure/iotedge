@@ -6,6 +6,7 @@ namespace EdgeHubRestartTester
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -37,16 +38,32 @@ namespace EdgeHubRestartTester
 
                 if (Settings.Current.MessageEnabled)
                 {
+                    ModuleClient msgModuleClient = await ModuleUtil.CreateModuleClientAsync(
+                        Settings.Current.TransportType,
+                        ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
+                        ModuleUtil.DefaultTransientRetryStrategy,
+                        Logger);
+
+                    msgModuleClient.OperationTimeoutInMilliseconds = (uint)Settings.Current.SdkOperationTimeout.TotalMilliseconds;
+
                     edgeHubMessageConnector = new MessageEdgeHubConnectorTest(
                         batchId,
-                        Logger);
+                        Logger,
+                        msgModuleClient);
                 }
 
                 if (Settings.Current.DirectMethodEnabled)
                 {
+                    ModuleClient dmModuleClient = await ModuleUtil.CreateModuleClientAsync(
+                        Settings.Current.TransportType,
+                        ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
+                        ModuleUtil.DefaultTransientRetryStrategy,
+                        Logger);
+
                     edgeHubDirectMethodConnector = new DirectMethodEdgeHubConnectorTest(
                         batchId,
-                        Logger);
+                        Logger,
+                        dmModuleClient);
                 }
 
                 DateTime testStart = DateTime.UtcNow;

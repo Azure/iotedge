@@ -24,10 +24,12 @@ namespace EdgeHubRestartTester
 
         public MessageEdgeHubConnectorTest(
             Guid batchId,
-            ILogger logger)
+            ILogger logger,
+            ModuleClient msgModuleClient = null)
         {
             this.batchId = batchId;
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
+            this.msgModuleClient = msgModuleClient;
         }
 
         public void Dispose() => this.msgModuleClient?.Dispose();

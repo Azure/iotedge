@@ -221,12 +221,15 @@
             "TestReportType": "ErrorReport"
           },
           "reportMetadata2": {
+            "TestReportType": "TestInfoReport"
+          },
+          "reportMetadata3": {
             "TestReportType": "EdgeHubRestartDirectMethodReport",
             "TestOperationResultType": "EdgeHubRestartDirectMethod",
             "SenderSource": "edgeHubRestartTester1.EdgeHubRestartDirectMethod",
             "ReceiverSource": "directMethodReceiver1.receive"
           },
-          "reportMetadata3": {
+          "reportMetadata4": {
             "TestReportType": "EdgeHubRestartMessageReport",
             "TestOperationResultType": "EdgeHubRestartMessage",
             "SenderSource": "edgeHubRestartTester1.EdgeHubRestartMessage",

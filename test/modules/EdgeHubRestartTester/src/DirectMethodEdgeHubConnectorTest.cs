@@ -25,10 +25,12 @@ namespace EdgeHubRestartTester
 
         public DirectMethodEdgeHubConnectorTest(
             Guid batchId,
-            ILogger logger)
+            ILogger logger,
+            ModuleClient dmModuleClient = null)
         {
             this.batchId = batchId;
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
+            this.dmModuleClient = dmModuleClient;
         }
 
         public void Dispose() => this.dmModuleClient?.Dispose();
