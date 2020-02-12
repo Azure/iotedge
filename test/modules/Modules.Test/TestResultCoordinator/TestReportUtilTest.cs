@@ -64,7 +64,7 @@ namespace Modules.Test.TestResultCoordinator
             bool throwExceptionForTestReport5,
             bool throwExceptionForTestReport6,
             bool throwExceptionForTestReport7,
-            int expectedExceptionCount)
+            int expectedReportCount)
         {
             var mockLogger = new Mock<ILogger>();
             var mockTestReportGeneratorFactory = new Mock<ITestReportGeneratorFactory>();
@@ -122,7 +122,7 @@ namespace Modules.Test.TestResultCoordinator
                 mockTestReportGeneratorFactory.Object,
                 mockLogger.Object);
 
-            Assert.Equal(expectedExceptionCount, reports.Length);
+            Assert.Equal(expectedReportCount, reports.Length);
         }
 
         [Fact]
