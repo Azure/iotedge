@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             // Act - Send messages to invoke
             foreach (IMessage message in messages)
             {
-                await storingAsyncEndpointExecutor.Invoke(message);
+                await storingAsyncEndpointExecutor.Invoke(message, 0, 3600);
             }
 
             // Assert - Check that the message store received the messages sent to invoke.
@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             messages = GetNewMessages(MessagesCount, MessagesCount);
             foreach (IMessage message in messages)
             {
-                await storingAsyncEndpointExecutor.Invoke(message);
+                await storingAsyncEndpointExecutor.Invoke(message, 0, 3600);
             }
 
             // Assert - Make sure the store now has the old and the new messages.
@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             // Act - Send messages to invoke
             foreach (IMessage message in messages)
             {
-                await storingAsyncEndpointExecutor.Invoke(message);
+                await storingAsyncEndpointExecutor.Invoke(message, 0, 3600);
             }
 
             await Task.Delay(TimeSpan.FromSeconds(10));
@@ -124,7 +124,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             // Act - Send messages to invoke
             foreach (IMessage message in messages)
             {
-                await storingAsyncEndpointExecutor.Invoke(message);
+                await storingAsyncEndpointExecutor.Invoke(message, 0, 3600);
             }
 
             await Task.Delay(TimeSpan.FromSeconds(10));
