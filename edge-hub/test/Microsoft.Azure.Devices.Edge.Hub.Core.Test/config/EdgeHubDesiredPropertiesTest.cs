@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core;
@@ -214,11 +215,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                 }";
 
             yield return new object[] { noRoutesSection, typeof(ArgumentNullException) };
-            yield return new object[] { emptyRouteName1, typeof(ArgumentException) };
-            yield return new object[] { emptyRouteName2, typeof(ArgumentException) };
+            yield return new object[] { emptyRouteName1, typeof(InvalidDataException) };
+            yield return new object[] { emptyRouteName2, typeof(InvalidDataException) };
             yield return new object[] { emptyRouteString1, typeof(ArgumentException) };
             yield return new object[] { emptyRouteString2, typeof(ArgumentException) };
-            yield return new object[] { noRouteString, typeof(ArgumentException) };
+            yield return new object[] { noRouteString, typeof(InvalidDataException) };
         }
     }
 }

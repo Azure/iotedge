@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
@@ -19,7 +20,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             foreach (JToken child in token.Children())
             {
                 // The route name must not be empty
-                Preconditions.CheckNonWhiteSpace(child.First.Path, nameof(child.First.Path));
+                if (string.IsNullOrWhiteSpace(child.First.Path))
+                {
+                    throw new InvalidDataException($"Empty route name in {child.ToString()}");
+                }
 
                 if (child.First.Type == JTokenType.String)
                 {
@@ -33,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 }
                 else
                 {
-                    throw new ArgumentException($"Malformed route specification: {child.ToString()}");
+                    throw new InvalidDataException($"Malformed route specification: {child.ToString()}");
                 }
             }
 
