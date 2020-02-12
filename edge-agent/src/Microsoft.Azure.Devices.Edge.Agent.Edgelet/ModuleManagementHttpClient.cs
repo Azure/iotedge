@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         public Task ReprovisionDeviceAsync() => this.inner.ReprovisionDeviceAsync();
 
-        public Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail, Option<int> since, CancellationToken cancellationToken) =>
+        public Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail, Option<string> since, CancellationToken cancellationToken) =>
             this.inner.GetModuleLogs(name, follow, tail, since, cancellationToken);
 
         internal static ModuleManagementHttpClientVersioned GetVersionedModuleManagement(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion)
