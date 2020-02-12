@@ -11,6 +11,7 @@ namespace IotEdgeQuickstart.Details
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Common;
+    using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
@@ -224,16 +225,21 @@ namespace IotEdgeQuickstart.Details
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString(), settings);
 
+            // RegistryManager.GetDeviceAsync() will throw an exception when used with proxy settings. When not used with proxy settings, it will return null.
             Device device = null;
             try
             {
-                device = await rm.GetDeviceAsync(this.deviceId);
+                using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
+                {
+                    device = await rm.GetDeviceAsync(this.deviceId, cts.Token);
+                }
+
                 Console.WriteLine($"Device '{device.Id}' already registered on IoT hub '{builder.HostName}'");
                 Console.WriteLine($"Clean up Existing device? {this.cleanUpExistingDeviceOnSuccess}");
             }
-            catch (TimeoutException)
+            catch (IotHubCommunicationException e)
             {
-                Console.WriteLine($"Device '{this.deviceId}' not registered on IoT hub '{builder.HostName}'");
+                Console.WriteLine($"Device '{this.deviceId}' not registered on IoT hub '{builder.HostName}': {e}");
             }
 
             if (device != null)
