@@ -10,6 +10,7 @@ namespace VstsPipelineSync
         static async Task Main(string[] args)
         {
             (string pat, string dbConnectionString, TimeSpan waitPeriodBeforeNextUpdate) = GetInputsFromArgs(args);
+            Console.WriteLine($"Wait period before next update=[{waitPeriodBeforeNextUpdate}]");
             await new VstsBuildBatchUpdate(new DevOpsAccessSetting(pat), dbConnectionString).RunAsync(waitPeriodBeforeNextUpdate, CancellationToken.None);
         }
 

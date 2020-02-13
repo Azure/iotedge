@@ -1,6 +1,7 @@
 ﻿CREATE PROCEDURE [dbo].[UpsertVstsBuildRun]
 	@BuildNumber varchar(20),
 	@DefinitionId int,
+	@DefinitionName varchar(100),
 	@SourceBranch varchar(100),
 	@SourceVersionDisplayUri varchar(500),
 	@WebUri varchar(500),
@@ -16,7 +17,8 @@ AS
 	IF EXISTS (SELECT 1 FROM dbo.VstsBuildRun WHERE BuildNumber = @BuildNumber AND DefinitionId = @DefinitionId)
 	BEGIN
 		UPDATE dbo.VstsBuildRun
-		SET SourceBranch = @SourceBranch,
+		SET DefinitionName = @DefinitionName,
+		    SourceBranch = @SourceBranch,
 			SourceVersionDisplayUri = @SourceVersionDisplayUri,
 			WebUri = @WebUri,
 			[Status] = @Status,
@@ -30,6 +32,6 @@ AS
 	END
 	ELSE
 	BEGIN
-		INSERT INTO dbo.VstsBuildRun(BuildNumber, DefinitionId, SourceBranch, SourceVersionDisplayUri, WebUri, [Status], Result, QueueTime, StartTime, FinishTime, CreatedTime, UpdateTime)
-		VALUES (@BuildNumber, @DefinitionId, @SourceBranch, @SourceVersionDisplayUri, @WebUri, @Status, @Result, @QueueTime, @StartTime, @FinishTime, @now, @now)
+		INSERT INTO dbo.VstsBuildRun(BuildNumber, DefinitionId, DefinitionName, SourceBranch, SourceVersionDisplayUri, WebUri, [Status], Result, QueueTime, StartTime, FinishTime, CreatedTime, UpdateTime)
+		VALUES (@BuildNumber, @DefinitionId, @DefinitionName, @SourceBranch, @SourceVersionDisplayUri, @WebUri, @Status, @Result, @QueueTime, @StartTime, @FinishTime, @now, @now)
 	END

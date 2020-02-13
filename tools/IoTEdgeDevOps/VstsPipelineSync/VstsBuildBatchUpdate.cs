@@ -2,6 +2,7 @@ namespace VstsPipelineSync
 {
     using System;
     using System.Collections.Generic;
+    using System.Data;
     using System.Data.SqlClient;
     using System.Linq;
     using System.Threading;
@@ -90,14 +91,15 @@ namespace VstsPipelineSync
 
                     cmd.Parameters.Add(new SqlParameter("@BuildNumber", build.BuildNumber));
                     cmd.Parameters.Add(new SqlParameter("@DefinitionId", build.DefinitionId));
+                    cmd.Parameters.Add(new SqlParameter("@DefinitionName", build.DefinitionId.DisplayName()));
                     cmd.Parameters.Add(new SqlParameter("@SourceBranch", build.SourceBranch));
                     cmd.Parameters.Add(new SqlParameter("@SourceVersionDisplayUri", build.SourceVersionDisplayUri.AbsoluteUri));
                     cmd.Parameters.Add(new SqlParameter("@WebUri", build.WebUri.AbsoluteUri));
                     cmd.Parameters.Add(new SqlParameter("@Status", build.Status.ToString()));
                     cmd.Parameters.Add(new SqlParameter("@Result", build.Result.ToString()));
-                    cmd.Parameters.Add(new SqlParameter("@QueueTime", build.QueueTime));
-                    cmd.Parameters.Add(new SqlParameter("@StartTime", build.StartTime));
-                    cmd.Parameters.Add(new SqlParameter("@FinishTime", build.FinishTime));
+                    cmd.Parameters.Add(new SqlParameter("@QueueTime", SqlDbType.DateTime2) { Value=build.QueueTime } );
+                    cmd.Parameters.Add(new SqlParameter("@StartTime", SqlDbType.DateTime2) { Value = build.StartTime });
+                    cmd.Parameters.Add(new SqlParameter("@FinishTime", SqlDbType.DateTime2) { Value = build.FinishTime });
 
                     cmd.ExecuteNonQuery();
 
