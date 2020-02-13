@@ -35,7 +35,7 @@ namespace DevOpsLibTest
         }
 
         [Test]
-        public async Task TestGetLatestBuildsAsyncWithNoDefinitionId()
+        public void TestGetLatestBuildsAsyncWithNoDefinitionId()
         {
             ArgumentException ex = Assert.ThrowsAsync<ArgumentException>(
                 async () => { await this.buildManagement.GetLatestBuildsAsync(new HashSet<BuildDefinitionId>(), "anybranch").ConfigureAwait(false); });
@@ -45,10 +45,10 @@ namespace DevOpsLibTest
         }
 
         [Test]
-        public async Task TestGetLatestBuildsAsyncWithEmptyBranchName()
+        public void TestGetLatestBuildsAsyncWithEmptyBranchName()
         {
             ArgumentException ex = Assert.ThrowsAsync<ArgumentException>(
-                async () => { await this.buildManagement.GetLatestBuildsAsync(BuildExtension.MasterBranchReporting, " ").ConfigureAwait(false); });
+                async () => { await this.buildManagement.GetLatestBuildsAsync(BuildExtension.MasterBranchBuildDefinitions, " ").ConfigureAwait(false); });
 
             Assert.True(ex.Message.StartsWith("Cannot be null or white space."));
             Assert.That(ex.ParamName, Is.EqualTo("branchName"));
@@ -120,7 +120,8 @@ namespace DevOpsLibTest
                 branch).ConfigureAwait(false);
 
             string definitionIdsDelimitedValues = Url.Encode(string.Join(",", new[] { BuildDefinitionId.BuildImages.IdString(), BuildDefinitionId.CI.IdString(), BuildDefinitionId.EdgeletCI.IdString() }));
-            string requestUri = $"https://dev.azure.com/{DevOpsAccessSetting.AzureOrganization}/{DevOpsAccessSetting.AzureProject}/_apis/build/builds?definitions={definitionIdsDelimitedValues}&queryOrder=finishTimeDescending&maxBuildsPerDefinition=1&api-version=5.1&branchName={Url.Encode(branch)}";
+            string requestUri = $"https://dev.azure.com/{DevOpsAccessSetting.AzureOrganization}/{DevOpsAccessSetting.AzureProject}/_apis/build/builds?definitions={definitionIdsDelimitedValues}&queryOrder=finishTimeDescending&api-version=5.1&branchName={Url.Encode(branch)}&maxBuildsPerDefinition=1";
+
             this.httpTest.ShouldHaveCalled(requestUri)
                 .WithVerb(HttpMethod.Get)
                 .WithBasicAuth(string.Empty, PersonalAccessToken)
@@ -167,7 +168,7 @@ namespace DevOpsLibTest
                 branch).ConfigureAwait(false);
 
             string definitionIdsDelimitedValues = Url.Encode(string.Join(",", new[] { BuildDefinitionId.BuildImages.IdString(), BuildDefinitionId.CI.IdString() }));
-            string requestUri = $"https://dev.azure.com/{DevOpsAccessSetting.AzureOrganization}/{DevOpsAccessSetting.AzureProject}/_apis/build/builds?definitions={definitionIdsDelimitedValues}&queryOrder=finishTimeDescending&maxBuildsPerDefinition=1&api-version=5.1&branchName={Url.Encode(branch)}";
+            string requestUri = $"https://dev.azure.com/{DevOpsAccessSetting.AzureOrganization}/{DevOpsAccessSetting.AzureProject}/_apis/build/builds?definitions={definitionIdsDelimitedValues}&queryOrder=finishTimeDescending&api-version=5.1&branchName={Url.Encode(branch)}&maxBuildsPerDefinition=1";
             this.httpTest.ShouldHaveCalled(requestUri)
                 .WithVerb(HttpMethod.Get)
                 .WithBasicAuth(string.Empty, PersonalAccessToken)
@@ -192,7 +193,7 @@ namespace DevOpsLibTest
                 branch).ConfigureAwait(false);
 
             string definitionIdsDelimitedValues = Url.Encode(string.Join(",", new[] { BuildDefinitionId.BuildImages.IdString(), BuildDefinitionId.CI.IdString() }));
-            string requestUri = $"https://dev.azure.com/{DevOpsAccessSetting.AzureOrganization}/{DevOpsAccessSetting.AzureProject}/_apis/build/builds?definitions={definitionIdsDelimitedValues}&queryOrder=finishTimeDescending&maxBuildsPerDefinition=1&api-version=5.1&branchName={Url.Encode(branch)}";
+            string requestUri = $"https://dev.azure.com/{DevOpsAccessSetting.AzureOrganization}/{DevOpsAccessSetting.AzureProject}/_apis/build/builds?definitions={definitionIdsDelimitedValues}&queryOrder=finishTimeDescending&api-version=5.1&branchName={Url.Encode(branch)}&maxBuildsPerDefinition=1";
             this.httpTest.ShouldHaveCalled(requestUri)
                 .WithVerb(HttpMethod.Get)
                 .WithBasicAuth(string.Empty, PersonalAccessToken)

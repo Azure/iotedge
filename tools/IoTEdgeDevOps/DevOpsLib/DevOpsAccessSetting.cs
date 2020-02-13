@@ -8,9 +8,8 @@ namespace DevOpsLib
         public const string AzureOrganization = "msazure";
         public const string AzureProject = "one";
 
-        public DevOpsAccessSetting(
-            string personalAccessToken)
-        : this(AzureOrganization, AzureProject, personalAccessToken)
+        public DevOpsAccessSetting(string personalAccessToken)
+            : this(AzureOrganization, AzureProject, personalAccessToken)
         {
         }
 
