@@ -119,7 +119,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 string receiverResult = this.ReceiverTestResults.Current.Result;
 
                 // Verified "TrackingId;BatchId;SequenceNumber" altogether.
-                isCurrentMessagePassing &= String.Compare(senderResult.GetMessageTestResult(), receiverResult) == 0;
+                isCurrentMessagePassing &= string.Compare(senderResult.GetMessageTestResult(), receiverResult) == 0;
 
                 // Verify the sequence number is incremental
                 isCurrentMessagePassing &= senderSeqNum == receiverSeqNum;
