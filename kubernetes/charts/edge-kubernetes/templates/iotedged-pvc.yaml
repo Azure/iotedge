@@ -1,4 +1,5 @@
-{{- if .Values.iotedged.data.persistentVolumeClaim }}
+{{- if  .Values.iotedged.data.persistentVolumeClaim }}
+{{- if and (.Values.iotedged.data.persistentVolumeClaim.size) (.Values.iotedged.data.persistentVolumeClaim.storageClassName) }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -14,5 +15,11 @@ spec:
       storage: {{ .Values.iotedged.data.persistentVolumeClaim.size }}
   accessModes:
     - ReadWriteOnce
+  {{- if .Values.iotedged.data.persistentVolumeClaim.storageClassName }}
   storageClassName: {{ .Values.iotedged.data.persistentVolumeClaim.storageClassName | quote }}
   {{- end }}
+  {{- if .Values.iotedged.data.persistentVolumeClaim.volumeName }}
+  volumeName: {{ .Values.iotedged.data.persistentVolumeClaim.volumeName | quote }}
+  {{- end }}
+{{- end }}
+{{- end }}
