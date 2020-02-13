@@ -18,7 +18,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(EdgeHubRestartDirectMethodReportGenerator));
 
         // Value: (completedStatusCode, DirectMethodCompletedTime - EdgeHubRestartedTime)
-        private Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram;
+        Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram;
 
         delegate Task<(ulong count, bool hasValue, long sequenceNumber)> MoveNextResultAsync(ulong count);
 
