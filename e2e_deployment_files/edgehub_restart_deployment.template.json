@@ -157,6 +157,9 @@
               "Logging:LogLevel:Microsoft": {
                 "value": "Error"
               },
+              "TEST_BUILD_NUMBER": {
+                "value": "<Test.BuildNumber>"
+              },
               "trackingId": {
                 "value": "<TrackingId>"
               },
