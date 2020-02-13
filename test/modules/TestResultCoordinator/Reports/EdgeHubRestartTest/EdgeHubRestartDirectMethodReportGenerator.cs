@@ -144,60 +144,9 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 long.MaxValue,
                 receiverResultCount);
 
-            return this.CalculateStatistic(
-                passedDirectMethodCount,
-                senderResultCount,
-                receiverResultCount);
-        }
-
-        EdgeHubRestartDirectMethodReport CalculateStatistic(
-            ulong passedDirectMethodCount,
-            ulong senderResultCount,
-            ulong receiverResultCount)
-        {
-            List<TimeSpan> completedPeriods;
-            this.completedStatusHistogram.TryGetValue(HttpStatusCode.OK, out completedPeriods);
-            List<TimeSpan> orderedCompletedPeriods = completedPeriods?.OrderBy(p => p.Ticks).ToList();
-
-            TimeSpan minPeriod = TimeSpan.FromTicks(0);
-            TimeSpan maxPeriod = TimeSpan.FromTicks(0);
-            TimeSpan medianPeriod = TimeSpan.FromTicks(0);
-            TimeSpan meanPeriod = TimeSpan.FromTicks(0);
-            double variancePeriodInMilisec = 0.0;
-            if (orderedCompletedPeriods != null)
-            {
-                minPeriod = orderedCompletedPeriods.First();
-                maxPeriod = orderedCompletedPeriods.Last();
-
-                if ((orderedCompletedPeriods.Count & 0b1) == 0b1)
-                {
-                    // If odd, pick the middle value
-                    medianPeriod = orderedCompletedPeriods[orderedCompletedPeriods.Count >> 1];
-                }
-                else
-                {
-                    // If even, average the middle values
-                    medianPeriod =
-                        (orderedCompletedPeriods[orderedCompletedPeriods.Count >> 1] +
-                        orderedCompletedPeriods[(orderedCompletedPeriods.Count >> 1) - 1]) / 2;
-                }
-
-                // Compute Mean
-                TimeSpan totalSpan = TimeSpan.FromTicks(0);
-                double totalSpanSquareInMilisec = 0.0;
-                foreach (TimeSpan eachTimeSpan in orderedCompletedPeriods)
-                {
-                    totalSpan += eachTimeSpan;
-                    totalSpanSquareInMilisec += Math.Pow(eachTimeSpan.TotalMilliseconds, 2);
-                }
-
-                // Compute Mean : mean = sum(x) / N
-                meanPeriod = totalSpan / Math.Max(orderedCompletedPeriods.Count(), 1);
-
-                // Compute Sample Variance: var = sum((x - mean)^2) / (N - 1)
-                //                              = sum(x^2) / (N - 1) - mean^2
-                variancePeriodInMilisec = (totalSpanSquareInMilisec / Math.Max(orderedCompletedPeriods.Count() - 1, 1)) - Math.Pow(meanPeriod.TotalMilliseconds, 2);
-            }
+            EdgeHubRestartStatistics edgeHubRestartStatistics = new EdgeHubRestartStatistics(this.completedStatusHistogram);
+            edgeHubRestartStatistics.CalculateStatistic();
+            Logger.LogInformation(JsonConvert.SerializeObject(edgeHubRestartStatistics));
 
             return new EdgeHubRestartDirectMethodReport(
                 this.TrackingId,
@@ -207,12 +156,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 this.ReceiverSource,
                 senderResultCount,
                 receiverResultCount,
-                this.completedStatusHistogram,
-                minPeriod,
-                maxPeriod,
-                medianPeriod,
-                meanPeriod,
-                variancePeriodInMilisec);
+                edgeHubRestartStatistics.MedianPeriod);
         }
 
         async Task<(ulong resultCount, bool hasValue, long sequenceNum)> IterateResultToSequenceNumberAsync(
@@ -261,7 +205,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         long ConvertStringToLong(string result)
         {
             long seqNum;
-            long.TryParse(result.Split(';').LastOrDefault(), out seqNum);
+            long.TryParse(result, out seqNum);
             return seqNum;
         }
 
@@ -269,15 +213,20 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         {
             bool hasValue = await this.SenderTestResults.MoveNextAsync();
             long seqNum = 0;
-            if (hasValue)
+
+            if (!hasValue)
             {
-                senderResultCount++;
-
-                EdgeHubRestartDirectMethodResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodResult>(this.SenderTestResults.Current.Result);
-                seqNum = this.ConvertStringToLong(senderResult.SequenceNumber);
-
-                this.AddEntryToCompletedStatusHistogram(senderResult);
+                return (resultCount: senderResultCount,
+                    hasValue: hasValue,
+                    sequenceNumber: seqNum);
             }
+
+            senderResultCount++;
+
+            EdgeHubRestartDirectMethodResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodResult>(this.SenderTestResults.Current.Result);
+            seqNum = this.ConvertStringToLong(senderResult.SequenceNumber);
+
+            this.AddEntryToCompletedStatusHistogram(senderResult);
 
             return (resultCount: senderResultCount,
                 hasValue: hasValue,
@@ -288,13 +237,18 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         {
             bool hasValue = await this.ReceiverTestResults.MoveNextAsync();
             long seqNum = 0;
-            if (hasValue)
-            {
-                receiverResultCount++;
 
-                DirectMethodTestResult receiverResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(this.ReceiverTestResults.Current.Result);
-                seqNum = this.ConvertStringToLong(receiverResult.SequenceNumber);
+            if (!hasValue)
+            {
+                return (resultCount: receiverResultCount,
+                    hasValue: hasValue,
+                    sequenceNumber: seqNum);
             }
+
+            receiverResultCount++;
+
+            DirectMethodTestResult receiverResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(this.ReceiverTestResults.Current.Result);
+            seqNum = this.ConvertStringToLong(receiverResult.SequenceNumber);
 
             return (resultCount: receiverResultCount,
                 hasValue: hasValue,

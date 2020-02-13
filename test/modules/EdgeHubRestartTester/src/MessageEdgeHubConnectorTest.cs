@@ -119,7 +119,7 @@ namespace EdgeHubRestartTester
                     {
                         // TimeoutException is expected to happen while the EdgeHub is down.
                         // Let's log the attempt and retry the message send until successful
-                        this.logger.LogDebug(ex, $"[SendMessageAsync] Exception caught with SequenceNumber {this.messageCount}, BatchId: {batchId.ToString()}");
+                        this.logger.LogDebug($"[SendMessageAsync] Expected exception caught with SequenceNumber {this.messageCount}, BatchId: {batchId.ToString()}");
                     }
                     else
                     {

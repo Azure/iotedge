@@ -20,26 +20,16 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             string receiverSource,
             ulong senderMessageCount,
             ulong receiverMessageCount,
-            Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram,
-            TimeSpan minPeriod,
-            TimeSpan maxPeriod,
-            TimeSpan medianPeriod,
-            TimeSpan meanPeriod,
-            double variancePeriodInMilisec)
+            TimeSpan medianPeriod)
             : base(trackingId, resultType)
         {
             this.IsIncrementalSeqeunce = isIncrementalSeqeunce;
             this.PassedMessageCount = passedMessageCount;
-            this.CompletedStatusHistogram = Preconditions.CheckNotNull(completedStatusHistogram, nameof(completedStatusHistogram));
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
             this.ReceiverSource = Preconditions.CheckNonWhiteSpace(receiverSource, nameof(receiverSource));
             this.SenderMessageCount = senderMessageCount;
             this.ReceiverMessageCount = receiverMessageCount;
-            this.MinPeriod = minPeriod;
-            this.MaxPeriod = maxPeriod;
             this.MedianPeriod = medianPeriod;
-            this.MeanPeriod = meanPeriod;
-            this.VariancePeriodInMilisec = variancePeriodInMilisec;
         }
 
         public override string Title => $"{this.ResultType} Report between {this.SenderSource} and {this.ReceiverSource}";
@@ -58,16 +48,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
         public string ReceiverSource { get; }
 
-        public Dictionary<HttpStatusCode, List<TimeSpan>> CompletedStatusHistogram { get; }
-
-        public TimeSpan MinPeriod { get; }
-
-        public TimeSpan MaxPeriod { get; }
-
         public TimeSpan MedianPeriod { get; }
-
-        public TimeSpan MeanPeriod { get; }
-
-        public double VariancePeriodInMilisec { get; }
     }
 }

@@ -101,7 +101,7 @@ namespace EdgeHubRestartTester
                     if (this.IsEdgeHubDownDuringDirectMethodSend(e) || this.IsDirectMethodReceiverNotConnected(e))
                     {
                         // swallow exeception and retry until success
-                        this.logger.LogDebug(e, $"[DirectMethodEdgeHubConnector] Exception caught with SequenceNumber {this.directMethodCount}");
+                        this.logger.LogDebug($"[DirectMethodEdgeHubConnector] Expected exception caught with SequenceNumber {this.directMethodCount}");
                     }
                     else
                     {

@@ -119,7 +119,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 string receiverResult = this.ReceiverTestResults.Current.Result;
 
                 // Verified "TrackingId;BatchId;SequenceNumber" altogether.
-                isCurrentMessagePassing &= senderResult.GetMessageTestResult() == receiverResult;
+                isCurrentMessagePassing &= String.Compare(senderResult.GetMessageTestResult(), receiverResult) == 0;
 
                 // Verify the sequence number is incremental
                 isCurrentMessagePassing &= senderSeqNum == receiverSeqNum;
@@ -150,62 +150,9 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 long.MaxValue,
                 receiverMessageCount);
 
-            return this.CalculateStatistic(
-                isIncrementalSeqeunce,
-                passedMessageCount,
-                senderMessageCount,
-                receiverMessageCount);
-        }
-
-        EdgeHubRestartMessageReport CalculateStatistic(
-            bool isIncrementalSeqeunce,
-            ulong passedMessageCount,
-            ulong senderMessageCount,
-            ulong receiverMessageCount)
-        {
-            List<TimeSpan> completedPeriods;
-            this.completedStatusHistogram.TryGetValue(HttpStatusCode.OK, out completedPeriods);
-            List<TimeSpan> orderedCompletedPeriods = completedPeriods?.OrderBy(p => p.Ticks).ToList();
-
-            TimeSpan minPeriod = TimeSpan.FromTicks(0);
-            TimeSpan maxPeriod = TimeSpan.FromTicks(0);
-            TimeSpan medianPeriod = TimeSpan.FromTicks(0);
-            TimeSpan meanPeriod = TimeSpan.FromTicks(0);
-            double variancePeriodInMilisec = 0.0;
-            if (orderedCompletedPeriods != null)
-            {
-                minPeriod = orderedCompletedPeriods.First();
-                maxPeriod = orderedCompletedPeriods.Last();
-
-                if ((orderedCompletedPeriods.Count & 0b1) == 0b1)
-                {
-                    // If odd, pick the middle value
-                    medianPeriod = orderedCompletedPeriods[orderedCompletedPeriods.Count >> 1];
-                }
-                else
-                {
-                    // If even, average the middle values
-                    medianPeriod =
-                        (orderedCompletedPeriods[orderedCompletedPeriods.Count >> 1] +
-                        orderedCompletedPeriods[(orderedCompletedPeriods.Count >> 1) - 1]) / 2;
-                }
-
-                // Compute Mean
-                TimeSpan totalSpan = TimeSpan.FromTicks(0);
-                double totalSpanSquareInMilisec = 0.0;
-                foreach (TimeSpan eachTimeSpan in orderedCompletedPeriods)
-                {
-                    totalSpan += eachTimeSpan;
-                    totalSpanSquareInMilisec += Math.Pow(eachTimeSpan.TotalMilliseconds, 2);
-                }
-
-                // Compute Mean : mean = sum(x) / N
-                meanPeriod = totalSpan / Math.Max(orderedCompletedPeriods.Count(), 1);
-
-                // Compute Sample Variance: var = sum((x - mean)^2) / (N - 1)
-                //                              = sum(x^2) / (N - 1) - mean^2
-                variancePeriodInMilisec = (totalSpanSquareInMilisec / Math.Max(orderedCompletedPeriods.Count() - 1, 1)) - Math.Pow(meanPeriod.TotalMilliseconds, 2);
-            }
+            EdgeHubRestartStatistics edgeHubRestartStatistics = new EdgeHubRestartStatistics(this.completedStatusHistogram);
+            edgeHubRestartStatistics.CalculateStatistic();
+            Logger.LogInformation(JsonConvert.SerializeObject(edgeHubRestartStatistics));
 
             return new EdgeHubRestartMessageReport(
                 this.TrackingId,
@@ -216,12 +163,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 this.ReceiverSource,
                 senderMessageCount,
                 receiverMessageCount,
-                this.completedStatusHistogram,
-                minPeriod,
-                maxPeriod,
-                medianPeriod,
-                meanPeriod,
-                variancePeriodInMilisec);
+                edgeHubRestartStatistics.MedianPeriod);
         }
 
         async Task<(ulong resultCount, bool hasValue, long sequenceNum)> IterateResultToSequenceNumberAsync(
@@ -246,15 +188,20 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         {
             bool hasValue = await this.SenderTestResults.MoveNextAsync();
             long seqNum = 0;
-            if (hasValue)
+
+            if (!hasValue)
             {
-                senderResultCount++;
-
-                EdgeHubRestartMessageResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(this.SenderTestResults.Current.Result);
-                seqNum = this.ParseSenderSequenceNumber(senderResult.SequenceNumber);
-
-                this.AddEntryToCompletedStatusHistogram(senderResult);
+                return (resultCount: senderResultCount,
+                    hasValue: hasValue,
+                    sequenceNumber: seqNum);
             }
+
+            senderResultCount++;
+
+            EdgeHubRestartMessageResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(this.SenderTestResults.Current.Result);
+            seqNum = this.ParseSenderSequenceNumber(senderResult.SequenceNumber);
+
+            this.AddEntryToCompletedStatusHistogram(senderResult);
 
             return (resultCount: senderResultCount,
                 hasValue: hasValue,
@@ -265,11 +212,16 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         {
             bool hasValue = await this.ReceiverTestResults.MoveNextAsync();
             long seqNum = 0;
-            if (hasValue)
+
+            if (!hasValue)
             {
-                receiverResultCount++;
-                seqNum = this.ParseReceiverSequenceNumber(this.ReceiverTestResults.Current.Result);
+                return (resultCount: receiverResultCount,
+                    hasValue: hasValue,
+                    sequenceNumber: seqNum);
             }
+
+            receiverResultCount++;
+            seqNum = this.ParseReceiverSequenceNumber(this.ReceiverTestResults.Current.Result);
 
             return (resultCount: receiverResultCount,
                 hasValue: hasValue,
@@ -304,7 +256,9 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         long ParseReceiverSequenceNumber(string result)
         {
             long seqNum;
-            long.TryParse(result.Split(';').LastOrDefault(), out seqNum);
+            // result = "TrackingId;BatchId;SequenceNumber;"
+            string[] tokens = result.Split(';');
+            long.TryParse(tokens[2], out seqNum);
             return seqNum;
         }
 
