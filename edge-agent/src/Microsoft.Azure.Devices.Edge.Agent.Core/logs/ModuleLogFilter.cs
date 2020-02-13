@@ -10,9 +10,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
     public class ModuleLogFilter : IEquatable<ModuleLogFilter>
     {
-        public static ModuleLogFilter Empty = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.None<int>(), Option.None<string>());
+        public static ModuleLogFilter Empty = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<int>(), Option.None<string>());
 
-        public ModuleLogFilter(Option<int> tail, Option<int> since, Option<int> logLevel, Option<string> regex)
+        public ModuleLogFilter(Option<int> tail, Option<string> since, Option<int> logLevel, Option<string> regex)
         {
             this.Tail = tail;
             this.Since = since;
@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         }
 
         [JsonConstructor]
-        ModuleLogFilter(int? tail, int? since, int? loglevel, string regex)
+        ModuleLogFilter(int? tail, string since, int? loglevel, string regex)
             : this(Option.Maybe(tail), Option.Maybe(since), Option.Maybe(loglevel), Option.Maybe(regex))
         {
         }
@@ -32,8 +32,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         public Option<int> Tail { get; }
 
         [JsonProperty("since")]
-        [JsonConverter(typeof(OptionConverter<int>), true)]
-        public Option<int> Since { get; }
+        [JsonConverter(typeof(OptionConverter<string>), true)]
+        public Option<string> Since { get; }
 
         [JsonProperty("loglevel")]
         [JsonConverter(typeof(OptionConverter<int>), true)]
@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         {
             var hashCode = -132418255;
             hashCode = hashCode * -1521134295 + EqualityComparer<Option<int>>.Default.GetHashCode(this.Tail);
-            hashCode = hashCode * -1521134295 + EqualityComparer<Option<int>>.Default.GetHashCode(this.Since);
+            hashCode = hashCode * -1521134295 + EqualityComparer<Option<string>>.Default.GetHashCode(this.Since);
             hashCode = hashCode * -1521134295 + EqualityComparer<Option<int>>.Default.GetHashCode(this.LogLevel);
             hashCode = hashCode * -1521134295 + EqualityComparer<Option<string>>.Default.GetHashCode(this.RegexString);
             return hashCode;
