@@ -79,34 +79,40 @@ When network goes offline, route#3 will not happen.  But once the network comes 
 
 The Direct Method Connectivity Test is designed to test direct method resilience against network connectivity issue. 
 ##### Test Specific Component:
-	1. Direct Method (Cloud) Sender is an Azure service client that is wrapped in a container module that is deployed into a test agent.  It is responsible for sending a "HelloWorldMethod" direct method to the Direct Method Receiver module and report the direct method status to Test Result Coordinator
+	1. Direct Method (Cloud) Sender is an Azure service client that is wrapped in a container module that is deployed into a test agent.  It is responsible for sending a "HelloWorldMethod" direct method to the Direct Method Receiver module and report the direct method status to Test Result Coordinator.
 	2. Direct Method Receiver is a module container that runs a module client that is deployed into a test agent. It is a targeted receiver of Direct Method Sender. It is responsible for replying to the "HelloWorldMethod" direct method and notify Test Result Coordinate if it receives a direct method.
 
 ##### Test Mechanism: 
-	1. The Direct Method Cloud Sender invokes a test direct method to the IoT Hub
-	2. The IoT Hub forwards the direct method to Edge Hub
-	3. The Edge Hub forwards the direct method to Direct Method Receiver
-	4. The Direct Method Receiver notifies Test Analyzer regarding the received direct method
-	5. The Direct Method Receiver responds to Edge Hub's direct method invocation
-	6. The Edge Hub  responds to IoT Hub direct method invocation 
-	7. The Direct Method Cloud Sender receives a response from IoT Hub
-	8. The Direct Method Cloud Sender notifies Test Analyzer regarding its direct method response
-Test Analyzer compile a report from Direct Method Cloud Sender, Direct Method Receiver, Network Controller and determine if the test case is passed or failed.
+	1. The Direct Method (Cloud) Sender invokes a test direct method to the IoT Hub.
+	2. The IoT Hub forwards the direct method to Edge Hub.
+	3. The Edge Hub forwards the direct method to Direct Method Receiver.
+	4. The Direct Method Receiver notifies Test Result Coordinator regarding the received direct method.
+	5. The Direct Method Receiver responds to Edge Hub's direct method invocation.
+	6. The Edge Hub responds to IoT Hub direct method invocation.
+	7. The Direct Method (Cloud) Sender receives a response from IoT Hub.
+	8. The Direct Method (Cloud) Sender notifies Test Result Coordinator regarding its direct method response.
+	9. Test Result Coordinator compiles a report from Direct Method (Cloud) Sender, Direct Method Receiver, Network Controller and determine if the test case is passed or failed. 
+
+##### Passing Criteria: 
+TBD
 
 #### Cloud to EdgeAgent Direct Method Test (PING)
 
 ![Connectivity Test Diagram](./images/ConnectivityTest_Ping_DirectMethod.png)
 
 ##### Test Specific Component:
-	1. Direct Method (Cloud) Sender is an Azure service client that is wrapped in a container module that is deployed into a test agent.  It is responsible for sending a "HelloWorldMethod" direct method to the EdgeAgent module and report the direct method status to Test Result Coordinator
+	1. Direct Method (Cloud) Sender is an Azure service client that is wrapped in a container module that is deployed into a test agent.  It is responsible for sending a "HelloWorldMethod" direct method to the EdgeAgent module and report the direct method status to Test Result Coordinator.
 
 ##### Test Mechanism: 
-	1. The Direct Method Cloud Sender invokes a test direct method to the IoT Hub
-	2. The IoT Hub forwards the direct method to Edge Agent
+	1. The Direct Method Cloud Sender invokes a test direct method to the IoT Hub.
+	2. The IoT Hub forwards the direct method to Edge Agent.
 	3. The Edge Agent has a pre-implemented "ping" method with a response.
-	4. The Direct Method Cloud Sender receives a response from IoT Hub
-	5. The Direct Method Cloud Sender notifies Test Analyzer regarding its direct method response
-Test Analyzer compile a report from Direct Method Cloud Sender, Direct Method Receiver, Network Controller and determine if the test case is passed or failed. 
+	4. The Direct Method Cloud Sender receives a response from IoT Hub.
+	5. The Direct Method Cloud Sender notifies Test Result Coordinator regarding its direct method response.
+	6. Test Result Coordinator compiles a report from Direct Method Cloud Sender, Direct Method Receiver, Network Controller and determine if the test case is passed or failed. 
+
+##### Passing Criteria: 
+TBD
 
 #### Cloud to Device Message Test
 
@@ -114,22 +120,24 @@ Test Analyzer compile a report from Direct Method Cloud Sender, Direct Method Re
 
 The goal of the test scheme is to verify the recoverability of the cloud to device messaging once the device goes offline. 
 ##### Test Specific Components:
-	1. Message Sender is a Azure service client that is deployed into a test agent as a container module. The responsibility of the module is to use the Azure API to trigger IoT Hub to send a message to device along with reporting to Test Result Coordinator once a message is sent. 
-	2. Message Receiver is a device client that is wrapped in a module container for a deployment into a test agent. The device module behaves as a target receiving end of the message sending from Message Sender and is responsible for reporting to the Test Result Coordinator once a message is received.
+	1. Message Sender is an Azure service client that is deployed into a test agent as a container module. The responsibility of the module is to use the Azure API to trigger IoT Hub to send a message to device along with reporting to Test Result Coordinator once a message is sent. 
+	2. Message Receiver is a device client that is wrapped in a module container for a deployment into a test agent. The device module behaves as a target receiver of the message sending from Message (Cloud) Sender and is responsible for reporting to the Test Result Coordinator once a message is received.
 
 ##### Test Implementation Assumption:
 	1. The cloud takes less than 15 minutes to forward all of messages from the cloud to device when the Edge Hub is online.
-	2. Each cycle of Network Controller online-offline period must be longer than the Edge Hub recovering period
+	2. Each cycle of Network Controller online-offline period must be longer than the Edge Hub recovering period.
 	3. Since the Message Sender uses service client to send a message to the cloud from the host network, it will always report success even if the message has yet gotten to the Message Receiver. If the Message Sender fails to send a message, the message sequencing ID should NOT be increased; instead, a failed message with the same sequence number should be resent.
+		a. Implementation Note: The sequence number is not increased in case of failure makes the verification process easier by solely verify the message sequence number is sequential.
+		b. Implementation Note: Generally if there is a failure (or an exception) from message sending, the error information is logged in the Message Sender log.
 	
 ##### Test Mechanism: 
-	1. The Message Sender invokes the IoT Hub to send  a message to a targeted device
+	1. The Message Sender invokes the IoT Hub to send a message to a targeted device.
 	2. The Message Sender notify the Test Result Coordinator that a message has been sent.
-	3. The IoT Hub sends a message to Edge Hub addressing a targeted device
+	3. The IoT Hub sends a message to Edge Hub addressing a targeted device.
 	4. The Edge Hub forward the message to a Message Receiver device module.
-	5. The Message Receiver notifies that the message successfully received to the Test Result Coordinator
-	6. The Message Receiver replies that the message successfully received to the Edge Hub
-	7. The Edge Hub forward the Message Receiver's response back to IoT Hub
+	5. The Message Receiver notifies that the message successfully received to the Test Result Coordinator.
+	6. The Message Receiver replies that the message successfully received to the Edge Hub.
+	7. The Edge Hub forward the Message Receiver's response back to IoT Hub.
 	8. The IoT Hub forward the response to Message Sender.
 
 ##### Passing Criteria: 
@@ -146,32 +154,45 @@ The message test is developed to strictly test only the only when the EdgeHub co
 
 ![Connectivity Test Diagram](./images/ConnectivityTest_EdgeHubRestart_Message.png)
 
+###### Test Specific Components:
+	1. EdgeHub Restart Tester (EHRT) has two responsibility including
+		a. Restart EdgeHub - The EHRT sends a direct method via service client to edgeAgent informing that edgeHub needs to be restart.
+		b. Send a message via EdgeHub - The EHRT will attempt to send message via EdgeHub to the Message Receiver (relayer) once the restart direct method is successfully issued.
+	2. Message Receiver is a target for EHRT to send a message. Once the message is received in the Message Receiver, it will forward the message to Test Result Coordinator for a verification.
+
 ###### Test Mechanism: 
-	1. The EdgeHub Restart Tester issue a direct method to EdgeAgent notifying the EdgeAgent to restart EdgeHub module
+	1. The EdgeHub Restart Tester issue a direct method to EdgeAgent notifying the EdgeAgent to restart EdgeHub module.
 	2. Once the restart direct method response with a success, the EdgeHub Restart Tester attempts to send a message to Message Receiver via EdgeHub. 
 		a. The SDK will throw an exception within EdgeHub Restart Tester if the EdgeHub is unabled to be connected
 		b. If the SDK stops throwing an exception and respond with HTTP OK, it is an indicator that the sender module is able to communicate with EdgeHub. However, this does not imply that the EdgeHub can successfully send the message to the Message Receiver.
-	3. The EdgeHub Restart Tester reports its { restart time, message sending response, and message sending completion time } to the Test Result Coordinator
-	4. Eventually the EdgeHub will forward the message to the Message Receiver once the receiver module can successfully reconnected to the EdgeHub
-	5. Once the receiver module receives a message, it will report the message receival to Test Result Coordinator
+	3. The EdgeHub Restart Tester reports its { restart time, message sending response, and message sending completion time } to the Test Result Coordinator.
+	4. Eventually the EdgeHub will forward the message to the Message Receiver once the receiver module can successfully reconnected to the EdgeHub.
+	5. Once the receiver module receives a message, it will report the message receival to Test Result Coordinator.
 
 ###### Passing Criteria:
-	1. The EdgeHub module can successfully be restarted by the EdgeHub Restart Tester
-	2. The EdgeHub Restart Tester can successfully send a message to Edge Hub within one minute after the EdgeHub is issued a restart
-The Message Receiver receives a message from EdgeHub Restart Tester that is routed via EdgeHub within a reasonable timely fashion
+	1. The EdgeHub module can successfully be restarted by the EdgeHub Restart Tester.
+	2. The EdgeHub Restart Tester can successfully send a message to Edge Hub within the configured restart period.
+	3. The Message Receiver receives a message from EdgeHub Restart Tester that is routed via EdgeHub within a reasonable timely fashion.
 
 ##### EdgeHub Restart Test : Direct Method Test
 
 ![Connectivity Test Diagram](./images/ConnectivityTest_EdgeHubRestart_DirectMethod.png)
 
+
+###### Test Specific Components:
+	1. EdgeHub Restart Tester (EHRT) has two responsibility including
+		a. Restart EdgeHub - The EHRT sends a direct method via service client to edgeAgent informing that edgeHub needs to be restart.
+		b. Send a direct method via EdgeHub - The EHRT will attempt to send direct method (via EdgeHub) to the Direct Method Receiver once the restart direct method is successfully issued.
+	2. Direct Method Receiver is a target for EHRT to send a direct method. Once the Direct Method is received, the Receiver immediately report the direct method receival to Test Result Coordinator for a verification.
+
 ###### Test Mechanism: 
-	1. The EdgeHub Restart Tester issue a direct method to EdgeAgent notifying the EdgeAgent to restart EdgeHub module
+	1. The EdgeHub Restart Tester issue a direct method to EdgeAgent notifying the EdgeAgent to restart EdgeHub module.
 	2. Once the restart direct method response with a success, the EdgeHub Restart Tester attempts to send a Direct Method to the Direct Method Receiver. 
 		a. The SDK will throw an exception within EdgeHub Restart Tester if the EdgeHub is unabled to be connected OR the receiver module is unabled to be connected.
 		b. If the SDK stops throwing an exception and respond with HTTP OK, it is an indicator that the EdgeHub Restarter Tester module is able to communicate with Direct Method Receiver successfully. This ensures by the SDK that the Direct Method Receiver received the direct method.
-	3. Upon the receival of the direct method, the Direct Method Receiver sends a result to the Test Result Coordinator
-	4. After the Direct Method Receiver responses, the EdgeHub Restart Tester sends the response result to the Test Result Coordinator
+	3. Upon the receival of the direct method, the Direct Method Receiver sends a result to the Test Result Coordinator.
+	4. After the Direct Method Receiver responses, the EdgeHub Restart Tester sends the response result to the Test Result Coordinator.
 
 ###### Passing Criteria:
-	1. The EdgeHub module can successfully be restarted by the EdgeHub Restart Tester
-The EdgeHub Restart Tester can successfully send a direct method to Direct Method Receiver within one minute after the EdgeHub is issued a restart
+	1. The EdgeHub module can successfully be restarted by the EdgeHub Restart Tester.
+	2. The EdgeHub Restart Tester can successfully send a direct method to Direct Method Receiver within the configured restart period.
