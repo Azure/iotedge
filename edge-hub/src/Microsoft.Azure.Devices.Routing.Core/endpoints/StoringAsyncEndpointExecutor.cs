@@ -24,12 +24,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         readonly Task sendMessageTask;
         readonly AsyncManualResetEvent hasMessagesInQueue = new AsyncManualResetEvent(true);
         readonly ICheckpointer checkpointer;
+        readonly AtomicReference<IList<uint>> priorities = new AtomicReference<IList<uint>>(new List<uint>());
         readonly AsyncEndpointExecutorOptions options;
         readonly EndpointExecutorFsm machine;
         readonly CancellationTokenSource cts = new CancellationTokenSource();
 
         public StoringAsyncEndpointExecutor(
             Endpoint endpoint,
+            IList<uint> priorities,
             ICheckpointer checkpointer,
             EndpointExecutorConfig config,
             AsyncEndpointExecutorOptions options,
@@ -37,11 +39,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         {
             Preconditions.CheckNotNull(endpoint);
             Preconditions.CheckNotNull(config);
+            Preconditions.CheckNotNull(priorities);
+            Preconditions.CheckArgument(priorities.Count != 0);
             this.checkpointer = Preconditions.CheckNotNull(checkpointer);
             this.options = Preconditions.CheckNotNull(options);
             this.machine = new EndpointExecutorFsm(endpoint, checkpointer, config);
             this.messageStore = messageStore;
             this.sendMessageTask = Task.Run(this.SendMessagesPump);
+
+            this.UpdatePriorities(priorities);
         }
 
         public Endpoint Endpoint => this.machine.Endpoint;
@@ -50,6 +56,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
         public async Task Invoke(IMessage message, uint priority, uint timeToLiveSecs)
         {
+            // TODO: 6099894 - Update StoringAsyncEndpointExecutor message enqueue logic to be aware of priorities
             try
             {
                 if (this.closed)
@@ -98,7 +105,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             }
         }
 
-        public async Task SetEndpoint(Endpoint newEndpoint)
+        public async Task SetEndpoint(Endpoint newEndpoint, IList<uint> priorities)
         {
             Events.SetEndpoint(this);
 
@@ -106,12 +113,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             {
                 Preconditions.CheckNotNull(newEndpoint);
                 Preconditions.CheckArgument(newEndpoint.Id.Equals(this.Endpoint.Id), $"Can only set new endpoint with same id. Given {newEndpoint.Id}, expected {this.Endpoint.Id}");
+                Preconditions.CheckNotNull(priorities);
+                Preconditions.CheckArgument(priorities.Count != 0);
 
                 if (this.closed)
                 {
                     throw new InvalidOperationException($"Endpoint executor for endpoint {this.Endpoint} is closed.");
                 }
 
+                this.UpdatePriorities(priorities);
                 await this.machine.RunAsync(Commands.UpdateEndpoint(newEndpoint));
                 Events.SetEndpointSuccess(this);
             }
@@ -122,8 +132,23 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             }
         }
 
+        void UpdatePriorities(IList<uint> priorities)
+        {
+            // Update priorities by merging the new ones with the existing.
+            // We don't ever remove stale priorities, otherwise stored messages
+            // pending for a removed priority will never get sent.
+            IList<uint> snapshot = this.priorities.Value;
+            this.priorities.Value = priorities
+                .Union(snapshot)
+                .GroupBy(p => p)
+                .Select(dupes => dupes.First())
+                .OrderBy(p => p)
+                .ToList();
+        }
+
         async Task SendMessagesPump()
         {
+            // TODO: 6099918 - Update StoringAsyncEndpointExecutor message pump to process messages by priority
             try
             {
                 Events.StartSendMessagesPump(this);

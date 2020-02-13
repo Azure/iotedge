@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
         public async Task TestClose()
         {
             var endpoint = new TestEndpoint("id");
-            IEndpointExecutor executor = await Factory.CreateAsync(endpoint);
+            IEndpointExecutor executor = await Factory.CreateAsync(endpoint, null);
             Task running = executor.Invoke(Default, 0, 0);
 
             await executor.CloseAsync();
@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             await executor.CloseAsync();
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => executor.Invoke(Default, 0, 0));
-            await Assert.ThrowsAsync<InvalidOperationException>(() => executor.SetEndpoint(endpoint));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => executor.SetEndpoint(endpoint, null));
         }
 
         [Fact]
@@ -107,12 +107,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             var endpoint1 = new TestEndpoint("id1");
             var endpoint2 = new TestEndpoint("id1");
             var endpoint3 = new TestEndpoint("id3");
-            IEndpointExecutor executor = await Factory.CreateAsync(endpoint1);
+            IEndpointExecutor executor = await Factory.CreateAsync(endpoint1, null);
 
             Assert.Equal(new List<IMessage>(), endpoint1.Processed);
             Assert.Equal(new List<IMessage>(), endpoint2.Processed);
             Assert.Equal(new List<IMessage>(), endpoint3.Processed);
-            await Assert.ThrowsAsync<ArgumentException>(() => executor.SetEndpoint(endpoint3));
+            await Assert.ThrowsAsync<ArgumentException>(() => executor.SetEndpoint(endpoint3, null));
 
             await executor.Invoke(Message1, 0, 0);
             await executor.Invoke(Message1, 0, 0);
@@ -121,7 +121,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             Assert.Equal(new List<IMessage>(), endpoint2.Processed);
             Assert.Equal(new List<IMessage>(), endpoint3.Processed);
 
-            await executor.SetEndpoint(endpoint2);
+            await executor.SetEndpoint(endpoint2, null);
             Assert.Equal(new List<IMessage> { Message1, Message1 }, endpoint1.Processed);
             Assert.Equal(new List<IMessage>(), endpoint2.Processed);
             Assert.Equal(new List<IMessage>(), endpoint3.Processed);

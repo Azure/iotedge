@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
         public virtual Task Invoke(IMessage message, uint _, uint __) => this.SendToTplHead(message);
 
-        public async Task SetEndpoint(Endpoint newEndpoint)
+        public async Task SetEndpoint(Endpoint newEndpoint, IList<uint> _)
         {
             Events.SetEndpoint(this);
 

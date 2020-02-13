@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -79,7 +80,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             }
         }
 
-        public async Task SetEndpoint(Endpoint newEndpoint)
+        public async Task SetEndpoint(Endpoint newEndpoint, IList<uint> _)
         {
             Events.SetEndpoint(this);
 

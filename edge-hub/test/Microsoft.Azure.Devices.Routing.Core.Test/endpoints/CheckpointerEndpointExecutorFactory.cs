@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
 {
+    using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
@@ -18,21 +19,21 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             this.store = store;
         }
 
-        public async Task<IEndpointExecutor> CreateAsync(Endpoint endpoint)
+        public async Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, IList<uint> priorities)
         {
             ICheckpointer checkpointer = await Checkpointer.CreateAsync(endpoint.Id, this.store);
-            IEndpointExecutor executor = await this.underlying.CreateAsync(endpoint, checkpointer);
+            IEndpointExecutor executor = await this.underlying.CreateAsync(endpoint, priorities, checkpointer);
             return executor;
         }
 
-        public Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, ICheckpointer checkpointer)
+        public Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, IList<uint> priorities, ICheckpointer checkpointer)
         {
-            return this.underlying.CreateAsync(endpoint, checkpointer);
+            return this.underlying.CreateAsync(endpoint, priorities, checkpointer);
         }
 
-        public Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, ICheckpointer checkpointer, EndpointExecutorConfig endpointExecutorConfig)
+        public Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, IList<uint> priorities, ICheckpointer checkpointer, EndpointExecutorConfig endpointExecutorConfig)
         {
-            return this.underlying.CreateAsync(endpoint, checkpointer, endpointExecutorConfig);
+            return this.underlying.CreateAsync(endpoint, priorities, checkpointer, endpointExecutorConfig);
         }
     }
 }
