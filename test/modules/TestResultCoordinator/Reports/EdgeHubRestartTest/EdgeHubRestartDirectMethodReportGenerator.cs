@@ -92,7 +92,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                         senderResultCount);
                 }
 
-                if (receiverSeqNum < senderSeqNum)
+                if ((receiverSeqNum < senderSeqNum) && hasSenderResult)
                 {
                     // Increment receiver result to have the same seq as the sender
                     (receiverResultCount, hasReceiverResult, receiverSeqNum) = await this.IterateResultToSequenceNumberAsync(
@@ -209,6 +209,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             return seqNum;
         }
 
+        // (sequenceNumber) is only valid if and only if (hasValue) is true
         async Task<(ulong resultCount, bool hasValue, long sequenceNumber)> MoveNextSenderResultAsync(ulong senderResultCount)
         {
             bool hasValue = await this.SenderTestResults.MoveNextAsync();
@@ -233,6 +234,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 sequenceNumber: seqNum);
         }
 
+        // (sequenceNumber) is only valid if and only if (hasValue) is true
         async Task<(ulong resultCount, bool hasValue, long sequenceNumber)> MoveNextReceiverResultAsync(ulong receiverResultCount)
         {
             bool hasValue = await this.ReceiverTestResults.MoveNextAsync();

@@ -4,7 +4,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
@@ -93,7 +92,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                         senderMessageCount);
                 }
 
-                if (receiverSeqNum < senderSeqNum)
+                if ((receiverSeqNum < senderSeqNum) && hasSenderResult)
                 {
                     // Increment receiver result to have the same seq as the sender
                     (receiverMessageCount, hasReceiverResult, receiverSeqNum) = await this.IterateResultToSequenceNumberAsync(
@@ -184,6 +183,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 sequenceNum: seqNum);
         }
 
+        // (sequenceNumber) is only valid if and only if (hasValue) is true
         async Task<(ulong resultCount, bool hasValue, long sequenceNumber)> MoveNextSenderResultAsync(ulong senderResultCount)
         {
             bool hasValue = await this.SenderTestResults.MoveNextAsync();
@@ -208,6 +208,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 sequenceNumber: seqNum);
         }
 
+        // (sequenceNumber) is only valid if and only if (hasValue) is true
         async Task<(ulong resultCount, bool hasValue, long sequenceNumber)> MoveNextReceiverResultAsync(ulong receiverResultCount)
         {
             bool hasValue = await this.ReceiverTestResults.MoveNextAsync();
