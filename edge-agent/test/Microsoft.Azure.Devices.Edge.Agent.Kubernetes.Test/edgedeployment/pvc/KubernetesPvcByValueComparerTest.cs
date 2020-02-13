@@ -140,15 +140,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Pvc
         [Fact]
         public void SuccessComparisonTest()
         {
-            (var x, var y) = MakeIdenticalPVCs();
+            var (x, y) = MakeIdenticalPVCs();
             Assert.True(Comparer.Equals(x, y));
         }
 
         [Fact]
         public void DistictionTest()
         {
-            (var x, var y) = MakeIdenticalPVCs();
-            var distinct = new List<V1PersistentVolumeClaim> { x, y }.Distinct(Comparer);
+            var (x, y) = MakeIdenticalPVCs();
+            var claims = new List<V1PersistentVolumeClaim> { x, y };
+            var distinct = claims.Distinct(Comparer);
 
             Assert.Equal(1, distinct.LongCount());
         }
