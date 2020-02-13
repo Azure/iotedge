@@ -103,13 +103,13 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                         receiverMessageCount);
                 }
 
-                if (hasSenderResult ^ hasReceiverResult)
+                if (!hasSenderResult || !hasReceiverResult)
                 {
                     break;
                 }
 
-                // Note: In the current verification, if the receiver obtained more result message than
-                //   sender, the test is consider a fail. We are disregarding duplicated/unique seqeunce number
+                // Note: In the current verification, if the receiver obtained more result dm than
+                //   sender, the test is considered as a test failure. We are disregarding duplicated/unique sequence number
                 //   of receiver's result.
 
                 // Check if the current message is passing
@@ -184,7 +184,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 sequenceNum: seqNum);
         }
 
-        private async Task<(ulong resultCount, bool hasValue, long sequenceNumber)> MoveNextSenderResultAsync(ulong senderResultCount)
+        async Task<(ulong resultCount, bool hasValue, long sequenceNumber)> MoveNextSenderResultAsync(ulong senderResultCount)
         {
             bool hasValue = await this.SenderTestResults.MoveNextAsync();
             long seqNum = 0;
@@ -208,7 +208,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 sequenceNumber: seqNum);
         }
 
-        private async Task<(ulong resultCount, bool hasValue, long sequenceNumber)> MoveNextReceiverResultAsync(ulong receiverResultCount)
+        async Task<(ulong resultCount, bool hasValue, long sequenceNumber)> MoveNextReceiverResultAsync(ulong receiverResultCount)
         {
             bool hasValue = await this.ReceiverTestResults.MoveNextAsync();
             long seqNum = 0;

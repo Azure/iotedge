@@ -15,34 +15,34 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             string trackingId,
             string resultType,
             bool isIncrementalSeqeunce,
-            ulong passedMessageCount,
+            ulong passedCount,
             string senderSource,
             string receiverSource,
-            ulong senderMessageCount,
-            ulong receiverMessageCount,
+            ulong senderCount,
+            ulong receiverCount,
             TimeSpan medianPeriod)
             : base(trackingId, resultType)
         {
             this.IsIncrementalSeqeunce = isIncrementalSeqeunce;
-            this.PassedMessageCount = passedMessageCount;
+            this.PassedCount = passedCount;
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
             this.ReceiverSource = Preconditions.CheckNonWhiteSpace(receiverSource, nameof(receiverSource));
-            this.SenderMessageCount = senderMessageCount;
-            this.ReceiverMessageCount = receiverMessageCount;
+            this.SenderCount = senderCount;
+            this.ReceiverCount = receiverCount;
             this.MedianPeriod = medianPeriod;
         }
 
         public override string Title => $"{this.ResultType} Report between {this.SenderSource} and {this.ReceiverSource}";
 
-        public override bool IsPassed => this.IsIncrementalSeqeunce && (this.PassedMessageCount == this.SenderMessageCount) && (this.SenderMessageCount > 0);
+        public override bool IsPassed => this.IsIncrementalSeqeunce && (this.PassedCount == this.SenderCount) && (this.SenderCount > 0);
 
         public bool IsIncrementalSeqeunce { get; }
 
-        public ulong PassedMessageCount { get; }
+        public ulong PassedCount { get; }
 
-        public ulong SenderMessageCount { get; }
+        public ulong SenderCount { get; }
 
-        public ulong ReceiverMessageCount { get; }
+        public ulong ReceiverCount { get; }
 
         public string SenderSource { get; }
 

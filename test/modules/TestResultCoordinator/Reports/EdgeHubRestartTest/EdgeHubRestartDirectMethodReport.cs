@@ -14,17 +14,17 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         public EdgeHubRestartDirectMethodReport(
             string trackingId,
             string resultType,
-            ulong passedDirectMethodCount,
+            ulong passedCount,
             string senderSource,
             string receiverSource,
-            ulong senderResultCount,
-            ulong receiverResultCount,
+            ulong senderCount,
+            ulong receiverCount,
             TimeSpan medianPeriod)
             : base(trackingId, resultType)
         {
-            this.PassedDirectMethodCount = passedDirectMethodCount;
-            this.SenderResultCount = senderResultCount;
-            this.ReceiverResultCount = receiverResultCount;
+            this.PassedCount = passedCount;
+            this.SenderCount = senderCount;
+            this.ReceiverCount = receiverCount;
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
             this.ReceiverSource = Preconditions.CheckNonWhiteSpace(receiverSource, nameof(receiverSource));
             this.MedianPeriod = medianPeriod;
@@ -32,19 +32,17 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
         public override string Title => $"{this.ResultType} Report between {this.SenderSource} and {this.ReceiverSource}";
 
-        public override bool IsPassed => (this.PassedDirectMethodCount == this.SenderResultCount) && (this.SenderResultCount > 0);
+        public override bool IsPassed => (this.PassedCount == this.SenderCount) && (this.SenderCount > 0);
 
-        public ulong PassedDirectMethodCount { get; }
+        public ulong PassedCount { get; }
 
-        public ulong SenderResultCount { get; }
+        public ulong SenderCount { get; }
 
-        public ulong ReceiverResultCount { get; }
+        public ulong ReceiverCount { get; }
 
         public string SenderSource { get; }
 
         public string ReceiverSource { get; }
-
-        public Dictionary<HttpStatusCode, List<TimeSpan>> CompletedStatusHistogram { get; }
 
         public TimeSpan MedianPeriod { get; }
     }
