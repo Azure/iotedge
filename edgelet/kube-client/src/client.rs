@@ -785,7 +785,8 @@ where
                 })
         };
 
-        self.execute(req).and_then(move |response| next(response, should_log_trace))
+        self.execute(req)
+            .and_then(move |response| next(response, should_log_trace))
     }
 
     fn execute(
