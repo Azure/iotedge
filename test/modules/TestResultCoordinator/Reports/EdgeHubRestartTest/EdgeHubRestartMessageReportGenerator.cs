@@ -54,14 +54,14 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         {
             Logger.LogInformation($"Generating report: {nameof(EdgeHubRestartMessageReport)} for [{this.SenderSource}] and [{this.ReceiverSource}]");
 
-            bool isIncrementalSeqeunce = true;
+            bool isDiscontinuousSequenceNumber = false;
             long previousSeqNum = 0;
             ulong passedMessageCount = 0;
             ulong senderMessageCount = 0;
             ulong receiverMessageCount = 0;
-            bool hasSenderResult = true;
+            bool hasSenderResult = false;
             long senderSeqNum = 0;
-            bool hasReceiverResult = true;
+            bool hasReceiverResult = false;
             long receiverSeqNum = 0;
 
             (senderMessageCount, hasSenderResult, senderSeqNum) =
@@ -92,16 +92,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                         senderMessageCount);
                 }
 
-                if ((receiverSeqNum < senderSeqNum) && hasSenderResult)
-                {
-                    // Increment receiver result to have the same seq as the sender
-                    (receiverMessageCount, hasReceiverResult, receiverSeqNum) = await this.IterateResultToSequenceNumberAsync(
-                        hasReceiverResult,
-                        this.MoveNextReceiverResultAsync,
-                        senderSeqNum,
-                        receiverMessageCount);
-                }
-
                 if (!hasSenderResult || !hasReceiverResult)
                 {
                     break;
@@ -130,7 +120,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 passedMessageCount += isCurrentMessagePassing ? 1UL : 0UL;
 
                 // Make sure the sequence number is incremental
-                isIncrementalSeqeunce &= (previousSeqNum + 1) == senderSeqNum;
+                isDiscontinuousSequenceNumber |= (previousSeqNum + 1) != senderSeqNum;
                 previousSeqNum++;
 
                 (senderMessageCount, hasSenderResult, senderSeqNum) = await this.MoveNextSenderResultAsync(senderMessageCount);
@@ -156,7 +146,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             return new EdgeHubRestartMessageReport(
                 this.TrackingId,
                 this.TestReportType.ToString(),
-                isIncrementalSeqeunce,
+                isDiscontinuousSequenceNumber,
                 passedMessageCount,
                 this.SenderSource,
                 this.ReceiverSource,

@@ -59,9 +59,9 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             ulong passedDirectMethodCount = 0;
             ulong senderResultCount = 0;
             ulong receiverResultCount = 0;
-            bool hasSenderResult = true;
+            bool hasSenderResult = false;
             long senderSeqNum = 0;
-            bool hasReceiverResult = true;
+            bool hasReceiverResult = false;
             long receiverSeqNum = 0;
 
             (senderResultCount, hasSenderResult, senderSeqNum) =

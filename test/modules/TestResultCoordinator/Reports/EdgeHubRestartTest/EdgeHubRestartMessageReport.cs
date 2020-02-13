@@ -2,8 +2,6 @@
 namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 {
     using System;
-    using System.Collections.Generic;
-    using System.Net;
     using Microsoft.Azure.Devices.Edge.Util;
 
     /// <summary>
@@ -14,7 +12,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         public EdgeHubRestartMessageReport(
             string trackingId,
             string resultType,
-            bool isIncrementalSeqeunce,
+            bool isDiscontinuousSequenceNumber,
             ulong passedCount,
             string senderSource,
             string receiverSource,
@@ -23,7 +21,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             TimeSpan medianPeriod)
             : base(trackingId, resultType)
         {
-            this.IsIncrementalSeqeunce = isIncrementalSeqeunce;
+            this.IsDiscontinuousSequenceNumber = isDiscontinuousSequenceNumber;
             this.PassedCount = passedCount;
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
             this.ReceiverSource = Preconditions.CheckNonWhiteSpace(receiverSource, nameof(receiverSource));
@@ -34,9 +32,9 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
         public override string Title => $"{this.ResultType} Report between {this.SenderSource} and {this.ReceiverSource}";
 
-        public override bool IsPassed => this.IsIncrementalSeqeunce && (this.PassedCount == this.SenderCount) && (this.SenderCount > 0);
+        public override bool IsPassed => !this.IsDiscontinuousSequenceNumber && (this.PassedCount == this.SenderCount) && (this.SenderCount > 0);
 
-        public bool IsIncrementalSeqeunce { get; }
+        public bool IsDiscontinuousSequenceNumber { get; }
 
         public ulong PassedCount { get; }
 
