@@ -8,7 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Amqp" Version="2.4.2" />
-    <PackageReference Include="Microsoft.Azure.Devices" Version="1.18.4" />
+    <PackageReference Include="Microsoft.Azure.Devices" Version="1.19.0" />
   </ItemGroup>
 
   <ItemGroup>
