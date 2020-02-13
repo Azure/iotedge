@@ -186,21 +186,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         [Fact]
-        public async void GetModuleLogsTest()
-        {
-            var logs = Encoding.UTF8.GetBytes("some logs");
-            var response = new HttpOperationResponse<Stream> { Request = new System.Net.Http.HttpRequestMessage(), Body = new MemoryStream(logs) };
-            var client = new Mock<IKubernetes>(MockBehavior.Strict);
-            client.Setup(kc => kc.ReadNamespacedPodLogWithHttpMessagesAsync(It.IsAny<string>(), It.IsAny<string>(), null, true, null, null, null, null, null, null, null, It.IsAny<CancellationToken>())).ReturnsAsync(() => response);
-            var moduleManager = new Mock<IModuleManager>(MockBehavior.Strict);
-            var runtimeInfo = new KubernetesRuntimeInfoProvider(Namespace, client.Object, moduleManager.Object);
-
-            var result = await runtimeInfo.GetModuleLogs("module", true, Option.None<int>(), Option.None<int>(), CancellationToken.None);
-
-            Assert.True(result.Length == logs.Length);
-        }
-
-        [Fact]
         public async Task ReturnsEmptyModulesWhenNoDataAvailable()
         {
             var client = new Mock<IKubernetes>(MockBehavior.Strict);

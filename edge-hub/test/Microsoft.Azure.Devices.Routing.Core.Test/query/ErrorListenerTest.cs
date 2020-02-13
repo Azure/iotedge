@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Query;
     using Microsoft.Azure.Devices.Routing.Core.Query.Errors;
+    using Moq;
     using Xunit;
 
     [ExcludeFromCodeCoverage]
@@ -18,7 +19,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         public void TestOperandError()
         {
             string condition = "3 + '4' = 7";
-            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
             var exception = Assert.Throws<RouteCompilationException>(() => RouteCompiler.Instance.Compile(route));
 
             Assert.Equal(2, exception.Errors.Count);
@@ -34,7 +35,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         public void TestArgumentError()
         {
             string condition = "as_number(true) = true";
-            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
             var exception = Assert.Throws<RouteCompilationException>(() => RouteCompiler.Instance.Compile(route));
 
             Assert.Equal(2, exception.Errors.Count);
@@ -50,7 +51,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         public void TestInvalidBuiltinError()
         {
             string condition = "nope(true) = true";
-            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
             var exception = Assert.Throws<RouteCompilationException>(() => RouteCompiler.Instance.Compile(route));
 
             Assert.Equal(2, exception.Errors.Count);
@@ -66,7 +67,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         public void TestSyntaxErrorMissingParens()
         {
             string condition = "(2 + 22 = 24";
-            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
             var exception = Assert.Throws<RouteCompilationException>(() => RouteCompiler.Instance.Compile(route));
 
             Assert.Equal(1, exception.Errors.Count);
@@ -82,7 +83,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         public void TestSyntaxErrorMissingParensFunc()
         {
             string condition = "as_number(\"2\" = 24";
-            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
             var exception = Assert.Throws<RouteCompilationException>(() => RouteCompiler.Instance.Compile(route));
 
             Assert.Equal(1, exception.Errors.Count);
@@ -98,7 +99,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         public void TestSyntaxErrorExtraParens()
         {
             string condition = "(2 + 22 )) = 24";
-            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
             var exception = Assert.Throws<RouteCompilationException>(() => RouteCompiler.Instance.Compile(route));
 
             Assert.Equal(2, exception.Errors.Count);
@@ -114,7 +115,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         public void TestSyntaxErrorExtraParensFunc()
         {
             string condition = "as_number(\"2\")) = 24";
-            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
             var exception = Assert.Throws<RouteCompilationException>(() => RouteCompiler.Instance.Compile(route));
 
             Assert.Equal(2, exception.Errors.Count);
@@ -130,7 +131,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         public void TestSyntaxErrorUnterminatedString()
         {
             string condition = "\"2 = 24";
-            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
             var exception = Assert.Throws<RouteCompilationException>(() => RouteCompiler.Instance.Compile(route));
 
             Assert.Equal(1, exception.Errors.Count);
@@ -146,7 +147,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
         public void TestSyntaxErrorUnrecognizedSymbol()
         {
             string condition = "3 = @ 3";
-            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
+            var route = new Route("id", condition, "hub", TelemetryMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
             var exception = Assert.Throws<RouteCompilationException>(() => RouteCompiler.Instance.Compile(route));
 
             Assert.Equal(2, exception.Errors.Count);
