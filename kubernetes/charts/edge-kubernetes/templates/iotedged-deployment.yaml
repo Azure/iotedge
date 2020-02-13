@@ -28,7 +28,7 @@ spec:
           args: ["-c", "/etc/iotedged/config.yaml"]
           env:
           - name: "IOTEDGE_LOG"
-            value: "debug"
+            value: "info"
           {{- if .Values.iotedged.data.httpsProxy }}
           - name: "https_proxy"
             value: {{ .Values.iotedged.data.httpsProxy | quote}}
