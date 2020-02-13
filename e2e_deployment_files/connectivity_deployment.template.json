@@ -838,18 +838,18 @@
             "TestReportType": "DirectMethodReport",
             "SenderSource": "directMethodSender1.send",
             "ReceiverSource": "directMethodReceiver1.receive",
-            "TolerancePeriod": "00:00:00.005"
+            "TolerancePeriod": "00:01:00"
           },
           "reportMetadata11": {
             "TestReportType": "DirectMethodReport",
             "SenderSource": "directMethodSender2.send",
             "ReceiverSource": "directMethodReceiver2.receive",
-            "TolerancePeriod": "00:00:00.005"
+            "TolerancePeriod": "00:01:00"
           },
           "reportMetadata12": {
             "TestReportType": "DirectMethodReport",
             "SenderSource": "directMethodSender3.send",
-            "TolerancePeriod": "00:00:00.005"
+            "TolerancePeriod": "00:01:00"
           },
           "reportMetadata13": {
             "TestReportType": "CountingReport",
