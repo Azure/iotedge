@@ -29,16 +29,18 @@ namespace EdgeHubRestartTester
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
             ServiceClient iotHubServiceClient = null;
-            IEdgeHubConnectorTest edgeHubMessageConnector = null;
-            IEdgeHubConnectorTest edgeHubDirectMethodConnector = null;
+            ModuleClient msgModuleClient = null;
+            ModuleClient dmModuleClient = null;
 
             try
             {
                 iotHubServiceClient = ServiceClient.CreateFromConnectionString(Settings.Current.IoTHubConnectionString);
+                IEdgeHubConnectorTest edgeHubMessageConnector = null;
+                IEdgeHubConnectorTest edgeHubDirectMethodConnector = null;
 
                 if (Settings.Current.MessageEnabled)
                 {
-                    ModuleClient msgModuleClient = await ModuleUtil.CreateModuleClientAsync(
+                    msgModuleClient = await ModuleUtil.CreateModuleClientAsync(
                         Settings.Current.TransportType,
                         ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                         ModuleUtil.DefaultTransientRetryStrategy,
@@ -54,7 +56,7 @@ namespace EdgeHubRestartTester
 
                 if (Settings.Current.DirectMethodEnabled)
                 {
-                    ModuleClient dmModuleClient = await ModuleUtil.CreateModuleClientAsync(
+                    dmModuleClient = await ModuleUtil.CreateModuleClientAsync(
                         Settings.Current.TransportType,
                         ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                         ModuleUtil.DefaultTransientRetryStrategy,
@@ -67,9 +69,9 @@ namespace EdgeHubRestartTester
                 }
 
                 DateTime testStart = DateTime.UtcNow;
-                DateTime testExpirationTime = testStart + Settings.Current.TestDuration;
+                DateTime testCompletionTime = testStart + Settings.Current.TestDuration;
 
-                while ((!cts.IsCancellationRequested) && (DateTime.UtcNow < testExpirationTime))
+                while ((!cts.IsCancellationRequested) && (DateTime.UtcNow < testCompletionTime))
                 {
                     DateTime restartTime = await RestartEdgeHubAsync(
                         iotHubServiceClient,
@@ -111,8 +113,8 @@ namespace EdgeHubRestartTester
             finally
             {
                 iotHubServiceClient?.Dispose();
-                edgeHubDirectMethodConnector?.Dispose();
-                edgeHubMessageConnector?.Dispose();
+                dmModuleClient?.Dispose();
+                msgModuleClient?.Dispose();
             }
 
             await cts.Token.WhenCanceled();

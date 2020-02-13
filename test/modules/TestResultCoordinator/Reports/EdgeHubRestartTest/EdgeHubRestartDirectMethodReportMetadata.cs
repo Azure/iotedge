@@ -25,6 +25,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
         public TestReportType TestReportType => TestReportType.EdgeHubRestartDirectMethodReport;
 
-        public TestOperationResultType TestOperationResultType => (TestOperationResultType)Enum.Parse(typeof(TestOperationResultType), this.SenderSource.Split('.').LastOrDefault());
+        public TestOperationResultType TestOperationResultType => TestOperationResultType.EdgeHubRestartDirectMethod;
     }
 }

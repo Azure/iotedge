@@ -20,7 +20,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         // Value: (completedStatusCode, DirectMethodCompletedTime - EdgeHubRestartedTime)
         private Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram;
 
-        delegate Task<(ulong count, bool isNotEmpty, long sequenceNumber)> MoveNextResultAsync(ulong count);
+        delegate Task<(ulong count, bool hasValue, long sequenceNumber)> MoveNextResultAsync(ulong count);
 
         internal EdgeHubRestartDirectMethodReportGenerator(
             string trackingId,
@@ -85,7 +85,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 if (receiverSeqNum > senderSeqNum)
                 {
                     // Increment sender result to have the same seq as the receiver
-                    (senderResultCount, hasSenderResult, senderSeqNum) = await this.IncrementSequenceNumberAsync(
+                    (senderResultCount, hasSenderResult, senderSeqNum) = await this.IterateResultToSequenceNumberAsync(
                         hasSenderResult,
                         this.MoveNextSenderResultAsync,
                         receiverSeqNum,
@@ -95,7 +95,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 if (receiverSeqNum < senderSeqNum)
                 {
                     // Increment receiver result to have the same seq as the sender
-                    (receiverResultCount, hasReceiverResult, receiverSeqNum) = await this.IncrementSequenceNumberAsync(
+                    (receiverResultCount, hasReceiverResult, receiverSeqNum) = await this.IterateResultToSequenceNumberAsync(
                         hasReceiverResult,
                         this.MoveNextReceiverResultAsync,
                         senderSeqNum,
@@ -132,13 +132,13 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 (receiverResultCount, hasReceiverResult, receiverSeqNum) = await this.MoveNextReceiverResultAsync(receiverResultCount);
             }
 
-            (senderResultCount, _, _) = await this.IncrementSequenceNumberAsync(
+            (senderResultCount, _, _) = await this.IterateResultToSequenceNumberAsync(
                 hasSenderResult,
                 this.MoveNextSenderResultAsync,
                 long.MaxValue,
                 senderResultCount);
 
-            (receiverResultCount, _, _) = await this.IncrementSequenceNumberAsync(
+            (receiverResultCount, _, _) = await this.IterateResultToSequenceNumberAsync(
                 hasReceiverResult,
                 this.MoveNextReceiverResultAsync,
                 long.MaxValue,
@@ -215,20 +215,22 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 variancePeriodInMilisec);
         }
 
-        async Task<(ulong resultCount, bool isNotEmpty, long sequenceNum)> IncrementSequenceNumberAsync(
-            bool isNotEmpty,
+        async Task<(ulong resultCount, bool hasValue, long sequenceNum)> IterateResultToSequenceNumberAsync(
+            bool hasValue,
             MoveNextResultAsync MoveNextResultAsync,
             long targetSequenceNumber,
             ulong resultCount)
         {
             long seqNum = 0;
 
-            while (isNotEmpty && (seqNum < targetSequenceNumber))
+            while (hasValue && (seqNum < targetSequenceNumber))
             {
-                (resultCount, isNotEmpty, seqNum) = await MoveNextResultAsync(resultCount);
+                (resultCount, hasValue, seqNum) = await MoveNextResultAsync(resultCount);
             }
 
-            return (resultCount: resultCount, isNotEmpty: isNotEmpty, sequenceNum: seqNum);
+            return (resultCount: resultCount,
+                hasValue: hasValue,
+                sequenceNum: seqNum);
         }
 
         void ValidateResult(
@@ -247,7 +249,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             }
         }
 
-        //////////////////////////////////////////////////////////////// HELPER LAND
         void AddEntryToCompletedStatusHistogram(EdgeHubRestartDirectMethodResult senderResult)
         {
             HttpStatusCode completedStatus = senderResult.DirectMethodCompletedStatusCode;
