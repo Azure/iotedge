@@ -76,7 +76,6 @@ namespace NetworkController
             {
                 $"Network Run Profile={Settings.Current.NetworkRunProfile}",
                 $"Network Network Id={Settings.Current.NetworkId}",
-                $"Network Profile Settings={Settings.Current.ProfileSettings.ToString()}",
                 $"Network Frequencies={string.Join(",", Settings.Current.Frequencies.Select(f => $"[offline:{f.OfflineFrequency},Online:{f.OnlineFrequency},Runs:{f.RunsCount}]"))}"
             };
 

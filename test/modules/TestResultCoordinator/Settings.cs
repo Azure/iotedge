@@ -7,7 +7,6 @@ namespace TestResultCoordinator
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
@@ -24,6 +23,7 @@ namespace TestResultCoordinator
         List<ITestReportMetadata> reportMetadatas = null;
 
         Settings(
+            string testBuildNumber,
             string trackingId,
             string eventHubConnectionString,
             string iotHubConnectionString,
@@ -42,6 +42,7 @@ namespace TestResultCoordinator
         {
             Preconditions.CheckRange(testDuration.Ticks, 1);
 
+            this.TestBuildNumber = Preconditions.CheckNonWhiteSpace(testBuildNumber, nameof(testBuildNumber));
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.EventHubConnectionString = Preconditions.CheckNonWhiteSpace(eventHubConnectionString, nameof(eventHubConnectionString));
             this.IoTHubConnectionString = Preconditions.CheckNonWhiteSpace(iotHubConnectionString, nameof(iotHubConnectionString));
@@ -69,6 +70,7 @@ namespace TestResultCoordinator
                 .Build();
 
             return new Settings(
+                configuration.GetValue<string>("TEST_BUILD_NUMBER"),
                 configuration.GetValue<string>("trackingId"),
                 configuration.GetValue<string>("eventHubConnectionString"),
                 configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING"),
@@ -118,12 +120,15 @@ namespace TestResultCoordinator
 
         public string StorageAccountConnectionString { get; }
 
+        public string TestBuildNumber { get; }
+
         public override string ToString()
         {
             // serializing in this pattern so that secrets don't accidentally get added anywhere in the future
             var fields = new Dictionary<string, string>
             {
                 { nameof(this.TrackingId), this.TrackingId },
+                { nameof(this.TestBuildNumber), this.TestBuildNumber },
                 { nameof(this.DeviceId), this.DeviceId },
                 { nameof(this.ModuleId), this.ModuleId },
                 { nameof(this.WebHostPort), this.WebHostPort.ToString() },

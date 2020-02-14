@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
 
             foreach (IMessage msg in expected)
             {
-                await executor.Invoke(msg);
+                await executor.Invoke(msg, 0, 3600);
             }
 
             await Task.Delay(TimeSpan.FromSeconds(2));
@@ -70,7 +70,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
         {
             var endpoint = new TestEndpoint("id");
             IEndpointExecutor executor = await Factory.CreateAsync(endpoint);
-            Task running = executor.Invoke(Default);
+            Task running = executor.Invoke(Default, 0, 3600);
 
             await executor.CloseAsync();
             await running;
@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
         {
             var endpoint = new StalledEndpoint("id");
             IEndpointExecutor executor = await Factory.CreateAsync(endpoint);
-            Task running = executor.Invoke(Default);
+            Task running = executor.Invoke(Default, 0, 3600);
 
             await executor.CloseAsync();
             await running;
@@ -120,21 +120,21 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             var endpoint1 = new TestEndpoint("id1");
             var executor = new AsyncEndpointExecutor(endpoint1, new NullCheckpointer(), MaxConfig, new AsyncEndpointExecutorOptions(100, TimeSpan.FromMilliseconds(50)));
 
-            await executor.Invoke(Message1);
-            await executor.Invoke(Message1);
+            await executor.Invoke(Message1, 0, 3600);
+            await executor.Invoke(Message1, 0, 3600);
 
             await Task.Delay(TimeSpan.FromMilliseconds(500));
 
             var expected = new List<IMessage> { Message1, Message1 };
             Assert.Equal(expected, endpoint1.Processed);
 
-            await executor.Invoke(Message2);
+            await executor.Invoke(Message2, 0, 3600);
             expected.Add(Message2);
 
             await Task.Delay(TimeSpan.FromMilliseconds(500));
             Assert.Equal(expected, endpoint1.Processed);
 
-            await executor.Invoke(Message2);
+            await executor.Invoke(Message2, 0, 3600);
             expected.Add(Message2);
 
             await Task.Delay(TimeSpan.FromMilliseconds(500));
@@ -156,7 +156,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
 
             using (var executor = new AsyncEndpointExecutor(endpoint, checkpointer, MaxConfig, new AsyncEndpointExecutorOptions(1)))
             {
-                await executor.Invoke(Message1);
+                await executor.Invoke(Message1, 0, 3600);
                 await Task.Delay(TimeSpan.FromSeconds(2));
                 await executor.CloseAsync();
 
