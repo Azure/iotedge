@@ -5,20 +5,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
     using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
 
-    public class LogsResponse
+    public class ModuleLogsResponse
     {
-        public LogsResponse(string id, byte[] payloadBytes)
+        public ModuleLogsResponse(string id, byte[] payloadBytes)
             : this(id, null, payloadBytes)
         {
         }
 
-        public LogsResponse(string id, string payload)
+        public ModuleLogsResponse(string id, string payload)
             : this(id, payload, null)
         {
         }
 
         [JsonConstructor]
-        LogsResponse(string id, string payload, byte[] payloadBytes)
+        ModuleLogsResponse(string id, string payload, byte[] payloadBytes)
         {
             this.Id = Preconditions.CheckNonWhiteSpace(id, nameof(id));
             this.PayloadBytes = Option.Maybe(payloadBytes);

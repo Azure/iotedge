@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             var logsProviderTask = c.Resolve<Task<ILogsProvider>>();
                             IRuntimeInfoProvider runtimeInfoProvider = await runtimeInfoProviderTask;
                             ILogsProvider logsProvider = await logsProviderTask;
-                            return new LogsUploadRequestHandler(logsUploader, logsProvider, runtimeInfoProvider) as IRequestHandler;
+                            return new ModuleLogsUploadRequestHandler(logsUploader, logsProvider, runtimeInfoProvider) as IRequestHandler;
                         })
                     .As<Task<IRequestHandler>>()
                     .SingleInstance();
@@ -114,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             var logsProviderTask = c.Resolve<Task<ILogsProvider>>();
                             IRuntimeInfoProvider runtimeInfoProvider = await runtimeInfoProviderTask;
                             ILogsProvider logsProvider = await logsProviderTask;
-                            return new LogsRequestHandler(logsProvider, runtimeInfoProvider) as IRequestHandler;
+                            return new ModuleLogsRequestHandler(logsProvider, runtimeInfoProvider) as IRequestHandler;
                         })
                     .As<Task<IRequestHandler>>()
                     .SingleInstance();
