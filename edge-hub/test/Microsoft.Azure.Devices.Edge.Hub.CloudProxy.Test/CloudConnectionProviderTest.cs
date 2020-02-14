@@ -45,7 +45,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                         {
                             Pooling = true,
                             MaxPoolSize = 20,
-                            ConnectionIdleTimeout = TimeSpan.FromSeconds(5)
                         },
                         IdleTimeout = TimeSpan.FromSeconds(0)
                     }
@@ -66,7 +65,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                         {
                             Pooling = true,
                             MaxPoolSize = 30,
-                            ConnectionIdleTimeout = TimeSpan.FromSeconds(5)
                         },
                         Proxy = new WebProxy(ProxyUri),
                         IdleTimeout = TimeSpan.FromSeconds(60)
@@ -88,7 +86,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                         {
                             Pooling = true,
                             MaxPoolSize = 50,
-                            ConnectionIdleTimeout = TimeSpan.FromSeconds(5)
                         },
                         Proxy = new WebProxy(ProxyUri)
                     }
