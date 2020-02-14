@@ -146,6 +146,7 @@ namespace LeafDeviceTest
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(600))) // Long timeout is needed because registry manager takes a while for the device identity to be usable
             {
                 Exception savedException = null;
+                bool printFirstException = false;
 
                 try
                 {
@@ -181,7 +182,18 @@ namespace LeafDeviceTest
                         catch (Exception e)
                         {
                             savedException = e;
+                            if (!printFirstException)
+                            {
+                                printFirstException = true;
+                                Console.WriteLine($"Failed to connect to edge and send data [1st exception]: {savedException}");
+                            }
                         }
+                    }
+
+                    if (savedException != null)
+                    {
+                        Console.WriteLine("Rethrow saved exception.");
+                        throw savedException;
                     }
                 }
                 catch (OperationCanceledException e)

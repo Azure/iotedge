@@ -114,10 +114,12 @@ namespace LeafDeviceTest
                 Console.WriteLine("Element certificate valid until: {0}", element.Certificate.NotAfter);
                 Console.WriteLine("Element certificate is valid: {0}", element.Certificate.Verify());
                 Console.WriteLine("Element error status length: {0}", element.ChainElementStatus.Length);
+
                 foreach (X509ChainStatus status in element.ChainElementStatus)
                 {
                     Console.WriteLine($"Status: {status.Status};{status.StatusInformation}");
                 }
+
                 Console.WriteLine("Element information: {0}", element.Information);
                 Console.WriteLine("Number of element extensions: {0}{1}", element.Certificate.Extensions.Count, Environment.NewLine);
 
