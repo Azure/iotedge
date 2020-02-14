@@ -34,6 +34,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
                 pods => pods.Items.Count == count,
                 token);
 
+        public async Task<Option<V1ServiceAccountList>> WaitUntilAnyServiceAccountAsync(CancellationToken token) =>
+           await WaitUntilAsync(
+               () => this.Kubernetes.ListNamespacedServiceAccountAsync(this.DeviceNamespace, cancellationToken: token),
+               sa => sa.Items.Any(),
+               token);
+
+        public async Task<Option<V1DeploymentList>> WaitUntilAnyDeploymentsAsync(CancellationToken token) =>
+           await WaitUntilAsync(
+               () => this.Kubernetes.ListNamespacedDeploymentAsync(this.DeviceNamespace, cancellationToken: token),
+               d => d.Items.Any(),
+               token);
+
+        public async Task<Option<V1PersistentVolumeClaimList>> WaitUntilAnyPersistentVolumeClaim(CancellationToken token) =>
+           await WaitUntilAsync(
+               () => this.Kubernetes.ListNamespacedPersistentVolumeClaimAsync(this.DeviceNamespace, cancellationToken: token),
+               p => p.Items.Any(),
+               token);
+
         public static async Task<Option<T>> WaitUntilAsync<T>(Func<Task<T>> action, Func<T, bool> predicate, CancellationToken token)
         {
             while (!token.IsCancellationRequested)
@@ -64,6 +82,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
 
         internal void DeleteService(string moduleName) => this.Kubernetes.DeleteNamespacedService(moduleName, this.DeviceNamespace);
 
-        internal void DeletePvc(string persistentVolumeName) => this.Kubernetes.DeleteNamespacedPersistentVolumeClaim(persistentVolumeName, this.DeviceNamespace);
+        internal void DeletePvc(string persistentVolumeClaimName) => this.Kubernetes.DeleteNamespacedPersistentVolumeClaim(persistentVolumeClaimName, this.DeviceNamespace);
     }
 }

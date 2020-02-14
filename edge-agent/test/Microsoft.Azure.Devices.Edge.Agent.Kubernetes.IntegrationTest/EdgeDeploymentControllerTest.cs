@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -27,6 +28,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
     public class EdgeDeploymentControllerTest : IClassFixture<KubernetesClusterFixture>, IAsyncLifetime
     {
         readonly KubernetesClient client;
+
+        static readonly TimeSpan DefaultTimeout = TimeSpan.FromMinutes(3);
 
         public EdgeDeploymentControllerTest(KubernetesClusterFixture fixture)
         {
@@ -116,6 +119,52 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         }
 
         [Fact]
+        public async Task CheckIfCreateDeploymentNoServiceWithPvcIsSuccessful()
+        {
+            var moduleName = "module-a";
+            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
+            var moduleLifeCycleManager = new DummyModuleIdentityLifecycleManager(
+                "hostname",
+                "gatewayhostname",
+                "deviceid",
+                moduleName,
+                new ConnectionStringCredentials("connectionString"));
+            var hostConfigs = new HostConfig
+            {
+                Mounts = new List<Mount>
+                {
+                    new Mount
+                    {
+                        Type = "volume",
+                        ReadOnly = true,
+                        Source = "pvname",
+                        Target = "/tmp/volume"
+                    }
+                }
+            };
+            var persistentVolumeName = "pvname";
+            var creatOptions = new CreatePodParameters(null, null, hostConfigs, null, null);
+            var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, persistentVolumeName, "storagename");
+            string imageName = "test-image:1";
+            KubernetesModule km1 = this.CreateKubernetesModule(moduleName, creatOptions, imageName);
+            var pvcName = $"{moduleName}-{persistentVolumeName}";
+            var tokenSource = new CancellationTokenSource(DefaultTimeout * 3);
+
+            moduleLifeCycleManager.SetModules(moduleName);
+            await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Empty);
+            await this.client.WaitUntilAnyPersistentVolumeClaim(tokenSource.Token);
+
+            V1DeploymentList currentDeployments = await this.client.ListDeployments(deviceSelector);
+            V1ServiceAccountList currentServiceAccounts = await this.client.ListServiceAccounts(deviceSelector);
+            V1ServiceList currentServices = await this.client.ListServices(deviceSelector);
+            V1PersistentVolumeClaimList currentPvcList = await this.client.ListPeristentVolumeClaims();
+            Assert.Single(currentDeployments.Items, d => d.Metadata.Name == moduleName);
+            Assert.Single(currentServiceAccounts.Items, sa => sa.Metadata.Name == moduleName);
+            Assert.Empty(currentServices.Items);
+            Assert.Single(currentPvcList.Items, p => p.Metadata.Name == pvcName);
+        }
+
+        [Fact]
         public async Task CheckIfCreateDeploymentWithServiceNoPvcIsSuccessful()
         {
             var moduleName = "module-a";
@@ -149,48 +198,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         }
 
         [Fact]
-        public async Task CheckIfCreateDeploymentNoServiceWithPvcIsSuccessful()
-        {
-            var moduleName = "module-a";
-            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
-            var moduleLifeCycleManager = new DummyModuleIdentityLifecycleManager(
-                "hostname",
-                "gatewayhostname",
-                "deviceid",
-                moduleName,
-                new ConnectionStringCredentials("connectionString"));
-            var hostConfigs = new HostConfig
-            {
-                Mounts = new List<Mount>
-                {
-                    new Mount
-                    {
-                        Type = "volume",
-                        ReadOnly = true,
-                        Source = "pvcname",
-                        Target = "/tmp/volume"
-                    }
-                }
-            };
-            var creatOptions = new CreatePodParameters(null, null, hostConfigs, null, null);
-            var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, "pvcname", "storageClassName");
-            string imageName = "test-image:1";
-            KubernetesModule km1 = this.CreateKubernetesModule(moduleName, creatOptions, imageName);
-
-            moduleLifeCycleManager.SetModules(moduleName);
-            await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Empty);
-
-            V1DeploymentList currentDeployments = await this.client.ListDeployments(deviceSelector);
-            V1ServiceAccountList currentServiceAccounts = await this.client.ListServiceAccounts(deviceSelector);
-            V1ServiceList currentServices = await this.client.ListServices(deviceSelector);
-            V1PersistentVolumeClaimList currentPvcList = await this.client.ListPeristentVolumeClaims();
-            Assert.Single(currentDeployments.Items, d => d.Metadata.Name == moduleName);
-            Assert.Single(currentServiceAccounts.Items, sa => sa.Metadata.Name == moduleName);
-            Assert.Empty(currentServices.Items);
-            Assert.Single(currentPvcList.Items, p => p.Metadata.Name == moduleName);
-        }
-
-        [Fact]
         public async Task CheckIfDeleteDeploymentIsSuccessful()
         {
             var moduleName = "module-a";
@@ -213,17 +220,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
                     {
                         Type = "volume",
                         ReadOnly = true,
-                        Source = "pvcname",
+                        Source = "pvname",
                         Target = "/tmp/volume"
                     }
                 }
             };
             var creatOptions = new CreatePodParameters(null, exposedPorts, hostConfigs, null, null);
-            var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, "pvcname", "storageClassName");
+            var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, "pvname", "storagename");
             string imageName = "test-image:1";
             KubernetesModule km1 = this.CreateKubernetesModule(moduleName, creatOptions, imageName);
+            var labels = new Dictionary<string, string>
+            {
+                ["net.azure-devices.edge.deviceid"] = "deviceid",
+                ["net.azure-devices.edge.hub"] = "hostname",
+                ["net.azure-devices.edge.module"] = moduleName
+            };
 
-            await this.client.AddModuleDeploymentAsync(moduleName, new Dictionary<string, string> { ["a"] = "b" }, null);
+            await this.client.AddModuleDeploymentAsync(moduleName, labels, null);
             moduleLifeCycleManager.SetModules(moduleName);
             await controller.DeployModulesAsync(ModuleSet.Empty, ModuleSet.Create(km1));
 
@@ -238,7 +251,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         }
 
         [Fact]
-        public async Task CheckIfUpdateDeploymentWithImageUpdateIsSuccessful()
+        public async Task CheckIfDeploymentIsHealthyWithDeploymentDeletion()
         {
             var moduleName = "module-a";
             var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
@@ -252,21 +265,162 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, string.Empty, string.Empty);
             string imageName = "test-image:1";
             KubernetesModule km1 = this.CreateKubernetesModule(moduleName, creatOptions, imageName);
-            string newImage = "test-image:2";
-            KubernetesModule km1UpdaModule = this.CreateKubernetesModule(moduleName, creatOptions, newImage);
+            var labels = new Dictionary<string, string>
+            {
+                ["net.azure-devices.edge.deviceid"] = "deviceid",
+                ["net.azure-devices.edge.hub"] = "hostname",
+                ["net.azure-devices.edge.module"] = moduleName
+            };
 
-            await this.client.AddModuleDeploymentAsync(moduleName, new Dictionary<string, string> { ["a"] = "b" }, null);
+            await this.client.AddModuleDeploymentAsync(moduleName, labels, null);
             moduleLifeCycleManager.SetModules(moduleName);
-            await this.client.ReplaceModuleImageAsync(moduleName, newImage);
-            await controller.DeployModulesAsync(ModuleSet.Create(km1UpdaModule), ModuleSet.Create(km1));
+            await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
+            this.client.DeleteDeployment(moduleName);
+            await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
 
             V1DeploymentList currentDeployments = await this.client.ListDeployments(deviceSelector);
             V1ServiceAccountList currentServiceAccounts = await this.client.ListServiceAccounts(deviceSelector);
             V1ServiceList currentServices = await this.client.ListServices(deviceSelector);
             V1PersistentVolumeClaimList currentPvcList = await this.client.ListPeristentVolumeClaims();
-            Assert.Single(currentDeployments.Items, d => d.Spec.Template.Spec.Containers[0].Image == newImage);
+            Assert.Single(currentDeployments.Items, d => d.Metadata.Name == moduleName);
             Assert.Single(currentServiceAccounts.Items, sa => sa.Metadata.Name == moduleName);
             Assert.Empty(currentServices.Items);
+            Assert.Empty(currentPvcList.Items);
+        }
+
+        [Fact]
+        public async Task CheckIfDeploymentIsHealthyWithPvcDeletion()
+        {
+            var moduleName = "module-a";
+            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
+            var moduleLifeCycleManager = new DummyModuleIdentityLifecycleManager(
+                "hostname",
+                "gatewayhostname",
+                "deviceid",
+                moduleName,
+                new ConnectionStringCredentials("connectionString"));
+            var hostConfigs = new HostConfig
+            {
+                Mounts = new List<Mount>
+                {
+                    new Mount
+                    {
+                        Type = "volume",
+                        ReadOnly = true,
+                        Source = "pvname",
+                        Target = "/tmp/volume"
+                    }
+                }
+            };
+            var persistentVolumeName = "pvname";
+            var creatOptions = new CreatePodParameters(null, null, hostConfigs, null, null);
+            var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, persistentVolumeName, "storagename");
+            string imageName = "test-image:1";
+            KubernetesModule km1 = this.CreateKubernetesModule(moduleName, creatOptions, imageName);
+            var labels = new Dictionary<string, string>
+            {
+                ["net.azure-devices.edge.deviceid"] = "deviceid",
+                ["net.azure-devices.edge.hub"] = "hostname",
+                ["net.azure-devices.edge.module"] = moduleName
+            };
+            var tokenSource = new CancellationTokenSource(DefaultTimeout*3);
+            var pvcName = $"{moduleName}-{persistentVolumeName}";
+
+            await this.client.AddModuleDeploymentAsync(moduleName, labels, null);
+            moduleLifeCycleManager.SetModules(moduleName);
+            await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
+            await this.client.WaitUntilAnyPersistentVolumeClaim(tokenSource.Token);
+            this.client.DeletePvc(pvcName);
+            await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
+
+            V1DeploymentList currentDeployments = await this.client.ListDeployments(deviceSelector);
+            V1ServiceAccountList currentServiceAccounts = await this.client.ListServiceAccounts(deviceSelector);
+            V1ServiceList currentServices = await this.client.ListServices(deviceSelector);
+            V1PersistentVolumeClaimList currentPvcList = await this.client.ListPeristentVolumeClaims();
+            Assert.Single(currentDeployments.Items, d => d.Metadata.Name == moduleName);
+            Assert.Single(currentServiceAccounts.Items, sa => sa.Metadata.Name == moduleName);
+            Assert.Empty(currentServices.Items);
+            Assert.Single(currentPvcList.Items, p => p.Metadata.Name == pvcName);
+        }
+
+        [Fact]
+        public async Task CheckIfDeploymentIsHealthyWithServiceAccountDeletion()
+        {
+            var moduleName = "module-a";
+            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
+            var moduleLifeCycleManager = new DummyModuleIdentityLifecycleManager(
+                "hostname",
+                "gatewayhostname",
+                "deviceid",
+                moduleName,
+                new ConnectionStringCredentials("connectionString"));
+            var creatOptions = CreatePodParameters.Create();
+            var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, string.Empty, string.Empty);
+            string imageName = "test-image:1";
+            KubernetesModule km1 = this.CreateKubernetesModule(moduleName, creatOptions, imageName);
+            var tokenSource = new CancellationTokenSource(DefaultTimeout);
+            var labels = new Dictionary<string, string>
+            {
+                ["net.azure-devices.edge.deviceid"] = "deviceid",
+                ["net.azure-devices.edge.hub"] = "hostname",
+                ["net.azure-devices.edge.module"] = moduleName
+            };
+
+            await this.client.AddModuleDeploymentAsync(moduleName, labels, null);
+            moduleLifeCycleManager.SetModules(moduleName);
+            await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
+            this.client.DeleteServiceAccount(moduleName);
+            await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
+
+            V1DeploymentList currentDeployments = await this.client.ListDeployments(deviceSelector);
+            V1ServiceAccountList currentServiceAccounts = await this.client.ListServiceAccounts(deviceSelector);
+            V1ServiceList currentServices = await this.client.ListServices(deviceSelector);
+            V1PersistentVolumeClaimList currentPvcList = await this.client.ListPeristentVolumeClaims();
+            Assert.Single(currentDeployments.Items, d => d.Metadata.Name == moduleName);
+            Assert.Single(currentServiceAccounts.Items, sa => sa.Metadata.Name == moduleName);
+            Assert.Empty(currentServices.Items);
+            Assert.Empty(currentPvcList.Items);
+        }
+
+        [Fact]
+        public async Task CheckIfDeploymentIsHealthyWithServiceDeletion()
+        {
+            var moduleName = "module-a";
+            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
+            var moduleLifeCycleManager = new DummyModuleIdentityLifecycleManager(
+                "hostname",
+                "gatewayhostname",
+                "deviceid",
+                moduleName,
+                new ConnectionStringCredentials("connectionString"));
+            var exposedPorts = new Dictionary<string, DockerEmptyStruct>
+            {
+                ["80/tcp"] = default(DockerEmptyStruct)
+            };
+            var creatOptions = new CreatePodParameters(null, exposedPorts, null, null, null);
+            var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, string.Empty, string.Empty);
+            string imageName = "test-image:1";
+            KubernetesModule km1 = this.CreateKubernetesModule(moduleName, creatOptions, imageName);
+            var labels = new Dictionary<string, string>
+            {
+                ["net.azure-devices.edge.deviceid"] = "deviceid",
+                ["net.azure-devices.edge.hub"] = "hostname",
+                ["net.azure-devices.edge.module"] = moduleName
+            };
+
+            await this.client.AddModuleDeploymentAsync(moduleName, labels, null); ;
+            moduleLifeCycleManager.SetModules(moduleName);
+            await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
+            this.client.DeleteService(moduleName);
+            await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
+
+            V1DeploymentList currentDeployments = await this.client.ListDeployments(deviceSelector);
+            V1ServiceAccountList currentServiceAccounts = await this.client.ListServiceAccounts(deviceSelector);
+            V1ServiceList currentServices = await this.client.ListServices(deviceSelector);
+            V1PersistentVolumeClaimList currentPvcList = await this.client.ListPeristentVolumeClaims();
+            Assert.Single(currentDeployments.Items, d => d.Metadata.Name == moduleName);
+            Assert.Single(currentServiceAccounts.Items, sa => sa.Metadata.Name == moduleName);
+            Assert.Single(currentServices.Items, s => s.Metadata.Name == moduleName);
             Assert.Empty(currentPvcList.Items);
         }
 
@@ -282,7 +436,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
                 moduleName,
                 new ConnectionStringCredentials("connectionString"));
             var creatOptions = CreatePodParameters.Create();
-            var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, "pvcname", "storageClassName");
+            var persistentVolumeName = "pvname";
+            var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, persistentVolumeName, "storagename");
             string imageName = "test-image:1";
             KubernetesModule km1 = this.CreateKubernetesModule(moduleName, creatOptions, imageName);
             var hostConfigs = new HostConfig
@@ -293,17 +448,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
                     {
                         Type = "volume",
                         ReadOnly = true,
-                        Source = "pvcname",
+                        Source = "pvname",
                         Target = "/tmp/volume"
                     }
                 }
             };
             var updatedCreatOptions = new CreatePodParameters(null, null, hostConfigs, null, null);
             KubernetesModule km1updated = this.CreateKubernetesModule(moduleName, updatedCreatOptions, imageName);
+            var labels = new Dictionary<string, string>
+            {
+                ["net.azure-devices.edge.deviceid"] = "deviceid",
+                ["net.azure-devices.edge.hub"] = "hostname",
+                ["net.azure-devices.edge.module"] = moduleName
+            };
+            var pvcName = $"{moduleName}-{persistentVolumeName}";
+            var tokenSource = new CancellationTokenSource(DefaultTimeout * 3);
 
-            await this.client.AddModuleDeploymentAsync(moduleName, new Dictionary<string, string> { ["a"] = "b" }, null);
+            await this.client.AddModuleDeploymentAsync(moduleName, labels, null);
             moduleLifeCycleManager.SetModules(moduleName);
             await controller.DeployModulesAsync(ModuleSet.Create(km1updated), ModuleSet.Create(km1));
+            await this.client.WaitUntilAnyPersistentVolumeClaim(tokenSource.Token);
 
             V1DeploymentList currentDeployments = await this.client.ListDeployments(deviceSelector);
             V1ServiceAccountList currentServiceAccounts = await this.client.ListServiceAccounts(deviceSelector);
@@ -312,7 +476,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             Assert.Single(currentDeployments.Items, d => d.Metadata.Name == moduleName);
             Assert.Single(currentServiceAccounts.Items, sa => sa.Metadata.Name == moduleName);
             Assert.Empty(currentServices.Items);
-            Assert.Single(currentPvcList.Items, p => p.Metadata.Name == moduleName);
+            Assert.Single(currentPvcList.Items, p => p.Metadata.Name == pvcName);
         }
 
         [Fact]
@@ -336,121 +500,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             string imageName = "test-image:1";
             KubernetesModule km1 = this.CreateKubernetesModule(moduleName, creatOptions, imageName);
             KubernetesModule km1updated = this.CreateKubernetesModule(moduleName, updatedCreatOptions, imageName);
+            var labels = new Dictionary<string, string>
+            {
+                ["net.azure-devices.edge.deviceid"] = "deviceid",
+                ["net.azure-devices.edge.hub"] = "hostname",
+                ["net.azure-devices.edge.module"] = moduleName
+            };
 
-            await this.client.AddModuleDeploymentAsync(moduleName, new Dictionary<string, string> { ["a"] = "b" }, null);
+            await this.client.AddModuleDeploymentAsync(moduleName, labels, null);
             moduleLifeCycleManager.SetModules(moduleName);
             await controller.DeployModulesAsync(ModuleSet.Create(km1updated), ModuleSet.Create(km1));
-
-            V1DeploymentList currentDeployments = await this.client.ListDeployments(deviceSelector);
-            V1ServiceAccountList currentServiceAccounts = await this.client.ListServiceAccounts(deviceSelector);
-            V1ServiceList currentServices = await this.client.ListServices(deviceSelector);
-            V1PersistentVolumeClaimList currentPvcList = await this.client.ListPeristentVolumeClaims();
-            Assert.Single(currentDeployments.Items, d => d.Metadata.Name == moduleName);
-            Assert.Single(currentServiceAccounts.Items, sa => sa.Metadata.Name == moduleName);
-            Assert.Single(currentServices.Items, p => p.Metadata.Name == moduleName);
-            Assert.Empty(currentPvcList.Items);
-        }
-
-        [Fact]
-        public async Task CheckDeploymentIsHealthyWithServiceAccountDeletion()
-        {
-            var moduleName = "module-a";
-            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
-            var moduleLifeCycleManager = new DummyModuleIdentityLifecycleManager(
-                "hostname",
-                "gatewayhostname",
-                "deviceid",
-                moduleName,
-                new ConnectionStringCredentials("connectionString"));
-            var creatOptions = CreatePodParameters.Create();
-            var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, string.Empty, string.Empty);
-            string imageName = "test-image:1";
-            KubernetesModule km1 = this.CreateKubernetesModule(moduleName, creatOptions, imageName);
-
-            await this.client.AddModuleDeploymentAsync(moduleName, new Dictionary<string, string> { ["a"] = "b" }, null);
-            moduleLifeCycleManager.SetModules(moduleName);
-            this.client.DeleteServiceAccount(moduleName);
-            await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
-
-            V1DeploymentList currentDeployments = await this.client.ListDeployments(deviceSelector);
-            V1ServiceAccountList currentServiceAccounts = await this.client.ListServiceAccounts(deviceSelector);
-            V1ServiceList currentServices = await this.client.ListServices(deviceSelector);
-            V1PersistentVolumeClaimList currentPvcList = await this.client.ListPeristentVolumeClaims();
-            Assert.Single(currentDeployments.Items, d => d.Metadata.Name == moduleName);
-            Assert.Single(currentServiceAccounts.Items, sa => sa.Metadata.Name == moduleName);
-            Assert.Empty(currentServices.Items);
-            Assert.Empty(currentPvcList.Items);
-        }
-
-        [Fact]
-        public async Task CheckDeploymentIsHealthyWithPvcDeletion()
-        {
-            var moduleName = "module-a";
-            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
-            var moduleLifeCycleManager = new DummyModuleIdentityLifecycleManager(
-                "hostname",
-                "gatewayhostname",
-                "deviceid",
-                moduleName,
-                new ConnectionStringCredentials("connectionString"));
-            var hostConfigs = new HostConfig
-            {
-                Mounts = new List<Mount>
-                {
-                    new Mount
-                    {
-                        Type = "volume",
-                        ReadOnly = true,
-                        Source = "pvcname",
-                        Target = "/tmp/volume"
-                    }
-                }
-            };
-            var persistentVolumeName = "pvcname";
-            var creatOptions = new CreatePodParameters(null, null, hostConfigs, null, null);
-            var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, persistentVolumeName, "storageClassName");
-            string imageName = "test-image:1";
-            KubernetesModule km1 = this.CreateKubernetesModule(moduleName, creatOptions, imageName);
-
-            await this.client.AddModuleDeploymentAsync(moduleName, new Dictionary<string, string> { ["a"] = "b" }, null);
-            moduleLifeCycleManager.SetModules(moduleName);
-            this.client.DeletePvc($"{moduleName}-{persistentVolumeName}");
-            await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
-
-            V1DeploymentList currentDeployments = await this.client.ListDeployments(deviceSelector);
-            V1ServiceAccountList currentServiceAccounts = await this.client.ListServiceAccounts(deviceSelector);
-            V1ServiceList currentServices = await this.client.ListServices(deviceSelector);
-            V1PersistentVolumeClaimList currentPvcList = await this.client.ListPeristentVolumeClaims();
-            Assert.Single(currentDeployments.Items, d => d.Metadata.Name == moduleName);
-            Assert.Single(currentServiceAccounts.Items, sa => sa.Metadata.Name == moduleName);
-            Assert.Empty(currentServices.Items);
-            Assert.Single(currentPvcList.Items, p => p.Metadata.Name == moduleName);
-        }
-
-        [Fact]
-        public async Task CheckDeploymentIsHealthyWithServiceDeletion()
-        {
-            var moduleName = "module-a";
-            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
-            var moduleLifeCycleManager = new DummyModuleIdentityLifecycleManager(
-                "hostname",
-                "gatewayhostname",
-                "deviceid",
-                moduleName,
-                new ConnectionStringCredentials("connectionString"));
-            var exposedPorts = new Dictionary<string, DockerEmptyStruct>
-            {
-                ["80/tcp"] = default(DockerEmptyStruct)
-            };
-            var creatOptions = new CreatePodParameters(null, exposedPorts, null, null, null);
-            var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, string.Empty, string.Empty);
-            string imageName = "test-image:1";
-            KubernetesModule km1 = this.CreateKubernetesModule(moduleName, creatOptions, imageName);
-
-            await this.client.AddModuleDeploymentAsync(moduleName, new Dictionary<string, string> { ["a"] = "b" }, null);
-            moduleLifeCycleManager.SetModules(moduleName);
-            this.client.DeleteService(moduleName);
-            await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
 
             V1DeploymentList currentDeployments = await this.client.ListDeployments(deviceSelector);
             V1ServiceAccountList currentServiceAccounts = await this.client.ListServiceAccounts(deviceSelector);
@@ -463,7 +522,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         }
 
         [Fact]
-        public async Task CheckDeploymentIsHealthyWithDeploymentDeletion()
+        public async Task CheckIfUpdateDeploymentWithImageUpdateIsSuccessful()
         {
             var moduleName = "module-a";
             var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
@@ -477,17 +536,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, string.Empty, string.Empty);
             string imageName = "test-image:1";
             KubernetesModule km1 = this.CreateKubernetesModule(moduleName, creatOptions, imageName);
+            string newImage = "test-image:2";
+            KubernetesModule km1UpdaModule = this.CreateKubernetesModule(moduleName, creatOptions, newImage);
+            var labels = new Dictionary<string, string>
+            {
+                ["net.azure-devices.edge.deviceid"] = "deviceid",
+                ["net.azure-devices.edge.hub"] = "hostname",
+                ["net.azure-devices.edge.module"] = moduleName
+            };
 
-            await this.client.AddModuleDeploymentAsync(moduleName, new Dictionary<string, string> { ["a"] = "b" }, null);
+            await this.client.AddModuleDeploymentAsync(moduleName, labels, null);
             moduleLifeCycleManager.SetModules(moduleName);
-            this.client.DeleteDeployment(moduleName);
-            await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
+            await controller.DeployModulesAsync(ModuleSet.Create(km1UpdaModule), ModuleSet.Create(km1));
+            await this.client.ReplaceModuleImageAsync(moduleName, newImage);
+            await controller.DeployModulesAsync(ModuleSet.Create(km1UpdaModule), ModuleSet.Create(km1));
 
             V1DeploymentList currentDeployments = await this.client.ListDeployments(deviceSelector);
             V1ServiceAccountList currentServiceAccounts = await this.client.ListServiceAccounts(deviceSelector);
             V1ServiceList currentServices = await this.client.ListServices(deviceSelector);
             V1PersistentVolumeClaimList currentPvcList = await this.client.ListPeristentVolumeClaims();
-            Assert.Single(currentDeployments.Items, d => d.Metadata.Name == moduleName);
+            Assert.Single(currentDeployments.Items, d => d.Spec.Template.Spec.Containers[0].Image == newImage);
             Assert.Single(currentServiceAccounts.Items, sa => sa.Metadata.Name == moduleName);
             Assert.Empty(currentServices.Items);
             Assert.Empty(currentPvcList.Items);
