@@ -23,6 +23,7 @@
 ## iotedged
 ### Features
 * Add rust-toolchain file instead of always using stable ([2676621])(https://github.com/Azure/iotedge/commit/267662113d876dc17dd9a83cbc54007a99a9edef)
+* Change DPS provisioning check error to warning ([86d44ea])(https://github.com/Azure/iotedge/commit/86d44eaedd5188a6fcd068ef256624f246a111b7)
 
 ### Bug fixes
 * Fix Windows build to compile against openssl 1.1.1 ([acf6bf3])(https://github.com/Azure/iotedge/commit/acf6bf3ca051e00371493a37003701bc408415ed)
