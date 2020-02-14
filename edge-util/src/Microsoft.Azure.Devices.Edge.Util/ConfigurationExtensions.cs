@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         static bool IsParseException(Exception ex)
         {
-            return ex != null && ex is OverflowException || ex is FormatException || IsParseException(ex.InnerException);
+            return ex != null && (ex is OverflowException || ex is FormatException || IsParseException(ex.InnerException));
         }
     }
 }
