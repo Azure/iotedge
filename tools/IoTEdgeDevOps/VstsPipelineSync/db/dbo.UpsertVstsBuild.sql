@@ -16,7 +16,7 @@ AS
 
 	IF EXISTS (SELECT 1 FROM dbo.VstsBuild WHERE BuildNumber = @BuildNumber AND DefinitionId = @DefinitionId)
 	BEGIN
-		UPDATE dbo.VstsBuildRun
+		UPDATE dbo.VstsBuild
 		SET DefinitionName = @DefinitionName,
 		    SourceBranch = @SourceBranch,
 			SourceVersionDisplayUri = @SourceVersionDisplayUri,

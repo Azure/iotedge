@@ -39,7 +39,7 @@ namespace DevOpsLib
 
             // TODO: need to think about how to handle unexpected exception during REST API call
             string requestPath = string.Format(LatestBuildPathSegmentFormat, this.accessSetting.Organization, this.accessSetting.Project);
-            IFlurlRequest latestBuildRequest = GetBuildsRequestUri(buildDefinitionIds, branchName, requestPath, DateTime.MinValue, 1)
+            IFlurlRequest latestBuildRequest = GetBuildsRequestUri(buildDefinitionIds, branchName, requestPath, null, 1)
                 .WithBasicAuth(string.Empty, this.accessSetting.PersonalAccessToken);
 
             string resultJson = await latestBuildRequest.GetStringAsync().ConfigureAwait(false);
@@ -54,7 +54,7 @@ namespace DevOpsLib
             return buildDefinitionIds.Select(i => latestBuilds.ContainsKey(i) ? latestBuilds[i] : VstsBuild.CreateBuildWithNoResult(i, branchName)).ToList();
         }
 
-        public async Task<IList<VstsBuild>> GetBuildsAsync(HashSet<BuildDefinitionId> buildDefinitionIds, string branchName, DateTime minTime, int? maxBuildsPerDefinition = null)
+        public async Task<IList<VstsBuild>> GetBuildsAsync(HashSet<BuildDefinitionId> buildDefinitionIds, string branchName, DateTime? minTime = null, int? maxBuildsPerDefinition = null)
         {
             ValidationUtil.ThrowIfNulOrEmptySet(buildDefinitionIds, nameof(buildDefinitionIds));
             ValidationUtil.ThrowIfNullOrWhiteSpace(branchName, nameof(branchName));
@@ -75,7 +75,7 @@ namespace DevOpsLib
             return JsonConvert.DeserializeObject<VstsBuild[]>(result["value"].ToString()).ToList();
         }
 
-        private static Url GetBuildsRequestUri(HashSet<BuildDefinitionId> buildDefinitionIds, string branchName, string requestPath, DateTime minTime, int? maxBuildsPerDefinition)
+        private static Url GetBuildsRequestUri(HashSet<BuildDefinitionId> buildDefinitionIds, string branchName, string requestPath, DateTime? minTime, int? maxBuildsPerDefinition)
         {
             Url requestUri = DevOpsAccessSetting.BaseUrl
                 .AppendPathSegment(requestPath)
@@ -86,12 +86,12 @@ namespace DevOpsLib
 
             if (maxBuildsPerDefinition.HasValue)
             {
-                requestUri = requestUri.SetQueryParam("maxBuildsPerDefinition", "1");
+                requestUri = requestUri.SetQueryParam("maxBuildsPerDefinition", $"{maxBuildsPerDefinition.Value}");
             }
 
-            if (minTime > DateTime.MinValue)
+            if (minTime.HasValue)
             {
-                requestUri = requestUri.SetQueryParam("minTime", minTime.ToString("o"));
+                requestUri = requestUri.SetQueryParam("minTime", minTime.Value.ToString("o"));
             }
 
             return requestUri;

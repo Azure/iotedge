@@ -1,4 +1,4 @@
-﻿namespace VstsPipelineSync
+namespace VstsPipelineSync
 {
     using System.Collections.Generic;
 
@@ -6,9 +6,10 @@
     {
         public static TValue GetIfExists<TKey, TValue>(this Dictionary<TKey, TValue> dict, TKey key)
         {
-            if (dict.ContainsKey(key))
+            TValue value;
+            if (dict.TryGetValue(key, out value))
             {
-                return dict[key];
+                return value;
             }
 
             return default(TValue);
