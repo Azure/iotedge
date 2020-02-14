@@ -17,8 +17,8 @@ CREATE TABLE [dbo].[VstsBuild](
 	[QueueTime] [datetime2](7) NOT NULL,
 	[StartTime] [datetime2](7) NOT NULL,
 	[FinishTime] [datetime2](7) NOT NULL,
-	[CreatedTime] [datetime2](7) NOT NULL,
-	[UpdateTime] [datetime2](7) NOT NULL,
+	[CreatedAt] [datetime2](7) NOT NULL,
+	[UpdatedAt] [datetime2](7) NOT NULL,
  CONSTRAINT [PK_VstsBuild] PRIMARY KEY CLUSTERED 
 (
 	[BuildNumber] ASC,

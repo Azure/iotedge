@@ -26,12 +26,12 @@ AS
 			QueueTime = @QueueTime,
 			StartTime = @StartTime,
 			FinishTime = @FinishTIme,
-			UpdateTime = @now
+			UpdatedAt = @now
 		WHERE BuildNumber = @BuildNumber
 		AND DefinitionId = @DefinitionId
 	END
 	ELSE
 	BEGIN
-		INSERT INTO dbo.VstsBuild(BuildNumber, DefinitionId, DefinitionName, SourceBranch, SourceVersionDisplayUri, WebUri, [Status], Result, QueueTime, StartTime, FinishTime, CreatedTime, UpdateTime)
+		INSERT INTO dbo.VstsBuild(BuildNumber, DefinitionId, DefinitionName, SourceBranch, SourceVersionDisplayUri, WebUri, [Status], Result, QueueTime, StartTime, FinishTime, CreatedAt, UpdatedAt)
 		VALUES (@BuildNumber, @DefinitionId, @DefinitionName, @SourceBranch, @SourceVersionDisplayUri, @WebUri, @Status, @Result, @QueueTime, @StartTime, @FinishTime, @now, @now)
 	END
