@@ -19,7 +19,7 @@ use k8s_openapi::api::core::v1 as api_core;
 use k8s_openapi::api::rbac::v1 as api_rbac;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
 use k8s_openapi::{http, DeleteOptional, ListOptional, Response as K8sResponse, ResponseBody};
-use log::debug;
+use log::{debug, trace};
 
 use crate::config::{Config, TokenSource};
 use crate::error::{Error, ErrorKind, RequestType};
@@ -106,7 +106,7 @@ where
             )))
         })
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
                     api_authorize::CreateSelfSubjectAccessReviewResponse::Accepted(s)
                     | api_authorize::CreateSelfSubjectAccessReviewResponse::Created(s)
@@ -142,7 +142,7 @@ where
         api_core::ConfigMap::list_namespaced_config_map(namespace, params)
             .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::ConfigMapList))))
             .map(|req| {
-                self.request(req)
+                self.request(req, true)
                     .and_then(|response| match response {
                         api_core::ListNamespacedConfigMapResponse::Ok(list) => Ok(list),
                         _ => Err(Error::from(ErrorKind::Response(RequestType::ConfigMapList))),
@@ -167,7 +167,7 @@ where
         )
         .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::ConfigMapCreate))))
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
                     api_core::CreateNamespacedConfigMapResponse::Accepted(config_map)
                     | api_core::CreateNamespacedConfigMapResponse::Created(config_map)
@@ -198,7 +198,7 @@ where
         )
         .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::ConfigMapReplace))))
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
                     api_core::ReplaceNamespacedConfigMapResponse::Ok(config_map)
                     | api_core::ReplaceNamespacedConfigMapResponse::Created(config_map) => {
@@ -228,7 +228,7 @@ where
         )
         .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::ConfigMapDelete))))
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
                     api_core::DeleteNamespacedConfigMapResponse::OkStatus(_)
                     | api_core::DeleteNamespacedConfigMapResponse::OkValue(_) => Ok(()),
@@ -262,7 +262,7 @@ where
                 Error::from(err.context(ErrorKind::Request(RequestType::DeploymentList)))
             })
             .map(|req| {
-                self.request(req)
+                self.request(req, true)
                     .and_then(|response| match response {
                         api_apps::ListNamespacedDeploymentResponse::Ok(deployments) => {
                             Ok(deployments)
@@ -291,7 +291,7 @@ where
         )
         .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::DeploymentCreate))))
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
                     api_apps::CreateNamespacedDeploymentResponse::Accepted(deployment)
                     | api_apps::CreateNamespacedDeploymentResponse::Created(deployment)
@@ -324,7 +324,7 @@ where
         )
         .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::DeploymentReplace))))
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
                     api_apps::ReplaceNamespacedDeploymentResponse::Created(deployment)
                     | api_apps::ReplaceNamespacedDeploymentResponse::Ok(deployment) => {
@@ -354,7 +354,7 @@ where
         )
         .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::DeploymentDelete))))
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
                     api_apps::DeleteNamespacedDeploymentResponse::OkStatus(_)
                     | api_apps::DeleteNamespacedDeploymentResponse::OkValue(_) => Ok(()),
@@ -382,7 +382,7 @@ where
         api_core::Pod::list_namespaced_pod(namespace, params)
             .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::PodList))))
             .map(|req| {
-                self.request(req)
+                self.request(req, true)
                     .and_then(|response| match response {
                         api_core::ListNamespacedPodResponse::Ok(list) => Ok(list),
                         _ => Err(Error::from(ErrorKind::Response(RequestType::PodList))),
@@ -399,7 +399,7 @@ where
         api_core::Node::list_node(ListOptional::default())
             .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::NodeList))))
             .map(|req| {
-                self.request(req)
+                self.request(req, true)
                     .and_then(|response| match response {
                         api_core::ListNodeResponse::Ok(list) => Ok(list),
                         _ => Err(Error::from(ErrorKind::Response(RequestType::NodeList))),
@@ -425,7 +425,7 @@ where
         api_core::Secret::list_namespaced_secret(namespace, params)
             .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::SecretList))))
             .map(|req| {
-                self.request(req)
+                self.request(req, false)
                     .and_then(|response| match response {
                         api_core::ListNamespacedSecretResponse::Ok(list) => Ok(list),
                         _ => Err(Error::from(ErrorKind::Response(RequestType::SecretList))),
@@ -450,7 +450,7 @@ where
         )
         .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::SecretCreate))))
         .map(|req| {
-            self.request(req)
+            self.request(req, false)
                 .and_then(|response| match response {
                     api_core::CreateNamespacedSecretResponse::Accepted(s)
                     | api_core::CreateNamespacedSecretResponse::Created(s)
@@ -479,7 +479,7 @@ where
         )
         .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::SecretReplace))))
         .map(|req| {
-            self.request(req)
+            self.request(req, false)
                 .and_then(|response| match response {
                     api_core::ReplaceNamespacedSecretResponse::Created(s)
                     | api_core::ReplaceNamespacedSecretResponse::Ok(s) => Ok(s),
@@ -516,7 +516,7 @@ where
         )
         .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::TokenReview))))
         .map(|req| {
-            self.request(req)
+            self.request(req, false)
                 .and_then(|response| match response {
                     api_auth::CreateTokenReviewResponse::Created(t)
                     | api_auth::CreateTokenReviewResponse::Ok(t) => Ok(t),
@@ -548,7 +548,7 @@ where
                 Error::from(err.context(ErrorKind::Request(RequestType::ServiceAccountList)))
             })
             .map(|req| {
-                self.request(req)
+                self.request(req, true)
                     .and_then(|response| match response {
                         api_core::ListNamespacedServiceAccountResponse::Ok(list) => Ok(list),
                         _ => Err(Error::from(ErrorKind::Response(
@@ -579,7 +579,7 @@ where
             Error::from(err.context(ErrorKind::Request(RequestType::ServiceAccountCreate)))
         })
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
                     api_core::CreateNamespacedServiceAccountResponse::Accepted(service_account)
                     | api_core::CreateNamespacedServiceAccountResponse::Created(service_account)
@@ -610,7 +610,7 @@ where
         )
         .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::ServiceAccountGet))))
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
                     api_core::ReadNamespacedServiceAccountResponse::Ok(service_account) => {
                         Ok(service_account)
@@ -643,7 +643,7 @@ where
             Error::from(err.context(ErrorKind::Request(RequestType::ServiceAccountReplace)))
         })
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
                     api_core::ReplaceNamespacedServiceAccountResponse::Created(service_account)
                     | api_core::ReplaceNamespacedServiceAccountResponse::Ok(service_account) => {
@@ -677,7 +677,7 @@ where
             Error::from(err.context(ErrorKind::Request(RequestType::ServiceAccountDelete)))
         })
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
                     api_core::DeleteNamespacedServiceAccountResponse::OkStatus(_)
                     | api_core::DeleteNamespacedServiceAccountResponse::OkValue(_) => Ok(()),
@@ -709,7 +709,7 @@ where
             Error::from(err.context(ErrorKind::Request(RequestType::RoleBindingReplace)))
         })
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
                     api_rbac::ReplaceNamespacedRoleBindingResponse::Created(role_binding)
                     | api_rbac::ReplaceNamespacedRoleBindingResponse::Ok(role_binding) => {
@@ -739,7 +739,7 @@ where
         )
         .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::RoleBindingDelete))))
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
                     api_rbac::DeleteNamespacedRoleBindingResponse::OkStatus(_)
                     | api_rbac::DeleteNamespacedRoleBindingResponse::OkValue(_) => Ok(()),
@@ -762,8 +762,9 @@ where
             http::Request<Vec<u8>>,
             fn(http::StatusCode) -> ResponseBody<R>,
         ),
+        should_log_trace: bool,
     ) -> impl Future<Item = R, Error = Error> {
-        let next = |response: http::Response<Body>| {
+        let next = |response: http::Response<Body>, log_trace: bool| {
             let status_code = response.status();
             response
                 .into_body()
@@ -773,7 +774,10 @@ where
                 })
                 .map_err(|err| Error::from(err.context(ErrorKind::Hyper)))
                 .and_then(move |buf| {
-                    debug!("HTTP Response:\n{}", ::std::str::from_utf8(&buf).unwrap());
+                    debug!("HTTP Status: {}", status_code);
+                    if log_trace {
+                        trace!("HTTP Response:\n{}", ::std::str::from_utf8(&buf).unwrap());
+                    }
                     R::try_from_parts(status_code, &buf)
                         .map_err(|err| Error::from(err.context(ErrorKind::KubeOpenApi)))
                         .map(|(result, _)| result)
@@ -781,7 +785,8 @@ where
                 })
         };
 
-        self.execute(req).and_then(next)
+        self.execute(req)
+            .and_then(move |response| next(response, should_log_trace))
     }
 
     fn execute(
@@ -793,7 +798,7 @@ where
             .path_and_query()
             .map_or("", |p| p.as_str())
             .to_string();
-
+        debug!("HTTP request path: {}", path);
         self.config
             .host()
             .join(&path)

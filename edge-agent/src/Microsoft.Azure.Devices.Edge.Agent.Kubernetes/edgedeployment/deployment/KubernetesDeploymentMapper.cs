@@ -284,15 +284,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             bindMounts.Map(mounts => mounts.Select(mount => new V1VolumeMount(mount.Target, KubeUtils.SanitizeDNSValue(mount.Source), readOnlyProperty: mount.ReadOnly)))
                 .ForEach(mounts => volumeMountList.AddRange(mounts));
 
-            // collect volumes and volume mounts from HostConfig.Mounts section for volumes via emptyDir
+            // collect volumes and volume mounts from HostConfig.Mounts section for volumes
             var volumeMounts = module.Config.CreateOptions.HostConfig
                 .FlatMap(config => Option.Maybe(config.Mounts))
                 .Map(mounts => mounts.Where(mount => mount.Type.Equals("volume", StringComparison.InvariantCultureIgnoreCase)).ToList());
 
-            volumeMounts.Map(mounts => mounts.Select(mount => this.GetVolume(module, mount)))
+            volumeMounts.Map(mounts => mounts.Select(mount => this.GetVolume(module, mount))
+                                            .GroupBy(x => x.Name)
+                                            .Select(x => x.FirstOrDefault()))
                 .ForEach(volumes => volumeList.AddRange(volumes));
 
-            volumeMounts.Map(mounts => mounts.Select(mount => new V1VolumeMount(mount.Target, KubeUtils.SanitizeDNSValue(mount.Source), readOnlyProperty: mount.ReadOnly)))
+            volumeMounts.Map(mounts => mounts.Select(mount => this.GetVolumeMount(mount)))
                 .ForEach(mounts => volumeMountList.AddRange(mounts));
 
             // collect volume and volume mounts from CreateOption.Volumes section @kubernetes extended feature
@@ -359,25 +361,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
 
         V1Volume GetVolume(KubernetesModule module, Mount mount)
         {
-            string volumeName = KubeUtils.SanitizeK8sValue(mount.Source);
+            // Volume name will be pvName if persistent volume is set, else will be volumeName
+            string volumeName = this.persistentVolumeName
+                .Map(KubeUtils.SanitizeK8sValue)
+                .GetOrElse(() => KubeUtils.SanitizeDNSValue(mount.Source));
+            // PVC name will be volume name
+            string pvcName = volumeName;
 
-            // verify PV name is the same as desired volume name
-            this.persistentVolumeName.ForEach(
-                pvName =>
-                {
-                    if (pvName != volumeName)
-                    {
-                        throw new InvalidModuleException($"The mount name {volumeName} has to be the same as the PV name {pvName}");
-                    }
-                });
-
-            // PVC name will be module name + volume name
-            string pvcName = KubernetesModule.PvcName(module, mount);
             return new V1Volume
             {
                 Name = volumeName,
                 PersistentVolumeClaim = new V1PersistentVolumeClaimVolumeSource(pvcName, mount.ReadOnly)
             };
+        }
+
+        V1VolumeMount GetVolumeMount(Mount mount)
+        {
+            // Volume name will be pvName if persistent volume is set, else will be volumeName
+            string volumeName = this.persistentVolumeName
+                .Map(KubeUtils.SanitizeK8sValue)
+                .GetOrElse(() => KubeUtils.SanitizeDNSValue(mount.Source));
+
+            return new V1VolumeMount(mount.Target, volumeName, readOnlyProperty: mount.ReadOnly);
         }
     }
 }
