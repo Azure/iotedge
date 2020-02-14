@@ -19,46 +19,103 @@ jobs:
           testrun.network.runProfile: "Online"
           testrun.network.frequencies: "00:00:00 00:00:00 0"
           testrun.duration: "01:00:00"
-        Offline(60/0/1):
-          testrun.config: 2
-          testrun.network.runProfile: "Offline"
-          testrun.network.frequencies: "01:00:00 00:00:00 1"
-          testrun.duration: "01:00:00"
+          deploymentFileName: "connectivity_deployment.template.json"
         Offline(5/5/5):
-          testrun.config: 3
+          testrun.config: 2
           testrun.network.frequencies: "00:05:00 00:05:00 5"
           testrun.network.runProfile: "Offline"
           testrun.duration: "00:50:00"
+          deploymentFileName: "connectivity_deployment.template.json"
         Offline(10/10/3):
-          testrun.config: 4
+          testrun.config: 3
           testrun.network.frequencies: "00:10:00 00:10:00 3"
           testrun.network.runProfile: "Offline"
           testrun.duration: "01:00:00"
+          deploymentFileName: "connectivity_deployment.template.json"
         Offline(15/15/3):
-          testrun.config: 5
+          testrun.config: 4
           testrun.network.frequencies: "00:15:00 00:15:00 3"
           testrun.network.runProfile: "Offline"
           testrun.duration: "01:30:00"
+          deploymentFileName: "connectivity_deployment.template.json"
         Offline(30/30/2):
-          testrun.config: 6
+          testrun.config: 5
           testrun.network.frequencies: "00:30:00 00:30:00 2"
           testrun.network.runProfile: "Offline"
           testrun.duration: "02:00:00"
+          deploymentFileName: "connectivity_deployment.template.json"
         Offline(5/20/3):
-          testrun.config: 7
+          testrun.config: 6
           testrun.network.frequencies: "00:05:00 00:20:00 3"
           testrun.network.runProfile: "Offline"
           testrun.duration: "01:15:00"
+          deploymentFileName: "connectivity_deployment.template.json"
         SatelliteGood(60/0/1):
-          testrun.config: 8
+          testrun.config: 7
           testrun.network.frequencies: "01:00:00 00:00:00 1"
           testrun.network.runProfile: "SatelliteGood"
           testrun.duration: "01:00:00"
+          deploymentFileName: "connectivity_deployment.template.json"
         Cellular3G(60/0/1):
-          testrun.config: 9
+          testrun.config: 8
           testrun.network.frequencies: "01:00:00 00:00:00 1"
           testrun.network.runProfile: "Cellular3G"
-          testrun.duration: "01:00:00"          
+          testrun.duration: "01:00:00"
+          deploymentFileName: "connectivity_deployment.template.json"
+        Online:
+          testrun.config: 9
+          testrun.network.runProfile: "Online"
+          testrun.network.frequencies: "00:00:00 00:00:00 0"
+          testrun.duration: "01:00:00"
+          deploymentFileName: "edgehub_restart_deployment.template.json"
+        Offline(5/5/5):
+          testrun.config: 10
+          testrun.network.frequencies: "00:05:00 00:05:00 5"
+          testrun.network.runProfile: "Offline"
+          testrun.duration: "00:50:00"
+          deploymentFileName: "edgehub_restart_deployment.template.json"
+        Offline(10/10/3):
+          testrun.config: 11
+          testrun.network.frequencies: "00:10:00 00:10:00 3"
+          testrun.network.runProfile: "Offline"
+          testrun.duration: "01:00:00"
+          deploymentFileName: "edgehub_restart_deployment.template.json"
+        Offline(15/15/3):
+          testrun.config: 12
+          testrun.network.frequencies: "00:15:00 00:15:00 3"
+          testrun.network.runProfile: "Offline"
+          testrun.duration: "01:30:00"
+          deploymentFileName: "edgehub_restart_deployment.template.json"
+        Offline(30/30/2):
+          testrun.config: 13
+          testrun.network.frequencies: "00:30:00 00:30:00 2"
+          testrun.network.runProfile: "Offline"
+          testrun.duration: "02:00:00"
+          deploymentFileName: "edgehub_restart_deployment.template.json"
+        Offline(5/20/3):
+          testrun.config: 14
+          testrun.network.frequencies: "00:05:00 00:20:00 3"
+          testrun.network.runProfile: "Offline"
+          testrun.duration: "01:15:00"
+          deploymentFileName: "edgehub_restart_deployment.template.json"
+        SatelliteGood(60/0/1):
+          testrun.config: 15
+          testrun.network.frequencies: "01:00:00 00:00:00 1"
+          testrun.network.runProfile: "SatelliteGood"
+          testrun.duration: "01:00:00"
+          deploymentFileName: "edgehub_restart_deployment.template.json"
+        Cellular3G(60/0/1):
+          testrun.config: 16
+          testrun.network.frequencies: "01:00:00 00:00:00 1"
+          testrun.network.runProfile: "Cellular3G"
+          testrun.duration: "01:00:00"
+          deploymentFileName: "edgehub_restart_deployment.template.json"
+        Offline(60/0/1):
+          testrun.config: 17
+          testrun.network.frequencies: "01:00:00 00:00:00 1"
+          testrun.network.runProfile: "Offline"
+          testrun.duration: "01:00:00"
+          deploymentFileName: "edgehub_restart_deployment.template.json"
     pool:
       name: $(pool.name)
       demands:
@@ -80,7 +137,8 @@ jobs:
             echo "testrun.network.frequencies=$(testrun.network.frequencies)"
             echo "testrun.network.runProfile=$(testrun.network.runProfile)"
             echo "testrun.duration=$(testrun.duration)"
-          
+            echo "deploymentFileName=$(deploymentFileName)"
+
             output1=$(curl -s -u :$accessToken --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$buildId?api-version=5.1" | grep -oe '"status":"cancel')
             output2=$(curl -s -u :$(System.AccessToken) --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$(Build.BuildId)/Timeline?api-version=5.1" | grep -oe '"result":"canceled"')
             
