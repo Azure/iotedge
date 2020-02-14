@@ -19,6 +19,7 @@ namespace VstsPipelineSync
             if (args.Length != 3)
             {
                 Console.WriteLine("*** Please provide only 3 parameters - VSTS personal access token, test dashboard database connection string, and wait period before next update.");
+                Console.WriteLine("VstsBuildBatchUpdate.exe <VSTA PAT> <test dashboard connection string> <wait period, e.g. 00:01:00>");
                 Environment.Exit(1);
             }
 
