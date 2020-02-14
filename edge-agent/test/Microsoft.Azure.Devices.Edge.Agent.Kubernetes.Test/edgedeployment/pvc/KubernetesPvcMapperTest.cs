@@ -141,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Pvc
             Assert.True(pvcList.Any());
             Assert.Equal(2, pvcList.Count);
 
-            var aVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == module.Name + "-a-volume");
+            var aVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == "a-volume");
             Assert.True(aVolumeClaim.Metadata.Labels.SequenceEqual(DefaultLabels));
             Assert.Equal("ReadOnlyMany", aVolumeClaim.Spec.AccessModes[0]);
             Assert.Null(aVolumeClaim.Spec.VolumeName);
@@ -151,7 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Pvc
             Assert.Equal(V1Deployment.KubeKind, aVolumeClaim.Metadata.OwnerReferences[0].Kind);
             Assert.Equal(EdgeletModuleOwner.Name, aVolumeClaim.Metadata.OwnerReferences[0].Name);
 
-            var bVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == module.Name + "-b-volume");
+            var bVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == "b-volume");
             Assert.True(bVolumeClaim.Metadata.Labels.SequenceEqual(DefaultLabels));
             Assert.Equal("ReadWriteMany", bVolumeClaim.Spec.AccessModes[0]);
             Assert.Null(bVolumeClaim.Spec.VolumeName);
@@ -178,7 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Pvc
             Assert.True(pvcList.Any());
             Assert.Equal(2, pvcList.Count);
 
-            var aVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == module.Name + "-a-volume");
+            var aVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == "a-volume");
             Assert.True(aVolumeClaim.Metadata.Labels.SequenceEqual(DefaultLabels));
             Assert.Equal("ReadOnlyMany", aVolumeClaim.Spec.AccessModes[0]);
             Assert.Null(aVolumeClaim.Spec.VolumeName);
@@ -188,7 +188,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Pvc
             Assert.Equal(V1Deployment.KubeKind, aVolumeClaim.Metadata.OwnerReferences[0].Kind);
             Assert.Equal(EdgeletModuleOwner.Name, aVolumeClaim.Metadata.OwnerReferences[0].Name);
 
-            var bVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == module.Name + "-b-volume");
+            var bVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == "b-volume");
             Assert.True(bVolumeClaim.Metadata.Labels.SequenceEqual(DefaultLabels));
             Assert.Equal("ReadWriteMany", bVolumeClaim.Spec.AccessModes[0]);
             Assert.Null(bVolumeClaim.Spec.VolumeName);
@@ -205,7 +205,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Pvc
             var config = new KubernetesConfig("image", CreatePodParameters.Create(hostConfig: VolumeMountHostConfig), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
-            var mapper = new KubernetesPvcMapper(null, "default", 37);
+            var mapper = new KubernetesPvcMapper("pvname", "storage-class", 37);
             var resourceQuantity = new ResourceQuantity("37Mi");
 
             var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels);
@@ -215,37 +215,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Pvc
             Assert.True(pvcList.Any());
             Assert.Equal(2, pvcList.Count);
 
-            var aVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == module.Name + "-a-volume");
+            var aVolumeClaim = pvcList[0];
+            Assert.Equal("pvname", aVolumeClaim.Metadata.Name);
             Assert.True(aVolumeClaim.Metadata.Labels.SequenceEqual(DefaultLabels));
             Assert.Equal("ReadOnlyMany", aVolumeClaim.Spec.AccessModes[0]);
-            Assert.Equal("default", aVolumeClaim.Spec.StorageClassName);
-            Assert.Null(aVolumeClaim.Spec.VolumeName);
+            Assert.Equal("storage-class", aVolumeClaim.Spec.StorageClassName);
+            Assert.Equal("pvname", aVolumeClaim.Spec.VolumeName);
             Assert.Equal(resourceQuantity, aVolumeClaim.Spec.Resources.Requests["storage"]);
             Assert.Equal(1, aVolumeClaim.Metadata.OwnerReferences.Count);
             Assert.Equal(V1Deployment.KubeKind, aVolumeClaim.Metadata.OwnerReferences[0].Kind);
             Assert.Equal(EdgeletModuleOwner.Name, aVolumeClaim.Metadata.OwnerReferences[0].Name);
 
-            var bVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == module.Name + "-b-volume");
+            var bVolumeClaim = pvcList[1];
+            Assert.Equal("pvname", bVolumeClaim.Metadata.Name);
             Assert.True(bVolumeClaim.Metadata.Labels.SequenceEqual(DefaultLabels));
             Assert.Equal("ReadWriteMany", bVolumeClaim.Spec.AccessModes[0]);
-            Assert.Equal("default", bVolumeClaim.Spec.StorageClassName);
-            Assert.Null(bVolumeClaim.Spec.VolumeName);
+            Assert.Equal("storage-class", bVolumeClaim.Spec.StorageClassName);
+            Assert.Equal("pvname", bVolumeClaim.Spec.VolumeName);
             Assert.Equal(resourceQuantity, bVolumeClaim.Spec.Resources.Requests["storage"]);
             Assert.Equal(1, bVolumeClaim.Metadata.OwnerReferences.Count);
             Assert.Equal(V1Deployment.KubeKind, bVolumeClaim.Metadata.OwnerReferences[0].Kind);
             Assert.Equal(EdgeletModuleOwner.Name, bVolumeClaim.Metadata.OwnerReferences[0].Name);
-        }
-
-        [Fact]
-        public void InvalidPreferVolumeNameMappingForVolume()
-        {
-            var config = new KubernetesConfig("image", CreatePodParameters.Create(hostConfig: VolumeMountHostConfig), Option.None<AuthConfig>());
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVarsDict);
-            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
-            var mapper = new KubernetesPvcMapper("a-volume", "storageclass", 1);
-            var resourceQuantity = new ResourceQuantity("1Mi");
-
-            Assert.Throws<InvalidModuleException>(() => mapper.CreatePersistentVolumeClaims(module, DefaultLabels));
         }
 
         [Fact]
@@ -264,7 +254,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Pvc
             Assert.True(pvcList.Any());
             Assert.Single(pvcList);
 
-            var aVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == "module1-a-volume");
+            var aVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == "a-volume");
             Assert.True(aVolumeClaim.Metadata.Labels.SequenceEqual(DefaultLabels));
             Assert.Equal("ReadOnlyMany", aVolumeClaim.Spec.AccessModes[0]);
             Assert.Equal("storageclass", aVolumeClaim.Spec.StorageClassName);
