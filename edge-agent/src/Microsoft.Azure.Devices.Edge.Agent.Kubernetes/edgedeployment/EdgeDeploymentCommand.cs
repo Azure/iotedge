@@ -208,14 +208,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 },
                 async () =>
                 {
-                    Events.CreateEdgeDeployment(customObjectDefinition);
-                    await this.client.CreateNamespacedCustomObjectWithHttpMessagesAsync(
-                        crdObject,
-                        KubernetesConstants.EdgeDeployment.Group,
-                        KubernetesConstants.EdgeDeployment.Version,
-                        this.deviceNamespace,
-                        KubernetesConstants.EdgeDeployment.Plural,
-                        cancellationToken: token);
+
+                    try
+                    {
+                        Events.CreateEdgeDeployment(customObjectDefinition);
+                        await this.client.CreateNamespacedCustomObjectWithHttpMessagesAsync(
+                            crdObject,
+                            KubernetesConstants.EdgeDeployment.Group,
+                            KubernetesConstants.EdgeDeployment.Version,
+                            this.deviceNamespace,
+                            KubernetesConstants.EdgeDeployment.Plural,
+                            cancellationToken: token);
+                    }
+                    catch(HttpOperationException e)
+                    {
+                        Events.ReportCrdInstallationFailed(e);
+                        throw;
+                    }
                 });
         }
 
@@ -237,7 +246,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 CreateImagePullSecret,
                 DeleteImagePullSecret,
                 UpdateImagePullSecret,
-                UpdateExistingImagePullSecret
+                UpdateExistingImagePullSecret,
+                ReportCrdInstallationFailed
             }
 
             public static void CreateEdgeDeployment(EdgeDeploymentDefinition deployment) => Log.LogDebug((int)EventIds.CreateDeployment, $"Create edge deployment: {deployment.Metadata.Name}");
@@ -251,6 +261,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             internal static void UpdateImagePullSecret(V1Secret secret) => Log.LogDebug((int)EventIds.UpdateImagePullSecret, $"Update Image Pull Secret {secret.Metadata.Name}");
 
             internal static void UpdateExistingImagePullSecret(V1Secret secret) => Log.LogWarning((int)EventIds.UpdateExistingImagePullSecret, $"Update existing Image Pull Secret {secret.Metadata.Name}");
+
+            internal static void ReportCrdInstallationFailed(Exception ex) => Log.LogError((int)EventIds.ReportCrdInstallationFailed, "CRD missing or its installation failed. Install CRD");
         }
     }
 }
