@@ -110,7 +110,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 // Verified "TrackingId;BatchId;SequenceNumber" altogether.
                 isCurrentMessagePassing &= string.Compare(senderResult.GetMessageTestResult(), receiverResult) == 0;
 
-                // Verify the sequence number is incremental
+                // Verify the sequence numbers
                 isCurrentMessagePassing &= senderSeqNum == receiverSeqNum;
 
                 // Verify if the report status is passable
@@ -122,6 +122,12 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 // Make sure the sequence number is incremental
                 isDiscontinuousSequenceNumber |= (previousSeqNum + 1) != senderSeqNum;
                 previousSeqNum++;
+
+                // Log the data if the reportin result is failing
+                if (!isCurrentMessagePassing)
+                {
+                    Logger.LogDebug($" MessageResultVerification = {string.Compare(senderResult.GetMessageTestResult(), receiverResult) == 0}\n SeqeunceNumber = {senderSeqNum} {receiverSeqNum}\n MessageStatusCode = {senderResult.MessageCompletedStatusCode}\n");
+                }
 
                 (senderMessageCount, hasSenderResult, senderSeqNum) = await this.MoveNextSenderResultAsync(senderMessageCount);
                 (receiverMessageCount, hasReceiverResult, receiverSeqNum) = await this.MoveNextReceiverResultAsync(receiverMessageCount);

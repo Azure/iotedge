@@ -128,6 +128,12 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 passedDirectMethodCount += isCurrentDirectMethodPassing ? 1UL : 0UL;
                 previousSeqNum = senderSeqNum;
 
+                // Log the data if the reportin result is failing
+                if (!isCurrentDirectMethodPassing)
+                {
+                    Logger.LogDebug($" SeqeunceNumber = {senderSeqNum} {receiverSeqNum}\n DirectMethodStatusCode = {senderResult.DirectMethodCompletedStatusCode}\n");
+                }
+
                 (senderResultCount, hasSenderResult, senderSeqNum) = await this.MoveNextSenderResultAsync(senderResultCount);
                 (receiverResultCount, hasReceiverResult, receiverSeqNum) = await this.MoveNextReceiverResultAsync(receiverResultCount);
             }
