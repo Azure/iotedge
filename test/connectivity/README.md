@@ -50,13 +50,18 @@ These are test scenarios to be covered in Connectivity test
 
 ![Connectivity Test Diagram](./images/ConnectivityTest_Messaging.png)
 
-1. loadGen starts sending messages after pre-defined warm-up period.
-2. loadGen sends module-to-module messages to Relayer through Edge hub (#1 -> Edge hub -> #2).
-3. After sending each message, loadGen reports result to Test Result Coordinator (#3).
-4. Relayer receives the message and reports result to Test Result Coordinator (#2 -> #4).
-5. After receiving in Relayer, messages send forward to IoT hub through Edge hub (#5 -> Edge hub -> #7).
-6. After forwading each message in relayer, it reports result to Test Result Coordinator (#6).
-7. All messages should contain tracking id, batch id and sequence number.  Sequence number should always start at 1 in loadGen.
+##### Test Specific Components:
+	1. Message Sender (loadGen) is a module client that is deployed into a test agent as a container module. The responsibility of the module is to send a message to another module along with reporting to Test Result Coordinator once a message is sent. 
+	2. Message Receiver (Relayer) is a module client that is a receiver of the message sending from the Message Sender. Once the message is received, the Message Receiver notifies the Test Result Coordinator regarding the message arrival.
+
+##### Test Mechanism: 
+	1. loadGen starts sending messages after pre-defined warm-up period.
+	2. loadGen sends module-to-module messages to Relayer through Edge hub (#1 -> Edge hub -> #2).
+	3. After sending each message, loadGen reports result to Test Result Coordinator (#3).
+	4. Relayer receives the message and reports result to Test Result Coordinator (#2 -> #4).
+	5. After receiving in Relayer, messages send forward to IoT hub through Edge hub (#5 -> Edge hub -> #7).
+	6. After forwading each message in relayer, it reports result to Test Result Coordinator (#6).
+	7. All messages should contain tracking id, batch id and sequence number.  Sequence number should always start at 1 in loadGen.
 
 Network offline/online should not affect this test result since Edge hub stores all messages when offline and resumes back once get back online.
 
@@ -142,11 +147,12 @@ The goal of the test scheme is to verify the recoverability of the cloud to devi
 
 ##### Passing Criteria: 
 All the messages sent by Message Sender is received in order at Message Receiver within (EdgeHub_Recover_Time) + 15 minutes.
+Where (EdgeHub_Recover_Time) is the time span EdgeHub takes to be aware of online/offline state
 
 #### EdgeHub Restart Test
 The goal of EdgeHub Restart Test is to verify/benchmark a restart period of an EdgeHub. The measurement is done using two methods: a Direct Method and a Message.
 
-The message test is developed to strictly test only the only when the EdgeHub complete its restart and is ready for a module to connect.  While the direct method test also make sure that the receiver can successfully response to the direct method request from the sender. This results in a slightly different time measurement between the two test (see the diagram below).
+The message test is developed to strictly test only when the EdgeHub complete its restart and is ready for a module to connect.  While the direct method test also make sure that the receiver can successfully response to the direct method request from the sender. This results in a slightly different time measurement between the two test (see the diagram below).
 
 ![Connectivity Test Diagram](./images/ConnectivityTest_EdgeHubRestart_Timeline.png)
 
@@ -158,14 +164,15 @@ The message test is developed to strictly test only the only when the EdgeHub co
 	1. EdgeHub Restart Tester (EHRT) has two responsibility including
 		a. Restart EdgeHub - The EHRT sends a direct method via service client to edgeAgent informing that edgeHub needs to be restart.
 		b. Send a message via EdgeHub - The EHRT will attempt to send message via EdgeHub to the Message Receiver (relayer) once the restart direct method is successfully issued.
+		Note: EHRT and EdgeAgent are deployed in Host Network scope because it is crucial to test that the Restart Direct Method to always succeed via IoTHub even in the offline scenario.
 	2. Message Receiver is a target for EHRT to send a message. Once the message is received in the Message Receiver, it will forward the message to Test Result Coordinator for a verification.
 
 ###### Test Mechanism: 
-	1. The EdgeHub Restart Tester issue a direct method to EdgeAgent notifying the EdgeAgent to restart EdgeHub module.
+	1. The EdgeHub Restart Tester issues a direct method to EdgeAgent notifying the EdgeAgent to restart EdgeHub module.
 	2. Once the restart direct method response with a success, the EdgeHub Restart Tester attempts to send a message to Message Receiver via EdgeHub. 
 		a. The SDK will throw an exception within EdgeHub Restart Tester if the EdgeHub is unabled to be connected
 		b. If the SDK stops throwing an exception and respond with HTTP OK, it is an indicator that the sender module is able to communicate with EdgeHub. However, this does not imply that the EdgeHub can successfully send the message to the Message Receiver.
-	3. The EdgeHub Restart Tester reports its { restart time, message sending response, and message sending completion time } to the Test Result Coordinator.
+	3. The EdgeHub Restart Tester reports its related results to the Test Result Coordinator.
 	4. Eventually the EdgeHub will forward the message to the Message Receiver once the receiver module can successfully reconnected to the EdgeHub.
 	5. Once the receiver module receives a message, it will report the message receival to Test Result Coordinator.
 
@@ -183,10 +190,11 @@ The message test is developed to strictly test only the only when the EdgeHub co
 	1. EdgeHub Restart Tester (EHRT) has two responsibility including
 		a. Restart EdgeHub - The EHRT sends a direct method via service client to edgeAgent informing that edgeHub needs to be restart.
 		b. Send a direct method via EdgeHub - The EHRT will attempt to send direct method (via EdgeHub) to the Direct Method Receiver once the restart direct method is successfully issued.
+		Note: EHRT and EdgeAgent are deployed in Host Network scope because it is crucial to test that the Restart Direct Method to always succeed via IoTHub even in the offline scenario. 
 	2. Direct Method Receiver is a target for EHRT to send a direct method. Once the Direct Method is received, the Receiver immediately report the direct method receival to Test Result Coordinator for a verification.
 
 ###### Test Mechanism: 
-	1. The EdgeHub Restart Tester issue a direct method to EdgeAgent notifying the EdgeAgent to restart EdgeHub module.
+	1. The EdgeHub Restart Tester issues a direct method to EdgeAgent notifying the EdgeAgent to restart EdgeHub module.
 	2. Once the restart direct method response with a success, the EdgeHub Restart Tester attempts to send a Direct Method to the Direct Method Receiver. 
 		a. The SDK will throw an exception within EdgeHub Restart Tester if the EdgeHub is unabled to be connected OR the receiver module is unabled to be connected.
 		b. If the SDK stops throwing an exception and respond with HTTP OK, it is an indicator that the EdgeHub Restarter Tester module is able to communicate with Direct Method Receiver successfully. This ensures by the SDK that the Direct Method Receiver received the direct method.
