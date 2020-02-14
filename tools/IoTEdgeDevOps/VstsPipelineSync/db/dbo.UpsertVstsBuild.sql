@@ -1,4 +1,4 @@
-﻿CREATE PROCEDURE [dbo].[UpsertVstsBuildRun]
+﻿CREATE PROCEDURE [dbo].[UpsertVstsBuild]
 	@BuildNumber varchar(20),
 	@DefinitionId int,
 	@DefinitionName varchar(100),
@@ -14,7 +14,7 @@ AS
 	DECLARE @now datetime2;
 	SET @now = SYSDATETIME();
 
-	IF EXISTS (SELECT 1 FROM dbo.VstsBuildRun WHERE BuildNumber = @BuildNumber AND DefinitionId = @DefinitionId)
+	IF EXISTS (SELECT 1 FROM dbo.VstsBuild WHERE BuildNumber = @BuildNumber AND DefinitionId = @DefinitionId)
 	BEGIN
 		UPDATE dbo.VstsBuildRun
 		SET DefinitionName = @DefinitionName,
@@ -32,6 +32,6 @@ AS
 	END
 	ELSE
 	BEGIN
-		INSERT INTO dbo.VstsBuildRun(BuildNumber, DefinitionId, DefinitionName, SourceBranch, SourceVersionDisplayUri, WebUri, [Status], Result, QueueTime, StartTime, FinishTime, CreatedTime, UpdateTime)
+		INSERT INTO dbo.VstsBuild(BuildNumber, DefinitionId, DefinitionName, SourceBranch, SourceVersionDisplayUri, WebUri, [Status], Result, QueueTime, StartTime, FinishTime, CreatedTime, UpdateTime)
 		VALUES (@BuildNumber, @DefinitionId, @DefinitionName, @SourceBranch, @SourceVersionDisplayUri, @WebUri, @Status, @Result, @QueueTime, @StartTime, @FinishTime, @now, @now)
 	END

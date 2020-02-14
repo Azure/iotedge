@@ -89,7 +89,7 @@ namespace VstsPipelineSync
                     {
                         Connection = sqlConnection,
                         CommandType = System.Data.CommandType.StoredProcedure,
-                        CommandText = "UpsertVstsBuildRun"
+                        CommandText = "UpsertVstsBuild"
                     };
 
                     cmd.Parameters.Add(new SqlParameter("@BuildNumber", build.BuildNumber));

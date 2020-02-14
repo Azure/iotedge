@@ -5,7 +5,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE TABLE [dbo].[VstsBuildRun](
+CREATE TABLE [dbo].[VstsBuild](
 	[BuildNumber] [varchar](20) NOT NULL,
 	[DefinitionId] [int] NOT NULL,
 	[DefinitionName] [varchar](100) NOT NULL,
@@ -19,7 +19,7 @@ CREATE TABLE [dbo].[VstsBuildRun](
 	[FinishTime] [datetime2](7) NOT NULL,
 	[CreatedTime] [datetime2](7) NOT NULL,
 	[UpdateTime] [datetime2](7) NOT NULL,
- CONSTRAINT [PK_VstsBuildRun] PRIMARY KEY CLUSTERED 
+ CONSTRAINT [PK_VstsBuild] PRIMARY KEY CLUSTERED 
 (
 	[BuildNumber] ASC,
 	[DefinitionId] ASC
