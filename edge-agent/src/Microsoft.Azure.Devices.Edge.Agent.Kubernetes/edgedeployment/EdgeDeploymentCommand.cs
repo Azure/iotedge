@@ -215,14 +215,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 },
                 async () =>
                 {
-                    Events.CreateEdgeDeployment(customObjectDefinition);
-                    await this.client.CreateNamespacedCustomObjectWithHttpMessagesAsync(
-                        crdObject,
-                        KubernetesConstants.EdgeDeployment.Group,
-                        KubernetesConstants.EdgeDeployment.Version,
-                        this.deviceNamespace,
-                        KubernetesConstants.EdgeDeployment.Plural,
-                        cancellationToken: token);
+                    try
+                    {
+                        Events.CreateEdgeDeployment(customObjectDefinition);
+                        await this.client.CreateNamespacedCustomObjectWithHttpMessagesAsync(
+                            crdObject,
+                            KubernetesConstants.EdgeDeployment.Group,
+                            KubernetesConstants.EdgeDeployment.Version,
+                            this.deviceNamespace,
+                            KubernetesConstants.EdgeDeployment.Plural,
+                            cancellationToken: token);
+                    }
+                    catch (HttpOperationException e) when (e.Response.StatusCode == HttpStatusCode.NotFound)
+                    {
+                        Events.ReportCrdInstallationFailed(e);
+                        throw;
+                    }
                 });
         }
 
@@ -274,7 +282,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 DeleteImagePullSecret,
                 UpdateImagePullSecret,
                 UpdateExistingImagePullSecret,
+<<<<<<< HEAD
                 FindActiveDeploymentFailed,
+=======
+                ReportCrdInstallationFailed
+>>>>>>> c896d565... [k8s] Report CRD installation or missing error msg when edge operator charts are installed first (#2529)
             }
 
             public static void CreateEdgeDeployment(EdgeDeploymentDefinition deployment) => Log.LogDebug((int)EventIds.CreateDeployment, $"Create edge deployment: {deployment.Metadata.Name}");
@@ -289,7 +301,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
             internal static void UpdateExistingImagePullSecret(V1Secret secret) => Log.LogWarning((int)EventIds.UpdateExistingImagePullSecret, $"Update existing Image Pull Secret {secret.Metadata.Name}");
 
+<<<<<<< HEAD
             internal static void FindActiveDeploymentFailed(string deploymentName, Exception exception) => Log.LogDebug((int)EventIds.FindActiveDeploymentFailed, exception, $"Failed to find active Edge Deployment {deploymentName}");
+=======
+            internal static void ReportCrdInstallationFailed(Exception ex) => Log.LogError((int)EventIds.ReportCrdInstallationFailed, "EdgeDeployment CustomResourceDefinition(CRD) was not found. Please install the edge-kubernetes-crd Helm chart");
+>>>>>>> c896d565... [k8s] Report CRD installation or missing error msg when edge operator charts are installed first (#2529)
         }
     }
 }
