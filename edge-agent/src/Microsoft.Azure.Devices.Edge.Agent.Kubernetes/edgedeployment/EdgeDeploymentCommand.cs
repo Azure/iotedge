@@ -208,7 +208,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 },
                 async () =>
                 {
-
                     try
                     {
                         Events.CreateEdgeDeployment(customObjectDefinition);
@@ -220,7 +219,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                             KubernetesConstants.EdgeDeployment.Plural,
                             cancellationToken: token);
                     }
-                    catch(HttpOperationException e) when (e.Response.StatusCode == HttpStatusCode.NotFound)
+                    catch (HttpOperationException e) when (e.Response.StatusCode == HttpStatusCode.NotFound)
                     {
                         Events.ReportCrdInstallationFailed(e);
                         throw;
@@ -262,7 +261,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
             internal static void UpdateExistingImagePullSecret(V1Secret secret) => Log.LogWarning((int)EventIds.UpdateExistingImagePullSecret, $"Update existing Image Pull Secret {secret.Metadata.Name}");
 
-            internal static void ReportCrdInstallationFailed(Exception ex) => Log.LogError((int)EventIds.ReportCrdInstallationFailed, "EdgeDeployment CRD missing or its installation failed. Please install CRD");
+            internal static void ReportCrdInstallationFailed(Exception ex) => Log.LogError((int)EventIds.ReportCrdInstallationFailed, "EdgeDeployment CustomResourceDefinition(CRD) was not found.Please install the edge-kubernetes-crd Helm chart");
         }
     }
 }
