@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             await Task.Delay(TimeSpan.FromMinutes(1));
             var method = new CloudToDeviceMethod("RestartModule");
-            method.SetPayloadJson("{\"SchemaVersion\": \"1.0\",\"Id\":\"edgeHub\"}");
+            method.SetPayloadJson($"{{\"SchemaVersion\": \"1.0\",\"Id\":\"{ModuleName}\"}}");
             await this.iotHub.InvokeMethodAsync(Context.Current.DeviceId, "$edgeAgent", method, token, false);
 
             var result = await this.iotHub.InvokeMethodAsync(Context.Current.DeviceId, ModuleName, new CloudToDeviceMethod("ValidateMetrics", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token, false);
