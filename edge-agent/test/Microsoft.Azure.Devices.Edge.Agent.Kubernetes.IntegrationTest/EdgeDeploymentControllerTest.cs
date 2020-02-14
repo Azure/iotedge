@@ -323,7 +323,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
                 ["net.azure-devices.edge.hub"] = "hostname",
                 ["net.azure-devices.edge.module"] = moduleName
             };
-            var tokenSource = new CancellationTokenSource(DefaultTimeout*3);
+            var tokenSource = new CancellationTokenSource(DefaultTimeout * 3);
             var pvcName = $"{moduleName}-{persistentVolumeName}";
 
             await this.client.AddModuleDeploymentAsync(moduleName, labels, null);
@@ -408,7 +408,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
                 ["net.azure-devices.edge.module"] = moduleName
             };
 
-            await this.client.AddModuleDeploymentAsync(moduleName, labels, null); ;
+            await this.client.AddModuleDeploymentAsync(moduleName, labels, null);
             moduleLifeCycleManager.SetModules(moduleName);
             await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
             this.client.DeleteService(moduleName);
