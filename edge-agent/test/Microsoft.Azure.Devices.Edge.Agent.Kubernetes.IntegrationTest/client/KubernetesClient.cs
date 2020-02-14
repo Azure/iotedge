@@ -34,18 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
                 pods => pods.Items.Count == count,
                 token);
 
-        public async Task<Option<V1ServiceAccountList>> WaitUntilAnyServiceAccountAsync(CancellationToken token) =>
-           await WaitUntilAsync(
-               () => this.Kubernetes.ListNamespacedServiceAccountAsync(this.DeviceNamespace, cancellationToken: token),
-               sa => sa.Items.Any(),
-               token);
-
-        public async Task<Option<V1DeploymentList>> WaitUntilAnyDeploymentsAsync(CancellationToken token) =>
-           await WaitUntilAsync(
-               () => this.Kubernetes.ListNamespacedDeploymentAsync(this.DeviceNamespace, cancellationToken: token),
-               d => d.Items.Any(),
-               token);
-
         public async Task<Option<V1PersistentVolumeClaimList>> WaitUntilAnyPersistentVolumeClaim(CancellationToken token) =>
            await WaitUntilAsync(
                () => this.Kubernetes.ListNamespacedPersistentVolumeClaimAsync(this.DeviceNamespace, cancellationToken: token),
