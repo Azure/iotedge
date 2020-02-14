@@ -261,7 +261,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
             internal static void UpdateExistingImagePullSecret(V1Secret secret) => Log.LogWarning((int)EventIds.UpdateExistingImagePullSecret, $"Update existing Image Pull Secret {secret.Metadata.Name}");
 
-            internal static void ReportCrdInstallationFailed(Exception ex) => Log.LogError((int)EventIds.ReportCrdInstallationFailed, "EdgeDeployment CustomResourceDefinition(CRD) was not found.Please install the edge-kubernetes-crd Helm chart");
+            internal static void ReportCrdInstallationFailed(Exception ex) => Log.LogError((int)EventIds.ReportCrdInstallationFailed, "EdgeDeployment CustomResourceDefinition(CRD) was not found. Please install the edge-kubernetes-crd Helm chart");
         }
     }
 }
