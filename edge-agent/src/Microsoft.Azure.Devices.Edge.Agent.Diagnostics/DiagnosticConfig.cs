@@ -21,8 +21,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             Preconditions.CheckNotNull(configuration, nameof(configuration));
             this.Enabled = enabled;
             this.MetricsStoragePath = Path.Combine(Preconditions.CheckNotNull(storagePath, nameof(storagePath)), "metrics");
-            this.ScrapeInterval = configuration.GetValueIgnoreException("MetricScrapeInterval", TimeSpan.FromHours(1));
-            this.UploadInterval = configuration.GetValueIgnoreException("MetricUploadInterval", TimeSpan.FromDays(1));
+            this.ScrapeInterval = configuration.GetTimeSpan("MetricScrapeInterval", TimeSpan.FromHours(1));
+            this.UploadInterval = configuration.GetTimeSpan("MetricUploadInterval", TimeSpan.FromDays(1));
         }
     }
 }
