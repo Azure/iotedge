@@ -24,6 +24,5 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 return defaultValue;
             }
         }
-
     }
 }
