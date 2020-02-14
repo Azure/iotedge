@@ -92,42 +92,31 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                         senderMessageCount);
                 }
 
+                if ((receiverSeqNum < senderSeqNum) && hasSenderResult)
+                {
+                    // Increment receiver result to have the same seq as the sender
+                    (receiverMessageCount, hasReceiverResult, receiverSeqNum) = await this.IterateResultToSequenceNumberAsync(
+                        hasReceiverResult,
+                        this.MoveNextReceiverResultAsync,
+                        senderSeqNum,
+                        receiverMessageCount);
+                }
+
                 if (!hasSenderResult || !hasReceiverResult)
                 {
                     break;
                 }
 
-                // Note: In the current verification, if the receiver obtained more result dm than
-                //   sender, the test is considered as a test failure. We are disregarding duplicated/unique sequence number
-                //   of receiver's result.
-
-                // Check if the current message is passing
-                bool isCurrentMessagePassing = true;
-
-                EdgeHubRestartMessageResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(this.SenderTestResults.Current.Result);
-                string receiverResult = this.ReceiverTestResults.Current.Result;
-
-                // Verified "TrackingId;BatchId;SequenceNumber" altogether.
-                isCurrentMessagePassing &= string.Compare(senderResult.GetMessageTestResult(), receiverResult) == 0;
-
-                // Verify the sequence numbers
-                isCurrentMessagePassing &= senderSeqNum == receiverSeqNum;
-
-                // Verify if the report status is passable
-                isCurrentMessagePassing &= senderResult.MessageCompletedStatusCode == HttpStatusCode.OK;
-
-                // If this message passed, increment the count for a good message
-                passedMessageCount += isCurrentMessagePassing ? 1UL : 0UL;
+                bool isCurrentMessagePassing = this.VerifyCurrentResult(
+                    senderSeqNum,
+                    receiverSeqNum);
 
                 // Make sure the sequence number is incremental
                 isDiscontinuousSequenceNumber |= (previousSeqNum + 1) != senderSeqNum;
                 previousSeqNum++;
 
-                // Log the data if the reportin result is failing
-                if (!isCurrentMessagePassing)
-                {
-                    Logger.LogDebug($" MessageResultVerification = {string.Compare(senderResult.GetMessageTestResult(), receiverResult) == 0}\n SeqeunceNumber = {senderSeqNum} {receiverSeqNum}\n MessageStatusCode = {senderResult.MessageCompletedStatusCode}\n");
-                }
+                // If this message passed, increment the count for a good message
+                passedMessageCount += isCurrentMessagePassing ? 1UL : 0UL;
 
                 (senderMessageCount, hasSenderResult, senderSeqNum) = await this.MoveNextSenderResultAsync(senderMessageCount);
                 (receiverMessageCount, hasReceiverResult, receiverSeqNum) = await this.MoveNextReceiverResultAsync(receiverMessageCount);
@@ -159,6 +148,34 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 senderMessageCount,
                 receiverMessageCount,
                 edgeHubRestartStatistics.MedianPeriod);
+        }
+
+        bool VerifyCurrentResult(
+            long senderSeqNum,
+            long receiverSeqNum)
+        {
+                // Check if the current message is passing
+                bool isCurrentMessagePassing = true;
+
+                EdgeHubRestartMessageResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartMessageResult>(this.SenderTestResults.Current.Result);
+                string receiverResult = this.ReceiverTestResults.Current.Result;
+
+                // Verified "TrackingId;BatchId;SequenceNumber" altogether.
+                isCurrentMessagePassing &= string.Compare(senderResult.GetMessageTestResult(), receiverResult) == 0;
+
+                // Verify the sequence numbers
+                isCurrentMessagePassing &= senderSeqNum == receiverSeqNum;
+
+                // Verify if the report status is passable
+                isCurrentMessagePassing &= senderResult.MessageCompletedStatusCode == HttpStatusCode.OK;
+
+                // Log the data if the reportin result is failing
+                if (!isCurrentMessagePassing)
+                {
+                    Logger.LogDebug($"\n MessageResultVerification = {string.Compare(senderResult.GetMessageTestResult(), receiverResult) == 0}\n\t\t|{senderResult.GetMessageTestResult()}|\n\t\t|{receiverResult}|\n SeqeunceNumber = {senderSeqNum} {receiverSeqNum}\n MessageStatusCode = {senderResult.MessageCompletedStatusCode}\n");
+                }
+
+                return isCurrentMessagePassing;
         }
 
         async Task<(ulong resultCount, bool hasValue, long sequenceNum)> IterateResultToSequenceNumberAsync(

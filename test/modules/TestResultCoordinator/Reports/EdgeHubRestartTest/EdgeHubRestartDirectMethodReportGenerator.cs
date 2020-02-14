@@ -107,32 +107,15 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                     break;
                 }
 
-                // Note: In the current verification, if the receiver obtained more result dm than
-                //   sender, the test is considered as a test failure. We are disregarding duplicated/unique sequence number
-                //   of receiver's result.
-
-                // Check if the current dm is passing
-                bool isCurrentDirectMethodPassing = true;
-                EdgeHubRestartDirectMethodResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodResult>(this.SenderTestResults.Current.Result);
-
-                // Verified the sequence numbers are the same
-                isCurrentDirectMethodPassing &= senderSeqNum == receiverSeqNum;
-
-                // Verified the sequence numbers are incremental
-                isCurrentDirectMethodPassing &= senderSeqNum > previousSeqNum;
-
-                // Make sure the status code is passing
-                isCurrentDirectMethodPassing &= senderResult.DirectMethodCompletedStatusCode == HttpStatusCode.OK;
+                // BEARWASHERE
+                bool isCurrentDirectMethodPassing = this.VerifyCurrentResult(
+                    senderSeqNum,
+                    receiverSeqNum,
+                    previousSeqNum);
 
                 // If the current DM result is passed, increment the count for a good dm
                 passedDirectMethodCount += isCurrentDirectMethodPassing ? 1UL : 0UL;
                 previousSeqNum = senderSeqNum;
-
-                // Log the data if the reportin result is failing
-                if (!isCurrentDirectMethodPassing)
-                {
-                    Logger.LogDebug($" SeqeunceNumber = {senderSeqNum} {receiverSeqNum}\n DirectMethodStatusCode = {senderResult.DirectMethodCompletedStatusCode}\n");
-                }
 
                 (senderResultCount, hasSenderResult, senderSeqNum) = await this.MoveNextSenderResultAsync(senderResultCount);
                 (receiverResultCount, hasReceiverResult, receiverSeqNum) = await this.MoveNextReceiverResultAsync(receiverResultCount);
@@ -163,6 +146,33 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 senderResultCount,
                 receiverResultCount,
                 edgeHubRestartStatistics.MedianPeriod);
+        }
+
+        bool VerifyCurrentResult(
+            long senderSeqNum,
+            long receiverSeqNum,
+            long previousSeqNum)
+        {
+            // Check if the current dm is passing
+            bool isCurrentDirectMethodPassing = true;
+            EdgeHubRestartDirectMethodResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodResult>(this.SenderTestResults.Current.Result);
+
+            // Verified the sequence numbers are the same
+            isCurrentDirectMethodPassing &= senderSeqNum == receiverSeqNum;
+
+            // Verified the sequence numbers are incremental
+            isCurrentDirectMethodPassing &= senderSeqNum > previousSeqNum;
+
+            // Make sure the status code is passing
+            isCurrentDirectMethodPassing &= senderResult.DirectMethodCompletedStatusCode == HttpStatusCode.OK;
+
+            // Log the data if the reportin result is failing
+            if (!isCurrentDirectMethodPassing)
+            {
+                Logger.LogDebug($"\n SeqeunceNumber = {senderSeqNum} {receiverSeqNum}\n DirectMethodStatusCode = {senderResult.DirectMethodCompletedStatusCode}\n");
+            }
+
+            return isCurrentDirectMethodPassing;
         }
 
         async Task<(ulong resultCount, bool hasValue, long sequenceNum)> IterateResultToSequenceNumberAsync(
