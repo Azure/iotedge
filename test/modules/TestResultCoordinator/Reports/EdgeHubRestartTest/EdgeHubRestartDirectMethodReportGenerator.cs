@@ -107,7 +107,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                     break;
                 }
 
-                // BEARWASHERE
                 bool isCurrentDirectMethodPassing = this.VerifyCurrentResult(
                     senderSeqNum,
                     receiverSeqNum,
