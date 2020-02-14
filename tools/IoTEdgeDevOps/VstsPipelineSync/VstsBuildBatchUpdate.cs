@@ -14,6 +14,7 @@ namespace VstsPipelineSync
     {
         readonly DevOpsAccessSetting devOpsAccessSetting;
         readonly string dbConnectionString;
+        Dictionary<string, Dictionary<BuildDefinitionId, DateTime>> lastUpdatePerBranchPerDefinition;
 
         public VstsBuildBatchUpdate(DevOpsAccessSetting devOpsAccessSetting, string dbConnectionString)
         {
@@ -21,12 +22,12 @@ namespace VstsPipelineSync
 
             this.devOpsAccessSetting = devOpsAccessSetting;
             this.dbConnectionString = dbConnectionString;
+            this.lastUpdatePerBranchPerDefinition = new Dictionary<string, Dictionary<BuildDefinitionId, DateTime>>();
         }
 
         public async Task RunAsync(TimeSpan waitPeriodAfterEachUpdate, CancellationToken ct)
         {
             var buildManagement = new BuildManagement(devOpsAccessSetting);
-            var lastUpdatePerBranchPerDefinition = new Dictionary<string, Dictionary<BuildDefinitionId, DateTime>>();
 
             while (!ct.IsCancellationRequested)
             {
@@ -34,7 +35,9 @@ namespace VstsPipelineSync
                 {
                     Console.WriteLine($"Import Vsts Builds data started at {DateTime.UtcNow}");
 
-                    lastUpdatePerBranchPerDefinition.Upsert("refs/heads/master", await ImportVstsBuildsDataAsync(buildManagement, "refs/heads/master", BuildExtension.MasterBranchBuildDefinitions,  lastUpdatePerBranchPerDefinition));
+                    lastUpdatePerBranchPerDefinition.Upsert(
+                        "refs/heads/master",
+                        await ImportVstsBuildsDataAsync(buildManagement, "refs/heads/master", BuildExtension.MasterBranchBuildDefinitions));
                 }
                 catch (Exception ex)
                 {
@@ -46,9 +49,9 @@ namespace VstsPipelineSync
             }
         }
 
-        private async Task<Dictionary<BuildDefinitionId, DateTime>> ImportVstsBuildsDataAsync(BuildManagement buildManagement, string branch, HashSet<BuildDefinitionId> buildDefinitionIds, Dictionary<string, Dictionary<BuildDefinitionId, DateTime>> lastUpdatePerBranchPerDefinition)
+        private async Task<Dictionary<BuildDefinitionId, DateTime>> ImportVstsBuildsDataAsync(BuildManagement buildManagement, string branch, HashSet<BuildDefinitionId> buildDefinitionIds)
         {
-            Dictionary<BuildDefinitionId, DateTime> lastUpdatePerDefinition = lastUpdatePerBranchPerDefinition.GetIfExists(branch);
+            Dictionary<BuildDefinitionId, DateTime> lastUpdatePerDefinition = this.lastUpdatePerBranchPerDefinition.GetIfExists(branch);
             if (lastUpdatePerDefinition == null)
             {
                 lastUpdatePerDefinition = new Dictionary<BuildDefinitionId, DateTime>();
