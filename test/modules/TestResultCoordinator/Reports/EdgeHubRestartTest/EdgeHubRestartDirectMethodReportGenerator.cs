@@ -107,13 +107,12 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                     break;
                 }
 
-                bool isCurrentDirectMethodPassing = this.VerifyCurrentResult(
-                    senderSeqNum,
-                    receiverSeqNum,
-                    previousSeqNum);
+                if (this.VerifyCurrentResult(senderSeqNum, receiverSeqNum, previousSeqNum))
+                {
+                    // If the current DM result is passed, increment the count for a good dm
+                    passedDirectMethodCount++;
+                }
 
-                // If the current DM result is passed, increment the count for a good dm
-                passedDirectMethodCount += isCurrentDirectMethodPassing ? 1UL : 0UL;
                 previousSeqNum = senderSeqNum;
 
                 (senderResultCount, hasSenderResult, senderSeqNum) = await this.MoveNextSenderResultAsync(senderResultCount);
