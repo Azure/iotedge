@@ -55,7 +55,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             Logger.LogInformation($"Generating report: {nameof(EdgeHubRestartMessageReport)} for [{this.SenderSource}] and [{this.ReceiverSource}]");
 
             bool isDiscontinuousSequenceNumber = false;
-            long expectedSeqNum = 0;
+            long previousSeqNum = 0;
             ulong passedMessageCount = 0;
             ulong senderMessageCount = 0;
             ulong receiverMessageCount = 0;
@@ -114,8 +114,8 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
                 }
 
                 // Make sure the sequence number is incremental
-                isDiscontinuousSequenceNumber |= (expectedSeqNum + 1) != senderSeqNum;
-                expectedSeqNum++;
+                isDiscontinuousSequenceNumber |= (previousSeqNum + 1) != senderSeqNum;
+                previousSeqNum = senderSeqNum;
 
                 (senderMessageCount, hasSenderResult, senderSeqNum) = await this.MoveNextSenderResultAsync(senderMessageCount);
                 (receiverMessageCount, hasReceiverResult, receiverSeqNum) = await this.MoveNextReceiverResultAsync(receiverMessageCount);
