@@ -56,13 +56,35 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
         {
             unchecked
             {
-                int hashCode = obj.Spec?.AccessModes != null ? obj.Spec.AccessModes.GetHashCode() : 0;
+                int hashCode = obj.Spec?.AccessModes != null ? this.GetAccessHash(obj.Spec.AccessModes) : 0;
                 hashCode = (hashCode * 397) ^ (obj.Metadata?.Name != null ? obj.Metadata.Name.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (obj.Metadata?.Labels != null ? obj.Metadata.Labels.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (obj.Spec?.Resources != null ? obj.Spec.Resources.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (obj.Metadata?.Labels != null ? this.GetLabelHash(obj.Metadata.Labels) : 0);
                 hashCode = (hashCode * 397) ^ (obj.Spec?.StorageClassName != null ? obj.Spec.StorageClassName.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (obj.Spec?.VolumeName != null ? obj.Spec.VolumeName.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ this.GetStorage(obj).GetHashCode();
                 return hashCode;
+            }
+        }
+
+        int GetAccessHash(IList<string> access)
+        {
+            unchecked
+            {
+                return access.Aggregate(0, (current, item) => (current * 397) ^ (item != null ? item.GetHashCode() : 0));
+            }
+        }
+
+        int GetLabelHash(IDictionary<string, string> labels)
+        {
+            unchecked
+            {
+                return labels.Aggregate(0, (current, item) =>
+                {
+                    int itemHash = current;
+                    itemHash = (itemHash * 397) ^ item.Key.GetHashCode();
+                    itemHash = (itemHash * 397) ^ ((item.Value != null) ? item.Value.GetHashCode() : 0);
+                    return itemHash;
+                });
             }
         }
     }

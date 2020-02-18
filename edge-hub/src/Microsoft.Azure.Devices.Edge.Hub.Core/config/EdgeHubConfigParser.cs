@@ -21,15 +21,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             var routes = new Dictionary<string, RouteConfig>();
             if (desiredProperties.Routes != null)
             {
-                foreach (KeyValuePair<string, string> inputRoute in desiredProperties.Routes)
+                foreach (KeyValuePair<string, RouteConfiguration> inputRoute in desiredProperties.Routes)
                 {
                     try
                     {
-                        if (!string.IsNullOrWhiteSpace(inputRoute.Value))
-                        {
-                            Route route = routeFactory.Create(inputRoute.Value);
-                            routes.Add(inputRoute.Key, new RouteConfig(inputRoute.Key, inputRoute.Value, route));
-                        }
+                        Route route = routeFactory.Create(inputRoute.Value.Route, inputRoute.Value.Priority, inputRoute.Value.TimeToLiveSecs);
+                        routes.Add(inputRoute.Key, new RouteConfig(inputRoute.Key, inputRoute.Value.Route, route));
                     }
                     catch (Exception ex)
                     {

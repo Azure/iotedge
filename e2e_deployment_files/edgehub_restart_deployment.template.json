@@ -36,7 +36,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"PortBindings\": {\"9600/tcp\": [{\"HostPort\": \"9600\"}]}}}"
+              "createOptions": "{\"ExposedPorts\":{\"9600/tcp\":{}},\"HostConfig\":{\"PortBindings\":{\"9600/tcp\":[{\"HostPort\":\"9600\"}]},\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "edgeHub": {
@@ -157,6 +157,9 @@
               "Logging:LogLevel:Microsoft": {
                 "value": "Error"
               },
+              "TEST_BUILD_NUMBER": {
+                "value": "<Test.BuildNumber>"
+              },
               "trackingId": {
                 "value": "<TrackingId>"
               },
@@ -198,6 +201,39 @@
               "image": "<Container_Registry>/microsoft/azureiotedge-test-result-coordinator:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"5001/tcp\": [{\"HostPort\": \"5001\"}]}}}"
             }
+          },
+          "networkController": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "trackingId": {
+                "value": "<TrackingId>"
+              },
+              "testResultCoordinatorUrl": {
+                "value": "http://localhost:5001"
+              },
+              "RunFrequencies__0__OfflineFrequency": {
+                "value": "<NetworkController.OfflineFrequency0>"
+              },
+              "RunFrequencies__0__OnlineFrequency": {
+                "value": "<NetworkController.OnlineFrequency0>"
+              },
+              "RunFrequencies__0__RunsCount": {
+                "value": "<NetworkController.RunsCount0>"
+              },
+              "NetworkControllerRunProfile": {
+                "value": "<NetworkController.RunProfile>"
+              },
+              "StartAfter": {
+                "value": "<TestStartDelay>"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-network-controller:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"Privileged\":\"true\",\"NetworkMode\":\"host\",\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"]},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+            }
           }
         }
       }
@@ -206,7 +242,7 @@
       "properties.desired": {
         "schemaVersion": "1.0",
         "routes": {
-          "edgeHubRestarterToRelayer1": "FROM /messages/modules/loadGen1/outputs/output1 INTO BrokeredEndpoint(\"/modules/relayer1/inputs/input1\")"
+          "edgeHubRestarterToRelayer1": "FROM /messages/modules/edgeHubRestartTester1/outputs/output1 INTO BrokeredEndpoint(\"/modules/relayer1/inputs/input1\")"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
@@ -219,6 +255,25 @@
         "reportMetadataList": {
           "reportMetadata1": {
             "TestReportType": "ErrorReport"
+          },
+          "reportMetadata2": {
+            "TestReportType": "TestInfoReport"
+          },
+          "reportMetadata3": {
+            "TestReportType": "NetworkControllerReport",
+            "Source": "networkController"
+          },
+          "reportMetadata4": {
+            "TestReportType": "EdgeHubRestartDirectMethodReport",
+            "TestOperationResultType": "EdgeHubRestartDirectMethod",
+            "SenderSource": "edgeHubRestartTester1.EdgeHubRestartDirectMethod",
+            "ReceiverSource": "directMethodReceiver1.receive"
+          },
+          "reportMetadata5": {
+            "TestReportType": "EdgeHubRestartMessageReport",
+            "TestOperationResultType": "EdgeHubRestartMessage",
+            "SenderSource": "edgeHubRestartTester1.EdgeHubRestartMessage",
+            "ReceiverSource": "relayer1.receive"
           }
         }
       }

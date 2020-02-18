@@ -817,7 +817,7 @@ mod tests {
         }
 
         match WellFormedConnectionString::default().execute(&mut check) {
-            CheckResult::Failed(err) => assert!(err.to_string().contains("Device is not using manual provisioning, so Azure IoT Hub hostname needs to be specified with --iothub-hostname")),
+            CheckResult::Warning(err) => assert!(err.to_string().contains("Device not configured with manual provisioning, in this configuration 'iotedge check' is not able to discover the device's backing IoT Hub.")),
             check_result => panic!(
                 "checking connection string in {} returned {:?}",
                 filename, check_result

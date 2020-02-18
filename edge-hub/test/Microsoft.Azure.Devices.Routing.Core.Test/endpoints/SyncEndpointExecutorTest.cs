@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
 
             foreach (IMessage msg in expected)
             {
-                await executor.Invoke(msg);
+                await executor.Invoke(msg, 0, 0);
             }
 
             await executor.CloseAsync();
@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             Assert.Equal(endpoint, processor.Endpoint);
 
             IEndpointExecutor executor = new SyncEndpointExecutor(endpoint, new NullCheckpointer(), config);
-            Task running = executor.Invoke(Default);
+            Task running = executor.Invoke(Default, 0, 0);
             await executor.CloseAsync();
             await running;
             Assert.True(running.IsCompleted);
@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
         {
             var endpoint = new TestEndpoint("id");
             IEndpointExecutor executor = await Factory.CreateAsync(endpoint);
-            Task running = executor.Invoke(Default);
+            Task running = executor.Invoke(Default, 0, 0);
 
             await executor.CloseAsync();
             await running;
@@ -96,7 +96,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             // ensure this doesn't throw
             await executor.CloseAsync();
 
-            await Assert.ThrowsAsync<InvalidOperationException>(() => executor.Invoke(Default));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => executor.Invoke(Default, 0, 0));
             await Assert.ThrowsAsync<InvalidOperationException>(() => executor.SetEndpoint(endpoint));
         }
 
@@ -114,8 +114,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             Assert.Equal(new List<IMessage>(), endpoint3.Processed);
             await Assert.ThrowsAsync<ArgumentException>(() => executor.SetEndpoint(endpoint3));
 
-            await executor.Invoke(Message1);
-            await executor.Invoke(Message1);
+            await executor.Invoke(Message1, 0, 0);
+            await executor.Invoke(Message1, 0, 0);
 
             Assert.Equal(new List<IMessage> { Message1, Message1 }, endpoint1.Processed);
             Assert.Equal(new List<IMessage>(), endpoint2.Processed);
@@ -126,8 +126,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             Assert.Equal(new List<IMessage>(), endpoint2.Processed);
             Assert.Equal(new List<IMessage>(), endpoint3.Processed);
 
-            await executor.Invoke(Message2);
-            await executor.Invoke(Message3);
+            await executor.Invoke(Message2, 0, 0);
+            await executor.Invoke(Message3, 0, 0);
 
             Assert.Equal(new List<IMessage> { Message1, Message1 }, endpoint1.Processed);
             Assert.Equal(new List<IMessage> { Message2, Message3 }, endpoint2.Processed);
@@ -147,7 +147,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             checkpointer.Setup(c => c.CommitAsync(It.IsAny<IMessage[]>(), It.IsAny<IMessage[]>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>())).Returns(TaskEx.Done);
 
             IEndpointExecutor executor1 = new SyncEndpointExecutor(endpoint1, checkpointer.Object);
-            await executor1.Invoke(Message1);
+            await executor1.Invoke(Message1, 0, 0);
 
             checkpointer.Verify(c => c.CommitAsync(new[] { Message1 }, new IMessage[0], It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Exactly(1));
 
@@ -158,7 +158,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             checkpointer2.Setup(c => c.CommitAsync(It.IsAny<IMessage[]>(), It.IsAny<IMessage[]>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>())).Returns(TaskEx.Done);
 
             IEndpointExecutor executor2 = new SyncEndpointExecutor(endpoint2, checkpointer2.Object);
-            await executor2.Invoke(Message1);
+            await executor2.Invoke(Message1, 0, 0);
 
             checkpointer2.Verify(c => c.CommitAsync(It.IsAny<IMessage[]>(), It.IsAny<IMessage[]>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>()), Times.Never);
 
@@ -174,10 +174,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             var endpoint2 = new FailedEndpoint("id1", new InvalidOperationException());
 
             var executor1 = new SyncEndpointExecutor(endpoint1, new NullCheckpointer());
-            await Assert.ThrowsAsync<OperationCanceledException>(() => executor1.Invoke(Message1));
+            await Assert.ThrowsAsync<OperationCanceledException>(() => executor1.Invoke(Message1, 0, 0));
 
             var executor2 = new SyncEndpointExecutor(endpoint2, new NullCheckpointer());
-            await Assert.ThrowsAsync<InvalidOperationException>(() => executor2.Invoke(Message1));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => executor2.Invoke(Message1, 0, 0));
         }
     }
 }

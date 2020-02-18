@@ -82,6 +82,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     [KubernetesConstants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue(this.resourceName.Hostname)
                 };
 
+                var desiredServiceAccounts = desiredModules.Modules
+                    .Select(module => this.serviceAccountMapper.CreateServiceAccount((KubernetesModule)module.Value, moduleIdentities[module.Key], labels[module.Key]))
+                    .ToList();
+
+                V1ServiceAccountList currentServiceAccounts = await this.client.ListNamespacedServiceAccountAsync(this.deviceNamespace, labelSelector: this.deviceSelector);
+                await this.ManageServiceAccounts(currentServiceAccounts, desiredServiceAccounts);
+
                 var desiredServices = desiredModules.Modules
                     .Select(module => this.serviceMapper.CreateService(moduleIdentities[module.Key], (KubernetesModule)module.Value, labels[module.Key]))
                     .FilterMap()
@@ -101,18 +108,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     .Select(module => this.pvcMapper.CreatePersistentVolumeClaims((KubernetesModule)module.Value, deviceOnlyLabels))
                     .FilterMap()
                     .SelectMany(x => x)
-                    .Distinct(KubernetesPvcByValueEqualityComparer);
+                    .GroupBy(x => x.Metadata.Name)
+                    .Select(x => x.First());
 
                 // Modules may use PVCs created by the user, we get all PVCs and then work on ours.
                 V1PersistentVolumeClaimList currentPvcList = await this.client.ListNamespacedPersistentVolumeClaimAsync(this.deviceNamespace);
                 await this.ManagePvcs(currentPvcList, desiredPvcs);
-
-                var desiredServiceAccounts = desiredModules.Modules
-                    .Select(module => this.serviceAccountMapper.CreateServiceAccount((KubernetesModule)module.Value, moduleIdentities[module.Key], labels[module.Key]))
-                    .ToList();
-
-                V1ServiceAccountList currentServiceAccounts = await this.client.ListNamespacedServiceAccountAsync(this.deviceNamespace, labelSelector: this.deviceSelector);
-                await this.ManageServiceAccounts(currentServiceAccounts, desiredServiceAccounts);
 
                 return EdgeDeploymentStatus.Success("Successfully deployed");
             }
