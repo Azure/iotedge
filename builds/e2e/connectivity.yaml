@@ -53,7 +53,7 @@ jobs:
           testrun.config: 8
           testrun.network.frequencies: "01:00:00 00:00:00 1"
           testrun.network.runProfile: "Cellular3G"
-          testrun.duration: "01:00:00"          
+          testrun.duration: "01:00:00"
     pool:
       name: $(pool.name)
       demands:
@@ -75,7 +75,8 @@ jobs:
             echo "testrun.network.frequencies=$(testrun.network.frequencies)"
             echo "testrun.network.runProfile=$(testrun.network.runProfile)"
             echo "testrun.duration=$(testrun.duration)"
-          
+            echo "deploymentFileName=$(deploymentFileName)"
+
             output1=$(curl -s -u :$accessToken --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$buildId?api-version=5.1" | grep -oe '"status":"cancel')
             output2=$(curl -s -u :$(System.AccessToken) --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$(Build.BuildId)/Timeline?api-version=5.1" | grep -oe '"result":"canceled"')
             
