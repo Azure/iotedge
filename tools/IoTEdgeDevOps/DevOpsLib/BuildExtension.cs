@@ -18,7 +18,7 @@ namespace DevOpsLib
 
         public static string DisplayName(this BuildDefinitionId buildDefinitionId)
         {
-            Dictionary<BuildDefinitionId, string> buildDefinitionIdToDisplayNameMapping = new Dictionary<BuildDefinitionId, string>
+            var definitionIdToDisplayNameMapping = new Dictionary<BuildDefinitionId, string>
             {
                 { BuildDefinitionId.BuildImages, "Build Images" },
                 { BuildDefinitionId.CI, "CI" },
@@ -30,7 +30,7 @@ namespace DevOpsLib
                 { BuildDefinitionId.LibiohsmCI, "Libiohsm CI" },
             };
 
-            return buildDefinitionIdToDisplayNameMapping.ContainsKey(buildDefinitionId) ? buildDefinitionIdToDisplayNameMapping[buildDefinitionId] : buildDefinitionId.ToString();
+            return definitionIdToDisplayNameMapping.ContainsKey(buildDefinitionId) ? definitionIdToDisplayNameMapping[buildDefinitionId] : buildDefinitionId.ToString();
         }
 
         public static string IdString(this BuildDefinitionId buildDefinitionId) => ((int) buildDefinitionId).ToString();
