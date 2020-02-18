@@ -437,22 +437,26 @@ where
         namespace: &str,
         secret: &api_core::Secret,
     ) -> impl Future<Item = api_core::Secret, Error = Error> {
-        api_core::Secret::create_namespaced_secret(namespace, secret, CreateOptional::default())
-            .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::SecretCreate))))
-            .map(|req| {
-                self.request(req, false)
-                    .and_then(|response| match response {
-                        CreateResponse::Accepted(s)
-                        | CreateResponse::Created(s)
-                        | CreateResponse::Ok(s) => Ok(s),
-                        _ => Err(Error::from(ErrorKind::Response(RequestType::SecretCreate))),
-                    })
-                    .map_err(|err| {
-                        Error::from(err.context(ErrorKind::Response(RequestType::SecretCreate)))
-                    })
-            })
-            .into_future()
-            .flatten()
+        api_core::Secret::create_namespaced_secret(
+            namespace,
+            secret,
+            CreateOptional::default(),
+        )
+        .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::SecretCreate))))
+        .map(|req| {
+            self.request(req, false)
+                .and_then(|response| match response {
+                    CreateResponse::Accepted(s)
+                    | CreateResponse::Created(s)
+                    | CreateResponse::Ok(s) => Ok(s),
+                    _ => Err(Error::from(ErrorKind::Response(RequestType::SecretCreate))),
+                })
+                .map_err(|err| {
+                    Error::from(err.context(ErrorKind::Response(RequestType::SecretCreate)))
+                })
+        })
+        .into_future()
+        .flatten()
     }
 
     pub fn replace_secret(
