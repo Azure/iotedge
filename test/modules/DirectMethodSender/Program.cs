@@ -41,7 +41,7 @@ namespace DirectMethodSender
 
                 while (!cts.Token.IsCancellationRequested && IsTestTimeUp(testStartAt))
                 {
-                    (HttpStatusCode result, long dmCounter) = await directMethodClient.InvokeDirectMethodAsync(Settings.Current.DirectMethodName, cts);
+                    (HttpStatusCode result, ulong dmCounter) = await directMethodClient.InvokeDirectMethodAsync(Settings.Current.DirectMethodName, cts);
 
                     // Generate a testResult type depending on the reporting endpoint
                     TestResultBase testResult = ConstructTestResult(
@@ -109,7 +109,7 @@ namespace DirectMethodSender
         }
 
         // Create reporting result depending on which endpoint is being used.
-        public static TestResultBase ConstructTestResult(DirectMethodResultType directMethodResultType, Guid batchId, long counter, HttpStatusCode result)
+        public static TestResultBase ConstructTestResult(DirectMethodResultType directMethodResultType, Guid batchId, ulong counter, HttpStatusCode result)
         {
             string source = Settings.Current.ModuleId + ".send";
             switch (directMethodResultType)

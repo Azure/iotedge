@@ -19,7 +19,7 @@ namespace EdgeHubRestartTester
     {
         readonly Guid batchId;
         readonly ILogger logger;
-        long directMethodCount = 0;
+        ulong directMethodCount = 0;
         ModuleClient dmModuleClient = null;
         TestResultReportingClient reportClient = null;
 
