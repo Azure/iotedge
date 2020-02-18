@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
     public class ExperimentalFeatures
     {
-        ExperimentalFeatures(bool enabled, bool disableCloudSubscriptions, bool enableUploadLogs, bool enableGetLogs, bool enableMetrics, bool enableMetricsUpload)
+        ExperimentalFeatures(bool enabled, bool disableCloudSubscriptions, bool enableUploadLogs, bool enableGetLogs, bool enableMetrics, bool enableMetricsUpload, bool enableUploadSupportBundle)
         {
             this.Enabled = enabled;
             this.DisableCloudSubscriptions = disableCloudSubscriptions;
@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             this.EnableGetLogs = enableGetLogs;
             this.EnableMetrics = enableMetrics;
             this.EnableMetricsUpload = enableMetricsUpload;
+            this.EnableUploadSupportBundle = enableUploadSupportBundle;
         }
 
         public static ExperimentalFeatures Create(IConfiguration experimentalFeaturesConfig, ILogger logger)
@@ -25,7 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             bool enableGetLogs = enabled && experimentalFeaturesConfig.GetValue("enableGetLogs", false);
             bool enableMetrics = enabled && experimentalFeaturesConfig.GetValue("enableMetrics", false);
             bool enableMetricsUpload = enabled && experimentalFeaturesConfig.GetValue("enableMetricsUpload", false);
-            var experimentalFeatures = new ExperimentalFeatures(enabled, disableCloudSubscriptions, enableUploadLogs, enableGetLogs, enableMetrics, enableMetricsUpload);
+            bool enableUploadSupportBundle = enabled && experimentalFeaturesConfig.GetValue("enableUploadSupportBundle", false);
+            var experimentalFeatures = new ExperimentalFeatures(enabled, disableCloudSubscriptions, enableUploadLogs, enableGetLogs, enableMetrics, enableMetricsUpload, enableUploadSupportBundle);
             logger.LogInformation($"Experimental features configuration: {experimentalFeatures.ToJson()}");
             return experimentalFeatures;
         }
@@ -41,5 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
         public bool EnableMetrics { get; }
 
         public bool EnableMetricsUpload { get; }
+
+        public bool EnableUploadSupportBundle { get; }
     }
 }

@@ -120,6 +120,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     .SingleInstance();
             }
 
+            if (this.experimentalFeatures.EnableUploadSupportBundle)
+            {
+                // Task<IRequestHandler> - LogsUploadRequestHandler
+                builder.Register(
+                        async c =>
+                        {
+                            await Task.Yield();
+                            // var logsUploader = c.Resolve<ILogsUploader>();
+                            // var runtimeInfoProviderTask = c.Resolve<Task<IRuntimeInfoProvider>>();
+                            // var logsProviderTask = c.Resolve<Task<ILogsProvider>>();
+                            // IRuntimeInfoProvider runtimeInfoProvider = await runtimeInfoProviderTask;
+                            // ILogsProvider logsProvider = await logsProviderTask;
+                            return new SupportBundleRequestHandler() as IRequestHandler;
+                        })
+                    .As<Task<IRequestHandler>>()
+                    .SingleInstance();
+            }
+
             // Task<IRequestHandler> - RestartRequestHandler
             builder.Register(
                     async c =>
