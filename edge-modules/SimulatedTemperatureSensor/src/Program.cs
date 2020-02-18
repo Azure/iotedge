@@ -213,7 +213,15 @@ namespace SimulatedTemperatureSensor
                     eventMessage.Properties.Add("batchId", BatchId.ToString());
                     Console.WriteLine($"\t{DateTime.Now.ToLocalTime()}> Sending message: {count}, Body: [{dataBuffer}]");
 
-                    await moduleClient.SendEventAsync("temperatureOutput", eventMessage);
+                    try
+                    {
+                        await moduleClient.SendEventAsync("temperatureOutput", eventMessage);
+                    }
+                    catch (Exception e)
+                    {
+                      Console.WriteLine($"Exception caught while attempting moduleClient.SendEventAsync {e}");
+                    }
+
                     count++;
                 }
 
