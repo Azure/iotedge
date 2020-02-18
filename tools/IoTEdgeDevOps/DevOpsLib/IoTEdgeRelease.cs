@@ -9,20 +9,21 @@ namespace DevOpsLib
     public class IoTEdgeRelease
     {
         readonly int id;
-        readonly int definitionId;
+        readonly ReleaseDefinitionId definitionId;
         readonly string name;
+        readonly VstsReleaseStatus status;
         readonly Uri webUri;
         readonly HashSet<IoTEdgeReleaseEnvironment> environments;
 
         public IoTEdgeRelease(
             int id,
-            int definitionId,
+            ReleaseDefinitionId definitionId,
             string name,
+            VstsReleaseStatus status,
             Uri webUri,
             HashSet<IoTEdgeReleaseEnvironment> environments)
         {
             ValidationUtil.ThrowIfNonPositive(id, nameof(id));
-            ValidationUtil.ThrowIfNonPositive(definitionId, nameof(definitionId));
             ValidationUtil.ThrowIfNullOrWhiteSpace(name, nameof(name));
             ValidationUtil.ThrowIfNull(webUri, nameof(webUri));
             ValidationUtil.ThrowIfNull(environments, nameof(environments));
@@ -30,15 +31,18 @@ namespace DevOpsLib
             this.id = id;
             this.definitionId = definitionId;
             this.name = name;
+            this.status = status;
             this.webUri = webUri;
             this.environments = environments;
         }
 
         public int Id => this.id;
 
-        public int DefinitionId => this.definitionId;
+        public ReleaseDefinitionId DefinitionId => this.definitionId;
 
         public string Name => this.name;
+
+        public VstsReleaseStatus Status => this.status;
 
         public Uri WebUri => this.webUri;
 
@@ -49,9 +53,15 @@ namespace DevOpsLib
                 vstsRelease.Id,
                 vstsRelease.DefinitionId,
                 vstsRelease.Name,
+                vstsRelease.Status,
                 vstsRelease.WebUri,
                 vstsRelease.Environments.Select(IoTEdgeReleaseEnvironment.Create).ToHashSet()
             );
+
+        public bool HasResult()
+        {
+            return this.id > 0;
+        }
 
         public override bool Equals(object obj)
         {

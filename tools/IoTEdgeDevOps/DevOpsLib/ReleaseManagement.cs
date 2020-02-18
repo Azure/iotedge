@@ -41,7 +41,6 @@ namespace DevOpsLib
                 .SetQueryParam("definitionId", definitionId.IdString())
                 .SetQueryParam("queryOrder", "descending")
                 .SetQueryParam("$expand", "environments")
-                .SetQueryParam("statusFilter", "active")
                 .SetQueryParam("$top", top)
                 .SetQueryParam("api-version", "5.1")
                 .SetQueryParam("sourceBranchFilter", branchName)

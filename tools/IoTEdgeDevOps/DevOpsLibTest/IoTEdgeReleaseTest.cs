@@ -17,35 +17,17 @@ namespace DevOpsLibTest
                 () =>
                     new IoTEdgeRelease(
                         id,
-                        343406,
+                        ReleaseDefinitionId.E2ETest,
                         "test-release",
+                        VstsReleaseStatus.Active,
                         new Uri("http://abc.com/test/uri"),
                         new HashSet<IoTEdgeReleaseEnvironment>
                         {
-                            new IoTEdgeReleaseEnvironment(3423, 8790, VstsEnvironmentStatus.NotStarted),
-                            new IoTEdgeReleaseEnvironment(784, 23903, VstsEnvironmentStatus.InProgress)
+                            new IoTEdgeReleaseEnvironment(3423, 8790, "Any name", VstsEnvironmentStatus.NotStarted),
+                            new IoTEdgeReleaseEnvironment(784, 23903, "Any name", VstsEnvironmentStatus.InProgress)
                         }));
             Assert.True(ex.Message.StartsWith("Cannot be less than or equal to zero."));
             Assert.AreEqual("id", ex.ParamName);
-        }
-
-        [Test]
-        public void TestConstructorWithInvalidDefinitionId([Values(-1, 0)] int definitionId)
-        {
-            ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(
-                () =>
-                    new IoTEdgeRelease(
-                        3782954,
-                        definitionId,
-                        "test-release",
-                        new Uri("http://abc.com/test/uri"),
-                        new HashSet<IoTEdgeReleaseEnvironment>
-                        {
-                            new IoTEdgeReleaseEnvironment(3423, 8790, VstsEnvironmentStatus.NotStarted),
-                            new IoTEdgeReleaseEnvironment(784, 23903, VstsEnvironmentStatus.InProgress)
-                        }));
-            Assert.True(ex.Message.StartsWith("Cannot be less than or equal to zero."));
-            Assert.AreEqual("definitionId", ex.ParamName);
         }
 
         [Test]
@@ -55,13 +37,14 @@ namespace DevOpsLibTest
                 () =>
                     new IoTEdgeRelease(
                         3782954,
-                        7348,
+                        ReleaseDefinitionId.E2ETest,
                         name,
+                        VstsReleaseStatus.Active,
                         new Uri("http://abc.com/test/uri"),
                         new HashSet<IoTEdgeReleaseEnvironment>
                         {
-                            new IoTEdgeReleaseEnvironment(3423, 8790, VstsEnvironmentStatus.NotStarted),
-                            new IoTEdgeReleaseEnvironment(784, 23903, VstsEnvironmentStatus.InProgress)
+                            new IoTEdgeReleaseEnvironment(3423, 8790, "Any name", VstsEnvironmentStatus.NotStarted),
+                            new IoTEdgeReleaseEnvironment(784, 23903, "Any name", VstsEnvironmentStatus.InProgress)
                         }));
             Assert.True(ex.Message.StartsWith("Cannot be null or white space."));
             Assert.AreEqual("name", ex.ParamName);
@@ -74,13 +57,14 @@ namespace DevOpsLibTest
                 () =>
                     new IoTEdgeRelease(
                         3782954,
-                        7348,
+                        ReleaseDefinitionId.E2ETest,
                         "Relase-2378",
+                        VstsReleaseStatus.Active,
                         null,
                         new HashSet<IoTEdgeReleaseEnvironment>
                         {
-                            new IoTEdgeReleaseEnvironment(3423, 8790, VstsEnvironmentStatus.NotStarted),
-                            new IoTEdgeReleaseEnvironment(784, 23903, VstsEnvironmentStatus.InProgress)
+                            new IoTEdgeReleaseEnvironment(3423, 8790, "Any name", VstsEnvironmentStatus.NotStarted),
+                            new IoTEdgeReleaseEnvironment(784, 23903, "Any name", VstsEnvironmentStatus.InProgress)
                         }));
             Assert.True(ex.Message.StartsWith("Cannot be null."));
             Assert.AreEqual("webUri", ex.ParamName);
@@ -93,8 +77,9 @@ namespace DevOpsLibTest
                 () =>
                     new IoTEdgeRelease(
                         3782954,
-                        7348,
+                        ReleaseDefinitionId.E2ETest,
                         "Relase-2378",
+                        VstsReleaseStatus.Active,
                         new Uri("http://abc.com/test/uri"),
                         null));
             Assert.True(ex.Message.StartsWith("Cannot be null."));
@@ -106,17 +91,18 @@ namespace DevOpsLibTest
         {
             var release = new IoTEdgeRelease(
                 123213,
-                343406,
+                ReleaseDefinitionId.E2ETest,
                 "test-release",
+                VstsReleaseStatus.Active,
                 new Uri("http://abc.com/test/uri"),
                 new HashSet<IoTEdgeReleaseEnvironment>
                 {
-                    new IoTEdgeReleaseEnvironment(3423, 8790, VstsEnvironmentStatus.NotStarted),
-                    new IoTEdgeReleaseEnvironment(784, 23903, VstsEnvironmentStatus.InProgress)
+                    new IoTEdgeReleaseEnvironment(3423, 8790, "Any name", VstsEnvironmentStatus.NotStarted),
+                    new IoTEdgeReleaseEnvironment(784, 23903, "Any name", VstsEnvironmentStatus.InProgress)
                 });
 
             Assert.AreEqual(123213, release.Id);
-            Assert.AreEqual(343406, release.DefinitionId);
+            Assert.AreEqual(ReleaseDefinitionId.E2ETest, release.DefinitionId);
             Assert.AreEqual("test-release", release.Name);
             Assert.AreEqual("http://abc.com/test/uri", release.WebUri.AbsoluteUri);
             Assert.AreEqual(2, release.NumberOfEnvironments);
@@ -133,78 +119,85 @@ namespace DevOpsLibTest
         {
             var release1 = new IoTEdgeRelease(
                 123213,
-                343406,
+                ReleaseDefinitionId.E2ETest,
                 "test-release",
+                VstsReleaseStatus.Active,
                 new Uri("http://abc.com/test/uri"),
                 new HashSet<IoTEdgeReleaseEnvironment>
                 {
-                    new IoTEdgeReleaseEnvironment(3423, 8790, VstsEnvironmentStatus.NotStarted),
-                    new IoTEdgeReleaseEnvironment(784, 23903, VstsEnvironmentStatus.InProgress)
+                    new IoTEdgeReleaseEnvironment(3423, 8790, "Any name", VstsEnvironmentStatus.NotStarted),
+                    new IoTEdgeReleaseEnvironment(784, 23903, "Any name", VstsEnvironmentStatus.InProgress)
                 });
 
             var release2 = new IoTEdgeRelease(
                 123213,
-                343406,
+                ReleaseDefinitionId.E2ETest,
                 "test-release",
+                VstsReleaseStatus.Active,
                 new Uri("http://abc.com/test/uri"),
                 new HashSet<IoTEdgeReleaseEnvironment>
                 {
-                    new IoTEdgeReleaseEnvironment(3423, 8790, VstsEnvironmentStatus.NotStarted),
-                    new IoTEdgeReleaseEnvironment(784, 23903, VstsEnvironmentStatus.InProgress)
+                    new IoTEdgeReleaseEnvironment(3423, 8790, "Any name", VstsEnvironmentStatus.NotStarted),
+                    new IoTEdgeReleaseEnvironment(784, 23903, "Any name", VstsEnvironmentStatus.InProgress)
                 });
 
             var release3 = new IoTEdgeRelease(
                 2343,
-                343406,
+                ReleaseDefinitionId.E2ETest,
                 "test-release",
+                VstsReleaseStatus.Active,
                 new Uri("http://abc.com/test/uri"),
                 new HashSet<IoTEdgeReleaseEnvironment>
                 {
-                    new IoTEdgeReleaseEnvironment(3423, 8790, VstsEnvironmentStatus.NotStarted),
-                    new IoTEdgeReleaseEnvironment(784, 23903, VstsEnvironmentStatus.InProgress)
+                    new IoTEdgeReleaseEnvironment(3423, 8790, "Any name", VstsEnvironmentStatus.NotStarted),
+                    new IoTEdgeReleaseEnvironment(784, 23903, "Any name", VstsEnvironmentStatus.InProgress)
                 });
 
             var release4 = new IoTEdgeRelease(
                 123213,
-                788,
+                ReleaseDefinitionId.E2ETest,
                 "test-release",
+                VstsReleaseStatus.Active,
                 new Uri("http://abc.com/test/uri"),
                 new HashSet<IoTEdgeReleaseEnvironment>
                 {
-                    new IoTEdgeReleaseEnvironment(3423, 8790, VstsEnvironmentStatus.NotStarted),
-                    new IoTEdgeReleaseEnvironment(784, 23903, VstsEnvironmentStatus.InProgress)
+                    new IoTEdgeReleaseEnvironment(3423, 8790, "Any name", VstsEnvironmentStatus.NotStarted),
+                    new IoTEdgeReleaseEnvironment(784, 23903, "Any name", VstsEnvironmentStatus.InProgress)
                 });
 
             var release5 = new IoTEdgeRelease(
                 123213,
-                343406,
+                ReleaseDefinitionId.E2ETest,
                 "test-release342",
+                VstsReleaseStatus.Active,
                 new Uri("http://abc.com/test/uri"),
                 new HashSet<IoTEdgeReleaseEnvironment>
                 {
-                    new IoTEdgeReleaseEnvironment(3423, 8790, VstsEnvironmentStatus.NotStarted),
-                    new IoTEdgeReleaseEnvironment(784, 23903, VstsEnvironmentStatus.InProgress)
+                    new IoTEdgeReleaseEnvironment(3423, 8790, "Any name", VstsEnvironmentStatus.NotStarted),
+                    new IoTEdgeReleaseEnvironment(784, 23903, "Any name", VstsEnvironmentStatus.InProgress)
                 });
 
             var release6 = new IoTEdgeRelease(
                 123213,
-                343406,
+                ReleaseDefinitionId.E2ETest,
                 "test-release",
+                VstsReleaseStatus.Active,
                 new Uri("http://abc.com/test/uri/123123"),
                 new HashSet<IoTEdgeReleaseEnvironment>
                 {
-                    new IoTEdgeReleaseEnvironment(3423, 8790, VstsEnvironmentStatus.NotStarted),
-                    new IoTEdgeReleaseEnvironment(784, 23903, VstsEnvironmentStatus.InProgress)
+                    new IoTEdgeReleaseEnvironment(3423, 8790, "Any name", VstsEnvironmentStatus.NotStarted),
+                    new IoTEdgeReleaseEnvironment(784, 23903, "Any name", VstsEnvironmentStatus.InProgress)
                 });
 
             var release7 = new IoTEdgeRelease(
                 123213,
-                343406,
+                ReleaseDefinitionId.E2ETest,
                 "test-release",
+                VstsReleaseStatus.Active,
                 new Uri("http://abc.com/test/uri/123123"),
                 new HashSet<IoTEdgeReleaseEnvironment>
                 {
-                    new IoTEdgeReleaseEnvironment(3423, 8790, VstsEnvironmentStatus.NotStarted)
+                    new IoTEdgeReleaseEnvironment(3423, 8790, "Any name", VstsEnvironmentStatus.NotStarted)
                 });
 
             Assert.False(release1.Equals(null));
@@ -217,7 +210,7 @@ namespace DevOpsLibTest
             Assert.False(release1.Equals(new object()));
 
             Assert.False(release1.Equals(release3));
-            Assert.False(release1.Equals(release4));
+            Assert.True(release1.Equals(release4));
             Assert.False(release1.Equals(release5));
             Assert.False(release1.Equals(release6));
             Assert.False(release1.Equals(release7));
@@ -228,13 +221,14 @@ namespace DevOpsLibTest
         {
             var release = new IoTEdgeRelease(
                 123213,
-                343406,
+                ReleaseDefinitionId.E2ETest,
                 "test-release",
+                VstsReleaseStatus.Active,
                 new Uri("http://abc.com/test/uri"),
                 new HashSet<IoTEdgeReleaseEnvironment>
                 {
-                    new IoTEdgeReleaseEnvironment(3423, 8790, VstsEnvironmentStatus.NotStarted),
-                    new IoTEdgeReleaseEnvironment(784, 23903, VstsEnvironmentStatus.InProgress)
+                    new IoTEdgeReleaseEnvironment(3423, 8790, "Any name", VstsEnvironmentStatus.NotStarted),
+                    new IoTEdgeReleaseEnvironment(784, 23903, "Any name", VstsEnvironmentStatus.InProgress)
                 });
 
             Assert.AreEqual(123213, release.GetHashCode());
@@ -245,14 +239,15 @@ namespace DevOpsLibTest
         {
             var release = new IoTEdgeRelease(
                 123213,
-                343406,
+                ReleaseDefinitionId.E2ETest,
                 "test-release",
+                VstsReleaseStatus.Active,
                 new Uri("http://abc.com/test/uri"),
                 new HashSet<IoTEdgeReleaseEnvironment>
                 {
-                    new IoTEdgeReleaseEnvironment(3423, 8790, VstsEnvironmentStatus.NotStarted),
-                    new IoTEdgeReleaseEnvironment(784, 23903, VstsEnvironmentStatus.InProgress),
-                    new IoTEdgeReleaseEnvironment(38934, 23903, VstsEnvironmentStatus.Succeeded)
+                    new IoTEdgeReleaseEnvironment(3423, 8790, "Any name", VstsEnvironmentStatus.NotStarted),
+                    new IoTEdgeReleaseEnvironment(784, 23903, "Any name", VstsEnvironmentStatus.InProgress),
+                    new IoTEdgeReleaseEnvironment(38934, 23903, "Any name", VstsEnvironmentStatus.Succeeded)
                 });
 
             Assert.AreEqual(3423, release.GetEnvironment(8790).Id);
