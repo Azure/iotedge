@@ -14,6 +14,7 @@ jobs:
     timeoutInMinutes: 180
     strategy:
       matrix:
+        outer pre: before
         Online:
           testrun.config: 1
           testrun.network.runProfile: "Online"
@@ -62,6 +63,7 @@ jobs:
           testrun.network.runProfile: "Cellular3G"
           testrun.duration: "01:00:00"
           deploymentFileName: ${{ item }}
+        outer post: after
         loop: {{ $('deploymentFileNames') }}
     pool:
       name: $(pool.name)
