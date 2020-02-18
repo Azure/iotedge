@@ -14,6 +14,7 @@ namespace MetricsValidator.Tests
     using MetricsValidator.Util;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
+    using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
@@ -39,6 +40,14 @@ namespace MetricsValidator.Tests
             if (RuntimeInformation.OSArchitecture == Architecture.Arm || RuntimeInformation.OSArchitecture == Architecture.Arm64)
             {
                 // Docker doesn't return this on arm
+                expected.Remove("edgeAgent_created_pids_total");
+            }
+
+            if (OsPlatform.IsWindows())
+            {
+                // EdgeAgent doesn't return this on windows; see bug 6078740
+                expected.Remove("edgeAgent_available_disk_space_bytes");
+                expected.Remove("edgeAgent_total_disk_space_bytes");
                 expected.Remove("edgeAgent_created_pids_total");
             }
 
