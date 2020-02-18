@@ -3,8 +3,6 @@
 namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
-    using System.Collections.Generic;
-    using System.Text;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
 
