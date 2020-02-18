@@ -6,9 +6,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
 
-    public static class ConfigurationExtensions
+    public static class ConfigurationEx
     {
-        static readonly ILogger Log = Logger.Factory.CreateLogger(typeof(ConfigurationExtensions));
+        static readonly ILogger Log = Logger.Factory.CreateLogger(typeof(ConfigurationEx));
 
         public static TimeSpan GetTimeSpan(this IConfiguration configuration, string key, TimeSpan defaultValue)
         {
