@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace DevOpsLib
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
@@ -38,25 +39,62 @@ namespace DevOpsLib
 
             // TODO: need to think about how to handle unexpected exception during REST API call
             string requestPath = string.Format(LatestBuildPathSegmentFormat, this.accessSetting.Organization, this.accessSetting.Project);
-            IFlurlRequest latestBuildRequest = DevOpsAccessSetting.BaseUrl
-                .AppendPathSegment(requestPath)
-                .SetQueryParam("definitions", string.Join(",", buildDefinitionIds.Select(b => b.IdString())))
-                .SetQueryParam("queryOrder", "finishTimeDescending")
-                .SetQueryParam("maxBuildsPerDefinition", "1")
-                .SetQueryParam("api-version", "5.1")
-                .SetQueryParam("branchName", branchName)
+            IFlurlRequest latestBuildRequest = GetBuildsRequestUri(buildDefinitionIds, branchName, requestPath, null, 1)
                 .WithBasicAuth(string.Empty, this.accessSetting.PersonalAccessToken);
 
             string resultJson = await latestBuildRequest.GetStringAsync().ConfigureAwait(false);
             JObject result = JObject.Parse(resultJson);
 
-            if (!result.ContainsKey("count") || (int) result["count"] <= 0)
+            if (!result.ContainsKey("count") || (int)result["count"] <= 0)
             {
                 return buildDefinitionIds.Select(i => VstsBuild.CreateBuildWithNoResult(i, branchName)).ToList();
             }
 
             Dictionary<BuildDefinitionId, VstsBuild> latestBuilds = JsonConvert.DeserializeObject<VstsBuild[]>(result["value"].ToString()).ToDictionary(b => b.DefinitionId, b => b);
             return buildDefinitionIds.Select(i => latestBuilds.ContainsKey(i) ? latestBuilds[i] : VstsBuild.CreateBuildWithNoResult(i, branchName)).ToList();
+        }
+
+        public async Task<IList<VstsBuild>> GetBuildsAsync(HashSet<BuildDefinitionId> buildDefinitionIds, string branchName, DateTime? minTime = null, int? maxBuildsPerDefinition = null)
+        {
+            ValidationUtil.ThrowIfNulOrEmptySet(buildDefinitionIds, nameof(buildDefinitionIds));
+            ValidationUtil.ThrowIfNullOrWhiteSpace(branchName, nameof(branchName));
+
+            // TODO: need to think about how to handle unexpected exception during REST API call
+            string requestPath = string.Format(LatestBuildPathSegmentFormat, this.accessSetting.Organization, this.accessSetting.Project);
+            IFlurlRequest latestBuildRequest = GetBuildsRequestUri(buildDefinitionIds, branchName, requestPath, minTime, maxBuildsPerDefinition)
+                .WithBasicAuth(string.Empty, this.accessSetting.PersonalAccessToken);
+
+            string resultJson = await latestBuildRequest.GetStringAsync().ConfigureAwait(false);
+            JObject result = JObject.Parse(resultJson);
+
+            if (!result.ContainsKey("count") || (int)result["count"] <= 0)
+            {
+                return buildDefinitionIds.Select(i => VstsBuild.CreateBuildWithNoResult(i, branchName)).ToList();
+            }
+
+            return JsonConvert.DeserializeObject<VstsBuild[]>(result["value"].ToString()).ToList();
+        }
+
+        private static Url GetBuildsRequestUri(HashSet<BuildDefinitionId> buildDefinitionIds, string branchName, string requestPath, DateTime? minTime, int? maxBuildsPerDefinition)
+        {
+            Url requestUri = DevOpsAccessSetting.BaseUrl
+                .AppendPathSegment(requestPath)
+                .SetQueryParam("definitions", string.Join(",", buildDefinitionIds.Select(b => b.IdString())))
+                .SetQueryParam("queryOrder", "finishTimeDescending")                
+                .SetQueryParam("api-version", "5.1")
+                .SetQueryParam("branchName", branchName);
+
+            if (maxBuildsPerDefinition.HasValue)
+            {
+                requestUri = requestUri.SetQueryParam("maxBuildsPerDefinition", $"{maxBuildsPerDefinition.Value}");
+            }
+
+            if (minTime.HasValue)
+            {
+                requestUri = requestUri.SetQueryParam("minTime", minTime.Value.ToString("o"));
+            }
+
+            return requestUri;
         }
     }
 }
