@@ -48,13 +48,10 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             if (additionalCACertificates.HasValue)
             {
-                Console.WriteLine($"******** have additional CA Certs");
                 foreach (X509Certificate2 additionalCertificate in additionalCACertificates.GetOrElse(new List<X509Certificate2>()))
                 {
-                    Console.WriteLine($"******** additional Cert: [{additionalCertificate.Subject}]");
                     if (additionalCertificate != null)
                     {
-                        Console.WriteLine($"******** additional Cert: Add Extra Store: {additionalCertificate.FriendlyName}");
                         chain.ChainPolicy.ExtraStore.Add(additionalCertificate);
                     }
                 }
@@ -62,12 +59,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             try
             {
-                Console.WriteLine($"******** building cert chain start from {cert.SubjectName.Name}, {cert.Subject}, {cert.FriendlyName}");
                 bool chainBuildSucceeded = chain.Build(cert);
-                Console.WriteLine($"******** building cert chain result: {chainBuildSucceeded}");
                 X509ChainStatusFlags flags = X509ChainStatusFlags.UntrustedRoot | X509ChainStatusFlags.PartialChain;
                 List<X509ChainStatus> filteredStatus = chain.ChainStatus.Where(cs => !flags.HasFlag(cs.Status)).ToList();
-                Console.WriteLine($"******** building cert chain filter count: {filteredStatus.Count}");
                 if (!chainBuildSucceeded || filteredStatus.Count > 0)
                 {
                     string errors = $"Certificate with subject: {cert.Subject} failed with errors: ";
@@ -98,7 +92,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
             (IList<X509Certificate2> remoteCerts, Option<string> errors) = BuildCertificateList(remoteCertificate, Option.Some(remoteCertificateChain));
             if (errors.HasValue)
             {
-                Console.WriteLine($"******* GetCertificatesFromChain has errors");
                 return (false, errors);
             }
 
@@ -106,10 +99,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     caList =>
                     {
                         bool match = false;
-                        Console.WriteLine($"******* Remote cert count: {remoteCerts.Count}");
                         foreach (X509Certificate2 chainElement in remoteCerts)
                         {
-                            Console.WriteLine($"******* GetSha256Thumbprint: {chainElement.SubjectName.Name}, {chainElement.Subject}, {chainElement.FriendlyName}");
                             string thumbprint = GetSha256Thumbprint(chainElement);
                             if (remoteCertificateChain.Any(cert => GetSha256Thumbprint(cert) == thumbprint) &&
                                 caList.Any(cert => GetSha256Thumbprint(cert) == thumbprint))
