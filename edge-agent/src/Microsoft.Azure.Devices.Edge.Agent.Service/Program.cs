@@ -116,7 +116,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 int idleTimeoutSecs = configuration.GetValue(Constants.IdleTimeoutSecs, 300);
                 TimeSpan idleTimeout = TimeSpan.FromSeconds(idleTimeoutSecs);
                 ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
-                Option<ulong> storageTotalMaxWalSize = GetStorageMaxTotalWalSizeIfExists(configuration);
+                Option<ulong> storageTotalMaxWalSize = GetStorageConfigIfExists(Constants.StorageMaxTotalWalSize, configuration);
+                Option<ulong> storageMaxLogFileNum = GetStorageConfigIfExists(Constants.StorageMaxLogFileNum, configuration);
+                Option<ulong> storageMaxLogFileSize = GetStorageConfigIfExists(Constants.StorageMaxLogFileSize, configuration);
                 metricsConfig = new MetricsConfig(experimentalFeatures.EnableMetrics, MetricsListenerConfig.Create(configuration));
                 string iothubHostname;
                 string deviceId;
@@ -130,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         IotHubConnectionStringBuilder connectionStringParser = IotHubConnectionStringBuilder.Create(deviceConnectionString);
                         deviceId = connectionStringParser.DeviceId;
                         iothubHostname = connectionStringParser.HostName;
-                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, storageTotalMaxWalSize));
+                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, storageTotalMaxWalSize, storageMaxLogFileNum, storageMaxLogFileSize));
                         builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat));
                         break;
 
@@ -143,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
                         apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
                         TimeSpan performanceMetricsUpdateFrequency = configuration.GetValue("PerformanceMetricsUpdateFrequency", TimeSpan.FromSeconds(30));
-                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), storageTotalMaxWalSize));
+                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), storageTotalMaxWalSize, storageMaxLogFileNum, storageMaxLogFileSize));
                         builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, performanceMetricsUpdateFrequency, useServerHeartbeat));
 
                         IEnumerable<X509Certificate2> trustBundle = await CertificateHelper.GetTrustBundleFromEdgelet(new Uri(workloadUri), apiVersion, Constants.WorkloadApiVersion, moduleId, moduleGenerationId);
@@ -320,19 +322,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             return localConfigPath;
         }
 
-        static Option<ulong> GetStorageMaxTotalWalSizeIfExists(IConfiguration configuration)
+        static Option<ulong> GetStorageConfigIfExists(string fieldName, IConfiguration configuration)
         {
-            ulong storageMaxTotalWalSize = 0;
+            ulong storageParamValue = 0;
             try
             {
-                storageMaxTotalWalSize = configuration.GetValue<ulong>(Constants.StorageMaxTotalWalSize);
+                storageParamValue = configuration.GetValue<ulong>(fieldName);
             }
             catch
             {
                 // ignored
             }
 
-            return storageMaxTotalWalSize <= 0 ? Option.None<ulong>() : Option.Some(storageMaxTotalWalSize);
+            return storageParamValue <= 0 ? Option.None<ulong>() : Option.Some(storageParamValue);
         }
 
         static void LogLogo(ILogger logger)

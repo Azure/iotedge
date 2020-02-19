@@ -31,9 +31,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string moduleId;
         readonly Option<string> moduleGenerationId;
         readonly Option<ulong> storageTotalMaxWalSize;
+        readonly Option<ulong> storageMaxLogFileNum;
+        readonly Option<ulong> storageMaxLogFileSize;
 
-        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, bool usePersistentStorage, string storagePath, Option<ulong> storageTotalMaxWalSize)
-            : this(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.None<Uri>(), Option.None<string>(), Constants.EdgeAgentModuleIdentityName, Option.None<string>(), storageTotalMaxWalSize)
+        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, bool usePersistentStorage, string storagePath, Option<ulong> storageTotalMaxWalSize, Option<ulong> storageMaxLogFileNum, Option<ulong> storageMaxLogFileSize)
+            : this(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.None<Uri>(), Option.None<string>(), Constants.EdgeAgentModuleIdentityName, Option.None<string>(), storageTotalMaxWalSize, storageMaxLogFileNum, storageMaxLogFileSize)
         {
         }
 
@@ -47,7 +49,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             Option<string> workloadApiVersion,
             string moduleId,
             Option<string> moduleGenerationId,
-            Option<ulong> storageTotalMaxWalSize)
+            Option<ulong> storageTotalMaxWalSize,
+            Option<ulong> storageMaxLogFileNum,
+            Option<ulong> storageMaxLogFileSize)
         {
             this.maxRestartCount = maxRestartCount;
             this.intensiveCareTime = intensiveCareTime;
@@ -59,6 +63,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.moduleId = moduleId;
             this.moduleGenerationId = moduleGenerationId;
             this.storageTotalMaxWalSize = storageTotalMaxWalSize;
+            this.storageMaxLogFileNum = storageMaxLogFileNum;
+            this.storageMaxLogFileSize = storageMaxLogFileSize;
         }
 
         static Dictionary<Type, IDictionary<string, Type>> DeploymentConfigTypeMapping
@@ -135,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // IRocksDbOptionsProvider
             // For EdgeAgent, we don't need high performance from RocksDb, so always turn off optimizeForPerformance
-            builder.Register(c => new RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), false, this.storageTotalMaxWalSize))
+            builder.Register(c => new RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), false, this.storageTotalMaxWalSize, this.storageMaxLogFileNum, this.storageMaxLogFileSize))
                 .As<IRocksDbOptionsProvider>()
                 .SingleInstance();
 

@@ -122,6 +122,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     this.trustBundle,
                     string.Empty,
                     metricsConfig,
+                    Option.None<ulong>(),
+                    Option.None<ulong>(),
                     Option.None<ulong>()));
 
             builder.RegisterModule(

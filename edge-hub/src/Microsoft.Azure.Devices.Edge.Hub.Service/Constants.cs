@@ -28,6 +28,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             public const string EdgeHubDevTrustBundleFile = "EdgeHubDevTrustBundleFile";
             public const string EdgeHubClientCertAuthEnabled = "ClientCertAuthEnabled";
             public const string StorageMaxTotalWalSize = "RocksDB_MaxTotalWalSize";
+            public const string StorageMaxLogFileNum = "Storage_MaxLogFileNum";
+            public const string StorageMaxLogFileSize = "Storage_MaxLogFileSize";
         }
     }
 }
