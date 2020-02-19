@@ -8,5 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 
     public class SupportBundleRequest
     {
+        public string Command { get; set; }
     }
 }
