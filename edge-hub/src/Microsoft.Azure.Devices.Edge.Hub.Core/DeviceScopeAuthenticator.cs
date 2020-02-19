@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -12,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     public abstract class DeviceScopeAuthenticator<T> : IAuthenticator
         where T : IClientCredentials
     {
+        readonly ILogger logger = Logger.Factory.CreateLogger<DeviceScopeAuthenticator<T>>();
         readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
         readonly IAuthenticator underlyingAuthenticator;
         readonly bool allowDeviceAuthForModule;
@@ -34,6 +36,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             if (!(clientCredentials is T tCredentials))
             {
                 return false;
+            }
+
+            this.logger.LogDebug($"********** DeviceScopeAuthenticator.AuthenticateAsync: {typeof(T)}");
+            var cred = tCredentials as ICertificateCredentials;
+            if (cred != null)
+            {
+                this.logger.LogDebug($"********** DeviceScopeAuthenticator.AuthenticateAsync: number of cert chain={cred.ClientCertificateChain.Count}");
+                foreach (X509Certificate2 c in cred.ClientCertificateChain)
+                {
+                    try
+                    {
+                        this.logger.LogDebug($"********** DeviceScopeAuthenticator.AuthenticateAsync: cert friendlyName={c.FriendlyName}");
+                        this.logger.LogDebug($"********** DeviceScopeAuthenticator.AuthenticateAsync: cert Subject={c.Subject}");
+                    }
+                    catch (Exception)
+                    {
+                        this.logger.LogDebug("********** DeviceScopeAuthenticator.AuthenticateAsync: Can't print cert's property in chain for debug.");
+                    }
+                }
             }
 
             (bool isAuthenticated, bool shouldFallback) = await this.AuthenticateInternalAsync(tCredentials, false);

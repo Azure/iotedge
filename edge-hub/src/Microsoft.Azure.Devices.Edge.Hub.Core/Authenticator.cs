@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public class Authenticator : IAuthenticator
     {
+        readonly ILogger logger = Logger.Factory.CreateLogger<Authenticator>();
         readonly IAuthenticator tokenAuthenticator;
         readonly IAuthenticator certificateAuthenticator;
         readonly ICredentialsCache credentialsCache;
@@ -35,6 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task<bool> AuthenticateAsync(IClientCredentials clientCredentials, bool reAuthenticating)
         {
+            this.logger.LogDebug($"********** Authenticator.AuthenticateAsync: auth type={clientCredentials.AuthenticationType}");
             Preconditions.CheckNotNull(clientCredentials);
 
             bool isAuthenticated;

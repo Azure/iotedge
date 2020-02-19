@@ -208,6 +208,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                         .Select(element => element.Certificate)
                         .ToList()
                     ?? new List<X509Certificate2>();
+
+                this.logger.LogDebug($"********** RemoteCertificateValidationCallback: number of cert chain={certChain.Count}");
+                foreach (X509Certificate2 c in certChain)
+                {
+                    try
+                    {
+                        this.logger.LogDebug($"********** RemoteCertificateValidationCallback: cert friendlyName={c.FriendlyName}");
+                        this.logger.LogDebug($"********** RemoteCertificateValidationCallback: cert Subject={c.Subject}");
+                    }
+                    catch (Exception)
+                    {
+                        this.logger.LogDebug("********** RemoteCertificateValidationCallback: Can't print cert's property in chain for debug.");
+                    }
+                }
+
                 identityProvider.RegisterConnectionCertificate(new X509Certificate2(certificate), certChain);
             }
 

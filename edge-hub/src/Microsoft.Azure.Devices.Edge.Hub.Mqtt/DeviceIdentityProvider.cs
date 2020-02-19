@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     {
         const string ApiVersionKey = "api-version";
         const string DeviceClientTypeKey = "DeviceClientType";
+        readonly ILogger logger = Logger.Factory.CreateLogger<DeviceIdentityProvider>();
         readonly IAuthenticator authenticator;
         readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly bool clientCertAuthAllowed;
@@ -59,6 +60,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     {
                         Events.CertAuthNotEnabled(deviceId, moduleId);
                         return UnauthenticatedDeviceIdentity.Instance;
+                    }
+
+                    this.logger.LogDebug($"********** DeviceIdentityProvider.GetAsync: number of cert chain={this.remoteCertificateChain.Count}");
+                    foreach (X509Certificate2 c in this.remoteCertificateChain)
+                    {
+                        try
+                        {
+                            this.logger.LogDebug($"********** DeviceIdentityProvider.GetAsync: cert friendlyName={c.FriendlyName}");
+                            this.logger.LogDebug($"********** DeviceIdentityProvider.GetAsync: cert Subject={c.Subject}");
+                        }
+                        catch (Exception)
+                        {
+                            this.logger.LogDebug("********** DeviceIdentityProvider.GetAsync: Can't print cert's property in chain for debug.");
+                        }
                     }
 
                     this.remoteCertificate.ForEach(
