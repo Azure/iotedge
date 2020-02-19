@@ -31,7 +31,8 @@ namespace MetricsValidator.Tests
         protected override async Task Test(CancellationToken cancellationToken)
         {
             await this.SeedMetrics(cancellationToken);
-            await HostMetricUtil.WaitForHostMetrics(this.scraper, cancellationToken);
+            bool hostMetricsFound = await HostMetricUtil.WaitForHostMetrics(this.scraper, cancellationToken);
+            this.testReporter.Assert("Host Metrics Found", hostMetricsFound);
 
             // scrape metrics
             var metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);

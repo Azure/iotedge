@@ -38,7 +38,7 @@ namespace MetricsValidator
                     .Build();
 
                 using (ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
-                    configuration.GetValue("ClientTransportType", Microsoft.Azure.Devices.Client.TransportType.Amqp_Tcp_Only),
+                    configuration.GetValue("ClientTransportType", Microsoft.Azure.Devices.Client.TransportType.Mqtt),
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger))
