@@ -63,6 +63,8 @@ jobs:
 
       - pwsh: |
           ../a/core-linux/scripts/KpiGenerator.ps1 -TestId $(testTrackingId) -User $(LogAnalyticSpUser) -Password $(LogAnalyticSpPassword) -Tenant $(LogAnalyticSpTenant)
+        displayName: 'Create KPI Alerts'
+
       # Deploy connectivity test
       # - template: templates/connectivity-deploy.yaml
       #   parameters:
@@ -94,11 +96,8 @@ jobs:
       #     metricsCollector.hostPlatform: 'linux_amd64_moby'
       #     testTrackingId: '$(testTrackingId)'
       - pwsh: |
-          .\scripts\CheckKpiAlerts.ps1 -User $UserName -Password $Password -Tenant $Tenant
-        env:
-          UserName: '$(kvLogAnalyticSpUser)'
-          Password: '$(kvLogAnalyticSpPassword)'
-          Tenant: '$(kvLogAnalyticSpTenant)'
+          .\scripts\CheckKpiAlerts.ps1 -User $(LogAnalyticSpUser) -Password $(LogAnalyticSpPassword) -Tenant $(LogAnalyticSpTenant)
+        displayName: 'Check KPI Alerts'
 
 ################################################################################
   - job: linux_arm32v7_moby
