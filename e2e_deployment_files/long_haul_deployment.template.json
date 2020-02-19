@@ -394,13 +394,13 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-                "logAnalyticsWorkspaceId": {
+                "LogAnalyticsWorkspaceId": {
                     "value": "<LogAnalyticsWorkspaceId>"
                 },
-                "logAnalyticsSharedKey": {
+                "LogAnalyticsSharedKey": {
                     "value": "<LogAnalyticsSharedKey>"
                 },
-                "logAnalyticsLogType": {
+                "LogAnalyticsLogType": {
                   "value": "testMetrics"
                 },
                 "MetricsEndpointsCSV": {
@@ -441,6 +441,7 @@
     },
     "metricsCollector": {
       "properties.desired": {
+        "hostPlatform": "<MetricsCollector.HostPlatform>",
         "testType": "longhaul",
         "testId": "<TrackingId>",
         "upstreamProtocol": "amqp"

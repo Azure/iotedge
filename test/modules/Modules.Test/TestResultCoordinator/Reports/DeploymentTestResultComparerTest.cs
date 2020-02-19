@@ -5,8 +5,10 @@ namespace Modules.Test.TestResultCoordinator.Reports
     using System.Collections.Generic;
     using global::TestResultCoordinator.Reports;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
+    [Unit]
     public class DeploymentTestResultComparerTest
     {
         static string expectedResultA = "{ \"TrackingId\": \"fb0f0a8b-d420-4dd1-8fbb-639e2e5d3863\", \"EnvironmentVariables\": { \"Env_Key1\": \"Evn_Value1\", \"Env_Key2\": \"Evn_Value2\" }, \"Source\": \"source1\", \"ResultType\": 6, \"CreatedAt\": \"2020-01-03T19:28:17Z\" }";

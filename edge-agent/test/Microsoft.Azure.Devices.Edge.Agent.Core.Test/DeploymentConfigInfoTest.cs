@@ -3,8 +3,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
+    [Unit]
     public class DeploymentConfigInfoTest
     {
         static readonly IEdgeAgentModule TestEdgeAgent1 = new TestAgentModule(

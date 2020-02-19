@@ -5,8 +5,8 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
 
     public class MessageTestResult : TestResultBase
     {
-        public MessageTestResult(string source, DateTime createdAt)
-            : base(source, TestOperationResultType.Messages, createdAt)
+        public MessageTestResult(string source, DateTime createdAt, TestOperationResultType testOperationResultType = TestOperationResultType.Messages)
+            : base(source, testOperationResultType, createdAt)
         {
         }
 

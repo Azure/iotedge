@@ -131,6 +131,12 @@
     .PARAMETER MetricsUploadTarget
         Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics. 
 
+    .PARAMETER HostPlatform
+         Describes the host OS and cpu architecture. This information is added to scraped metrics.
+
+    .PARAMETER InitializeWithAgentArtifact
+         Boolean specifying if the iotedge installation should initialize edge agent with the official 1.0 image or the desired artifact. If false, the deployment after installation will start the desired agent artifact.
+
     .EXAMPLE
         .\Run-E2ETest.ps1
             -E2ETestFolder "C:\Data\e2etests"
@@ -315,6 +321,10 @@ Param (
     [string] $TwinUpdateFrequency = $null,
 
     [string] $TwinUpdateFailureThreshold = $null,
+
+    [string] $HostPlatform = $null,
+
+    [string] $InitializeWithAgentArtifact = "false",
 
     [switch] $BypassEdgeInstallation
 )
@@ -508,6 +518,7 @@ Function PrepareTestFromArtifacts
                 (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.MetricsEndpointsCSV>',$MetricsEndpointsCSV) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.ScrapeFrequencyInSecs>',$MetricsScrapeFrequencyInSecs) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.UploadTarget>',$MetricsUploadTarget) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $HostPlatform).replace('<MetricsCollector.HostPlatform>',$HostPlatform) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.AlertUrl>',$SnitchAlertUrl) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildNumber>',$SnitchBuildNumber) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildId>',"$ReleaseLabel-$(GetImageArchitectureLabel)-windows-$escapedBuildId") | Set-Content $DeploymentWorkingFilePath
@@ -762,6 +773,7 @@ Function RunDirectMethodAmqpTest
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`" ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -795,6 +807,7 @@ Function RunDirectMethodAmqpMqttTest
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`" ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -828,6 +841,7 @@ Function RunDirectMethodMqttTest
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`" ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -861,6 +875,7 @@ Function RunDirectMethodMqttAmqpTest
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`" ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -900,6 +915,7 @@ Function RunDpsProvisioningTest
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`" ``
             --dps-scope-id `"$DpsScopeId`" ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
 
     switch ($provisioningType) {
@@ -969,6 +985,7 @@ Function RunQuickstartCertsTest
         --optimize_for_performance=`"$OptimizeForPerformance`" ``
         --leave-running=All ``
         --no-verify ``
+        --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
         $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -1021,6 +1038,7 @@ Function RunLongHaulTest
             -l `"$DeploymentWorkingFilePath`" ``
             --runtime-log-level `"Info`" ``
             --no-verify ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
@@ -1052,6 +1070,7 @@ Function RunStressTest
             -l `"$DeploymentWorkingFilePath`" ``
             --runtime-log-level `"Info`" ``
             --no-verify ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
@@ -1080,6 +1099,7 @@ Function RunTempFilterTest
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"tempFilter`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`" ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -1119,6 +1139,7 @@ Function RunTempFilterFunctionsTest
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"tempFilterFunctions`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`" ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -1153,6 +1174,7 @@ Function RunTempSensorTest
         -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
         -tw `"$TwinTestFileArtifactFilePath`" ``
         --optimize_for_performance=`"$OptimizeForPerformance`" ``
+        --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
         $BypassInstallationFlag"
 
     If ($ProxyUri) {
@@ -1310,6 +1332,7 @@ Function RunTransparentGatewayTest
         --optimize_for_performance=`"$OptimizeForPerformance`" ``
         --leave-running=All ``
         --no-verify ``
+        --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
         $BypassInstallationFlag"
 
     If ($ProxyUri) {
@@ -1495,6 +1518,7 @@ Function ValidateTestParameters
         If ([string]::IsNullOrEmpty($SnitchAlertUrl)) {Throw "Required snith alert URL."}
         If ([string]::IsNullOrEmpty($SnitchStorageAccount)) {Throw "Required snitch storage account."}
         If ([string]::IsNullOrEmpty($SnitchStorageMasterKey)) {Throw "Required snitch storage master key."}
+        If ([string]::IsNullOrEmpty($HostPlatform)) {Throw "Required host platform."}
         If ($ProxyUri) {Throw "Proxy not supported for $TestName test"}
     }
 }

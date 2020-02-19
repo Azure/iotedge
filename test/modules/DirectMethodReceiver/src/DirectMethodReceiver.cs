@@ -3,6 +3,7 @@ namespace DirectMethodReceiver
 {
     using System;
     using System.Net;
+    using System.Reflection;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
@@ -43,10 +44,18 @@ namespace DirectMethodReceiver
 
         async Task<MethodResponse> HelloWorldMethodAsync(MethodRequest methodRequest, object userContext)
         {
-            this.logger.LogInformation($"Received direct method call: {methodRequest.DataAsJson}");
-            JToken payload = JToken.Parse(methodRequest.DataAsJson);
-            // Send the report to Test Result Coordinator
-            await this.ReportTestResult(payload["DirectMethodCount"].ToString());
+            try
+            {
+                this.logger.LogInformation($"Received direct method call: {methodRequest.DataAsJson}");
+                JToken payload = JToken.Parse(methodRequest.DataAsJson);
+                // Send the report to Test Result Coordinator
+                await this.ReportTestResult(payload["DirectMethodCount"].ToString());
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"Exception thrown from {nameof(this.HelloWorldMethodAsync)} method");
+            }
+
             return new MethodResponse((int)HttpStatusCode.OK);
         }
 

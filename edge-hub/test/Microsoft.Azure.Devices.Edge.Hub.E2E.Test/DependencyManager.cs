@@ -181,6 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     TimeSpan.FromSeconds(3600),
                     true,
                     TimeSpan.FromSeconds(20),
+                    false,
                     Option.None<TimeSpan>(),
                     Option.None<TimeSpan>(),
                     false,

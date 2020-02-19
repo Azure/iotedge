@@ -5,8 +5,10 @@ namespace Modules.Test.TestResultCoordinator.Reports
     using System.Collections.Generic;
     using global::TestResultCoordinator.Reports;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
+    [Unit]
     public class CountingReportTest
     {
         [Fact]

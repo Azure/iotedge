@@ -7,6 +7,7 @@ namespace NetworkController
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
 
     class NetworkStatusReporter : INetworkStatusReporter
@@ -34,7 +35,23 @@ namespace NetworkController
                 TrackingId = this.trackingId
             };
 
-            return ModuleUtil.ReportTestResultAsync(this.testResultReportingClient, Log, testResult);
+            return ExecuteWithRetry(
+                () => ModuleUtil.ReportTestResultAsync(
+                    this.testResultReportingClient, Log, testResult),
+                RetryingReportTestResult);
         }
+
+        static Task ExecuteWithRetry(Func<Task> func, Action<RetryingEventArgs> onRetry)
+        {
+            var transientRetryPolicy = RetryPolicy.DefaultExponential;
+            transientRetryPolicy.Retrying += (_, args) => onRetry(args);
+            return transientRetryPolicy.ExecuteAsync(func);
+        }
+
+        static void RetryingReportTestResult(RetryingEventArgs retryingEventArgs)
+        {
+            Log.LogDebug($"Retrying ReportTestResult {retryingEventArgs.CurrentRetryCount} times because of error - {retryingEventArgs.LastException}");
+        }
+
     }
 }

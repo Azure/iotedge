@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.ModuleUtil
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
@@ -56,16 +57,28 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             return new LoggerFactory().AddSerilog().CreateLogger(categoryName);
         }
 
-        public static async Task ReportTestResultAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult)
+        public static async Task ReportTestResultAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult, CancellationToken cancellationToken = default(CancellationToken))
         {
-            try
+            logger.LogInformation($"Sending test result: Source={testResult.Source}, Type={testResult.ResultType}, CreatedAt={testResult.CreatedAt}, Result={testResult.GetFormattedResult()}");
+            await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto(), cancellationToken);
+        }
+
+        // TODO: Remove this function once the TRC support the two new endpoint properly.
+        public static async Task ReportTestResultUntilSuccessAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult, CancellationToken cancellationToken)
+        {
+            bool isSuccessful = false;
+            while (!isSuccessful && !cancellationToken.IsCancellationRequested)
             {
-                logger.LogInformation($"Sending test result: Source={testResult.Source}, Type={testResult.ResultType}, CreatedAt={testResult.CreatedAt}, Result={testResult.GetFormattedResult()}");
-                await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto());
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Failed call to report status to TestResultCoordinator");
+                try
+                {
+                    logger.LogInformation($"Sending test result: Source={testResult.Source}, Type={testResult.ResultType}, CreatedAt={testResult.CreatedAt}, Result={testResult.GetFormattedResult()}");
+                    await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto(), cancellationToken);
+                    isSuccessful = true;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogDebug(ex, "Exception caught in ReportTestResultAsync()");
+                }
             }
         }
 

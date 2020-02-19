@@ -7,18 +7,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using Akka.Streams.Implementation.Fusing;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Moq;
     using Xunit;
-    using Xunit.Sdk;
 
+    [Unit]
     public class MetricsWorkerTest : IDisposable
     {
         TempDirectory tempDirectory = new TempDirectory();

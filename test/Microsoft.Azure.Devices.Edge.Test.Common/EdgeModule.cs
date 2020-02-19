@@ -92,23 +92,31 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return WaitForStatusAsync(new[] { this }, desired, token);
         }
 
-        public Task WaitForEventsReceivedAsync(DateTime seekTime, CancellationToken token)
+        public Task<string> WaitForEventsReceivedAsync(DateTime seekTime, CancellationToken token, params string[] requiredProperties)
         {
             return Profiler.Run(
-                () => this.iotHub.ReceiveEventsAsync(
-                    this.deviceId,
-                    seekTime,
-                    data =>
-                    {
-                        data.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
-                        data.SystemProperties.TryGetValue("iothub-connection-module-id", out object modId);
+                async () =>
+                {
+                    string resultBody = null;
+                    await this.iotHub.ReceiveEventsAsync(
+                        this.deviceId,
+                        seekTime,
+                        data =>
+                        {
+                            data.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
+                            data.SystemProperties.TryGetValue("iothub-connection-module-id", out object modId);
 
-                        Log.Verbose($"Received event for '{devId}/{modId}' with body '{Encoding.UTF8.GetString(data.Body)}'");
+                            resultBody = Encoding.UTF8.GetString(data.Body);
+                            Log.Verbose($"Received event for '{devId}/{modId}' with body '{resultBody}'");
 
-                        return devId != null && devId.ToString().Equals(this.deviceId)
-                                             && modId != null && modId.ToString().Equals(this.Id);
-                    },
-                    token),
+                            return devId != null && devId.ToString().Equals(this.deviceId)
+                                                  && modId != null && modId.ToString().Equals(this.Id)
+                                                  && requiredProperties.All(data.Properties.ContainsKey);
+                        },
+                        token);
+
+                    return resultBody;
+                },
                 "Received events from device '{Device}' on Event Hub '{EventHub}'",
                 this.deviceId,
                 this.iotHub.EntityPath);

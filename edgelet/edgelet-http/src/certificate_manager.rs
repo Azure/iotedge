@@ -1,5 +1,4 @@
-#![deny(rust_2018_idioms, warnings)]
-#![deny(clippy::all, clippy::pedantic)]
+// Copyright (c) Microsoft. All rights reserved.
 
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};

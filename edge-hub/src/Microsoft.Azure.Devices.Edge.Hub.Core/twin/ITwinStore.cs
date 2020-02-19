@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
 
-    interface ITwinStore
+    public interface ITwinStore
     {
         Task<Option<Twin>> Get(string id);
 

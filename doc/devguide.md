@@ -39,7 +39,7 @@ scripts/linux/runTests.sh
 
 ### Windows
 ```powershell
-scripts\windows\runTests.bat
+dotnet test --filter Category=Unit
 ```
 
 ## Run integration tests
@@ -88,7 +88,7 @@ scripts/linux/runTests.sh "--filter Category=Integration"
 
 ### Windows
 ```powershell
-scripts\windows\runTests.bat "--filter Category=Integration"
+dotnet test --filter Category=Integration
 ```
 
 The syntax of the "filter" argument is described [here](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-test#filter-option-details). All IoT Edge tests are categorized as one of `Unit`, `Integration`, or `Bvt`.

@@ -13,7 +13,7 @@ namespace DevOpsLibTest
         [Test]
         public void TestMasterBranchReporting()
         {
-            HashSet<BuildDefinitionId> ids = BuildExtension.MasterBranchReporting;
+            HashSet<BuildDefinitionId> ids = BuildExtension.MasterBranchBuildDefinitions;
 
             Assert.AreEqual(6, ids.Count);
             Assert.True(ids.Contains(BuildDefinitionId.CI));

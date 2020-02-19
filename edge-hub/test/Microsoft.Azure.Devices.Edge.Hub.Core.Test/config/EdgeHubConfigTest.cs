@@ -26,8 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
 
         public static IEnumerable<object[]> GetEdgeHubConfigData()
         {
-            var r1 = new Route("id", string.Empty, "iotHub", Mock.Of<IMessageSource>(), new HashSet<Endpoint>());
-            var r2 = new Route("id", string.Empty, "iotHub", Mock.Of<IMessageSource>(), new HashSet<Endpoint>());
+            var r1 = new Route("id", string.Empty, "iotHub", Mock.Of<IMessageSource>(), new Mock<Endpoint>("endpoint1").Object, 0, 3600);
+            var r2 = new Route("id", string.Empty, "iotHub", Mock.Of<IMessageSource>(), new Mock<Endpoint>("endpoint2").Object, 0, 3600);
 
             var routeConfig1 = new RouteConfig("r1", "FROM /* INTO $upstream", r1);
             var routeConfig2 = new RouteConfig("r2", "FROM /messages/* INTO $upstream", r2);

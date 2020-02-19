@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
         public EndpointExecutorStatus Status => this.machine.Status;
 
-        public async Task Invoke(IMessage message)
+        public async Task Invoke(IMessage message, uint priority, uint timeToLiveSecs)
         {
             try
             {

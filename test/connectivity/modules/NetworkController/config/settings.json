@@ -1,15 +1,57 @@
 {
-    "StartAfter": "00:05:00",
-    "DockerUri": "unix:///var/run/docker.sock",
-    "NetworkId": "azure-iot-edge",
-    "NetworkControllerMode": "OfflineNetworkInterface",
-    "TestResultCoordinatorEndpoint": "http://localhost:5001",
-    "TrackingId": "",
-    "RunFrequencies": [
-        {
-            "OfflineFrequency": "00:05:00",
-            "OnlineFrequency": "00:05:00",
-            "RunsCount": "6"
-        }
-    ]
+  "StartAfter": "00:05:00",
+  "DockerUri": "unix:///var/run/docker.sock",
+  "NetworkId": "azure-iot-edge",
+  "NetworkControllerRunProfile": "Online",
+  "DefaultProfiles": {
+    "Offline": {
+      "ProfileType": "Offline",
+      "ProfileSetting": {
+        "Delay": "0",
+        "Jitter": "0",
+        "PackageLoss": "100",
+        "Bandwidth": "0",
+        "BandwidthUnit": "mbit" 
+      }
+    },
+    "SatelliteGood": {
+      "ProfileType": "Satellite",
+      "ProfileSetting": {
+        "Delay": "600",
+        "Jitter": "50",
+        "PackageLoss": "2",
+        "Bandwidth": "25",
+        "BandwidthUnit": "mbit"
+      }
+    },
+    "Cellular3G": {
+      "ProfileType": "Cellular",
+      "ProfileSetting": {
+        "Delay": "100",
+        "Jitter": "10",
+        "PackageLoss": "0",
+        "Bandwidth": "700",
+        "BandwidthUnit": "mbit"
+      }
+    },
+    "Custom": {
+      "ProfileType": "",
+      "ProfileSetting": {
+        "Delay": "0",
+        "Jitter": "0",
+        "PackageLoss": "0",
+        "Bandwith": "0",
+        "BandwidthUnit": "mbit"
+      }
+    }
+  },
+  "TestResultCoordinatorEndpoint": "http://localhost:5001",
+  "TrackingId": "",
+  "RunFrequencies": [
+    {
+      "OfflineFrequency": "00:05:00",
+      "OnlineFrequency": "00:05:00",
+      "RunsCount": "6"
+    }
+  ]
 }

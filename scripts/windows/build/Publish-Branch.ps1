@@ -154,6 +154,9 @@ $appProjectList.Add("Relayer.csproj")
 $appProjectList.Add("MetricsCollector.csproj")
 $appProjectList.Add("TestResultCoordinator.csproj")
 $appProjectList.Add("DeploymentTester.csproj")
+$appProjectList.Add("EdgeHubRestartTester.csproj")
+$appProjectList.Add("MetricsValidator.csproj")
+$appProjectList.Add("CloudToDeviceMessageTester.csproj")
 
 # Download latest rocksdb ARM32 library
 $rocksdbARMUri = "https://edgebuild.blob.core.windows.net/rocksdb/rocksdb-arm.dll"

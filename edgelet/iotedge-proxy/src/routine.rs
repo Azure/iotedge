@@ -102,7 +102,7 @@ fn start_api(
             let server = Server::bind(&addr)
                 .serve(new_service)
                 .with_graceful_shutdown(shutdown)
-                .map_err(|err| Error::from(err.context(ErrorKind::Hyper)));
+                .map_err(|err| Error::from(err.context(ErrorKind::ApiService)));
 
             info!(
                 "Listening on {} with 1 thread for api",
@@ -155,7 +155,7 @@ fn start_proxy(
             let server = Server::bind(&addr)
                 .serve(new_service)
                 .with_graceful_shutdown(shutdown)
-                .map_err(|err| Error::from(err.context(ErrorKind::Hyper)));
+                .map_err(|err| Error::from(err.context(ErrorKind::ProxyService)));
 
             info!(
                 "Listening on {} with 1 thread for {}",

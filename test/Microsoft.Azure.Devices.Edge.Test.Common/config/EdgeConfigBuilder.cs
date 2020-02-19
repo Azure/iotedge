@@ -52,9 +52,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             return builder;
         }
 
-        /* Will output edgeHub and edgeAgent configurations, then a full configuration at the end.
-           This is done to assure routes are set up for the most recent $edgeHub deployment before the test modules start sending messages (i.e. assure messages won't get dropped).
-           Another way to handle this is to define all possible routes at the very beginning of the test, but there is added complexity as module names are assigned dynamically. */
+        // Returns two configurations: one with just $edgeAgent and $edgeHub; the other with
+        // everything. This is done to ensure edgeHub's routes are ready before the test modules
+        // start sending messages, to avoid dropped messages. Another way to handle this is to
+        // define all possible routes at the beginning of the test run, but there is added
+        // complexity as module names are assigned dynamically.
         public IEnumerable<EdgeConfiguration> BuildConfigurationStages()
         {
             // Build all modules *except* edge agent
@@ -66,7 +68,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             // Build edge agent
             modules.Insert(0, this.BuildEdgeAgent(modules));
 
-            // Find the $edgeAgent and $edgeHub match, then immediately compose and return a configuration
             var config = new ConfigurationContent
             {
                 ModulesContent = new Dictionary<string, IDictionary<string, object>>()
@@ -75,19 +76,29 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             var moduleNames = new List<string>();
             var moduleImages = new List<string>();
 
+            var modulesLookup = modules.ToLookup(m => m.IsSystemModule() ? "system" : "other");
+
             // Return a configuration for $edgeHub and $edgeAgent
-            foreach (ModuleConfiguration module in modules.Where(m => this.IsSystemModule(m)))
+            foreach (ModuleConfiguration module in modulesLookup["system"])
             {
-                this.AddModuleToConfiguration(module, moduleNames, moduleImages, config);
+                AddModuleToConfiguration(module, moduleNames, moduleImages, config);
             }
 
-            Dictionary<string, IDictionary<string, object>> copyModulesContent = config.ModulesContent.ToDictionary(entry => entry.Key, entry => entry.Value);
-            yield return new EdgeConfiguration(this.deviceId, new List<string>(moduleNames), new List<string>(moduleImages), new ConfigurationContent { ModulesContent = copyModulesContent });
-
-            // Return a configuration for other modules
-            foreach (ModuleConfiguration module in modules.Where(m => !this.IsSystemModule(m)))
+            if (modulesLookup.Contains("other"))
             {
-                this.AddModuleToConfiguration(module, moduleNames, moduleImages, config);
+                Dictionary<string, IDictionary<string, object>> modulesContent =
+                    config.ModulesContent.ToDictionary(entry => entry.Key, entry => entry.Value);
+                yield return new EdgeConfiguration(
+                    this.deviceId,
+                    new List<string>(moduleNames),
+                    new List<string>(moduleImages),
+                    new ConfigurationContent { ModulesContent = modulesContent });
+
+                // Return a configuration for all modules
+                foreach (ModuleConfiguration module in modulesLookup["other"])
+                {
+                    AddModuleToConfiguration(module, moduleNames, moduleImages, config);
+                }
             }
 
             yield return new EdgeConfiguration(this.deviceId, moduleNames, moduleImages, config);
@@ -171,12 +182,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             return agentBuilder.Build();
         }
 
-        bool IsSystemModule(ModuleConfiguration module)
-        {
-            return module.Name.Equals("$edgeHub") || module.Name.Equals("$edgeAgent");
-        }
-
-        void AddModuleToConfiguration(ModuleConfiguration module, List<string> moduleNames, List<string> moduleImages, ConfigurationContent config)
+        static void AddModuleToConfiguration(
+            ModuleConfiguration module,
+            List<string> moduleNames,
+            List<string> moduleImages,
+            ConfigurationContent config)
         {
             moduleNames.Add(module.Name);
             moduleImages.Add(module.Image);

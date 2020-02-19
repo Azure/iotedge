@@ -116,6 +116,7 @@ steps:
       tempSensorImage = "$imagePrefix-simulated-temperature-sensor:$imageTag";
       methodSenderImage = "$imagePrefix-direct-method-sender:$imageTag";
       methodReceiverImage = "$imagePrefix-direct-method-receiver:$imageTag";
+      metricsValidatorImage = "$imagePrefix-metrics-validator:$imageTag";
       registries = @(
         @{
           address = '$(cr.address)';

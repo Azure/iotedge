@@ -434,7 +434,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var routingMessageConverter = new RoutingMessageConverter();
             RouteFactory routeFactory = new EdgeRouteFactory(new EndpointFactory(connectionManager, routingMessageConverter, edgeDeviceId, 10, 10));
             IEnumerable<Route> routesList = routeFactory.Create(routes).ToList();
-            IEnumerable<Endpoint> endpoints = routesList.SelectMany(r => r.Endpoints);
+            IEnumerable<Endpoint> endpoints = routesList.Select(r => r.Endpoint);
             var routerConfig = new RouterConfig(endpoints, routesList);
             IDbStoreProvider dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);

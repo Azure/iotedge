@@ -26,7 +26,9 @@ $util = Join-Path -Path $PSScriptRoot -ChildPath 'util.ps1'
 Assert-Rust -Arm
 PatchRustForArm
 
-if (Select-String '"winapi 0.2' (Join-Path (Get-EdgeletFolder) -ChildPath 'Cargo.lock')) {
+$cargoLockContent = [System.IO.File]::ReadAllText((Join-Path (Get-EdgeletFolder) -ChildPath 'Cargo.lock'))
+
+if ($cargoLockContent.Contains("[[package]]`nname = `"winapi`"`nversion = `"0.2")) {
 	throw (
 		'Cargo.lock still references winapi 0.2 after patching. ' +
 		'Ensure that there are no new dependencies that depend on winapi 0.2'

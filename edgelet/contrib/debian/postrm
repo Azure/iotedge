@@ -6,6 +6,12 @@ case "$1" in
         if [ -f /etc/iotedge/config.yaml ]; then
             rm /etc/iotedge/config.yaml
         fi
+        if [ -d /var/lib/iotedge ]; then
+            rm -rf /var/lib/iotedge
+        fi
+        if [ -d /var/log/iotedge ]; then
+            rm -rf /var/log/iotedge
+        fi
     ;;
     remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
     ;;

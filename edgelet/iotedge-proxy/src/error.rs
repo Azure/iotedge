@@ -6,9 +6,9 @@ use std::fmt::Display;
 use failure::{Backtrace, Context, Fail};
 use hyper::{header, Body, Response, StatusCode};
 use serde_json::json;
+use url::Url;
 
 use crate::IntoResponse;
-use url::Url;
 
 #[derive(Debug)]
 pub struct Error {
@@ -20,17 +20,17 @@ pub enum ErrorKind {
     #[fail(display = "The proxy could not start up successfully: {}", _0)]
     Initialize(InitializeErrorReason),
 
-    #[fail(display = "HTTP connection error")]
-    Hyper,
+    #[fail(display = "Api service error")]
+    ApiService,
 
-    #[fail(
-        display = "Could not form well-formed URL by joining {:?} with {:?}",
-        _0, _1
-    )]
-    UrlJoin(Url, String),
+    #[fail(display = "Proxy service error")]
+    ProxyService,
+
+    #[fail(display = "Could not make an HTTP request: {:?}", _0)]
+    HttpRequest(String),
 
     #[fail(display = "Invalid URI to parse: {:?}", _0)]
-    Uri(Url),
+    Uri(String),
 
     #[fail(display = "Invalid HTTP header value {:?}", _0)]
     HeaderValue(String),
@@ -103,7 +103,7 @@ impl IntoResponse for Error {
         }
 
         let status_code = match *self.kind() {
-            ErrorKind::Hyper => StatusCode::BAD_GATEWAY,
+            ErrorKind::HttpRequest(_) => StatusCode::BAD_GATEWAY,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
