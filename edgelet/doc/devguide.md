@@ -30,9 +30,18 @@ The packages are built inside a Docker container, so no build dependencies are i
 
 Note that the script must be run on an `amd64` device. The `PACKAGE_ARCH=arm32v7` and `PACKAGE_ARCH=aarch64` builds are done using a cross-compiler.
 
-Once the packages are built, they will be found somewhere under the `edgelet/target/` directory. (The exact path under that directory depends on the combination of `PACKAGE_OS` and `PACKAGE_ARCH`. See `builds/misc/packages.yaml` for the exact paths.)
+Once the packages are built, they will be found somewhere under the `edgelet/target/` directory. (The exact path under that directory depends on the combination of `PACKAGE_OS` and `PACKAGE_ARCH`. See `builds/misc/packages.yaml` and `builds/misc/packages.slow.yaml` for the exact paths.)
 
 If you want to run another build for a different combination of `PACKAGE_OS` and `PACKAGE_ARCH`, make sure to clean the repository first with `sudo git clean -xffd` so that artifacts from the previous build don't get reused for the next one.
+
+Note: For the following targets, `qemu-user-static` must be installed on the host and registered with `binfmt`:
+
+- `PACKAGE_OS=centos7 PACKAGE_ARCH=arm32v7`
+- `PACKAGE_OS=centos7 PACKAGE_ARCH=aarch64`
+
+If that has not been done, `package.sh` prints an error message explaining how to do that.
+
+This is because these targets do not have functional cross-compilers, so their builds are done as native builds emulated using qemu. Be aware that these builds are much slower - where a native build might take 15m, a qemu build might take 2h30m.
 
 
 ### Windows
