@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         // column families whose memtables are backed by the oldest live WAL file
         const ulong DefaultMaxTotalWalSize = 512 * 1024 * 1024;
         // Logging to ONE file as a default
-        const ulong DefaultMaxLogFileNum = 0;
+        const ulong DefaultMaxLogFileNum = 1;
         // Do not log anything to the ONE log file
         const ulong DefaultMaxLogFileSize = 0;
 
