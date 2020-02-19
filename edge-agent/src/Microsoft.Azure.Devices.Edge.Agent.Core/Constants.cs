@@ -105,9 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string StorageMaxTotalWalSize = "RocksDB_MaxTotalWalSize";
 
-        public const string StorageMaxLogFileNum = "Storage_MaxLogFileNum";
-
-        public const string StorageMaxLogFileSize = "Storage_MaxLogFileSize";
+        public const string StorageLogLevel = "Storage_LogLevel";
 
         public const string WorkloadApiVersion = "2019-01-30";
 

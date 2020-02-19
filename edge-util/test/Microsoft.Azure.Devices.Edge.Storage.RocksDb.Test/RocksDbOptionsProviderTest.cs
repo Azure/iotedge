@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         [Fact]
         public void RocksDbOptionsProviderCreateTest()
         {
-            Assert.Throws<ArgumentNullException>(() => new RocksDbOptionsProvider(null, true, Option.None<ulong>(), Option.None<ulong>(), Option.None<ulong>()));
+            Assert.Throws<ArgumentNullException>(() => new RocksDbOptionsProvider(null, true, Option.None<ulong>(), Option.None<RocksDbInfoLogLevel>()));
         }
 
         [Fact]
@@ -29,8 +29,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 
             env64.SetupGet(s => s.Is32BitProcess)
                             .Returns(() => false);
-            var provider32 = new RocksDbOptionsProvider(env32.Object, true, Option.None<ulong>(), Option.None<ulong>(), Option.None<ulong>());
-            var provider64 = new RocksDbOptionsProvider(env64.Object, true, Option.None<ulong>(), Option.None<ulong>(), Option.None<ulong>());
+            var provider32 = new RocksDbOptionsProvider(env32.Object, true, Option.None<ulong>(), Option.None<RocksDbInfoLogLevel>());
+            var provider64 = new RocksDbOptionsProvider(env64.Object, true, Option.None<ulong>(), Option.None<RocksDbInfoLogLevel>());
 
             // act
             DbOptions newOptions32 = provider32.GetDbOptions();
@@ -52,8 +52,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 
             env64.SetupGet(s => s.Is32BitProcess)
                             .Returns(() => false);
-            var provider32 = new RocksDbOptionsProvider(env32.Object, true, Option.None<ulong>(), Option.None<ulong>(), Option.None<ulong>());
-            var provider64 = new RocksDbOptionsProvider(env64.Object, true, Option.None<ulong>(), Option.None<ulong>(), Option.None<ulong>());
+            var provider32 = new RocksDbOptionsProvider(env32.Object, true, Option.None<ulong>(), Option.None<RocksDbInfoLogLevel>());
+            var provider64 = new RocksDbOptionsProvider(env64.Object, true, Option.None<ulong>(), Option.None<RocksDbInfoLogLevel>());
 
             // act
             ColumnFamilyOptions newOptions32 = provider32.GetColumnFamilyOptions();

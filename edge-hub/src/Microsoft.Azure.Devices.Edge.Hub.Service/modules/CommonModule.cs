@@ -43,8 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly string proxy;
         readonly MetricsConfig metricsConfig;
         readonly Option<ulong> storageMaxTotalWalSize;
-        readonly Option<ulong> storageMaxLogFileNum;
-        readonly Option<ulong> storageMaxLogFileSize;
+        readonly Option<RocksDbInfoLogLevel> storageLogLevel;
 
         public CommonModule(
             string productInfo,
@@ -66,8 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             string proxy,
             MetricsConfig metricsConfig,
             Option<ulong> storageMaxTotalWalSize,
-            Option<ulong> storageMaxLogFileNum,
-            Option<ulong> storageMaxLogFileSize)
+            Option<RocksDbInfoLogLevel> storageLogLevel)
         {
             this.productInfo = productInfo;
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
@@ -88,8 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
             this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
             this.storageMaxTotalWalSize = storageMaxTotalWalSize;
-            this.storageMaxLogFileNum = storageMaxLogFileNum;
-            this.storageMaxLogFileSize = storageMaxLogFileSize;
+            this.storageLogLevel = storageLogLevel;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -141,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // DataBase options
-            builder.Register(c => new RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), this.optimizeForPerformance, this.storageMaxTotalWalSize, this.storageMaxLogFileNum, this.storageMaxLogFileSize))
+            builder.Register(c => new RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), this.optimizeForPerformance, this.storageMaxTotalWalSize, this.storageLogLevel))
                 .As<IRocksDbOptionsProvider>()
                 .SingleInstance();
 
