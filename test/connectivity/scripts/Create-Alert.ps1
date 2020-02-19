@@ -34,18 +34,21 @@ Param (
     [hashtable[]] $Tags = $null,
 
     [ValidateNotNullOrEmpty()]
-    [string] $TestId = $null
+    [string] $TestId = $null,
+
+    [ValidateNotNullOrEmpty()]
+    [string] $scriptsDirectory = $null
 )
 
 Write-Host "Generating alert for $MetricName $QueryComparison $QueryTarget"
 
 if ($QueryType -eq "value")
 {
-    $ValueQuery = Get-Content -Path "C:\Users\Lee\source\repos\edge\and\iotedge\test\dashboard\connectivity\alerts\queries\value.kql" -Raw
+    $ValueQuery = Get-Content -Path "$scriptsDirectory\queries\value.kql" -Raw
 }
 else
 {
-    $ValueQuery = Get-Content -Path "C:\Users\Lee\source\repos\edge\and\iotedge\test\dashboard\connectivity\alerts\queries\rate.kql" -Raw
+    $ValueQuery = Get-Content -Path "$scriptsDirectory\queries\rate.kql" -Raw
 }
 
 $TagFiltersToAppendToQuery = ""
