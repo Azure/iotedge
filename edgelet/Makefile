@@ -33,6 +33,7 @@ srcdir?=.
 unitdir?=/lib/systemd/system
 
 rpmbuilddir?=$(HOME)/rpmbuild
+vendordir?=vendor
 
 CARGOFLAGS=--manifest-path=$(srcdir)/Cargo.toml
 KUBE_CARGOFLAGS=--manifest-path=$(srcdir)/iotedged/Cargo.toml
@@ -50,6 +51,7 @@ INSTALL_PROGRAM=$(INSTALL)
 MAKE=make
 MKDIR_P=mkdir -p
 SED=sed
+TAR=tar
 HOST_URI_OPTION=
 
 all:
@@ -77,6 +79,17 @@ $(TARGET)/$(PACKAGE).tar.gz:
 	rm -f $(TARGET)/$(PACKAGE).tar
 
 dist: $(TARGET)/$(PACKAGE).tar.gz
+
+dist2:
+	$(MKDIR_P) $(TARGET)
+	$(MKDIR_P) .cargo
+	$(MKDIR_P) $(vendordir)
+	$(CARGO) vendor $(vendordir) > .cargo/config
+	$(TAR) -C .. --transform "flags=r;s/^edgelet/$(PACKAGE)/" -c -f $(TARGET)/$(PACKAGE).tar.gz -z -v --exclude-vcs --exclude-vcs-ignores edgelet
+
+distclean:
+	rm -rf .cargo
+	rm -rf $(vendordir)
 
 deb8: HOST_URI_OPTION=IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
 deb8: release
@@ -160,4 +173,4 @@ version:
 	@echo "rpm version:  ${RPM_VERSION}"
 	@echo "rpm release:  ${RPM_RELEASE}"
 
-.PHONY: all clean deb deb8 dist install rpm uninstall version
+.PHONY: all clean deb deb8 dist dist2 install rpm uninstall version
