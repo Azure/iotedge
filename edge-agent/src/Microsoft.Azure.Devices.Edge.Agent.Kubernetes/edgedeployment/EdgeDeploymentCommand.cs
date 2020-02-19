@@ -227,6 +227,35 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 });
         }
 
+        Task<Option<string>> FindAgentImageAsync(CancellationToken token)
+        {
+            var agentImage = this.activeDeployment.Match(
+                edgeDeployment =>
+                {
+                    var currentAgent = this.activeDeployment.OrDefault().Spec.First(agentModule => agentModule.Name == Core.Constants.EdgeAgentModuleName);
+                    return Task.FromResult(Option.Some(currentAgent.Config.Image));
+                },
+                async () =>
+                {
+                    try
+                    {
+                        Events.CreateEdgeDeployment(customObjectDefinition);
+                        await this.client.CreateNamespacedCustomObjectWithHttpMessagesAsync(
+                            crdObject,
+                            KubernetesConstants.EdgeDeployment.Group,
+                            KubernetesConstants.EdgeDeployment.Version,
+                            this.deviceNamespace,
+                            KubernetesConstants.EdgeDeployment.Plural,
+                            cancellationToken: token);
+                    }
+                    catch (HttpOperationException e) when (e.Response.StatusCode == HttpStatusCode.NotFound)
+                    {
+                        Events.ReportCrdInstallationFailed(e);
+                        throw;
+                    }
+                });
+        }
+
         public Task UndoAsync(CancellationToken token) => Task.CompletedTask;
 
         public string Show() => $"Create an EdgeDeployment with modules: [{string.Join(", ", this.modules.Select(m => m.Name))}]";
@@ -246,6 +275,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 DeleteImagePullSecret,
                 UpdateImagePullSecret,
                 UpdateExistingImagePullSecret,
+                FindActiveDeploymentFailed,
                 ReportCrdInstallationFailed
             }
 
@@ -262,6 +292,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             internal static void UpdateExistingImagePullSecret(V1Secret secret) => Log.LogWarning((int)EventIds.UpdateExistingImagePullSecret, $"Update existing Image Pull Secret {secret.Metadata.Name}");
 
             internal static void ReportCrdInstallationFailed(Exception ex) => Log.LogError((int)EventIds.ReportCrdInstallationFailed, "EdgeDeployment CustomResourceDefinition(CRD) was not found. Please install the edge-kubernetes-crd Helm chart");
+
+            internal static void FindActiveDeploymentFailed(string deploymentName, Exception exception) => Log.LogDebug((int)EventIds.FindActiveDeploymentFailed, exception, $"Failed to find active Edge Deployment {deploymentName}");
         }
     }
 }
