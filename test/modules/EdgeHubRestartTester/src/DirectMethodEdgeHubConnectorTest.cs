@@ -50,7 +50,7 @@ namespace EdgeHubRestartTester
                 DateTime.UtcNow,
                 Settings.Current.TrackingId,
                 this.batchId,
-                this.directMethodCount.ToString(),
+                this.directMethodCount,
                 edgeHubRestartedTime,
                 dmCompletedTime,
                 dmStatusCode);

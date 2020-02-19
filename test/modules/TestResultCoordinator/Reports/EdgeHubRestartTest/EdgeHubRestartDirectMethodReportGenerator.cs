@@ -215,13 +215,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             this.completedStatusHistogram[completedStatus].Add(completedPeriod);
         }
 
-        ulong ConvertStringToLong(string result)
-        {
-            ulong seqNum;
-            ulong.TryParse(result, out seqNum);
-            return seqNum;
-        }
-
         // (sequenceNumber) is only valid if and only if (hasValue) is true
         async Task<(ulong resultCount, bool hasValue, ulong sequenceNumber)> MoveNextSenderResultAsync(ulong senderResultCount)
         {
@@ -238,7 +231,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             senderResultCount++;
 
             EdgeHubRestartDirectMethodResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodResult>(this.SenderTestResults.Current.Result);
-            seqNum = this.ConvertStringToLong(senderResult.SequenceNumber);
+            seqNum = senderResult.SequenceNumber;
 
             this.AddEntryToCompletedStatusHistogram(senderResult);
 
@@ -263,7 +256,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             receiverResultCount++;
 
             DirectMethodTestResult receiverResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(this.ReceiverTestResults.Current.Result);
-            seqNum = this.ConvertStringToLong(receiverResult.SequenceNumber);
+            seqNum = receiverResult.SequenceNumber;
 
             return (resultCount: receiverResultCount,
                 hasValue: hasValue,

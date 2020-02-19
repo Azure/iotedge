@@ -223,7 +223,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         [Theory]
         [MemberData(nameof(DirectMethodReportDataWithSenderAndReceiverSource.GetCreateReportData), MemberType = typeof(DirectMethodReportDataWithSenderAndReceiverSource))]
         public async Task TestCreateReportAsync(
-            IEnumerable<string> senderStoreValues,
+            IEnumerable<ulong> senderStoreValues,
             IEnumerable<string> receiverStoreValues,
             IEnumerable<HttpStatusCode> statusCodes,
             IEnumerable<DateTime> timestamps,
@@ -339,10 +339,11 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             Assert.Equal(expectedIsPassed, report.IsPassed);
         }
 
+        // BEARWASHERE -- brb
         static List<(long, TestOperationResult)> GetSenderStoreData(
             string source,
             string resultType,
-            IEnumerable<string> resultValues,
+            IEnumerable<ulong> resultValues,
             IEnumerable<HttpStatusCode> statusCodes,
             IEnumerable<DateTime> timestamps,
             Guid guid,
