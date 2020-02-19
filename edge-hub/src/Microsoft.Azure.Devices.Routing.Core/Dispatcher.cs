@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             Preconditions.CheckNotNull(checkpointStore);
 
             MasterCheckpointer masterCheckpointer = await MasterCheckpointer.CreateAsync(id, checkpointStore);
-            var executorFactory = new CheckpointerEndpointExecutorFactory(id, factory, masterCheckpointer);
+            var executorFactory = new CheckpointerEndpointExecutorFactory(factory, masterCheckpointer);
 
             IEnumerable<Task<IEndpointExecutor>> tasks = endpointsWithPriorities.Select(e => executorFactory.CreateAsync(e.Key, e.Value));
             IEndpointExecutor[] executors = await Task.WhenAll(tasks);
@@ -261,20 +261,23 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         class CheckpointerEndpointExecutorFactory : IEndpointExecutorFactory
         {
-            readonly string idPrefix;
             readonly IEndpointExecutorFactory executorFactory;
             readonly ICheckpointerFactory checkpointerFactory;
 
-            public CheckpointerEndpointExecutorFactory(string idPrefix, IEndpointExecutorFactory executorFactory, ICheckpointerFactory checkpointerFactory)
+            public CheckpointerEndpointExecutorFactory(IEndpointExecutorFactory executorFactory, ICheckpointerFactory checkpointerFactory)
             {
-                this.idPrefix = Preconditions.CheckNotNull(idPrefix);
                 this.executorFactory = Preconditions.CheckNotNull(executorFactory);
                 this.checkpointerFactory = Preconditions.CheckNotNull(checkpointerFactory);
             }
 
             public async Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, IList<uint> priorities)
             {
-                string id = RoutingIdBuilder.Parse(this.idPrefix).Map(prefixTemplate => new RoutingIdBuilder(prefixTemplate.IotHubName, prefixTemplate.RouterNumber, Option.Some(endpoint.Id)).GetId()).GetOrElse(endpoint.Id);
+                // TODO: 6099894 - Update StoringAsyncEndpointExecutor message enqueue logic to be aware of priorities
+                // This is a temporary hack to make the checkpointer ID match the message queue ID. Now that there are
+                // multiple message queues per endpoint, we need to rework how checkpointers are instantiated.
+                // Instead of creating a single checkpointer per endpoint here, the executor implementation needs to
+                // create a checkpointer for each priority on an endpoint, with matching IDs.
+                string id = endpoint.Id;
                 ICheckpointer checkpointer = await this.checkpointerFactory.CreateAsync(id);
                 IEndpointExecutor executor = await this.executorFactory.CreateAsync(endpoint, priorities, checkpointer);
                 return executor;

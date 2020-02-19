@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
+    using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
@@ -41,7 +42,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             }
 
             // Assert - Check that the message store received the messages sent to invoke.
-            List<IMessage> storeMessages = messageStore.GetReceivedMessagesForEndpoint(EndpointId);
+            List<IMessage> storeMessages = messageStore.GetReceivedMessagesForEndpoint(EndpointId, 0);
             Assert.NotNull(storeMessages);
             Assert.Equal(MessagesCount, storeMessages.Count);
             for (int i = 0; i < MessagesCount; i++)
@@ -52,7 +53,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             }
 
             // Assert - Make sure no additional / duplicate messages were sent.
-            storeMessages = messageStore.GetReceivedMessagesForEndpoint(EndpointId);
+            storeMessages = messageStore.GetReceivedMessagesForEndpoint(EndpointId, 0);
             Assert.NotNull(storeMessages);
             Assert.Equal(10, storeMessages.Count);
 
@@ -64,7 +65,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             }
 
             // Assert - Make sure the store now has the old and the new messages.
-            storeMessages = messageStore.GetReceivedMessagesForEndpoint(EndpointId);
+            storeMessages = messageStore.GetReceivedMessagesForEndpoint(EndpointId, 0);
             Assert.NotNull(storeMessages);
             Assert.Equal(MessagesCount * 2, storeMessages.Count);
             for (int i = 0; i < MessagesCount * 2; i++)
@@ -334,9 +335,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             {
             }
 
-            public async Task<IMessage> Add(string endpointId, IMessage message)
+            public Task<IMessage> Add(string endpointId, IMessage message) => this.Add(endpointId, message, 0);
+
+            public async Task<IMessage> Add(string endpointId, IMessage message, uint priority)
             {
-                TestMessageQueue queue = this.GetQueue(endpointId);
+                TestMessageQueue queue = this.GetQueue(endpointId, priority);
                 long offset = await queue.Add(message);
                 return new Message(
                     message.MessageSource,
@@ -348,27 +351,45 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
                     message.DequeuedTime);
             }
 
-            public IMessageIterator GetMessageIterator(string endpointId, long startingOffset) => this.GetQueue(endpointId);
+            public IMessageIterator GetMessageIterator(string endpointId, long startingOffset) => this.GetQueue(endpointId, 0);
 
-            public IMessageIterator GetMessageIterator(string endpointId) => this.GetQueue(endpointId);
+            public IMessageIterator GetMessageIterator(string endpointId, uint priority, long _) => this.GetQueue(endpointId, priority);
 
-            public Task AddEndpoint(string endpointId)
+            public IMessageIterator GetMessageIterator(string endpointId) => this.GetQueue(endpointId, 0);
+
+            public Task AddEndpoint(string endpointId) => this.AddEndpointQueue(endpointId, 0);
+
+            public Task AddEndpointQueue(string endpointId, uint priority)
             {
-                this.endpointQueues[endpointId] = new TestMessageQueue();
+                this.endpointQueues[GetQueueId(endpointId, priority)] = new TestMessageQueue();
                 return Task.CompletedTask;
             }
 
-            public Task RemoveEndpoint(string endpointId)
+            public Task RemoveEndpoint(string endpointId) => this.RemoveEndpointQueue(endpointId, 0);
+
+            public Task RemoveEndpointQueue(string endpointId, uint priority)
             {
-                this.endpointQueues.Remove(endpointId, out TestMessageQueue _);
+                this.endpointQueues.Remove(GetQueueId(endpointId, priority), out TestMessageQueue _);
                 return Task.CompletedTask;
             }
 
             public void SetTimeToLive(TimeSpan timeToLive) => throw new NotImplementedException();
 
-            public List<IMessage> GetReceivedMessagesForEndpoint(string endpointId) => this.GetQueue(endpointId).Queue;
+            static string GetQueueId(string endpointId, uint priority)
+            {
+                if (priority == RouteFactory.DefaultPriority)
+                {
+                    return endpointId;
+                }
+                else
+                {
+                    return endpointId + "_Pri" + priority.ToString();
+                }
+            }
 
-            TestMessageQueue GetQueue(string endpointId) => this.endpointQueues.GetOrAdd(endpointId, new TestMessageQueue());
+            public List<IMessage> GetReceivedMessagesForEndpoint(string endpointId, uint priority) => this.GetQueue(endpointId, priority).Queue;
+
+            TestMessageQueue GetQueue(string endpointId, uint priority) => this.endpointQueues.GetOrAdd(GetQueueId(endpointId, priority), new TestMessageQueue());
 
             class TestMessageQueue : IMessageIterator
             {

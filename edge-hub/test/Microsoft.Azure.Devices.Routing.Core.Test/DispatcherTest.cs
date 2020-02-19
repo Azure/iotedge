@@ -257,15 +257,19 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         [Unit]
         public async Task TestOffset()
         {
+            const uint DefaultPriority = Microsoft.Azure.Devices.Routing.Core.RouteFactory.DefaultPriority;
             var store = new Mock<ICheckpointStore>();
-            store.Setup(s => s.GetCheckpointDataAsync("dispatcher.1", It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(21));
-            store.Setup(s => s.GetCheckpointDataAsync("dispatcher.1.endpoint1", It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(23));
-            store.Setup(s => s.GetCheckpointDataAsync("dispatcher.1.endpoint2", It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(22));
+            var dispatcherId = Guid.NewGuid().ToString();
+            string endpointId1 = "endpoint1";
+            string endpointId2 = "endpoint2";
+            store.Setup(s => s.GetCheckpointDataAsync(dispatcherId, It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(21));
+            store.Setup(s => s.GetCheckpointDataAsync(endpointId1, It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(23));
+            store.Setup(s => s.GetCheckpointDataAsync(endpointId2, It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(22));
 
-            var endpoint1 = new TestEndpoint("endpoint1");
-            var endpoint2 = new TestEndpoint("endpoint2");
-            var endpoints = new Dictionary<Endpoint, IList<uint>> { { endpoint1, new List<uint>() { 0 } }, { endpoint2, new List<uint>() { 0 } } };
-            Dispatcher dispatcher1 = await Dispatcher.CreateAsync("dispatcher.1", "hub", endpoints, SyncExecutorFactory, store.Object);
+            var endpoint1 = new TestEndpoint(endpointId1);
+            var endpoint2 = new TestEndpoint(endpointId2);
+            var endpoints = new HashSet<(Endpoint, IList<uint>)> { (endpoint1, new List<uint>() { DefaultPriority }), (endpoint2, new List<uint>() { DefaultPriority }) };
+            Dispatcher dispatcher1 = await Dispatcher.CreateAsync(dispatcherId, "hub", endpoints, SyncExecutorFactory, store.Object);
 
             Assert.Equal(Option.Some(21L), dispatcher1.Offset);
 
@@ -274,23 +278,23 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
 
             await dispatcher1.DispatchAsync(MessageWithOffset(24L), new HashSet<RouteResult> { result1 });
             Assert.Equal(Option.Some(24L), dispatcher1.Offset);
-            store.Verify(s => s.SetCheckpointDataAsync("dispatcher.1", It.Is<CheckpointData>(c => c.Offset == 24), It.IsAny<CancellationToken>()), Times.Once());
-            store.Verify(s => s.SetCheckpointDataAsync("dispatcher.1.endpoint1", It.Is<CheckpointData>(c => c.Offset == 24), It.IsAny<CancellationToken>()), Times.Once());
+            store.Verify(s => s.SetCheckpointDataAsync(dispatcherId, It.Is<CheckpointData>(c => c.Offset == 24), It.IsAny<CancellationToken>()), Times.Once());
+            store.Verify(s => s.SetCheckpointDataAsync(endpointId1, It.Is<CheckpointData>(c => c.Offset == 24), It.IsAny<CancellationToken>()), Times.Once());
 
             await dispatcher1.DispatchAsync(MessageWithOffset(25L), new HashSet<RouteResult> { result1, result2 });
             Assert.Equal(Option.Some(25L), dispatcher1.Offset);
-            store.Verify(s => s.SetCheckpointDataAsync("dispatcher.1", It.Is<CheckpointData>(c => c.Offset == 25), It.IsAny<CancellationToken>()), Times.Once());
-            store.Verify(s => s.SetCheckpointDataAsync("dispatcher.1.endpoint1", It.Is<CheckpointData>(c => c.Offset == 25), It.IsAny<CancellationToken>()), Times.Once());
-            store.Verify(s => s.SetCheckpointDataAsync("dispatcher.1.endpoint2", It.Is<CheckpointData>(c => c.Offset == 25), It.IsAny<CancellationToken>()), Times.Once());
+            store.Verify(s => s.SetCheckpointDataAsync(dispatcherId, It.Is<CheckpointData>(c => c.Offset == 25), It.IsAny<CancellationToken>()), Times.Once());
+            store.Verify(s => s.SetCheckpointDataAsync(endpointId1, It.Is<CheckpointData>(c => c.Offset == 25), It.IsAny<CancellationToken>()), Times.Once());
+            store.Verify(s => s.SetCheckpointDataAsync(endpointId2, It.Is<CheckpointData>(c => c.Offset == 25), It.IsAny<CancellationToken>()), Times.Once());
 
             await dispatcher1.DispatchAsync(MessageWithOffset(26L), new HashSet<RouteResult> { result2 });
             Assert.Equal(Option.Some(26L), dispatcher1.Offset);
-            store.Verify(s => s.SetCheckpointDataAsync("dispatcher.1", It.Is<CheckpointData>(c => c.Offset == 26), It.IsAny<CancellationToken>()), Times.Once());
-            store.Verify(s => s.SetCheckpointDataAsync("dispatcher.1.endpoint2", It.Is<CheckpointData>(c => c.Offset == 26), It.IsAny<CancellationToken>()), Times.Once());
+            store.Verify(s => s.SetCheckpointDataAsync(dispatcherId, It.Is<CheckpointData>(c => c.Offset == 26), It.IsAny<CancellationToken>()), Times.Once());
+            store.Verify(s => s.SetCheckpointDataAsync(endpointId2, It.Is<CheckpointData>(c => c.Offset == 26), It.IsAny<CancellationToken>()), Times.Once());
 
             await dispatcher1.CloseAsync(CancellationToken.None);
 
-            Dispatcher dispatcher2 = await Dispatcher.CreateAsync("dispatcher.2", "hub", new Dictionary<Endpoint, IList<uint>>(), SyncExecutorFactory);
+            Dispatcher dispatcher2 = await Dispatcher.CreateAsync(Guid.NewGuid().ToString(), "hub", new HashSet<(Endpoint, IList<uint>)>(), SyncExecutorFactory);
             Assert.Equal(Option.None<long>(), dispatcher2.Offset);
             await dispatcher2.CloseAsync(CancellationToken.None);
         }

@@ -298,10 +298,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         [Unit]
         public async Task TestOffset()
         {
+            var dispatcherId = Guid.NewGuid().ToString();
+            string endpointId1 = "endpoint1";
+            string endpointId2 = "endpoint2";
             var store = new Mock<ICheckpointStore>();
-            store.Setup(s => s.GetCheckpointDataAsync("router.1", It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(22));
-            store.Setup(s => s.GetCheckpointDataAsync("router.1.endpoint1", It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(23));
-            store.Setup(s => s.GetCheckpointDataAsync("router.1.endpoint2", It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(22));
+            store.Setup(s => s.GetCheckpointDataAsync(dispatcherId, It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(22));
+            store.Setup(s => s.GetCheckpointDataAsync(endpointId1, It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(23));
+            store.Setup(s => s.GetCheckpointDataAsync(endpointId2, It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(22));
 
             var endpoint1 = new TestEndpoint("endpoint1");
             var endpoint2 = new TestEndpoint("endpoint2");
@@ -313,25 +316,25 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
                 new Route("route2", "true", "hub", TelemetryMessageSource.Instance, endpoint2, 0, 0)
             };
 
-            Router router1 = await Router.CreateAsync("router.1", "hub", new RouterConfig(allEndpoints, routes, Fallback), SyncExecutorFactory, store.Object);
+            Router router1 = await Router.CreateAsync(dispatcherId, "hub", new RouterConfig(allEndpoints, routes, Fallback), SyncExecutorFactory, store.Object);
             Assert.Equal(Option.Some(22L), router1.Offset);
 
-            store.Verify(s => s.GetCheckpointDataAsync("router.1", It.IsAny<CancellationToken>()), Times.Once);
-            store.Verify(s => s.GetCheckpointDataAsync("router.1.endpoint1", It.IsAny<CancellationToken>()), Times.Once);
-            store.Verify(s => s.GetCheckpointDataAsync("router.1.endpoint2", It.IsAny<CancellationToken>()), Times.Once);
+            store.Verify(s => s.GetCheckpointDataAsync(dispatcherId, It.IsAny<CancellationToken>()), Times.Once);
+            store.Verify(s => s.GetCheckpointDataAsync(endpointId1, It.IsAny<CancellationToken>()), Times.Once);
+            store.Verify(s => s.GetCheckpointDataAsync(endpointId2, It.IsAny<CancellationToken>()), Times.Once);
 
             await router1.RouteAsync(MessageWithOffset(25L));
             Assert.Equal(Option.Some(25L), router1.Offset);
-            store.Verify(s => s.SetCheckpointDataAsync("router.1", It.Is<CheckpointData>(c => c.Offset == 25), It.IsAny<CancellationToken>()), Times.Once);
-            store.Verify(s => s.SetCheckpointDataAsync("router.1.endpoint1", It.Is<CheckpointData>(c => c.Offset == 25), It.IsAny<CancellationToken>()), Times.Once);
-            store.Verify(s => s.SetCheckpointDataAsync("router.1.endpoint2", It.Is<CheckpointData>(c => c.Offset == 25), It.IsAny<CancellationToken>()), Times.Once);
+            store.Verify(s => s.SetCheckpointDataAsync(dispatcherId, It.Is<CheckpointData>(c => c.Offset == 25), It.IsAny<CancellationToken>()), Times.Once);
+            store.Verify(s => s.SetCheckpointDataAsync(endpointId1, It.Is<CheckpointData>(c => c.Offset == 25), It.IsAny<CancellationToken>()), Times.Once);
+            store.Verify(s => s.SetCheckpointDataAsync(endpointId2, It.Is<CheckpointData>(c => c.Offset == 25), It.IsAny<CancellationToken>()), Times.Once);
 
             await router1.RemoveRoute("route1");
             await router1.RouteAsync(MessageWithOffset(26L));
             Assert.Equal(Option.Some(26L), router1.Offset);
-            store.Verify(s => s.SetCheckpointDataAsync("router.1", It.Is<CheckpointData>(c => c.Offset == 26), It.IsAny<CancellationToken>()), Times.Once);
-            store.Verify(s => s.SetCheckpointDataAsync("router.1.endpoint1", It.Is<CheckpointData>(c => c.Offset == 26), It.IsAny<CancellationToken>()), Times.Never);
-            store.Verify(s => s.SetCheckpointDataAsync("router.1.endpoint2", It.Is<CheckpointData>(c => c.Offset == 26), It.IsAny<CancellationToken>()), Times.Once);
+            store.Verify(s => s.SetCheckpointDataAsync(dispatcherId, It.Is<CheckpointData>(c => c.Offset == 26), It.IsAny<CancellationToken>()), Times.Once);
+            store.Verify(s => s.SetCheckpointDataAsync(endpointId1, It.Is<CheckpointData>(c => c.Offset == 26), It.IsAny<CancellationToken>()), Times.Never);
+            store.Verify(s => s.SetCheckpointDataAsync(endpointId2, It.Is<CheckpointData>(c => c.Offset == 26), It.IsAny<CancellationToken>()), Times.Once);
 
             await router1.CloseAsync(CancellationToken.None);
 

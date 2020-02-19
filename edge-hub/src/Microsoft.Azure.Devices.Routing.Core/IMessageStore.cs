@@ -15,17 +15,28 @@ namespace Microsoft.Azure.Devices.Routing.Core
     public interface IMessageStore : IDisposable
     {
         /// <summary>
-        /// Finds message with same edgeMessageId in the message store,
-        /// and if not found, creates one.
-        /// Creates an entry in the message queue for the given endpoint
-        /// and returns the offset of that entry.
+        /// TODO: 6099894 - Update StoringAsyncEndpointExecutor message enqueue logic to be aware of priorities
+        /// Remove this overload once the executor is enqueuing/dequeuing messages by priority
         /// </summary>
         Task<IMessage> Add(string endpointId, IMessage message);
 
         /// <summary>
-        /// Returns an iterator that allows reading messages starting from the given offset.
+        /// Creates an entry in the message queue for the given endpoint
+        /// and returns the offset of that entry. If an entry already
+        /// exists for the given message ID, then it's updated.
+        /// </summary>
+        Task<IMessage> Add(string endpointId, IMessage message, uint priority);
+
+        /// <summary>
+        /// TODO: 6099894 - Update StoringAsyncEndpointExecutor message enqueue logic to be aware of priorities
+        /// Remove this overload once the executor is enqueuing/dequeuing messages by priority
         /// </summary>
         IMessageIterator GetMessageIterator(string endpointId, long startingOffset);
+
+        /// <summary>
+        /// Returns an iterator that allows reading messages starting from the given offset.
+        /// </summary>
+        IMessageIterator GetMessageIterator(string endpointId, uint priority, long startingOffset);
 
         /// <summary>
         /// Returns an iterator that allows reading messages starting from the first message.
@@ -33,14 +44,26 @@ namespace Microsoft.Azure.Devices.Routing.Core
         IMessageIterator GetMessageIterator(string endpointId);
 
         /// <summary>
-        /// Adds a new endpoint to the store
+        /// TODO: 6099894 - Update StoringAsyncEndpointExecutor message enqueue logic to be aware of priorities
+        /// Remove this overload once the executor is enqueuing/dequeuing messages by priority
         /// </summary>
         Task AddEndpoint(string endpointId);
 
         /// <summary>
-        /// Removes the endpoint from the store
+        /// Adds a new queue for endpoint with the given priority to the store.
+        /// </summary>
+        Task AddEndpointQueue(string endpointId, uint priority);
+
+        /// <summary>
+        /// TODO: 6099894 - Update StoringAsyncEndpointExecutor message enqueue logic to be aware of priorities
+        /// Remove this overload once the executor is enqueuing/dequeuing messages by priority
         /// </summary>
         Task RemoveEndpoint(string endpointId);
+
+        /// <summary>
+        /// Removes the queue for the given endpoint and priority from the store.
+        /// </summary>
+        Task RemoveEndpointQueue(string endpointId, uint priority);
 
         /// <summary>
         /// Set the expiry time for messages in the store

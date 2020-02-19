@@ -55,31 +55,44 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             Events.TtlUpdated(timeSpan);
         }
 
-        public async Task AddEndpoint(string endpointId)
+        public Task AddEndpoint(string endpointId) => this.AddEndpointQueue(endpointId, RouteFactory.DefaultPriority);
+
+        public async Task AddEndpointQueue(string endpointId, uint priority)
         {
-            CheckpointData checkpointData = await this.checkpointStore.GetCheckpointDataAsync(endpointId, CancellationToken.None);
-            ISequentialStore<MessageRef> sequentialStore = await this.storeProvider.GetSequentialStore<MessageRef>(endpointId, checkpointData.Offset + 1);
-            if (this.endpointSequentialStores.TryAdd(endpointId, sequentialStore))
+            string storeId = GetSequentialStoreId(endpointId, priority);
+            CheckpointData checkpointData = await this.checkpointStore.GetCheckpointDataAsync(storeId, CancellationToken.None);
+            ISequentialStore<MessageRef> sequentialStore = await this.storeProvider.GetSequentialStore<MessageRef>(storeId, checkpointData.Offset + 1);
+            if (this.endpointSequentialStores.TryAdd(storeId, sequentialStore))
             {
-                Events.SequentialStoreAdded(endpointId);
+                Events.SequentialStoreAdded(storeId);
             }
         }
 
-        public async Task RemoveEndpoint(string endpointId)
+        public Task RemoveEndpoint(string endpointId) => this.RemoveEndpointQueue(endpointId, RouteFactory.DefaultPriority);
+
+        public async Task RemoveEndpointQueue(string endpointId, uint priority)
         {
-            if (this.endpointSequentialStores.TryRemove(endpointId, out ISequentialStore<MessageRef> sequentialStore))
+            string storeId = GetSequentialStoreId(endpointId, priority);
+
+            if (this.endpointSequentialStores.TryRemove(storeId, out ISequentialStore<MessageRef> sequentialStore))
             {
                 await this.storeProvider.RemoveStore(sequentialStore);
-                Events.SequentialStoreRemoved(endpointId);
+                Events.SequentialStoreRemoved(storeId);
             }
         }
 
-        public async Task<IMessage> Add(string endpointId, IMessage message)
+        public Task<IMessage> Add(string endpointId, IMessage message) => this.Add(endpointId, message, RouteFactory.DefaultPriority);
+
+        public async Task<IMessage> Add(string endpointId, IMessage message, uint priority)
         {
             Preconditions.CheckNotNull(message, nameof(message));
-            if (!this.endpointSequentialStores.TryGetValue(Preconditions.CheckNonWhiteSpace(endpointId, nameof(endpointId)), out ISequentialStore<MessageRef> sequentialStore))
+            Preconditions.CheckNonWhiteSpace(endpointId, nameof(endpointId));
+
+            string storeId = GetSequentialStoreId(endpointId, priority);
+
+            if (!this.endpointSequentialStores.TryGetValue(storeId, out ISequentialStore<MessageRef> sequentialStore))
             {
-                throw new InvalidOperationException($"SequentialStore for endpoint {nameof(endpointId)} not found");
+                throw new InvalidOperationException($"SequentialStore for endpoint {nameof(storeId)} not found");
             }
 
             if (!message.SystemProperties.TryGetValue(SystemProperties.EdgeMessageId, out string edgeMessageId))
@@ -94,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             // entity store. But that should be rare enough that it might be okay. Also it is better than not being able to forward the message.
             // Alternative is to add retry logic to the pump, but that is more complicated, and could affect performance.
             // TODO - Need to support transactions for these operations. The underlying storage layers support it.
-            using (MetricsV0.MessageStoreLatency(endpointId))
+            using (MetricsV0.MessageStoreLatency(storeId))
             {
                 await this.messageEntityStore.PutOrUpdate(
                     edgeMessageId,
@@ -108,10 +121,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
             try
             {
-                using (MetricsV0.SequentialStoreLatency(endpointId))
+                using (MetricsV0.SequentialStoreLatency(storeId))
                 {
                     long offset = await sequentialStore.Append(new MessageRef(edgeMessageId));
-                    Events.MessageAdded(offset, edgeMessageId, endpointId, this.messageCount);
+                    Events.MessageAdded(offset, edgeMessageId, storeId, this.messageCount);
                     return new MessageWithOffset(message, offset);
                 }
             }
@@ -123,11 +136,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             }
         }
 
-        public IMessageIterator GetMessageIterator(string endpointId, long startingOffset)
+        public IMessageIterator GetMessageIterator(string endpointId, long startingOffset) => this.GetMessageIterator(endpointId, RouteFactory.DefaultPriority, startingOffset);
+
+        public IMessageIterator GetMessageIterator(string endpointId, uint priority, long startingOffset)
         {
-            if (!this.endpointSequentialStores.TryGetValue(Preconditions.CheckNonWhiteSpace(endpointId, nameof(endpointId)), out ISequentialStore<MessageRef> sequentialStore))
+            Preconditions.CheckNonWhiteSpace(endpointId, nameof(endpointId));
+            string storeId = GetSequentialStoreId(endpointId, priority);
+
+            if (!this.endpointSequentialStores.TryGetValue(storeId, out ISequentialStore<MessageRef> sequentialStore))
             {
-                throw new InvalidOperationException($"Endpoint {nameof(endpointId)} not found");
+                throw new InvalidOperationException($"Endpoint {nameof(storeId)} not found");
             }
 
             // Offset starts from 0;
@@ -142,6 +160,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         {
             this.Dispose(true);
             GC.SuppressFinalize(this);
+        }
+
+        static string GetSequentialStoreId(string endpointId, uint priority)
+        {
+            if (priority == RouteFactory.DefaultPriority)
+            {
+                // We need to maintain backwards compatibility
+                // for existing sequential stores that don't
+                // have the "_Pri<x>" suffix. We use the default
+                // priority (2,000,000,000) for this, which means
+                // the store ID is just the endpoint ID.
+                return endpointId;
+            }
+            else
+            {
+                // The actual ID for the underlying store is of string format:
+                //      <endpointId>_Pri<priority>
+                return endpointId + "_Pri" + priority.ToString();
+            }
         }
 
         protected virtual void Dispose(bool disposing)
