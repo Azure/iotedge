@@ -25,13 +25,13 @@ namespace EdgeHubRestartTester
 
         public DirectMethodEdgeHubConnectorTest(
             Guid batchId,
-            ILogger logger)
+            ILogger logger,
+            ModuleClient dmModuleClient)
         {
             this.batchId = batchId;
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
+            this.dmModuleClient = Preconditions.CheckNotNull(dmModuleClient, nameof(dmModuleClient));
         }
-
-        public void Dispose() => this.dmModuleClient?.Dispose();
 
         public async Task StartAsync(
             DateTime runExpirationTime,
@@ -79,7 +79,7 @@ namespace EdgeHubRestartTester
                     MethodRequest request = new MethodRequest(
                         directMethodName,
                         Encoding.UTF8.GetBytes($"{{ \"Message\": \"Hello\", \"DirectMethodCount\": \"{this.directMethodCount}\" }}"),
-                        Settings.Current.SdkOperationTimeout,
+                        TimeSpan.FromSeconds(5),   // Minimum value accepted by SDK
                         Settings.Current.SdkOperationTimeout);
                     MethodResponse result = await moduleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
                     this.logger.LogInformation($"[DirectMethodEdgeHubConnector] Invoke DirectMethod with count {this.directMethodCount}");
@@ -101,7 +101,7 @@ namespace EdgeHubRestartTester
                     if (this.IsEdgeHubDownDuringDirectMethodSend(e) || this.IsDirectMethodReceiverNotConnected(e))
                     {
                         // swallow exeception and retry until success
-                        this.logger.LogDebug(e, $"[DirectMethodEdgeHubConnector] Exception caught with SequenceNumber {this.directMethodCount}");
+                        this.logger.LogDebug($"[DirectMethodEdgeHubConnector] Expected exception caught with SequenceNumber {this.directMethodCount}");
                     }
                     else
                     {
