@@ -147,17 +147,17 @@ namespace TestResultCoordinator.Reports.DirectMethod
                     $"{dmSenderTestResult.GetFormattedResult()}. ReceiverTestResult: {dmReceiverTestResult.GetFormattedResult()}");
             }
 
-            if (string.Equals(dmSenderTestResult.SequenceNumber, dmReceiverTestResult.SequenceNumber, StringComparison.OrdinalIgnoreCase))
+            if (dmSenderTestResult.SequenceNumber == dmReceiverTestResult.SequenceNumber)
             {
                 hasReceiverResult = await receiverTestResults.MoveNextAsync();
             }
             else
             {
-                if (int.Parse(dmSenderTestResult.SequenceNumber) > int.Parse(dmReceiverTestResult.SequenceNumber))
+                if (dmSenderTestResult.SequenceNumber > dmReceiverTestResult.SequenceNumber)
                 {
                     return await this.ProcessMismatchFailureCase();
                 }
-                else if (int.Parse(dmSenderTestResult.SequenceNumber) < int.Parse(dmReceiverTestResult.SequenceNumber))
+                else if (dmSenderTestResult.SequenceNumber < dmReceiverTestResult.SequenceNumber)
                 {
                     if (HttpStatusCode.OK.Equals(dmSenderTestResult.HttpStatusCode) &&
                         (NetworkControllerStatus.Disabled.Equals(networkControllerStatus)
