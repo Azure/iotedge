@@ -1,4 +1,4 @@
-CREATE   proc dbo.CheckForNull @i int 
+CREATE   proc dbo.CheckForNull @i sql_variant
 as
 begin
   if @i is null 

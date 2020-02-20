@@ -17,13 +17,12 @@ AS
 	DECLARE @now datetime2;
 	SET @now = SYSDATETIME();
 
-    exec [dbo].[CheckForNull] @Id = null
-    exec [dbo].[CheckForNull] @Name = null
-    exec [dbo].[CheckForNull] @SourceBranch = null
-    exec [dbo].[CheckForNull] @Status = null
-    exec [dbo].[CheckForNull] @WebUri = null
-    exec [dbo].[CheckForNull] @DefinitionId = null
-    exec [dbo].[CheckForNull] @DefinitionName = null
+    exec [dbo].[CheckForNull] @i = @Id
+    exec [dbo].[CheckForNull] @i = @SourceBranch
+    exec [dbo].[CheckForNull] @i = @Status
+    exec [dbo].[CheckForNull] @i = @WebUri
+    exec [dbo].[CheckForNull] @i = @DefinitionId
+    exec [dbo].[CheckForNull] @i = @DefinitionName
 
 	IF EXISTS (SELECT 1 FROM dbo.VstsRelease WHERE [Id] = @Id)
 	BEGIN
@@ -43,4 +42,3 @@ AS
 		VALUES (@Id, @Name, @SourceBranch, @Status, @WebUri, @DefinitionId, @DefinitionName, @now, @now)
 	END
 GO
-
