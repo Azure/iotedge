@@ -8,6 +8,7 @@ GO
 CREATE PROCEDURE [dbo].[UpsertVstsRelease]
 	@Id int,
 	@Name varchar(100),
+	@SourceBranch varchar(100),
 	@Status varchar(20),
 	@WebUri varchar(500),
 	@DefinitionId int,
@@ -16,10 +17,19 @@ AS
 	DECLARE @now datetime2;
 	SET @now = SYSDATETIME();
 
+    exec [dbo].[CheckForNull] @Id = null
+    exec [dbo].[CheckForNull] @Name = null
+    exec [dbo].[CheckForNull] @SourceBranch = null
+    exec [dbo].[CheckForNull] @Status = null
+    exec [dbo].[CheckForNull] @WebUri = null
+    exec [dbo].[CheckForNull] @DefinitionId = null
+    exec [dbo].[CheckForNull] @DefinitionName = null
+
 	IF EXISTS (SELECT 1 FROM dbo.VstsRelease WHERE [Id] = @Id)
 	BEGIN
 		UPDATE dbo.VstsRelease
 		SET [Name] = @Name,
+			[SourceBranch] = @SourceBranch,
 		    [Status] = @Status,
 		    WebUri = @WebUri,
 			DefinitionId = @DefinitionId,
@@ -29,8 +39,8 @@ AS
 	END
 	ELSE
 	BEGIN
-		INSERT INTO dbo.VstsRelease(Id, [Name], [Status], WebUri, DefinitionId, DefinitionName, InsertedAt, UpdatedAt)
-		VALUES (@Id, @Name, @Status, @WebUri, @DefinitionId, @DefinitionName, @now, @now)
+		INSERT INTO dbo.VstsRelease(Id, [Name], [SourceBranch], [Status], WebUri, DefinitionId, DefinitionName, InsertedAt, UpdatedAt)
+		VALUES (@Id, @Name, @SourceBranch, @Status, @WebUri, @DefinitionId, @DefinitionName, @now, @now)
 	END
 GO
 
