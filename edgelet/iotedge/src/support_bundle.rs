@@ -4,6 +4,7 @@ use std::env;
 use std::error::Error as StdError;
 use std::ffi::OsString;
 use std::fs::File;
+use std::io::{Cursor, Seek};
 use std::path::{Path, PathBuf};
 use std::process::Command as ShellCommand;
 
@@ -36,7 +37,7 @@ struct BundleState<M> {
     verbose: bool,
     iothub_hostname: Option<String>,
     file_options: zip::write::FileOptions,
-    zip_writer: zip::ZipWriter<File>,
+    zip_writer: zip::ZipWriter<Box<dyn CompressionDestination + Send>>,
 }
 
 impl<M> Command for SupportBundle<M>
@@ -69,6 +70,10 @@ where
     }
 }
 
+trait CompressionDestination: Write + Seek {}
+impl CompressionDestination for std::fs::File {}
+impl CompressionDestination for Cursor<Vec<u8>> {}
+
 impl<M> SupportBundle<M>
 where
     M: 'static + ModuleRuntime + Clone + Send + Sync,
@@ -96,10 +101,11 @@ where
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
         let location = PathBuf::from(&self.location);
 
-        let zip_writer = zip::ZipWriter::new(
+        let destination: Box<dyn CompressionDestination + Send> = Box::new(
             File::create(&location)
                 .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?,
         );
+        let zip_writer = zip::ZipWriter::new(destination);
 
         Ok(BundleState {
             runtime: self.runtime,
