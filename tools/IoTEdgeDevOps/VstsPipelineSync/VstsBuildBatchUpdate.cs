@@ -20,7 +20,7 @@ namespace VstsPipelineSync
         public VstsBuildBatchUpdate(DevOpsAccessSetting devOpsAccessSetting, string dbConnectionString, HashSet<string> branches)
         {
             ValidationUtil.ThrowIfNull(devOpsAccessSetting, nameof(devOpsAccessSetting));
-            ValidationUtil.ThrowIfNulOrEmptySet(branches, nameof(branches));
+            ValidationUtil.ThrowIfNullOrEmptySet(branches, nameof(branches));
 
             this.devOpsAccessSetting = devOpsAccessSetting;
             this.dbConnectionString = dbConnectionString;
@@ -42,7 +42,7 @@ namespace VstsPipelineSync
                     {
                         lastUpdatePerBranchPerDefinition.Upsert(
                             branch, 
-                            await ImportVstsBuildsDataAsync(buildManagement, branch, BuildExtension.MasterBranchBuildDefinitions));
+                            await ImportVstsBuildsDataAsync(buildManagement, branch, BuildExtension.BuildDefinitions));
                     }
                 }
                 catch (Exception ex)
