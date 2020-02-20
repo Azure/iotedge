@@ -11,11 +11,11 @@ steps:
         $(Join-Path $env:ProgramFiles 'iotedge'),
         $(Join-Path $env:ProgramFiles 'iotedge-moby') -join ';'
 
-      dotnet vstest $testFile --logger:trx --TestCaseFilter Name~Metrics
+      dotnet vstest $testFile --logger:trx --TestCaseFilter Name~Metrics.cs
     }
     else
     {
-      sudo --preserve-env dotnet vstest $testFile --logger:trx --TestCaseFilter Name~Metrics
+      sudo --preserve-env dotnet vstest $testFile --logger:trx --TestCaseFilter Name~Metrics.cs
     }
   displayName: Run tests
   env:
