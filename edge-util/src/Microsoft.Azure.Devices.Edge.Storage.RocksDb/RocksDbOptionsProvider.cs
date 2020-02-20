@@ -45,18 +45,18 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         // column families whose memtables are backed by the oldest live WAL file
         const ulong DefaultMaxTotalWalSize = 512 * 1024 * 1024;
         // Log NOTHING to the log file.
-        const RocksDbInfoLogLevel DefaultLogLevel = RocksDbInfoLogLevel.NONE;
+        const StorageLogLevel DefaultLogLevel = StorageLogLevel.NONE;
 
         readonly ISystemEnvironment env;
         readonly bool optimizeForPerformance;
         readonly ulong maxTotalWalSize;
-        readonly RocksDbInfoLogLevel logLevel;
+        readonly StorageLogLevel logLevel;
 
         public RocksDbOptionsProvider(
             ISystemEnvironment env,
             bool optimizeForPerformance,
             Option<ulong> maxTotalWalsize,
-            Option<RocksDbInfoLogLevel> logLevel)
+            Option<StorageLogLevel> logLevel)
         {
             this.env = Preconditions.CheckNotNull(env);
             this.optimizeForPerformance = optimizeForPerformance;

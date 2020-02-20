@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Extensions.Logging;
     using Moq;
     using Constants = Microsoft.Azure.Devices.Edge.Hub.Service.Constants;
-    using RocksDbInfoLogLevel = Microsoft.Azure.Devices.Edge.Storage.RocksDb.RocksDbInfoLogLevel;
+    using StorageLogLevel = Microsoft.Azure.Devices.Edge.Storage.StorageLogLevel;
 
     class DependencyManager : IDependencyManager
     {
@@ -124,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     string.Empty,
                     metricsConfig,
                     Option.None<ulong>(),
-                    Option.None<RocksDbInfoLogLevel>()));
+                    Option.None<StorageLogLevel>()));
 
             builder.RegisterModule(
                 new RoutingModule(

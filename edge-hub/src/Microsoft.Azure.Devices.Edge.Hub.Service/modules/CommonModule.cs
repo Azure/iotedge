@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly string proxy;
         readonly MetricsConfig metricsConfig;
         readonly Option<ulong> storageMaxTotalWalSize;
-        readonly Option<RocksDbInfoLogLevel> storageLogLevel;
+        readonly Option<StorageLogLevel> storageLogLevel;
 
         public CommonModule(
             string productInfo,
@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             string proxy,
             MetricsConfig metricsConfig,
             Option<ulong> storageMaxTotalWalSize,
-            Option<RocksDbInfoLogLevel> storageLogLevel)
+            Option<StorageLogLevel> storageLogLevel)
         {
             this.productInfo = productInfo;
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));

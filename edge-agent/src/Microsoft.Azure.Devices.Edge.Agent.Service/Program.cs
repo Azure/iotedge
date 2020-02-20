@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
-    using RocksDbInfoLogLevel = Microsoft.Azure.Devices.Edge.Storage.RocksDb.RocksDbInfoLogLevel;
+    using StorageLogLevel = Microsoft.Azure.Devices.Edge.Storage.StorageLogLevel;
 
     public class Program
     {
@@ -118,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 TimeSpan idleTimeout = TimeSpan.FromSeconds(idleTimeoutSecs);
                 ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
                 Option<ulong> storageTotalMaxWalSize = GetStorageConfigIfExists<ulong>(Constants.StorageMaxTotalWalSize, configuration);
-                Option<RocksDbInfoLogLevel> storageLogLevel = GetStorageConfigIfExists<RocksDbInfoLogLevel>(Constants.StorageLogLevel, configuration);
+                Option<StorageLogLevel> storageLogLevel = GetStorageConfigIfExists<StorageLogLevel>(Constants.StorageLogLevel, configuration);
                 metricsConfig = new MetricsConfig(experimentalFeatures.EnableMetrics, MetricsListenerConfig.Create(configuration));
                 string iothubHostname;
                 string deviceId;

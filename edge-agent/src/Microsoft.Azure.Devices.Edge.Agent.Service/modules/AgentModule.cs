@@ -31,9 +31,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string moduleId;
         readonly Option<string> moduleGenerationId;
         readonly Option<ulong> storageTotalMaxWalSize;
-        readonly Option<RocksDbInfoLogLevel> storageLogLevel;
+        readonly Option<StorageLogLevel> storageLogLevel;
 
-        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, bool usePersistentStorage, string storagePath, Option<ulong> storageTotalMaxWalSize, Option<RocksDbInfoLogLevel> storageLogLevel)
+        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, bool usePersistentStorage, string storagePath, Option<ulong> storageTotalMaxWalSize, Option<StorageLogLevel> storageLogLevel)
             : this(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.None<Uri>(), Option.None<string>(), Constants.EdgeAgentModuleIdentityName, Option.None<string>(), storageTotalMaxWalSize, storageLogLevel)
         {
         }
@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string moduleId,
             Option<string> moduleGenerationId,
             Option<ulong> storageTotalMaxWalSize,
-            Option<RocksDbInfoLogLevel> storageLogLevel)
+            Option<StorageLogLevel> storageLogLevel)
         {
             this.maxRestartCount = maxRestartCount;
             this.intensiveCareTime = intensiveCareTime;

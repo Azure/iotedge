@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 
         public TestRocksDbStoreProvider()
         {
-            var options = new RocksDbOptionsProvider(new SystemEnvironment(), true, Option.None<ulong>(), Option.None<RocksDbInfoLogLevel>());
+            var options = new RocksDbOptionsProvider(new SystemEnvironment(), true, Option.None<ulong>(), Option.None<StorageLogLevel>());
             string tempFolder = Path.GetTempPath();
             this.rocksDbFolder = Path.Combine(tempFolder, $"edgeTestDb{Guid.NewGuid()}");
             if (Directory.Exists(this.rocksDbFolder))
