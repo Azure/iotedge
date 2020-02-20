@@ -37,8 +37,9 @@ namespace MetricsValidator
                     .AddEnvironmentVariables()
                     .Build();
 
+                var transportType = configuration.GetValue("ClientTransportType", Microsoft.Azure.Devices.Client.TransportType.Mqtt);
                 using (ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
-                    configuration.GetValue("ClientTransportType", Microsoft.Azure.Devices.Client.TransportType.Mqtt),
+                    transportType,
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger))
@@ -57,7 +58,7 @@ namespace MetricsValidator
                             TestReporter testReporter = new TestReporter("Metrics Validation");
                             List<TestBase> tests = new List<TestBase>
                             {
-                                new ValidateMessages(testReporter, scraper, moduleClient),
+                                new ValidateMessages(testReporter, scraper, moduleClient, transportType),
                                 new ValidateDocumentedMetrics(testReporter, scraper, moduleClient),
                                 // new ValidateHostRanges(testReporter, scraper, moduleClient),
                             };

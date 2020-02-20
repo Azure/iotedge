@@ -16,9 +16,12 @@ namespace MetricsValidator.Tests
 
     public class ValidateMessages : TestBase
     {
-        public ValidateMessages(TestReporter testReporter, IMetricsScraper scraper, ModuleClient moduleClient)
+        TransportType transportType;
+
+        public ValidateMessages(TestReporter testReporter, IMetricsScraper scraper, ModuleClient moduleClient, TransportType transportType)
             : base(testReporter, scraper, moduleClient)
         {
+            this.transportType = transportType;
         }
 
         protected override async Task Test(CancellationToken cancellationToken)
@@ -83,8 +86,12 @@ namespace MetricsValidator.Tests
                     await WaitForQueueToClear($"Queue empties from {n}");
                 }
 
-                await FillAndEmptyQueue(10);
-                await FillAndEmptyQueue(100);
+                // MQTT doesn't support abandoning
+                if (!new TransportType[] { TransportType.Mqtt, TransportType.Mqtt_Tcp_Only, TransportType.Mqtt_WebSocket_Only }.Contains(this.transportType))
+                {
+                    await FillAndEmptyQueue(10);
+                    await FillAndEmptyQueue(100);
+                }
 
                 async Task FillAndAbandon(int n)
                 {
