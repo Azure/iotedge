@@ -19,7 +19,7 @@ namespace EdgeHubRestartTester
     {
         readonly Guid batchId;
         readonly ILogger logger;
-        long directMethodCount = 0;
+        ulong directMethodCount = 0;
         ModuleClient dmModuleClient = null;
         TestResultReportingClient reportClient = null;
 
@@ -50,7 +50,7 @@ namespace EdgeHubRestartTester
                 DateTime.UtcNow,
                 Settings.Current.TrackingId,
                 this.batchId,
-                this.directMethodCount.ToString(),
+                this.directMethodCount,
                 edgeHubRestartedTime,
                 dmCompletedTime,
                 dmStatusCode);
