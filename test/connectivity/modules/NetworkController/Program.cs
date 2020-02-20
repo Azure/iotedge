@@ -36,6 +36,10 @@ namespace NetworkController
                         var controllers = new List<INetworkController>() { offline, satellite, cellular };
                         await RemoveAllControllingRules(controllers, cts.Token);
 
+                        Log.LogInformation($"Delay {Settings.Current.StartAfter} before starting network controller.");
+                        await Task.Delay(Settings.Current.StartAfter, cts.Token);
+                        await ReportTestInfoAsync();
+
                         switch (Settings.Current.NetworkRunProfile.ProfileType)
                         {
                             case NetworkControllerType.Offline:
@@ -74,9 +78,10 @@ namespace NetworkController
         {
             var testInfoResults = new string[]
             {
-                $"Network Run Profile={Settings.Current.NetworkRunProfile}",
+                $"Network Run Profile Type={Settings.Current.NetworkRunProfile.ProfileType}",
+                $"Network Run Profile Settings={Settings.Current.NetworkRunProfile.ProfileSetting.ToString()}",
                 $"Network Network Id={Settings.Current.NetworkId}",
-                $"Network Frequencies={string.Join(",", Settings.Current.Frequencies.Select(f => $"[offline:{f.OfflineFrequency},Online:{f.OnlineFrequency},Runs:{f.RunsCount}]"))}"
+                $"Network Frequencies={string.Join(",", Settings.Current.Frequencies.Select(f => $"[Enable Network Control:{f.OfflineFrequency},Disable Network Control:{f.OnlineFrequency},Runs:{f.RunsCount}]"))}"
             };
 
             var testResultReportingClient = new TestResultReportingClient() { BaseUrl = Settings.Current.TestResultCoordinatorEndpoint.AbsoluteUri };
@@ -96,15 +101,10 @@ namespace NetworkController
 
         static async Task StartAsync(INetworkController controller, CancellationToken cancellationToken)
         {
-            TimeSpan delay = Settings.Current.StartAfter;
-
             INetworkStatusReporter reporter = new NetworkStatusReporter(Settings.Current.TestResultCoordinatorEndpoint, Settings.Current.ModuleId, Settings.Current.TrackingId);
             foreach (Frequency item in Settings.Current.Frequencies)
             {
-                Log.LogInformation($"Schedule task for type {controller.NetworkControllerType} to start after {delay} Offline frequency {item.OfflineFrequency} Online frequency {item.OnlineFrequency} Run times {item.RunsCount}");
-
-                await Task.Delay(delay, cancellationToken);
-                await ReportTestInfoAsync();
+                Log.LogInformation($"Schedule task for type {controller.NetworkControllerType} with enable network control frequency {item.OfflineFrequency}, disable network control frequency {item.OnlineFrequency}, and run times {item.RunsCount}.");
 
                 var taskExecutor = new CountedTaskExecutor(
                     async cs =>
@@ -120,9 +120,6 @@ namespace NetworkController
                     "restrict/default");
 
                 await taskExecutor.Schedule(cancellationToken);
-
-                // Only needs to set the start delay for first frequency, after that reset to 0
-                delay = TimeSpan.FromSeconds(0);
             }
         }
 
