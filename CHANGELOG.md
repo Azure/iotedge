@@ -1,7 +1,8 @@
 # 1.0.9-rc5 (2020-02-14)
 ## Edge Hub
 ### Features
-* Update Microsoft.Azure.Devices to version 1.19.0 and Microsoft.Azure.Devices.Client to version 1.23.0 ([3e527bc](https://github.com/Azure/iotedge/commit/3e527bc7543ad43a1dd721992b0472f39370c81e))
+* Update Microsoft.Azure.Devices.Client to version 1.23.1 ([04f752e](https://github.com/Azure/iotedge/commit/04f752eeff6431446795c8a8541e9345817ca6b5))
+* Update Microsoft.Azure.Devices to version 1.19.0 ([3e527bc](https://github.com/Azure/iotedge/commit/3e527bc7543ad43a1dd721992b0472f39370c81e))
 * AMQP Heartbeat feature for edgeHub ([8f26e82](https://github.com/Azure/iotedge/commit/8f26e82e74e68282cd09be7137eec37e99474ed2))
 
 ### Bug fixes
@@ -13,7 +14,8 @@
 
 ## Edge Agent
 ### Features
-* Update Microsoft.Azure.Devices to version 1.19.0 and Microsoft.Azure.Devices.Client to version 1.23.0 ([3e527bc](https://github.com/Azure/iotedge/commit/3e527bc7543ad43a1dd721992b0472f39370c81e))
+* Update Microsoft.Azure.Devices.Client to version 1.23.1 ([04f752e](https://github.com/Azure/iotedge/commit/04f752eeff6431446795c8a8541e9345817ca6b5))
+* Update Microsoft.Azure.Devices to version 1.19.0 ([3e527bc](https://github.com/Azure/iotedge/commit/3e527bc7543ad43a1dd721992b0472f39370c81e))
 * AMQP Heartbeat feature for edgeAgent ([daa4e54](https://github.com/Azure/iotedge/commit/daa4e5418aa7788ebb37563bfff82a35cf397a6f))
 
 ### Bug fixes
