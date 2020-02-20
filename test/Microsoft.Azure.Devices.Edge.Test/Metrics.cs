@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         async Task Deploy(CancellationToken token)
         {
             // First deploy different agent image. This will force agent to update environment variables
-            await this.runtime.DeployConfigurationAsync(builder => builder.GetModule("$edgeAgent").WithSettings(("image", EdgeAgentBaseImage)), token);
+            // await this.runtime.DeployConfigurationAsync(builder => builder.GetModule("$edgeAgent").WithSettings(("image", EdgeAgentBaseImage)), token);
 
             string metricsValidatorImage = Context.Current.MetricsValidatorImage.Expect(() => new InvalidOperationException("Missing Metrics Validator image"));
             await this.runtime.DeployConfigurationAsync(
