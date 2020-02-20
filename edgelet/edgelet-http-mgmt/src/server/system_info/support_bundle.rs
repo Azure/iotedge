@@ -35,7 +35,7 @@ where
         _req: Request<Body>,
         _params: Parameters,
     ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
-        debug!("Get System Resources");
+        debug!("Get Support Bundle");
 
         let mut check = ShellCommand::new(iotedge);
         check.arg("check").args(&["-o", "json"]);
