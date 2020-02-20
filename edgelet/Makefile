@@ -76,7 +76,6 @@ dist:
 	$(GZIP) -f $(TARGET)/$(PACKAGE_NAME)-$(VERSION).tar
 	rm $(TARGET)/version.txt
 
-
 distclean:
 	rm -rf .cargo
 	rm -rf $(vendordir)
