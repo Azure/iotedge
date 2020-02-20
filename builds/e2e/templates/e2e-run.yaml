@@ -11,12 +11,11 @@ steps:
         $(Join-Path $env:ProgramFiles 'iotedge'),
         $(Join-Path $env:ProgramFiles 'iotedge-moby') -join ';'
 
-      dotnet vstest $testFile --logger:trx --TestCaseFilter Metrics.cs
+      dotnet vstest $testFile --logger:trx
     }
     else
     {
-      sudo --preserve-env dotnet vstest $testFile --logger:trx --TestCaseFilter Metrics.cs
-    }
+      sudo --preserve-env dotnet vstest $testFile --logger:trx
   displayName: Run tests
   env:
     E2E_DPS_GROUP_KEY: $(TestDpsGroupKeySymmetric)
