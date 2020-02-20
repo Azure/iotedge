@@ -49,6 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder =>
                     {
                         builder.AddModule(ModuleName, metricsValidatorImage);
+                        builder.AddModule("tempSensor999", Context.Current.TempSensorImage.Expect(() => new Exception("Oh no!")))
+                        .WithEnvironment(new[] { ("MessageCount", "1") });
 
                         var edgeHub = builder.GetModule("$edgeHub")
                             .WithEnvironment(("experimentalfeatures__enabled", "true"), ("experimentalfeatures__enableMetrics", "true"))
