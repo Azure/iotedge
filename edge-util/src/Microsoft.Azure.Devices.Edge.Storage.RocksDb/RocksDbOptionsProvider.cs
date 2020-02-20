@@ -44,6 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         // Once write-ahead logs exceed this size, we will start forcing the flush of
         // column families whose memtables are backed by the oldest live WAL file
         const ulong DefaultMaxTotalWalSize = 512 * 1024 * 1024;
+        const ulong DefaultKeepLogFileNum = 1;
         // Log NOTHING to the log file.
         const StorageLogLevel DefaultLogLevel = StorageLogLevel.NONE;
 
@@ -71,6 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
                 .SetCreateMissingColumnFamilies();
 
             options.SetMaxTotalWalSize(this.maxTotalWalSize)
+                .SetKeepLogFileNum(DefaultKeepLogFileNum)
                 .SetInfoLogLevel((int)this.logLevel);
 
             if (this.env.Is32BitProcess || !this.optimizeForPerformance)
