@@ -15,8 +15,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 new object[]
                 {
                     // NetworkOnSuccess test
-                    Enumerable.Range(1, 7).Cast<ulong>(),
-                    Enumerable.Range(1, 7).Cast<ulong>(),
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
                     new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
                     {
@@ -33,7 +33,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 new object[]
                 {
                     // NetworkOffSuccess test
-                    Enumerable.Range(1, 7).Cast<ulong>(),
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
                     new[] { 1UL, 2UL, 4UL, 5UL, 6UL, 7UL },
                     new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.InternalServerError, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
@@ -51,7 +51,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 new object[]
                 {
                     // NetworkOnToleratedSuccess test
-                    Enumerable.Range(1, 7).Cast<ulong>(),
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
                     new[] { 1UL, 2UL, 4UL, 5UL, 6UL, 7UL },
                     new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.InternalServerError, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
@@ -69,7 +69,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 new object[]
                 {
                     // NetworkOffToleratedSuccess test
-                    Enumerable.Range(1, 7).Cast<ulong>(),
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
                     new[] { 1UL, 2UL, 3UL, 4UL, 5UL, 6UL, 7UL },
                     new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
@@ -87,7 +87,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 new object[]
                 {
                     // NetworkOnFailure test
-                    Enumerable.Range(1, 7).Cast<ulong>(),
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
                     new[] { 1UL, 2UL, 3UL, 5UL, 6UL, 7UL },
                     new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.InternalServerError, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
@@ -105,7 +105,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 new object[]
                 {
                     // NetworkOffFailure test
-                    Enumerable.Range(1, 7).Cast<ulong>(),
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
                     new[] { 1UL, 2UL, 3UL, 4UL, 5UL, 6UL, 7UL },
                     new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
@@ -123,7 +123,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 new object[]
                 {
                     // MismatchSuccess test
-                    Enumerable.Range(1, 7).Cast<ulong>(),
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
                     new[] { 1UL, 2UL, 3UL, 5UL, 6UL, 7UL },
                     new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
@@ -141,7 +141,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 new object[]
                 {
                     // MismatchFailure test
-                    Enumerable.Range(1, 6).Cast<ulong>(),
+                    Enumerable.Range(1, 6).Select(v => (ulong)v),
                     new[] { 1UL, 2UL, 3UL, 4UL, 5UL, 6UL, 7UL },
                     new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
@@ -158,7 +158,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 },
                 new object[]
                 {
-                    Enumerable.Range(1, 10).Cast<ulong>(),
+                    Enumerable.Range(1, 10).Select(v => (ulong)v),
                     new[] { 1UL, 2UL, 3UL, 8UL, 10UL, 11UL },
                     new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.InternalServerError, HttpStatusCode.InternalServerError, HttpStatusCode.InternalServerError, HttpStatusCode.InternalServerError, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
