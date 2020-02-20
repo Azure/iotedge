@@ -48,18 +48,18 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         ImmutableDictionary<string, IEndpointExecutor> Executors => this.executors;
 
-        public static async Task<Dispatcher> CreateAsync(string id, string iotHubName, ISet<(Endpoint, IList<uint>)> endpointsWithPriorities, IEndpointExecutorFactory factory)
+        public static async Task<Dispatcher> CreateAsync(string id, string iotHubName, IDictionary<Endpoint, IList<uint>> endpointsWithPriorities, IEndpointExecutorFactory factory)
         {
             Preconditions.CheckNotNull(id);
             Preconditions.CheckNotNull(endpointsWithPriorities);
             Preconditions.CheckNotNull(factory);
 
-            IEnumerable<Task<IEndpointExecutor>> tasks = endpointsWithPriorities.Select(e => factory.CreateAsync(e.Item1, e.Item2));
+            IEnumerable<Task<IEndpointExecutor>> tasks = endpointsWithPriorities.Select(e => factory.CreateAsync(e.Key, e.Value));
             IEndpointExecutor[] executors = await Task.WhenAll(tasks);
             return new Dispatcher(id, iotHubName, executors, factory, new NullCheckpointer());
         }
 
-        public static async Task<Dispatcher> CreateAsync(string id, string iotHubName, ISet<(Endpoint, IList<uint>)> endpointsWithPriorities, IEndpointExecutorFactory factory, ICheckpointStore checkpointStore)
+        public static async Task<Dispatcher> CreateAsync(string id, string iotHubName, IDictionary<Endpoint, IList<uint>> endpointsWithPriorities, IEndpointExecutorFactory factory, ICheckpointStore checkpointStore)
         {
             Preconditions.CheckNotNull(id);
             Preconditions.CheckNotNull(endpointsWithPriorities);
@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             MasterCheckpointer masterCheckpointer = await MasterCheckpointer.CreateAsync(id, checkpointStore);
             var executorFactory = new CheckpointerEndpointExecutorFactory(id, factory, masterCheckpointer);
 
-            IEnumerable<Task<IEndpointExecutor>> tasks = endpointsWithPriorities.Select(e => executorFactory.CreateAsync(e.Item1, e.Item2));
+            IEnumerable<Task<IEndpointExecutor>> tasks = endpointsWithPriorities.Select(e => executorFactory.CreateAsync(e.Key, e.Value));
             IEndpointExecutor[] executors = await Task.WhenAll(tasks);
             return new Dispatcher(id, iotHubName, executors, executorFactory, masterCheckpointer);
         }
@@ -139,7 +139,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
         }
 
-        public async Task ReplaceEndpoints(ISet<(Endpoint, IList<uint>)> endpointsWithPriorities)
+        public async Task ReplaceEndpoints(IDictionary<Endpoint, IList<uint>> endpointsWithPriorities)
         {
             Preconditions.CheckNotNull(endpointsWithPriorities);
             this.CheckClosed();
@@ -150,7 +150,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
                 // Remove endpoints not in the new endpoints set
                 // Can't use Task.WhenAll because access to the executors dict must be serialized
-                IEnumerable<Endpoint> removedEndpoints = this.Endpoints.Except(endpointsWithPriorities.Select(e => e.Item1).ToImmutableHashSet());
+                IEnumerable<Endpoint> removedEndpoints = this.Endpoints.Except(endpointsWithPriorities.Select(e => e.Key).ToImmutableHashSet());
                 foreach (Endpoint endpoint in removedEndpoints)
                 {
                     await this.RemoveEndpointInternal(endpoint.Id);
@@ -158,9 +158,9 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
                 // Set all of the new endpoints
                 // Can't use Task.WhenAll because access to the executors dict must be serialized
-                foreach ((Endpoint, List<uint>) e in endpointsWithPriorities)
+                foreach (KeyValuePair<Endpoint, IList<uint>> e in endpointsWithPriorities)
                 {
-                    await this.SetEndpointInternal(e.Item1, e.Item2);
+                    await this.SetEndpointInternal(e.Key, e.Value);
                 }
             }
         }

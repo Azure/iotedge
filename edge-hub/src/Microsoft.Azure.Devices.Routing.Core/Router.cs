@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             Preconditions.CheckNotNull(executorFactory);
 
             var evaluator = new Evaluator(config);
-            Dispatcher dispatcher = await Dispatcher.CreateAsync(id, iotHubName, GetEndpointsWithPriority(config), executorFactory);
+            Dispatcher dispatcher = await Dispatcher.CreateAsync(id, iotHubName, GetEndpointsWithPriority(config.Routes, config.Fallback), executorFactory);
             return new Router(id, iotHubName, evaluator, dispatcher);
         }
 
@@ -70,7 +70,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             Preconditions.CheckNotNull(checkpointStore);
 
             var evaluator = new Evaluator(config);
-            Dispatcher dispatcher = await Dispatcher.CreateAsync(id, iotHubName, GetEndpointsWithPriority(config), executorFactory, checkpointStore);
+            Dispatcher dispatcher = await Dispatcher.CreateAsync(id, iotHubName, GetEndpointsWithPriority(config.Routes, config.Fallback), executorFactory, checkpointStore);
             return new Router(id, iotHubName, evaluator, dispatcher);
         }
 
@@ -119,9 +119,13 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 this.routes.Value = snapshot.SetItem(route.Id, route);
                 this.evaluator.SetRoute(route);
 
-                // Get another snapshot since we just added the new route
+                // Get another snapshot since we just added the new route,
+                // then recalculate the priorities for the endpoint with
+                // the new route taken into account
                 snapshot = this.routes;
-                IList<uint> priorities = GetPrioritiesForEndpoint(route.Endpoint, snapshot.Values);
+                IList<uint> priorities = snapshot.Values
+                    .Where(r => r.Endpoint == route.Endpoint)
+                    .Select(r => r.Priority).ToList();
 
                 await this.dispatcher.SetEndpoint(route.Endpoint, priorities);
             }
@@ -153,7 +157,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             {
                 this.CheckClosed();
                 ImmutableHashSet<Endpoint> endpoints = newRoutes.Select(r => r.Endpoint).ToImmutableHashSet();
-                var endpointWithPriority = new HashSet<(Endpoint, IList<uint>)>(endpoints.Select(e => (e, GetPrioritiesForEndpoint(e, newRoutes))));
+                IDictionary<Endpoint, IList<uint>> endpointWithPriority = GetEndpointsWithPriority(newRoutes, Option.None<Route>());
                 this.evaluator.ReplaceRoutes(newRoutes);
                 await this.dispatcher.ReplaceEndpoints(endpointWithPriority);
                 this.routes.Value = newRoutes.ToImmutableDictionary(r => r.Id, r => r);
@@ -187,24 +191,32 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
         }
 
-        static IList<uint> GetPrioritiesForEndpoint(Endpoint endpoint, IEnumerable<Route> routes)
+        static void MergeEndpointPriorities(ref Dictionary<Endpoint, IList<uint>> existing, Endpoint endpoint, uint newPriority)
         {
-            return routes
-                .Where(r => r.Endpoint == endpoint)
-                .Select(r => r.Priority).ToList();
+            if (existing.ContainsKey(endpoint))
+            {
+                // Merge the existing priorities together
+                existing[endpoint].Add(newPriority);
+            }
+            else
+            {
+                // Add a new endpoint with its priorities
+                existing.Add(endpoint, new List<uint>() { newPriority });
+            }
         }
 
-        static ISet<(Endpoint, IList<uint>)> GetEndpointsWithPriority(RouterConfig config)
+        static IDictionary<Endpoint, IList<uint>> GetEndpointsWithPriority(IEnumerable<Route> routes, Option<Route> fallback)
         {
-            var endpoints = new HashSet<(Endpoint, IList<uint>)>(config.Endpoints.Select(e => (e, GetPrioritiesForEndpoint(e, config.Routes))));
-            config.Fallback.ForEach(f => endpoints.Add((f.Endpoint, new List<uint>() { RouteFactory.DefaultPriority })));
+            var endpoints = new Dictionary<Endpoint, IList<uint>>();
 
-            // De-dupe for the case where the fallback route uses the same
-            // endpoint as a normal route
-            return endpoints
-                .GroupBy(e => e.Item1)
-                .Select(dupe => dupe.First())
-                .ToImmutableHashSet();
+            foreach (Route r in routes)
+            {
+                MergeEndpointPriorities(ref endpoints, r.Endpoint, r.Priority);
+            }
+
+            fallback.ForEach(f => MergeEndpointPriorities(ref endpoints, f.Endpoint, f.Priority));
+
+            return endpoints;
         }
 
         Task RouteInternalAsync(IMessage message)
