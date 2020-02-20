@@ -39,7 +39,7 @@ where
     }
 }
 
-pub fn pull_logs<M, W>(
+pub fn pull_logs<'a, M, W>(
     runtime: &M,
     id: &str,
     options: &LogOptions,
@@ -47,7 +47,7 @@ pub fn pull_logs<M, W>(
 ) -> impl Future<Item = W, Error = Error> + Send
 where
     M: 'static + ModuleRuntime,
-    W: 'static + Write + Send,
+    W: Write + Send + 'a,
 {
     runtime
         .logs(id, options)

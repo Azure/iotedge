@@ -29,7 +29,10 @@ pub struct SupportBundle<M> {
     iothub_hostname: Option<String>,
 }
 
-struct BundleState<M> {
+struct BundleState<M, W>
+where
+    W: Write + Seek + Send,
+{
     runtime: M,
     log_options: LogOptions,
     location: PathBuf,
@@ -37,7 +40,7 @@ struct BundleState<M> {
     verbose: bool,
     iothub_hostname: Option<String>,
     file_options: zip::write::FileOptions,
-    zip_writer: zip::ZipWriter<Box<dyn CompressionDestination + Send>>,
+    zip_writer: zip::ZipWriter<W>,
 }
 
 impl<M> Command for SupportBundle<M>
@@ -48,7 +51,7 @@ where
 
     fn execute(self) -> Self::Future {
         println!("Making support bundle");
-        let result = future::result(self.make_state())
+        let result = future::result(self.make_file_state())
             .and_then(SupportBundle::write_all_logs)
             .and_then(SupportBundle::write_edgelet_log_to_file)
             .and_then(SupportBundle::write_docker_log_to_file)
@@ -69,10 +72,6 @@ where
         Box::new(result)
     }
 }
-
-trait CompressionDestination: Write + Seek {}
-impl CompressionDestination for std::fs::File {}
-impl CompressionDestination for Cursor<Vec<u8>> {}
 
 impl<M> SupportBundle<M>
 where
@@ -96,16 +95,15 @@ where
         }
     }
 
-    fn make_state(self) -> Result<BundleState<M>, Error> {
+    fn make_file_state(self) -> Result<BundleState<M, File>, Error> {
         let file_options =
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
         let location = PathBuf::from(&self.location);
 
-        let destination: Box<dyn CompressionDestination + Send> = Box::new(
+        let zip_writer = zip::ZipWriter::new(
             File::create(&location)
                 .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?,
         );
-        let zip_writer = zip::ZipWriter::new(destination);
 
         Ok(BundleState {
             runtime: self.runtime,
@@ -119,7 +117,30 @@ where
         })
     }
 
-    fn write_all_logs(state: BundleState<M>) -> impl Future<Item = BundleState<M>, Error = Error> {
+    fn make_vector_state(self) -> Result<BundleState<M, Cursor<Vec<u8>>>, Error> {
+        let file_options =
+            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+
+        let zip_writer = zip::ZipWriter::new(Cursor::new(Vec::new()));
+
+        Ok(BundleState {
+            runtime: self.runtime,
+            log_options: self.log_options,
+            location: PathBuf::from(&self.location),
+            include_ms_only: self.include_ms_only,
+            verbose: self.verbose,
+            iothub_hostname: self.iothub_hostname,
+            file_options,
+            zip_writer,
+        })
+    }
+
+    fn write_all_logs<W>(
+        state: BundleState<M, W>,
+    ) -> impl Future<Item = BundleState<M, W>, Error = Error>
+    where
+        W: Write + Seek + Send,
+    {
         /* Print status */
         if state.verbose {
             let since_time: DateTime<Utc> = DateTime::from_utc(
@@ -143,7 +164,12 @@ where
         })
     }
 
-    fn write_all_inspects(s1: BundleState<M>) -> impl Future<Item = BundleState<M>, Error = Error> {
+    fn write_all_inspects<W>(
+        s1: BundleState<M, W>,
+    ) -> impl Future<Item = BundleState<M, W>, Error = Error>
+    where
+        W: Write + Seek + Send,
+    {
         SupportBundle::get_modules(s1).and_then(|(names, s2)| {
             stream::iter_ok(names).fold(s2, |s3, name| {
                 SupportBundle::write_inspect_to_file(s3, &name)
@@ -151,7 +177,10 @@ where
         })
     }
 
-    fn write_all_network_inspects(s1: BundleState<M>) -> Result<BundleState<M>, Error> {
+    fn write_all_network_inspects<W>(s1: BundleState<M, W>) -> Result<BundleState<M, W>, Error>
+    where
+        W: Write + Seek + Send,
+    {
         SupportBundle::get_docker_networks(s1).and_then(|(names, s2)| {
             names.into_iter().fold(Ok(s2), |s3, name| {
                 if let Ok(s3) = s3 {
@@ -163,9 +192,12 @@ where
         })
     }
 
-    fn get_modules(
-        state: BundleState<M>,
-    ) -> impl Future<Item = (Vec<String>, BundleState<M>), Error = Error> {
+    fn get_modules<W>(
+        state: BundleState<M, W>,
+    ) -> impl Future<Item = (Vec<String>, BundleState<M, W>), Error = Error>
+    where
+        W: Write + Seek + Send,
+    {
         const MS_MODULES: &[&str] = &["edgeAgent", "edgeHub"];
 
         let include_ms_only = state.include_ms_only;
@@ -180,10 +212,13 @@ where
             .map(|names| (names, state))
     }
 
-    fn write_log_to_file(
-        state: BundleState<M>,
+    fn write_log_to_file<W>(
+        state: BundleState<M, W>,
         module_name: String,
-    ) -> impl Future<Item = BundleState<M>, Error = Error> {
+    ) -> impl Future<Item = BundleState<M, W>, Error = Error>
+    where
+        W: Write + Seek + Send,
+    {
         state.print_verbose(&format!("Writing {} logs to file", module_name));
         let BundleState {
             runtime,
@@ -219,7 +254,12 @@ where
             })
     }
 
-    fn write_edgelet_log_to_file(mut state: BundleState<M>) -> Result<BundleState<M>, Error> {
+    fn write_edgelet_log_to_file<W>(
+        mut state: BundleState<M, W>,
+    ) -> Result<BundleState<M, W>, Error>
+    where
+        W: Write + Seek + Send,
+    {
         state.print_verbose("Getting system logs for iotedged");
         let since_time: DateTime<Utc> = DateTime::from_utc(
             NaiveDateTime::from_timestamp(state.log_options.since().into(), 0),
@@ -271,7 +311,10 @@ where
         Ok(state)
     }
 
-    fn write_docker_log_to_file(mut state: BundleState<M>) -> Result<BundleState<M>, Error> {
+    fn write_docker_log_to_file<W>(mut state: BundleState<M, W>) -> Result<BundleState<M, W>, Error>
+    where
+        W: Write + Seek + Send,
+    {
         state.print_verbose("Getting system logs for docker");
         let since_time: DateTime<Utc> = DateTime::from_utc(
             NaiveDateTime::from_timestamp(state.log_options.since().into(), 0),
@@ -326,7 +369,10 @@ where
         Ok(state)
     }
 
-    fn write_check_to_file(mut state: BundleState<M>) -> Result<BundleState<M>, Error> {
+    fn write_check_to_file<W>(mut state: BundleState<M, W>) -> Result<BundleState<M, W>, Error>
+    where
+        W: Write + Seek + Send,
+    {
         let iotedge = env::args().nth(0).unwrap();
         state.print_verbose("Calling iotedge check");
 
@@ -354,10 +400,13 @@ where
         Ok(state)
     }
 
-    fn write_inspect_to_file(
-        mut state: BundleState<M>,
+    fn write_inspect_to_file<W>(
+        mut state: BundleState<M, W>,
         module_name: &str,
-    ) -> Result<BundleState<M>, Error> {
+    ) -> Result<BundleState<M, W>, Error>
+    where
+        W: Write + Seek + Send,
+    {
         state.print_verbose(&format!("Running docker inspect for {}", module_name));
         let mut inspect = ShellCommand::new("docker");
 
@@ -405,7 +454,12 @@ where
         Ok(state)
     }
 
-    fn get_docker_networks(state: BundleState<M>) -> Result<(Vec<String>, BundleState<M>), Error> {
+    fn get_docker_networks<W>(
+        state: BundleState<M, W>,
+    ) -> Result<(Vec<String>, BundleState<M, W>), Error>
+    where
+        W: Write + Seek + Send,
+    {
         let mut inspect = ShellCommand::new("docker");
 
         /***
@@ -436,10 +490,13 @@ where
         Ok((result.lines().map(String::from).collect(), state))
     }
 
-    fn write_docker_network_to_file(
-        mut state: BundleState<M>,
+    fn write_docker_network_to_file<W>(
+        mut state: BundleState<M, W>,
         network_name: &str,
-    ) -> Result<BundleState<M>, Error> {
+    ) -> Result<BundleState<M, W>, Error>
+    where
+        W: Write + Seek + Send,
+    {
         state.print_verbose(&format!(
             "Running docker network inspect for {}",
             network_name
@@ -488,7 +545,10 @@ where
     }
 }
 
-impl<M> BundleState<M> {
+impl<M, W> BundleState<M, W>
+where
+    W: Write + Seek + Send,
+{
     fn print_verbose(&self, message: &str) {
         if self.verbose {
             println!("{}", message);
