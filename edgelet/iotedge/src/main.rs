@@ -271,10 +271,18 @@ fn run() -> Result<(), Error> {
                         .takes_value(true),
                 ).arg(
                     Arg::with_name("quiet")
-                        .help("Suppress output")
+                        .help("Suppress status output")
                         .long("quiet")
                         .short("q")
                         .takes_value(false),
+                ).arg(
+                    Arg::with_name("output")
+                        .help("Output location")
+                        .long("output")
+                        .short("o")
+                        .possible_values(&["file", "console"])
+                        .takes_value(true)
+                        .default_value("file"),
                 ),
         )
         .subcommand(SubCommand::with_name("version").about("Show the version information"))
@@ -384,13 +392,22 @@ fn run() -> Result<(), Error> {
             let include_ms_only = args.is_present("include-edge-runtime-only");
             let verbose = !args.is_present("quiet");
             let iothub_hostname = args.value_of("iothub-hostname").map(ToOwned::to_owned);
+            let output_location = args
+                .value_of("output")
+                .map(|arg| match arg {
+                    "file" => OutputLocation::File(location.to_owned()),
+                    "console" => OutputLocation::Console,
+                    _ => unreachable!(),
+                })
+                .expect("arg has a default value");
+
             tokio_runtime.block_on(
                 SupportBundle::new(
                     options,
-                    location.to_owned(),
                     include_ms_only,
                     verbose,
                     iothub_hostname,
+                    output_location,
                     runtime()?,
                 )
                 .execute(),
