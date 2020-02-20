@@ -16,6 +16,7 @@ steps:
     else
     {
       sudo --preserve-env dotnet vstest $testFile --logger:trx
+    }
   displayName: Run tests
   env:
     E2E_DPS_GROUP_KEY: $(TestDpsGroupKeySymmetric)
