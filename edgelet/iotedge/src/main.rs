@@ -241,10 +241,10 @@ fn run() -> Result<(), Error> {
             SubCommand::with_name("support-bundle")
                 .about("Bundles troubleshooting information")
                 .arg(
-                    Arg::with_name("output")
-                        .help("Path of output file")
-                        .long("output")
-                        .short("o")
+                    Arg::with_name("path")
+                        .help("Path of output file. Only used if --output file")
+                        .long("path")
+                        .short("p")
                         .takes_value(true)
                         .value_name("FILENAME")
                         .default_value("support_bundle.zip"),
@@ -378,7 +378,7 @@ fn run() -> Result<(), Error> {
             tokio_runtime.block_on(Logs::new(id, options, runtime()?).execute())
         }
         ("support-bundle", Some(args)) => {
-            let location = args.value_of_os("output").expect("arg has a default value");
+            let location = args.value_of_os("path").expect("arg has a default value");
             let since = args
                 .value_of("since")
                 .map(|s| parse_since(s))
