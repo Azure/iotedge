@@ -4,6 +4,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
     using System.Collections.Generic;
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json;
+    using Serilog;
 
     public class EdgeConfigBuilder
     {
@@ -88,6 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             {
                 Dictionary<string, IDictionary<string, object>> modulesContent =
                     config.ModulesContent.ToDictionary(entry => entry.Key, entry => entry.Value);
+                Log.Information(">>> Deploy modules:\n---\n{Modules}\n---\n", JsonConvert.SerializeObject(modulesContent));
                 yield return new EdgeConfiguration(
                     this.deviceId,
                     new List<string>(moduleNames),
