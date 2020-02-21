@@ -125,7 +125,7 @@ namespace EdgeHubRestartTester
             {
                 RegistryManager rm = RegistryManager.CreateFromConnectionString(this.IoTHubConnectionString);
                 Twin moduleTwin = await rm.GetTwinAsync(this.DeviceId, this.ModuleId);
-                string connectorConfigJson = moduleTwin.Properties.Desired["edgeHubConnectorConfigs"].ToString();
+                string connectorConfigJson = moduleTwin.Properties.Desired["edgeHubConnectorConfig"].ToString();
 
                 JObject edgeHubConnectorConfig = JObject.Parse(connectorConfigJson);
 

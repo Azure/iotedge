@@ -129,8 +129,7 @@ namespace EdgeHubRestartTester
             ServiceClient iotHubServiceClient,
             CancellationToken cancellationToken)
         {
-            const uint maxRetry = 3;
-            uint restartCount = 0;
+            DateTime endAttemptTime = DateTime.UtcNow + Settings.Current.RestartPeriod;
 
             CloudToDeviceMethod c2dMethod = new CloudToDeviceMethod("RestartModule");
             string payloadSchema = "{{ \"SchemaVersion\": \"1.0\", \"Id\": \"{0}\" }}";
@@ -138,11 +137,10 @@ namespace EdgeHubRestartTester
             Logger.LogInformation("RestartModule Method Payload: {0}", payload);
             c2dMethod.SetPayloadJson(payload);
 
-            while (restartCount < maxRetry)
+            while (endAttemptTime >= DateTime.UtcNow)
             {
                 try
                 {
-                    restartCount++;
                     // TODO: Introduce the offline scenario to use docker command.
                     CloudToDeviceMethodResult response = await iotHubServiceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", c2dMethod);
                     if ((HttpStatusCode)response.Status != HttpStatusCode.OK)
@@ -160,7 +158,7 @@ namespace EdgeHubRestartTester
                 {
                     Logger.LogError($"Exception caught for payload {payload}: {e}");
 
-                    if (restartCount == maxRetry - 1)
+                    if (endAttemptTime < DateTime.UtcNow)
                     {
                         string errorMessage = $"Failed to restart EdgeHub with payload: {payload}: {e}";
                         TestResultBase errorResult = new ErrorTestResult(
