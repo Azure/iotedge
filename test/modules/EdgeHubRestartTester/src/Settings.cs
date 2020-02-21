@@ -25,9 +25,7 @@ namespace EdgeHubRestartTester
             TimeSpan restartPeriod,
             TimeSpan testStartDelay,
             TimeSpan testDuration,
-            bool directMethodEnabled,
             string directMethodName,
-            bool messageEnabled,
             string moduleId,
             string trackingId)
         {
@@ -38,12 +36,7 @@ namespace EdgeHubRestartTester
 
             this.ConnectorConfig = new List<EdgeHubConnectorConfig>();
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            this.DirectMethodEnabled = directMethodEnabled;
-            this.DirectMethodName = this.DirectMethodEnabled ? Preconditions.CheckNonWhiteSpace(directMethodName, nameof(directMethodName)) : string.Empty;
-            //this.DirectMethodTargetModuleId = this.DirectMethodEnabled ? Preconditions.CheckNonWhiteSpace(directMethodTargetModuleId, nameof(directMethodTargetModuleId)) : string.Empty;
-            this.MessageEnabled = messageEnabled;
-            //this.MessageOutputEndpoint = this.MessageEnabled ? Preconditions.CheckNonWhiteSpace(messageOutputEndpoint, nameof(messageOutputEndpoint)) : string.Empty;
-            //this.TransportType = transportType;
+            this.DirectMethodName = string.Empty;
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.ReportingEndpointUrl = new Uri(Preconditions.CheckNonWhiteSpace(reportingEndpointUrl, nameof(reportingEndpointUrl)));
             this.RestartPeriod = restartPeriod;
@@ -53,11 +46,19 @@ namespace EdgeHubRestartTester
             this.TestStartDelay = testStartDelay;
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
 
-            GetConnectorConfigAsync().Wait();
+            this.GetConnectorConfigAsync().Wait();
 
-            if (!(this.DirectMethodEnabled || this.MessageEnabled))
+            foreach (EdgeHubConnectorConfig eachConfig in this.ConnectorConfig)
             {
-                throw new NotSupportedException("EdgeHubRestartTester requires at least one of the sending methods {DirectMethodEnabled, MessageEnabled} to be enabled to perform the EdgeHub restarting test.");
+                if (!(string.IsNullOrWhiteSpace(eachConfig.DirectMethodTargetModuleId) || string.IsNullOrWhiteSpace(eachConfig.MessageOutputEndpoint)))
+                {
+                    throw new NotSupportedException("EdgeHubRestartTester requires at least one of the sending methods to be enabled to perform the EdgeHub restarting test.");
+                }
+
+                if (!string.IsNullOrWhiteSpace(eachConfig.DirectMethodTargetModuleId))
+                {
+                    this.DirectMethodName = Preconditions.CheckNonWhiteSpace(directMethodName, nameof(directMethodName));
+                }
             }
 
             if (restartPeriod < sdkOperationTimeout)
@@ -87,9 +88,7 @@ namespace EdgeHubRestartTester
                 configuration.GetValue("restartPeriod", TimeSpan.FromMinutes(5)),
                 configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
                 configuration.GetValue("testDuration", TimeSpan.Zero),
-                configuration.GetValue<bool>("directMethodEnabled", false),
                 configuration.GetValue<string>("directMethodName", "HelloWorldMethod"),
-                configuration.GetValue<bool>("messageEnabled", false),
                 configuration.GetValue<string>("IOTEDGE_MODULEID"),
                 configuration.GetValue("trackingId", string.Empty));
         }
@@ -100,11 +99,7 @@ namespace EdgeHubRestartTester
 
         public string DeviceId { get; }
 
-        public bool DirectMethodEnabled { get; }
-
         public string DirectMethodName { get; }
-
-        public bool MessageEnabled { get; }
 
         public string ModuleId { get; }
 
@@ -126,9 +121,7 @@ namespace EdgeHubRestartTester
             var fields = new Dictionary<string, string>
             {
                 { nameof(this.DeviceId), this.DeviceId },
-                { nameof(this.DirectMethodEnabled), this.DirectMethodEnabled.ToString() },
                 { nameof(this.DirectMethodName), this.DirectMethodName },
-                { nameof(this.MessageEnabled), this.MessageEnabled.ToString() },
                 { nameof(this.ModuleId), this.ModuleId },
                 { nameof(this.ReportingEndpointUrl), this.ReportingEndpointUrl.ToString() },
                 { nameof(this.RestartPeriod), this.RestartPeriod.ToString() },
