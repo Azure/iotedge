@@ -68,7 +68,7 @@
             "restartPolicy": "always",
             "env": {
               "ClientTransportType": {
-                "value": "Amqp"
+                "value": "Mqtt"
               },
               "ReportingEndpointUrl": {
                 "value": "http://testResultCoordinator:5001"
@@ -99,6 +99,9 @@
               },
               "messageEnabled": {
                 "value": "true"
+              },
+              "transportType": {
+                "value": "Mqtt"
               },
               "reportingEndpointUrl": {
                 "value": "http://localhost:5001"
@@ -131,7 +134,7 @@
             "restartPolicy": "always",
             "env": {
               "transportType": {
-                "value": "Amqp"
+                "value": "Mqtt"
               },
               "inputName": {
                 "value": "input1"
