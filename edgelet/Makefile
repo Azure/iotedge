@@ -15,7 +15,7 @@ _release=$(or $(and $(word 2,$(subst ~, ,$1)),0.${REVISION}.$(word 2,$(subst ~, 
 RPM_RELEASE?=$(call _release, ${VERSION})
 
 PACKAGE_NAME=iotedge
-PACKAGE="$(PACKAGE_NAME)-$(RPM_VERSION)"
+PACKAGE?="$(PACKAGE_NAME)-$(RPM_VERSION)"
 
 prefix?=/usr
 exec_prefix?=$(prefix)
@@ -33,6 +33,7 @@ srcdir?=.
 unitdir?=/lib/systemd/system
 
 rpmbuilddir?=$(HOME)/rpmbuild
+vendordir?=vendor
 
 CARGOFLAGS=--manifest-path=$(srcdir)/Cargo.toml
 KUBE_CARGOFLAGS=--manifest-path=$(srcdir)/iotedged/Cargo.toml
@@ -50,6 +51,7 @@ INSTALL_PROGRAM=$(INSTALL)
 MAKE=make
 MKDIR_P=mkdir -p
 SED=sed
+TAR=tar
 HOST_URI_OPTION=
 
 all:
@@ -61,22 +63,22 @@ release:
 release-kube:
 	$(HOST_URI_OPTION) VERSION=${VERSION} $(CARGO) build $(KUBE_CARGOFLAGS) --no-default-features --features runtime-kubernetes --release
 
-$(TARGET)/$(PACKAGE).tar.gz:
-	@echo Running git archive...
-	@$(GIT) archive --prefix=$(PACKAGE)/ -o $(TARGET)/$(PACKAGE).tar $(VERSION) 2> /dev/null || (echo 'Warning: $(VERSION) does not exist.' && $(GIT) archive --prefix=$(PACKAGE)/ -o $(TARGET)/$(PACKAGE).tar HEAD)
-	@echo Running git archive submodules...
-	p=`pwd` && (echo .; cd .. && git submodule foreach --recursive) | while read entering path; do \
-	    cd $$p; \
-	    temp="$${path%\'}"; \
-	    temp="$${temp#\'edgelet/}"; \
-	    path=$$temp; \
-	    [ "$$path" = "" ] && continue; \
-	    (cd $$path && $(GIT) archive --prefix=$(PACKAGE)/$$path/ HEAD > $$p/$(TARGET)/tmp.tar && tar --concatenate --file=$$p/$(TARGET)/$(PACKAGE).tar $$p/$(TARGET)/tmp.tar && rm $$p/$(TARGET)/tmp.tar); \
-	done
-	gzip -f $(TARGET)/$(PACKAGE).tar
-	rm -f $(TARGET)/$(PACKAGE).tar
+dist:
+	$(MKDIR_P) $(TARGET)
+	$(MKDIR_P) .cargo
+	$(MKDIR_P) $(vendordir)
+	$(CARGO) vendor $(vendordir) > .cargo/config
+	$(TAR) --transform "flags=r;s/^\./$(PACKAGE_NAME)-$(VERSION)/" -c -f $(TARGET)/$(PACKAGE_NAME)-$(VERSION).tar -h -v --exclude-vcs --exclude-vcs-ignores --exclude="./target" .
 
-dist: $(TARGET)/$(PACKAGE).tar.gz
+	# Update the version.txt in the archive with VERSION
+	echo "${VERSION}" > $(TARGET)/version.txt
+	$(TAR) --update -f $(TARGET)/$(PACKAGE_NAME)-$(VERSION).tar --transform 'flags=r;s|$(TARGET)/version.txt|$(PACKAGE_NAME)-$(VERSION)/version.txt|' $(TARGET)/version.txt
+	$(GZIP) -f $(TARGET)/$(PACKAGE_NAME)-$(VERSION).tar
+	rm $(TARGET)/version.txt
+
+distclean:
+	rm -rf .cargo
+	rm -rf $(vendordir)
 
 deb8: HOST_URI_OPTION=IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
 deb8: release
@@ -120,6 +122,21 @@ rpm:
 	$(SED) "s/@version@/${RPM_VERSION}/g; s/@release@/${RPM_RELEASE}/g;" $(srcdir)/contrib/centos/iotedge.spec > $(rpmbuilddir)/SPECS/iotedge.spec
 	$(HOST_URI_OPTION) rpmbuild $(RPMBUILDFLAGS) $(rpmbuilddir)/SPECS/iotedge.spec
 
+rpm-dist:
+	@echo Running git archive...
+	@$(GIT) archive --prefix=$(PACKAGE)/ -o $(TARGET)/$(PACKAGE).tar $(VERSION) 2> /dev/null || (echo 'Warning: $(VERSION) does not exist.' && $(GIT) archive --prefix=$(PACKAGE)/ -o $(TARGET)/$(PACKAGE).tar HEAD)
+	@echo Running git archive submodules...
+	p=`pwd` && (echo .; cd .. && git submodule foreach --recursive) | while read entering path; do \
+	    cd $$p; \
+	    temp="$${path%\'}"; \
+	    temp="$${temp#\'edgelet/}"; \
+	    path=$$temp; \
+	    [ "$$path" = "" ] && continue; \
+	    (cd $$path && $(GIT) archive --prefix=$(PACKAGE)/$$path/ HEAD > $$p/$(TARGET)/tmp.tar && tar --concatenate --file=$$p/$(TARGET)/$(PACKAGE).tar $$p/$(TARGET)/tmp.tar && rm $$p/$(TARGET)/tmp.tar); \
+	done
+	gzip -f $(TARGET)/$(PACKAGE).tar
+	rm -f $(TARGET)/$(PACKAGE).tar
+
 install: release
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(DESTDIR)$(bindir)/iotedged
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(DESTDIR)$(bindir)/iotedge
@@ -160,4 +177,4 @@ version:
 	@echo "rpm version:  ${RPM_VERSION}"
 	@echo "rpm release:  ${RPM_RELEASE}"
 
-.PHONY: all clean deb deb8 dist install rpm uninstall version
+.PHONY: all clean deb deb8 dist install rpm rpm-dist uninstall version
