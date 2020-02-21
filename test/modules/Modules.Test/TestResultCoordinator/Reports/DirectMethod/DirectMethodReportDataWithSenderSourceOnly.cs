@@ -15,7 +15,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 new object[]
                 {
                     // NetworkOnSuccess test
-                    Enumerable.Range(1, 7).Select(v => v.ToString()),
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
                     new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
                     {
@@ -32,7 +32,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 new object[]
                 {
                     // NetworkOffSuccess test
-                    Enumerable.Range(1, 7).Select(v => v.ToString()),
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
                     new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.InternalServerError, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
                     {
@@ -49,7 +49,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 new object[]
                 {
                     // NetworkOnToleratedSuccess test
-                    Enumerable.Range(1, 7).Select(v => v.ToString()),
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
                     new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.InternalServerError, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
                     {
@@ -66,7 +66,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 new object[]
                 {
                     // NetworkOffToleratedSuccess test
-                    Enumerable.Range(1, 7).Select(v => v.ToString()),
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
                     new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
                     {
@@ -83,7 +83,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 new object[]
                 {
                     // NetworkOnFailure test
-                    Enumerable.Range(1, 7).Select(v => v.ToString()),
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
                     new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.InternalServerError, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
                     {
@@ -100,7 +100,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 new object[]
                 {
                     // NetworkOffFailure test
-                    Enumerable.Range(1, 7).Select(v => v.ToString()),
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
                     new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
                     {
@@ -116,7 +116,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 },
                 new object[]
                 {
-                    Enumerable.Range(1, 10).Select(v => v.ToString()),
+                    Enumerable.Range(1, 10).Select(v => (ulong)v),
                     new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.InternalServerError, HttpStatusCode.InternalServerError, HttpStatusCode.InternalServerError, HttpStatusCode.InternalServerError, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
                     {
