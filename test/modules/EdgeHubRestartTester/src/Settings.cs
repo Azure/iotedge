@@ -50,7 +50,7 @@ namespace EdgeHubRestartTester
 
             foreach (EdgeHubConnectorConfig eachConfig in this.ConnectorConfig)
             {
-                if (!(string.IsNullOrWhiteSpace(eachConfig.DirectMethodTargetModuleId) || string.IsNullOrWhiteSpace(eachConfig.MessageOutputEndpoint)))
+                if (string.IsNullOrWhiteSpace(eachConfig.DirectMethodTargetModuleId) && string.IsNullOrWhiteSpace(eachConfig.MessageOutputEndpoint))
                 {
                     throw new NotSupportedException("EdgeHubRestartTester requires at least one of the sending methods to be enabled to perform the EdgeHub restarting test.");
                 }
