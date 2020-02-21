@@ -5,9 +5,13 @@ namespace EdgeHubRestartTester
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using Microsoft.Azure.Devices.Client;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
 
     class Settings
     {
@@ -23,10 +27,7 @@ namespace EdgeHubRestartTester
             TimeSpan testDuration,
             bool directMethodEnabled,
             string directMethodName,
-            string directMethodTargetModuleId,
             bool messageEnabled,
-            string messageOutputEndpoint,
-            TransportType transportType,
             string moduleId,
             string trackingId)
         {
@@ -35,13 +36,14 @@ namespace EdgeHubRestartTester
             Preconditions.CheckRange(testStartDelay.Ticks, 0);
             Preconditions.CheckRange(testDuration.Ticks, 0);
 
+            this.ConnectorConfig = new List<EdgeHubConnectorConfig>();
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.DirectMethodEnabled = directMethodEnabled;
             this.DirectMethodName = this.DirectMethodEnabled ? Preconditions.CheckNonWhiteSpace(directMethodName, nameof(directMethodName)) : string.Empty;
-            this.DirectMethodTargetModuleId = this.DirectMethodEnabled ? Preconditions.CheckNonWhiteSpace(directMethodTargetModuleId, nameof(directMethodTargetModuleId)) : string.Empty;
+            //this.DirectMethodTargetModuleId = this.DirectMethodEnabled ? Preconditions.CheckNonWhiteSpace(directMethodTargetModuleId, nameof(directMethodTargetModuleId)) : string.Empty;
             this.MessageEnabled = messageEnabled;
-            this.MessageOutputEndpoint = this.MessageEnabled ? Preconditions.CheckNonWhiteSpace(messageOutputEndpoint, nameof(messageOutputEndpoint)) : string.Empty;
-            this.TransportType = transportType;
+            //this.MessageOutputEndpoint = this.MessageEnabled ? Preconditions.CheckNonWhiteSpace(messageOutputEndpoint, nameof(messageOutputEndpoint)) : string.Empty;
+            //this.TransportType = transportType;
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.ReportingEndpointUrl = new Uri(Preconditions.CheckNonWhiteSpace(reportingEndpointUrl, nameof(reportingEndpointUrl)));
             this.RestartPeriod = restartPeriod;
@@ -50,6 +52,8 @@ namespace EdgeHubRestartTester
             this.TestDuration = testDuration;
             this.TestStartDelay = testStartDelay;
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
+
+            GetConnectorConfigAsync().Wait();
 
             if (!(this.DirectMethodEnabled || this.MessageEnabled))
             {
@@ -85,15 +89,14 @@ namespace EdgeHubRestartTester
                 configuration.GetValue("testDuration", TimeSpan.Zero),
                 configuration.GetValue<bool>("directMethodEnabled", false),
                 configuration.GetValue<string>("directMethodName", "HelloWorldMethod"),
-                configuration.GetValue<string>("directMethodTargetModuleId", "DirectMethodReceiver"),
                 configuration.GetValue<bool>("messageEnabled", false),
-                configuration.GetValue("messageOutputEndpoint", "output1"),
-                configuration.GetValue("transportType", TransportType.Amqp_Tcp_Only),
                 configuration.GetValue<string>("IOTEDGE_MODULEID"),
                 configuration.GetValue("trackingId", string.Empty));
         }
 
         public string IoTHubConnectionString { get; }
+
+        public List<EdgeHubConnectorConfig> ConnectorConfig { get; }
 
         public string DeviceId { get; }
 
@@ -101,13 +104,7 @@ namespace EdgeHubRestartTester
 
         public string DirectMethodName { get; }
 
-        public string DirectMethodTargetModuleId { get; }
-
         public bool MessageEnabled { get; }
-
-        public string MessageOutputEndpoint { get; }
-
-        public TransportType TransportType { get; }
 
         public string ModuleId { get; }
 
@@ -131,10 +128,7 @@ namespace EdgeHubRestartTester
                 { nameof(this.DeviceId), this.DeviceId },
                 { nameof(this.DirectMethodEnabled), this.DirectMethodEnabled.ToString() },
                 { nameof(this.DirectMethodName), this.DirectMethodName },
-                { nameof(this.DirectMethodTargetModuleId), this.DirectMethodTargetModuleId },
                 { nameof(this.MessageEnabled), this.MessageEnabled.ToString() },
-                { nameof(this.MessageOutputEndpoint), this.MessageOutputEndpoint },
-                { nameof(this.TransportType), this.TransportType.ToString() },
                 { nameof(this.ModuleId), this.ModuleId },
                 { nameof(this.ReportingEndpointUrl), this.ReportingEndpointUrl.ToString() },
                 { nameof(this.RestartPeriod), this.RestartPeriod.ToString() },
@@ -145,6 +139,20 @@ namespace EdgeHubRestartTester
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
+        }
+
+        async Task GetConnectorConfigAsync()
+        {
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(this.IoTHubConnectionString);
+            Twin moduleTwin = await rm.GetTwinAsync(this.DeviceId, this.ModuleId);
+            string connectorConfigJson = moduleTwin.Properties.Desired["edgeHubConnectorConfig"].ToString();
+
+            JObject edgeHubConnectorConfig = JObject.Parse(connectorConfigJson);
+
+            foreach (JToken eachConfig in edgeHubConnectorConfig.Children())
+            {
+                this.ConnectorConfig.Add(JsonConvert.DeserializeObject<EdgeHubConnectorConfig>(((JProperty)eachConfig).Value.ToString()));
+            }
         }
     }
 }
