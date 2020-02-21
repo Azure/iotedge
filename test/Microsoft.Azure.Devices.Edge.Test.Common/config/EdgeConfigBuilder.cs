@@ -104,6 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             {
                 Dictionary<string, IDictionary<string, object>> modulesContent =
                     config.ModulesContent.ToDictionary(entry => entry.Key, entry => entry.Value);
+                Serilog.Log.Information(">>> CONFIG #1:\n{Config}\n\n", Newtonsoft.Json.JsonConvert.SerializeObject(modulesContent));
                 yield return new EdgeConfiguration(
                     this.deviceId,
                     new List<string>(moduleNames),
@@ -119,6 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 }
             }
 
+            Serilog.Log.Information(">>> CONFIG #2:\n{Config}\n\n", Newtonsoft.Json.JsonConvert.SerializeObject(config.ModulesContent));
             yield return new EdgeConfiguration(this.deviceId, moduleNames, moduleImages, config);
         }
 

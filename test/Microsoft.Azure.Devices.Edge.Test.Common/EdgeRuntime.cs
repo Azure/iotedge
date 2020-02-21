@@ -49,6 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             DateTime deployTime = DateTime.Now;
             IEnumerable<EdgeConfiguration> configs = builder.BuildConfigurationStages().ToArray();
+            Serilog.Log.Information(">>> CONFIGS:\n{Configs}\n\n", Newtonsoft.Json.JsonConvert.SerializeObject(configs));
             foreach (EdgeConfiguration edgeConfiguration in configs)
             {
                 await edgeConfiguration.DeployAsync(this.iotHub, token);
