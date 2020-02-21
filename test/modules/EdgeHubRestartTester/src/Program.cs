@@ -129,7 +129,8 @@ namespace EdgeHubRestartTester
             ServiceClient iotHubServiceClient,
             CancellationToken cancellationToken)
         {
-            DateTime endAttemptTime = DateTime.UtcNow + Settings.Current.RestartPeriod;
+            DateTime startAttemptTime = DateTime.UtcNow;
+            DateTime endAttemptTime = startAttemptTime + Settings.Current.RestartPeriod;
 
             CloudToDeviceMethod c2dMethod = new CloudToDeviceMethod("RestartModule");
             string payloadSchema = "{{ \"SchemaVersion\": \"1.0\", \"Id\": \"{0}\" }}";
@@ -160,7 +161,7 @@ namespace EdgeHubRestartTester
 
                     if (endAttemptTime < DateTime.UtcNow)
                     {
-                        string errorMessage = $"Failed to restart EdgeHub with payload: {payload}: {e}";
+                        string errorMessage = $"Failed to restart EdgeHub from {startAttemptTime} to {endAttemptTime}:\n\n{e}\n\nPayload: {payload}";
                         TestResultBase errorResult = new ErrorTestResult(
                             Settings.Current.TrackingId,
                             GetSource(),
