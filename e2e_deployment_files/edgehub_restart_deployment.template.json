@@ -289,7 +289,7 @@
     "edgeHubRestartTester1": {
       "properties.desired": {
         "schemaVersion": "1.0",
-        "edgeHubConnectorConfig": {
+        "edgeHubConnectorConfigs": {
           "amqpConnectors": {
             "TransportType": "Amqp",
             "DirectMethodTargetModuleId": "directMethodReceiver1",

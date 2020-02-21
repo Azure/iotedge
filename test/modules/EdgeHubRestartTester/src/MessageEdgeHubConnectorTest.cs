@@ -82,7 +82,6 @@ namespace EdgeHubRestartTester
             DateTime runExpirationTime,
             CancellationToken cancellationToken)
         {
-            ModuleClient moduleClient = this.msgModuleClient;
             this.messageCount++;
 
             while ((!cancellationToken.IsCancellationRequested) && (DateTime.UtcNow < runExpirationTime))
@@ -95,7 +94,7 @@ namespace EdgeHubRestartTester
                 try
                 {
                     // Sending the result via edgeHub
-                    await moduleClient.SendEventAsync(msgOutputEndpoint, message);
+                    await this.msgModuleClient.SendEventAsync(msgOutputEndpoint, message);
                     this.logger.LogInformation($"[SendMessageAsync] Send Message with count {this.messageCount}: finished.");
                     return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.OK);
                 }

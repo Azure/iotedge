@@ -16,6 +16,8 @@ namespace EdgeHubRestartTester
     class Settings
     {
         internal static Settings Current = Create();
+        List<EdgeHubConnectorsConfig> connectorConfig;
+        bool isConnectorConfigReady = false;
 
         Settings(
             TimeSpan sdkOperationTimeout,
@@ -34,9 +36,9 @@ namespace EdgeHubRestartTester
             Preconditions.CheckRange(testStartDelay.Ticks, 0);
             Preconditions.CheckRange(testDuration.Ticks, 0);
 
-            this.ConnectorConfig = new List<EdgeHubConnectorConfig>();
+            this.connectorConfig = new List<EdgeHubConnectorsConfig>();
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            this.DirectMethodName = string.Empty;
+            this.DirectMethodName = directMethodName;
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.ReportingEndpointUrl = new Uri(Preconditions.CheckNonWhiteSpace(reportingEndpointUrl, nameof(reportingEndpointUrl)));
             this.RestartPeriod = restartPeriod;
@@ -45,21 +47,6 @@ namespace EdgeHubRestartTester
             this.TestDuration = testDuration;
             this.TestStartDelay = testStartDelay;
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
-
-            this.GetConnectorConfigAsync().Wait();
-
-            foreach (EdgeHubConnectorConfig eachConfig in this.ConnectorConfig)
-            {
-                if (string.IsNullOrWhiteSpace(eachConfig.DirectMethodTargetModuleId) && string.IsNullOrWhiteSpace(eachConfig.MessageOutputEndpoint))
-                {
-                    throw new NotSupportedException("EdgeHubRestartTester requires at least one of the sending methods to be enabled to perform the EdgeHub restarting test.");
-                }
-
-                if (!string.IsNullOrWhiteSpace(eachConfig.DirectMethodTargetModuleId))
-                {
-                    this.DirectMethodName = Preconditions.CheckNonWhiteSpace(directMethodName, nameof(directMethodName));
-                }
-            }
 
             if (restartPeriod < sdkOperationTimeout)
             {
@@ -95,11 +82,9 @@ namespace EdgeHubRestartTester
 
         public string IoTHubConnectionString { get; }
 
-        public List<EdgeHubConnectorConfig> ConnectorConfig { get; }
-
         public string DeviceId { get; }
 
-        public string DirectMethodName { get; }
+        public string DirectMethodName { get; private set; }
 
         public string ModuleId { get; }
 
@@ -134,18 +119,38 @@ namespace EdgeHubRestartTester
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
         }
 
-        async Task GetConnectorConfigAsync()
+        internal async Task<List<EdgeHubConnectorsConfig>> GetConnectorConfigAsync()
         {
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(this.IoTHubConnectionString);
-            Twin moduleTwin = await rm.GetTwinAsync(this.DeviceId, this.ModuleId);
-            string connectorConfigJson = moduleTwin.Properties.Desired["edgeHubConnectorConfig"].ToString();
-
-            JObject edgeHubConnectorConfig = JObject.Parse(connectorConfigJson);
-
-            foreach (JToken eachConfig in edgeHubConnectorConfig.Children())
+            if (!this.isConnectorConfigReady)
             {
-                this.ConnectorConfig.Add(JsonConvert.DeserializeObject<EdgeHubConnectorConfig>(((JProperty)eachConfig).Value.ToString()));
+                RegistryManager rm = RegistryManager.CreateFromConnectionString(this.IoTHubConnectionString);
+                Twin moduleTwin = await rm.GetTwinAsync(this.DeviceId, this.ModuleId);
+                string connectorConfigJson = moduleTwin.Properties.Desired["edgeHubConnectorConfigs"].ToString();
+
+                JObject edgeHubConnectorConfig = JObject.Parse(connectorConfigJson);
+
+                foreach (JToken eachConfig in edgeHubConnectorConfig.Children())
+                {
+                    this.connectorConfig.Add(JsonConvert.DeserializeObject<EdgeHubConnectorsConfig>(((JProperty)eachConfig).Value.ToString()));
+                }
+
+                foreach (EdgeHubConnectorsConfig eachConfig in this.connectorConfig)
+                {
+                    if (string.IsNullOrWhiteSpace(eachConfig.DirectMethodTargetModuleId) && string.IsNullOrWhiteSpace(eachConfig.MessageOutputEndpoint))
+                    {
+                        throw new NotSupportedException("EdgeHubRestartTester requires at least one of the sending methods to be enabled to perform the EdgeHub restarting test.");
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(eachConfig.DirectMethodTargetModuleId))
+                    {
+                        Preconditions.CheckNonWhiteSpace(this.DirectMethodName, nameof(this.DirectMethodName));
+                    }
+                }
+
+                this.isConnectorConfigReady = true;
             }
+
+            return this.connectorConfig;
         }
     }
 }

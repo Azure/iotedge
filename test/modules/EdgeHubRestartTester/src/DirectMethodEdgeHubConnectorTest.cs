@@ -72,7 +72,6 @@ namespace EdgeHubRestartTester
             DateTime runExpirationTime,
             CancellationToken cancellationToken)
         {
-            ModuleClient moduleClient = this.dmModuleClient;
             while ((!cancellationToken.IsCancellationRequested) && (DateTime.UtcNow < runExpirationTime))
             {
                 try
@@ -84,7 +83,7 @@ namespace EdgeHubRestartTester
                         Encoding.UTF8.GetBytes($"{{ \"Message\": \"Hello\", \"DirectMethodCount\": \"{this.directMethodCount}\" }}"),
                         TimeSpan.FromSeconds(5),   // Minimum value accepted by SDK
                         Settings.Current.SdkOperationTimeout);
-                    MethodResponse result = await moduleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
+                    MethodResponse result = await this.dmModuleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
                     this.logger.LogInformation($"[DirectMethodEdgeHubConnector] Invoke DirectMethod with count {this.directMethodCount}");
 
                     if ((HttpStatusCode)result.Status == HttpStatusCode.OK)

@@ -1,13 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace EdgeHubRestartTester
 {
-    using System;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    class EdgeHubConnectorConfig
+    class EdgeHubConnectorsConfig
     {
-        public EdgeHubConnectorConfig(
+        public EdgeHubConnectorsConfig(
             TransportType transportType,
             string directMethodTargetModuleId,
             string messageOutputEndpoint)

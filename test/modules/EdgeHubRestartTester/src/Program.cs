@@ -37,7 +37,7 @@ namespace EdgeHubRestartTester
 
                 List<IEdgeHubConnectorTest> edgeHubConnectorTests = new List<IEdgeHubConnectorTest>();
 
-                foreach (EdgeHubConnectorConfig eachConfig in Settings.Current.ConnectorConfig)
+                foreach (EdgeHubConnectorsConfig eachConfig in await Settings.Current.GetConnectorConfigAsync())
                 {
                     if (eachConfig.MessageOutputEndpoint != null)
                     {
