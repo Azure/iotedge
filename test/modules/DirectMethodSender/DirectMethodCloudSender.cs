@@ -42,7 +42,7 @@ namespace DirectMethodSender
             string deviceId,
             string targetModuleId,
             string methodName,
-            long directMethodCount,
+            ulong directMethodCount,
             CancellationToken none)
         {
             CloudToDeviceMethod cloudToDeviceMethod = new CloudToDeviceMethod(methodName).SetPayloadJson($"{{ \"Message\": \"Hello\", \"DirectMethodCount\": \"{directMethodCount.ToString()}\" }}");
