@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
     using System.Collections.Generic;
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Serilog;
 
     public class EdgeConfigBuilder
     {
@@ -88,6 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             {
                 var modulesContent =
                     new Dictionary<string, IDictionary<string, object>>(config.ModulesContent);
+                Log.Information($">>> moduleContent has {modulesContent.Count} modules");
                 yield return new EdgeConfiguration(
                     this.deviceId,
                     new List<string>(moduleNames),
