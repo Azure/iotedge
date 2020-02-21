@@ -16,8 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
     public class CloudConnectionProvider : ICloudConnectionProvider
     {
-        // Minimum value allowed by the SDK for Connection Idle timeout for AMQP Multiplexed connections.
-        static readonly TimeSpan MinAmqpConnectionMuxIdleTimeout = TimeSpan.FromSeconds(5);
         static readonly TimeSpan HeartbeatTimeout = TimeSpan.FromSeconds(60);
 
         readonly ITransportSettings[] transportSettings;
@@ -179,8 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
                 {
                     Pooling = true,
-                    MaxPoolSize = (uint)connectionPoolSize,
-                    ConnectionIdleTimeout = MinAmqpConnectionMuxIdleTimeout
+                    MaxPoolSize = (uint)connectionPoolSize
                 }
             };
 

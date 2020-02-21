@@ -13,14 +13,14 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
             DateTime createdAt,
             string trackingId,
             Guid batchId,
-            string sequenceNumber,
+            ulong sequenceNumber,
             HttpStatusCode result,
             TestOperationResultType testOperationResultType = TestOperationResultType.DirectMethod)
             : base(source, testOperationResultType, createdAt)
         {
             this.TrackingId = trackingId ?? string.Empty;
             this.BatchId = Preconditions.CheckNotNull(batchId, nameof(batchId)).ToString();
-            this.SequenceNumber = Preconditions.CheckNonWhiteSpace(sequenceNumber, nameof(sequenceNumber));
+            this.SequenceNumber = sequenceNumber;
             this.HttpStatusCode = result;
         }
 
@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
 
         public string BatchId { get; set; }
 
-        public string SequenceNumber { get; set; }
+        public ulong SequenceNumber { get; set; }
 
         public HttpStatusCode HttpStatusCode { get; set; }
 
