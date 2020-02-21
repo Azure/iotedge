@@ -587,276 +587,276 @@ impl OutputLocation {
         if let Self::File(location) = self {
             location
         } else {
-            panic!()
+            panic!("Cannot get file location for console mode");
         }
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use std::fs;
-//     use std::io;
-//     use std::path::PathBuf;
-//     use std::str;
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::io;
+    use std::path::PathBuf;
+    use std::str;
 
-//     use regex::Regex;
-//     use tempfile::tempdir;
+    use regex::Regex;
+    use tempfile::tempdir;
 
-//     use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState};
-//     use edgelet_test_utils::crypto::TestHsm;
-//     use edgelet_test_utils::module::*;
+    use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState};
+    use edgelet_test_utils::crypto::TestHsm;
+    use edgelet_test_utils::module::*;
 
-//     use super::*;
+    use super::*;
 
-//     #[allow(dead_code)]
-//     #[derive(Clone, Copy, Debug, Fail)]
-//     pub enum Error {
-//         #[fail(display = "General error")]
-//         General,
-//     }
+    #[allow(dead_code)]
+    #[derive(Clone, Copy, Debug, Fail)]
+    pub enum Error {
+        #[fail(display = "General error")]
+        General,
+    }
 
-//     #[test]
-//     fn folder_structure() {
-//         let module_name = "test-module";
-//         let runtime = make_runtime(module_name);
-//         let tmp_dir = tempdir().unwrap();
-//         let file_path = tmp_dir
-//             .path()
-//             .join("iotedge_bundle.zip")
-//             .to_str()
-//             .unwrap()
-//             .to_owned();
+    #[test]
+    fn folder_structure() {
+        let module_name = "test-module";
+        let runtime = make_runtime(module_name);
+        let tmp_dir = tempdir().unwrap();
+        let file_path = tmp_dir
+            .path()
+            .join("iotedge_bundle.zip")
+            .to_str()
+            .unwrap()
+            .to_owned();
 
-//         let bundle = SupportBundle::new(
-//             LogOptions::default(),
-//             OsString::from(file_path.to_owned()),
-//             false,
-//             false,
-//             None,
-//             runtime,
-//         );
+        let bundle = SupportBundle::new(
+            LogOptions::default(),
+            false,
+            false,
+            None,
+            OutputLocation::File(OsString::from(file_path.to_owned())),
+            runtime,
+        );
 
-//         bundle.execute().wait().unwrap();
+        bundle.execute().wait().unwrap();
 
-//         let extract_path = tmp_dir.path().join("bundle").to_str().unwrap().to_owned();
+        let extract_path = tmp_dir.path().join("bundle").to_str().unwrap().to_owned();
 
-//         extract_zip(&file_path, &extract_path);
+        extract_zip(&file_path, &extract_path);
 
-//         // expext logs
-//         let mod_log = fs::read_to_string(
-//             PathBuf::from(&extract_path)
-//                 .join("logs")
-//                 .join(format!("{}_log.txt", module_name)),
-//         )
-//         .unwrap();
-//         assert_eq!("Roses are redviolets are blue", mod_log);
+        // expect logs
+        let mod_log = fs::read_to_string(
+            PathBuf::from(&extract_path)
+                .join("logs")
+                .join(format!("{}_log.txt", module_name)),
+        )
+        .unwrap();
+        assert_eq!("Roses are redviolets are blue", mod_log);
 
-//         let iotedged_log = Regex::new(r"iotedged.*\.txt").unwrap();
-//         assert!(fs::read_dir(PathBuf::from(&extract_path).join("logs"))
-//             .unwrap()
-//             .map(|file| file
-//                 .unwrap()
-//                 .path()
-//                 .file_name()
-//                 .unwrap()
-//                 .to_str()
-//                 .unwrap()
-//                 .to_owned())
-//             .any(|f| iotedged_log.is_match(&f)));
+        let iotedged_log = Regex::new(r"iotedged.*\.txt").unwrap();
+        assert!(fs::read_dir(PathBuf::from(&extract_path).join("logs"))
+            .unwrap()
+            .map(|file| file
+                .unwrap()
+                .path()
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_owned())
+            .any(|f| iotedged_log.is_match(&f)));
 
-//         let docker_log = Regex::new(r"docker.*\.txt").unwrap();
-//         assert!(fs::read_dir(PathBuf::from(&extract_path).join("logs"))
-//             .unwrap()
-//             .map(|file| file
-//                 .unwrap()
-//                 .path()
-//                 .file_name()
-//                 .unwrap()
-//                 .to_str()
-//                 .unwrap()
-//                 .to_owned())
-//             .any(|f| docker_log.is_match(&f)));
+        let docker_log = Regex::new(r"docker.*\.txt").unwrap();
+        assert!(fs::read_dir(PathBuf::from(&extract_path).join("logs"))
+            .unwrap()
+            .map(|file| file
+                .unwrap()
+                .path()
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_owned())
+            .any(|f| docker_log.is_match(&f)));
 
-//         //expect inspect
-//         let module_in_inspect = Regex::new(&format!(r"{}.*\.json", module_name)).unwrap();
-//         assert!(fs::read_dir(PathBuf::from(&extract_path).join("inspect"))
-//             .unwrap()
-//             .map(|file| file
-//                 .unwrap()
-//                 .path()
-//                 .file_name()
-//                 .unwrap()
-//                 .to_str()
-//                 .unwrap()
-//                 .to_owned())
-//             .any(|f| module_in_inspect.is_match(&f)));
+        //expect inspect
+        let module_in_inspect = Regex::new(&format!(r"{}.*\.json", module_name)).unwrap();
+        assert!(fs::read_dir(PathBuf::from(&extract_path).join("inspect"))
+            .unwrap()
+            .map(|file| file
+                .unwrap()
+                .path()
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_owned())
+            .any(|f| module_in_inspect.is_match(&f)));
 
-//         // expect check
-//         File::open(PathBuf::from(&extract_path).join("check.json")).unwrap();
+        // expect check
+        File::open(PathBuf::from(&extract_path).join("check.json")).unwrap();
 
-//         // expect network inspect
-//         let network_in_inspect = Regex::new(r".*\.json").unwrap();
-//         assert!(fs::read_dir(PathBuf::from(&extract_path).join("network"))
-//             .unwrap()
-//             .map(|file| file
-//                 .unwrap()
-//                 .path()
-//                 .file_name()
-//                 .unwrap()
-//                 .to_str()
-//                 .unwrap()
-//                 .to_owned())
-//             .any(|f| network_in_inspect.is_match(&f)));
-//     }
+        // expect network inspect
+        let network_in_inspect = Regex::new(r".*\.json").unwrap();
+        assert!(fs::read_dir(PathBuf::from(&extract_path).join("network"))
+            .unwrap()
+            .map(|file| file
+                .unwrap()
+                .path()
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_owned())
+            .any(|f| network_in_inspect.is_match(&f)));
+    }
 
-//     #[test]
-//     fn get_logs() {
-//         let module_name = "test-module";
-//         let runtime = make_runtime(module_name);
+    #[test]
+    fn get_logs() {
+        let module_name = "test-module";
+        let runtime = make_runtime(module_name);
 
-//         let options = LogOptions::new()
-//             .with_follow(false)
-//             .with_tail(LogTail::Num(0))
-//             .with_since(0);
+        let options = LogOptions::new()
+            .with_follow(false)
+            .with_tail(LogTail::Num(0))
+            .with_since(0);
 
-//         let result: Vec<u8> = pull_logs(&runtime, module_name, &options, Vec::new())
-//             .wait()
-//             .unwrap();
-//         let result_str = str::from_utf8(&result).unwrap();
-//         assert_eq!("Roses are redviolets are blue", result_str);
-//     }
+        let result: Vec<u8> = pull_logs(&runtime, module_name, &options, Vec::new())
+            .wait()
+            .unwrap();
+        let result_str = str::from_utf8(&result).unwrap();
+        assert_eq!("Roses are redviolets are blue", result_str);
+    }
 
-//     #[test]
-//     fn get_modules() {
-//         let runtime = make_runtime("test-module");
-//         let tmp_dir = tempdir().unwrap();
-//         let file_path = tmp_dir
-//             .path()
-//             .join("iotedge_bundle.zip")
-//             .to_str()
-//             .unwrap()
-//             .to_owned();
-//         let bundle = SupportBundle::new(
-//             LogOptions::default(),
-//             OsString::from(file_path.to_owned()),
-//             false,
-//             true,
-//             None,
-//             runtime,
-//         );
+    #[test]
+    fn get_modules() {
+        let runtime = make_runtime("test-module");
+        let tmp_dir = tempdir().unwrap();
+        let file_path = tmp_dir
+            .path()
+            .join("iotedge_bundle.zip")
+            .to_str()
+            .unwrap()
+            .to_owned();
+        let bundle = SupportBundle::new(
+            LogOptions::default(),
+            false,
+            true,
+            None,
+            OutputLocation::File(OsString::from(file_path.to_owned())),
+            runtime,
+        );
 
-//         let state = bundle.make_state().unwrap();
+        let state = bundle.make_file_state().unwrap();
 
-//         let (modules, mut state) = SupportBundle::get_modules(state).wait().unwrap();
-//         assert_eq!(modules.len(), 1);
+        let (modules, mut state) = SupportBundle::get_modules(state).wait().unwrap();
+        assert_eq!(modules.len(), 1);
 
-//         state.include_ms_only = true;
+        state.include_ms_only = true;
 
-//         let (modules, _state) = SupportBundle::get_modules(state).wait().unwrap();
-//         assert_eq!(modules.len(), 0);
+        let (modules, _state) = SupportBundle::get_modules(state).wait().unwrap();
+        assert_eq!(modules.len(), 0);
 
-//         /* with edge agent */
-//         let runtime = make_runtime("edgeAgent");
-//         let bundle = SupportBundle::new(
-//             LogOptions::default(),
-//             OsString::from(file_path),
-//             false,
-//             true,
-//             None,
-//             runtime,
-//         );
+        /* with edge agent */
+        let runtime = make_runtime("edgeAgent");
+        let bundle = SupportBundle::new(
+            LogOptions::default(),
+            false,
+            true,
+            None,
+            OutputLocation::File(OsString::from(file_path.to_owned())),
+            runtime,
+        );
 
-//         let state = bundle.make_state().unwrap();
+        let state = bundle.make_file_state().unwrap();
 
-//         let (modules, mut state) = SupportBundle::get_modules(state).wait().unwrap();
-//         assert_eq!(modules.len(), 1);
+        let (modules, mut state) = SupportBundle::get_modules(state).wait().unwrap();
+        assert_eq!(modules.len(), 1);
 
-//         state.include_ms_only = true;
+        state.include_ms_only = true;
 
-//         let (modules, _state) = SupportBundle::get_modules(state).wait().unwrap();
-//         assert_eq!(modules.len(), 1);
-//     }
+        let (modules, _state) = SupportBundle::get_modules(state).wait().unwrap();
+        assert_eq!(modules.len(), 1);
+    }
 
-//     #[test]
-//     fn write_logs_to_file() {
-//         let runtime = make_runtime("test-module");
-//         let tmp_dir = tempdir().unwrap();
-//         let file_path = tmp_dir
-//             .path()
-//             .join("iotedge_bundle.zip")
-//             .to_str()
-//             .unwrap()
-//             .to_owned();
+    #[test]
+    fn write_logs_to_file() {
+        let runtime = make_runtime("test-module");
+        let tmp_dir = tempdir().unwrap();
+        let file_path = tmp_dir
+            .path()
+            .join("iotedge_bundle.zip")
+            .to_str()
+            .unwrap()
+            .to_owned();
 
-//         let bundle = SupportBundle::new(
-//             LogOptions::default(),
-//             OsString::from(file_path.to_owned()),
-//             false,
-//             true,
-//             None,
-//             runtime,
-//         );
+        let bundle = SupportBundle::new(
+            LogOptions::default(),
+            false,
+            true,
+            None,
+            OutputLocation::File(OsString::from(file_path.to_owned())),
+            runtime,
+        );
 
-//         bundle.execute().wait().unwrap();
+        bundle.execute().wait().unwrap();
 
-//         File::open(file_path).unwrap();
-//     }
+        File::open(file_path).unwrap();
+    }
 
-//     fn make_runtime(module_name: &str) -> TestRuntime<Error, TestSettings> {
-//         let logs = vec![
-//             &[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d, b'R', b'o'][..],
-//             &b"ses are"[..],
-//             &[b' ', b'r', b'e', b'd', 0x02, 0x00][..],
-//             &[0x00, 0x00, 0x00, 0x00, 0x00, 0x10][..],
-//             &b"violets"[..],
-//             &b" are blue"[..],
-//         ];
+    fn make_runtime(module_name: &str) -> TestRuntime<Error, TestSettings> {
+        let logs = vec![
+            &[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d, b'R', b'o'][..],
+            &b"ses are"[..],
+            &[b' ', b'r', b'e', b'd', 0x02, 0x00][..],
+            &[0x00, 0x00, 0x00, 0x00, 0x00, 0x10][..],
+            &b"violets"[..],
+            &b" are blue"[..],
+        ];
 
-//         let state: Result<ModuleRuntimeState, Error> = Ok(ModuleRuntimeState::default());
-//         let config = TestConfig::new(format!("microsoft/{}", module_name));
-//         let module = TestModule::new_with_logs(module_name.to_owned(), config, state, logs);
+        let state: Result<ModuleRuntimeState, Error> = Ok(ModuleRuntimeState::default());
+        let config = TestConfig::new(format!("microsoft/{}", module_name));
+        let module = TestModule::new_with_logs(module_name.to_owned(), config, state, logs);
 
-//         TestRuntime::make_runtime(
-//             TestSettings::new(),
-//             TestProvisioningResult::new(),
-//             TestHsm::default(),
-//         )
-//         .wait()
-//         .unwrap()
-//         .with_module(Ok(module))
-//     }
+        TestRuntime::make_runtime(
+            TestSettings::new(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module))
+    }
 
-//     // From https://github.com/mvdnes/zip-rs/blob/master/examples/extract.rs
-//     fn extract_zip(source: &str, destination: &str) {
-//         let fname = std::path::Path::new(source);
-//         let file = File::open(&fname).unwrap();
-//         let mut archive = zip::ZipArchive::new(file).unwrap();
+    // From https://github.com/mvdnes/zip-rs/blob/master/examples/extract.rs
+    fn extract_zip(source: &str, destination: &str) {
+        let fname = std::path::Path::new(source);
+        let file = File::open(&fname).unwrap();
+        let mut archive = zip::ZipArchive::new(file).unwrap();
 
-//         for i in 0..archive.len() {
-//             let mut file = archive.by_index(i).unwrap();
-//             let outpath = PathBuf::from(destination).join(file.sanitized_name());
+        for i in 0..archive.len() {
+            let mut file = archive.by_index(i).unwrap();
+            let outpath = PathBuf::from(destination).join(file.sanitized_name());
 
-//             if (&*file.name()).ends_with('/') {
-//                 fs::create_dir_all(&outpath).unwrap();
-//             } else {
-//                 if let Some(p) = outpath.parent() {
-//                     if !p.exists() {
-//                         fs::create_dir_all(&p).unwrap();
-//                     }
-//                 }
-//                 let mut outfile = fs::File::create(&outpath).unwrap();
-//                 io::copy(&mut file, &mut outfile).unwrap();
-//             }
+            if (&*file.name()).ends_with('/') {
+                fs::create_dir_all(&outpath).unwrap();
+            } else {
+                if let Some(p) = outpath.parent() {
+                    if !p.exists() {
+                        fs::create_dir_all(&p).unwrap();
+                    }
+                }
+                let mut outfile = fs::File::create(&outpath).unwrap();
+                io::copy(&mut file, &mut outfile).unwrap();
+            }
 
-//             // Get and Set permissions
-//             #[cfg(unix)]
-//             {
-//                 use std::os::unix::fs::PermissionsExt;
+            // Get and Set permissions
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
 
-//                 if let Some(mode) = file.unix_mode() {
-//                     fs::set_permissions(&outpath, fs::Permissions::from_mode(mode)).unwrap();
-//                 }
-//             }
-//         }
-//     }
-// }
+                if let Some(mode) = file.unix_mode() {
+                    fs::set_permissions(&outpath, fs::Permissions::from_mode(mode)).unwrap();
+                }
+            }
+        }
+    }
+}
