@@ -14,24 +14,24 @@ CREATE PROCEDURE [dbo].[UpsertVstsRelease]
     @DefinitionId int,
     @DefinitionName varchar(100)
 AS
-	DECLARE @now datetime2;
-	SET @now = SYSDATETIME();
+    DECLARE @now datetime2;
+    SET @now = SYSDATETIME();
 
-	IF EXISTS (SELECT 1 FROM dbo.VstsRelease WHERE [Id] = @Id)
-	BEGIN
-		UPDATE dbo.VstsRelease
-		SET [Name] = @Name,
+    IF EXISTS (SELECT 1 FROM dbo.VstsRelease WHERE [Id] = @Id)
+    BEGIN
+        UPDATE dbo.VstsRelease
+        SET [Name] = @Name,
             [SourceBranch] = @SourceBranch,
             [Status] = @Status,
             WebUri = @WebUri,
             DefinitionId = @DefinitionId,
             DefinitionName = @DefinitionName,
             UpdatedAt = @now
-		WHERE [Id] = @Id
-	END
-	ELSE
-	BEGIN
-		INSERT INTO dbo.VstsRelease(Id, [Name], [SourceBranch], [Status], WebUri, DefinitionId, DefinitionName, InsertedAt, UpdatedAt)
-		VALUES (@Id, @Name, @SourceBranch, @Status, @WebUri, @DefinitionId, @DefinitionName, @now, @now)
-	END
+        WHERE [Id] = @Id
+    END
+    ELSE
+    BEGIN
+        INSERT INTO dbo.VstsRelease(Id, [Name], [SourceBranch], [Status], WebUri, DefinitionId, DefinitionName, InsertedAt, UpdatedAt)
+        VALUES (@Id, @Name, @SourceBranch, @Status, @WebUri, @DefinitionId, @DefinitionName, @now, @now)
+    END
 GO
