@@ -21,12 +21,12 @@ AS
 	BEGIN
 		UPDATE dbo.VstsRelease
 		SET [Name] = @Name,
-			[SourceBranch] = @SourceBranch,
-		    [Status] = @Status,
-		    WebUri = @WebUri,
-			DefinitionId = @DefinitionId,
-		    DefinitionName = @DefinitionName,
-			UpdatedAt = @now
+            [SourceBranch] = @SourceBranch,
+            [Status] = @Status,
+            WebUri = @WebUri,
+            DefinitionId = @DefinitionId,
+            DefinitionName = @DefinitionName,
+            UpdatedAt = @now
 		WHERE [Id] = @Id
 	END
 	ELSE
