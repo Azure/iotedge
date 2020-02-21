@@ -90,6 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 var modulesContent =
                     new Dictionary<string, IDictionary<string, object>>(config.ModulesContent);
                 Log.Information($">>> moduleContent has {modulesContent.Count} modules");
+                Log.Information(">>> CONFIG #1:\n{Config}\n\n", Newtonsoft.Json.JsonConvert.SerializeObject(modulesContent));
                 yield return new EdgeConfiguration(
                     this.deviceId,
                     new List<string>(moduleNames),
@@ -103,6 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 }
             }
 
+            Log.Information(">>> CONFIG #2:\n{Config}\n\n", Newtonsoft.Json.JsonConvert.SerializeObject(config));
             yield return new EdgeConfiguration(this.deviceId, moduleNames, moduleImages, config);
         }
 
