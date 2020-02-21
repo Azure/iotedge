@@ -5,7 +5,7 @@ namespace DevOpsLib
 
     public static class BuildExtension
     {
-        public static HashSet<BuildDefinitionId> MasterBranchBuildDefinitions =>
+        public static HashSet<BuildDefinitionId> BuildDefinitions =>
             new HashSet<BuildDefinitionId>
             {
                 BuildDefinitionId.CI,

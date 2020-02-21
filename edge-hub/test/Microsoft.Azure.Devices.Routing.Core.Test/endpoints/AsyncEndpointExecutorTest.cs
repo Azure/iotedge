@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
         public async Task TestClose()
         {
             var endpoint = new TestEndpoint("id");
-            IEndpointExecutor executor = await Factory.CreateAsync(endpoint);
+            IEndpointExecutor executor = await Factory.CreateAsync(endpoint, null);
             Task running = executor.Invoke(Default, 0, 3600);
 
             await executor.CloseAsync();
@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
         public async Task TestCancellation()
         {
             var endpoint = new StalledEndpoint("id");
-            IEndpointExecutor executor = await Factory.CreateAsync(endpoint);
+            IEndpointExecutor executor = await Factory.CreateAsync(endpoint, null);
             Task running = executor.Invoke(Default, 0, 3600);
 
             await executor.CloseAsync();
@@ -100,17 +100,17 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             var endpoint1 = new TestEndpoint("id");
             var endpoint2 = new NullEndpoint("id");
             var endpoint3 = new TestEndpoint("id1");
-            IEndpointExecutor executor = await Factory.CreateAsync(endpoint1);
+            IEndpointExecutor executor = await Factory.CreateAsync(endpoint1, null);
 
             Assert.Equal(endpoint1, executor.Endpoint);
-            await Assert.ThrowsAsync<ArgumentNullException>(() => executor.SetEndpoint(null));
-            await Assert.ThrowsAsync<ArgumentException>(() => executor.SetEndpoint(endpoint3));
+            await Assert.ThrowsAsync<ArgumentNullException>(() => executor.SetEndpoint(null, null));
+            await Assert.ThrowsAsync<ArgumentException>(() => executor.SetEndpoint(endpoint3, null));
 
-            await executor.SetEndpoint(endpoint2);
+            await executor.SetEndpoint(endpoint2, null);
             Assert.Equal(endpoint2, executor.Endpoint);
 
             await executor.CloseAsync();
-            await Assert.ThrowsAsync<InvalidOperationException>(() => executor.SetEndpoint(endpoint1));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => executor.SetEndpoint(endpoint1, null));
         }
 
         [Fact]
