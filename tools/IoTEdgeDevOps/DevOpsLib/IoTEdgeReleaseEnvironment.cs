@@ -10,8 +10,6 @@ namespace DevOpsLib
         readonly int definitionId;
         readonly string definitionName;
         readonly VstsEnvironmentStatus status;
-        readonly DateTime createdOn;
-        readonly DateTime modifiedOn;
 
         public IoTEdgeReleaseEnvironment(int id, int definitionId, string definitionName, VstsEnvironmentStatus status)
         {
