@@ -55,7 +55,7 @@ namespace DevOpsLib
             }
 
             VstsRelease[] releases = JsonConvert.DeserializeObject<VstsRelease[]>(result["value"].ToString());
-            return releases.Select(IoTEdgeRelease.Create).ToList();
+            return releases.Select(r => IoTEdgeRelease.Create(r, branchName)).ToList();
         }
     }
 }

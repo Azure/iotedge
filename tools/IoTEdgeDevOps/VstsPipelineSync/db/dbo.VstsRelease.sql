@@ -8,6 +8,7 @@ GO
 CREATE TABLE [dbo].[VstsRelease](
 	[Id] [int] NOT NULL,
 	[Name] [varchar](100) NOT NULL,
+	[SourceBranch] [varchar](100) NOT NULL,
 	[Status] [varchar](20) NOT NULL,
 	[WebUri] [varchar](500) NOT NULL,
 	[DefinitionId] [int] NOT NULL,

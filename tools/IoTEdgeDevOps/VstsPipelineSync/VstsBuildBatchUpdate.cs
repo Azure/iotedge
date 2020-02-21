@@ -189,6 +189,7 @@ namespace VstsPipelineSync
 
             cmd.Parameters.Add(new SqlParameter("@Id", release.Id));
             cmd.Parameters.Add(new SqlParameter("@Name", release.DefinitionId.DisplayName()));
+            cmd.Parameters.Add(new SqlParameter("@SourceBranch", release.SourceBranch));
             cmd.Parameters.Add(new SqlParameter("@Status", release.Status.ToString()));
             cmd.Parameters.Add(new SqlParameter("@WebUri", release.WebUri.AbsoluteUri));
             cmd.Parameters.Add(new SqlParameter("@DefinitionId", release.DefinitionId));
