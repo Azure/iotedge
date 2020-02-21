@@ -7,7 +7,7 @@ namespace EdgeHubRestartTester
 
     class EdgeHubConnectorConfig
     {
-        EdgeHubConnectorConfig(
+        public EdgeHubConnectorConfig(
             TransportType transportType,
             string directMethodTargetModuleId,
             string messageOutputEndpoint)
