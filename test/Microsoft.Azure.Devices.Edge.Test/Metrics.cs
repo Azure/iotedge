@@ -33,17 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     builder.AddModule(ModuleName, metricsValidatorImage);
 
                     builder.GetModule("$edgeHub")
-                        .WithEnvironment(("experimentalfeatures__enabled", "true"), ("experimentalfeatures__enableMetrics", "true"))
-                        .WithDesiredProperties(new Dictionary<string, object>
-                        {
-                                {
-                                    "routes", new
-                                    {
-                                        All = "FROM /messages/* INTO $upstream",
-                                        QueueLengthTest = "FROM /messages/modules/MetricsValidator/outputs/ToSelf INTO BrokeredEndpoint(\"/modules/MetricsValidator/inputs/FromSelf\")"
-                                    }
-                                }
-                        });
+                        .WithEnvironment(("experimentalfeatures__enabled", "true"), ("experimentalfeatures__enableMetrics", "true"));
                 },
                 token);
 
