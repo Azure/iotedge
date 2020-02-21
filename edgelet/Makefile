@@ -68,9 +68,9 @@ dist:
 	$(MKDIR_P) .cargo
 	$(MKDIR_P) $(vendordir)
 	$(CARGO) vendor $(vendordir) > .cargo/config
-	$(TAR) --transform "flags=r;s/^\./$(PACKAGE_NAME)-$(VERSION)/" -c -f $(TARGET)/$(PACKAGE_NAME)-$(VERSION).tar -v --exclude-vcs --exclude-vcs-ignores .
+	$(TAR) --transform "flags=r;s/^\./$(PACKAGE_NAME)-$(VERSION)/" -c -f $(TARGET)/$(PACKAGE_NAME)-$(VERSION).tar -h -v --exclude-vcs --exclude-vcs-ignores --exclude="./target" .
 
-	# Update the version.txt in the archive with $VERSION
+	# Update the version.txt in the archive with VERSION
 	echo "${VERSION}" > $(TARGET)/version.txt
 	$(TAR) --update -f $(TARGET)/$(PACKAGE_NAME)-$(VERSION).tar --transform 'flags=r;s|$(TARGET)/version.txt|$(PACKAGE_NAME)-$(VERSION)/version.txt|' $(TARGET)/version.txt
 	$(GZIP) -f $(TARGET)/$(PACKAGE_NAME)-$(VERSION).tar
