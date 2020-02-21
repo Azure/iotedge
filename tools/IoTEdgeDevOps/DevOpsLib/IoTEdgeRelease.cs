@@ -54,12 +54,12 @@ namespace DevOpsLib
 
         public int NumberOfEnvironments => this.environments.Count;
 
-        public static IoTEdgeRelease Create(VstsRelease vstsRelease, string branchName) =>
+        public static IoTEdgeRelease Create(VstsRelease vstsRelease, string sourceBranch) =>
             new IoTEdgeRelease(
                 vstsRelease.Id,
                 vstsRelease.DefinitionId,
                 vstsRelease.Name,
-                branchName,
+                sourceBranch,
                 vstsRelease.Status,
                 vstsRelease.WebUri,
                 vstsRelease.Environments.Select(IoTEdgeReleaseEnvironment.Create).ToHashSet()

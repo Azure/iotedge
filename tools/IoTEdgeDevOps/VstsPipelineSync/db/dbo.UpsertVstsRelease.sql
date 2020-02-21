@@ -6,13 +6,13 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 CREATE PROCEDURE [dbo].[UpsertVstsRelease]
-	@Id int,
-	@Name varchar(100),
-	@SourceBranch varchar(100),
-	@Status varchar(20),
-	@WebUri varchar(500),
-	@DefinitionId int,
-	@DefinitionName varchar(100)
+    @Id int,
+    @Name varchar(100),
+    @SourceBranch varchar(100),
+    @Status varchar(20),
+    @WebUri varchar(500),
+    @DefinitionId int,
+    @DefinitionName varchar(100)
 AS
 	DECLARE @now datetime2;
 	SET @now = SYSDATETIME();
