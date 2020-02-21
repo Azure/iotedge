@@ -14,8 +14,8 @@ namespace VstsPipelineSync
     {
         readonly DevOpsAccessSetting devOpsAccessSetting;
         readonly string dbConnectionString;
-        Dictionary<string, Dictionary<BuildDefinitionId, DateTime>> buildLastUpdatePerBranchPerDefinition;
-        HashSet<string> branches;
+        readonly Dictionary<string, Dictionary<BuildDefinitionId, DateTime>> buildLastUpdatePerBranchPerDefinition;
+        readonly HashSet<string> branches;
 
         public VstsBuildBatchUpdate(DevOpsAccessSetting devOpsAccessSetting, string dbConnectionString, HashSet<string> branches)
         {
@@ -55,7 +55,10 @@ namespace VstsPipelineSync
                 {
                     Console.WriteLine($"Import Vsts Releases data started at {DateTime.UtcNow}");
 
-                    await ImportVstsReleasesDataAsync(releaseManagement, "refs/heads/master", ReleaseDefinitionId.E2ETest);
+                    foreach (string branch in this.branches)
+                    {
+                        await ImportVstsReleasesDataAsync(releaseManagement, branch, ReleaseDefinitionId.E2ETest);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -197,6 +200,7 @@ namespace VstsPipelineSync
 
             cmd.Parameters.Add(new SqlParameter("@Id", release.Id));
             cmd.Parameters.Add(new SqlParameter("@Name", release.DefinitionId.DisplayName()));
+            cmd.Parameters.Add(new SqlParameter("@SourceBranch", release.SourceBranch));
             cmd.Parameters.Add(new SqlParameter("@Status", release.Status.ToString()));
             cmd.Parameters.Add(new SqlParameter("@WebUri", release.WebUri.AbsoluteUri));
             cmd.Parameters.Add(new SqlParameter("@DefinitionId", release.DefinitionId));

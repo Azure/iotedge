@@ -19,6 +19,7 @@ namespace DevOpsLibTest
                         id,
                         ReleaseDefinitionId.E2ETest,
                         "test-release",
+                        "branch1",
                         VstsReleaseStatus.Active,
                         new Uri("http://abc.com/test/uri"),
                         new HashSet<IoTEdgeReleaseEnvironment>
@@ -39,6 +40,7 @@ namespace DevOpsLibTest
                         3782954,
                         ReleaseDefinitionId.E2ETest,
                         name,
+                        "branch1",
                         VstsReleaseStatus.Active,
                         new Uri("http://abc.com/test/uri"),
                         new HashSet<IoTEdgeReleaseEnvironment>
@@ -51,6 +53,27 @@ namespace DevOpsLibTest
         }
 
         [Test]
+        public void TestConstructorWithInvalidSourceBranch([Values(null, "")] string sourceBranch)
+        {
+            ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
+                () =>
+                    new IoTEdgeRelease(
+                        3782954,
+                        ReleaseDefinitionId.E2ETest,
+                        "Relase-2378",
+                        sourceBranch,
+                        VstsReleaseStatus.Active,
+                        new Uri("http://abc.com/test/uri"),
+                        new HashSet<IoTEdgeReleaseEnvironment>
+                        {
+                            new IoTEdgeReleaseEnvironment(3423, 8790, "Any name", VstsEnvironmentStatus.NotStarted),
+                            new IoTEdgeReleaseEnvironment(784, 23903, "Any name", VstsEnvironmentStatus.InProgress)
+                        }));
+            Assert.True(ex.Message.StartsWith("Cannot be null or white space."));
+            Assert.AreEqual("sourceBranch", ex.ParamName);
+        }
+
+        [Test]
         public void TestConstructorWithNullWebUri()
         {
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
@@ -59,6 +82,7 @@ namespace DevOpsLibTest
                         3782954,
                         ReleaseDefinitionId.E2ETest,
                         "Relase-2378",
+                        "branch1",
                         VstsReleaseStatus.Active,
                         null,
                         new HashSet<IoTEdgeReleaseEnvironment>
@@ -79,6 +103,7 @@ namespace DevOpsLibTest
                         3782954,
                         ReleaseDefinitionId.E2ETest,
                         "Relase-2378",
+                        "branch1",
                         VstsReleaseStatus.Active,
                         new Uri("http://abc.com/test/uri"),
                         null));
@@ -93,6 +118,7 @@ namespace DevOpsLibTest
                 123213,
                 ReleaseDefinitionId.E2ETest,
                 "test-release",
+                "branch1",
                 VstsReleaseStatus.Active,
                 new Uri("http://abc.com/test/uri"),
                 new HashSet<IoTEdgeReleaseEnvironment>
@@ -106,10 +132,10 @@ namespace DevOpsLibTest
             Assert.AreEqual("test-release", release.Name);
             Assert.AreEqual("http://abc.com/test/uri", release.WebUri.AbsoluteUri);
             Assert.AreEqual(2, release.NumberOfEnvironments);
-            var env1 = release.GetEnvironment(8790);
+            IoTEdgeReleaseEnvironment env1 = release.GetEnvironment(8790);
             Assert.AreEqual(3423, env1.Id);
             Assert.AreEqual(VstsEnvironmentStatus.NotStarted, env1.Status);
-            var env2 = release.GetEnvironment(23903);
+            IoTEdgeReleaseEnvironment env2 = release.GetEnvironment(23903);
             Assert.AreEqual(784, env2.Id);
             Assert.AreEqual(VstsEnvironmentStatus.InProgress, env2.Status);
         }
@@ -121,6 +147,7 @@ namespace DevOpsLibTest
                 123213,
                 ReleaseDefinitionId.E2ETest,
                 "test-release",
+                "branch1",
                 VstsReleaseStatus.Active,
                 new Uri("http://abc.com/test/uri"),
                 new HashSet<IoTEdgeReleaseEnvironment>
@@ -133,6 +160,7 @@ namespace DevOpsLibTest
                 123213,
                 ReleaseDefinitionId.E2ETest,
                 "test-release",
+                "branch1",
                 VstsReleaseStatus.Active,
                 new Uri("http://abc.com/test/uri"),
                 new HashSet<IoTEdgeReleaseEnvironment>
@@ -145,6 +173,7 @@ namespace DevOpsLibTest
                 2343,
                 ReleaseDefinitionId.E2ETest,
                 "test-release",
+                "branch1",
                 VstsReleaseStatus.Active,
                 new Uri("http://abc.com/test/uri"),
                 new HashSet<IoTEdgeReleaseEnvironment>
@@ -157,6 +186,7 @@ namespace DevOpsLibTest
                 123213,
                 ReleaseDefinitionId.E2ETest,
                 "test-release",
+                "branch1",
                 VstsReleaseStatus.Active,
                 new Uri("http://abc.com/test/uri"),
                 new HashSet<IoTEdgeReleaseEnvironment>
@@ -169,6 +199,7 @@ namespace DevOpsLibTest
                 123213,
                 ReleaseDefinitionId.E2ETest,
                 "test-release342",
+                "branch1",
                 VstsReleaseStatus.Active,
                 new Uri("http://abc.com/test/uri"),
                 new HashSet<IoTEdgeReleaseEnvironment>
@@ -181,6 +212,7 @@ namespace DevOpsLibTest
                 123213,
                 ReleaseDefinitionId.E2ETest,
                 "test-release",
+                "branch1",
                 VstsReleaseStatus.Active,
                 new Uri("http://abc.com/test/uri/123123"),
                 new HashSet<IoTEdgeReleaseEnvironment>
@@ -193,6 +225,7 @@ namespace DevOpsLibTest
                 123213,
                 ReleaseDefinitionId.E2ETest,
                 "test-release",
+                "branch1",
                 VstsReleaseStatus.Active,
                 new Uri("http://abc.com/test/uri/123123"),
                 new HashSet<IoTEdgeReleaseEnvironment>
@@ -223,6 +256,7 @@ namespace DevOpsLibTest
                 123213,
                 ReleaseDefinitionId.E2ETest,
                 "test-release",
+                "branch1",
                 VstsReleaseStatus.Active,
                 new Uri("http://abc.com/test/uri"),
                 new HashSet<IoTEdgeReleaseEnvironment>
@@ -241,6 +275,7 @@ namespace DevOpsLibTest
                 123213,
                 ReleaseDefinitionId.E2ETest,
                 "test-release",
+                "branch1",
                 VstsReleaseStatus.Active,
                 new Uri("http://abc.com/test/uri"),
                 new HashSet<IoTEdgeReleaseEnvironment>
