@@ -86,16 +86,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
             if (modulesLookup.Contains("other"))
             {
-                Dictionary<string, IDictionary<string, object>> modulesContent =
-                    config.ModulesContent.ToDictionary(entry => entry.Key, entry => entry.Value);
+                var modulesContent =
+                    new Dictionary<string, IDictionary<string, object>>(config.ModulesContent);
                 yield return new EdgeConfiguration(
                     this.deviceId,
                     new List<string>(moduleNames),
                     new List<string>(moduleImages),
-                    new ConfigurationContent
-                    {
-                        ModulesContent = new Dictionary<string, IDictionary<string, object>>(modulesContent)
-                    });
+                    new ConfigurationContent { ModulesContent = modulesContent });
 
                 // Return a configuration for all modules
                 foreach (ModuleConfiguration module in modulesLookup["other"])
