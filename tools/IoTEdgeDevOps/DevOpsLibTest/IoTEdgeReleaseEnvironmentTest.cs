@@ -73,7 +73,7 @@ namespace DevOpsLibTest
         [Test]
         public void TestGetHashCode()
         {
-            var releaseEnv = new IoTEdgeReleaseEnvironment(3242, 343406, "Dumpy", VstsEnvironmentStatus.Queued);
+            var releaseEnv = new IoTEdgeReleaseEnvironment(3242, 343406, "Any Name", VstsEnvironmentStatus.Queued);
 
             Assert.AreEqual(3242, releaseEnv.GetHashCode());
         }
