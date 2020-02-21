@@ -73,7 +73,7 @@ namespace EdgeHubRestartTester
             return this.reportClient;
         }
 
-        string GetSource() => $"{Settings.Current.ModuleId}.{TestOperationResultType.EdgeHubRestartMessage.ToString()}";
+        string GetSource() => $"{Settings.Current.ModuleId}.{TestOperationResultType.EdgeHubRestartMessage.ToString()}.{this.messageOutputEndpoint}";
 
         async Task<Tuple<DateTime, HttpStatusCode>> SendMessageAsync(
             string trackingId,

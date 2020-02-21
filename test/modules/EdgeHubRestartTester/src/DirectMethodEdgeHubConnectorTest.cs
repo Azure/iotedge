@@ -140,7 +140,7 @@ namespace EdgeHubRestartTester
             return this.reportClient;
         }
 
-        string GetSource() => $"{Settings.Current.ModuleId}.{TestOperationResultType.EdgeHubRestartDirectMethod.ToString()}";
+        string GetSource() => $"{Settings.Current.ModuleId}.{TestOperationResultType.EdgeHubRestartDirectMethod.ToString()}.{this.directMethodTargetModuleId}";
 
         bool IsEdgeHubDownDuringDirectMethodSend(Exception e)
         {

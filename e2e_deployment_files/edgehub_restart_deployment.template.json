@@ -320,25 +320,25 @@
           "reportMetadata4": {
             "TestReportType": "EdgeHubRestartDirectMethodReport",
             "TestOperationResultType": "EdgeHubRestartDirectMethod",
-            "SenderSource": "edgeHubRestartTester1.EdgeHubRestartDirectMethod",
+            "SenderSource": "edgeHubRestartTester1.EdgeHubRestartDirectMethod.directMethodReceiver1",
             "ReceiverSource": "directMethodReceiver1.receive"
           },
           "reportMetadata5": {
             "TestReportType": "EdgeHubRestartMessageReport",
             "TestOperationResultType": "EdgeHubRestartMessage",
-            "SenderSource": "edgeHubRestartTester1.EdgeHubRestartMessage",
+            "SenderSource": "edgeHubRestartTester1.EdgeHubRestartMessage.outputAmqp",
             "ReceiverSource": "relayer1.receive"
           },
           "reportMetadata6": {
             "TestReportType": "EdgeHubRestartDirectMethodReport",
             "TestOperationResultType": "EdgeHubRestartDirectMethod",
-            "SenderSource": "edgeHubRestartTester2.EdgeHubRestartDirectMethod",
+            "SenderSource": "edgeHubRestartTester1.EdgeHubRestartDirectMethod.directMethodReceiver2",
             "ReceiverSource": "directMethodReceiver2.receive"
           },
           "reportMetadata7": {
             "TestReportType": "EdgeHubRestartMessageReport",
             "TestOperationResultType": "EdgeHubRestartMessage",
-            "SenderSource": "edgeHubRestartTester2.EdgeHubRestartMessage",
+            "SenderSource": "edgeHubRestartTester1.EdgeHubRestartMessage.outputMqtt",
             "ReceiverSource": "relayer2.receive"
           }
         }
