@@ -22,7 +22,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task ValidateMetrics()
         {
-            string metricsValidatorImage = Context.Current.MetricsValidatorImage.Expect(() => new InvalidOperationException("Missing Metrics Validator image"));
             CancellationToken token = this.TestToken;
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
@@ -30,7 +29,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 {
                     builder.AddModule("tempSensor999", Context.Current.TempSensorImage.Expect(() => new Exception("Oh no!")))
                         .WithEnvironment(new[] { ("MessageCount", "1") });
-                    builder.AddModule(ModuleName, metricsValidatorImage);
 
                     builder.GetModule("$edgeHub")
                         .WithEnvironment(("experimentalfeatures__enabled", "true"));
