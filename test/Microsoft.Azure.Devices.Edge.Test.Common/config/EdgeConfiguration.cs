@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
     using System.Threading;
     using System.Threading.Tasks;
     using Newtonsoft.Json;
-    using Serilog;
 
     public class EdgeConfiguration
     {
@@ -32,7 +31,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
         public Task DeployAsync(IotHub iotHub, CancellationToken token)
         {
-            Log.Information(">>> Deploy config:\n---\n{Config}\n---\n", JsonConvert.SerializeObject(this.config));
             return Profiler.Run(
                 () => iotHub.DeployDeviceConfigurationAsync(this.deviceId, this.config, token),
                 "Deployed edge configuration to device with modules:\n    {Modules}",
