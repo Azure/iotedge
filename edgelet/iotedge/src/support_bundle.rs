@@ -135,15 +135,15 @@ where
         W: Write + Seek + Send,
     {
         state
-            .and_then(Self::write_all_logs)
-            .and_then(Self::write_edgelet_log_to_file)
-            .and_then(Self::write_docker_log_to_file)
-            .and_then(Self::write_check_to_file)
+            .and_then(Self::write_check)
+            .and_then(Self::write_module_logs)
+            .and_then(Self::write_edgelet_log)
+            .and_then(Self::write_docker_log)
             .and_then(Self::write_all_inspects)
             .and_then(Self::write_all_network_inspects)
     }
 
-    fn write_all_logs<W>(
+    fn write_module_logs<W>(
         state: BundleState<M, W>,
     ) -> impl Future<Item = BundleState<M, W>, Error = Error>
     where
@@ -260,9 +260,7 @@ where
             })
     }
 
-    fn write_edgelet_log_to_file<W>(
-        mut state: BundleState<M, W>,
-    ) -> Result<BundleState<M, W>, Error>
+    fn write_edgelet_log<W>(mut state: BundleState<M, W>) -> Result<BundleState<M, W>, Error>
     where
         W: Write + Seek + Send,
     {
@@ -317,7 +315,7 @@ where
         Ok(state)
     }
 
-    fn write_docker_log_to_file<W>(mut state: BundleState<M, W>) -> Result<BundleState<M, W>, Error>
+    fn write_docker_log<W>(mut state: BundleState<M, W>) -> Result<BundleState<M, W>, Error>
     where
         W: Write + Seek + Send,
     {
@@ -375,7 +373,7 @@ where
         Ok(state)
     }
 
-    fn write_check_to_file<W>(mut state: BundleState<M, W>) -> Result<BundleState<M, W>, Error>
+    fn write_check<W>(mut state: BundleState<M, W>) -> Result<BundleState<M, W>, Error>
     where
         W: Write + Seek + Send,
     {
