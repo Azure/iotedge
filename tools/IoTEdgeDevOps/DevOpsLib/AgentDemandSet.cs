@@ -14,7 +14,7 @@ namespace DevOpsLib
         public AgentDemandSet(string name, HashSet<AgentCapability> capabilities)
         {
             ValidationUtil.ThrowIfNullOrWhiteSpace(name, nameof(name));
-            ValidationUtil.ThrowIfNulOrEmptySet(capabilities, nameof(capabilities));
+            ValidationUtil.ThrowIfNullOrEmptySet(capabilities, nameof(capabilities));
 
             this.name = name;
             this.capabilities = new SortedSet<AgentCapability>(capabilities);
