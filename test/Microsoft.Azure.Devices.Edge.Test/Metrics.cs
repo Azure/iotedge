@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     builder.AddModule(ModuleName, metricsValidatorImage);
 
                     builder.GetModule("$edgeHub")
-                        .WithEnvironment(("experimentalfeatures__enabled", "true"), ("experimentalfeatures__enableMetrics", "true"));
+                        .WithEnvironment(("experimentalfeatures__enabled", "true"));
                 },
                 token);
 
