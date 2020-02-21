@@ -37,8 +37,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             EdgeModule sensor = deployment.Modules["tempSensor999"];
             await sensor.WaitForEventsReceivedAsync(deployment.StartTime, token);
-
-            await Task.Delay(TimeSpan.FromMinutes(4));
         }
 
         class Report
