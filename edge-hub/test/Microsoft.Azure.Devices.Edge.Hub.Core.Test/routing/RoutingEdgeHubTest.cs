@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var endpointExecutor = Mock.Of<IEndpointExecutor>();
             Mock.Get(endpointExecutor).SetupGet(ee => ee.Endpoint).Returns(() => endpoint.Object);
             var endpointExecutorFactory = Mock.Of<IEndpointExecutorFactory>();
-            Mock.Get(endpointExecutorFactory).Setup(eef => eef.CreateAsync(It.IsAny<Endpoint>())).ReturnsAsync(endpointExecutor);
+            Mock.Get(endpointExecutorFactory).Setup(eef => eef.CreateAsync(It.IsAny<Endpoint>(), new List<uint>() { 0 })).ReturnsAsync(endpointExecutor);
 
             // Create a route to map to the message
             var route = new Route("myRoute", "true", "myIotHub", TelemetryMessageSource.Instance, endpoint.Object, 0, 3600);
@@ -89,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var endpointExecutor = Mock.Of<IEndpointExecutor>();
             Mock.Get(endpointExecutor).SetupGet(ee => ee.Endpoint).Returns(() => endpoint.Object);
             var endpointExecutorFactory = Mock.Of<IEndpointExecutorFactory>();
-            Mock.Get(endpointExecutorFactory).Setup(eef => eef.CreateAsync(It.IsAny<Endpoint>())).ReturnsAsync(endpointExecutor);
+            Mock.Get(endpointExecutorFactory).Setup(eef => eef.CreateAsync(It.IsAny<Endpoint>(), new List<uint>() { 0 })).ReturnsAsync(endpointExecutor);
 
             // Create a route to map to the message
             var route = new Route("myRoute", "true", "myIotHub", TelemetryMessageSource.Instance, endpoint.Object, 0, 3600);
@@ -148,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var endpointExecutor = Mock.Of<IEndpointExecutor>();
             Mock.Get(endpointExecutor).SetupGet(ee => ee.Endpoint).Returns(() => endpoint.Object);
             var endpointExecutorFactory = Mock.Of<IEndpointExecutorFactory>();
-            Mock.Get(endpointExecutorFactory).Setup(eef => eef.CreateAsync(It.IsAny<Endpoint>())).ReturnsAsync(endpointExecutor);
+            Mock.Get(endpointExecutorFactory).Setup(eef => eef.CreateAsync(It.IsAny<Endpoint>(), new List<uint>() { 0 })).ReturnsAsync(endpointExecutor);
 
             // Create a route to map to the message
             var route = new Route("myRoute", "true", "myIotHub", TelemetryMessageSource.Instance, endpoint.Object, 0, 3600);
@@ -190,7 +190,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var endpointExecutor = Mock.Of<IEndpointExecutor>();
             Mock.Get(endpointExecutor).SetupGet(ee => ee.Endpoint).Returns(() => endpoint.Object);
             var endpointExecutorFactory = Mock.Of<IEndpointExecutorFactory>();
-            Mock.Get(endpointExecutorFactory).Setup(eef => eef.CreateAsync(It.IsAny<Endpoint>())).ReturnsAsync(endpointExecutor);
+            Mock.Get(endpointExecutorFactory).Setup(eef => eef.CreateAsync(It.IsAny<Endpoint>(), new List<uint>() { 0 })).ReturnsAsync(endpointExecutor);
 
             // Create a route to map to the message
             var route = new Route("myRoute", "true", "myIotHub", TelemetryMessageSource.Instance, endpoint.Object, 0, 3600);
@@ -233,7 +233,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var endpointExecutor = Mock.Of<IEndpointExecutor>();
             Mock.Get(endpointExecutor).SetupGet(ee => ee.Endpoint).Returns(() => endpoint.Object);
             var endpointExecutorFactory = Mock.Of<IEndpointExecutorFactory>();
-            Mock.Get(endpointExecutorFactory).Setup(eef => eef.CreateAsync(It.IsAny<Endpoint>())).ReturnsAsync(endpointExecutor);
+            Mock.Get(endpointExecutorFactory).Setup(eef => eef.CreateAsync(It.IsAny<Endpoint>(), new List<uint>() { 0 })).ReturnsAsync(endpointExecutor);
 
             // Create a route to map to the message
             var route = new Route("myRoute", "true", "myIotHub", TelemetryMessageSource.Instance, endpoint.Object, 0, 3600);
@@ -314,7 +314,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var endpointExecutor = Mock.Of<IEndpointExecutor>();
             Mock.Get(endpointExecutor).SetupGet(ee => ee.Endpoint).Returns(() => endpoint.Object);
             var endpointExecutorFactory = Mock.Of<IEndpointExecutorFactory>();
-            Mock.Get(endpointExecutorFactory).Setup(eef => eef.CreateAsync(It.IsAny<Endpoint>())).ReturnsAsync(endpointExecutor);
+            Mock.Get(endpointExecutorFactory).Setup(eef => eef.CreateAsync(It.IsAny<Endpoint>(), new List<uint>() { 0 })).ReturnsAsync(endpointExecutor);
 
             // Create a route to map to the message
             var route = new Route("myRoute", "true", "myIotHub", TelemetryMessageSource.Instance, endpoint.Object, 0, 3600);
@@ -391,7 +391,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var endpointExecutor = Mock.Of<IEndpointExecutor>();
             Mock.Get(endpointExecutor).SetupGet(ee => ee.Endpoint).Returns(() => endpoint.Object);
             var endpointExecutorFactory = Mock.Of<IEndpointExecutorFactory>();
-            Mock.Get(endpointExecutorFactory).Setup(eef => eef.CreateAsync(It.IsAny<Endpoint>())).ReturnsAsync(endpointExecutor);
+            Mock.Get(endpointExecutorFactory).Setup(eef => eef.CreateAsync(It.IsAny<Endpoint>(), new List<uint>() { 0 })).ReturnsAsync(endpointExecutor);
 
             // Create a route to map to the message
             var route = new Route("myRoute", "true", "myIotHub", TelemetryMessageSource.Instance, endpoint.Object, 0, 3600);
@@ -475,7 +475,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var endpointExecutor = Mock.Of<IEndpointExecutor>();
             Mock.Get(endpointExecutor).SetupGet(ee => ee.Endpoint).Returns(() => endpoint.Object);
             var endpointExecutorFactory = Mock.Of<IEndpointExecutorFactory>();
-            Mock.Get(endpointExecutorFactory).Setup(eef => eef.CreateAsync(It.IsAny<Endpoint>())).ReturnsAsync(endpointExecutor);
+            Mock.Get(endpointExecutorFactory).Setup(eef => eef.CreateAsync(It.IsAny<Endpoint>(), new List<uint>() { 0 })).ReturnsAsync(endpointExecutor);
 
             // Create a route to map to the message
             var route = new Route("myRoute", "true", "myIotHub", TelemetryMessageSource.Instance, endpoint.Object, 0, 3600);
@@ -531,7 +531,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var endpointExecutor = Mock.Of<IEndpointExecutor>();
             Mock.Get(endpointExecutor).SetupGet(ee => ee.Endpoint).Returns(() => endpoint.Object);
             var endpointExecutorFactory = Mock.Of<IEndpointExecutorFactory>();
-            Mock.Get(endpointExecutorFactory).Setup(eef => eef.CreateAsync(It.IsAny<Endpoint>())).ReturnsAsync(endpointExecutor);
+            Mock.Get(endpointExecutorFactory).Setup(eef => eef.CreateAsync(It.IsAny<Endpoint>(), new List<uint>() { 0 })).ReturnsAsync(endpointExecutor);
 
             // Create a route to map to the message
             var route = new Route("myRoute", "true", "myIotHub", TelemetryMessageSource.Instance, endpoint.Object, 0, 3600);
