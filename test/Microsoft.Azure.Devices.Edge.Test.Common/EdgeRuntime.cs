@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
     using Registries = System.Collections.Generic.IEnumerable<(string address, string username, string password)>;
+    using Serilog;
 
     public class EdgeRuntime
     {
@@ -48,7 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             addConfig(builder);
 
             DateTime deployTime = DateTime.Now;
-            IEnumerable<EdgeConfiguration> configs = builder.BuildConfigurationStages();
+            IEnumerable<EdgeConfiguration> configs = builder.BuildConfigurationStages().ToArray();
+            Log.Information(">>> CONFIGS:\n{Configs}\n\n", Newtonsoft.Json.JsonConvert.SerializeObject(configs));
             foreach (EdgeConfiguration edgeConfiguration in configs)
             {
                 await edgeConfiguration.DeployAsync(this.iotHub, token);
