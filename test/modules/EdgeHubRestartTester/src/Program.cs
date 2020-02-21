@@ -130,7 +130,6 @@ namespace EdgeHubRestartTester
             CancellationToken cancellationToken)
         {
             DateTime startAttemptTime = DateTime.UtcNow;
-            DateTime endAttemptTime = startAttemptTime + Settings.Current.RestartPeriod;
 
             CloudToDeviceMethod c2dMethod = new CloudToDeviceMethod("RestartModule");
             string payloadSchema = "{{ \"SchemaVersion\": \"1.0\", \"Id\": \"{0}\" }}";
@@ -138,7 +137,7 @@ namespace EdgeHubRestartTester
             Logger.LogInformation("RestartModule Method Payload: {0}", payload);
             c2dMethod.SetPayloadJson(payload);
 
-            while (endAttemptTime >= DateTime.UtcNow)
+            while (true)
             {
                 try
                 {
@@ -159,9 +158,9 @@ namespace EdgeHubRestartTester
                 {
                     Logger.LogError($"Exception caught for payload {payload}: {e}");
 
-                    if (endAttemptTime < DateTime.UtcNow)
+                    if (Settings.Current.RestartPeriod < DateTime.UtcNow - startAttemptTime)
                     {
-                        string errorMessage = $"Failed to restart EdgeHub from {startAttemptTime} to {endAttemptTime}:\n\n{e}\n\nPayload: {payload}";
+                        string errorMessage = $"Failed to restart EdgeHub from {startAttemptTime} to {DateTime.UtcNow}:\n\n{e}\n\nPayload: {payload}";
                         TestResultBase errorResult = new ErrorTestResult(
                             Settings.Current.TrackingId,
                             GetSource(),
@@ -179,8 +178,6 @@ namespace EdgeHubRestartTester
                     }
                 }
             }
-
-            return DateTime.UtcNow;
         }
 
         static string GetSource() => $"{Settings.Current.ModuleId}";
