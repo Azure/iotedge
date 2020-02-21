@@ -34,7 +34,7 @@ namespace DevOpsLib
         /// <returns>List of vsts build entities</returns>
         public async Task<IList<VstsBuild>> GetLatestBuildsAsync(HashSet<BuildDefinitionId> buildDefinitionIds, string branchName)
         {
-            ValidationUtil.ThrowIfNulOrEmptySet(buildDefinitionIds, nameof(buildDefinitionIds));
+            ValidationUtil.ThrowIfNullOrEmptySet(buildDefinitionIds, nameof(buildDefinitionIds));
             ValidationUtil.ThrowIfNullOrWhiteSpace(branchName, nameof(branchName));
 
             // TODO: need to think about how to handle unexpected exception during REST API call
@@ -56,7 +56,7 @@ namespace DevOpsLib
 
         public async Task<IList<VstsBuild>> GetBuildsAsync(HashSet<BuildDefinitionId> buildDefinitionIds, string branchName, DateTime? minTime = null, int? maxBuildsPerDefinition = null)
         {
-            ValidationUtil.ThrowIfNulOrEmptySet(buildDefinitionIds, nameof(buildDefinitionIds));
+            ValidationUtil.ThrowIfNullOrEmptySet(buildDefinitionIds, nameof(buildDefinitionIds));
             ValidationUtil.ThrowIfNullOrWhiteSpace(branchName, nameof(branchName));
 
             // TODO: need to think about how to handle unexpected exception during REST API call
