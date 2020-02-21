@@ -140,8 +140,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             IList<uint> snapshot = this.priorities.Value;
             this.priorities.Value = priorities
                 .Union(snapshot)
-                .GroupBy(p => p)
-                .Select(dupes => dupes.First())
                 .OrderBy(p => p)
                 .ToList();
         }

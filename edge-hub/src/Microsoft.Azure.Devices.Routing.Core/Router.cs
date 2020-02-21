@@ -191,7 +191,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
         }
 
-        static void MergeEndpointPriorities(ref Dictionary<Endpoint, IList<uint>> existing, Endpoint endpoint, uint newPriority)
+        static void MergeEndpointPriorities(Dictionary<Endpoint, IList<uint>> existing, Endpoint endpoint, uint newPriority)
         {
             if (existing.ContainsKey(endpoint))
             {
@@ -211,10 +211,10 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
             foreach (Route r in routes)
             {
-                MergeEndpointPriorities(ref endpoints, r.Endpoint, r.Priority);
+                MergeEndpointPriorities(endpoints, r.Endpoint, r.Priority);
             }
 
-            fallback.ForEach(f => MergeEndpointPriorities(ref endpoints, f.Endpoint, f.Priority));
+            fallback.ForEach(f => MergeEndpointPriorities(endpoints, f.Endpoint, f.Priority));
 
             return endpoints;
         }

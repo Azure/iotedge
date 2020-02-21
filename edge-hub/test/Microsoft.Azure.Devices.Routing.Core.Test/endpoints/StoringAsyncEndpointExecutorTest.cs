@@ -160,7 +160,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             await Assert.ThrowsAsync<ArgumentNullException>(() => executor.SetEndpoint(endpoint1, null));
             await Assert.ThrowsAsync<ArgumentException>(() => executor.SetEndpoint(endpoint3, new List<uint>() { 0 }));
 
-            await executor.SetEndpoint(endpoint2, new List<uint>() { 103, 104, 105, 0, 1, 2 });
+            await executor.SetEndpoint(endpoint2, new List<uint>() { 103, 104, 105, 0, 1, 2, 2 });
             Assert.Equal(endpoint2, executor.Endpoint);
 
             await executor.CloseAsync();
