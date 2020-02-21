@@ -12,7 +12,7 @@ use chrono::{DateTime, Local, NaiveDateTime, Utc};
 use failure::Fail;
 use futures::{Future, Stream};
 use tokio::prelude::*;
-use zip;
+use zip::{write::FileOptions, CompressionMethod, ZipWriter};
 
 use edgelet_core::{LogOptions, LogTail, Module, ModuleRuntime};
 
@@ -38,8 +38,8 @@ where
     include_ms_only: bool,
     verbose: bool,
     iothub_hostname: Option<String>,
-    file_options: zip::write::FileOptions,
-    zip_writer: zip::ZipWriter<W>,
+    file_options: FileOptions,
+    zip_writer: ZipWriter<W>,
     output_location: OutputLocation,
 }
 
@@ -58,9 +58,7 @@ where
                     let path = PathBuf::from(state.output_location.get_file_location());
                     println!(
                         "Created support bundle at {}",
-                        path.canonicalize()
-                            .unwrap_or_else(|_| path)
-                            .to_string_lossy()
+                        path.canonicalize().unwrap_or_else(|_| path).display()
                     );
                 }),
             ),
@@ -104,10 +102,9 @@ where
     }
 
     fn make_file_state(self) -> Result<BundleState<M, File>, Error> {
-        let file_options =
-            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+        let file_options = FileOptions::default().compression_method(CompressionMethod::Deflated);
 
-        let zip_writer = zip::ZipWriter::new(
+        let zip_writer = ZipWriter::new(
             File::create(Path::new(self.output_location.get_file_location()))
                 .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?,
         );
@@ -125,10 +122,9 @@ where
     }
 
     fn make_vector_state(self) -> Result<BundleState<M, Cursor<Vec<u8>>>, Error> {
-        let file_options =
-            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+        let file_options = FileOptions::default().compression_method(CompressionMethod::Deflated);
 
-        let zip_writer = zip::ZipWriter::new(Cursor::new(Vec::new()));
+        let zip_writer = ZipWriter::new(Cursor::new(Vec::new()));
 
         Ok(BundleState {
             runtime: self.runtime,
@@ -762,7 +758,7 @@ mod tests {
             false,
             true,
             None,
-            OutputLocation::File(OsString::from(file_path.to_owned())),
+            OutputLocation::File(OsString::from(file_path)),
             runtime,
         );
 
