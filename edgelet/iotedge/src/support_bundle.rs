@@ -40,7 +40,6 @@ where
     iothub_hostname: Option<String>,
     file_options: FileOptions,
     zip_writer: ZipWriter<W>,
-    output_location: OutputLocation,
 }
 
 impl<M> Command for SupportBundle<M>
@@ -52,10 +51,10 @@ where
     fn execute(self) -> Self::Future {
         println!("Making support bundle");
 
-        match self.output_location {
-            OutputLocation::File(_) => Box::new(
-                Self::bundle_all(future::result(self.make_file_state())).map(|state| {
-                    let path = PathBuf::from(state.output_location.get_file_location());
+        match self.output_location.clone() {
+            OutputLocation::File(location) => Box::new(
+                Self::bundle_all(future::result(self.make_file_state())).map(|_state| {
+                    let path = PathBuf::from(location);
                     println!(
                         "Created support bundle at {}",
                         path.canonicalize().unwrap_or_else(|_| path).display()
@@ -102,29 +101,22 @@ where
     }
 
     fn make_file_state(self) -> Result<BundleState<M, File>, Error> {
-        let file_options = FileOptions::default().compression_method(CompressionMethod::Deflated);
+        let writer = File::create(Path::new(self.output_location.get_file_location()))
+            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
-        let zip_writer = ZipWriter::new(
-            File::create(Path::new(self.output_location.get_file_location()))
-                .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?,
-        );
-
-        Ok(BundleState {
-            runtime: self.runtime,
-            log_options: self.log_options,
-            include_ms_only: self.include_ms_only,
-            verbose: self.verbose,
-            iothub_hostname: self.iothub_hostname,
-            file_options,
-            zip_writer,
-            output_location: self.output_location,
-        })
+        self.make_state(writer)
     }
 
     fn make_vector_state(self) -> Result<BundleState<M, Cursor<Vec<u8>>>, Error> {
-        let file_options = FileOptions::default().compression_method(CompressionMethod::Deflated);
+        self.make_state(Cursor::new(Vec::new()))
+    }
 
-        let zip_writer = ZipWriter::new(Cursor::new(Vec::new()));
+    fn make_state<W>(self, writer: W) -> Result<BundleState<M, W>, Error>
+    where
+        W: Write + Seek + Send,
+    {
+        let file_options = FileOptions::default().compression_method(CompressionMethod::Deflated);
+        let zip_writer = ZipWriter::new(writer);
 
         Ok(BundleState {
             runtime: self.runtime,
@@ -134,7 +126,6 @@ where
             iothub_hostname: self.iothub_hostname,
             file_options,
             zip_writer,
-            output_location: self.output_location,
         })
     }
 
@@ -151,6 +142,7 @@ where
             .and_then(Self::write_all_inspects)
             .and_then(Self::write_all_network_inspects)
     }
+
     fn write_all_logs<W>(
         state: BundleState<M, W>,
     ) -> impl Future<Item = BundleState<M, W>, Error = Error>
@@ -244,7 +236,6 @@ where
             iothub_hostname,
             file_options,
             mut zip_writer,
-            output_location,
         } = state;
 
         let file_name = format!("{}_log.txt", module_name);
@@ -262,7 +253,6 @@ where
                         iothub_hostname,
                         file_options,
                         zip_writer: zw,
-                        output_location,
                     };
                     state.print_verbose(&format!("Wrote {} logs to file", module_name));
                     state
