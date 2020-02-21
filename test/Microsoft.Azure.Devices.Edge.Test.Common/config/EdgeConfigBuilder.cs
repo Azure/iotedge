@@ -92,7 +92,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                     this.deviceId,
                     new List<string>(moduleNames),
                     new List<string>(moduleImages),
-                    new ConfigurationContent { ModulesContent = modulesContent });
+                    new ConfigurationContent
+                    {
+                        ModulesContent = new Dictionary<string, IDictionary<string, object>>(modulesContent)
+                    });
 
                 // Return a configuration for all modules
                 foreach (ModuleConfiguration module in modulesLookup["other"])
