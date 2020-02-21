@@ -21,14 +21,7 @@ jobs:
           arch: amd64
           os: centos7
           target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
-        Centos75-arm32v7:
-          arch: arm32v7
-          os: centos7
-          target.iotedged: edgelet/target/rpmbuild/RPMS/armv7hl
-        Centos75-aarch64:
-          arch: aarch64
-          os: centos7
-          target.iotedged: edgelet/target/rpmbuild/RPMS/aarch64
+        # Centos75-arm32v7 and Centos75-aarch64 are built in packages.slow.yaml
 
         Debian8-amd64:
           os: debian8
@@ -96,6 +89,8 @@ jobs:
           arch: aarch64
           target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
     steps:
+      # Ensure any changes here are replicated in packages.slow.yaml
+
       - bash: |
           BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
           VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"

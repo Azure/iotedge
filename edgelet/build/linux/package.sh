@@ -16,6 +16,8 @@ VERSION="${VERSION:-$DEFAULT_VERSION}"
 CMAKE_ARGS='-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_VERSION=1 -DCMAKE_BUILD_TYPE=Release'
 CMAKE_ARGS="$CMAKE_ARGS -DBUILD_SHARED=On -Drun_unittests=Off -Duse_default_uuid=On -Duse_emulator=Off -Duse_http=Off"
 
+DOCKER_VOLUME_MOUNTS=''
+
 case "$PACKAGE_OS" in
     'centos7')
         # Converts debian versioning to rpm version
@@ -41,14 +43,53 @@ case "$PACKAGE_OS" in
             # Fedora's repo does have cross-compiler libc as well, but it may not be usable
             # because of https://bugzilla.redhat.com/show_bug.cgi?id=1456209
             #
-            # So stick with the linaro compiler for now.
+            # The linaro images we used to use compile openssl in a way such that the sonames don't match what CentOS actually ships,
+            # so the resulting libiothsm-std and iotedge packages are uninstallable.
+            #
+            # The remaining option is to run the arm32v7/centos and arm64v8/centos Docker images under qemu.
 
             'arm32v7')
-                DOCKER_IMAGE='azureiotedge/gcc-linaro-7.3.1-2018.05-x86_64_arm-linux-gnueabihf:centos_7.5-1'
+                DOCKER_IMAGE='arm32v7/centos:7'
+
+                if [ -f '/proc/sys/fs/binfmt_misc/qemu-arm' ]; then
+                    QEMU_ARM_INTERPRETER="$(grep -Po '^interpreter \K.*' '/proc/sys/fs/binfmt_misc/qemu-arm')"
+                    DOCKER_VOLUME_MOUNTS="-v $QEMU_ARM_INTERPRETER:$QEMU_ARM_INTERPRETER"
+                else
+                    echo 'Building CentOS 7 arm32 packages requires qemu-arm-static to be installed on the host and registered with binfmt as "qemu-arm".' >&2
+                    echo 'For example, on Ubuntu, run `sudo apt install binfmt-support qemu-user-static`' >&2
+                    echo >&2
+                    echo 'If you have a qemu-arm-static binary that is not registered with binfmt, you can do that with' >&2
+                    echo >&2
+                    echo "    echo ':qemu-arm:M::\\x7fELF\\x01\\x01\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x02\\x00\\x28\\x00:\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\x00\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xfe\\xff\\xff\\xff:/usr/bin/qemu-arm-static:' | sudo tee /proc/sys/fs/binfmt_misc/register" >&2
+                    echo >&2
+                    echo 'Ref: https://github.com/qemu/qemu/blob/e18e5501d8ac692d32657a3e1ef545b14e72b730/scripts/qemu-binfmt-conf.sh'
+                    echo >&2
+                    echo 'On some distros, the binary may be called qemu-arm instead of qemu-arm-static, so update the above command accordingly.'
+
+                    exit 1
+                fi
                 ;;
 
             'aarch64')
-                DOCKER_IMAGE='azureiotedge/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu:centos_7.5-1'
+                DOCKER_IMAGE='arm64v8/centos:7'
+
+                if [ -f '/proc/sys/fs/binfmt_misc/qemu-aarch64' ]; then
+                    QEMU_ARM_INTERPRETER="$(grep -Po '^interpreter \K.*' /proc/sys/fs/binfmt_misc/qemu-aarch64)"
+                    DOCKER_VOLUME_MOUNTS="-v $QEMU_ARM_INTERPRETER:$QEMU_ARM_INTERPRETER"
+                else
+                    echo 'Building CentOS 7 aarch64 packages requires qemu-aarch64-static to be installed on the host and registered with binfmt as "qemu-aarch64".' >&2
+                    echo 'For example, on Ubuntu, run `sudo apt install binfmt-support qemu-user-static`' >&2
+                    echo >&2
+                    echo 'If you have a qemu-aarch64-static binary that is not registered with binfmt, you can do that with' >&2
+                    echo >&2
+                    echo "    echo ':qemu-aarch64:M::\\x7fELF\\x02\\x01\\x01\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x02\\x00\\xb7\\x00:\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\x00\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xfe\\xff\\xff\\xff:/usr/bin/qemu-aarch64-static:' | sudo tee /proc/sys/fs/binfmt_misc/register" >&2
+                    echo >&2
+                    echo 'Ref: https://github.com/qemu/qemu/blob/e18e5501d8ac692d32657a3e1ef545b14e72b730/scripts/qemu-binfmt-conf.sh'
+                    echo >&2
+                    echo 'On some distros, the binary may be called qemu-aarch64 instead of qemu-aarch64-static, so update the above command accordingly.'
+
+                    exit 1
+                fi
                 ;;
         esac
 
@@ -174,28 +215,29 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
 
     centos7.arm32v7)
         SETUP_COMMAND=$'
-            yum update -y &&
+            # yum triggers a segfault in qemu without these
+            #
+            # Ref: https://github.com/multiarch/centos/issues/1#issuecomment-511644471
+            echo \'armhfp\' > /etc/yum/vars/basearch &&
+            echo \'armv7hl\' > /etc/yum/vars/arch &&
+            echo \'armv7hl-redhat-linux-gpu\' > /etc/rpm/platform &&
 
-            mkdir -p ~/.cargo &&
-            echo \'[target.armv7-unknown-linux-gnueabihf]\' > ~/.cargo/config &&
-            echo \'linker = "arm-linux-gnu-gcc"\' >> ~/.cargo/config &&
+            yum update -y &&
+            yum install -y \
+                cmake curl git make rpm-build \
+                gcc gcc-c++ \
+                libcurl-devel libuuid-devel openssl-devel &&
         '
-        CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_SYSROOT=/toolchain/arm-linux-gnueabihf/libc"
-        CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_C_COMPILER=/toolchain/bin/arm-linux-gnueabihf-gcc"
-        CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CXX_COMPILER=/toolchain/bin/arm-linux-gnueabihf-g++"
         ;;
 
     centos7.aarch64)
         SETUP_COMMAND=$'
             yum update -y &&
-
-            mkdir -p ~/.cargo &&
-            echo \'[target.aarch64-unknown-linux-gnu]\' > ~/.cargo/config &&
-            echo \'linker = "aarch64-linux-gnu-gcc"\' >> ~/.cargo/config &&
+            yum install -y \
+                cmake curl git make rpm-build \
+                gcc gcc-c++ \
+                libcurl-devel libuuid-devel openssl-devel &&
         '
-        CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_SYSROOT=/toolchain/aarch64-linux-gnu/libc"
-        CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_C_COMPILER=/toolchain/bin/aarch64-linux-gnu-gcc"
-        CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CXX_COMPILER=/toolchain/bin/aarch64-linux-gnu-g++"
         ;;
 
     debian*.amd64)
@@ -431,11 +473,14 @@ esac
 
 mkdir -p "$LIBIOTHSM_BUILD_DIR"
 
+echo "$DOCKER_VOLUME_MOUNTS"
+
 docker run --rm \
     --user root \
     -e 'USER=root' \
     -v "$BUILD_REPOSITORY_LOCALPATH:/project" \
     -i \
+    $DOCKER_VOLUME_MOUNTS \
     "$DOCKER_IMAGE" \
     sh -c "
         set -e &&

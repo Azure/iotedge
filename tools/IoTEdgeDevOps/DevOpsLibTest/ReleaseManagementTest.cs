@@ -31,7 +31,7 @@ namespace DevOpsLibTest
         }
 
         [Test]
-        public async Task TestGetReleasesAsyncWithEmptyBranchNameAsync()
+        public void TestGetReleasesAsyncWithEmptyBranchName()
         {
             ArgumentException ex = Assert.ThrowsAsync<ArgumentException>(
                 async () => { await this.releaseManagement.GetReleasesAsync(ReleaseDefinitionId.E2ETest, "").ConfigureAwait(false); });

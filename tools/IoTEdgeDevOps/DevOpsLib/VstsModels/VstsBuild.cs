@@ -38,6 +38,9 @@ namespace DevOpsLib.VstsModels
         [JsonProperty("finishTime")]
         public DateTime FinishTime { get; set; }
 
+        [JsonProperty("lastChangedDate")]
+        public DateTime LastChangedDate { get; set; }
+
         public static VstsBuild CreateBuildWithNoResult(BuildDefinitionId buildDefinitionId, string sourceBranch) =>
             new VstsBuild
             {
@@ -50,8 +53,14 @@ namespace DevOpsLib.VstsModels
                 Result = VstsBuildResult.None,
                 QueueTime = DateTime.MinValue,
                 StartTime = DateTime.MinValue,
-                FinishTime = DateTime.MinValue
+                FinishTime = DateTime.MinValue,
+                LastChangedDate = DateTime.MinValue,
             };
+
+        public bool HasResult()
+        {
+            return !string.IsNullOrEmpty(this.BuildNumber);
+        }
 
         public bool Equals(VstsBuild other)
         {
