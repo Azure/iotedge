@@ -82,6 +82,27 @@
               "createOptions": ""
             }
           },
+          "directMethodReceiver2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "ClientTransportType": {
+                "value": "Mqtt"
+              },
+              "ReportingEndpointUrl": {
+                "value": "http://testResultCoordinator:5001"
+              },
+              "trackingId": {
+                "value": "<TrackingId>"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
           "edgeHubRestartTester1": {
             "version": "1.0",
             "type": "docker",
@@ -117,6 +138,54 @@
               },
               "trackingId": {
                 "value": "<TrackingId>"
+              },
+              "transportType": {
+                "value": "Amqp"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-edgehub-restart-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+            }
+          },
+          "edgeHubRestartTester2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "IOT_HUB_CONNECTION_STRING": {
+                "value": "<IoTHubConnectionString>"
+              },
+              "directMethodEnabled": {
+                "value": "true"
+              },
+              "directMethodTargetModuleId": {
+                "value": "directMethodReceiver2"
+              },
+              "messageEnabled": {
+                "value": "true"
+              },
+              "reportingEndpointUrl": {
+                "value": "http://localhost:5001"
+              },
+              "restartPeriod": {
+                "value": "<TestDuration>"
+              },
+              "sdkOperationTimeout": {
+                "value": "<EdgeHubRestartTest.SdkOperationTimeout>"
+              },
+              "testDuration": {
+                "value": "<TestDuration>"
+              },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
+              },
+              "trackingId": {
+                "value": "<TrackingId>"
+              },
+              "transportType": {
+                "value": "Mqtt"
               }
             },
             "settings": {
@@ -132,6 +201,30 @@
             "env": {
               "transportType": {
                 "value": "Amqp"
+              },
+              "inputName": {
+                "value": "input1"
+              },
+              "outputName": {
+                "value": "output1"
+              },
+              "testResultCoordinatorUrl": {
+                "value": "http://testResultCoordinator:5001"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
+          "relayer2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "transportType": {
+                "value": "Mqtt"
               },
               "inputName": {
                 "value": "input1"
@@ -242,7 +335,8 @@
       "properties.desired": {
         "schemaVersion": "1.0",
         "routes": {
-          "edgeHubRestarterToRelayer1": "FROM /messages/modules/edgeHubRestartTester1/outputs/output1 INTO BrokeredEndpoint(\"/modules/relayer1/inputs/input1\")"
+          "edgeHubRestarterToRelayer1": "FROM /messages/modules/edgeHubRestartTester1/outputs/output1 INTO BrokeredEndpoint(\"/modules/relayer1/inputs/input1\")",
+          "edgeHubRestarterToRelayer2": "FROM /messages/modules/edgeHubRestartTester2/outputs/output1 INTO BrokeredEndpoint(\"/modules/relayer2/inputs/input1\")"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
@@ -274,6 +368,18 @@
             "TestOperationResultType": "EdgeHubRestartMessage",
             "SenderSource": "edgeHubRestartTester1.EdgeHubRestartMessage",
             "ReceiverSource": "relayer1.receive"
+          },
+          "reportMetadata6": {
+            "TestReportType": "EdgeHubRestartDirectMethodReport",
+            "TestOperationResultType": "EdgeHubRestartDirectMethod",
+            "SenderSource": "edgeHubRestartTester2.EdgeHubRestartDirectMethod",
+            "ReceiverSource": "directMethodReceiver2.receive"
+          },
+          "reportMetadata7": {
+            "TestReportType": "EdgeHubRestartMessageReport",
+            "TestOperationResultType": "EdgeHubRestartMessage",
+            "SenderSource": "edgeHubRestartTester2.EdgeHubRestartMessage",
+            "ReceiverSource": "relayer2.receive"
           }
         }
       }
