@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Devices" Version="1.18.4" />
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.22.0" />
+    <PackageReference Include="Microsoft.Azure.Devices" Version="1.19.0" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.23.1" />
   </ItemGroup>
 
   <ItemGroup>
