@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
         public Task DeployAsync(IotHub iotHub, CancellationToken token)
         {
-            Log.Information(">>> Deploy config:\n---\n{Config}\n---\n", this.config);
+            Log.Information(">>> Deploy config:\n---\n{Config}\n---\n", this.config.ToString());
             return Profiler.Run(
                 () => iotHub.DeployDeviceConfigurationAsync(this.deviceId, this.config, token),
                 "Deployed edge configuration to device with modules:\n    {Modules}",
