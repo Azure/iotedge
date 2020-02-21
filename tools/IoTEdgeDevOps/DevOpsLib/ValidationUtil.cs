@@ -31,7 +31,7 @@ namespace DevOpsLib
         }
 
 
-        public static void ThrowIfNulOrEmptySet<T>(IEnumerable<T> value, string field)
+        public static void ThrowIfNullOrEmptySet<T>(IEnumerable<T> value, string field)
         {
             if (value == null || !value.Any())
             {
