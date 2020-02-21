@@ -31,6 +31,19 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     builder.AddModule("tempSensor999", Context.Current.TempSensorImage.Expect(() => new Exception("Oh no!")))
                         .WithEnvironment(new[] { ("MessageCount", "1") });
                     builder.AddModule(ModuleName, metricsValidatorImage);
+
+                    builder.GetModule("$edgeHub")
+                        .WithEnvironment(("experimentalfeatures__enabled", "true"), ("experimentalfeatures__enableMetrics", "true"))
+                        .WithDesiredProperties(new Dictionary<string, object>
+                        {
+                                {
+                                    "routes", new
+                                    {
+                                        All = "FROM /messages/* INTO $upstream",
+                                        QueueLengthTest = "FROM /messages/modules/MetricsValidator/outputs/ToSelf INTO BrokeredEndpoint(\"/modules/MetricsValidator/inputs/FromSelf\")"
+                                    }
+                                }
+                        });
                 },
                 token);
 
