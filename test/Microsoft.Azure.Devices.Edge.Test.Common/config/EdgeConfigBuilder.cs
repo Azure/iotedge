@@ -82,13 +82,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             }
 
             // Edge agent is not optional; add if necessary
-            if (!this.moduleBuilders.ContainsKey("$edgeAgent"))
+            if (!this.moduleBuilders.ContainsKey(ModuleName.EdgeAgent))
             {
                 this.AddEdgeAgent();
             }
 
             ILookup<string, ModuleConfiguration> moduleConfigs = this.moduleBuilders
-                .Where(b => b.Key != "$edgeAgent") // delay building edge agent
+                .Where(b => b.Key != ModuleName.EdgeAgent) // delay building edge agent
                 .Select(b => b.Value.Build())
                 .ToLookup(m => m.IsSystemModule() ? "system" : "other");
 
@@ -127,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
         ModuleConfiguration BuildEdgeAgent(IEnumerable<ModuleConfiguration> configs)
         {
             // caller guarantees that $edgeAgent exists in moduleBuilders
-            IModuleConfigBuilder agentBuilder = this.moduleBuilders["$edgeAgent"];
+            IModuleConfigBuilder agentBuilder = this.moduleBuilders[ModuleName.EdgeAgent];
 
             // Settings boilerplate
             var settings = new Dictionary<string, object>()
