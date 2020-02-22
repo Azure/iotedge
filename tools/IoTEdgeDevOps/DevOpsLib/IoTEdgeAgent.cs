@@ -24,7 +24,7 @@ namespace DevOpsLib
             ValidationUtil.ThrowIfNonPositive(id, nameof(id));
             ValidationUtil.ThrowIfNullOrWhiteSpace(name, nameof(name));
             ValidationUtil.ThrowIfNullOrWhiteSpace(version, nameof(version));
-            ValidationUtil.ThrowIfNulOrEmptySet(systemCapabilities, nameof(systemCapabilities));
+            ValidationUtil.ThrowIfNullOrEmptySet(systemCapabilities, nameof(systemCapabilities));
 
             this.id = id;
             this.name = name;

@@ -48,7 +48,7 @@ namespace DevOpsLibTest
         public void TestGetLatestBuildsAsyncWithEmptyBranchName()
         {
             ArgumentException ex = Assert.ThrowsAsync<ArgumentException>(
-                async () => { await this.buildManagement.GetLatestBuildsAsync(BuildExtension.MasterBranchBuildDefinitions, " ").ConfigureAwait(false); });
+                async () => { await this.buildManagement.GetLatestBuildsAsync(BuildExtension.BuildDefinitions, " ").ConfigureAwait(false); });
 
             Assert.True(ex.Message.StartsWith("Cannot be null or white space."));
             Assert.That(ex.ParamName, Is.EqualTo("branchName"));
