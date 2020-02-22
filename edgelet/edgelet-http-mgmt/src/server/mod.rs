@@ -73,6 +73,7 @@ impl ManagementService {
 
             get     Version2018_06_28 runtime Policy::Anonymous             => "/systeminfo"                        => GetSystemInfo::new(runtime.clone()),
             get     Version2019_11_05 runtime Policy::Anonymous             => "/systeminfo/resources"              => GetSystemResources::new(runtime.clone()),
+            post    Version2019_11_05 runtime Policy::Anonymous             => "/systeminfo/supportbundle"              => GetSupportBundle::new(),
 
             post    Version2019_10_22 runtime Policy::Module(&*AGENT_NAME)  => "/device/reprovision"                => ReprovisionDevice::new(initiate_shutdown_and_reprovision),
         );
