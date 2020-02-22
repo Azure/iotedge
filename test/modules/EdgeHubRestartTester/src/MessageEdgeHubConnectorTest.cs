@@ -3,7 +3,6 @@ namespace EdgeHubRestartTester
 {
     using System;
     using System.Net;
-    using System.Net.Sockets;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -18,6 +17,7 @@ namespace EdgeHubRestartTester
     {
         readonly Guid batchId;
         readonly ILogger logger;
+        readonly string messageOutputEndpoint;
         long messageCount = 0;
         ModuleClient msgModuleClient = null;
         TestResultReportingClient reportClient = null;
@@ -25,11 +25,13 @@ namespace EdgeHubRestartTester
         public MessageEdgeHubConnectorTest(
             Guid batchId,
             ILogger logger,
-            ModuleClient msgModuleClient)
+            ModuleClient msgModuleClient,
+            string messageOutputEndpoint)
         {
             this.batchId = batchId;
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
             this.msgModuleClient = Preconditions.CheckNotNull(msgModuleClient, nameof(msgModuleClient));
+            this.messageOutputEndpoint = Preconditions.CheckNonWhiteSpace(messageOutputEndpoint, nameof(messageOutputEndpoint));
         }
 
         public async Task StartAsync(
@@ -40,7 +42,7 @@ namespace EdgeHubRestartTester
             (DateTime msgCompletedTime, HttpStatusCode mgsStatusCode) = await this.SendMessageAsync(
                 Settings.Current.TrackingId,
                 this.batchId,
-                Settings.Current.MessageOutputEndpoint,
+                this.messageOutputEndpoint,
                 runExpirationTime,
                 cancellationToken);
 
@@ -61,22 +63,6 @@ namespace EdgeHubRestartTester
                 cancellationToken);
         }
 
-        async Task<ModuleClient> GetModuleClientAsync()
-        {
-            if (this.msgModuleClient == null)
-            {
-                this.msgModuleClient = await ModuleUtil.CreateModuleClientAsync(
-                    Settings.Current.TransportType,
-                    ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                    ModuleUtil.DefaultTransientRetryStrategy,
-                    this.logger);
-
-                this.msgModuleClient.OperationTimeoutInMilliseconds = (uint)Settings.Current.SdkOperationTimeout.TotalMilliseconds;
-            }
-
-            return this.msgModuleClient;
-        }
-
         TestResultReportingClient GetReportClient()
         {
             if (this.reportClient == null)
@@ -87,7 +73,7 @@ namespace EdgeHubRestartTester
             return this.reportClient;
         }
 
-        string GetSource() => $"{Settings.Current.ModuleId}.{TestOperationResultType.EdgeHubRestartMessage.ToString()}";
+        string GetSource() => $"{Settings.Current.ModuleId}.{TestOperationResultType.EdgeHubRestartMessage.ToString()}.{this.messageOutputEndpoint}";
 
         async Task<Tuple<DateTime, HttpStatusCode>> SendMessageAsync(
             string trackingId,
@@ -96,7 +82,6 @@ namespace EdgeHubRestartTester
             DateTime runExpirationTime,
             CancellationToken cancellationToken)
         {
-            ModuleClient moduleClient = await this.GetModuleClientAsync();
             this.messageCount++;
 
             while ((!cancellationToken.IsCancellationRequested) && (DateTime.UtcNow < runExpirationTime))
@@ -109,7 +94,7 @@ namespace EdgeHubRestartTester
                 try
                 {
                     // Sending the result via edgeHub
-                    await moduleClient.SendEventAsync(msgOutputEndpoint, message);
+                    await this.msgModuleClient.SendEventAsync(msgOutputEndpoint, message);
                     this.logger.LogInformation($"[SendMessageAsync] Send Message with count {this.messageCount}: finished.");
                     return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.OK);
                 }

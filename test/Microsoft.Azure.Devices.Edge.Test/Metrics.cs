@@ -13,6 +13,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Newtonsoft.Json;
     using NUnit.Framework;
 
+    using ConfigModuleName = Microsoft.Azure.Devices.Edge.Test.Common.Config.ModuleName;
+
     [EndToEnd]
     public class Metrics : SasManualProvisioningFixture
     {
@@ -48,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         async Task Deploy(CancellationToken token)
         {
             // First deploy different agent image. This will force agent to update environment variables
-            await this.runtime.DeployConfigurationAsync(builder => builder.GetModule("$edgeAgent").WithSettings(("image", EdgeAgentBaseImage)), token);
+            await this.runtime.DeployConfigurationAsync(builder => builder.GetModule(ConfigModuleName.EdgeAgent).WithSettings(("image", EdgeAgentBaseImage)), token);
 
             string metricsValidatorImage = Context.Current.MetricsValidatorImage.Expect(() => new InvalidOperationException("Missing Metrics Validator image"));
             await this.runtime.DeployConfigurationAsync(
@@ -56,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     {
                         builder.AddModule(ModuleName, metricsValidatorImage);
 
-                        var edgeHub = builder.GetModule("$edgeHub")
+                        var edgeHub = builder.GetModule(ConfigModuleName.EdgeHub)
                             .WithEnvironment(("experimentalfeatures__enabled", "true"), ("experimentalfeatures__enableMetrics", "true"))
                             .WithDesiredProperties(new Dictionary<string, object>
                             {
@@ -74,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             edgeHub.WithSettings(("createOptions", "{\"User\":\"ContainerAdministrator\"}"));
                         }
 
-                        builder.GetModule("$edgeAgent")
+                        builder.GetModule(ConfigModuleName.EdgeAgent)
                             .WithEnvironment(
                                 ("experimentalfeatures__enabled", "true"),
                                 ("experimentalfeatures__enableMetrics", "true"),
