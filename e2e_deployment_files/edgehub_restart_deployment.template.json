@@ -82,6 +82,27 @@
               "createOptions": ""
             }
           },
+          "directMethodReceiver2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "ClientTransportType": {
+                "value": "Mqtt"
+              },
+              "ReportingEndpointUrl": {
+                "value": "http://testResultCoordinator:5001"
+              },
+              "trackingId": {
+                "value": "<TrackingId>"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
           "edgeHubRestartTester1": {
             "version": "1.0",
             "type": "docker",
@@ -90,15 +111,6 @@
             "env": {
               "IOT_HUB_CONNECTION_STRING": {
                 "value": "<IoTHubConnectionString>"
-              },
-              "directMethodEnabled": {
-                "value": "true"
-              },
-              "directMethodTargetModuleId": {
-                "value": "directMethodReceiver1"
-              },
-              "messageEnabled": {
-                "value": "true"
               },
               "reportingEndpointUrl": {
                 "value": "http://localhost:5001"
@@ -132,6 +144,30 @@
             "env": {
               "transportType": {
                 "value": "Amqp"
+              },
+              "inputName": {
+                "value": "input1"
+              },
+              "outputName": {
+                "value": "output1"
+              },
+              "testResultCoordinatorUrl": {
+                "value": "http://testResultCoordinator:5001"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
+          "relayer2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "transportType": {
+                "value": "Mqtt"
               },
               "inputName": {
                 "value": "input1"
@@ -242,10 +278,28 @@
       "properties.desired": {
         "schemaVersion": "1.0",
         "routes": {
-          "edgeHubRestarterToRelayer1": "FROM /messages/modules/edgeHubRestartTester1/outputs/output1 INTO BrokeredEndpoint(\"/modules/relayer1/inputs/input1\")"
+          "edgeHubRestarterToRelayer1": "FROM /messages/modules/edgeHubRestartTester1/outputs/outputAmqp INTO BrokeredEndpoint(\"/modules/relayer1/inputs/input1\")",
+          "edgeHubRestarterToRelayer2": "FROM /messages/modules/edgeHubRestartTester1/outputs/outputMqtt INTO BrokeredEndpoint(\"/modules/relayer2/inputs/input1\")"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
+        }
+      }
+    },
+    "edgeHubRestartTester1": {
+      "properties.desired": {
+        "schemaVersion": "1.0",
+        "edgeHubConnectorConfig": {
+          "amqpConnectors": {
+            "TransportType": "Amqp",
+            "DirectMethodTargetModuleId": "directMethodReceiver1",
+            "MessageOutputEndpoint": "outputAmqp"
+          },
+          "mqttConnectors": {
+            "TransportType": "Mqtt",
+            "DirectMethodTargetModuleId": "directMethodReceiver2",
+            "MessageOutputEndpoint": "outputMqtt"
+          }
         }
       }
     },
@@ -266,14 +320,26 @@
           "reportMetadata4": {
             "TestReportType": "EdgeHubRestartDirectMethodReport",
             "TestOperationResultType": "EdgeHubRestartDirectMethod",
-            "SenderSource": "edgeHubRestartTester1.EdgeHubRestartDirectMethod",
+            "SenderSource": "edgeHubRestartTester1.EdgeHubRestartDirectMethod.directMethodReceiver1",
             "ReceiverSource": "directMethodReceiver1.receive"
           },
           "reportMetadata5": {
             "TestReportType": "EdgeHubRestartMessageReport",
             "TestOperationResultType": "EdgeHubRestartMessage",
-            "SenderSource": "edgeHubRestartTester1.EdgeHubRestartMessage",
+            "SenderSource": "edgeHubRestartTester1.EdgeHubRestartMessage.outputAmqp",
             "ReceiverSource": "relayer1.receive"
+          },
+          "reportMetadata6": {
+            "TestReportType": "EdgeHubRestartDirectMethodReport",
+            "TestOperationResultType": "EdgeHubRestartDirectMethod",
+            "SenderSource": "edgeHubRestartTester1.EdgeHubRestartDirectMethod.directMethodReceiver2",
+            "ReceiverSource": "directMethodReceiver2.receive"
+          },
+          "reportMetadata7": {
+            "TestReportType": "EdgeHubRestartMessageReport",
+            "TestOperationResultType": "EdgeHubRestartMessage",
+            "SenderSource": "edgeHubRestartTester1.EdgeHubRestartMessage.outputMqtt",
+            "ReceiverSource": "relayer2.receive"
           }
         }
       }
