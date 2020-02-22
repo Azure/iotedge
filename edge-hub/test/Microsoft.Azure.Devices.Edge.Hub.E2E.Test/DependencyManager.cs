@@ -21,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Extensions.Logging;
     using Moq;
     using Constants = Microsoft.Azure.Devices.Edge.Hub.Service.Constants;
+    using StorageLogLevel = Microsoft.Azure.Devices.Edge.Storage.StorageLogLevel;
 
     class DependencyManager : IDependencyManager
     {
@@ -122,7 +123,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     this.trustBundle,
                     string.Empty,
                     metricsConfig,
-                    Option.None<ulong>()));
+                    Option.None<ulong>(),
+                    Option.None<StorageLogLevel>()));
 
             builder.RegisterModule(
                 new RoutingModule(
