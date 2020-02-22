@@ -56,8 +56,13 @@ steps:
       script: |
         #Requires -RunAsAdministrator
         $testName="Stress"
-        $testInfo="TestBuildNumber=${{ parameters['test.buildNumber'] }},TestBuildId=${{ parameters['test.buildId'] }},BuildSourceBranch=${{ parameters['build.source.branch'] }}"
-        $testInfo=$testInfo+",EdgeletSourceBranch=${{ parameters['edgelet.source.branch'] }},ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
+        
+        $testInfo="TestBuildNumber=${{ parameters['test.buildNumber'] }}"
+        $testInfo=$testInfo+",TestBuildId=${{ parameters['test.buildId'] }}"
+        $testInfo=$testInfo+",BuildSourceBranch=${{ parameters['build.source.branch'] }}"
+        $testInfo=$testInfo+",EdgeletSourceBranch=${{ parameters['edgelet.source.branch'] }}"
+        $testInfo=$testInfo+",ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
+        
         $ArtifactInfo=convertfrom-stringdata (get-content $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt -raw)
         $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/windows/test/Run-E2ETest.ps1 `
           -E2ETestFolder "$(Agent.HomeDirectory)/.." `

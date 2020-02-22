@@ -101,8 +101,13 @@ steps:
           Write-Host "Schedule to stop iotedge service at $ScheduleDate $ScheduleTime"
           SchTasks.exe /Create /RU "SYSTEM" /SC ONCE /TN “StopStressTest” /TR "net stop iotedge" /SD $ScheduleDate /ST $ScheduleTime /F
         }
-        $testInfo="TestBuildNumber=${{ parameters['test.buildNumber'] }},TestBuildId=${{ parameters['test.buildId'] }},BuildSourceBranch=${{ parameters['build.source.branch'] }}"
-        $testInfo=$testInfo+",EdgeletSourceBranch=${{ parameters['edgelet.source.branch'] }},ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
+        
+        $testInfo="TestBuildNumber=${{ parameters['test.buildNumber'] }}"
+        $testInfo=$testInfo+",TestBuildId=${{ parameters['test.buildId'] }}"
+        $testInfo=$testInfo+",BuildSourceBranch=${{ parameters['build.source.branch'] }}"
+        $testInfo=$testInfo+",EdgeletSourceBranch=${{ parameters['edgelet.source.branch'] }}"
+        $testInfo=$testInfo+",ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
+        
         $ArtifactInfo=convertfrom-stringdata (get-content C:\Data\e2etests\artifacts\${{ parameters['images.artifact.name'] }}\artifactInfo.txt -raw)
         C:\Data\e2etests\artifacts\${{ parameters['images.artifact.name'] }}\scripts\windows\test\Run-E2ETest.ps1 `
           -E2ETestFolder "C:\Data\e2etests" `
