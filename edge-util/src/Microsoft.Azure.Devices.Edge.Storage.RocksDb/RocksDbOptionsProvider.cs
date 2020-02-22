@@ -40,13 +40,28 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         // Set to a limit less than a 32 bit #
         const ulong HardPendingCompactionBytes = 1024UL * 1024UL * 1024UL;
 
+        // Once write-ahead logs exceed this size, we will start forcing the flush of
+        // column families whose memtables are backed by the oldest live WAL file
+        const ulong DefaultMaxTotalWalSize = 512 * 1024 * 1024;
+        const ulong DefaultKeepLogFileNum = 1;
+        // Log NOTHING to the log file.
+        const StorageLogLevel DefaultLogLevel = StorageLogLevel.NONE;
+
         readonly ISystemEnvironment env;
         readonly bool optimizeForPerformance;
+        readonly ulong maxTotalWalSize;
+        readonly StorageLogLevel logLevel;
 
-        public RocksDbOptionsProvider(ISystemEnvironment env, bool optimizeForPerformance)
+        public RocksDbOptionsProvider(
+            ISystemEnvironment env,
+            bool optimizeForPerformance,
+            Option<ulong> maxTotalWalsize,
+            Option<StorageLogLevel> logLevel)
         {
             this.env = Preconditions.CheckNotNull(env);
             this.optimizeForPerformance = optimizeForPerformance;
+            this.maxTotalWalSize = maxTotalWalsize.GetOrElse(DefaultMaxTotalWalSize);
+            this.logLevel = logLevel.GetOrElse(DefaultLogLevel);
         }
 
         public DbOptions GetDbOptions()
@@ -54,6 +69,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             DbOptions options = new DbOptions()
                 .SetCreateIfMissing()
                 .SetCreateMissingColumnFamilies();
+
+            options.SetMaxTotalWalSize(this.maxTotalWalSize)
+                .SetKeepLogFileNum(DefaultKeepLogFileNum)
+                .SetInfoLogLevel((int)this.logLevel);
 
             if (this.env.Is32BitProcess || !this.optimizeForPerformance)
             {

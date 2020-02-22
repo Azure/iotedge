@@ -42,6 +42,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly IList<X509Certificate2> trustBundle;
         readonly string proxy;
         readonly MetricsConfig metricsConfig;
+        readonly Option<ulong> storageMaxTotalWalSize;
+        readonly Option<StorageLogLevel> storageLogLevel;
         readonly bool useBackupAndRestore;
         readonly Option<string> storageBackupPath;
 
@@ -64,6 +66,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             IList<X509Certificate2> trustBundle,
             string proxy,
             MetricsConfig metricsConfig,
+            Option<ulong> storageMaxTotalWalSize,
+            Option<StorageLogLevel> storageLogLevel,
             bool useBackupAndRestore,
             Option<string> storageBackupPath)
         {
@@ -85,6 +89,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
             this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
             this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
+            this.storageMaxTotalWalSize = storageMaxTotalWalSize;
+            this.storageLogLevel = storageLogLevel;
             this.useBackupAndRestore = useBackupAndRestore;
             this.storageBackupPath = storageBackupPath;
         }
@@ -138,7 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // DataBase options
-            builder.Register(c => new RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), this.optimizeForPerformance))
+            builder.Register(c => new RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), this.optimizeForPerformance, this.storageMaxTotalWalSize, this.storageLogLevel))
                 .As<IRocksDbOptionsProvider>()
                 .SingleInstance();
 
