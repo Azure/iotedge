@@ -13,10 +13,13 @@ namespace DevOpsLib.VstsModels
         public int Id { get; set; }
 
         [JsonProperty("releaseDefinition.id")]
-        public int DefinitionId { get; set; }
+        public ReleaseDefinitionId DefinitionId { get; set; }
 
         [JsonProperty("name")]
         public string Name { get; set; }
+
+        [JsonProperty("status")]
+        public VstsReleaseStatus Status { get; set; }
 
         [JsonProperty("_links.web.href")]
         public Uri WebUri { get; set; }
