@@ -242,7 +242,7 @@ fn run() -> Result<(), Error> {
                 .about("Bundles troubleshooting information")
                 .arg(
                     Arg::with_name("output")
-                        .help("Path of output file")
+                        .help("Location to output file. Use - for stdout")
                         .long("output")
                         .short("o")
                         .takes_value(true)
@@ -271,7 +271,7 @@ fn run() -> Result<(), Error> {
                         .takes_value(true),
                 ).arg(
                     Arg::with_name("quiet")
-                        .help("Suppress output")
+                        .help("Suppress status output")
                         .long("quiet")
                         .short("q")
                         .takes_value(false),
@@ -384,13 +384,19 @@ fn run() -> Result<(), Error> {
             let include_ms_only = args.is_present("include-edge-runtime-only");
             let verbose = !args.is_present("quiet");
             let iothub_hostname = args.value_of("iothub-hostname").map(ToOwned::to_owned);
+            let output_location = if location == "-" {
+                OutputLocation::Console
+            } else {
+                OutputLocation::File(location.to_owned())
+            };
+
             tokio_runtime.block_on(
                 SupportBundle::new(
                     options,
-                    location.to_owned(),
                     include_ms_only,
                     verbose,
                     iothub_hostname,
+                    output_location,
                     runtime()?,
                 )
                 .execute(),
