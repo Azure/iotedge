@@ -106,7 +106,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                     this.deviceId,
                     new List<string>(moduleNames),
                     new List<string>(moduleImages),
-                    new ConfigurationContent {
+                    new ConfigurationContent
+                    {
                         ModulesContent = new Dictionary<string, IDictionary<string, object>>(config.ModulesContent)
                     });
 
