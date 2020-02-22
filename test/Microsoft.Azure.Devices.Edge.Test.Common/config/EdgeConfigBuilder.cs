@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
     using System.Collections.Generic;
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Serilog;
 
     public class EdgeConfigBuilder
     {
@@ -103,16 +102,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
             if (moduleConfigs.Contains("other"))
             {
-                var modulesContent =
-                    new Dictionary<string, IDictionary<string, object>>(config.ModulesContent);
-                Log.Information(">>> CONFIG #1:\n{Config}\n\n", Newtonsoft.Json.JsonConvert.SerializeObject(modulesContent));
                 yield return new EdgeConfiguration(
                     this.deviceId,
                     new List<string>(moduleNames),
                     new List<string>(moduleImages),
                     new ConfigurationContent
                     {
-                        ModulesContent = modulesContent
+                        ModulesContent = new Dictionary<string, IDictionary<string, object>>(config.ModulesContent)
                     });
 
                 // Return a configuration for all modules
@@ -124,7 +120,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 }
             }
 
-            Log.Information(">>> CONFIG #2:\n{Config}\n\n", Newtonsoft.Json.JsonConvert.SerializeObject(config));
             yield return new EdgeConfiguration(this.deviceId, moduleNames, moduleImages, config);
         }
 
