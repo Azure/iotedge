@@ -2,11 +2,11 @@
 namespace DevOpsLib
 {
     using System.Collections.Generic;
-
-    public class ReleaseEnvironmentId
+    
+    public static class ReleaseEnvironment
     {
         // TODO: Create a class to manage release environment id and relationship with release definition
-        public Dictionary<int, string> DefinitionIdToDisplayNameMapping = new Dictionary<int, string>
+        public static readonly Dictionary<int, string> DefinitionIdToDisplayNameMapping = new Dictionary<int, string>
         {
             { 10073, "Linux AMD64 Docker" },
             { 10538, "Linux AMD64 Moby" },
