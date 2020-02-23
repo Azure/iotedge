@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             Preconditions.CheckNotNull(executorFactory);
 
             var evaluator = new Evaluator(config);
-            Dispatcher dispatcher = await Dispatcher.CreateAsync(id, iotHubName, GetEndpoints(config), executorFactory);
+            Dispatcher dispatcher = await Dispatcher.CreateAsync(id, iotHubName, GetEndpointsWithPriority(config.Routes, config.Fallback), executorFactory);
             return new Router(id, iotHubName, evaluator, dispatcher);
         }
 
@@ -70,7 +70,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             Preconditions.CheckNotNull(checkpointStore);
 
             var evaluator = new Evaluator(config);
-            Dispatcher dispatcher = await Dispatcher.CreateAsync(id, iotHubName, GetEndpoints(config), executorFactory, checkpointStore);
+            Dispatcher dispatcher = await Dispatcher.CreateAsync(id, iotHubName, GetEndpointsWithPriority(config.Routes, config.Fallback), executorFactory, checkpointStore);
             return new Router(id, iotHubName, evaluator, dispatcher);
         }
 
@@ -118,7 +118,16 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 ImmutableDictionary<string, Route> snapshot = this.routes;
                 this.routes.Value = snapshot.SetItem(route.Id, route);
                 this.evaluator.SetRoute(route);
-                await this.dispatcher.SetEndpoints(route.Endpoints);
+
+                // Get another snapshot since we just added the new route,
+                // then recalculate the priorities for the endpoint with
+                // the new route taken into account
+                snapshot = this.routes;
+                IList<uint> priorities = snapshot.Values
+                    .Where(r => r.Endpoint == route.Endpoint)
+                    .Select(r => r.Priority).ToList();
+
+                await this.dispatcher.SetEndpoint(route.Endpoint, priorities);
             }
         }
 
@@ -130,14 +139,13 @@ namespace Microsoft.Azure.Devices.Routing.Core
             {
                 this.CheckClosed();
                 ImmutableDictionary<string, Route> snapshot = this.routes;
-                ImmutableHashSet<Endpoint> currentEndpoints = this.Routes.SelectMany(r => r.Endpoints).ToImmutableHashSet();
-                this.routes.Value = snapshot.Remove(id);
-                ISet<string> removedEndpointIds = currentEndpoints.Except(this.Routes.SelectMany(r => r.Endpoints))
-                    .Select(e => e.Id)
-                    .ToImmutableHashSet();
 
-                this.evaluator.RemoveRoute(id);
-                await this.dispatcher.RemoveEndpoints(removedEndpointIds);
+                if (snapshot.TryGetValue(id, out Route removedRoute))
+                {
+                    this.routes.Value = snapshot.Remove(id);
+                    this.evaluator.RemoveRoute(id);
+                    await this.dispatcher.RemoveEndpoint(removedRoute.Endpoint.Id);
+                }
             }
         }
 
@@ -148,9 +156,10 @@ namespace Microsoft.Azure.Devices.Routing.Core
             using (await this.sync.LockAsync(this.cts.Token))
             {
                 this.CheckClosed();
-                ImmutableHashSet<Endpoint> endpoints = newRoutes.SelectMany(r => r.Endpoints).ToImmutableHashSet();
+                ImmutableHashSet<Endpoint> endpoints = newRoutes.Select(r => r.Endpoint).ToImmutableHashSet();
+                IDictionary<Endpoint, IList<uint>> endpointWithPriority = GetEndpointsWithPriority(newRoutes, Option.None<Route>());
                 this.evaluator.ReplaceRoutes(newRoutes);
-                await this.dispatcher.ReplaceEndpoints(endpoints);
+                await this.dispatcher.ReplaceEndpoints(endpointWithPriority);
                 this.routes.Value = newRoutes.ToImmutableDictionary(r => r.Id, r => r);
             }
         }
@@ -182,20 +191,41 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
         }
 
-        static ISet<Endpoint> GetEndpoints(RouterConfig config)
+        static void MergeEndpointPriorities(Dictionary<Endpoint, IList<uint>> existing, Endpoint endpoint, uint newPriority)
         {
-            var endpoints = new HashSet<Endpoint>(config.Routes.SelectMany(r => r.Endpoints));
-            config.Fallback.ForEach(f => endpoints.UnionWith(f.Endpoints));
+            if (existing.ContainsKey(endpoint))
+            {
+                // Merge the existing priorities together
+                existing[endpoint].Add(newPriority);
+            }
+            else
+            {
+                // Add a new endpoint with its priorities
+                existing.Add(endpoint, new List<uint>() { newPriority });
+            }
+        }
+
+        static IDictionary<Endpoint, IList<uint>> GetEndpointsWithPriority(IEnumerable<Route> routes, Option<Route> fallback)
+        {
+            var endpoints = new Dictionary<Endpoint, IList<uint>>();
+
+            foreach (Route r in routes)
+            {
+                MergeEndpointPriorities(endpoints, r.Endpoint, r.Priority);
+            }
+
+            fallback.ForEach(f => MergeEndpointPriorities(endpoints, f.Endpoint, f.Priority));
+
             return endpoints;
         }
 
         Task RouteInternalAsync(IMessage message)
         {
-            ISet<Endpoint> endpoints = this.evaluator.Evaluate(message);
+            ISet<RouteResult> results = this.evaluator.Evaluate(message);
 
-            Events.MessageEvaluation(this.iotHubName, message, endpoints);
+            Events.MessageEvaluation(this.iotHubName, message, results);
 
-            return this.dispatcher.DispatchAsync(message, endpoints);
+            return this.dispatcher.DispatchAsync(message, results);
         }
 
         void CheckClosed()
@@ -216,9 +246,9 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 CounterFailed = IdStart,
             }
 
-            public static void MessageEvaluation(string iotHubName, IMessage message, ISet<Endpoint> endpoints)
+            public static void MessageEvaluation(string iotHubName, IMessage message, ISet<RouteResult> results)
             {
-                if (!Routing.PerfCounter.LogMessageEndpointsMatched(iotHubName, message.MessageSource.ToString(), endpoints.LongCount(), out string error))
+                if (!Routing.PerfCounter.LogMessageEndpointsMatched(iotHubName, message.MessageSource.ToString(), results.LongCount(), out string error))
                 {
                     Log.LogError((int)EventIds.CounterFailed, "[LogMessageEndpointsMatchedCounterFailed] {0}", error);
                 }

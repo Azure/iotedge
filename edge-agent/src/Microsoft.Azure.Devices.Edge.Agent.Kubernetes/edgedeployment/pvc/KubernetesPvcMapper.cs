@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
         V1PersistentVolumeClaim ExtractPvc(KubernetesModule module, Mount mount, IDictionary<string, string> labels)
         {
             string volumeName = KubeUtils.SanitizeK8sValue(mount.Source);
-            string pvcName = KubernetesModule.PvcName(module, mount);
+            string pvcName = volumeName;
             bool readOnly = mount.ReadOnly;
 
             var persistentVolumeClaimSpec = new V1PersistentVolumeClaimSpec()
@@ -61,12 +61,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
             if (this.persistentVolumeName.HasValue)
             {
                 string pvName = this.persistentVolumeName.OrDefault();
-                if (pvName != volumeName)
-                {
-                    throw new InvalidModuleException(string.Format("The mount name {0} has to be the same as the PV name {1}", volumeName, pvName));
-                }
-
-                persistentVolumeClaimSpec.VolumeName = volumeName;
+                pvcName = KubeUtils.SanitizeK8sValue(pvName);
+                persistentVolumeClaimSpec.VolumeName = pvcName;
             }
 
             if (this.storageClassName.HasValue)

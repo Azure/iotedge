@@ -298,9 +298,9 @@ paths:
           default: "all"
         - in: query
           name: since
-          description: Only return logs since this time, as a UNIX timestamp.
-          type: integer
-          default: 0
+          description: Only return logs since this time, as a duration (1 day, 1d, 90m, 2 days 3 hours 2 minutes), rfc3339 timestamp, or UNIX timestamp.
+          type: string
+          default: "0"
       responses:
         '101':
           description: Logs returned as a stream

@@ -9,49 +9,63 @@ namespace DevOpsLib
     public class IoTEdgeRelease
     {
         readonly int id;
-        readonly int definitionId;
+        readonly ReleaseDefinitionId definitionId;
         readonly string name;
+        readonly string sourceBranch;
+        readonly VstsReleaseStatus status;
         readonly Uri webUri;
         readonly HashSet<IoTEdgeReleaseEnvironment> environments;
 
         public IoTEdgeRelease(
             int id,
-            int definitionId,
+            ReleaseDefinitionId definitionId,
             string name,
+            string sourceBranch,
+            VstsReleaseStatus status,
             Uri webUri,
             HashSet<IoTEdgeReleaseEnvironment> environments)
         {
             ValidationUtil.ThrowIfNonPositive(id, nameof(id));
-            ValidationUtil.ThrowIfNonPositive(definitionId, nameof(definitionId));
             ValidationUtil.ThrowIfNullOrWhiteSpace(name, nameof(name));
+            ValidationUtil.ThrowIfNullOrWhiteSpace(sourceBranch, nameof(sourceBranch));
             ValidationUtil.ThrowIfNull(webUri, nameof(webUri));
             ValidationUtil.ThrowIfNull(environments, nameof(environments));
 
             this.id = id;
             this.definitionId = definitionId;
             this.name = name;
+            this.sourceBranch = sourceBranch;
+            this.status = status;
             this.webUri = webUri;
             this.environments = environments;
         }
 
         public int Id => this.id;
 
-        public int DefinitionId => this.definitionId;
+        public ReleaseDefinitionId DefinitionId => this.definitionId;
 
         public string Name => this.name;
+
+        public string SourceBranch => this.sourceBranch;
+
+        public VstsReleaseStatus Status => this.status;
 
         public Uri WebUri => this.webUri;
 
         public int NumberOfEnvironments => this.environments.Count;
 
-        public static IoTEdgeRelease Create(VstsRelease vstsRelease) =>
+        public static IoTEdgeRelease Create(VstsRelease vstsRelease, string sourceBranch) =>
             new IoTEdgeRelease(
                 vstsRelease.Id,
                 vstsRelease.DefinitionId,
                 vstsRelease.Name,
+                sourceBranch,
+                vstsRelease.Status,
                 vstsRelease.WebUri,
                 vstsRelease.Environments.Select(IoTEdgeReleaseEnvironment.Create).ToHashSet()
             );
+
+        public bool HasResult() => this.id > 0;
 
         public override bool Equals(object obj)
         {
@@ -83,6 +97,7 @@ namespace DevOpsLib
             this.id == other.id &&
             this.definitionId == other.definitionId &&
             string.Equals(this.name, other.name, StringComparison.Ordinal) &&
+            string.Equals(this.sourceBranch, other.sourceBranch, StringComparison.Ordinal) &&
             this.webUri.Equals(other.webUri) &&
             this.environments.SetEquals(other.environments);
     }

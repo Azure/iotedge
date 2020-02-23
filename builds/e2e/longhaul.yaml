@@ -86,6 +86,11 @@ jobs:
       - template: templates/longhaul-deploy.yaml
         parameters:
           release.label: 'lh$(agent.group)'
+          test.buildNumber: '$(Build.BuildNumber)'
+          test.buildId: '$(Build.BuildId)'
+          build.source.branch: '$(Build.SourceBranchName)'
+          edgelet.source.branch: '$(edgelet.package.branchName)'
+          images.source.branch: '$(images.branchName)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
@@ -165,6 +170,11 @@ jobs:
       - template: templates/longhaul-deploy.yaml
         parameters:
           release.label: 'lh$(agent.group)'
+          test.buildNumber: '$(Build.BuildNumber)'
+          test.buildId: '$(Build.BuildId)'
+          build.source.branch: '$(Build.SourceBranchName)'
+          edgelet.source.branch: '$(edgelet.package.branchName)'
+          images.source.branch: '$(images.branchName)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
@@ -244,6 +254,11 @@ jobs:
       - template: templates/longhaul-deploy.yaml
         parameters:
           release.label: 'lh$(agent.group)'
+          test.buildNumber: '$(Build.BuildNumber)'
+          test.buildId: '$(Build.BuildId)'
+          build.source.branch: '$(Build.SourceBranchName)'
+          edgelet.source.branch: '$(edgelet.package.branchName)'
+          images.source.branch: '$(images.branchName)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
@@ -325,6 +340,11 @@ jobs:
       - template: templates/longhaul-deploy-windows.yaml
         parameters:
           release.label: 'winpro-lh$(agent.group)'
+          test.buildNumber: '$(Build.BuildNumber)'
+          test.buildId: '$(Build.BuildId)'
+          build.source.branch: '$(Build.SourceBranchName)'
+          edgelet.source.branch: '$(edgelet.package.branchName)'
+          images.source.branch: '$(images.branchName)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.windows)'
           container.registry: '$(container.registry)'
@@ -406,6 +426,11 @@ jobs:
       - template: templates/longhaul-deploy-windows.yaml
         parameters:
           release.label: 'servercore-lh$(agent.group)'
+          test.buildNumber: '$(Build.BuildNumber)'
+          test.buildId: '$(Build.BuildId)'
+          build.source.branch: '$(Build.SourceBranchName)'
+          edgelet.source.branch: '$(edgelet.package.branchName)'
+          images.source.branch: '$(images.branchName)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.windows)'
           container.registry: '$(container.registry)'
@@ -486,6 +511,11 @@ jobs:
         parameters:
           testName: 'LongHaul'
           release.label: 'iotuap-lh$(agent.group)'
+          test.buildNumber: '$(Build.BuildNumber)'
+          test.buildId: '$(Build.BuildId)'
+          build.source.branch: '$(Build.SourceBranchName)'
+          edgelet.source.branch: '$(edgelet.package.branchName)'
+          images.source.branch: '$(images.branchName)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.windows)'
           container.registry: '$(container.registry)'

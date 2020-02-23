@@ -1,5 +1,10 @@
 parameters:
   release.label: ''
+  test.buildNumber: ''
+  test.buildId: ''
+  build.source.branch: ''
+  edgelet.source.branch: ''
+  images.source.branch: ''
   edgelet.artifact.name: ''
   images.artifact.name: ''
   container.registry: ''
@@ -47,6 +52,13 @@ steps:
       script: |
         declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
         testName="LongHaul"
+        
+        testInfo="TestBuildNumber=${{ parameters['test.buildNumber'] }}"
+        testInfo="$testInfo,TestBuildId=${{ parameters['test.buildId'] }}"
+        testInfo="$testInfo,BuildSourceBranch=${{ parameters['build.source.branch'] }}"
+        testInfo="$testInfo,EdgeletSourceBranch=${{ parameters['edgelet.source.branch'] }}"
+        testInfo="$testInfo,ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
+        
         . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
         chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh
         sudo $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh \
@@ -78,5 +90,6 @@ steps:
           -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
           -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
           -hostPlatform "${{ parameters['metricsCollector.hostPlatform'] }}" \
+          -testInfo "$testInfo" \
           -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."

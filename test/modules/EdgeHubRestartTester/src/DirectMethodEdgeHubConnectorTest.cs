@@ -19,19 +19,22 @@ namespace EdgeHubRestartTester
     {
         readonly Guid batchId;
         readonly ILogger logger;
-        long directMethodCount = 0;
+        readonly string directMethodTargetModuleId;
+        ulong directMethodCount = 0;
         ModuleClient dmModuleClient = null;
         TestResultReportingClient reportClient = null;
 
         public DirectMethodEdgeHubConnectorTest(
             Guid batchId,
-            ILogger logger)
+            ILogger logger,
+            ModuleClient dmModuleClient,
+            string directMethodTargetModuleId)
         {
             this.batchId = batchId;
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
+            this.dmModuleClient = Preconditions.CheckNotNull(dmModuleClient, nameof(dmModuleClient));
+            this.directMethodTargetModuleId = Preconditions.CheckNonWhiteSpace(directMethodTargetModuleId, nameof(directMethodTargetModuleId));
         }
-
-        public void Dispose() => this.dmModuleClient?.Dispose();
 
         public async Task StartAsync(
             DateTime runExpirationTime,
@@ -40,7 +43,7 @@ namespace EdgeHubRestartTester
         {
             (DateTime dmCompletedTime, HttpStatusCode dmStatusCode) = await this.SendDirectMethodAsync(
                 Settings.Current.DeviceId,
-                Settings.Current.DirectMethodTargetModuleId,
+                this.directMethodTargetModuleId,
                 Settings.Current.DirectMethodName,
                 runExpirationTime,
                 cancellationToken);
@@ -50,7 +53,7 @@ namespace EdgeHubRestartTester
                 DateTime.UtcNow,
                 Settings.Current.TrackingId,
                 this.batchId,
-                this.directMethodCount.ToString(),
+                this.directMethodCount,
                 edgeHubRestartedTime,
                 dmCompletedTime,
                 dmStatusCode);
@@ -69,7 +72,6 @@ namespace EdgeHubRestartTester
             DateTime runExpirationTime,
             CancellationToken cancellationToken)
         {
-            ModuleClient moduleClient = await this.GetModuleClientAsync();
             while ((!cancellationToken.IsCancellationRequested) && (DateTime.UtcNow < runExpirationTime))
             {
                 try
@@ -79,9 +81,9 @@ namespace EdgeHubRestartTester
                     MethodRequest request = new MethodRequest(
                         directMethodName,
                         Encoding.UTF8.GetBytes($"{{ \"Message\": \"Hello\", \"DirectMethodCount\": \"{this.directMethodCount}\" }}"),
-                        Settings.Current.SdkOperationTimeout,
+                        TimeSpan.FromSeconds(5),   // Minimum value accepted by SDK
                         Settings.Current.SdkOperationTimeout);
-                    MethodResponse result = await moduleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
+                    MethodResponse result = await this.dmModuleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
                     this.logger.LogInformation($"[DirectMethodEdgeHubConnector] Invoke DirectMethod with count {this.directMethodCount}");
 
                     if ((HttpStatusCode)result.Status == HttpStatusCode.OK)
@@ -101,7 +103,7 @@ namespace EdgeHubRestartTester
                     if (this.IsEdgeHubDownDuringDirectMethodSend(e) || this.IsDirectMethodReceiverNotConnected(e))
                     {
                         // swallow exeception and retry until success
-                        this.logger.LogDebug(e, $"[DirectMethodEdgeHubConnector] Exception caught with SequenceNumber {this.directMethodCount}");
+                        this.logger.LogDebug($"[DirectMethodEdgeHubConnector] Expected exception caught with SequenceNumber {this.directMethodCount}");
                     }
                     else
                     {
@@ -127,20 +129,6 @@ namespace EdgeHubRestartTester
             return new Tuple<DateTime, HttpStatusCode>(DateTime.UtcNow, HttpStatusCode.InternalServerError);
         }
 
-        async Task<ModuleClient> GetModuleClientAsync()
-        {
-            if (this.dmModuleClient == null)
-            {
-                this.dmModuleClient = await ModuleUtil.CreateModuleClientAsync(
-                    Settings.Current.TransportType,
-                    ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                    ModuleUtil.DefaultTransientRetryStrategy,
-                    this.logger);
-            }
-
-            return this.dmModuleClient;
-        }
-
         TestResultReportingClient GetReportClient()
         {
             if (this.reportClient == null)
@@ -151,7 +139,7 @@ namespace EdgeHubRestartTester
             return this.reportClient;
         }
 
-        string GetSource() => $"{Settings.Current.ModuleId}.{TestOperationResultType.EdgeHubRestartDirectMethod.ToString()}";
+        string GetSource() => $"{Settings.Current.ModuleId}.{TestOperationResultType.EdgeHubRestartDirectMethod.ToString()}.{this.directMethodTargetModuleId}";
 
         bool IsEdgeHubDownDuringDirectMethodSend(Exception e)
         {
@@ -175,7 +163,7 @@ namespace EdgeHubRestartTester
             if (e is DeviceNotFoundException)
             {
                 string errorMsg = e.Message;
-                return Regex.IsMatch(errorMsg, $"\\b{Settings.Current.DirectMethodTargetModuleId}\\b");
+                return Regex.IsMatch(errorMsg, $"\\b{this.directMethodTargetModuleId}\\b");
             }
 
             return false;

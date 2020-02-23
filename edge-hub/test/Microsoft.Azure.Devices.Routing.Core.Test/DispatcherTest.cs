@@ -32,8 +32,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         public async Task SmokeTest()
         {
             var endpoint1 = new TestEndpoint("id1");
-            var endpoint2 = new TestEndpoint("id1");
-            var endpoints = new HashSet<Endpoint> { endpoint1, endpoint2 };
+            var endpoint2 = new TestEndpoint("id2");
+            var endpoints = new Dictionary<Endpoint, IList<uint>> { { endpoint1, new List<uint>() { 0 } }, { endpoint2, new List<uint>() { 0 } } };
             var message = new Message(TelemetryMessageSource.Instance, new byte[0], new Dictionary<string, string>());
 
             Assert.Equal(new List<IMessage>(), endpoint1.Processed);
@@ -41,10 +41,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
 
             using (Dispatcher dispatcher = await Dispatcher.CreateAsync("dispatcher", "hub", endpoints, SyncExecutorFactory))
             {
-                await dispatcher.DispatchAsync(message, new HashSet<Endpoint> { endpoint1 });
+                await dispatcher.DispatchAsync(message, new HashSet<RouteResult> { new RouteResult(endpoint1, 0, 3600) });
                 await dispatcher.CloseAsync(CancellationToken.None);
 
-                await Assert.ThrowsAsync<InvalidOperationException>(() => dispatcher.DispatchAsync(message, new HashSet<Endpoint> { endpoint1 }));
+                await Assert.ThrowsAsync<InvalidOperationException>(() => dispatcher.DispatchAsync(message, new HashSet<RouteResult> { new RouteResult(endpoint1, 0, 3600) }));
 
                 // Ensure a second close doesn't throw
                 await dispatcher.CloseAsync(CancellationToken.None);
@@ -71,29 +71,34 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             var endpoint3 = new TestEndpoint("id3");
             var endpoint4 = new TestEndpoint("id4");
 
-            var endpoints = new HashSet<Endpoint> { endpoint1, endpoint3 };
+            var endpoints = new Dictionary<Endpoint, IList<uint>> { { endpoint1, new List<uint>() { 0 } }, { endpoint3, new List<uint>() { 0 } } };
             using (Dispatcher dispatcher = await Dispatcher.CreateAsync("dispatcher", "hub", endpoints, SyncExecutorFactory))
             {
                 Assert.Equal(new List<IMessage>(), endpoint1.Processed);
                 Assert.Equal(new List<IMessage>(), endpoint3.Processed);
 
-                await Assert.ThrowsAsync<ArgumentNullException>(() => dispatcher.SetEndpoint(null));
+                await Assert.ThrowsAsync<ArgumentNullException>(() => dispatcher.SetEndpoint(null, new List<uint>() { 0 }));
+                await Assert.ThrowsAsync<ArgumentNullException>(() => dispatcher.SetEndpoint(endpoint1, null));
 
-                await dispatcher.DispatchAsync(Message1, new HashSet<Endpoint> { endpoint1, endpoint3 });
-                await dispatcher.DispatchAsync(Message1, new HashSet<Endpoint> { endpoint1, endpoint3 });
+                RouteResult result1 = new RouteResult(endpoint1, 0, 3600);
+                RouteResult result3 = new RouteResult(endpoint3, 0, 3600);
+                RouteResult result4 = new RouteResult(endpoint4, 0, 3600);
 
-                await dispatcher.SetEndpoint(endpoint2);
+                await dispatcher.DispatchAsync(Message1, new HashSet<RouteResult> { result1, result3 });
+                await dispatcher.DispatchAsync(Message1, new HashSet<RouteResult> { result1, result3 });
 
-                await dispatcher.DispatchAsync(Message2, new HashSet<Endpoint> { endpoint1, endpoint3 });
-                await dispatcher.DispatchAsync(Message3, new HashSet<Endpoint> { endpoint1, endpoint3 });
+                await dispatcher.SetEndpoint(endpoint2, new List<uint>() { 1, 2 });
 
-                await dispatcher.SetEndpoint(endpoint4);
-                await dispatcher.DispatchAsync(Message2, new HashSet<Endpoint> { endpoint1, endpoint3, endpoint4 });
-                await dispatcher.DispatchAsync(Message3, new HashSet<Endpoint> { endpoint1, endpoint3, endpoint4 });
+                await dispatcher.DispatchAsync(Message2, new HashSet<RouteResult> { result1, result3 });
+                await dispatcher.DispatchAsync(Message3, new HashSet<RouteResult> { result1, result3 });
+
+                await dispatcher.SetEndpoint(endpoint4, new List<uint>() { 3, 4 });
+                await dispatcher.DispatchAsync(Message2, new HashSet<RouteResult> { result1, result3, result4 });
+                await dispatcher.DispatchAsync(Message3, new HashSet<RouteResult> { result1, result3, result4 });
 
                 await dispatcher.CloseAsync(CancellationToken.None);
 
-                await Assert.ThrowsAsync<InvalidOperationException>(() => dispatcher.SetEndpoint(endpoint2));
+                await Assert.ThrowsAsync<InvalidOperationException>(() => dispatcher.SetEndpoint(endpoint2, new List<uint>() { 0 }));
             }
 
             var expected = new List<IMessage> { Message1, Message1, Message2, Message3, Message2, Message3 };
@@ -110,7 +115,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             var endpoint3 = new TestEndpoint("id3");
             var endpoint4 = new TestEndpoint("id4");
 
-            var endpoints = new HashSet<Endpoint> { endpoint1, endpoint3 };
+            var endpoints = new Dictionary<Endpoint, IList<uint>> { { endpoint1, new List<uint>() { 0 } }, { endpoint3, new List<uint>() { 0 } } };
             using (Dispatcher dispatcher = await Dispatcher.CreateAsync("dispatcher", "hub", endpoints, SyncExecutorFactory))
             {
                 Assert.Equal(new List<IMessage>(), endpoint1.Processed);
@@ -118,8 +123,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
 
                 await Assert.ThrowsAsync<ArgumentNullException>(() => dispatcher.RemoveEndpoint(null));
 
-                await dispatcher.DispatchAsync(Message1, new HashSet<Endpoint> { endpoint1, endpoint3 });
-                await dispatcher.DispatchAsync(Message1, new HashSet<Endpoint> { endpoint1, endpoint3 });
+                RouteResult result1 = new RouteResult(endpoint1, 0, 3600);
+                RouteResult result3 = new RouteResult(endpoint3, 0, 3600);
+                RouteResult result4 = new RouteResult(endpoint4, 0, 3600);
+
+                await dispatcher.DispatchAsync(Message1, new HashSet<RouteResult> { result1, result3 });
+                await dispatcher.DispatchAsync(Message1, new HashSet<RouteResult> { result1, result3 });
 
                 await dispatcher.RemoveEndpoint(endpoint1.Id);
                 Assert.Equal(new[] { endpoint3 }, dispatcher.Endpoints);
@@ -128,12 +137,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
                 await dispatcher.RemoveEndpoint(endpoint1.Id);
                 Assert.Equal(new[] { endpoint3 }, dispatcher.Endpoints);
 
-                await dispatcher.DispatchAsync(Message2, new HashSet<Endpoint> { endpoint1, endpoint3 });
-                await dispatcher.DispatchAsync(Message3, new HashSet<Endpoint> { endpoint1, endpoint3 });
+                await dispatcher.DispatchAsync(Message2, new HashSet<RouteResult> { result1, result3 });
+                await dispatcher.DispatchAsync(Message3, new HashSet<RouteResult> { result1, result3 });
 
-                await dispatcher.SetEndpoint(endpoint4);
-                await dispatcher.DispatchAsync(Message2, new HashSet<Endpoint> { endpoint1, endpoint3, endpoint4 });
-                await dispatcher.DispatchAsync(Message3, new HashSet<Endpoint> { endpoint1, endpoint3, endpoint4 });
+                await dispatcher.SetEndpoint(endpoint4, new List<uint>() { 0 });
+                await dispatcher.DispatchAsync(Message2, new HashSet<RouteResult> { result1, result3, result4 });
+                await dispatcher.DispatchAsync(Message3, new HashSet<RouteResult> { result1, result3, result4 });
 
                 await dispatcher.CloseAsync(CancellationToken.None);
 
@@ -153,7 +162,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             var endpoint3 = new TestEndpoint("id3");
             var endpoint4 = new TestEndpoint("id4");
 
-            var endpoints = new HashSet<Endpoint> { endpoint1, endpoint3 };
+            var endpoints = new Dictionary<Endpoint, IList<uint>> { { endpoint1, new List<uint>() { 0 } }, { endpoint3, new List<uint>() { 0 } } };
             using (Dispatcher dispatcher = await Dispatcher.CreateAsync("dispatcher", "hub", endpoints, SyncExecutorFactory))
             {
                 Assert.Equal(new List<IMessage>(), endpoint1.Processed);
@@ -161,14 +170,18 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
 
                 await Assert.ThrowsAsync<ArgumentNullException>(() => dispatcher.ReplaceEndpoints(null));
 
-                await dispatcher.DispatchAsync(Message1, new HashSet<Endpoint> { endpoint1, endpoint3, endpoint4 });
-                await dispatcher.DispatchAsync(Message1, new HashSet<Endpoint> { endpoint1, endpoint3, endpoint4 });
+                RouteResult result1 = new RouteResult(endpoint1, 0, 3600);
+                RouteResult result3 = new RouteResult(endpoint3, 0, 3600);
+                RouteResult result4 = new RouteResult(endpoint4, 0, 3600);
 
-                var newEndpoints = new HashSet<Endpoint> { endpoint1, endpoint4 };
+                await dispatcher.DispatchAsync(Message1, new HashSet<RouteResult> { result1, result3, result4 });
+                await dispatcher.DispatchAsync(Message1, new HashSet<RouteResult> { result1, result3, result4 });
+
+                var newEndpoints = new Dictionary<Endpoint, IList<uint>> { { endpoint1, new List<uint>() { 1, 2 } }, { endpoint4, new List<uint>() { 3, 4 } } };
                 await dispatcher.ReplaceEndpoints(newEndpoints);
 
-                await dispatcher.DispatchAsync(Message2, new HashSet<Endpoint> { endpoint1, endpoint3, endpoint4 });
-                await dispatcher.DispatchAsync(Message3, new HashSet<Endpoint> { endpoint1, endpoint3, endpoint4 });
+                await dispatcher.DispatchAsync(Message2, new HashSet<RouteResult> { result1, result3, result4 });
+                await dispatcher.DispatchAsync(Message3, new HashSet<RouteResult> { result1, result3, result4 });
 
                 await dispatcher.CloseAsync(CancellationToken.None);
 
@@ -194,16 +207,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             var factory = new SyncEndpointExecutorFactory(config);
 
             var endpoint = new FailedEndpoint("endpoint1");
-            var endpoints = new HashSet<Endpoint> { endpoint };
+            var endpoints = new Dictionary<Endpoint, IList<uint>> { { endpoint, new List<uint>() { 0 } } };
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1)))
             {
                 Dispatcher dispatcher = await Dispatcher.CreateAsync("dispatcher", "hub", endpoints, factory);
                 // Because the buffer size is one and we are failing we should block on the dispatch
-                Task dispatching = dispatcher.DispatchAsync(Message1, new HashSet<Endpoint> { endpoint });
+                Task dispatching = dispatcher.DispatchAsync(Message1, new HashSet<RouteResult> { new RouteResult(endpoint, 0, 3600) });
 
                 var endpoint2 = new TestEndpoint("endpoint1");
-                Task setting = dispatcher.SetEndpoint(endpoint2);
+                Task setting = dispatcher.SetEndpoint(endpoint2, new List<uint>() { 0 });
 
                 Task timeout = Task.Delay(TimeSpan.FromSeconds(1), cts.Token);
                 await Task.WhenAny(dispatching, setting, timeout);
@@ -218,12 +231,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         public async Task TestClosedEndpoint()
         {
             var factory1 = new ClosedEndpointExecutorFactory(AsyncExecutorFactory);
-            var endpoint = new TestEndpoint("endpoint1");
+            var endpoint1 = new TestEndpoint("endpoint1");
+            var endpoints = new Dictionary<Endpoint, IList<uint>> { { endpoint1, new List<uint>() { 0 } } };
 
-            Dispatcher dispatcher1 = await Dispatcher.CreateAsync("dispatcher", "hub", new HashSet<Endpoint> { endpoint }, factory1);
+            Dispatcher dispatcher1 = await Dispatcher.CreateAsync("dispatcher", "hub", endpoints, factory1);
 
             // test doesn't throw on closed endpoint
-            await dispatcher1.DispatchAsync(Message1, new HashSet<Endpoint> { endpoint });
+            await dispatcher1.DispatchAsync(Message1, new HashSet<RouteResult> { new RouteResult(endpoint1, 0, 3600) });
             await dispatcher1.CloseAsync(CancellationToken.None);
         }
 
@@ -232,8 +246,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         public async Task TestShow()
         {
             var endpoint = new TestEndpoint("endpoint1");
+            var endpoints = new Dictionary<Endpoint, IList<uint>> { { endpoint, new List<uint>() { 0 } } };
 
-            Dispatcher dispatcher1 = await Dispatcher.CreateAsync("dispatcher", "hub", new HashSet<Endpoint> { endpoint }, AsyncExecutorFactory);
+            Dispatcher dispatcher1 = await Dispatcher.CreateAsync("dispatcher", "hub", endpoints, AsyncExecutorFactory);
             Assert.Equal("Dispatcher(dispatcher)", dispatcher1.ToString());
             await dispatcher1.CloseAsync(CancellationToken.None);
         }
@@ -249,30 +264,33 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
 
             var endpoint1 = new TestEndpoint("endpoint1");
             var endpoint2 = new TestEndpoint("endpoint2");
-            var endpoints = new HashSet<Endpoint> { endpoint1, endpoint2 };
+            var endpoints = new Dictionary<Endpoint, IList<uint>> { { endpoint1, new List<uint>() { 0 } }, { endpoint2, new List<uint>() { 0 } } };
             Dispatcher dispatcher1 = await Dispatcher.CreateAsync("dispatcher.1", "hub", endpoints, SyncExecutorFactory, store.Object);
 
             Assert.Equal(Option.Some(21L), dispatcher1.Offset);
 
-            await dispatcher1.DispatchAsync(MessageWithOffset(24L), new HashSet<Endpoint> { endpoint1 });
+            RouteResult result1 = new RouteResult(endpoint1, 0, 3600);
+            RouteResult result2 = new RouteResult(endpoint2, 0, 3600);
+
+            await dispatcher1.DispatchAsync(MessageWithOffset(24L), new HashSet<RouteResult> { result1 });
             Assert.Equal(Option.Some(24L), dispatcher1.Offset);
             store.Verify(s => s.SetCheckpointDataAsync("dispatcher.1", It.Is<CheckpointData>(c => c.Offset == 24), It.IsAny<CancellationToken>()), Times.Once());
             store.Verify(s => s.SetCheckpointDataAsync("dispatcher.1.endpoint1", It.Is<CheckpointData>(c => c.Offset == 24), It.IsAny<CancellationToken>()), Times.Once());
 
-            await dispatcher1.DispatchAsync(MessageWithOffset(25L), new HashSet<Endpoint> { endpoint1, endpoint2 });
+            await dispatcher1.DispatchAsync(MessageWithOffset(25L), new HashSet<RouteResult> { result1, result2 });
             Assert.Equal(Option.Some(25L), dispatcher1.Offset);
             store.Verify(s => s.SetCheckpointDataAsync("dispatcher.1", It.Is<CheckpointData>(c => c.Offset == 25), It.IsAny<CancellationToken>()), Times.Once());
             store.Verify(s => s.SetCheckpointDataAsync("dispatcher.1.endpoint1", It.Is<CheckpointData>(c => c.Offset == 25), It.IsAny<CancellationToken>()), Times.Once());
             store.Verify(s => s.SetCheckpointDataAsync("dispatcher.1.endpoint2", It.Is<CheckpointData>(c => c.Offset == 25), It.IsAny<CancellationToken>()), Times.Once());
 
-            await dispatcher1.DispatchAsync(MessageWithOffset(26L), new HashSet<Endpoint> { endpoint2 });
+            await dispatcher1.DispatchAsync(MessageWithOffset(26L), new HashSet<RouteResult> { result2 });
             Assert.Equal(Option.Some(26L), dispatcher1.Offset);
             store.Verify(s => s.SetCheckpointDataAsync("dispatcher.1", It.Is<CheckpointData>(c => c.Offset == 26), It.IsAny<CancellationToken>()), Times.Once());
             store.Verify(s => s.SetCheckpointDataAsync("dispatcher.1.endpoint2", It.Is<CheckpointData>(c => c.Offset == 26), It.IsAny<CancellationToken>()), Times.Once());
 
             await dispatcher1.CloseAsync(CancellationToken.None);
 
-            Dispatcher dispatcher2 = await Dispatcher.CreateAsync("dispatcher.2", "hub", new HashSet<Endpoint>(), SyncExecutorFactory);
+            Dispatcher dispatcher2 = await Dispatcher.CreateAsync("dispatcher.2", "hub", new Dictionary<Endpoint, IList<uint>>(), SyncExecutorFactory);
             Assert.Equal(Option.None<long>(), dispatcher2.Offset);
             await dispatcher2.CloseAsync(CancellationToken.None);
         }

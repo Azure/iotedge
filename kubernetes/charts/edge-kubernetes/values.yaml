@@ -16,15 +16,19 @@ iotedged:
     enableGetNodesRBAC: true
     targetPath: /var/lib/iotedge
     # In order to benefit from HA, at a minimum the data location for iotedged
-    # should be backed by a persistent volume. Please setup a persistent volume
-    # and define a persistent volume claim and provide its reference below. If
-    # this is not provided then the iotedged pod will default to using an
-    # "emptyDir" volume which doesn't work for HA because its lifetime is linked
-    # to the pod's lifetime.
+    # should be backed by a persistent volume. 
+    # User may create a PersistentVolumeClaim and provide the name only here. Alternatively.
+    # user may set persistent volume claim details below. In that case the charts will define a PVC. 
+    # If nothing is provided then the iotedged pod will default to using an
+    # "emptyDir" volume which is not recommended because emptyDir storage is tied to the Pod's 
+    # lifetime and the runtime will fail if iotedged is restarted.
     #
     # persistentVolumeClaim:
+    #   # name is required for iotedged to use persistence.
     #   name: <CLAIM NAME HERE>
+    #   # Set the following fields if you would like the chart to create a PVC
     #   storageClassName: <STORAGE CLASS NAME HERE>
+    #   volumeName: <OPTIONAL VOLUME NAME HERE>
     #   size: 100Mi
     #
     ###############################################################################

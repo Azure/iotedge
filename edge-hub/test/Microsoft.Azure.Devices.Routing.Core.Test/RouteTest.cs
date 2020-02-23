@@ -8,9 +8,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Query;
     using Microsoft.Azure.Devices.Routing.Core.Test.Endpoints;
+    using Moq;
     using Xunit;
 
-    [ExcludeFromCodeCoverage]
     public class RouteTest : RoutingUnitTestBase
     {
         static readonly IMessage Message1 = new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } });
@@ -19,29 +19,29 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         static readonly Endpoint Endpoint2 = new TestEndpoint("id2");
         static readonly Endpoint Endpoint3 = new TestEndpoint("id1");
 
-        static readonly Route Route1 = new Route("id1", "rule1", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { Endpoint1 });
-        static readonly Route Route2 = new Route("id1", "rule1", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { Endpoint2 });
-        static readonly Route Route3 = new Route("id1", "rule1", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { Endpoint3 });
-        static readonly Route Route4 = new Route("id2", "rule2", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { Endpoint1 });
-        static readonly Route Route5 = new Route("id3", "rule3", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
-        static readonly Route Route6 = new Route("id3", "rule3", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>());
-        static readonly Route Route7 = new Route("id2", "rule1", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { Endpoint1 });
+        static readonly Route Route1 = new Route("id1", "rule1", "hub", TelemetryMessageSource.Instance, Endpoint1, 0, 0);
+        static readonly Route Route2 = new Route("id1", "rule1", "hub", TelemetryMessageSource.Instance, Endpoint2, 0, 0);
+        static readonly Route Route3 = new Route("id1", "rule1", "hub", TelemetryMessageSource.Instance, Endpoint3, 0, 0);
+        static readonly Route Route4 = new Route("id2", "rule2", "hub", TelemetryMessageSource.Instance, Endpoint1, 0, 0);
+        static readonly Route Route5 = new Route("id3", "rule3", "hub", TelemetryMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
+        static readonly Route Route6 = new Route("id3", "rule3", "hub", TelemetryMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
+        static readonly Route Route7 = new Route("id2", "rule1", "hub", TelemetryMessageSource.Instance, Endpoint1, 0, 0);
 
         [Fact]
         [Unit]
         public void TestConstructor()
         {
-            Assert.Throws<ArgumentNullException>(() => new Route(null, "condition", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>()));
-            Assert.Throws<ArgumentNullException>(() => new Route("id", null, "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint>()));
-            Assert.Throws<ArgumentNullException>(() => new Route("id", "condition", null, TelemetryMessageSource.Instance, new HashSet<Endpoint>()));
-            Assert.Throws<ArgumentNullException>(() => new Route("id", "condition", "hub", TelemetryMessageSource.Instance, null));
+            Assert.Throws<ArgumentNullException>(() => new Route(null, "condition", "hub", TelemetryMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0));
+            Assert.Throws<ArgumentNullException>(() => new Route("id", null, "hub", TelemetryMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0));
+            Assert.Throws<ArgumentNullException>(() => new Route("id", "condition", null, TelemetryMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0));
+            Assert.Throws<ArgumentNullException>(() => new Route("id", "condition", "hub", TelemetryMessageSource.Instance, null, 0, 0));
         }
 
         [Fact]
         [Unit]
         public void SmokeTest()
         {
-            var route = new Route("id", "true", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { new TestEndpoint("id1") });
+            var route = new Route("id", "true", "hub", TelemetryMessageSource.Instance, new Mock<Endpoint>("id1").Object, 0, 0);
             Func<IMessage, Bool> evaluate = RouteCompiler.Instance.Compile(route);
             Assert.True(evaluate(Message1));
         }
@@ -50,10 +50,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         [Unit]
         public void TestShow()
         {
-            var route = new Route("id1", "select *", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { new TestEndpoint("id1"), new TestEndpoint("id2") });
-            string expected1 = "Route(\"id1\", TelemetryMessageSource, \"select *\" => (TestEndpoint(id1), TestEndpoint(id2))";
-            string expected2 = "Route(\"id1\", TelemetryMessageSource, \"select *\" => (TestEndpoint(id2), TestEndpoint(id1))";
-            Assert.True(expected1.Equals(route.ToString()) || expected2.Equals(route.ToString()));
+            var route = new Route("id1", "select *", "hub", TelemetryMessageSource.Instance, new TestEndpoint("id1"), 0, 0);
+            string expected1 = "Route(\"id1\", TelemetryMessageSource, \"select *\" => (TestEndpoint(id1))";
+            Assert.Equal(expected1, route.ToString());
         }
 
         [Fact]
@@ -118,10 +117,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
                 condition,
                 "hub",
                 TelemetryMessageSource.Instance,
-                new HashSet<Endpoint>
-                {
-                    Endpoint1
-                });
+                Endpoint1,
+                0,
+                0);
 
             int complexity = RouteCompiler.Instance.GetComplexity(testRoute);
             Assert.Equal(expected, complexity);

@@ -48,47 +48,46 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         ImmutableDictionary<string, IEndpointExecutor> Executors => this.executors;
 
-        public static async Task<Dispatcher> CreateAsync(string id, string iotHubName, ISet<Endpoint> endpoints, IEndpointExecutorFactory factory)
+        public static async Task<Dispatcher> CreateAsync(string id, string iotHubName, IDictionary<Endpoint, IList<uint>> endpointsWithPriorities, IEndpointExecutorFactory factory)
         {
             Preconditions.CheckNotNull(id);
-            Preconditions.CheckNotNull(endpoints);
+            Preconditions.CheckNotNull(endpointsWithPriorities);
             Preconditions.CheckNotNull(factory);
 
-            IEnumerable<Task<IEndpointExecutor>> tasks = Preconditions.CheckNotNull(endpoints)
-                .Select(endpoint => factory.CreateAsync(endpoint));
+            IEnumerable<Task<IEndpointExecutor>> tasks = endpointsWithPriorities.Select(e => factory.CreateAsync(e.Key, e.Value));
             IEndpointExecutor[] executors = await Task.WhenAll(tasks);
             return new Dispatcher(id, iotHubName, executors, factory, new NullCheckpointer());
         }
 
-        public static async Task<Dispatcher> CreateAsync(string id, string iotHubName, ISet<Endpoint> endpoints, IEndpointExecutorFactory factory, ICheckpointStore checkpointStore)
+        public static async Task<Dispatcher> CreateAsync(string id, string iotHubName, IDictionary<Endpoint, IList<uint>> endpointsWithPriorities, IEndpointExecutorFactory factory, ICheckpointStore checkpointStore)
         {
             Preconditions.CheckNotNull(id);
-            Preconditions.CheckNotNull(endpoints);
+            Preconditions.CheckNotNull(endpointsWithPriorities);
             Preconditions.CheckNotNull(factory);
             Preconditions.CheckNotNull(checkpointStore);
 
             MasterCheckpointer masterCheckpointer = await MasterCheckpointer.CreateAsync(id, checkpointStore);
             var executorFactory = new CheckpointerEndpointExecutorFactory(id, factory, masterCheckpointer);
 
-            IEnumerable<Task<IEndpointExecutor>> tasks = endpoints.Select(endpoint => executorFactory.CreateAsync(endpoint));
+            IEnumerable<Task<IEndpointExecutor>> tasks = endpointsWithPriorities.Select(e => executorFactory.CreateAsync(e.Key, e.Value));
             IEndpointExecutor[] executors = await Task.WhenAll(tasks);
             return new Dispatcher(id, iotHubName, executors, executorFactory, masterCheckpointer);
         }
 
-        public Task DispatchAsync(IMessage message, ISet<Endpoint> endpoints)
+        public Task DispatchAsync(IMessage message, ISet<RouteResult> routeResults)
         {
             this.CheckClosed();
 
-            if (endpoints.Any())
+            if (routeResults.Any())
             {
                 IList<Task> tasks = new List<Task>();
                 // TODO handle case where endpoint is not in dispatcher's list of endpoints
-                foreach (Endpoint endpoint in endpoints)
+                foreach (RouteResult result in routeResults)
                 {
                     IEndpointExecutor exec;
-                    if (this.Executors.TryGetValue(endpoint.Id, out exec))
+                    if (this.Executors.TryGetValue(result.Endpoint.Id, out exec))
                     {
-                        tasks.Add(this.DispatchInternal(exec, message));
+                        tasks.Add(this.DispatchInternal(exec, message, result.Priority, result.TimeToLiveSecs));
                     }
                 }
 
@@ -101,28 +100,17 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
         }
 
-        public async Task SetEndpoint(Endpoint endpoint)
+        public async Task SetEndpoint(Endpoint endpoint, IList<uint> priorities)
         {
             Preconditions.CheckNotNull(endpoint);
+            Preconditions.CheckNotNull(priorities);
+            Preconditions.CheckArgument(priorities.Count != 0);
             this.CheckClosed();
 
             using (await this.sync.LockAsync(this.cts.Token))
             {
                 this.CheckClosed();
-                await this.SetEndpointInternal(endpoint);
-            }
-        }
-
-        public async Task SetEndpoints(IEnumerable<Endpoint> endpoints)
-        {
-            this.CheckClosed();
-            using (await this.sync.LockAsync(this.cts.Token))
-            {
-                this.CheckClosed();
-                foreach (Endpoint endpoint in endpoints)
-                {
-                    await this.SetEndpointInternal(endpoint);
-                }
+                await this.SetEndpointInternal(endpoint, priorities);
             }
         }
 
@@ -151,9 +139,9 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
         }
 
-        public async Task ReplaceEndpoints(ISet<Endpoint> newEndpoints)
+        public async Task ReplaceEndpoints(IDictionary<Endpoint, IList<uint>> endpointsWithPriorities)
         {
-            Preconditions.CheckNotNull(newEndpoints);
+            Preconditions.CheckNotNull(endpointsWithPriorities);
             this.CheckClosed();
 
             using (await this.sync.LockAsync(this.cts.Token))
@@ -162,7 +150,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
                 // Remove endpoints not in the new endpoints set
                 // Can't use Task.WhenAll because access to the executors dict must be serialized
-                IEnumerable<Endpoint> removedEndpoints = this.Endpoints.Except(newEndpoints);
+                IEnumerable<Endpoint> removedEndpoints = this.Endpoints.Except(endpointsWithPriorities.Select(e => e.Key).ToImmutableHashSet());
                 foreach (Endpoint endpoint in removedEndpoints)
                 {
                     await this.RemoveEndpointInternal(endpoint.Id);
@@ -170,9 +158,9 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
                 // Set all of the new endpoints
                 // Can't use Task.WhenAll because access to the executors dict must be serialized
-                foreach (Endpoint endpoint in newEndpoints)
+                foreach (KeyValuePair<Endpoint, IList<uint>> e in endpointsWithPriorities)
                 {
-                    await this.SetEndpointInternal(endpoint);
+                    await this.SetEndpointInternal(e.Key, e.Value);
                 }
             }
         }
@@ -215,11 +203,11 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
         }
 
-        async Task DispatchInternal(IEndpointExecutor exec, IMessage message)
+        async Task DispatchInternal(IEndpointExecutor exec, IMessage message, uint priority, uint timeToLiveSecs)
         {
             try
             {
-                await exec.Invoke(message);
+                await exec.Invoke(message, priority, timeToLiveSecs);
             }
             catch (Exception ex) when (ex is InvalidOperationException || ex is OperationCanceledException)
             {
@@ -229,13 +217,13 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
         }
 
-        async Task SetEndpointInternal(Endpoint endpoint)
+        async Task SetEndpointInternal(Endpoint endpoint, IList<uint> priorities)
         {
             IEndpointExecutor executor;
             ImmutableDictionary<string, IEndpointExecutor> snapshot = this.executors;
             if (!snapshot.TryGetValue(endpoint.Id, out executor))
             {
-                executor = await this.endpointExecutorFactory.CreateAsync(endpoint);
+                executor = await this.endpointExecutorFactory.CreateAsync(endpoint, priorities);
                 if (!this.executors.CompareAndSet(snapshot, snapshot.Add(endpoint.Id, executor)))
                 {
                     throw new InvalidOperationException($"Invalid set endpoint operation for executor {endpoint.Id}");
@@ -243,7 +231,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             }
             else
             {
-                await executor.SetEndpoint(endpoint);
+                await executor.SetEndpoint(endpoint, priorities);
             }
         }
 
@@ -284,22 +272,22 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 this.checkpointerFactory = Preconditions.CheckNotNull(checkpointerFactory);
             }
 
-            public async Task<IEndpointExecutor> CreateAsync(Endpoint endpoint)
+            public async Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, IList<uint> priorities)
             {
                 string id = RoutingIdBuilder.Parse(this.idPrefix).Map(prefixTemplate => new RoutingIdBuilder(prefixTemplate.IotHubName, prefixTemplate.RouterNumber, Option.Some(endpoint.Id)).GetId()).GetOrElse(endpoint.Id);
                 ICheckpointer checkpointer = await this.checkpointerFactory.CreateAsync(id);
-                IEndpointExecutor executor = await this.executorFactory.CreateAsync(endpoint, checkpointer);
+                IEndpointExecutor executor = await this.executorFactory.CreateAsync(endpoint, priorities, checkpointer);
                 return executor;
             }
 
-            public Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, ICheckpointer checkpointer)
+            public Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, IList<uint> priorities, ICheckpointer checkpointer)
             {
-                return this.executorFactory.CreateAsync(endpoint, checkpointer);
+                return this.executorFactory.CreateAsync(endpoint, priorities, checkpointer);
             }
 
-            public Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, ICheckpointer checkpointer, EndpointExecutorConfig endpointExecutorConfig)
+            public Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, IList<uint> priorities, ICheckpointer checkpointer, EndpointExecutorConfig endpointExecutorConfig)
             {
-                return this.executorFactory.CreateAsync(endpoint, checkpointer, endpointExecutorConfig);
+                return this.executorFactory.CreateAsync(endpoint, priorities, checkpointer, endpointExecutorConfig);
             }
         }
 

@@ -71,7 +71,7 @@ namespace DevOpsLibTest
         [Test]
         public void TestThrowIfNulOrEmptySet([Values(null, new int[]{})]int[] value)
         {
-            ArgumentException ex = Assert.Throws<ArgumentException>(() => ValidationUtil.ThrowIfNulOrEmptySet(value, nameof(value)));
+            ArgumentException ex = Assert.Throws<ArgumentException>(() => ValidationUtil.ThrowIfNullOrEmptySet(value, nameof(value)));
 
             Assert.NotNull(ex);
             Assert.True(ex.Message.StartsWith("Cannot be null or empty collection."));
@@ -81,7 +81,7 @@ namespace DevOpsLibTest
         [Test]
         public void TestThrowIfNulOrEmptySetWithoutFieldName([Values(null, new int[] { })]int[] value)
         {
-            ArgumentException ex = Assert.Throws<ArgumentException>(() => ValidationUtil.ThrowIfNulOrEmptySet(value, null));
+            ArgumentException ex = Assert.Throws<ArgumentException>(() => ValidationUtil.ThrowIfNullOrEmptySet(value, null));
 
             Assert.NotNull(ex);
             Assert.True(ex.Message.StartsWith("Cannot be null or empty collection."));

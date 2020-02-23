@@ -1,6 +1,11 @@
 parameters:
   testName: ''
   release.label: ''
+  test.buildNumber: ''
+  test.buildId: ''
+  build.source.branch: ''
+  edgelet.source.branch: ''
+  images.source.branch: ''
   edgelet.artifact.name: ''
   images.artifact.name: ''
   container.registry: ''
@@ -96,6 +101,13 @@ steps:
           Write-Host "Schedule to stop iotedge service at $ScheduleDate $ScheduleTime"
           SchTasks.exe /Create /RU "SYSTEM" /SC ONCE /TN “StopStressTest” /TR "net stop iotedge" /SD $ScheduleDate /ST $ScheduleTime /F
         }
+        
+        $testInfo="TestBuildNumber=${{ parameters['test.buildNumber'] }}"
+        $testInfo=$testInfo+",TestBuildId=${{ parameters['test.buildId'] }}"
+        $testInfo=$testInfo+",BuildSourceBranch=${{ parameters['build.source.branch'] }}"
+        $testInfo=$testInfo+",EdgeletSourceBranch=${{ parameters['edgelet.source.branch'] }}"
+        $testInfo=$testInfo+",ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
+        
         $ArtifactInfo=convertfrom-stringdata (get-content C:\Data\e2etests\artifacts\${{ parameters['images.artifact.name'] }}\artifactInfo.txt -raw)
         C:\Data\e2etests\artifacts\${{ parameters['images.artifact.name'] }}\scripts\windows\test\Run-E2ETest.ps1 `
           -E2ETestFolder "C:\Data\e2etests" `
@@ -130,5 +142,6 @@ steps:
           -MetricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" `
           -MetricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" `
           -HostPlatform "${{ parameters['metricsCollector.hostPlatform'] }}" `
+          -TestInfo "$testInfo" `
           -BypassEdgeInstallation
       CommunicationProtocol: Http

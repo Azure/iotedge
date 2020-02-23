@@ -35,9 +35,8 @@ function prepare_test_from_artifacts() {
 
     echo "Copy deployment file from $connectivity_deployment_artifact_file"
     cp "$connectivity_deployment_artifact_file" "$deployment_working_file"
-
-    sed -i -e "s@<TestResultCoordinator.ConsumerGroupId>@$EVENT_HUB_CONSUMER_GROUP_ID@g" "$deployment_working_file"
-    sed -i -e "s@<TestResultCoordinator.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
+    
+    local tracking_id=$(cat /proc/sys/kernel/random/uuid)
     sed -i -e "s@<Architecture>@$image_architecture_label@g" "$deployment_working_file"
     sed -i -e "s/<Build.BuildNumber>/$ARTIFACT_IMAGE_BUILD_NUMBER/g" "$deployment_working_file"
     sed -i -e "s/<EdgeRuntime.BuildNumber>/$EDGE_RUNTIME_BUILD_NUMBER/g" "$deployment_working_file"
@@ -45,21 +44,23 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<CR.Username>@$CONTAINER_REGISTRY_USERNAME@g" "$deployment_working_file"
     sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
     sed -i -e "s@<IoTHubConnectionString>@$IOT_HUB_CONNECTION_STRING@g" "$deployment_working_file"
-
-    local tracking_id=$(cat /proc/sys/kernel/random/uuid)
-
-    sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
+    sed -i -e "s@<Test.BuildNumber>@$TEST_BUILD_NUMBER@g" "$deployment_working_file"
     sed -i -e "s@<TestDuration>@$TEST_DURATION@g" "$deployment_working_file"
     sed -i -e "s@<TestStartDelay>@$TEST_START_DELAY@g" "$deployment_working_file"
     sed -i -e "s@<TrackingId>@$tracking_id@g" "$deployment_working_file"
+    sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACEID@g" "$deployment_working_file"
+    sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHAREDKEY@g" "$deployment_working_file"
     sed -i -e "s@<UpstreamProtocol>@$UPSTREAM_PROTOCOL@g" "$deployment_working_file"
+    
+    sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
+
     sed -i -e "s@<EdgeHubRestartTest.RestartPeriod>@$RESTART_TEST_RESTART_PERIOD@g" "$deployment_working_file"
     sed -i -e "s@<EdgeHubRestartTest.SdkOperationTimeout>@$RESTART_TEST_SDK_OPERATION_TIMEOUT@g" "$deployment_working_file"
 
+    sed -i -e "s@<TestResultCoordinator.ConsumerGroupId>@$EVENT_HUB_CONSUMER_GROUP_ID@g" "$deployment_working_file"
+    sed -i -e "s@<TestResultCoordinator.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.VerificationDelay>@$VERIFICATION_DELAY@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.OptimizeForPerformance>@$optimize_for_performance@g" "$deployment_working_file"
-    sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACEID@g" "$deployment_working_file"
-    sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHAREDKEY@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.LogAnalyticsLogType>@$LOG_ANALYTICS_LOGTYPE@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.StorageAccountConnectionString>@$STORAGE_ACCOUNT_CONNECTION_STRING@g" "$deployment_working_file"
 
@@ -75,7 +76,6 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<MetricsCollector.UploadTarget>@$METRICS_UPLOAD_TARGET@g" "$deployment_working_file"
     sed -i -e "s@<MetricsCollector.Images.BranchName>@$IMAGES_BRANCH_NAME@g" "$deployment_working_file"
     sed -i -e "s@<MetricsCollector.Edgelet.BranchName>@$EDGELET_BRANCH_NAME@g" "$deployment_working_file"
-    sed -i -e "s@<MetricsCollector.Test.BuildNumber>@$TEST_BUILD_NUMBER@g" "$deployment_working_file"
     sed -i -e "s@<MetricsCollector.HostPlatform>@$HOST_PLATFORM@g" "$deployment_working_file"
 }
 

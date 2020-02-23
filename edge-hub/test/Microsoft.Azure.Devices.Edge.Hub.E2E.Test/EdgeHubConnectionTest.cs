@@ -137,26 +137,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Assert.Equal(4, routes.Count);
 
                 RouteConfig route1 = routes["route1"];
-                Assert.True(route1.Route.Endpoints.First().GetType() == typeof(CloudEndpoint));
+                Assert.True(route1.Route.Endpoint.GetType() == typeof(CloudEndpoint));
                 Assert.Equal("route1", route1.Name);
                 Assert.Equal("from /* INTO $upstream", route1.Value);
 
                 RouteConfig route2 = routes["route2"];
-                Endpoint endpoint = route2.Route.Endpoints.First();
+                Endpoint endpoint = route2.Route.Endpoint;
                 Assert.True(endpoint.GetType() == typeof(ModuleEndpoint));
                 Assert.Equal($"{edgeDeviceId}/module2/input1", endpoint.Id);
                 Assert.Equal("route2", route2.Name);
                 Assert.Equal("from /modules/module1 INTO BrokeredEndpoint(\"/modules/module2/inputs/input1\")", route2.Value);
 
                 RouteConfig route3 = routes["route3"];
-                endpoint = route3.Route.Endpoints.First();
+                endpoint = route3.Route.Endpoint;
                 Assert.True(endpoint.GetType() == typeof(ModuleEndpoint));
                 Assert.Equal($"{edgeDeviceId}/module3/input1", endpoint.Id);
                 Assert.Equal("route3", route3.Name);
                 Assert.Equal("from /modules/module2 INTO BrokeredEndpoint(\"/modules/module3/inputs/input1\")", route3.Value);
 
                 RouteConfig route4 = routes["route4"];
-                endpoint = route4.Route.Endpoints.First();
+                endpoint = route4.Route.Endpoint;
                 Assert.True(endpoint.GetType() == typeof(ModuleEndpoint));
                 Assert.Equal($"{edgeDeviceId}/module4/input1", endpoint.Id);
                 Assert.Equal("route4", route4.Name);
@@ -213,26 +213,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Assert.Equal(4, routes.Count);
 
                     route1 = routes["route1"];
-                    Assert.True(route1.Route.Endpoints.First().GetType() == typeof(CloudEndpoint));
+                    Assert.True(route1.Route.Endpoint.GetType() == typeof(CloudEndpoint));
                     Assert.Equal("route1", route1.Name);
                     Assert.Equal("from /* INTO $upstream", route1.Value);
 
                     route2 = routes["route2"];
-                    endpoint = route2.Route.Endpoints.First();
+                    endpoint = route2.Route.Endpoint;
                     Assert.True(endpoint.GetType() == typeof(ModuleEndpoint));
                     Assert.Equal($"{edgeDeviceId}/module2/input1", endpoint.Id);
                     Assert.Equal("route2", route2.Name);
                     Assert.Equal("from /modules/module1 INTO BrokeredEndpoint(\"/modules/module2/inputs/input1\")", route2.Value);
 
                     route3 = routes["route4"];
-                    endpoint = route3.Route.Endpoints.First();
+                    endpoint = route3.Route.Endpoint;
                     Assert.True(endpoint.GetType() == typeof(ModuleEndpoint));
                     Assert.Equal($"{edgeDeviceId}/module5/input1", endpoint.Id);
                     Assert.Equal("route4", route3.Name);
                     Assert.Equal("from /modules/module3 INTO BrokeredEndpoint(\"/modules/module5/inputs/input1\")", route3.Value);
 
                     route4 = routes["route5"];
-                    endpoint = route4.Route.Endpoints.First();
+                    endpoint = route4.Route.Endpoint;
                     Assert.True(endpoint.GetType() == typeof(ModuleEndpoint));
                     Assert.Equal($"{edgeDeviceId}/module6/input1", endpoint.Id);
                     Assert.Equal("route5", route4.Name);
