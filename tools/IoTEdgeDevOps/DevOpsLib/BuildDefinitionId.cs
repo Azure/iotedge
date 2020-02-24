@@ -12,8 +12,11 @@ namespace DevOpsLib
         ImageRelease = 31987,
         LibiohsmCI = 39853,
         ConnectivityTest = 108949,
-        LonghaulTest = 66429,
-        StressTest = 66357,
-
+        LonghaulTestEnv1 = 66429,
+        LonghaulTestEnv2 = 93654,
+        LonghaulTestEnv3 = 93725,
+        StressTestEnv1 = 66357,
+        StressTestEnv2 = 96102,
+        StressTestEnv3 = 96103,
     }
 }

@@ -15,8 +15,12 @@ namespace DevOpsLib
                 BuildDefinitionId.EdgeletPackages,
                 BuildDefinitionId.EndToEndTest,
                 BuildDefinitionId.ConnectivityTest,
-                BuildDefinitionId.LonghaulTest,
-                BuildDefinitionId.StressTest
+                BuildDefinitionId.LonghaulTestEnv1,
+                BuildDefinitionId.LonghaulTestEnv2,
+                BuildDefinitionId.LonghaulTestEnv3,
+                BuildDefinitionId.StressTestEnv1,
+                BuildDefinitionId.StressTestEnv2,
+                BuildDefinitionId.StressTestEnv3
             };
 
         public static string DisplayName(this BuildDefinitionId buildDefinitionId)
@@ -32,8 +36,12 @@ namespace DevOpsLib
                 { BuildDefinitionId.ImageRelease, "Image Release" },
                 { BuildDefinitionId.LibiohsmCI, "Libiohsm CI" },
                 { BuildDefinitionId.ConnectivityTest, "Connectivity Test" },
-                { BuildDefinitionId.LonghaulTest, "Longhaul Test" },
-                { BuildDefinitionId.StressTest, "Stress Test" },
+                { BuildDefinitionId.LonghaulTestEnv1, "Longhaul Test Env 1" },
+                { BuildDefinitionId.LonghaulTestEnv2, "Longhaul Test Env 2" },
+                { BuildDefinitionId.LonghaulTestEnv3, "Longhaul Test Env 3" },
+                { BuildDefinitionId.StressTestEnv1, "Stress Test Env 1" },
+                { BuildDefinitionId.StressTestEnv2, "Stress Test Env 2" },
+                { BuildDefinitionId.StressTestEnv3, "Stress Test Env 3" },
             };
 
             return definitionIdToDisplayNameMapping.ContainsKey(buildDefinitionId) ? definitionIdToDisplayNameMapping[buildDefinitionId] : buildDefinitionId.ToString();
