@@ -1010,7 +1010,6 @@ function validate_test_parameters() {
             print_error "Required log analytics shared key"
             ((error++))
         fi
-
     fi
 
     if (( error > 0 )); then
