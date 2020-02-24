@@ -1511,6 +1511,8 @@ Function ValidateTestParameters
         If ([string]::IsNullOrEmpty($HostPlatform)) {Throw "Required host platform."}
         If ($ProxyUri) {Throw "Proxy not supported for $TestName test"}
         If ([string]::IsNullOrEmpty($TestInfo)) {Throw "Required test info."}
+        If ([string]::IsNullOrEmpty($LogAnalyticsWorkspaceId)) {Throw "Required log analytics workspace id."}
+        If ([string]::IsNullOrEmpty($LogAnalyticsSharedKey)) {Throw "Required log analytics shared key."}
     }
 }
 

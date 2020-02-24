@@ -464,11 +464,6 @@ function process_args() {
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
     [[ -z "$IOTHUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
     [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
-    [[ -z "$LOG_ANALYTICS_ENABLED" ]] && { LOG_ANALYTICS_ENABLED="false"; }
-    [[ "$LOG_ANALYTICS_ENABLED" == true ]] && \
-    {  [[ -z "$LOG_ANALYTICS_WORKSPACE_ID" ]] && { print_error 'Log Analytics Workspace ID is required'; exit 1; }; \
-       [[ -z "$LOG_ANALYTICS_SHARED_KEY" ]] && { print_error 'Log Analytics secret is required'; exit 1; }; \
-       [[ -z "$LOG_ANALYTICS_LOG_TYPE" ]] && { print_error 'Log Analytics Log Type is required'; exit 1; }; }
 
     echo 'Required parameters are provided'
 }
@@ -1005,6 +1000,17 @@ function validate_test_parameters() {
             print_error "Required test info."
             ((error++))
         fi
+
+        if [[ -z "$LOG_ANALYTICS_WORKSPACE_ID" ]]; then
+            print_error "Required log analytics workspace id"
+            ((error++))
+        fi
+
+        if [[ -z "$LOG_ANALYTICS_SHARED_KEY" ]]; then
+            print_error "Required log analytics shared key"
+            ((error++))
+        fi
+
     fi
 
     if (( error > 0 )); then
