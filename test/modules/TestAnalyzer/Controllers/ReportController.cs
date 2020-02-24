@@ -49,7 +49,6 @@ namespace TestAnalyzer.Controllers
 
             string workspaceId = Settings.Current.LogAnalyticsWorkspaceId;
             string sharedKey = Settings.Current.LogAnalyticsSharedKey;
-            string logType = Settings.Current.LogAnalyticsLogType;
 
             // Upload the data to Log Analytics for our dashboards
             try
@@ -58,19 +57,19 @@ namespace TestAnalyzer.Controllers
                     workspaceId,
                     sharedKey,
                     messagesJson,
-                    logType);
+                    "messagingReportsLonghaulStress");
 
                 Task reportTwins = AzureLogAnalytics.Instance.PostAsync(
                     workspaceId,
                     sharedKey,
                     twinsJson,
-                    logType);
+                    "twinReportsLonghaulStress");
 
                 Task reportDirectMethods = AzureLogAnalytics.Instance.PostAsync(
                     workspaceId,
                     sharedKey,
                     directMethodsJson,
-                    logType);
+                    "directMethodReportsLonghaulStress");
 
                 await Task.WhenAll(reportMessages, reportTwins, reportDirectMethods);
             }

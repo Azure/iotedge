@@ -20,8 +20,6 @@ parameters:
   longHaul.desiredModulesToRestartCSV: ''
   longHaul.restartIntervalInMins: ''
   analyzer.consumerGroupId: ''
-  analyzer.logAnalytics.enabled: ''
-  analyzer.logAnalytics.logType: ''
   logAnalytics.workspaceId: ''
   logAnalytics.sharedKey: ''
   twinTester.twinUpdateSize: ''
@@ -78,8 +76,6 @@ steps:
           -EventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}" `
           -DesiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" `
           -RestartIntervalInMins "${{ parameters['longHaul.restartIntervalInMins'] }}" `
-          -LogAnalyticsEnabled "${{ parameters['analyzer.logAnalytics.enabled'] }}" `
-          -LogAnalyticsLogType "${{ parameters['analyzer.logAnalytics.logType'] }}" `
           -LogAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" `
           -LogAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" `
           -TwinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" `
