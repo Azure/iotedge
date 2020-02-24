@@ -113,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                     new List<string>(moduleImages),
                     new ConfigurationContent
                     {
-                        ModulesContent = new Dictionary<string, IDictionary<string, object>>(config.ModulesContent)
+                        ModulesContent = config.ModulesContent.ToDictionary(entry => entry.Key, entry => entry.Value)
                     });
 
                 // Return a configuration for all modules
