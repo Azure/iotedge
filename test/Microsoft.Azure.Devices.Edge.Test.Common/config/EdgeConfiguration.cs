@@ -33,8 +33,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
         {
             return Profiler.Run(
                 () => iotHub.DeployDeviceConfigurationAsync(this.deviceId, this.config, token),
-                "Deployed edge configuration to device with modules:\n    {Modules}",
-                string.Join("\n    ", this.moduleImages));
+                "Deployed edge configuration to device with modules:\n    {Modules}\n===\n{Config}",
+                string.Join("\n    ", this.moduleImages),
+                ToString());
         }
 
         public override string ToString() => JsonConvert.SerializeObject(this.config, Formatting.Indented);
