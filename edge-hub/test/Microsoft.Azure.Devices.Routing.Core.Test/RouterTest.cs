@@ -109,35 +109,37 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
 
             var route1 = new Route("id1", "key1 = \"value1\" and $systemkey1 = \"systemvalue1\"", "hub", TelemetryMessageSource.Instance, endpoint1, 0, 0);
             var route2 = new Route("id2", "key1 = \"value2\" and $systemkey1 = \"systemvalue2\"", "hub", TelemetryMessageSource.Instance, endpoint2, 0, 0);
-            var route3 = new Route("id1", "key1 = \"value3\" and $systemkey1 = \"systemvalue3\"", "hub", TelemetryMessageSource.Instance, endpoint3, 0, 0);
+            var route3 = new Route("id3", "key1 = \"value3\" and $systemkey1 = \"systemvalue3\"", "hub", TelemetryMessageSource.Instance, endpoint3, 0, 0);
+            var route4 = new Route("id1", "key1 = \"value3\" and $systemkey1 = \"systemvalue3\"", "hub", TelemetryMessageSource.Instance, endpoint3, 5, 0);
 
-            var routes = new HashSet<Route> { route1, route2 };
+            var routes = new HashSet<Route> { route1, route2, route3 };
             using (Router router = await Router.CreateAsync("router1", "hub", new RouterConfig(allEndpoints, routes, Fallback), new SyncEndpointExecutorFactory(TestConstants.DefaultConfig)))
             {
                 Assert.Contains(route1, router.Routes);
                 Assert.Contains(route2, router.Routes);
-                Assert.Equal(2, router.Routes.Count);
+                Assert.Equal(3, router.Routes.Count);
 
                 await router.RouteAsync(message1);
                 await router.RouteAsync(message2);
                 await router.RouteAsync(message3);
 
-                await router.SetRoute(route3);
+                await router.SetRoute(route4);
 
-                Assert.Contains(route3, router.Routes);
                 Assert.Contains(route2, router.Routes);
-                Assert.Equal(2, router.Routes.Count);
+                Assert.Contains(route3, router.Routes);
+                Assert.Contains(route4, router.Routes);
+                Assert.Equal(3, router.Routes.Count);
                 await router.RouteAsync(message1);
                 await router.RouteAsync(message2);
                 await router.RouteAsync(message3);
 
                 await router.CloseAsync(CancellationToken.None);
-                await Assert.ThrowsAsync<InvalidOperationException>(() => router.SetRoute(route3));
+                await Assert.ThrowsAsync<InvalidOperationException>(() => router.SetRoute(route4));
             }
 
             Assert.Equal(new List<IMessage> { message1 }, endpoint1.Processed);
             Assert.Equal(new List<IMessage> { message2, message2 }, endpoint2.Processed);
-            Assert.Equal(new List<IMessage> { message3 }, endpoint3.Processed);
+            Assert.Equal(new List<IMessage> { message3, message3 }, endpoint3.Processed);
         }
 
         [Fact]
@@ -211,6 +213,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             var route1 = new Route("id1", "key1 = \"value1\"", "hub", TelemetryMessageSource.Instance, endpoint1, 0, 0);
             var route2 = new Route("id2", "key1 = \"value2\"", "hub", TelemetryMessageSource.Instance, endpoint2, 0, 0);
             var route3 = new Route("id3", "key1 = \"value1\"", "hub", TelemetryMessageSource.Instance, endpoint3, 0, 0);
+            var route4 = new Route("id4", "key1 = \"value1\"", "hub", TelemetryMessageSource.Instance, endpoint3, 1, 0);
+            var route5 = new Route("id5", "key1 = \"value1\"", "hub", TelemetryMessageSource.Instance, endpoint3, 2, 0);
 
             var routes = new HashSet<Route> { route1, route2 };
             using (Router router = await Router.CreateAsync("router1", "hub", new RouterConfig(allEndpoints, routes, Fallback), SyncExecutorFactory))
@@ -240,6 +244,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
                 await router.RouteAsync(message1);
                 await router.RouteAsync(message2);
                 await router.RouteAsync(message3);
+
+                await router.ReplaceRoutes(new HashSet<Route> { route2, route3, route4, route5 });
+                Assert.Contains(route2, router.Routes);
+                Assert.Contains(route3, router.Routes);
+                Assert.Contains(route4, router.Routes);
+                Assert.Contains(route5, router.Routes);
+                Assert.Equal(4, router.Routes.Count);
 
                 await router.CloseAsync(CancellationToken.None);
                 await Assert.ThrowsAsync<InvalidOperationException>(() => router.ReplaceRoutes(new HashSet<Route>()));

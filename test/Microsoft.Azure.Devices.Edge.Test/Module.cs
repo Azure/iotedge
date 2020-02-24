@@ -96,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         .WithEnvironment(new[] { ("MessageCount", "1") });
                     builder.AddModule(filterModuleName, filterImage)
                         .WithEnvironment(new[] { ("TemperatureThreshold", "19") });
-                    builder.GetModule("$edgeHub")
+                    builder.GetModule(ModuleName.EdgeHub)
                         .WithDesiredProperties(new Dictionary<string, object>
                         {
                             ["routes"] = new
@@ -131,7 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         .WithEnvironment(new[] { ("MessageCount", "1") });
                     builder.AddModule(filterFuncModuleName, filterFunc)
                         .WithEnvironment(new[] { ("AZURE_FUNCTIONS_ENVIRONMENT", "Development") });
-                    builder.GetModule("$edgeHub")
+                    builder.GetModule(ModuleName.EdgeHub)
                         .WithDesiredProperties(new Dictionary<string, object>
                         {
                             ["routes"] = new

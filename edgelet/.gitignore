@@ -1,6 +1,6 @@
 target
-**/bin/**
-**/obj/**
 cobertura.xml
 report/
 lcov.info
+vendor/
+.cargo/

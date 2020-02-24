@@ -1,5 +1,10 @@
 parameters:
   release.label: ''
+  test.buildNumber: ''
+  test.buildId: ''
+  build.source.branch: ''
+  edgelet.source.branch: ''
+  images.source.branch: ''
   edgelet.artifact.name: ''
   images.artifact.name: ''
   container.registry: ''
@@ -47,6 +52,13 @@ steps:
       script: |
         #Requires -RunAsAdministrator
         $testName="LongHaul"
+        
+        $testInfo="TestBuildNumber=${{ parameters['test.buildNumber'] }}"
+        $testInfo=$testInfo+",TestBuildId=${{ parameters['test.buildId'] }}"
+        $testInfo=$testInfo+",BuildSourceBranch=${{ parameters['build.source.branch'] }}"
+        $testInfo=$testInfo+",EdgeletSourceBranch=${{ parameters['edgelet.source.branch'] }}"
+        $testInfo=$testInfo+",ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
+        
         $ArtifactInfo=convertfrom-stringdata (get-content $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt -raw)
         $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/windows/test/Run-E2ETest.ps1 `
           -E2ETestFolder "$(Agent.HomeDirectory)/.." `
@@ -76,5 +88,6 @@ steps:
           -MetricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" `
           -MetricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" `
           -MetricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" `
-          -HostPlatform "${{ parameters['metricsCollector.hostPlatform'] }}"
+          -HostPlatform "${{ parameters['metricsCollector.hostPlatform'] }}" `
+          -TestInfo "$testInfo"
       workingDirectory: "$(Agent.HomeDirectory)/.."

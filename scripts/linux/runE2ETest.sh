@@ -175,6 +175,7 @@ function prepare_test_from_artifacts() {
                 sed -i -e "s@<Analyzer.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.LogAnalyticsEnabled>@$LOG_ANALYTICS_ENABLED@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.LogAnalyticsLogType>@$LOG_ANALYTICS_LOG_TYPE@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.TestInfo>@$TEST_INFO@g" "$deployment_working_file"
                 sed -i -e "s@<MetricsCollector.HostPlatform>@$HOST_PLATFORM@g" "$deployment_working_file"
                 sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
                 sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHARED_KEY@g" "$deployment_working_file"
@@ -409,6 +410,9 @@ function process_args() {
         elif [ $saveNextArg -eq 43 ]; then
             INITIALIZE_WITH_AGENT_ARTIFACT="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 44 ]; then
+            TEST_INFO="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -455,6 +459,7 @@ function process_args() {
                 '-metricsUploadTarget' ) saveNextArg=41;;
                 '-hostPlatform' ) saveNextArg=42;;
                 '-initializeWithAgentArtifact' ) saveNextArg=43;;
+                '-testInfo' ) saveNextArg=44;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -1005,6 +1010,11 @@ function validate_test_parameters() {
             print_error "Required host platform."
             ((error++))
         fi
+        
+        if [[ -z "$TEST_INFO" ]]; then
+            print_error "Required test info."
+            ((error++))
+        fi
     fi
 
     if (( error > 0 )); then
@@ -1064,6 +1074,7 @@ function usage() {
     echo ' -metricsUploadTarget              Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
     echo ' -hostPlatform                     Describes the host OS and cpu architecture. This information is added to scraped metrics.'
     echo ' -initializeWithAgentArtifact      Boolean specifying if the iotedge installation should initialize edge agent with the official 1.0 image or the desired artifact. If false, the deployment after installation will start the desired agent artifact.'
+    echo ' -testInfo                         Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.' 
     exit 1;
 }
 

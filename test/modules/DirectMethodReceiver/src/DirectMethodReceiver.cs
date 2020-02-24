@@ -69,7 +69,7 @@ namespace DirectMethodReceiver
                             DateTime.UtcNow,
                             this.trackingId.GetOrElse(string.Empty),
                             this.batchId,
-                            directMethodCount,
+                            ulong.Parse(directMethodCount),
                             HttpStatusCode.OK);
 
                         await ModuleUtil.ReportTestResultAsync(testResultReportingClient, this.logger, testResult);
