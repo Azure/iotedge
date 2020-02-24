@@ -29,6 +29,45 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 .ToArray();
         }
 
+        public static EdgeConfiguration Create(string deviceId, List<ModuleConfiguration> modules)
+        {
+            var config = new ConfigurationContent
+            {
+                ModulesContent = new Dictionary<string, IDictionary<string, object>>()
+            };
+
+            var moduleNames = new HashSet<string>();
+            var moduleImages = new HashSet<string>();
+
+            void UpdateConfiguration(ModuleConfiguration module)
+            {
+                moduleNames.Add(module.Name);
+                moduleImages.Add(module.Image);
+
+                if (module.DesiredProperties.Count != 0)
+                {
+                    config.ModulesContent[module.Name] = new Dictionary<string, object>
+                    {
+                        ["properties.desired"] = module.DesiredProperties
+                    };
+                }
+            }
+
+            foreach (ModuleConfiguration module in modules)
+            {
+                UpdateConfiguration(module);
+            }
+
+            return new EdgeConfiguration(
+                deviceId,
+                new List<string>(moduleNames),
+                new List<string>(moduleImages),
+                new ConfigurationContent
+                {
+                    ModulesContent = new Dictionary<string, IDictionary<string, object>>(config.ModulesContent)
+                });
+        }
+
         public Task DeployAsync(IotHub iotHub, CancellationToken token)
         {
             return Profiler.Run(
