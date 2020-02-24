@@ -3,6 +3,7 @@ namespace NetworkController
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -34,10 +35,16 @@ namespace NetworkController
                         var satellite = new SatelliteController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
                         var cellular = new CellularController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
                         var controllers = new List<INetworkController>() { offline, satellite, cellular };
-                        await RemoveAllControllingRules(controllers, cts.Token);
 
-                        Log.LogInformation($"Delay {Settings.Current.StartAfter} before starting network controller.");
-                        await Task.Delay(Settings.Current.StartAfter, cts.Token);
+                        // Reset network status before start delay to ensure network status is in designed state before test starts.
+                        var sw = new Stopwatch();
+                        sw.Start();
+                        await RemoveAllControllingRules(controllers, cts.Token);
+                        sw.Stop();
+                        TimeSpan durationBeforeTestStart = Settings.Current.StartAfter <= sw.Elapsed ? TimeSpan.Zero : Settings.Current.StartAfter - sw.Elapsed;
+
+                        Log.LogInformation($"Delay {durationBeforeTestStart} before starting network controller.");
+                        await Task.Delay(durationBeforeTestStart, cts.Token);
                         await ReportTestInfoAsync();
 
                         switch (Settings.Current.NetworkRunProfile.ProfileType)
