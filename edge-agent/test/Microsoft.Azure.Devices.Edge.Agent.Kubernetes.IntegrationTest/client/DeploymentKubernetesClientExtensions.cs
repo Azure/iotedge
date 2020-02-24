@@ -61,12 +61,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
             await client.Kubernetes.ReplaceNamespacedDeploymentAsync(deployment, name, client.DeviceNamespace);
         }
 
-        public static async Task DeleteModuleDeploymentAsync(this KubernetesClient client, string name)
-        {
-            await client.Kubernetes.DeleteNamespacedDeploymentAsync(name, client.DeviceNamespace);
-        }
+        public static async Task DeleteModuleDeploymentAsync(this KubernetesClient client, string name) => await client.Kubernetes.DeleteNamespacedDeploymentAsync(name, client.DeviceNamespace);
 
-        public static async Task<V1DeploymentList> ListDeployments(this KubernetesClient client, string deviceSelector) => await client.Kubernetes.ListNamespacedDeploymentAsync(client.DeviceNamespace, labelSelector: deviceSelector);
+        public static async Task<V1DeploymentList> ListDeploymentsAsync(this KubernetesClient client, string deviceSelector) => await client.Kubernetes.ListNamespacedDeploymentAsync(client.DeviceNamespace, labelSelector: deviceSelector);
 
         public static void DeleteDeployment(this KubernetesClient client, string moduleName) => client.Kubernetes.DeleteNamespacedDeployment(moduleName, client.DeviceNamespace);
     }

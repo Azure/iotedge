@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
 {
     using System;
-    using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -34,12 +33,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
                 pods => pods.Items.Count == count,
                 token);
 
-        public async Task<Option<V1PersistentVolumeClaimList>> WaitUntilAnyPersistentVolumeClaim(CancellationToken token) =>
-           await WaitUntilAsync(
-               () => this.Kubernetes.ListNamespacedPersistentVolumeClaimAsync(this.DeviceNamespace, cancellationToken: token),
-               p => p.Items.Any(),
-               token);
-
         public static async Task<Option<T>> WaitUntilAsync<T>(Func<Task<T>> action, Func<T, bool> predicate, CancellationToken token)
         {
             while (!token.IsCancellationRequested)
@@ -55,21 +48,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
 
             return Option.None<T>();
         }
-
-        
-
-        public Task<V1ServiceAccountList> ListServiceAccounts(string deviceSelector) => this.Kubernetes.ListNamespacedServiceAccountAsync(this.DeviceNamespace, labelSelector: deviceSelector);
-
-        public Task<V1ServiceList> ListServices(string deviceSelector) => this.Kubernetes.ListNamespacedServiceAsync(this.DeviceNamespace, labelSelector: deviceSelector);
-
-        public Task<V1PersistentVolumeClaimList> ListPeristentVolumeClaims() => this.Kubernetes.ListNamespacedPersistentVolumeClaimAsync(this.DeviceNamespace);
-
-        
-
-        public V1Status DeleteServiceAccount(string moduleName) => this.Kubernetes.DeleteNamespacedServiceAccount(moduleName, this.DeviceNamespace);
-
-        public void DeleteService(string moduleName) => this.Kubernetes.DeleteNamespacedService(moduleName, this.DeviceNamespace);
-
-        public void DeletePvc(string persistentVolumeClaimName) => this.Kubernetes.DeleteNamespacedPersistentVolumeClaim(persistentVolumeClaimName, this.DeviceNamespace);
     }
 }
