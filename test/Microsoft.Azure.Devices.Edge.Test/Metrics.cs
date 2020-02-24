@@ -25,20 +25,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public async Task ValidateMetrics()
         {
             CancellationToken token = this.TestToken;
+            await this.Deploy(token);
 
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
-                builder =>
-                {
-                    builder.AddModule("tempSensor999", Context.Current.TempSensorImage.Expect(() => new Exception("Oh no!")))
-                        .WithEnvironment(new[] { ("MessageCount", "1") });
+            var result = await this.iotHub.InvokeMethodAsync(Context.Current.DeviceId, ModuleName, new CloudToDeviceMethod("ValidateMetrics", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token, false);
+            Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
 
-                    builder.GetModule("$edgeHub")
-                        .WithEnvironment(("experimentalfeatures__enabled", "true"));
-                },
-                token);
-
-            EdgeModule sensor = deployment.Modules["tempSensor999"];
-            await sensor.WaitForEventsReceivedAsync(deployment.StartTime, token);
+            string body = result.GetPayloadAsJson();
+            Report report = JsonConvert.DeserializeObject<Report>(body, new JsonSerializerSettings() { DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate });
+            Assert.Zero(report.Failed, body);
         }
 
         class Report
@@ -76,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             edgeHub.WithSettings(("createOptions", "{\"User\":\"ContainerAdministrator\"}"));
                         }
 
-                        builder.GetModule(ConfigModuleName.EdgeAgent)
+                        builder.GetModule("$edgeAgent")
                             .WithEnvironment(
                                 ("experimentalfeatures__enabled", "true"),
                                 ("experimentalfeatures__enableMetrics", "true"),
