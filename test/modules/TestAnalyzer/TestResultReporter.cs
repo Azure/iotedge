@@ -37,7 +37,7 @@ namespace TestAnalyzer
             foreach (KeyValuePair<string, IDictionary<string, Tuple<int, DateTime>>> obj in cache)
             {
                 Logger.LogInformation($"{reportDescription} {obj.Key}");
-                report.Add(new AggregateCloudOperationReport(obj.Key, obj.Value));
+                report.Add(new AggregateCloudOperationReport(obj.Key, obj.Value, Settings.Current.TestInfo));
             }
 
             return report;
@@ -67,7 +67,7 @@ namespace TestAnalyzer
 
             if (batchesSnapshot.Count == 0)
             {
-                return new ModuleMessagesReport(moduleId, StatusCode.NoMessages, totalMessagesCounter, "No messages received for module");
+                return new ModuleMessagesReport(moduleId, StatusCode.NoMessages, totalMessagesCounter, "No messages received for module", Settings.Current.TestInfo);
             }
 
             DateTime lastMessageDateTime = DateTime.MinValue;
@@ -105,12 +105,12 @@ namespace TestAnalyzer
             if (DateTime.Compare(lastMessageDateTime.AddMilliseconds(toleranceInMilliseconds), endDateTime) < 0)
             {
                 Logger.LogInformation($"Module {moduleId}: last message datetime={lastMessageDateTime} and end datetime={endDateTime}");
-                return new ModuleMessagesReport(moduleId, StatusCode.OldMessages, totalMessagesCounter, $"Missing messages: {missingCounter}. No messages received for the past {toleranceInMilliseconds} milliseconds.", lastMessageDateTime, missedMessages);
+                return new ModuleMessagesReport(moduleId, StatusCode.OldMessages, totalMessagesCounter, $"Missing messages: {missingCounter}. No messages received for the past {toleranceInMilliseconds} milliseconds.", lastMessageDateTime, missedMessages, Settings.Current.TestInfo);
             }
 
             return missingCounter > 0
-                ? new ModuleMessagesReport(moduleId, StatusCode.SkippedMessages, totalMessagesCounter, $"Missing messages: {missingCounter}.", lastMessageDateTime, missedMessages)
-                : new ModuleMessagesReport(moduleId, StatusCode.AllMessages, totalMessagesCounter, "All messages received.", lastMessageDateTime);
+                ? new ModuleMessagesReport(moduleId, StatusCode.SkippedMessages, totalMessagesCounter, $"Missing messages: {missingCounter}.", lastMessageDateTime, missedMessages, Settings.Current.TestInfo)
+                : new ModuleMessagesReport(moduleId, StatusCode.AllMessages, totalMessagesCounter, "All messages received.", lastMessageDateTime, Settings.Current.TestInfo);
         }
     }
 }
