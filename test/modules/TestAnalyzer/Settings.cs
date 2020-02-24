@@ -6,6 +6,7 @@ namespace TestAnalyzer
     using System.IO;
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Configuration;
 
     class Settings
     {
