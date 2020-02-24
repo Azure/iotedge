@@ -8,6 +8,7 @@ use futures::{future, Future};
 use hyper::header::{CONTENT_ENCODING, CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
 use log::debug;
+use url::form_urlencoded;
 
 use edgelet_core::RuntimeOperation;
 use edgelet_http::route::{Handler, Parameters};
@@ -27,12 +28,17 @@ impl GetSupportBundle {
 impl Handler<Parameters> for GetSupportBundle {
     fn handle(
         &self,
-        _req: Request<Body>,
-        params: Parameters,
+        req: Request<Body>,
+        _params: Parameters,
     ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         debug!("Get Support Bundle");
 
-        let response = get_bundle(&params)
+        let query = req
+        .uri()
+        .query()
+        .unwrap_or("");
+
+        let response = get_bundle(query)
             .and_then(|bundle: String| {
                 Response::builder()
                     .status(StatusCode::OK)
@@ -54,15 +60,17 @@ impl Handler<Parameters> for GetSupportBundle {
     }
 }
 
-fn get_bundle(params: &Parameters) -> Result<String, Error> {
+fn get_bundle(query: &str) -> Result<String, Error> {
+    let parse: Vec<_> = form_urlencoded::parse(query.as_bytes()).collect();
+
     let mut command = Command::new("iotedge");
-    if let Some(host) = params.name("host") {
-        command.args(&["-H", &host]);
+    if let Some((_, host)) = parse.iter().find(|&(ref key, _)| key == "host") {
+        command.args(&["-H", host]);
     }
     command.arg("support-bundle");
     command.args(&["-o", "-"]);
-    if let Some(since) = params.name("since") {
-        command.args(&["--since", &since]);
+    if let Some((_, since)) = parse.iter().find(|&(ref key, _)| key == "since") {
+        command.args(&["--since", since]);
     }
 
     let response = command.output().context(ErrorKind::RuntimeOperation(
@@ -70,7 +78,7 @@ fn get_bundle(params: &Parameters) -> Result<String, Error> {
     ))?;
 
     str::from_utf8(&response.stdout)
-        .map(|s| s.to_owned())
+        .map(std::borrow::ToOwned::to_owned)
         .map_err(|_err| {
             Error::from(ErrorKind::RuntimeOperation(
                 RuntimeOperation::GetModuleLogs("".to_owned()),
