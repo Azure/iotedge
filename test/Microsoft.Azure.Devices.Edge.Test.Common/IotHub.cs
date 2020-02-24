@@ -106,8 +106,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public Task DeployDeviceConfigurationAsync(
             string deviceId,
             ConfigurationContent config,
-            CancellationToken token) => this.RegistryManager.ApplyConfigurationContentOnDeviceAsync(deviceId, config, token);
-
+            CancellationToken token)
+        {
+            Log.Information(">>> DEPLOYING CONFIG:\n{Config}\n=====\n", JsonConvert.SerializeObject(config, Formatting.Indented));
+            return this.RegistryManager.ApplyConfigurationContentOnDeviceAsync(deviceId, config, token);
+        }
         public Task<Twin> GetTwinAsync(
             string deviceId,
             string moduleId,
