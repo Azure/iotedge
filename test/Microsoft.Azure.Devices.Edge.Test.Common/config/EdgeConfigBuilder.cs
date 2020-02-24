@@ -79,22 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             List<ModuleConfiguration> modules = moduleConfigs["system"].ToList();
             modules.Insert(0, this.BuildEdgeAgent(modules));
 
-            yield return new EdgeConfiguration(
-                this.deviceId,
-                modules.Select(m => m.Name).ToArray(),
-                modules.Select(m => m.Image).ToArray(),
-                new ConfigurationContent
-                {
-                    ModulesContent = modules
-                        .Where(m => m.DesiredProperties.Count != 0)
-                        .Select(m => new KeyValuePair<string, IDictionary<string, object>>(
-                            m.Name,
-                            new Dictionary<string, object>
-                            {
-                                ["properties.desired"] = m.DesiredProperties
-                            }))
-                        .ToDictionary(x => x.Key, x => x.Value)
-                });
+            yield return EdgeConfiguration.Create(this.deviceId, modules);
 
             if (moduleConfigs.Contains("other"))
             {
@@ -102,22 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 modules = moduleConfigs.SelectMany(m => m).ToList();
                 modules.Insert(0, this.BuildEdgeAgent(modules));
 
-                yield return new EdgeConfiguration(
-                    this.deviceId,
-                    modules.Select(m => m.Name).ToArray(),
-                    modules.Select(m => m.Image).ToArray(),
-                    new ConfigurationContent
-                    {
-                        ModulesContent = modules
-                            .Where(m => m.DesiredProperties.Count != 0)
-                            .Select(m => new KeyValuePair<string, IDictionary<string, object>>(
-                                m.Name,
-                                new Dictionary<string, object>
-                                {
-                                    ["properties.desired"] = m.DesiredProperties
-                                }))
-                            .ToDictionary(x => x.Key, x => x.Value)
-                    });
+                yield return EdgeConfiguration.Create(this.deviceId, modules);
             }
         }
 
