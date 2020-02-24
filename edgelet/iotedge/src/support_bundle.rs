@@ -126,24 +126,6 @@ where
             iothub_hostname: self.iothub_hostname,
             file_options,
             zip_writer,
-            output_location: self.output_location,
-        })
-    }
-
-    fn make_vector_state(self) -> Result<BundleState<M, Cursor<Vec<u8>>>, Error> {
-        let file_options = FileOptions::default().compression_method(CompressionMethod::Deflated);
-
-        let zip_writer = ZipWriter::new(Cursor::new(Vec::new()));
-
-        Ok(BundleState {
-            runtime: self.runtime,
-            log_options: self.log_options,
-            include_ms_only: self.include_ms_only,
-            verbose: self.verbose,
-            iothub_hostname: self.iothub_hostname,
-            file_options,
-            zip_writer,
-            output_location: self.output_location,
         })
     }
 
@@ -254,7 +236,6 @@ where
             iothub_hostname,
             file_options,
             mut zip_writer,
-            output_location,
         } = state;
 
         let file_name = format!("{}_log.txt", module_name);
@@ -272,7 +253,6 @@ where
                         iothub_hostname,
                         file_options,
                         zip_writer: zw,
-                        output_location,
                     };
                     state.print_verbose(&format!("Wrote {} logs to file", module_name));
                     state
