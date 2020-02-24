@@ -8,14 +8,13 @@ namespace MetricsValidator.Tests
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using MetricsValidator.Util;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Extensions.Logging;
 
     public class ValidateHostRanges : TestBase
     {
-        readonly string endpoint = Guid.NewGuid().ToString();
-
         public ValidateHostRanges(TestReporter testReporter, IMetricsScraper scraper, ModuleClient moduleClient)
             : base(testReporter, scraper, moduleClient)
         {
@@ -23,6 +22,8 @@ namespace MetricsValidator.Tests
 
         protected override async Task Test(CancellationToken cancellationToken)
         {
+            await HostMetricUtil.WaitForHostMetrics(this.scraper, cancellationToken);
+
             List<Metric> metrics = (await this.scraper.ScrapeEndpointsAsync(cancellationToken)).ToList();
             this.CheckCPU(metrics);
             this.CheckMemory(metrics);
@@ -38,10 +39,10 @@ namespace MetricsValidator.Tests
                 var cpuMetrics = metrics.Where(m => m.Name == cpuMetricName);
                 reporter.Assert($"{cpuMetricName} metric exists", cpuMetrics.Any(), $"Missing {cpuMetricName}");
 
-                var hostCpu = cpuMetrics.Where(m => m.Tags.TryGetValue("module", out string module) && module == "host").ToDictionary(m => m.Tags["quantile"], m => m.Value);
+                var hostCpu = cpuMetrics.Where(m => m.Tags.TryGetValue("module_name", out string module) && module == "host").ToDictionary(m => m.Tags["quantile"], m => m.Value);
                 reporter.Assert("Host has all quantiles", hostCpu.Count == 6, $"Host had the following quantiles: {string.Join(", ", hostCpu.Keys)}");
 
-                var moduleCpu = cpuMetrics.Where(m => m.Tags.TryGetValue("module", out string module) && module != "host").ToList();
+                var moduleCpu = cpuMetrics.Where(m => m.Tags.TryGetValue("module_name", out string module) && module != "host").ToList();
                 reporter.Assert("At least 1 docker module reports cpu", moduleCpu.Any(), $"No modules reported cpu");
 
                 foreach (var hostCpuQuartile in hostCpu)
@@ -51,7 +52,7 @@ namespace MetricsValidator.Tests
                     var moduleQuartile = moduleCpu.Where(m => m.Tags["quantile"] == hostCpuQuartile.Key);
                     foreach (var module in moduleQuartile)
                     {
-                        reporter.Assert($"{hostCpuQuartile.Key} {module.Tags["module"]} CPU <= {hostCpuQuartile.Key} host CPU", module.Value <= hostCpuQuartile.Value);
+                        reporter.Assert($"{hostCpuQuartile.Key} {module.Tags["module_name"]} CPU <= {hostCpuQuartile.Key} host CPU", module.Value <= hostCpuQuartile.Value);
                     }
                 }
             }
@@ -72,8 +73,8 @@ namespace MetricsValidator.Tests
                     reporter.Assert($"Disk {avaliable.Key} total space > avaliable space", total > avaliable.Value, $"\n\tTotal: {total}\n\tAvaliable:{avaliable.Value}");
                 }
 
-                var usedMemory = metrics.Where(m => m.Name == "edgeAgent_used_memory_bytes").ToDictionary(m => m.Tags["module"], m => m.Value);
-                var totalMemory = metrics.Where(m => m.Name == "edgeAgent_total_memory_bytes").ToDictionary(m => m.Tags["module"], m => m.Value);
+                var usedMemory = metrics.Where(m => m.Name == "edgeAgent_used_memory_bytes").ToDictionary(m => m.Tags["module_name"], m => m.Value);
+                var totalMemory = metrics.Where(m => m.Name == "edgeAgent_total_memory_bytes").ToDictionary(m => m.Tags["module_name"], m => m.Value);
 
                 if (!usedMemory.ContainsKey("host") && totalMemory.ContainsKey("host"))
                 {

@@ -40,7 +40,6 @@ where
     iothub_hostname: Option<String>,
     file_options: FileOptions,
     zip_writer: ZipWriter<W>,
-    output_location: OutputLocation,
 }
 
 impl<M> Command for SupportBundle<M>
@@ -52,10 +51,10 @@ where
     fn execute(self) -> Self::Future {
         println!("Making support bundle");
 
-        match self.output_location {
-            OutputLocation::File(_) => Box::new(
-                Self::bundle_all(future::result(self.make_file_state())).map(|state| {
-                    let path = PathBuf::from(state.output_location.get_file_location());
+        match self.output_location.clone() {
+            OutputLocation::File(location) => Box::new(
+                Self::bundle_all(future::result(self.make_file_state())).map(|_state| {
+                    let path = PathBuf::from(location);
                     println!(
                         "Created support bundle at {}",
                         path.canonicalize().unwrap_or_else(|_| path).display()
@@ -102,12 +101,22 @@ where
     }
 
     fn make_file_state(self) -> Result<BundleState<M, File>, Error> {
-        let file_options = FileOptions::default().compression_method(CompressionMethod::Deflated);
+        let writer = File::create(Path::new(self.output_location.get_file_location()))
+            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
-        let zip_writer = ZipWriter::new(
-            File::create(Path::new(self.output_location.get_file_location()))
-                .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?,
-        );
+        self.make_state(writer)
+    }
+
+    fn make_vector_state(self) -> Result<BundleState<M, Cursor<Vec<u8>>>, Error> {
+        self.make_state(Cursor::new(Vec::new()))
+    }
+
+    fn make_state<W>(self, writer: W) -> Result<BundleState<M, W>, Error>
+    where
+        W: Write + Seek + Send,
+    {
+        let file_options = FileOptions::default().compression_method(CompressionMethod::Deflated);
+        let zip_writer = ZipWriter::new(writer);
 
         Ok(BundleState {
             runtime: self.runtime,
@@ -144,14 +153,15 @@ where
         W: Write + Seek + Send,
     {
         state
-            .and_then(Self::write_all_logs)
-            .and_then(Self::write_edgelet_log_to_file)
-            .and_then(Self::write_docker_log_to_file)
-            .and_then(Self::write_check_to_file)
+            .and_then(Self::write_check)
+            .and_then(Self::write_module_logs)
+            .and_then(Self::write_edgelet_log)
+            .and_then(Self::write_docker_log)
             .and_then(Self::write_all_inspects)
             .and_then(Self::write_all_network_inspects)
     }
-    fn write_all_logs<W>(
+
+    fn write_module_logs<W>(
         state: BundleState<M, W>,
     ) -> impl Future<Item = BundleState<M, W>, Error = Error>
     where
@@ -270,9 +280,7 @@ where
             })
     }
 
-    fn write_edgelet_log_to_file<W>(
-        mut state: BundleState<M, W>,
-    ) -> Result<BundleState<M, W>, Error>
+    fn write_edgelet_log<W>(mut state: BundleState<M, W>) -> Result<BundleState<M, W>, Error>
     where
         W: Write + Seek + Send,
     {
@@ -327,7 +335,7 @@ where
         Ok(state)
     }
 
-    fn write_docker_log_to_file<W>(mut state: BundleState<M, W>) -> Result<BundleState<M, W>, Error>
+    fn write_docker_log<W>(mut state: BundleState<M, W>) -> Result<BundleState<M, W>, Error>
     where
         W: Write + Seek + Send,
     {
@@ -385,7 +393,7 @@ where
         Ok(state)
     }
 
-    fn write_check_to_file<W>(mut state: BundleState<M, W>) -> Result<BundleState<M, W>, Error>
+    fn write_check<W>(mut state: BundleState<M, W>) -> Result<BundleState<M, W>, Error>
     where
         W: Write + Seek + Send,
     {
