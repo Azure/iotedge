@@ -38,23 +38,21 @@ namespace MetricsValidator
         public async Task Start(CancellationToken cancellationToken)
         {
             log.LogInformation($"Starting test {this.TestName}");
-            Stopwatch stopwatch = Stopwatch.StartNew();
 
-            try
+            using (this.testReporter.MeasureDuration())
             {
-                await this.Test(cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                log.LogError(ex, $"{this.TestName} Failed");
-                this.testReporter.Assert("Test doesn't break", false, $"Test threw exception:\n{ex}");
-            }
-            finally
-            {
-                stopwatch.Stop();
+                try
+                {
+                    await this.Test(cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    log.LogError(ex, $"{this.TestName} Failed");
+                    this.testReporter.Assert("Test doesn't break", false, $"Test threw exception:\n{ex}");
+                }
             }
 
-            log.LogInformation($"Finished test {this.TestName} in {stopwatch.ElapsedMilliseconds} ms.");
+            log.LogInformation($"Finished test {this.TestName} in {this.testReporter.Duration}.");
         }
 
         protected abstract Task Test(CancellationToken cancellationToken);

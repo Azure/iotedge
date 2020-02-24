@@ -27,10 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             CancellationToken token = this.TestToken;
             await this.Deploy(token);
 
-            // System resource metrics take 1 minute to start. Wait before testing
-            await Task.Delay(TimeSpan.FromMinutes(1.1));
-
-            var result = await this.iotHub.InvokeMethodAsync(Context.Current.DeviceId, ModuleName, new CloudToDeviceMethod("ValidateMetrics"), token);
+            var result = await this.iotHub.InvokeMethodAsync(Context.Current.DeviceId, ModuleName, new CloudToDeviceMethod("ValidateMetrics", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token, false);
             Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
 
             string body = result.GetPayloadAsJson();
@@ -57,15 +54,27 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                         var edgeHub = builder.GetModule(ConfigModuleName.EdgeHub)
                             .WithEnvironment(("experimentalfeatures__enabled", "true"), ("experimentalfeatures__enableMetrics", "true"))
-                            .WithDesiredProperties(new Dictionary<string, object> { { "routes", new { All = "FROM /messages/* INTO $upstream" } } });
+                            .WithDesiredProperties(new Dictionary<string, object>
+                            {
+                                {
+                                    "routes", new
+                                    {
+                                        All = "FROM /messages/* INTO $upstream",
+                                        QueueLengthTest = "FROM /messages/modules/MetricsValidator/outputs/ToSelf INTO BrokeredEndpoint(\"/modules/MetricsValidator/inputs/FromSelf\")"
+                                    }
+                                }
+                            });
                         if (OsPlatform.IsWindows())
                         {
                             // Note: This overwrites the default port mapping. This if fine for this test.
                             edgeHub.WithSettings(("createOptions", "{\"User\":\"ContainerAdministrator\"}"));
                         }
 
-                        builder.GetModule(ConfigModuleName.EdgeAgent)
-                            .WithEnvironment(("experimentalfeatures__enabled", "true"), ("experimentalfeatures__enableMetrics", "true"));
+                        builder.GetModule("$edgeAgent")
+                            .WithEnvironment(
+                                ("experimentalfeatures__enabled", "true"),
+                                ("experimentalfeatures__enableMetrics", "true"),
+                                ("PerformanceMetricsUpdateFrequency", "00:00:20"));
                     }, token);
         }
     }
