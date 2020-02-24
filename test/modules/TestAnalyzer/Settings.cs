@@ -17,8 +17,23 @@ namespace TestAnalyzer
 
         internal static Settings Current = Create();
 
-        Settings(string eventHubConnectionString, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance, bool logAnalyticsEnabled, string logAnalyticsWorkspaceIdName, string logAnalyticsSharedKeyName, string logAnalyticsLogTypeName, string storagePath, bool storageOptimizeForPerformance)
+        Settings(
+            string eventHubConnectionString,
+            string consumerGroupId,
+            string deviceId,
+            IList<string> excludedModuleIds,
+            string webhostPort,
+            double tolerance,
+            bool logAnalyticsEnabled,
+            string logAnalyticsWorkspaceIdName,
+            string logAnalyticsSharedKeyName,
+            string logAnalyticsLogTypeName,
+            string storagePath,
+            bool storageOptimizeForPerformance,
+            string testInfo)
         {
+            Preconditions.CheckNonWhiteSpace(testInfo, nameof(testInfo));
+
             this.EventHubConnectionString = Preconditions.CheckNonWhiteSpace(eventHubConnectionString, nameof(eventHubConnectionString));
             this.ConsumerGroupId = Preconditions.CheckNonWhiteSpace(consumerGroupId, nameof(consumerGroupId));
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -26,6 +41,7 @@ namespace TestAnalyzer
             this.WebhostPort = Preconditions.CheckNonWhiteSpace(webhostPort, nameof(webhostPort));
             this.ToleranceInMilliseconds = Preconditions.CheckRange(tolerance, 0);
             this.StoragePath = storagePath;
+            this.TestInfo = testInfo.Split(",", StringSplitOptions.RemoveEmptyEntries);
             this.OptimizeForPerformance = Preconditions.CheckNotNull(storageOptimizeForPerformance);
             this.LogAnalyticsEnabled = logAnalyticsEnabled;
             this.LogAnalyticsWorkspaceId = logAnalyticsWorkspaceIdName;
@@ -55,7 +71,8 @@ namespace TestAnalyzer
                 configuration.GetValue<string>("LogAnalyticsSharedKey"),
                 configuration.GetValue<string>("LogAnalyticsLogType"),
                 configuration.GetValue<string>("storagePath", DefaultStoragePath),
-                configuration.GetValue<bool>("StorageOptimizeForPerformance", true));
+                configuration.GetValue<bool>("StorageOptimizeForPerformance", true),
+                configuration.GetValue<string>("TestInfo"));
         }
 
         public string EventHubConnectionString { get; }
@@ -71,6 +88,8 @@ namespace TestAnalyzer
         public double ToleranceInMilliseconds { get; }
 
         public string StoragePath { get; }
+
+        public string[] TestInfo { get; }
 
         public bool OptimizeForPerformance { get; }
 
