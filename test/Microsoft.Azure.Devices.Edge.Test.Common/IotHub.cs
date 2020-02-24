@@ -146,23 +146,31 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string deviceId,
             string moduleId,
             CloudToDeviceMethod method,
-            CancellationToken token)
+            CancellationToken token,
+            bool retry = true)
         {
-            return Retry.Do(
-                () => this.ServiceClient.InvokeDeviceMethodAsync(deviceId, moduleId, method, token),
-                result =>
-                {
-                    Log.Verbose($"Method '{method.MethodName}' on '{deviceId}/{moduleId}' returned: " +
-                        $"{result.Status}\n{result.GetPayloadAsJson()}");
-                    return result.Status == 200;
-                },
-                e =>
+            if (retry)
+            {
+                return Retry.Do(
+                    () => this.ServiceClient.InvokeDeviceMethodAsync(deviceId, moduleId, method, token),
+                    result =>
                     {
-                        Log.Verbose($"Exception: {e}");
-                        return true;
+                        Log.Verbose($"Method '{method.MethodName}' on '{deviceId}/{moduleId}' returned: " +
+                            $"{result.Status}\n{result.GetPayloadAsJson()}");
+                        return result.Status == 200;
                     },
-                TimeSpan.FromSeconds(5),
-                token);
+                    e =>
+                        {
+                            Log.Verbose($"Exception: {e}");
+                            return true;
+                        },
+                    TimeSpan.FromSeconds(5),
+                    token);
+            }
+            else
+            {
+                return this.ServiceClient.InvokeDeviceMethodAsync(deviceId, moduleId, method, token);
+            }
         }
 
         public async Task ReceiveEventsAsync(
