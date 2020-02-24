@@ -231,7 +231,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                                 idleTimeout,
                                 kubernetesExperimentalFeatures,
                                 moduleOwner,
-                                runAsNonRoot));
+                                runAsNonRoot,
+                                useServerHeartbeat));
 
                         break;
 

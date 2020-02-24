@@ -63,6 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly KubernetesExperimentalFeatures experimentalFeatures;
         readonly KubernetesModuleOwner moduleOwner;
         readonly bool runAsNonRoot;
+        readonly bool useServerHeartbeat;
 
         public KubernetesModule(
             string iotHubHostname,
@@ -93,7 +94,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             TimeSpan idleTimeout,
             KubernetesExperimentalFeatures experimentalFeatures,
             KubernetesModuleOwner moduleOwner,
-            bool runAsNonRoot)
+            bool runAsNonRoot,
+            bool useServerHeartbeat)
         {
             this.resourceName = new ResourceName(iotHubHostname, deviceId);
             this.edgeDeviceHostName = Preconditions.CheckNonWhiteSpace(edgeDeviceHostName, nameof(edgeDeviceHostName));
@@ -124,6 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.experimentalFeatures = experimentalFeatures;
             this.moduleOwner = moduleOwner;
             this.runAsNonRoot = runAsNonRoot;
+            this.useServerHeartbeat = useServerHeartbeat;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -161,7 +164,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         this.proxy,
                         this.productInfo.OrDefault(),
                         this.closeOnIdleTimeout,
-                        this.idleTimeout))
+                        this.idleTimeout,
+                        this.useServerHeartbeat))
                 .As<IModuleClientProvider>()
                 .SingleInstance();
 

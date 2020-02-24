@@ -102,7 +102,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Option.None<IWebProxy>(),
                 null,
                 closeOnIdleTimeout,
-                idleTimeout));
+                idleTimeout,
+                false));
         }
 
         [Theory]
