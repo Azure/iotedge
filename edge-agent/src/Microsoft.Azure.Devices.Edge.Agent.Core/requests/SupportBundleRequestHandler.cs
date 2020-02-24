@@ -13,6 +13,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 
     public class SupportBundleRequestHandler : RequestHandlerBase<SupportBundleRequest, TaskStatusResponse>
     {
+        public delegate Task<Stream> GetSupportBundle(Option<string> since, Option<bool> edgeRuntimeOnly, CancellationToken token);
+
+        readonly GetSupportBundle getSupportBundle;
+        readonly IAzureBlobUploader azureBlobUploader;
+
+        public SupportBundleRequestHandler(GetSupportBundle getSupportBundle)
+        {
+            this.getSupportBundle = getSupportBundle;
+        }
+
         public override string RequestName => "UploadSupportBundle";
 
         protected override async Task<Option<TaskStatusResponse>> HandleRequestInternal(Option<SupportBundleRequest> payload, CancellationToken cancellationToken)

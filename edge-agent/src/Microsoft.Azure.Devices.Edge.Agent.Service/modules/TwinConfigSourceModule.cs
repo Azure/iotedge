@@ -127,12 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         async c =>
                         {
                             await Task.Yield();
-                            // var logsUploader = c.Resolve<ILogsUploader>();
-                            // var runtimeInfoProviderTask = c.Resolve<Task<IRuntimeInfoProvider>>();
-                            // var logsProviderTask = c.Resolve<Task<ILogsProvider>>();
-                            // IRuntimeInfoProvider runtimeInfoProvider = await runtimeInfoProviderTask;
-                            // ILogsProvider logsProvider = await logsProviderTask;
-                            return new SupportBundleRequestHandler() as IRequestHandler;
+                            return new SupportBundleRequestHandler(c.Resolve<IModuleManager>().GetSupportBundle) as IRequestHandler;
                         })
                     .As<Task<IRequestHandler>>()
                     .SingleInstance();
