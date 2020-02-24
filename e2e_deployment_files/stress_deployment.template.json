@@ -305,6 +305,9 @@
               },
               "Logging:LogLevel:Microsoft": {
                 "value": "Error"
+              },
+              "TestInfo": {
+                "value": "<Analyzer.TestInfo>"
               }
             },
             "settings": {
