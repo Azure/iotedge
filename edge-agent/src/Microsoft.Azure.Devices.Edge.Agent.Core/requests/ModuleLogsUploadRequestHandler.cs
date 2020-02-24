@@ -15,14 +15,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
     {
         static readonly Version ExpectedSchemaVersion = new Version("1.0");
 
-        readonly ILogsUploader logsUploader;
+        readonly IRequestsUploader requestsUploader;
         readonly ILogsProvider logsProvider;
         readonly IRuntimeInfoProvider runtimeInfoProvider;
 
-        public ModuleLogsUploadRequestHandler(ILogsUploader logsUploader, ILogsProvider logsProvider, IRuntimeInfoProvider runtimeInfoProvider)
+        public ModuleLogsUploadRequestHandler(IRequestsUploader requestsUploader, ILogsProvider logsProvider, IRuntimeInfoProvider runtimeInfoProvider)
         {
             this.logsProvider = Preconditions.CheckNotNull(logsProvider, nameof(logsProvider));
-            this.logsUploader = Preconditions.CheckNotNull(logsUploader, nameof(logsUploader));
+            this.requestsUploader = Preconditions.CheckNotNull(requestsUploader, nameof(requestsUploader));
             this.runtimeInfoProvider = Preconditions.CheckNotNull(runtimeInfoProvider, nameof(runtimeInfoProvider));
         }
 
@@ -69,11 +69,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             if (moduleLogOptions.ContentType == LogsContentType.Json)
             {
                 byte[] logBytes = await this.logsProvider.GetLogs(id, moduleLogOptions, token);
-                await this.logsUploader.Upload(sasUrl, id, logBytes, moduleLogOptions.ContentEncoding, moduleLogOptions.ContentType);
+                await this.requestsUploader.UploadLogs(sasUrl, id, logBytes, moduleLogOptions.ContentEncoding, moduleLogOptions.ContentType);
             }
             else if (moduleLogOptions.ContentType == LogsContentType.Text)
             {
-                Func<ArraySegment<byte>, Task> uploaderCallback = await this.logsUploader.GetUploaderCallback(sasUrl, id, moduleLogOptions.ContentEncoding, moduleLogOptions.ContentType);
+                Func<ArraySegment<byte>, Task> uploaderCallback = await this.requestsUploader.GetLogsUploaderCallback(sasUrl, id, moduleLogOptions.ContentEncoding, moduleLogOptions.ContentType);
                 await this.logsProvider.GetLogsStream(id, moduleLogOptions, uploaderCallback, token);
             }
 

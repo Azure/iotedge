@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class SupportBundleRequestHandler : RequestHandlerBase<SupportBundleRequest, TaskStatusResponse>
@@ -16,21 +17,30 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
         public delegate Task<Stream> GetSupportBundle(Option<string> since, Option<bool> edgeRuntimeOnly, CancellationToken token);
 
         readonly GetSupportBundle getSupportBundle;
-        readonly IAzureBlobUploader azureBlobUploader;
+        readonly IRequestsUploader requestsUploader;
 
-        public SupportBundleRequestHandler(GetSupportBundle getSupportBundle)
+        public SupportBundleRequestHandler(GetSupportBundle getSupportBundle, IRequestsUploader requestsUploader)
         {
             this.getSupportBundle = getSupportBundle;
+            this.requestsUploader = requestsUploader;
         }
 
         public override string RequestName => "UploadSupportBundle";
 
-        protected override async Task<Option<TaskStatusResponse>> HandleRequestInternal(Option<SupportBundleRequest> payload, CancellationToken cancellationToken)
+        protected override Task<Option<TaskStatusResponse>> HandleRequestInternal(Option<SupportBundleRequest> payloadOption, CancellationToken cancellationToken)
         {
-            await Task.Yield();
+            SupportBundleRequest payload = payloadOption.Expect(() => new ArgumentException("Request payload not found"));
 
-            (string correlationId, BackgroundTaskStatus status) = BackgroundTask.Run(() => Task.CompletedTask, "upload logs", cancellationToken);
-            return Option.Some(TaskStatusResponse.Create(correlationId, status));
+            (string correlationId, BackgroundTaskStatus status) = BackgroundTask.Run(
+                async () =>
+                    {
+                        Stream source = await this.getSupportBundle(payload.Since, payload.EdgeRuntimeOnly, cancellationToken);
+                        await this.requestsUploader.UploadSupportBundle(payload.SasUrl, source);
+                    },
+                "upload support bundle",
+                cancellationToken);
+
+            return Task.FromResult(Option.Some(TaskStatusResponse.Create(correlationId, status)));
         }
     }
 }

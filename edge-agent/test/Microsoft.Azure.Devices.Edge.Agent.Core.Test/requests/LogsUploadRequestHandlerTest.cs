@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         public async Task TestLogsUploadRequest(string payload, string id, string sasUrl, LogsContentEncoding contentEncoding, LogsContentType contentType, ModuleLogFilter filter)
         {
             // Arrange
-            var logsUploader = new Mock<ILogsUploader>();
+            var logsUploader = new Mock<IRequestsUploader>();
             var logsProvider = new Mock<ILogsProvider>();
             var uploadBytes = new byte[100];
             var moduleLogOptions = new ModuleLogOptions(contentEncoding, contentType, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             if (contentType == LogsContentType.Text)
             {
                 Func<ArraySegment<byte>, Task> getLogsCallback = bytes => Task.CompletedTask;
-                logsUploader.Setup(l => l.GetUploaderCallback(sasUrl, id, contentEncoding, contentType))
+                logsUploader.Setup(l => l.GetLogsUploaderCallback(sasUrl, id, contentEncoding, contentType))
                     .ReturnsAsync(getLogsCallback);
                 logsProvider.Setup(l => l.GetLogsStream(id, moduleLogOptions, getLogsCallback, It.IsAny<CancellationToken>()))
                     .Returns(Task.CompletedTask);
@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             {
                 logsProvider.Setup(l => l.GetLogs(id, moduleLogOptions, It.IsAny<CancellationToken>()))
                     .ReturnsAsync(uploadBytes);
-                logsUploader.Setup(l => l.Upload(sasUrl, id, uploadBytes, contentEncoding, contentType))
+                logsUploader.Setup(l => l.UploadLogs(sasUrl, id, uploadBytes, contentEncoding, contentType))
                     .Returns(Task.CompletedTask);
             }
 
@@ -129,28 +129,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             runtimeInfoProvider.Setup(r => r.GetModules(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(moduleRuntimeInfoList);
 
-            var logsUploader = new Mock<ILogsUploader>();
+            var logsUploader = new Mock<IRequestsUploader>();
             var logsProvider = new Mock<ILogsProvider>();
 
             var module1LogOptions = new ModuleLogOptions(contentEncoding, contentType, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
             var mod1LogBytes = new byte[100];
             logsProvider.Setup(l => l.GetLogs(mod1, module1LogOptions, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(mod1LogBytes);
-            logsUploader.Setup(l => l.Upload(sasUrl, mod1, mod1LogBytes, contentEncoding, contentType))
+            logsUploader.Setup(l => l.UploadLogs(sasUrl, mod1, mod1LogBytes, contentEncoding, contentType))
                 .Returns(Task.CompletedTask);
 
             var module2LogOptions = new ModuleLogOptions(contentEncoding, contentType, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
             var mod2LogBytes = new byte[80];
             logsProvider.Setup(l => l.GetLogs(mod2, module2LogOptions, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(mod2LogBytes);
-            logsUploader.Setup(l => l.Upload(sasUrl, mod2, mod2LogBytes, contentEncoding, contentType))
+            logsUploader.Setup(l => l.UploadLogs(sasUrl, mod2, mod2LogBytes, contentEncoding, contentType))
                 .Returns(Task.CompletedTask);
 
             var module3LogOptions = new ModuleLogOptions(contentEncoding, contentType, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
             var mod3LogBytes = new byte[120];
             logsProvider.Setup(l => l.GetLogs(mod3, module3LogOptions, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(mod3LogBytes);
-            logsUploader.Setup(l => l.Upload(sasUrl, mod3, mod3LogBytes, contentEncoding, contentType))
+            logsUploader.Setup(l => l.UploadLogs(sasUrl, mod3, mod3LogBytes, contentEncoding, contentType))
                 .Returns(Task.CompletedTask);
 
             // Act
@@ -197,7 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         public async Task TestLogsUploadRequestWithInvalidSchemaVersion(string payload, Type exception)
         {
             // Arrange
-            var logsUploader = new Mock<ILogsUploader>();
+            var logsUploader = new Mock<IRequestsUploader>();
             var logsProvider = new Mock<ILogsProvider>();
 
             var runtimeInfoProvider = Mock.Of<IRuntimeInfoProvider>();

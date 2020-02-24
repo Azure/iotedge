@@ -58,8 +58,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         protected override void Load(ContainerBuilder builder)
         {
             // ILogsUploader
-            builder.Register(c => new AzureBlobLogsUploader(this.iotHubHostName, this.deviceId))
-                .As<ILogsUploader>()
+            builder.Register(c => new AzureBlobRequestsUploader(this.iotHubHostName, this.deviceId))
+                .As<IRequestsUploader>()
                 .SingleInstance();
 
             // Task<ILogsProvider>
@@ -93,12 +93,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 builder.Register(
                         async c =>
                         {
-                            var logsUploader = c.Resolve<ILogsUploader>();
+                            var requestUploader = c.Resolve<IRequestsUploader>();
                             var runtimeInfoProviderTask = c.Resolve<Task<IRuntimeInfoProvider>>();
                             var logsProviderTask = c.Resolve<Task<ILogsProvider>>();
                             IRuntimeInfoProvider runtimeInfoProvider = await runtimeInfoProviderTask;
                             ILogsProvider logsProvider = await logsProviderTask;
-                            return new ModuleLogsUploadRequestHandler(logsUploader, logsProvider, runtimeInfoProvider) as IRequestHandler;
+                            return new ModuleLogsUploadRequestHandler(requestUploader, logsProvider, runtimeInfoProvider) as IRequestHandler;
                         })
                     .As<Task<IRequestHandler>>()
                     .SingleInstance();
@@ -127,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         async c =>
                         {
                             await Task.Yield();
-                            return new SupportBundleRequestHandler(c.Resolve<IModuleManager>().GetSupportBundle) as IRequestHandler;
+                            return new SupportBundleRequestHandler(c.Resolve<IModuleManager>().GetSupportBundle, c.Resolve<IRequestsUploader>()) as IRequestHandler;
                         })
                     .As<Task<IRequestHandler>>()
                     .SingleInstance();
