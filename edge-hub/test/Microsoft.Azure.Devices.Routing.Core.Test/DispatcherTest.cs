@@ -268,7 +268,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
 
             var endpoint1 = new TestEndpoint(endpointId1);
             var endpoint2 = new TestEndpoint(endpointId2);
-            var endpoints = new HashSet<(Endpoint, IList<uint>)> { (endpoint1, new List<uint>() { DefaultPriority }), (endpoint2, new List<uint>() { DefaultPriority }) };
+            var endpoints = new Dictionary<Endpoint, IList<uint>>
+            {
+                { endpoint1, new List<uint>() { DefaultPriority } },
+                { endpoint2, new List<uint>() { DefaultPriority } }
+            };
             Dispatcher dispatcher1 = await Dispatcher.CreateAsync(dispatcherId, "hub", endpoints, SyncExecutorFactory, store.Object);
 
             Assert.Equal(Option.Some(21L), dispatcher1.Offset);
@@ -294,7 +298,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
 
             await dispatcher1.CloseAsync(CancellationToken.None);
 
-            Dispatcher dispatcher2 = await Dispatcher.CreateAsync(Guid.NewGuid().ToString(), "hub", new HashSet<(Endpoint, IList<uint>)>(), SyncExecutorFactory);
+            Dispatcher dispatcher2 = await Dispatcher.CreateAsync(Guid.NewGuid().ToString(), "hub", new Dictionary<Endpoint, IList<uint>>(), SyncExecutorFactory);
             Assert.Equal(Option.None<long>(), dispatcher2.Offset);
             await dispatcher2.CloseAsync(CancellationToken.None);
         }
