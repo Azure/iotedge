@@ -13,7 +13,7 @@ namespace NetworkController
 
         public static string GetShowRules(string networkInterfaceName) => $"qdisc show dev {networkInterfaceName}";
 
-        public static string GetIpFilter(string networkInterfaceName, IPAddress[] iothubAddresses) => $"filter add dev {networkInterfaceName} parent 1:0 protocol ip u32 match ip src {iothubAddresses[0]} flowid 1:2";
+        public static string GetIpFilter(string networkInterfaceName, IPAddress[] iothubAddresses) => $"filter add dev {networkInterfaceName} parent 1:1 protocol ip u32 match ip src {iothubAddresses[0]} flowid 1:2";
 
         public static string GetNetworkEmulatorAddRule(string networkInterfaceName, NetworkProfileSetting settings) => $"qdisc add dev {networkInterfaceName} parent 1:2 handle 20: netem loss {settings.PackageLoss}% delay {settings.Delay}ms {settings.Jitter}ms rate {settings.Bandwidth}{settings.BandwidthUnit}";
     }
