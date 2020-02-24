@@ -10,6 +10,7 @@ namespace DevOpsLib
         EdgeletRelease = 31845,
         EndToEndTest = 87020,
         ImageRelease = 31987,
-        LibiohsmCI = 39853
+        LibiohsmCI = 39853,
+        ConnectivityTest = 108949
     }
 }
