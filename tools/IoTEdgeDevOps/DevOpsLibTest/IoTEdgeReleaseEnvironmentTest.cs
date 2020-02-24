@@ -17,6 +17,7 @@ namespace DevOpsLibTest
                     new IoTEdgeReleaseEnvironment(
                         id,
                         343406,
+                        "ARM32",
                         VstsEnvironmentStatus.Succeeded));
             Assert.True(ex.Message.StartsWith("Cannot be negative."));
             Assert.AreEqual("id", ex.ParamName);
@@ -30,6 +31,7 @@ namespace DevOpsLibTest
                     new IoTEdgeReleaseEnvironment(
                         3782954,
                         definitionId,
+                        "AMD64",
                         VstsEnvironmentStatus.Scheduled));
             Assert.True(ex.Message.StartsWith("Cannot be less than or equal to zero."));
             Assert.AreEqual("definitionId", ex.ParamName);
@@ -38,7 +40,7 @@ namespace DevOpsLibTest
         [Test]
         public void TestProperties()
         {
-            var releaseEnv = new IoTEdgeReleaseEnvironment(3242, 343406, VstsEnvironmentStatus.Queued);
+            var releaseEnv = new IoTEdgeReleaseEnvironment(3242, 343406, "AMD64", VstsEnvironmentStatus.Queued);
 
             Assert.AreEqual(3242, releaseEnv.Id);
             Assert.AreEqual(343406, releaseEnv.DefinitionId);
@@ -48,11 +50,11 @@ namespace DevOpsLibTest
         [Test]
         public void TestEquals()
         {
-            var releaseEnv1 = new IoTEdgeReleaseEnvironment(3242, 343406, VstsEnvironmentStatus.Queued);
-            var releaseEnv2 = new IoTEdgeReleaseEnvironment(3242, 343406, VstsEnvironmentStatus.Queued);
-            var releaseEnv3 = new IoTEdgeReleaseEnvironment(9708, 343406, VstsEnvironmentStatus.Queued);
-            var releaseEnv4 = new IoTEdgeReleaseEnvironment(3242, 84893, VstsEnvironmentStatus.Queued);
-            var releaseEnv5 = new IoTEdgeReleaseEnvironment(3242, 343406, VstsEnvironmentStatus.Succeeded);
+            var releaseEnv1 = new IoTEdgeReleaseEnvironment(3242, 343406, "Linux AMD64", VstsEnvironmentStatus.Queued);
+            var releaseEnv2 = new IoTEdgeReleaseEnvironment(3242, 343406, "Linux AMD64", VstsEnvironmentStatus.Queued);
+            var releaseEnv3 = new IoTEdgeReleaseEnvironment(9708, 343406, "Linux ARM64", VstsEnvironmentStatus.Queued);
+            var releaseEnv4 = new IoTEdgeReleaseEnvironment(3242, 84893, "Windows X64", VstsEnvironmentStatus.Queued);
+            var releaseEnv5 = new IoTEdgeReleaseEnvironment(3242, 343406, "Windows Server Core", VstsEnvironmentStatus.Succeeded);
 
             Assert.False(releaseEnv1.Equals(null));
             Assert.True(releaseEnv1.Equals(releaseEnv1));
@@ -71,7 +73,7 @@ namespace DevOpsLibTest
         [Test]
         public void TestGetHashCode()
         {
-            var releaseEnv = new IoTEdgeReleaseEnvironment(3242, 343406, VstsEnvironmentStatus.Queued);
+            var releaseEnv = new IoTEdgeReleaseEnvironment(3242, 343406, "Any Name", VstsEnvironmentStatus.Queued);
 
             Assert.AreEqual(3242, releaseEnv.GetHashCode());
         }
@@ -79,11 +81,12 @@ namespace DevOpsLibTest
         [Test]
         public void TestCreate()
         {
-            var vstsReleaseEnv = new VstsReleaseEnvironment { Id = 83429, DefinitionId = 2349080, Status = VstsEnvironmentStatus.Rejected };
+            var vstsReleaseEnv = new VstsReleaseEnvironment { Id = 83429, DefinitionId = 2349080, DefinitionName = "Old E2E tests", Status = VstsEnvironmentStatus.Rejected };
 
             IoTEdgeReleaseEnvironment releaseEnv = IoTEdgeReleaseEnvironment.Create(vstsReleaseEnv);
             Assert.AreEqual(83429, releaseEnv.Id);
             Assert.AreEqual(2349080, releaseEnv.DefinitionId);
+            Assert.AreEqual("Old E2E tests", releaseEnv.DefinitionName);
             Assert.AreEqual(VstsEnvironmentStatus.Rejected, releaseEnv.Status);
         }
 
