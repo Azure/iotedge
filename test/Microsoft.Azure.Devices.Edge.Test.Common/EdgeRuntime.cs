@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             DateTime deployTime = DateTime.Now;
             var finalModules = new List<EdgeModule>();
-            IEnumerable<EdgeConfiguration> configs = builder.BuildConfigurationStages();
+            IEnumerable<EdgeConfiguration> configs = builder.BuildConfigurationStages().ToArray();
             foreach (EdgeConfiguration edgeConfiguration in configs)
             {
                 Serilog.Log.Information(">>> CONFIG TO DEPLOY:\n{Config}\n\n", edgeConfiguration.ToString());
