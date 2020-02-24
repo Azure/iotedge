@@ -41,7 +41,12 @@ namespace TestAnalyzer
             this.WebhostPort = Preconditions.CheckNonWhiteSpace(webhostPort, nameof(webhostPort));
             this.ToleranceInMilliseconds = Preconditions.CheckRange(tolerance, 0);
             this.StoragePath = storagePath;
-            this.TestInfo = testInfo.Split(",", StringSplitOptions.RemoveEmptyEntries);
+            this.TestInfo = testInfo.Split(",", StringSplitOptions.RemoveEmptyEntries)
+                                .Select(x => (KeyAndValue: x, SplitIndex: x.IndexOf('=')))
+                                .Where(x => x.SplitIndex >= 1)
+                                .ToDictionary(
+                                    x => x.KeyAndValue.Substring(0, x.SplitIndex),
+                                    x => x.KeyAndValue.Substring(x.SplitIndex + 1, x.KeyAndValue.Length - x.SplitIndex - 1));
             this.OptimizeForPerformance = Preconditions.CheckNotNull(storageOptimizeForPerformance);
             this.LogAnalyticsEnabled = logAnalyticsEnabled;
             this.LogAnalyticsWorkspaceId = logAnalyticsWorkspaceIdName;
@@ -89,7 +94,7 @@ namespace TestAnalyzer
 
         public string StoragePath { get; }
 
-        public string[] TestInfo { get; }
+        public Dictionary<string, string> TestInfo { get; }
 
         public bool OptimizeForPerformance { get; }
 
