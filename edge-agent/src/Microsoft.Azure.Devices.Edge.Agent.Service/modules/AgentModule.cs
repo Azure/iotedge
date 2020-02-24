@@ -144,7 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // IRocksDbOptionsProvider
             // For EdgeAgent, we don't need high performance from RocksDb, so always turn off optimizeForPerformance
-            builder.Register(c => new RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), false, this.storageTotalMaxWalSize), this.storageLogLevel)
+            builder.Register(c => new RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), false, this.storageTotalMaxWalSize, this.storageLogLevel))
                 .As<IRocksDbOptionsProvider>()
                 .SingleInstance();
 
