@@ -22,11 +22,11 @@ namespace MetricsValidator
         [JsonProperty("Duration", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public TimeSpan Duration { get; private set; } = TimeSpan.Zero;
 
-        [JsonProperty("Successes")]
-        List<string> successes = new List<string>();
-
         [JsonProperty("Failures")]
         Dictionary<string, string> failures = new Dictionary<string, string>();
+
+        [JsonProperty("Successes")]
+        List<string> successes = new List<string>();
 
         [JsonProperty("Subcategories", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [DefaultValue(null)]
