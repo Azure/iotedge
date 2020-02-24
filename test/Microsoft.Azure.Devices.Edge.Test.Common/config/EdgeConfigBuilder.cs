@@ -52,6 +52,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             return builder;
         }
 
+        public void RemoveModule(string name)
+        {
+            this.moduleBuilders.Remove(name);
+        }
+
         // Returns two configurations: one with just $edgeAgent and $edgeHub; the other with
         // everything. This is done to ensure edgeHub's routes are ready before the test modules
         // start sending messages, to avoid dropped messages. Another way to handle this is to
