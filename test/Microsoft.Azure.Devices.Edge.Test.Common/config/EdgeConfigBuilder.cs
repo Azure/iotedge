@@ -165,6 +165,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             return this.moduleBuilders[name];
         }
 
+        public void RemoveModule(string name)
+        {
+            this.moduleBuilders.Remove(name);
+        }
+
         static (string name, bool system) ParseModuleName(string name) =>
             name.FirstOrDefault() == '$' ? (name.Substring(1), true) : (name, false);
     }
