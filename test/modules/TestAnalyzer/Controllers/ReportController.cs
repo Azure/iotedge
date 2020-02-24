@@ -20,10 +20,7 @@ namespace TestAnalyzer.Controllers
         public async Task<ContentResult> GetReport()
         {
             TestResultAnalysis deviceAnalysis = TestResultReporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
-            if (Settings.Current.LogAnalyticsEnabled)
-            {
-                await this.PublishToLogAnalyticsAsync(deviceAnalysis);
-            }
+            await this.PublishToLogAnalyticsAsync(deviceAnalysis);
 
             return new ContentResult { Content = deviceAnalysis.ToString() };
         }
@@ -33,10 +30,7 @@ namespace TestAnalyzer.Controllers
         public async Task<ContentResult> GetMessagesAsync()
         {
             TestResultAnalysis deviceAnalysis = TestResultReporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
-            if (Settings.Current.LogAnalyticsEnabled)
-            {
-                await this.PublishToLogAnalyticsAsync(deviceAnalysis);
-            }
+            await this.PublishToLogAnalyticsAsync(deviceAnalysis);
 
             return new ContentResult { Content = JsonConvert.SerializeObject(deviceAnalysis.MessagesReport, Formatting.Indented) }; // explicit serialization needed due to the wrapping list
         }
