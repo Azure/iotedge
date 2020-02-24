@@ -86,12 +86,8 @@ namespace MetricsValidator.Tests
                     await WaitForQueueToClear($"Queue empties from {n}");
                 }
 
-                // MQTT doesn't support abandoning
-                if (!new TransportType[] { TransportType.Mqtt, TransportType.Mqtt_Tcp_Only, TransportType.Mqtt_WebSocket_Only }.Contains(this.transportType))
-                {
-                    await FillAndEmptyQueue(10);
-                    await FillAndEmptyQueue(100);
-                }
+                await FillAndEmptyQueue(10);
+                await FillAndEmptyQueue(100);
 
                 async Task FillAndAbandon(int n)
                 {
@@ -103,8 +99,12 @@ namespace MetricsValidator.Tests
                     await WaitForQueueToClear($"Queue is empty when abandoned from {n}");
                 }
 
-                await FillAndAbandon(10);
-                await FillAndAbandon(100);
+                // MQTT doesn't support abandoning
+                if (!new TransportType[] { TransportType.Mqtt, TransportType.Mqtt_Tcp_Only, TransportType.Mqtt_WebSocket_Only }.Contains(this.transportType))
+                {
+                    await FillAndAbandon(10);
+                    await FillAndAbandon(100);
+                }
 
                 async Task FillAndEmptyBatch(int n, int m)
                 {
