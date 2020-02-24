@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 {
     using System.Collections.Generic;
     using System.Linq;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Newtonsoft.Json;
@@ -31,41 +32,26 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
         public static EdgeConfiguration Create(string deviceId, List<ModuleConfiguration> modules)
         {
-            var config = new ConfigurationContent
+            var names = modules.Select(m => new StringBuilder(m.Name).ToString()).ToArray();
+            var images = modules.Select(m => new StringBuilder(m.Image).ToString()).ToArray();
+            var config = JsonConvert.SerializeObject(new ConfigurationContent
             {
-                ModulesContent = new Dictionary<string, IDictionary<string, object>>()
-            };
-
-            var moduleNames = new HashSet<string>();
-            var moduleImages = new HashSet<string>();
-
-            void UpdateConfiguration(ModuleConfiguration module)
-            {
-                moduleNames.Add(module.Name);
-                moduleImages.Add(module.Image);
-
-                if (module.DesiredProperties.Count != 0)
-                {
-                    config.ModulesContent[module.Name] = new Dictionary<string, object>
-                    {
-                        ["properties.desired"] = module.DesiredProperties
-                    };
-                }
-            }
-
-            foreach (ModuleConfiguration module in modules)
-            {
-                UpdateConfiguration(module);
-            }
+                ModulesContent = modules
+                    .Where(m => m.DesiredProperties.Count != 0)
+                    .Select(m => new KeyValuePair<string, IDictionary<string, object>>(
+                        m.Name,
+                        new Dictionary<string, object>
+                        {
+                            ["properties.desired"] = m.DesiredProperties
+                        }))
+                    .ToDictionary(x => x.Key, x => x.Value)
+            }); // serialize/deserialize to make a copy
 
             return new EdgeConfiguration(
                 deviceId,
-                new List<string>(moduleNames),
-                new List<string>(moduleImages),
-                new ConfigurationContent
-                {
-                    ModulesContent = new Dictionary<string, IDictionary<string, object>>(config.ModulesContent)
-                });
+                names,
+                images,
+                JsonConvert.DeserializeObject<ConfigurationContent>(config));
         }
 
         public Task DeployAsync(IotHub iotHub, CancellationToken token)
