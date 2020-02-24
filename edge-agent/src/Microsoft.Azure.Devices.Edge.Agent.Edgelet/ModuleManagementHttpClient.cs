@@ -61,9 +61,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         public Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail, Option<string> since, CancellationToken cancellationToken) =>
             this.inner.GetModuleLogs(name, follow, tail, since, cancellationToken);
 
+        public Task<Stream> GetSupportBundle(Option<string> since, Option<bool> edgeRuntimeOnly, CancellationToken token) =>
+            this.inner.GetSupportBundle(since, edgeRuntimeOnly, token);
+
         internal static ModuleManagementHttpClientVersioned GetVersionedModuleManagement(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion)
         {
             ApiVersion supportedVersion = GetSupportedVersion(serverSupportedApiVersion, clientSupportedApiVersion);
+
             if (supportedVersion == ApiVersion.Version20180628)
             {
                 return new Version_2018_06_28.ModuleManagementHttpClient(managementUri);
@@ -82,6 +86,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             if (supportedVersion == ApiVersion.Version20191105)
             {
                 return new Version_2019_11_05.ModuleManagementHttpClient(managementUri);
+            }
+
+            if (supportedVersion == ApiVersion.Version20200221)
+            {
+                return new Version_2020_02_21.ModuleManagementHttpClient(managementUri);
             }
 
             return new Version_2018_06_28.ModuleManagementHttpClient(managementUri);

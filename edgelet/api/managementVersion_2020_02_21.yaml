@@ -3,7 +3,7 @@ schemes:
   - http
 info:
   title: IoT Edge Management API
-  version: '2019-10-22'
+  version: '2020_02_21'
 tags:
   - name: Module
     x-displayName: Modules
@@ -467,17 +467,22 @@ paths:
       operationId: GetSupportBundle
       parameters:
         - $ref: '#/parameters/api-version'
-        - in: path
-          name: host
-          description: Path to the management host
-          required: false
-          type: string
-        - in: path
+        - in: query
           name: since
           description: Duration to get logs from. Can be relative (1d, 10m, 1h30m etc.) or absolute (unix timestamp or rfc 3339)
           required: false
           type: string
-        - in: path
+        - in: query
+          name: host
+          description: Path to the management host
+          required: false
+          type: string
+        - in: query
+          name: iothub_hostname
+          description: Hub to use when calling iotedge check
+          required: false
+          type: string
+        - in: query
           name: edge_runtime_only
           description: Exclude customer module logs
           required: false
