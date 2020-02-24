@@ -6,15 +6,20 @@ namespace MetricsValidator.Tests
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Runtime.InteropServices;
     using System.Text;
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
+    using MetricsValidator.Util;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
+    using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
+    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
+    using NUnit.Framework.Internal;
 
     public class ValidateDocumentedMetrics : TestBase
     {
@@ -26,11 +31,27 @@ namespace MetricsValidator.Tests
         protected override async Task Test(CancellationToken cancellationToken)
         {
             await this.SeedMetrics(cancellationToken);
+            bool hostMetricsFound = await HostMetricUtil.WaitForHostMetrics(this.scraper, cancellationToken);
+            this.testReporter.Assert("Host Metrics Found", hostMetricsFound);
 
             // scrape metrics
             var metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
 
             var expected = this.GetExpectedMetrics();
+            if (RuntimeInformation.OSArchitecture == Architecture.Arm || RuntimeInformation.OSArchitecture == Architecture.Arm64)
+            {
+                // Docker doesn't return this on arm
+                expected.Remove("edgeAgent_created_pids_total");
+            }
+
+            if (OsPlatform.IsWindows())
+            {
+                // EdgeAgent doesn't return this on windows; see bug 6078740
+                expected.Remove("edgeAgent_available_disk_space_bytes");
+                expected.Remove("edgeAgent_total_disk_space_bytes");
+                expected.Remove("edgeAgent_created_pids_total");
+            }
+
             HashSet<string> unreturnedMetrics = new HashSet<string>(expected.Keys);
             if (expected.Count == 0)
             {
@@ -94,6 +115,9 @@ namespace MetricsValidator.Tests
             const string methodName = "FakeDirectMethod";
             await this.moduleClient.SetMethodHandlerAsync(methodName, (_, __) => Task.FromResult(new MethodResponse(200)), null);
             await this.moduleClient.InvokeMethodAsync(Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID"), Environment.GetEnvironmentVariable("IOTEDGE_MODULEID"), new MethodRequest(methodName), cancellationToken);
+
+            await this.moduleClient.UpdateReportedPropertiesAsync(new TwinCollection(), cancellationToken);
+            await this.moduleClient.GetTwinAsync(cancellationToken);
 
             await Task.Delay(TimeSpan.FromSeconds(10));
         }
