@@ -100,7 +100,11 @@ namespace EdgeHubRestartTester
                     await Task.WhenAll(taskList);
 
                     // Wait until the specified restart period to do another restart
-                    await Task.Delay((int)(eachTestExpirationTime - DateTime.UtcNow).TotalMilliseconds, cts.Token);
+                    TimeSpan waitTime = eachTestExpirationTime - DateTime.UtcNow;
+                    if (waitTime.TotalMilliseconds > 0)
+                    {
+                        await Task.Delay(waitTime, cts.Token);
+                    }
                 }
             }
             catch (Exception e)
