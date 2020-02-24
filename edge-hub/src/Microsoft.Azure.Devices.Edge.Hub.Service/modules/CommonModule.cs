@@ -43,6 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly string proxy;
         readonly MetricsConfig metricsConfig;
         readonly Option<ulong> storageMaxTotalWalSize;
+        readonly Option<StorageLogLevel> storageLogLevel;
 
         public CommonModule(
             string productInfo,
@@ -63,7 +64,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             IList<X509Certificate2> trustBundle,
             string proxy,
             MetricsConfig metricsConfig,
-            Option<ulong> storageMaxTotalWalSize)
+            Option<ulong> storageMaxTotalWalSize,
+            Option<StorageLogLevel> storageLogLevel)
         {
             this.productInfo = productInfo;
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
@@ -84,6 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
             this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
             this.storageMaxTotalWalSize = storageMaxTotalWalSize;
+            this.storageLogLevel = storageLogLevel;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -135,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // DataBase options
-            builder.Register(c => new RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), this.optimizeForPerformance, this.storageMaxTotalWalSize))
+            builder.Register(c => new RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), this.optimizeForPerformance, this.storageMaxTotalWalSize, this.storageLogLevel))
                 .As<IRocksDbOptionsProvider>()
                 .SingleInstance();
 

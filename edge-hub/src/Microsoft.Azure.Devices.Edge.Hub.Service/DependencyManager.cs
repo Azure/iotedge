@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.ProtocolGateway.Instrumentation;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
+    using StorageLogLevel = Microsoft.Azure.Devices.Edge.Storage.StorageLogLevel;
 
     class DependencyManager : IDependencyManager
     {
@@ -75,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 });
 
             bool optimizeForPerformance = this.configuration.GetValue("OptimizeForPerformance", true);
-            (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, Option<ulong> storageMaxTotalWalSize) storeAndForward = this.GetStoreAndForwardConfiguration();
+            (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, Option<ulong> storageMaxTotalWalSize, Option<StorageLogLevel> storageLogLevel) storeAndForward = this.GetStoreAndForwardConfiguration();
 
             IConfiguration configuration = this.configuration.GetSection("experimentalFeatures");
             ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration);
@@ -104,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), this.serverCertificate, this.iotHubHostname, clientCertAuthEnabled));
         }
 
-        void RegisterMqttModule(ContainerBuilder builder, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, Option<ulong> storageMaxTotalWalSize) storeAndForward, bool optimizeForPerformance)
+        void RegisterMqttModule(ContainerBuilder builder, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, Option<ulong> storageMaxTotalWalSize, Option<StorageLogLevel> storageLogLevel) storeAndForward, bool optimizeForPerformance)
         {
             var topics = new MessageAddressConversionConfiguration(
                 this.configuration.GetSection(Constants.TopicNameConversionSectionName + ":InboundTemplates").Get<List<string>>(),
@@ -118,7 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         void RegisterRoutingModule(
             ContainerBuilder builder,
-            (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, Option<ulong> storageMaxTotalWalSize) storeAndForward,
+            (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, Option<ulong> storageMaxTotalWalSize, Option<StorageLogLevel> storageLogLevel) storeAndForward,
             ExperimentalFeatures experimentalFeatures)
         {
             var routes = this.configuration.GetSection("routes").Get<Dictionary<string, string>>();
@@ -181,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         void RegisterCommonModule(
             ContainerBuilder builder,
             bool optimizeForPerformance,
-            (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, Option<ulong> storageMaxTotalWalSize) storeAndForward,
+            (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, Option<ulong> storageMaxTotalWalSize, Option<StorageLogLevel> storageLogLevel) storeAndForward,
             MetricsConfig metricsConfig)
         {
             bool cacheTokens = this.configuration.GetValue("CacheTokens", false);
@@ -221,7 +222,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     this.trustBundle,
                     proxy,
                     metricsConfig,
-                    storeAndForward.storageMaxTotalWalSize));
+                    storeAndForward.storageMaxTotalWalSize,
+                    storeAndForward.storageLogLevel));
         }
 
         static string GetProductInfo()
@@ -231,14 +233,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             return productInfo;
         }
 
-        (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, Option<ulong> storageMaxTotalWalsize) GetStoreAndForwardConfiguration()
+        (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, Option<ulong> storageMaxTotalWalsize, Option<StorageLogLevel> storageLogLevel) GetStoreAndForwardConfiguration()
         {
             int defaultTtl = -1;
             bool usePersistentStorage = this.configuration.GetValue<bool>("usePersistentStorage");
             int timeToLiveSecs = defaultTtl;
             string storagePath = this.GetStoragePath();
             bool storeAndForwardEnabled = this.configuration.GetValue<bool>("storeAndForwardEnabled");
-            Option<ulong> storageMaxTotalWalSize = this.GetStorageMaxTotalWalSizeIfExists();
+            Option<ulong> storageMaxTotalWalSize = this.GetStorageConfigIfExists<ulong>(Constants.ConfigKey.StorageMaxTotalWalSize);
+            Option<StorageLogLevel> storageLogLevel = this.GetStorageConfigIfExists<StorageLogLevel>(Constants.ConfigKey.StorageLogLevel);
 
             if (storeAndForwardEnabled)
             {
@@ -247,22 +250,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
 
             var storeAndForwardConfiguration = new StoreAndForwardConfiguration(timeToLiveSecs);
-            return (storeAndForwardEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath, storageMaxTotalWalSize);
+            return (storeAndForwardEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath, storageMaxTotalWalSize, storageLogLevel);
         }
 
-        Option<ulong> GetStorageMaxTotalWalSizeIfExists()
+        Option<T> GetStorageConfigIfExists<T>(string fieldName)
         {
-            ulong storageMaxTotalWalSize = 0;
+            T storageParamValue = default(T);
             try
             {
-                storageMaxTotalWalSize = this.configuration.GetValue<ulong>(Constants.ConfigKey.StorageMaxTotalWalSize);
+                storageParamValue = this.configuration.GetValue<T>(fieldName);
             }
             catch
             {
                 // ignored
             }
 
-            return storageMaxTotalWalSize <= 0 ? Option.None<ulong>() : Option.Some(storageMaxTotalWalSize);
+            return EqualityComparer<T>.Default.Equals(storageParamValue, default(T)) ? Option.None<T>() : Option.Some(storageParamValue);
         }
 
         // Note: Keep in sync with iotedge-check's edge-hub-storage-mounted-from-host check (edgelet/iotedge/src/check/checks/storage_mounted_from_host.rs)
