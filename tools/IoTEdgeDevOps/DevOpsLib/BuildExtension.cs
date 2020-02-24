@@ -14,7 +14,9 @@ namespace DevOpsLib
                 BuildDefinitionId.BuildImages,
                 BuildDefinitionId.EdgeletPackages,
                 BuildDefinitionId.EndToEndTest,
-                BuildDefinitionId.ConnectivityTest
+                BuildDefinitionId.ConnectivityTest,
+                BuildDefinitionId.LonghaulTest,
+                BuildDefinitionId.StressTest
             };
 
         public static string DisplayName(this BuildDefinitionId buildDefinitionId)
@@ -30,6 +32,8 @@ namespace DevOpsLib
                 { BuildDefinitionId.ImageRelease, "Image Release" },
                 { BuildDefinitionId.LibiohsmCI, "Libiohsm CI" },
                 { BuildDefinitionId.ConnectivityTest, "Connectivity Test" },
+                { BuildDefinitionId.LonghaulTest, "Longhaul Test" },
+                { BuildDefinitionId.StressTest, "Stress Test" },
             };
 
             return definitionIdToDisplayNameMapping.ContainsKey(buildDefinitionId) ? definitionIdToDisplayNameMapping[buildDefinitionId] : buildDefinitionId.ToString();

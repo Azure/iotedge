@@ -11,6 +11,9 @@ namespace DevOpsLib
         EndToEndTest = 87020,
         ImageRelease = 31987,
         LibiohsmCI = 39853,
-        ConnectivityTest = 108949
+        ConnectivityTest = 108949,
+        LonghaulTest = 66429,
+        StressTest = 66357,
+
     }
 }
