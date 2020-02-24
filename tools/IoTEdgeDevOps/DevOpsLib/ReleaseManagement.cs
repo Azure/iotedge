@@ -41,7 +41,6 @@ namespace DevOpsLib
                 .SetQueryParam("definitionId", definitionId.IdString())
                 .SetQueryParam("queryOrder", "descending")
                 .SetQueryParam("$expand", "environments")
-                .SetQueryParam("statusFilter", "active")
                 .SetQueryParam("$top", top)
                 .SetQueryParam("api-version", "5.1")
                 .SetQueryParam("sourceBranchFilter", branchName)
@@ -56,7 +55,7 @@ namespace DevOpsLib
             }
 
             VstsRelease[] releases = JsonConvert.DeserializeObject<VstsRelease[]>(result["value"].ToString());
-            return releases.Select(IoTEdgeRelease.Create).ToList();
+            return releases.Select(r => IoTEdgeRelease.Create(r, branchName)).ToList();
         }
     }
 }
