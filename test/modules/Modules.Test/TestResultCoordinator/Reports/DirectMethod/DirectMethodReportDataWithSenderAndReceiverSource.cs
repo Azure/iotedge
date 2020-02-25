@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 {
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -196,7 +197,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                         new DateTime(2020, 1, 1, 9, 10, 24, 15)
                     },
                     10, 6, 0, 0, 0, 1, 0, 0, 0, false,
-                    "Satellite"
+                    NetworkControllerType.Satellite
                 },
                 new object[]
                 {
@@ -215,7 +216,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                         new DateTime(2020, 1, 1, 9, 10, 24, 15)
                     },
                     10, 6, 0, 0, 0, 0, 0, 1, 0, true,
-                    "Satellite"
+                    NetworkControllerType.Satellite
                 },
             };
     }
