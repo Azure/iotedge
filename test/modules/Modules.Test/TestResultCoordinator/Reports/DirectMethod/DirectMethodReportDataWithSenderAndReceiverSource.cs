@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 {
-    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
 
     class DirectMethodReportDataWithSenderAndReceiverSource
     {
