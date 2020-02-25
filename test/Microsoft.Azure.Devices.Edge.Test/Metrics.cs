@@ -89,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         "routes", new
                         {
                             All = "FROM /messages/* INTO $upstream",
-                            QueueLengthTest = "FROM /messages/modules/MetricsValidator/outputs/ToSelf INTO BrokeredEndpoint(\"/modules/MetricsValidator/inputs/FromSelf\")"
+                            QueueLengthTest = $"FROM /messages/modules/{Metrics.ModuleName}/outputs/ToSelf INTO BrokeredEndpoint(\"/modules/{Metrics.ModuleName}/inputs/FromSelf\")"
                         }
                     }
                 });
