@@ -4,6 +4,7 @@ namespace TestResultCoordinator.Reports
     using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.Util;
     using TestResultCoordinator.Reports.DirectMethod;
     using TestResultCoordinator.Reports.EdgeHubRestartTest;
@@ -12,12 +13,18 @@ namespace TestResultCoordinator.Reports
     class TestReportGeneratorFactory : ITestReportGeneratorFactory
     {
         const int BatchSize = 500;
-        readonly ITestOperationResultStorage storage;
 
-        internal TestReportGeneratorFactory(ITestOperationResultStorage storage)
+        internal TestReportGeneratorFactory(ITestOperationResultStorage storage, NetworkControllerType networkControllerType)
         {
-            this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
+            this.Storage = Preconditions.CheckNotNull(storage, nameof(storage));
+            this.NetworkControllerType = networkControllerType;
         }
+
+        ITestOperationResultStorage Storage { get; }
+
+        NetworkControllerType NetworkControllerType { get; }
+
+
 
         public async Task<ITestResultReportGenerator> CreateAsync(
             string trackingId,
