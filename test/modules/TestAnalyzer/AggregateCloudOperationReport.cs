@@ -23,6 +23,8 @@ namespace TestAnalyzer
                     LastReceivedAt = status.Value.Item2
                 });
             }
+
+            this.TestInfo = testInfo;
         }
 
         public string ModuleId { get; }
