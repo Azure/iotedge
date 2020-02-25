@@ -17,6 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
                token);
 
         public static async Task<V1PersistentVolumeClaimList> ListPeristentVolumeClaimsAsync(this KubernetesClient client) => await client.Kubernetes.ListNamespacedPersistentVolumeClaimAsync(client.DeviceNamespace);
-        public static void DeletePvc(this KubernetesClient client, string persistentVolumeClaimName) => client.Kubernetes.DeleteNamespacedPersistentVolumeClaim(persistentVolumeClaimName, client.DeviceNamespace);
+        public static async Task DeletePvcAsync(this KubernetesClient client, string persistentVolumeClaimName) => await client.Kubernetes.DeleteNamespacedPersistentVolumeClaimAsync(persistentVolumeClaimName, client.DeviceNamespace);
     }
 }

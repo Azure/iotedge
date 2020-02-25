@@ -132,8 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             moduleLifeCycleManager.SetModules(moduleName);
 
             await this.client.AddModuleDeploymentAsync(moduleName, labels, null);
-            // await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
-            this.client.DeleteDeployment(moduleName);
+            await this.client.DeleteDeploymentAsync(moduleName);
             await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
 
             this.AssertNoMatchingDeployments(deviceSelector, moduleName);
@@ -157,10 +156,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             moduleLifeCycleManager.SetModules(moduleName);
 
             await this.client.AddModuleDeploymentAsync(moduleName, labels, null);
-            // await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
             await this.client.WaitUntilAnyPersistentVolumeClaimAsync(tokenSource.Token);
-            this.client.DeletePvc(pvcName);
+            await this.client.DeletePvcAsync(pvcName);
             await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
+            await this.client.WaitUntilAnyPersistentVolumeClaimAsync(tokenSource.Token);
 
             this.AssertNoMatchingDeployments(deviceSelector, moduleName);
             this.AssertNoMatchingServiceAccounts(deviceSelector, moduleName);
@@ -180,8 +179,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             moduleLifeCycleManager.SetModules(moduleName);
 
             await this.client.AddModuleDeploymentAsync(moduleName, labels, null);
-            // await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
-            this.client.DeleteServiceAccount(moduleName);
+            await this.client.DeleteServiceAccountAsync(moduleName);
             await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
 
             this.AssertNoMatchingDeployments(deviceSelector, moduleName);
@@ -202,8 +200,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             moduleLifeCycleManager.SetModules(moduleName);
 
             await this.client.AddModuleDeploymentAsync(moduleName, labels, null);
-            // await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
-            this.client.DeleteService(moduleName);
+            await this.client.DeleteServiceAsync(moduleName);
             await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
 
             this.AssertNoMatchingDeployments(deviceSelector, moduleName);
@@ -272,7 +269,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             moduleLifeCycleManager.SetModules(moduleName);
 
             await this.client.AddModuleDeploymentAsync(moduleName, labels, null);
-            // await controller.DeployModulesAsync(ModuleSet.Create(km1UpdaModule), ModuleSet.Create(km1));
             await this.client.ReplaceModuleImageAsync(moduleName, newImage);
             await controller.DeployModulesAsync(ModuleSet.Create(km1UpdaModule), ModuleSet.Create(km1));
 
