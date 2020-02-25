@@ -74,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             const string Name = "stopMe";
             const string Image = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
-            builder.AddModule(Name, Image).WithEnvironment(new[] { ("MessageCount", "1") });
+            builder.AddModule(Name, Image).WithEnvironment(new[] { ("MessageCount", "0") });
         }
 
         public static void AddMetricsValidatorConfig(this EdgeConfigBuilder builder, string image)
