@@ -7,6 +7,7 @@ namespace TestResultCoordinator
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
@@ -38,7 +39,8 @@ namespace TestResultCoordinator
             TimeSpan testStartDelay,
             TimeSpan testDuration,
             TimeSpan verificationDelay,
-            string storageAccountConnectionString)
+            string storageAccountConnectionString,
+            string networkControllerRunProfileName)
         {
             Preconditions.CheckRange(testDuration.Ticks, 1);
 
@@ -59,6 +61,7 @@ namespace TestResultCoordinator
             this.DurationBeforeVerification = verificationDelay;
             this.ConsumerGroupName = "$Default";
             this.StorageAccountConnectionString = Preconditions.CheckNonWhiteSpace(storageAccountConnectionString, nameof(storageAccountConnectionString));
+            this.NetworkControllerRunProfileName = Preconditions.CheckNonWhiteSpace(networkControllerRunProfileName, nameof(networkControllerRunProfileName));
         }
 
         static Settings Create()
@@ -85,7 +88,8 @@ namespace TestResultCoordinator
                 configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
                 configuration.GetValue("testDuration", TimeSpan.FromHours(1)),
                 configuration.GetValue("verificationDelay", TimeSpan.FromMinutes(15)),
-                configuration.GetValue<string>("STORAGE_ACCOUNT_CONNECTION_STRING"));
+                configuration.GetValue<string>("STORAGE_ACCOUNT_CONNECTION_STRING"),
+                configuration.GetValue<string>(NetworkControllerConstants.NetworkControllerRunProfilePropertyName));
         }
 
         public string EventHubConnectionString { get; }
@@ -122,6 +126,8 @@ namespace TestResultCoordinator
 
         public string TestBuildNumber { get; }
 
+        public string NetworkControllerRunProfileName { get; }
+
         public override string ToString()
         {
             // serializing in this pattern so that secrets don't accidentally get added anywhere in the future
@@ -138,6 +144,8 @@ namespace TestResultCoordinator
                 { nameof(this.TestDuration), this.TestDuration.ToString() },
                 { nameof(this.DurationBeforeVerification), this.DurationBeforeVerification.ToString() },
                 { nameof(this.ConsumerGroupName), this.ConsumerGroupName },
+                { nameof(this.TestBuildNumber), this.TestBuildNumber },
+                { nameof(this.NetworkControllerRunProfileName), this.NetworkControllerRunProfileName }
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";

@@ -89,7 +89,8 @@ namespace TestResultCoordinator.Reports
                             metadata.ReceiverSource,
                             receiverTestResults,
                             metadata.TestOperationResultType.ToString(),
-                            networkStatusTimeline);
+                            networkStatusTimeline,
+                            metadata.NetworkControllerRunProfileName);
                     }
 
                 case TestReportType.EdgeHubRestartDirectMethodReport:

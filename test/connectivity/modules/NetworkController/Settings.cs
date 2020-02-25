@@ -19,7 +19,6 @@ namespace NetworkController
         const string TrackingIdPropertyName = "TrackingId";
         const string ModuleIdPropertyName = "IOTEDGE_MODULEID";
         const string IotHubHostnamePropertyName = "IOTEDGE_IOTHUBHOSTNAME";
-        const string NetworkControllerRunProfilePropertyName = "NetworkControllerRunProfile";
         const string DefaultProfilesPropertyName = "DefaultProfiles";
 
         Settings(
@@ -74,7 +73,7 @@ namespace NetworkController
             var frequencies = new List<Frequency>();
             configuration.GetSection(FrequencyPropertyName).Bind(frequencies);
 
-            string runProfileName = configuration.GetValue<string>(NetworkControllerRunProfilePropertyName);
+            string runProfileName = configuration.GetValue<string>(NetworkControllerConstants.NetworkControllerRunProfilePropertyName);
             NetworkProfile runProfileSettings = configuration.GetSection($"{DefaultProfilesPropertyName}:{runProfileName}").Get<NetworkProfile>();
             if (runProfileSettings == null)
             {
