@@ -200,7 +200,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 },
                 new object[]
                 {
-                    // MismatchSuccess test
+                    // MismatchSuccess Non-offline
                     Enumerable.Range(1, 7).Select(v => (ulong)v),
                     new[] { 1UL, 2UL, 3UL, 5UL, 6UL, 7UL },
                     new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
