@@ -12,56 +12,57 @@ jobs:
     displayName: Linux AMD64 Moby
     condition: and(eq(variables['run.linux.amd64.moby'], 'true'), ne(variables['agent.group'], ''))
     timeoutInMinutes: 180
-    strategy:
-      matrix:
-        Online:
-          testrun.config: 1
-          testrun.network.runProfile: "Online"
-          testrun.network.frequencies: "00:00:00 00:00:00 0"
-          testrun.duration: "01:00:00"
-          deploymentFileName: $('deploymentFileNames')
-        Offline(5/5/5):
-          testrun.config: 2
-          testrun.network.frequencies: "00:05:00 00:05:00 5"
-          testrun.network.runProfile: "Offline"
-          testrun.duration: "00:50:00"
-          deploymentFileName: $('deploymentFileNames')
-        Offline(10/10/3):
-          testrun.config: 3
-          testrun.network.frequencies: "00:10:00 00:10:00 3"
-          testrun.network.runProfile: "Offline"
-          testrun.duration: "01:00:00"
-          deploymentFileName: $('deploymentFileNames')
-        Offline(15/15/3):
-          testrun.config: 4
-          testrun.network.frequencies: "00:15:00 00:15:00 3"
-          testrun.network.runProfile: "Offline"
-          testrun.duration: "01:30:00"
-          deploymentFileName: $('deploymentFileNames')
-        Offline(30/30/2):
-          testrun.config: 5
-          testrun.network.frequencies: "00:30:00 00:30:00 2"
-          testrun.network.runProfile: "Offline"
-          testrun.duration: "02:00:00"
-          deploymentFileName: $('deploymentFileNames')
-        Offline(5/20/3):
-          testrun.config: 6
-          testrun.network.frequencies: "00:05:00 00:20:00 3"
-          testrun.network.runProfile: "Offline"
-          testrun.duration: "01:15:00"
-          deploymentFileName: $('deploymentFileNames')
-        SatelliteGood(60/0/1):
-          testrun.config: 7
-          testrun.network.frequencies: "01:00:00 00:00:00 1"
-          testrun.network.runProfile: "SatelliteGood"
-          testrun.duration: "01:00:00"
-          deploymentFileName: $('deploymentFileNames')
-        Cellular3G(60/0/1):
-          testrun.config: 8
-          testrun.network.frequencies: "01:00:00 00:00:00 1"
-          testrun.network.runProfile: "Cellular3G"
-          testrun.duration: "01:00:00"
-          deploymentFileName: $('deploymentFileNames')
+    - ${{ each eachConfig in parameters.deploymetnFiles }}
+      strategy:
+        matrix:
+          Online:
+            testrun.config: 1
+            testrun.network.runProfile: "Online"
+            testrun.network.frequencies: "00:00:00 00:00:00 0"
+            testrun.duration: "01:00:00"
+            deploymentFileName: ${{eachConfig}}
+          Offline(5/5/5):
+            testrun.config: 2
+            testrun.network.frequencies: "00:05:00 00:05:00 5"
+            testrun.network.runProfile: "Offline"
+            testrun.duration: "00:50:00"
+            deploymentFileName: ${{eachConfig}}
+          Offline(10/10/3):
+            testrun.config: 3
+            testrun.network.frequencies: "00:10:00 00:10:00 3"
+            testrun.network.runProfile: "Offline"
+            testrun.duration: "01:00:00"
+            deploymentFileName: ${{eachConfig}}
+          Offline(15/15/3):
+            testrun.config: 4
+            testrun.network.frequencies: "00:15:00 00:15:00 3"
+            testrun.network.runProfile: "Offline"
+            testrun.duration: "01:30:00"
+            deploymentFileName: ${{eachConfig}}
+          Offline(30/30/2):
+            testrun.config: 5
+            testrun.network.frequencies: "00:30:00 00:30:00 2"
+            testrun.network.runProfile: "Offline"
+            testrun.duration: "02:00:00"
+            deploymentFileName: ${{eachConfig}}
+          Offline(5/20/3):
+            testrun.config: 6
+            testrun.network.frequencies: "00:05:00 00:20:00 3"
+            testrun.network.runProfile: "Offline"
+            testrun.duration: "01:15:00"
+            deploymentFileName: ${{eachConfig}}
+          SatelliteGood(60/0/1):
+            testrun.config: 7
+            testrun.network.frequencies: "01:00:00 00:00:00 1"
+            testrun.network.runProfile: "SatelliteGood"
+            testrun.duration: "01:00:00"
+            deploymentFileName: ${{eachConfig}}
+          Cellular3G(60/0/1):
+            testrun.config: 8
+            testrun.network.frequencies: "01:00:00 00:00:00 1"
+            testrun.network.runProfile: "Cellular3G"
+            testrun.duration: "01:00:00"
+            deploymentFileName: ${{eachConfig}}
     pool:
       name: $(pool.name)
       demands:
@@ -147,6 +148,7 @@ jobs:
           iotHub.connectionString: '$(EdgeConnectivityTestHubConnString)'
           eventHub.connectionString: '$(EdgeConnectivityEventHubConnString)'
           deploymentFileName: '$(deploymentFileName)'
+          deploymetnFiles: '$(deploymentFileNames)'
           upstream.protocol: '$(upstream.protocol)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           edgeHubRestartTest.restartPeriod: '$(edgeHubRestartTest.restartPeriod)'
