@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 {
     using System.Collections.Generic;
     using System.Linq;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Newtonsoft.Json;
@@ -30,28 +29,26 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 .ToArray();
         }
 
-        public static EdgeConfiguration Create(string deviceId, List<ModuleConfiguration> modules)
+        public static EdgeConfiguration Create(string deviceId, IEnumerable<ModuleConfiguration> modules)
         {
-            var names = modules.Select(m => new StringBuilder(m.Name).ToString()).ToArray();
-            var images = modules.Select(m => new StringBuilder(m.Image).ToString()).ToArray();
-            var config = JsonConvert.SerializeObject(new ConfigurationContent
+            var names = modules.Select(m => m.Name).ToArray();
+            var images = modules.Select(m => m.Image).ToArray();
+            var config = new ConfigurationContent
             {
                 ModulesContent = modules
                     .Where(m => m.DesiredProperties.Count != 0)
-                    .Select(m => new KeyValuePair<string, IDictionary<string, object>>(
-                        m.Name,
-                        new Dictionary<string, object>
+                    .ToDictionary(
+                        m => m.Name,
+                        m => (IDictionary<string, object>)new Dictionary<string, object>
                         {
                             ["properties.desired"] = m.DesiredProperties
-                        }))
-                    .ToDictionary(x => x.Key, x => x.Value)
-            }); // serialize/deserialize to make a copy
+                        })
+            };
 
-            return new EdgeConfiguration(
-                deviceId,
-                names,
-                images,
-                JsonConvert.DeserializeObject<ConfigurationContent>(config));
+            // Make a copy
+            config = JsonConvert.DeserializeObject<ConfigurationContent>(JsonConvert.SerializeObject(config));
+
+            return new EdgeConfiguration(deviceId, names, images, config);
         }
 
         public Task DeployAsync(IotHub iotHub, CancellationToken token)
