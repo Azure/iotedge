@@ -4,6 +4,7 @@ namespace NetworkController
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
@@ -73,7 +74,7 @@ namespace NetworkController
             var frequencies = new List<Frequency>();
             configuration.GetSection(FrequencyPropertyName).Bind(frequencies);
 
-            string runProfileName = configuration.GetValue<string>(NetworkControllerConstants.NetworkControllerRunProfilePropertyName);
+            string runProfileName = configuration.GetValue<string>(TestConstants.NetworkController.RunProfilePropertyName);
             NetworkProfile runProfileSettings = configuration.GetSection($"{DefaultProfilesPropertyName}:{runProfileName}").Get<NetworkProfile>();
             if (runProfileSettings == null)
             {

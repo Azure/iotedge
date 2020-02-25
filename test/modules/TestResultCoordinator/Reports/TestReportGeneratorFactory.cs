@@ -24,8 +24,6 @@ namespace TestResultCoordinator.Reports
 
         NetworkControllerType NetworkControllerType { get; }
 
-
-
         public async Task<ITestResultReportGenerator> CreateAsync(
             string trackingId,
             ITestReportMetadata testReportMetadata)
@@ -97,7 +95,7 @@ namespace TestResultCoordinator.Reports
                             receiverTestResults,
                             metadata.TestOperationResultType.ToString(),
                             networkStatusTimeline,
-                            metadata.NetworkControllerRunProfileName);
+                            this.NetworkControllerType);
                     }
 
                 case TestReportType.EdgeHubRestartDirectMethodReport:
@@ -176,14 +174,14 @@ namespace TestResultCoordinator.Reports
         async Task<NetworkStatusTimeline> GetNetworkStatusTimelineAsync(TimeSpan tolerancePeriod)
         {
             return await NetworkStatusTimeline.CreateAsync(
-                new StoreTestResultCollection<TestOperationResult>(this.storage.GetStoreFromSource("networkController"), BatchSize),
+                new StoreTestResultCollection<TestOperationResult>(this.Storage.GetStoreFromSource("networkController"), BatchSize),
                 tolerancePeriod);
         }
 
         ITestResultCollection<TestOperationResult> GetResults(string resultSource)
         {
             return new StoreTestResultCollection<TestOperationResult>(
-                this.storage.GetStoreFromSource(resultSource),
+                this.Storage.GetStoreFromSource(resultSource),
                 BatchSize);
         }
 

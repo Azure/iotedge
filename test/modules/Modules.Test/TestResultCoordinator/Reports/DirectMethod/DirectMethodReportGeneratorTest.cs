@@ -10,6 +10,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
     using global::TestResultCoordinator.Reports;
     using global::TestResultCoordinator.Reports.DirectMethod;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -30,7 +31,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             Option<string> receiverSource = Option.Some("receiverSource");
             int batchSize = 10;
             string resultType = "resultType1";
-            string networkControllerRunProfileName = "Offline";
+            NetworkControllerType networkControllerType = NetworkControllerType.Offline;
 
             var mockSenderStore = new Mock<ISequentialStore<TestOperationResult>>();
             var senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
@@ -46,7 +47,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 receiverResults,
                 resultType,
                 NetworkStatusTimeline,
-                networkControllerRunProfileName);
+                networkControllerType);
 
             Assert.Equal(receiverSource, reportGenerator.ReceiverSource);
             Assert.Equal(senderResults, reportGenerator.SenderTestResults);
@@ -61,7 +62,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         public void TestConstructorThrowsWhenTrackingIdIsNotProvided(string trackingId)
         {
             int batchSize = 10;
-            string networkControllerRunProfileName = "Offline";
+            NetworkControllerType networkControllerType = NetworkControllerType.Offline;
             var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
             var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
@@ -76,7 +77,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     receiverResults,
                     "resultType1",
                     NetworkStatusTimeline,
-                    networkControllerRunProfileName));
+                    networkControllerType));
 
             Assert.StartsWith("trackingId", ex.Message);
         }
@@ -87,7 +88,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         public void TestConstructorThrowsWhenSenderSourceIsNotProvided(string senderSource)
         {
             int batchSize = 10;
-            string networkControllerRunProfileName = "Offline";
+            NetworkControllerType networkControllerType = NetworkControllerType.Offline;
             var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
             var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
@@ -102,7 +103,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     receiverResults,
                     "resultType1",
                     NetworkStatusTimeline,
-                    networkControllerRunProfileName));
+                    networkControllerType));
 
             Assert.StartsWith("senderSource", ex.Message);
         }
@@ -111,7 +112,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         public void TestConstructorThrowsWhenSenderStoreIsNotProvided()
         {
             int batchSize = 10;
-            string networkControllerRunProfileName = "Offline";
+            NetworkControllerType networkControllerType = NetworkControllerType.Offline;
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
             var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
                new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
@@ -125,7 +126,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     receiverResults,
                     "resultType1",
                     NetworkStatusTimeline,
-                    networkControllerRunProfileName));
+                    networkControllerType));
 
             Assert.Equal("senderTestResults", ex.ParamName);
         }
@@ -136,7 +137,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         public void TestConstructorThrowsWhenResultTypeIsNotProvided(string resultType)
         {
             int batchSize = 10;
-            string networkControllerRunProfileName = "Offline";
+            NetworkControllerType networkControllerType = NetworkControllerType.Offline;
             var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
             var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
@@ -151,7 +152,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     receiverResults,
                     resultType,
                     NetworkStatusTimeline,
-                    networkControllerRunProfileName));
+                    networkControllerType));
 
             Assert.StartsWith("resultType", ex.Message);
         }
@@ -159,7 +160,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         [Fact]
         public void TestConstructorThrowsWhenReceiverSourceButNoReceiverTestResults()
         {
-            string networkControllerRunProfileName = "Offline";
+            NetworkControllerType networkControllerType = NetworkControllerType.Offline;
             var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
 
@@ -172,7 +173,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     Option.None<ITestResultCollection<TestOperationResult>>(),
                     "resultType1",
                     NetworkStatusTimeline,
-                    networkControllerRunProfileName));
+                    networkControllerType));
 
             Assert.Equal("Provide both receiverSource and receiverTestResults or neither.", ex.Message);
         }
@@ -181,7 +182,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         public void TestConstructorThrowsWhenReceiverTestResultsButNoReceiverSource()
         {
             int batchSize = 10;
-            string networkControllerRunProfileName = "Offline";
+            NetworkControllerType networkControllerType = NetworkControllerType.Offline;
             var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
             var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
@@ -196,7 +197,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     receiverResults,
                     "resultType1",
                     NetworkStatusTimeline,
-                    networkControllerRunProfileName));
+                    networkControllerType));
 
             Assert.Equal("Provide both receiverSource and receiverTestResults or neither.", ex.Message);
         }
@@ -207,7 +208,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             string senderSource = "senderSource";
             string receiverSource = "receiverSource";
             int batchSize = 10;
-            string networkControllerRunProfileName = "Offline";
+            NetworkControllerType networkControllerType = NetworkControllerType.Offline;
 
             var mockSenderStore = new Mock<ISequentialStore<TestOperationResult>>();
             var senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
@@ -223,7 +224,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 receiverResults,
                 "resultType1",
                 NetworkStatusTimeline,
-                networkControllerRunProfileName);
+                networkControllerType);
 
             var report = (DirectMethodReport)await reportGenerator.CreateReportAsync();
 
@@ -254,7 +255,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             ulong expectedMismatchSuccess,
             ulong expectedMismatchFailure,
             bool expectedIsPassed,
-            string networkControllerRunProfileName = "Offline")
+            NetworkControllerType networkControllerType = NetworkControllerType.Offline)
         {
             string senderSource = "senderSource";
             string receiverSource = "receiverSource";
@@ -274,7 +275,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 receiverResults,
                 resultType,
                 NetworkStatusTimeline,
-                networkControllerRunProfileName);
+                networkControllerType);
 
             Guid guid = Guid.NewGuid();
             var senderStoreData = GetSenderStoreData(senderSource, resultType, senderStoreValues, statusCodes, timestamps, guid);
@@ -319,11 +320,11 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             ulong expectedNetworkOffFailure,
             ulong expectedMismatchSuccess,
             ulong expectedMismatchFailure,
-            bool expectedIsPassed)
+            bool expectedIsPassed,
+            NetworkControllerType networkControllerType = NetworkControllerType.Offline)
         {
             string senderSource = "senderSource";
             string resultType = TestOperationResultType.DirectMethod.ToString();
-            string networkControllerRunProfileName = "Offline";
 
             var mockSenderStore = new Mock<ISequentialStore<TestOperationResult>>();
             var senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
@@ -338,7 +339,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 receiverResults,
                 resultType,
                 NetworkStatusTimeline,
-                networkControllerRunProfileName);
+                networkControllerType);
 
             var senderStoreData = GetSenderStoreData(senderSource, resultType, senderStoreValues, statusCodes, timestamps, Guid.NewGuid());
             for (int i = 0; i < senderStoreData.Count; i += batchSize)

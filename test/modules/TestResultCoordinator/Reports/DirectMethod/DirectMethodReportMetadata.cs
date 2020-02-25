@@ -22,8 +22,6 @@ namespace TestResultCoordinator.Reports.DirectMethod
 
         public Option<string> ReceiverSource { get; }
 
-        public string NetworkControllerRunProfileName => Settings.Current.NetworkControllerRunProfileName;
-
         public string[] ResultSources =>
             this.ReceiverSource.HasValue ? new string[] { this.SenderSource, this.ReceiverSource.OrDefault() } : new string[] { this.SenderSource };
 
