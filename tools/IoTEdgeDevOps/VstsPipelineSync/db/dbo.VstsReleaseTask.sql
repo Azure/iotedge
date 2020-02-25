@@ -12,7 +12,7 @@ CREATE TABLE [dbo].[VstsReleaseTask](
 	[Status] [varchar](20) NOT NULL,
 	[StartTime] [datetime2](7) NOT NULL,
 	[FinishTime] [datetime2](7) NOT NULL,
-	[LogUrl] [varchar](500) NOT NULL,
+	[LogUrl] [varchar](500) NULL,
 	[InsertedAt] [datetime2](7) NOT NULL,
 	[UpdatedAt] [datetime2](7) NOT NULL,
  CONSTRAINT [PK_VstsReleaseTask] PRIMARY KEY CLUSTERED 

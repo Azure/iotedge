@@ -21,10 +21,9 @@ namespace DevOpsLib
             DateTime finishTime,
             Uri logUrl)
         {
-            ValidationUtil.ThrowIfNonPositive(id, nameof(id));
+            ValidationUtil.ThrowIfNegative(id, nameof(id));
             ValidationUtil.ThrowIfNullOrWhiteSpace(name, nameof(name));
             ValidationUtil.ThrowIfNullOrWhiteSpace(status, nameof(status));
-            ValidationUtil.ThrowIfNull(logUrl, nameof(logUrl));
 
             this.id = id;
             this.name = name;
@@ -83,6 +82,6 @@ namespace DevOpsLib
             string.Equals(this.status, other.status, StringComparison.Ordinal) &&
             this.startTime == other.startTime &&
             this.finishTime == other.finishTime &&
-            this.logUrl.Equals(other.logUrl);
+            ((this.logUrl == null && other.logUrl == null) || (this.logUrl != null && this.logUrl.Equals(other.logUrl)));
     }
 }

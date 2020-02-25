@@ -12,7 +12,7 @@ CREATE PROCEDURE [dbo].[UpsertVstsReleaseTask]
     @Status varchar(20),
     @StartTime datetime2,
     @FinishTime datetime2,
-    @LogUrl varchar(500)
+    @LogUrl varchar(500) = NULL
 AS
     DECLARE @now datetime2;
     SET @now = SYSDATETIME();

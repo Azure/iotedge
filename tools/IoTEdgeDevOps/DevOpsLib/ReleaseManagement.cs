@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace DevOpsLib
 {
+    using System;
     using System.Collections.Generic;
-    using System.Linq;
     using System.Threading.Tasks;
     using DevOpsLib.VstsModels;
     using Flurl;
@@ -71,9 +71,10 @@ namespace DevOpsLib
                     VstsRelease releaseWithDetails = JsonConvert.DeserializeObject<VstsRelease>(releaseJson);
                     iotEdgeReleases.Add(IoTEdgeRelease.Create(releaseWithDetails, branchName));
                 }
-                catch (System.Exception)
+                catch (System.Exception ex)
                 {
                     // TODO: log exception
+                    Console.WriteLine(ex.ToString());
                 }
             }
 
