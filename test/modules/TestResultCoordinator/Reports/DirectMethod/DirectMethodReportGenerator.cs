@@ -41,7 +41,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
             this.ReceiverTestResults = receiverTestResults;
             this.ResultType = Preconditions.CheckNonWhiteSpace(resultType, nameof(resultType));
             this.NetworkStatusTimeline = Preconditions.CheckNotNull(networkStatusTimeline, nameof(networkStatusTimeline));
-            this.NetworkControllerType = (NetworkControllerType) Enum.Parse(typeof(NetworkControllerType), networkControllerRunProfileName);
+            this.NetworkControllerType = (NetworkControllerType)Enum.Parse(typeof(NetworkControllerType), networkControllerRunProfileName);
         }
 
         internal Option<string> ReceiverSource { get; }
