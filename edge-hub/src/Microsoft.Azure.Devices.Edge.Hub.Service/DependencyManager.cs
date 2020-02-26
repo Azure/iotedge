@@ -278,7 +278,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
             catch
             {
-                logger?.LogError($"Invalid parameter for {fieldName}");
+                logger?.LogError($"Cannot get parameter '{fieldName}' from the config");
             }
 
             return EqualityComparer<T>.Default.Equals(storageParamValue, default(T)) ? Option.None<T>() : Option.Some(storageParamValue);
