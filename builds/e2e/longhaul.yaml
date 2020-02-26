@@ -83,6 +83,7 @@ jobs:
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
+          testName: 'LongHaul'
           release.label: 'lh$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
@@ -165,6 +166,7 @@ jobs:
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
+          testName: 'LongHaul'
           release.label: 'lh$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
@@ -247,6 +249,7 @@ jobs:
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
+          testName: 'LongHaul'
           release.label: 'lh$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
@@ -331,6 +334,7 @@ jobs:
       # Deploy long haul
       - template: templates/longhaul-deploy-windows.yaml
         parameters:
+          testName: 'LongHaul'
           release.label: 'winpro-lh$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
@@ -415,6 +419,7 @@ jobs:
       # Deploy long haul
       - template: templates/longhaul-deploy-windows.yaml
         parameters:
+          testName: 'LongHaul'
           release.label: 'servercore-lh$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'

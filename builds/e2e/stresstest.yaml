@@ -82,6 +82,7 @@ jobs:
       # Deploy stress test
       - template: templates/stresstest-deploy.yaml
         parameters:
+          testName: 'Stress'
           release.label: 'st$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
@@ -162,6 +163,7 @@ jobs:
       # Deploy stress test
       - template: templates/stresstest-deploy.yaml
         parameters:
+          testName: 'Stress'
           release.label: 'st$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
@@ -242,6 +244,7 @@ jobs:
       # Deploy stress test
       - template: templates/stresstest-deploy.yaml
         parameters:
+          testName: 'Stress'
           release.label: 'st$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
@@ -324,6 +327,7 @@ jobs:
       # Deploy stress test
       - template: templates/stresstest-deploy-windows.yaml
         parameters:
+          testName: 'Stress'
           release.label: 'winpro-st$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
@@ -406,6 +410,7 @@ jobs:
       # Deploy stress test
       - template: templates/stresstest-deploy-windows.yaml
         parameters:
+          testName: 'Stress'
           release.label: 'servercore-st$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
