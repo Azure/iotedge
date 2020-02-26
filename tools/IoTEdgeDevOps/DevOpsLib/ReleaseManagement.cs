@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace DevOpsLib
 {
+    using System;
     using System.Collections.Generic;
-    using System.Linq;
     using System.Threading.Tasks;
     using DevOpsLib.VstsModels;
     using Flurl;
@@ -29,33 +29,56 @@ namespace DevOpsLib
         /// <param name="definitionId">release definition Ids</param>
         /// <param name="branchName">github repository branch name</param>
         /// <returns>List of IoT Edge releases</returns>
-        public async Task<List<IoTEdgeRelease>> GetReleasesAsync(ReleaseDefinitionId definitionId, string branchName, int top = 5)
+        public async Task<List<IoTEdgeRelease>> GetReleasesAsync(ReleaseDefinitionId definitionId, string branchName, int top = 200)
         {
             ValidationUtil.ThrowIfNullOrWhiteSpace(branchName, nameof(branchName));
             ValidationUtil.ThrowIfNonPositive(top, nameof(top));
 
             // TODO: need to think about how to handle unexpected exception during REST API call
             string requestPath = string.Format(ReleasePathSegmentFormat, this.accessSetting.Organization, this.accessSetting.Project);
-            IFlurlRequest latestBuildRequest = DevOpsAccessSetting.ReleaseManagementBaseUrl
+            IFlurlRequest listReleasesRequest = DevOpsAccessSetting.ReleaseManagementBaseUrl
                 .AppendPathSegment(requestPath)
                 .SetQueryParam("definitionId", definitionId.IdString())
                 .SetQueryParam("queryOrder", "descending")
-                .SetQueryParam("$expand", "environments")
                 .SetQueryParam("$top", top)
                 .SetQueryParam("api-version", "5.1")
                 .SetQueryParam("sourceBranchFilter", branchName)
                 .WithBasicAuth(string.Empty, this.accessSetting.PersonalAccessToken);
 
-            string resultJson = await latestBuildRequest.GetStringAsync().ConfigureAwait(false);
-            JObject result = JObject.Parse(resultJson);
+            string releasesJson = await listReleasesRequest.GetStringAsync().ConfigureAwait(false);
+            JObject releasesJObject = JObject.Parse(releasesJson);
 
-            if (!result.ContainsKey("count") || (int) result["count"] <= 0)
+            if (!releasesJObject.ContainsKey("count") || (int) releasesJObject["count"] <= 0)
             {
                 return new List<IoTEdgeRelease>();
             }
 
-            VstsRelease[] releases = JsonConvert.DeserializeObject<VstsRelease[]>(result["value"].ToString());
-            return releases.Select(r => IoTEdgeRelease.Create(r, branchName)).ToList();
+            VstsRelease[] vstsReleases = JsonConvert.DeserializeObject<VstsRelease[]>(releasesJObject["value"].ToString());
+            var iotEdgeReleases = new List<IoTEdgeRelease>();
+
+            foreach(VstsRelease vstsRelease in vstsReleases)
+            {
+                IFlurlRequest getReleaseRequest = DevOpsAccessSetting.ReleaseManagementBaseUrl
+                    .AppendPathSegment(requestPath)
+                    .SetQueryParam("api-version", "5.1")
+                    .SetQueryParam("releaseId", vstsRelease.Id)
+                    .WithBasicAuth(string.Empty, this.accessSetting.PersonalAccessToken);
+
+                string releaseJson = await getReleaseRequest.GetStringAsync().ConfigureAwait(false);
+
+                try
+                {
+                    VstsRelease releaseWithDetails = JsonConvert.DeserializeObject<VstsRelease>(releaseJson);
+                    iotEdgeReleases.Add(IoTEdgeRelease.Create(releaseWithDetails, branchName));
+                }
+                catch (System.Exception ex)
+                {
+                    // TODO: log exception
+                    Console.WriteLine(ex.ToString());
+                }
+            }
+
+            return iotEdgeReleases;
         }
     }
 }

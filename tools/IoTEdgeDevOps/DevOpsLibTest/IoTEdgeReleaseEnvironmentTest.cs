@@ -18,7 +18,8 @@ namespace DevOpsLibTest
                         id,
                         343406,
                         "ARM32",
-                        VstsEnvironmentStatus.Succeeded));
+                        VstsEnvironmentStatus.Succeeded,
+                        TestUtil.GetDeployments(1)));
             Assert.True(ex.Message.StartsWith("Cannot be negative."));
             Assert.AreEqual("id", ex.ParamName);
         }
@@ -32,7 +33,8 @@ namespace DevOpsLibTest
                         3782954,
                         definitionId,
                         "AMD64",
-                        VstsEnvironmentStatus.Scheduled));
+                        VstsEnvironmentStatus.Scheduled,
+                        TestUtil.GetDeployments(1)));
             Assert.True(ex.Message.StartsWith("Cannot be less than or equal to zero."));
             Assert.AreEqual("definitionId", ex.ParamName);
         }
@@ -40,40 +42,44 @@ namespace DevOpsLibTest
         [Test]
         public void TestProperties()
         {
-            var releaseEnv = new IoTEdgeReleaseEnvironment(3242, 343406, "AMD64", VstsEnvironmentStatus.Queued);
+            var releaseEnv = new IoTEdgeReleaseEnvironment(3242, 343406, "AMD64", VstsEnvironmentStatus.Queued, TestUtil.GetDeployments(1));
 
             Assert.AreEqual(3242, releaseEnv.Id);
             Assert.AreEqual(343406, releaseEnv.DefinitionId);
             Assert.AreEqual(VstsEnvironmentStatus.Queued, releaseEnv.Status);
+            Assert.AreEqual(1, releaseEnv.Deployments.Count);
         }
 
         [Test]
         public void TestEquals()
         {
-            var releaseEnv1 = new IoTEdgeReleaseEnvironment(3242, 343406, "Linux AMD64", VstsEnvironmentStatus.Queued);
-            var releaseEnv2 = new IoTEdgeReleaseEnvironment(3242, 343406, "Linux AMD64", VstsEnvironmentStatus.Queued);
-            var releaseEnv3 = new IoTEdgeReleaseEnvironment(9708, 343406, "Linux ARM64", VstsEnvironmentStatus.Queued);
-            var releaseEnv4 = new IoTEdgeReleaseEnvironment(3242, 84893, "Windows X64", VstsEnvironmentStatus.Queued);
-            var releaseEnv5 = new IoTEdgeReleaseEnvironment(3242, 343406, "Windows Server Core", VstsEnvironmentStatus.Succeeded);
+            DateTime deploymentStartTime = DateTime.UtcNow;
+            var releaseEnv1 = new IoTEdgeReleaseEnvironment(3242, 343406, "Linux AMD64", VstsEnvironmentStatus.Queued, TestUtil.GetDeployments(1, deploymentStartTime));
+            var releaseEnv2 = new IoTEdgeReleaseEnvironment(3242, 343406, "Linux AMD64", VstsEnvironmentStatus.Queued, TestUtil.GetDeployments(1, deploymentStartTime));
+            var releaseEnv3 = new IoTEdgeReleaseEnvironment(9708, 343406, "Linux ARM64", VstsEnvironmentStatus.Queued, TestUtil.GetDeployments(1, deploymentStartTime));
+            var releaseEnv4 = new IoTEdgeReleaseEnvironment(3242, 84893, "Windows X64", VstsEnvironmentStatus.Queued, TestUtil.GetDeployments(1, deploymentStartTime));
+            var releaseEnv5 = new IoTEdgeReleaseEnvironment(3242, 343406, "Windows Server Core", VstsEnvironmentStatus.Succeeded, TestUtil.GetDeployments(1, deploymentStartTime));
+            var releaseEnv6 = new IoTEdgeReleaseEnvironment(3242, 343406, "Windows Server Core", VstsEnvironmentStatus.Succeeded, TestUtil.GetDeployments(2, deploymentStartTime));
 
             Assert.False(releaseEnv1.Equals(null));
             Assert.True(releaseEnv1.Equals(releaseEnv1));
             Assert.True(releaseEnv1.Equals(releaseEnv2));
 
-            Assert.False(releaseEnv1.Equals((object) null));
-            Assert.True(releaseEnv1.Equals((object) releaseEnv1));
-            Assert.True(releaseEnv1.Equals((object) releaseEnv2));
+            Assert.False(releaseEnv1.Equals((object)null));
+            Assert.True(releaseEnv1.Equals((object)releaseEnv1));
+            Assert.True(releaseEnv1.Equals((object)releaseEnv2));
             Assert.False(releaseEnv1.Equals(new object()));
 
             Assert.False(releaseEnv1.Equals(releaseEnv3));
             Assert.False(releaseEnv1.Equals(releaseEnv4));
             Assert.False(releaseEnv1.Equals(releaseEnv5));
+            Assert.False(releaseEnv5.Equals(releaseEnv6));
         }
 
         [Test]
         public void TestGetHashCode()
         {
-            var releaseEnv = new IoTEdgeReleaseEnvironment(3242, 343406, "Any Name", VstsEnvironmentStatus.Queued);
+            var releaseEnv = new IoTEdgeReleaseEnvironment(3242, 343406, "Any Name", VstsEnvironmentStatus.Queued, TestUtil.GetDeployments(1));
 
             Assert.AreEqual(3242, releaseEnv.GetHashCode());
         }
