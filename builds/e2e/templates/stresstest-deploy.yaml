@@ -60,6 +60,7 @@ steps:
         testInfo="$testInfo,BuildSourceBranch=${{ parameters['build.source.branch'] }}"
         testInfo="$testInfo,EdgeletSourceBranch=${{ parameters['edgelet.source.branch'] }}"
         testInfo="$testInfo,ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
+        testInfo="$testInfo,HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
         
         . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
         echo "snitcher duration in mins=$(snitcher.test.duration.in.mins)"
