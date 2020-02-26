@@ -20,8 +20,6 @@ parameters:
   longHaul.desiredModulesToRestartCSV: ''
   longHaul.restartIntervalInMins: ''
   analyzer.consumerGroupId: ''
-  analyzer.logAnalytics.enabled: ''
-  analyzer.logAnalytics.logType: ''
   logAnalytics.workspaceId: ''
   logAnalytics.sharedKey: ''
   twinTester.twinUpdateSize: ''
@@ -58,6 +56,7 @@ steps:
         testInfo="$testInfo,BuildSourceBranch=${{ parameters['build.source.branch'] }}"
         testInfo="$testInfo,EdgeletSourceBranch=${{ parameters['edgelet.source.branch'] }}"
         testInfo="$testInfo,ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
+        testInfo="$testInfo,HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
         
         . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
         chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh
@@ -79,8 +78,6 @@ steps:
           -eventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}" \
           -desiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" \
           -restartIntervalInMins "${{ parameters['longHaul.restartIntervalInMins'] }}" \
-          -logAnalyticsEnabled "${{ parameters['analyzer.logAnalytics.enabled'] }}" \
-          -logAnalyticsLogType "${{ parameters['analyzer.logAnalytics.logType'] }}" \
           -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
           -logAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \
           -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \
