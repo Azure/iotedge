@@ -145,7 +145,6 @@ namespace TestResultCoordinator
                 { nameof(this.TestDuration), this.TestDuration.ToString() },
                 { nameof(this.DurationBeforeVerification), this.DurationBeforeVerification.ToString() },
                 { nameof(this.ConsumerGroupName), this.ConsumerGroupName },
-                { nameof(this.TestBuildNumber), this.TestBuildNumber },
                 { nameof(this.NetworkControllerType), this.NetworkControllerType.ToString() }
             };
 
