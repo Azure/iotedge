@@ -36,10 +36,8 @@ namespace TestAnalyzer
                     excludedModules,
                     configuration.GetValue("WebhostPort", DefaultWebhostPort),
                     configuration.GetValue("ToleranceInMilliseconds", DefaultToleranceInMilliseconds),
-                    configuration.GetValue<bool>("LogAnalyticsEnabled"),
                     configuration.GetValue<string>("LogAnalyticsWorkspaceId"),
                     configuration.GetValue<string>("LogAnalyticsSharedKey"),
-                    configuration.GetValue<string>("LogAnalyticsLogType"),
                     configuration.GetValue<string>("storagePath", DefaultStoragePath),
                     configuration.GetValue<bool>("StorageOptimizeForPerformance", true),
                     configuration.GetValue<string>("TestInfo"));
@@ -52,10 +50,8 @@ namespace TestAnalyzer
             IList<string> excludedModuleIds,
             string webhostPort,
             double tolerance,
-            bool logAnalyticsEnabled,
             string logAnalyticsWorkspaceIdName,
             string logAnalyticsSharedKeyName,
-            string logAnalyticsLogTypeName,
             string storagePath,
             bool storageOptimizeForPerformance,
             string testInfo)
@@ -76,10 +72,8 @@ namespace TestAnalyzer
                                     x => x.KeyAndValue.Substring(0, x.SplitIndex),
                                     x => x.KeyAndValue.Substring(x.SplitIndex + 1, x.KeyAndValue.Length - x.SplitIndex - 1));
             this.OptimizeForPerformance = Preconditions.CheckNotNull(storageOptimizeForPerformance);
-            this.LogAnalyticsEnabled = logAnalyticsEnabled;
             this.LogAnalyticsWorkspaceId = logAnalyticsWorkspaceIdName;
             this.LogAnalyticsSharedKey = logAnalyticsSharedKeyName;
-            this.LogAnalyticsLogType = logAnalyticsLogTypeName;
         }
 
         public static Settings Current => Setting.Value;
@@ -103,14 +97,10 @@ namespace TestAnalyzer
 
         public bool OptimizeForPerformance { get; }
 
-        public bool LogAnalyticsEnabled { get; }
-
         public string LogAnalyticsWorkspaceId { get; }
 
         [JsonIgnore]
         public string LogAnalyticsSharedKey { get; }
-
-        public string LogAnalyticsLogType { get; }
 
         public override string ToString()
         {

@@ -13,8 +13,6 @@ variables:
   #pool.name: ''
   #container.registry: ''
   #snitch.storage.account: ''
-  #analyzer.logAnalytics.enabled  
-  #analyzer.logAnalytics.logType
   # Variables settable at queue time
   #edgelet.package.branchName
   #images.branchName
@@ -103,8 +101,6 @@ jobs:
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_linux_amd64'
-          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
-          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
@@ -184,8 +180,6 @@ jobs:
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_linux_arm32v7'
-          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
-          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
@@ -265,8 +259,6 @@ jobs:
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_linux_arm64v8'
-          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
-          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
@@ -348,8 +340,6 @@ jobs:
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_windows_amd64'
-          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
-          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
@@ -431,8 +421,6 @@ jobs:
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_windows_servercore_amd64'
-          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
-          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
@@ -513,8 +501,6 @@ jobs:
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_iotuap_amd64'
-          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
-          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
