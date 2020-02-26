@@ -11,11 +11,13 @@ namespace MetricsValidator
     using System.Threading.Tasks;
     using MetricsValidator.Tests;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
+    using TransportType = Microsoft.Azure.Devices.Client.TransportType;
 
     class Program
     {
@@ -37,14 +39,31 @@ namespace MetricsValidator
                     .AddEnvironmentVariables()
                     .Build();
 
-                var transportType = configuration.GetValue("ClientTransportType", Microsoft.Azure.Devices.Client.TransportType.Mqtt);
-                using (ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
-                    transportType,
-                    ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                    ModuleUtil.DefaultTransientRetryStrategy,
-                    Logger))
+                var transportType = configuration.GetValue("ClientTransportType", Microsoft.Azure.Devices.Client.TransportType.Mqtt_Tcp_Only);
+
+                ITransportSettings[] GetTransportSettings()
+                {
+                    switch (transportType)
+                    {
+                        case TransportType.Mqtt:
+                        case TransportType.Mqtt_Tcp_Only:
+                            return new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
+                        case TransportType.Mqtt_WebSocket_Only:
+                            return new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_WebSocket_Only) };
+                        case TransportType.Amqp_WebSocket_Only:
+                            return new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only) };
+                        default:
+                            return new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
+                    }
+                }
+
+                ITransportSettings[] settings = GetTransportSettings();
+                Logger.LogInformation($"Trying to initialize module client using transport type [{transportType}].");
+                using (ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings))
                 using (MetricsScraper scraper = new MetricsScraper(new List<string> { "http://edgeHub:9600/metrics", "http://edgeAgent:9600/metrics" }))
                 {
+                    moduleClient.OperationTimeoutInMilliseconds = (uint)60000;
+
                     Logger.LogInformation("Open Async");
                     await moduleClient.OpenAsync();
 
