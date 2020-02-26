@@ -299,14 +299,33 @@ namespace LeafDeviceTest
                 ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString, this.serviceClientTransportType, settings);
 
             // Call a direct method
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(300)))
+            TimeSpan testDuration = TimeSpan.FromSeconds(300);
+            DateTime endTime = DateTime.UtcNow + testDuration;
+            using (var cts = new CancellationTokenSource(testDuration))
             {
                 CloudToDeviceMethod cloudToDeviceMethod = new CloudToDeviceMethod("DirectMethod").SetPayloadJson("{\"TestKey\" : \"TestValue\"}");
 
-                CloudToDeviceMethodResult result = await serviceClient.InvokeDeviceMethodAsync(
-                    this.context.Device.Id,
-                    cloudToDeviceMethod,
-                    cts.Token);
+                CloudToDeviceMethodResult result = null;
+                bool isRetrying = true;
+                while(isRetrying)
+                {
+                    try
+                    {
+                        result = await serviceClient.InvokeDeviceMethodAsync(
+                            this.context.Device.Id,
+                            cloudToDeviceMethod,
+                            cts.Token);
+                    }
+                    catch (Exception)
+                    {
+                        Console.WriteLine($"Failed to send direct method from device '{this.context.Device.Id}' with payload '{cloudToDeviceMethod}'");
+
+                        if (DateTime.UtcNow > endTime)
+                        {
+                            isRetrying = false;
+                        }
+                    }
+                }
 
                 if (result.Status != 200)
                 {
