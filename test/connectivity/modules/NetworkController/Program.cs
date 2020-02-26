@@ -3,6 +3,7 @@ namespace NetworkController
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -34,7 +35,17 @@ namespace NetworkController
                         var satellite = new SatelliteController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
                         var cellular = new CellularController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
                         var controllers = new List<INetworkController>() { offline, satellite, cellular };
+
+                        // Reset network status before start delay to ensure network status is in designed state before test starts.
+                        var sw = new Stopwatch();
+                        sw.Start();
                         await RemoveAllControllingRules(controllers, cts.Token);
+                        sw.Stop();
+                        TimeSpan durationBeforeTestStart = Settings.Current.StartAfter <= sw.Elapsed ? TimeSpan.Zero : Settings.Current.StartAfter - sw.Elapsed;
+
+                        Log.LogInformation($"Delay {durationBeforeTestStart} before starting network controller.");
+                        await Task.Delay(durationBeforeTestStart, cts.Token);
+                        await ReportTestInfoAsync();
 
                         switch (Settings.Current.NetworkRunProfile.ProfileType)
                         {
@@ -74,9 +85,10 @@ namespace NetworkController
         {
             var testInfoResults = new string[]
             {
-                $"Network Run Profile={Settings.Current.NetworkRunProfile}",
+                $"Network Run Profile Type={Settings.Current.NetworkRunProfile.ProfileType}",
+                $"Network Run Profile Settings={Settings.Current.NetworkRunProfile.ProfileSetting.ToString()}",
                 $"Network Network Id={Settings.Current.NetworkId}",
-                $"Network Frequencies={string.Join(",", Settings.Current.Frequencies.Select(f => $"[offline:{f.OfflineFrequency},Online:{f.OnlineFrequency},Runs:{f.RunsCount}]"))}"
+                $"Network Frequencies={string.Join(",", Settings.Current.Frequencies.Select(f => $"[Enable Network Control:{f.OfflineFrequency},Disable Network Control:{f.OnlineFrequency},Runs:{f.RunsCount}]"))}"
             };
 
             var testResultReportingClient = new TestResultReportingClient() { BaseUrl = Settings.Current.TestResultCoordinatorEndpoint.AbsoluteUri };
@@ -96,15 +108,10 @@ namespace NetworkController
 
         static async Task StartAsync(INetworkController controller, CancellationToken cancellationToken)
         {
-            TimeSpan delay = Settings.Current.StartAfter;
-
             INetworkStatusReporter reporter = new NetworkStatusReporter(Settings.Current.TestResultCoordinatorEndpoint, Settings.Current.ModuleId, Settings.Current.TrackingId);
             foreach (Frequency item in Settings.Current.Frequencies)
             {
-                Log.LogInformation($"Schedule task for type {controller.NetworkControllerType} to start after {delay} Offline frequency {item.OfflineFrequency} Online frequency {item.OnlineFrequency} Run times {item.RunsCount}");
-
-                await Task.Delay(delay, cancellationToken);
-                await ReportTestInfoAsync();
+                Log.LogInformation($"Schedule task for type {controller.NetworkControllerType} with enable network control frequency {item.OfflineFrequency}, disable network control frequency {item.OnlineFrequency}, and run times {item.RunsCount}.");
 
                 var taskExecutor = new CountedTaskExecutor(
                     async cs =>
@@ -120,9 +127,6 @@ namespace NetworkController
                     "restrict/default");
 
                 await taskExecutor.Schedule(cancellationToken);
-
-                // Only needs to set the start delay for first frequency, after that reset to 0
-                delay = TimeSpan.FromSeconds(0);
             }
         }
 

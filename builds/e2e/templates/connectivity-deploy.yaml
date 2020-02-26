@@ -89,7 +89,6 @@ steps:
         
         scriptExitCode=$?
         echo "script exit code=$scriptExitCode"
-        if [[ $scriptExitCode -eq 3 ]]; then
-          echo "##vso[task.complete result=Canceled;]DONE"
-        fi
+        exit $scriptExitCode
+
       workingDirectory: "$(Agent.HomeDirectory)/.."
