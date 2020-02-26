@@ -59,28 +59,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
         // complexity as module names are assigned dynamically.
         public IEnumerable<EdgeConfiguration> BuildConfigurationStages()
         {
-            var config = new ConfigurationContent
-            {
-                ModulesContent = new Dictionary<string, IDictionary<string, object>>()
-            };
-
-            var moduleNames = new HashSet<string>();
-            var moduleImages = new HashSet<string>();
-
-            void UpdateConfiguration(ModuleConfiguration module)
-            {
-                moduleNames.Add(module.Name);
-                moduleImages.Add(module.Image);
-
-                if (module.DesiredProperties.Count != 0)
-                {
-                    config.ModulesContent[module.Name] = new Dictionary<string, object>
-                    {
-                        ["properties.desired"] = module.DesiredProperties
-                    };
-                }
-            }
-
             // Edge agent is not optional; add if necessary
             if (!this.moduleBuilders.ContainsKey(ModuleName.EdgeAgent))
             {
@@ -95,32 +73,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             // Return a configuration for $edgeHub and $edgeAgent
             List<ModuleConfiguration> modules = moduleConfigs["system"].ToList();
             modules.Insert(0, this.BuildEdgeAgent(modules));
-            foreach (ModuleConfiguration module in modules)
-            {
-                UpdateConfiguration(module);
-            }
+            yield return EdgeConfiguration.Create(this.deviceId, modules);
 
             if (moduleConfigs.Contains("other"))
             {
-                yield return new EdgeConfiguration(
-                    this.deviceId,
-                    new List<string>(moduleNames),
-                    new List<string>(moduleImages),
-                    new ConfigurationContent
-                    {
-                        ModulesContent = new Dictionary<string, IDictionary<string, object>>(config.ModulesContent)
-                    });
-
                 // Return a configuration for all modules
                 modules = moduleConfigs.SelectMany(m => m).ToList();
                 modules.Insert(0, this.BuildEdgeAgent(modules));
-                foreach (ModuleConfiguration module in modules)
-                {
-                    UpdateConfiguration(module);
-                }
+                yield return EdgeConfiguration.Create(this.deviceId, modules);
             }
-
-            yield return new EdgeConfiguration(this.deviceId, moduleNames, moduleImages, config);
         }
 
         ModuleConfiguration BuildEdgeAgent(IEnumerable<ModuleConfiguration> configs)

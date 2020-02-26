@@ -100,18 +100,12 @@
 
     .PARAMETER DpsMasterSymmetricKey
         DPS master symmetric key. Required only when using DPS symmetric key to provision the Edge device.
-    
-    .PARAMETER LogAnalyticsEnabled
-        Optional Log Analytics enable string for the Analyzer module. If LogAnalyticsEnabled is set to enable (true), the rest of Log Analytics parameters must be provided.
 
     .PARAMETER LogAnalyticsWorkspaceId
         Optional Log Analytics workspace ID for metrics collection and reporting.
 
     .PARAMETER LogAnalyticsSharedKey
         Optional Log Analytics shared key for metrics collection and reporting.
-
-    .PARAMETER LogAnalyticsLogType
-        Optional Log Analytics log type for the Analyzer module.
 
     .PARAMETER TwinUpdateSize
         Specifies the char count (i.e. size) of each twin update. Default is 1 for long haul and 100 for stress test.
@@ -307,14 +301,9 @@ Param (
     [ValidateSet("true", "false")]
     [string] $MqttSettingsEnabled = "true",
 
-    [ValidateSet("true", "false")]
-    [string] $LogAnalyticsEnabled = "false",
-
     [string] $LogAnalyticsWorkspaceId = $null,
 
     [string] $LogAnalyticsSharedKey = $null,
-
-    [string] $LogAnalyticsLogType = $null,
 
     [string] $TwinUpdateSize = $null,
 
@@ -510,8 +499,6 @@ Function PrepareTestFromArtifacts
 
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.ConsumerGroupId>',$EventHubConsumerGroupId) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.EventHubConnectionString>',$EventHubConnectionString) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.LogAnalyticsEnabled>',$LogAnalyticsEnabled) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.LogAnalyticsLogType>',$LogAnalyticsLogType) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.TestInfo>',$TestInfo) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LogAnalyticsWorkspaceId>',$LogAnalyticsWorkspaceId) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LogAnalyticsSharedKey>',$LogAnalyticsSharedKey) | Set-Content $DeploymentWorkingFilePath
@@ -1524,6 +1511,8 @@ Function ValidateTestParameters
         If ([string]::IsNullOrEmpty($HostPlatform)) {Throw "Required host platform."}
         If ($ProxyUri) {Throw "Proxy not supported for $TestName test"}
         If ([string]::IsNullOrEmpty($TestInfo)) {Throw "Required test info."}
+        If ([string]::IsNullOrEmpty($LogAnalyticsWorkspaceId)) {Throw "Required log analytics workspace id."}
+        If ([string]::IsNullOrEmpty($LogAnalyticsSharedKey)) {Throw "Required log analytics shared key."}
     }
 }
 
