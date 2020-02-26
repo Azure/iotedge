@@ -316,23 +316,23 @@ namespace LeafDeviceTest
                             cloudToDeviceMethod,
                             cts.Token);
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
-                        Console.WriteLine($"Failed to send direct method from device '{this.context.Device.Id}' with payload '{cloudToDeviceMethod}'");
+                        Console.WriteLine($"Failed to send direct method from device '{this.context.Device.Id}' with payload '{cloudToDeviceMethod}: {ex}'");
 
-                        if (DateTime.UtcNow > endTime)
+                        if (DateTime.UtcNow >= endTime)
                         {
                             isRetrying = false;
                         }
                     }
                 }
 
-                if (result.Status != 200)
+                if (result?.Status != 200)
                 {
                     throw new Exception($"Could not invoke Direct Method on Device with result status {result.Status}.");
                 }
 
-                if (!result.GetPayloadAsJson().Equals("{\"TestKey\":\"TestValue\"}", StringComparison.Ordinal))
+                if (!result?.GetPayloadAsJson().Equals("{\"TestKey\":\"TestValue\"}", StringComparison.Ordinal) ?? false)
                 {
                     throw new Exception($"Payload doesn't match with Sent Payload. Received payload: {result.GetPayloadAsJson()}. Expected: {{\"TestKey\":\"TestValue\"}}");
                 }
