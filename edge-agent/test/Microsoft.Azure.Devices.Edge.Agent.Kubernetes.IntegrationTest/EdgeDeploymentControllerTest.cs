@@ -130,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             moduleLifeCycleManager.SetModules(moduleName);
 
             await this.client.AddModuleDeploymentAsync(moduleName, labels, null);
-            await this.client.DeleteDeploymentAsync(moduleName);
+            await this.client.DeleteModuleDeploymentAsync(moduleName);
             await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
 
             this.AssertNoMatchingDeployments(deviceSelector, moduleName);
