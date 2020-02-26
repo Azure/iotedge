@@ -2,6 +2,8 @@
 namespace DevOpsLib
 {
     using System;
+    using System.Collections.Generic;
+    using System.Linq;
     using DevOpsLib.VstsModels;
 
     public class IoTEdgeReleaseEnvironment : IEquatable<IoTEdgeReleaseEnvironment>
@@ -10,17 +12,20 @@ namespace DevOpsLib
         readonly int definitionId;
         readonly string definitionName;
         readonly VstsEnvironmentStatus status;
+        readonly HashSet<IoTEdgeReleaseDeployment> deployments;
 
-        public IoTEdgeReleaseEnvironment(int id, int definitionId, string definitionName, VstsEnvironmentStatus status)
+        public IoTEdgeReleaseEnvironment(int id, int definitionId, string definitionName, VstsEnvironmentStatus status, HashSet<IoTEdgeReleaseDeployment> deployments)
         {
             ValidationUtil.ThrowIfNegative(id, nameof(id));
             ValidationUtil.ThrowIfNonPositive(definitionId, nameof(definitionId));
             ValidationUtil.ThrowIfNull(definitionName, nameof(definitionName));
+            ValidationUtil.ThrowIfNull(deployments, nameof(deployments));
 
             this.id = id;
             this.definitionId = definitionId;
             this.definitionName = definitionName;
             this.status = status;
+            this.deployments = deployments;
         }
 
         public int Id => this.id;
@@ -31,11 +36,18 @@ namespace DevOpsLib
 
         public VstsEnvironmentStatus Status => this.status;
 
+        public HashSet<IoTEdgeReleaseDeployment> Deployments => this.deployments;
+
         public static IoTEdgeReleaseEnvironment CreateEnvironmentWithNoResult(int definitionId)
-            => new IoTEdgeReleaseEnvironment(0, definitionId, string.Empty, VstsEnvironmentStatus.Undefined);
+            => new IoTEdgeReleaseEnvironment(0, definitionId, string.Empty, VstsEnvironmentStatus.Undefined, new HashSet<IoTEdgeReleaseDeployment>());
 
         public static IoTEdgeReleaseEnvironment Create(VstsReleaseEnvironment vstsReleaseEnvironment)
-            => new IoTEdgeReleaseEnvironment(vstsReleaseEnvironment.Id, vstsReleaseEnvironment.DefinitionId, vstsReleaseEnvironment.DefinitionName, vstsReleaseEnvironment.Status);
+            => new IoTEdgeReleaseEnvironment(
+                vstsReleaseEnvironment.Id,
+                vstsReleaseEnvironment.DefinitionId,
+                vstsReleaseEnvironment.DefinitionName,
+                vstsReleaseEnvironment.Status,
+                vstsReleaseEnvironment?.Deployments?.Select(IoTEdgeReleaseDeployment.Create).ToHashSet() ?? new HashSet<IoTEdgeReleaseDeployment>());
 
         public bool HasResult()
         {
@@ -54,7 +66,7 @@ namespace DevOpsLib
                 return true;
             }
 
-            return this.id == other.id && this.definitionId == other.definitionId && this.status == other.status;
+            return this.id == other.id && this.definitionId == other.definitionId && this.status == other.status && this.deployments.SetEquals(other.deployments);
         }
 
         public override bool Equals(object obj)

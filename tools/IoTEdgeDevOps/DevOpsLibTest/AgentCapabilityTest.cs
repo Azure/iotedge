@@ -24,13 +24,7 @@ namespace DevOpsLibTest
         [Test]
         public void TestConstructorWithNoValue()
         {
-            Assert.That(() => new AgentCapability("name", null), Throws.TypeOf<ArgumentException>());
-        }
-
-        [Test]
-        public void TestConstructorWithEmptyValue()
-        {
-            Assert.That(() => new AgentCapability("name", string.Empty), Throws.TypeOf<ArgumentException>());
+            Assert.That(() => new AgentCapability("name", null), Throws.TypeOf<ArgumentNullException>());
         }
 
         [Test]

@@ -42,7 +42,7 @@ namespace VstsPipelineSync
                     foreach (string branch in this.branches)
                     {
                         buildLastUpdatePerBranchPerDefinition.Upsert(
-                            branch, 
+                            branch,
                             await ImportVstsBuildsDataAsync(buildManagement, branch, BuildExtension.BuildDefinitions));
                     }
                 }
@@ -133,7 +133,7 @@ namespace VstsPipelineSync
             var cmd = new SqlCommand
             {
                 Connection = sqlConnection,
-                CommandType = System.Data.CommandType.StoredProcedure,
+                CommandType = CommandType.StoredProcedure,
                 CommandText = "UpsertVstsBuild"
             };
 
@@ -175,6 +175,16 @@ namespace VstsPipelineSync
                         if (releaseEnvironment.HasResult())
                         {
                             UpsertVstsReleaseEnvironmentToDb(sqlConnection, release.Id, releaseEnvironment, kvp.Value);
+
+                            foreach(IoTEdgeReleaseDeployment deployment in releaseEnvironment.Deployments)
+                            {
+                                UpsertVstsReleaseDeploymentToDb(sqlConnection, releaseEnvironment.Id, deployment);
+
+                                foreach(IoTEdgePipelineTask pipelineTask in deployment.Tasks.Where(x => IsTestTask(x)))
+                                {
+                                    UpsertVstsReleaseTaskToDb(sqlConnection, deployment.Id, pipelineTask);
+                                }
+                            }
                         }
                     }
                 }
@@ -189,12 +199,17 @@ namespace VstsPipelineSync
             }
         }
 
+        bool IsTestTask(IoTEdgePipelineTask pipelineTask)
+        {
+            return pipelineTask.Name.StartsWith("E2E");
+        }
+
         void UpsertVstsReleaseToDb(SqlConnection sqlConnection, IoTEdgeRelease release)
         {
             var cmd = new SqlCommand
             {
                 Connection = sqlConnection,
-                CommandType = System.Data.CommandType.StoredProcedure,
+                CommandType = CommandType.StoredProcedure,
                 CommandText = "UpsertVstsRelease"
             };
 
@@ -213,7 +228,7 @@ namespace VstsPipelineSync
             var cmd = new SqlCommand
             {
                 Connection = sqlConnection,
-                CommandType = System.Data.CommandType.StoredProcedure,
+                CommandType = CommandType.StoredProcedure,
                 CommandText = "UpsertVstsReleaseEnvironment"
             };
 
@@ -222,6 +237,42 @@ namespace VstsPipelineSync
             cmd.Parameters.Add(new SqlParameter("@DefinitionId", environment.DefinitionId));
             cmd.Parameters.Add(new SqlParameter("@DefinitionName", envrionmentName));
             cmd.Parameters.Add(new SqlParameter("@Status", environment.Status.ToString()));
+            cmd.ExecuteNonQuery();
+        }
+
+        void UpsertVstsReleaseDeploymentToDb(SqlConnection sqlConnection, int releaseEnvironmentId, IoTEdgeReleaseDeployment deployment)
+        {
+            var cmd = new SqlCommand
+            {
+                Connection = sqlConnection,
+                CommandType = CommandType.StoredProcedure,
+                CommandText = "UpsertVstsReleaseDeployment"
+            };
+
+            cmd.Parameters.Add(new SqlParameter("@Id", deployment.Id));
+            cmd.Parameters.Add(new SqlParameter("@ReleaseEnvironmentId", releaseEnvironmentId));
+            cmd.Parameters.Add(new SqlParameter("@Attempt", deployment.Attempt));
+            cmd.Parameters.Add(new SqlParameter("@Status", deployment.Status.ToString()));
+            cmd.Parameters.Add(new SqlParameter("@LastModifiedOn", deployment.LastModifiedOn));
+            cmd.ExecuteNonQuery();
+        }
+
+        void UpsertVstsReleaseTaskToDb(SqlConnection sqlConnection, int releaseDeploymentId, IoTEdgePipelineTask task)
+        {
+            var cmd = new SqlCommand
+            {
+                Connection = sqlConnection,
+                CommandType = CommandType.StoredProcedure,
+                CommandText = "UpsertVstsReleaseTask"
+            };
+
+            cmd.Parameters.Add(new SqlParameter("@ReleaseDeploymentId", releaseDeploymentId));
+            cmd.Parameters.Add(new SqlParameter("@Id", task.Id));
+            cmd.Parameters.Add(new SqlParameter("@Name", task.Name));
+            cmd.Parameters.Add(new SqlParameter("@Status", task.Status));
+            cmd.Parameters.Add(new SqlParameter("@StartTime", task.StartTime));
+            cmd.Parameters.Add(new SqlParameter("@FinishTime", task.FinishTime));
+            cmd.Parameters.Add(new SqlParameter("@LogUrl", task.LogUrl.AbsoluteUri));
             cmd.ExecuteNonQuery();
         }
     }
