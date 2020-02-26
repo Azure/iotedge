@@ -49,7 +49,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
                     }
                 }
             };
-
             await client.Kubernetes.CreateNamespacedDeploymentAsync(deployment, client.DeviceNamespace);
         }
 

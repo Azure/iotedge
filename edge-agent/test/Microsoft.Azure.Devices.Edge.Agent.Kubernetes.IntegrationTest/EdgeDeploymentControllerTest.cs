@@ -3,8 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
 {
     using System;
     using System.Collections.Generic;
-    using System.Collections.Immutable;
-    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using k8s.Models;
@@ -142,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         }
 
         [Fact]
-        public async Task CheckIfDeploymentIsHealthyWithPvcDeletion()
+        public async Task CheckIfDeploymentIsHealthyWithMissingPvc()
         {
             var moduleName = "module-a";
             var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
@@ -156,8 +154,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             moduleLifeCycleManager.SetModules(moduleName);
 
             await this.client.AddModuleDeploymentAsync(moduleName, labels, null);
-            await this.client.WaitUntilAnyPersistentVolumeClaimAsync(tokenSource.Token);
-            await this.client.DeletePvcAsync(pvcName);
             await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
             await this.client.WaitUntilAnyPersistentVolumeClaimAsync(tokenSource.Token);
 
@@ -168,7 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         }
 
         [Fact]
-        public async Task CheckIfDeploymentIsHealthyWithServiceAccountDeletion()
+        public async Task CheckIfDeploymentIsHealthyWithMissingServiceAccount()
         {
             var moduleName = "module-a";
             var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
@@ -179,7 +175,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             moduleLifeCycleManager.SetModules(moduleName);
 
             await this.client.AddModuleDeploymentAsync(moduleName, labels, null);
-            await this.client.DeleteServiceAccountAsync(moduleName);
             await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
 
             this.AssertNoMatchingDeployments(deviceSelector, moduleName);
@@ -189,7 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         }
 
         [Fact]
-        public async Task CheckIfDeploymentIsHealthyWithServiceDeletion()
+        public async Task CheckIfDeploymentIsHealthyWithMissingService()
         {
             var moduleName = "module-a";
             var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
@@ -200,7 +195,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             moduleLifeCycleManager.SetModules(moduleName);
 
             await this.client.AddModuleDeploymentAsync(moduleName, labels, null);
-            await this.client.DeleteServiceAsync(moduleName);
             await controller.DeployModulesAsync(ModuleSet.Create(km1), ModuleSet.Create(km1));
 
             this.AssertNoMatchingDeployments(deviceSelector, moduleName);
@@ -264,13 +258,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, string.Empty, string.Empty);
             KubernetesModule km1 = this.CreateDefaultKubernetesModule(moduleName);
             string newImage = "test-image:2";
-            KubernetesModule km1UpdaModule = this.CreateKubernetesModuleWithImageName(moduleName, newImage);
+            KubernetesModule km1updated = this.CreateKubernetesModuleWithImageName(moduleName, newImage);
             var labels = this.CreateDefaultLabels(moduleName);
             moduleLifeCycleManager.SetModules(moduleName);
 
             await this.client.AddModuleDeploymentAsync(moduleName, labels, null);
             await this.client.ReplaceModuleImageAsync(moduleName, newImage);
-            await controller.DeployModulesAsync(ModuleSet.Create(km1UpdaModule), ModuleSet.Create(km1));
+            await controller.DeployModulesAsync(ModuleSet.Create(km1updated), ModuleSet.Create(km1));
 
             this.AssertNoMatchingDeployments(deviceSelector, moduleName);
             this.AssertNoMatchingServiceAccounts(deviceSelector, moduleName);
@@ -397,9 +391,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         {
             return new Dictionary<string, string>
             {
-                ["net.azure-devices.edge.deviceid"] = "deviceid",
-                ["net.azure-devices.edge.hub"] = "hostname",
-                ["net.azure-devices.edge.module"] = moduleName
+                [Kubernetes.Constants.K8sEdgeDeviceLabel] = "deviceid",
+                [Kubernetes.Constants.K8sEdgeHubNameLabel] = "hostname",
+                [Kubernetes.Constants.K8sEdgeModuleLabel] = moduleName
             };
         }
 
