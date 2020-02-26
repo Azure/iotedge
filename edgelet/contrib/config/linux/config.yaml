@@ -127,7 +127,7 @@ provisioning:
 #   scope_id: "{scope_id}"
 #   attestation:
 #     method: "x509"
-#     registration_id: "<OPTIONAL REGISTRATION ID. IF UNSPECIFIED CAN BE OBTAINED FROM CN OF identity_cert"
+#     registration_id: "<OPTIONAL REGISTRATION ID. LEAVE COMMENTED OUT TO REGISTER WITH CN OF identity_cert>"
 #     identity_cert: "<REQUIRED URI TO DEVICE IDENTITY CERTIFICATE>"
 #     identity_pk: "<REQUIRED URI TO DEVICE IDENTITY PRIVATE KEY>"
 #   dynamic_reprovisioning: false
