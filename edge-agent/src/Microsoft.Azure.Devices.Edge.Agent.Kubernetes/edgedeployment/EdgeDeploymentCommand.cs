@@ -227,35 +227,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 });
         }
 
-        Task<Option<string>> FindAgentImageAsync(CancellationToken token)
-        {
-            var agentImage = this.activeDeployment.Match(
-                edgeDeployment =>
-                {
-                    var currentAgent = this.activeDeployment.OrDefault().Spec.First(agentModule => agentModule.Name == Core.Constants.EdgeAgentModuleName);
-                    return Task.FromResult(Option.Some(currentAgent.Config.Image));
-                },
-                async () =>
-                {
-                    try
-                    {
-                        Events.CreateEdgeDeployment(customObjectDefinition);
-                        await this.client.CreateNamespacedCustomObjectWithHttpMessagesAsync(
-                            crdObject,
-                            KubernetesConstants.EdgeDeployment.Group,
-                            KubernetesConstants.EdgeDeployment.Version,
-                            this.deviceNamespace,
-                            KubernetesConstants.EdgeDeployment.Plural,
-                            cancellationToken: token);
-                    }
-                    catch (HttpOperationException e) when (e.Response.StatusCode == HttpStatusCode.NotFound)
-                    {
-                        Events.ReportCrdInstallationFailed(e);
-                        throw;
-                    }
-                });
-        }
-
         public Task UndoAsync(CancellationToken token) => Task.CompletedTask;
 
         public string Show() => $"Create an EdgeDeployment with modules: [{string.Join(", ", this.modules.Select(m => m.Name))}]";
