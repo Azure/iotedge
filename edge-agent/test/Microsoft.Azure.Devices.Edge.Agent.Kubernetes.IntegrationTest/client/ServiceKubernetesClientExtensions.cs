@@ -8,6 +8,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
     public static class ServiceKubernetesClientExtensions
     {
         public static async Task<V1ServiceList> ListServicesAsync(this KubernetesClient client, string deviceSelector) => await client.Kubernetes.ListNamespacedServiceAsync(client.DeviceNamespace, labelSelector: deviceSelector);
-        public static async Task DeleteServiceAsync(this KubernetesClient client, string moduleName) => await client.Kubernetes.DeleteNamespacedServiceAsync(moduleName, client.DeviceNamespace);
     }
 }

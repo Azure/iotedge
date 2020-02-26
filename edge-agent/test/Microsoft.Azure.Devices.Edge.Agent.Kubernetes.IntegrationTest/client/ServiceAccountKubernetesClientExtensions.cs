@@ -24,6 +24,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
         }
 
         public static async Task<V1ServiceAccountList> ListServiceAccountsAsync(this KubernetesClient client, string deviceSelector) => await client.Kubernetes.ListNamespacedServiceAccountAsync(client.DeviceNamespace, labelSelector: deviceSelector);
-        public static async Task<V1Status> DeleteServiceAccountAsync(this KubernetesClient client, string moduleName) => await client.Kubernetes.DeleteNamespacedServiceAccountAsync(moduleName, client.DeviceNamespace);
     }
 }
