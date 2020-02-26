@@ -176,7 +176,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 {
                     Pooling = true,
                     MaxPoolSize = (uint)connectionPoolSize,
-                    ConnectionIdleTimeout = MinAmqpConnectionMuxIdleTimeout
                 }
             };
             proxy.ForEach(p => settings.Proxy = p);

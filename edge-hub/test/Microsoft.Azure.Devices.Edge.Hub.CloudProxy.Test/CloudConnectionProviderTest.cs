@@ -45,7 +45,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                         {
                             Pooling = true,
                             MaxPoolSize = 20,
-                            ConnectionIdleTimeout = TimeSpan.FromSeconds(5)
                         }
                     }
                 }
@@ -64,7 +63,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                         {
                             Pooling = true,
                             MaxPoolSize = 30,
-                            ConnectionIdleTimeout = TimeSpan.FromSeconds(5)
                         },
                         Proxy = new WebProxy(ProxyUri)
                     }
@@ -84,7 +82,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                         {
                             Pooling = true,
                             MaxPoolSize = 50,
-                            ConnectionIdleTimeout = TimeSpan.FromSeconds(5)
                         },
                         Proxy = new WebProxy(ProxyUri)
                     }
@@ -336,32 +333,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 switch (expectedTransportSettings)
                 {
                     case AmqpTransportSettings _:
-                    {
-                        var expected = (AmqpTransportSettings)expectedTransportSettings;
-                        var actual = (AmqpTransportSettings)transportSettings;
-                        Assert.True(expected.Equals(actual)); // AmqpTransportSettings impls Equals, but doesn't override Object.Equals
-
-                        if (proxy == Option.None<IWebProxy>())
                         {
-                            Assert.Null(actual.Proxy);
-                        }
-                        else
-                        {
-                            Assert.True(actual.Proxy is WebProxy);
-                            Assert.Equal(((WebProxy)expected.Proxy).Address, ((WebProxy)actual.Proxy).Address);
-                        }
+                            var expected = (AmqpTransportSettings)expectedTransportSettings;
+                            var actual = (AmqpTransportSettings)transportSettings;
+                            Assert.True(expected.Equals(actual)); // AmqpTransportSettings impls Equals, but doesn't override Object.Equals
 
-                        break;
-                    }
+                            if (proxy == Option.None<IWebProxy>())
+                            {
+                                Assert.Null(actual.Proxy);
+                            }
+                            else
+                            {
+                                Assert.True(actual.Proxy is WebProxy);
+                                Assert.Equal(((WebProxy)expected.Proxy).Address, ((WebProxy)actual.Proxy).Address);
+                            }
+
+                            break;
+                        }
 
                     case MqttTransportSettings _:
-                    {
-                        var expected = (MqttTransportSettings)expectedTransportSettings;
-                        var actual = (MqttTransportSettings)transportSettings;
-                        Assert.True(actual.Proxy is WebProxy);
-                        Assert.Equal(((WebProxy)expected.Proxy).Address, ((WebProxy)actual.Proxy).Address);
-                        break;
-                    }
+                        {
+                            var expected = (MqttTransportSettings)expectedTransportSettings;
+                            var actual = (MqttTransportSettings)transportSettings;
+                            Assert.True(actual.Proxy is WebProxy);
+                            Assert.Equal(((WebProxy)expected.Proxy).Address, ((WebProxy)actual.Proxy).Address);
+                            break;
+                        }
                 }
             }
         }
