@@ -24,8 +24,6 @@ parameters:
   transportType3: 'Mqtt_Tcp_Only'
   transportType4: 'Mqtt_WebSocket_Only'
   analyzer.consumerGroupId: ''
-  analyzer.logAnalytics.enabled: ''
-  analyzer.logAnalytics.logType: ''
   logAnalytics.workspaceId: ''
   logAnalytics.sharedKey: ''
   twinTester.twinUpdateSize: ''
@@ -89,8 +87,6 @@ steps:
           -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
           -snitchTestDurationInSecs "$(($(snitcher.test.duration.in.mins)*60))" \
           -eventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}" \
-          -logAnalyticsEnabled "${{ parameters['analyzer.logAnalytics.enabled'] }}" \
-          -logAnalyticsLogType "${{ parameters['analyzer.logAnalytics.logType'] }}" \
           -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
           -logAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \
           -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \
