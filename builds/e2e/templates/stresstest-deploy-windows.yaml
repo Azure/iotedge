@@ -24,8 +24,6 @@ parameters:
   transportType3: 'Mqtt_Tcp_Only'
   transportType4: 'Mqtt_Tcp_Only'
   analyzer.consumerGroupId: ''
-  analyzer.logAnalytics.enabled: ''
-  analyzer.logAnalytics.logType: ''
   logAnalytics.workspaceId: ''
   logAnalytics.sharedKey: ''
   twinTester.twinUpdateSize: ''
@@ -86,8 +84,6 @@ steps:
           -MqttSettingsEnabled "${{ parameters['mqtt.settings.enabled'] }}" `
           -LoadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" `
           -EventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}" `
-          -LogAnalyticsEnabled "${{ parameters['analyzer.logAnalytics.enabled'] }}" `
-          -LogAnalyticsLogType "${{ parameters['analyzer.logAnalytics.logType'] }}" `
           -LogAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" `
           -LogAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" `
           -TwinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" `
