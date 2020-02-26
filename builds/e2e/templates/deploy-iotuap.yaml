@@ -1,4 +1,5 @@
 parameters:
+  testName: ''
   release.label: ''
   test.buildNumber: ''
   test.buildId: ''
