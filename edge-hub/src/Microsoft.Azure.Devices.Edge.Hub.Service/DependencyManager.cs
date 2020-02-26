@@ -248,8 +248,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             // Note: Keep in sync with iotedge-check's edge-hub-storage-mounted-from-host check (edgelet/iotedge/src/check/checks/storage_mounted_from_host.rs)
             string storagePath = GetOrCreateDirectoryPath(this.configuration.GetValue<string>("StorageFolder"), Constants.EdgeHubStorageFolder);
             bool storeAndForwardEnabled = this.configuration.GetValue<bool>("storeAndForwardEnabled");
-            Option<ulong> storageMaxTotalWalSize = this.GetStorageConfigIfExists<ulong>(Constants.ConfigKey.StorageMaxTotalWalSize);
-            Option<StorageLogLevel> storageLogLevel = this.GetStorageConfigIfExists<StorageLogLevel>(Constants.ConfigKey.StorageLogLevel);
+            Option<ulong> storageMaxTotalWalSize = this.GetConfigIfExists<ulong>(Constants.ConfigKey.StorageMaxTotalWalSize, this.configuration);
+            Option<StorageLogLevel> storageLogLevel = this.GetConfigIfExists<StorageLogLevel>(Constants.ConfigKey.StorageLogLevel,  this.configuration);
 
             if (storeAndForwardEnabled)
             {
@@ -268,16 +268,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             return (storeAndForwardEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath, useBackupAndRestore, storageBackupPath, storageMaxTotalWalSize, storageLogLevel);
         }
 
-        Option<T> GetStorageConfigIfExists<T>(string fieldName)
+        // TODO: Move this function to a common location that can be shared between EdgeHub and EdgeAgent
+        Option<T> GetConfigIfExists<T>(string fieldName, IConfiguration configuration, ILogger logger = default(ILogger))
         {
             T storageParamValue = default(T);
             try
             {
-                storageParamValue = this.configuration.GetValue<T>(fieldName);
+                storageParamValue = configuration.GetValue<T>(fieldName);
             }
             catch
             {
-                // ignored
+                logger?.LogError($"Invalid parameter for {fieldName}");
             }
 
             return EqualityComparer<T>.Default.Equals(storageParamValue, default(T)) ? Option.None<T>() : Option.Some(storageParamValue);

@@ -138,8 +138,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 int idleTimeoutSecs = configuration.GetValue(Constants.IdleTimeoutSecs, 300);
                 TimeSpan idleTimeout = TimeSpan.FromSeconds(idleTimeoutSecs);
                 experimentalFeatures = ExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
-                Option<ulong> storageTotalMaxWalSize = GetStorageConfigIfExists<ulong>(Constants.StorageMaxTotalWalSize, configuration);
-                Option<StorageLogLevel> storageLogLevel = GetStorageConfigIfExists<StorageLogLevel>(Constants.StorageLogLevel, configuration);
+                Option<ulong> storageTotalMaxWalSize = GetConfigIfExists<ulong>(Constants.StorageMaxTotalWalSize, configuration, logger);
+                Option<StorageLogLevel> storageLogLevel = GetConfigIfExists<StorageLogLevel>(Constants.StorageLogLevel, configuration, logger);
                 string iothubHostname;
                 string deviceId;
                 string apiVersion = "2018-06-28";
@@ -454,7 +454,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             await dbStoreProvider.CloseAsync();
         }
 
-        static Option<T> GetStorageConfigIfExists<T>(string fieldName, IConfiguration configuration)
+        // TODO: Move this function to a common location that can be shared between EdgeHub and EdgeAgent
+        static Option<T> GetConfigIfExists<T>(string fieldName, IConfiguration configuration, ILogger logger = default(ILogger))
         {
             T storageParamValue = default(T);
             try
@@ -463,7 +464,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
             catch
             {
-                // ignored
+                logger?.LogError($"Invalid parameter for {fieldName}");
             }
 
             return EqualityComparer<T>.Default.Equals(storageParamValue, default(T)) ? Option.None<T>() : Option.Some(storageParamValue);
