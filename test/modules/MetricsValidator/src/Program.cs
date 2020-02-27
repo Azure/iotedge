@@ -15,7 +15,6 @@ namespace MetricsValidator
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using TransportType = Microsoft.Azure.Devices.Client.TransportType;
@@ -65,14 +64,8 @@ namespace MetricsValidator
                 {
                     moduleClient.OperationTimeoutInMilliseconds = 60000u;
 
-                    var retryPolicy = new RetryPolicy(ModuleUtil.DefaultTimeoutErrorDetectionStrategy, ModuleUtil.DefaultTransientRetryStrategy);
-                    retryPolicy.Retrying += (_, args) =>
-                    {
-                        Logger.LogError($"Retry {args.CurrentRetryCount} times to create module client and failed with exception:{Environment.NewLine}{args.LastException}");
-                    };
-
                     Logger.LogInformation("Open Async");
-                    await retryPolicy.ExecuteAsync(() => moduleClient.OpenAsync());
+                    await moduleClient.OpenAsync();
 
                     Logger.LogInformation("Set method handler");
                     await moduleClient.SetMethodHandlerAsync(
