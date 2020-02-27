@@ -62,7 +62,7 @@ namespace MetricsValidator
                 using (ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings))
                 using (MetricsScraper scraper = new MetricsScraper(new List<string> { "http://edgeHub:9600/metrics", "http://edgeAgent:9600/metrics" }))
                 {
-                    moduleClient.OperationTimeoutInMilliseconds = 60000u;
+                    moduleClient.OperationTimeoutInMilliseconds = (uint)60000;
 
                     Logger.LogInformation("Open Async");
                     await moduleClient.OpenAsync();
