@@ -24,6 +24,8 @@ parameters:
   metricsCollector.uploadTarget: ''
   metricsCollector.hostPlatform: ''
   edgeRuntime.buildNumber: ''
+  customEdgeAgent.image: ''
+  cusotmEdgeHub.image: ''
 
 steps:
   - task: CopyFiles@2
@@ -84,12 +86,13 @@ steps:
           -devOpsAccessToken $(System.AccessToken) \
           -devOpsBuildId $(Build.BuildId) \
           -edgeRuntimeBuildNumber "${{ parameters['edgeRuntime.buildNumber'] }}" \
+          -customEdgeAgentImage "${{ parameters['customEdgeAgent.image'] }}" \
+          -customEdgeHubImage "${{ parameters['customEdgeHub.image'] }}" \
           -waitForTestComplete \
           -cleanAll
         
         scriptExitCode=$?
         echo "script exit code=$scriptExitCode"
-        if [[ $scriptExitCode -eq 3 ]]; then
-          echo "##vso[task.complete result=Canceled;]DONE"
-        fi
+        exit $scriptExitCode
+
       workingDirectory: "$(Agent.HomeDirectory)/.."
