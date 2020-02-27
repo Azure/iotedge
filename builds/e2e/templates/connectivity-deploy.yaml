@@ -24,6 +24,8 @@ parameters:
   metricsCollector.uploadTarget: ''
   metricsCollector.hostPlatform: ''
   edgeRuntime.buildNumber: ''
+  customEdgeAgent.image: ''
+  cusotmEdgeHub.image: ''
 
 steps:
   - task: CopyFiles@2
@@ -84,6 +86,8 @@ steps:
           -devOpsAccessToken $(System.AccessToken) \
           -devOpsBuildId $(Build.BuildId) \
           -edgeRuntimeBuildNumber "${{ parameters['edgeRuntime.buildNumber'] }}" \
+          -customEdgeAgentImage "${{ parameters['customEdgeAgent.image'] }}" \
+          -customEdgeHubImage "${{ parameters['customEdgeHub.image'] }}" \
           -waitForTestComplete \
           -cleanAll
         
