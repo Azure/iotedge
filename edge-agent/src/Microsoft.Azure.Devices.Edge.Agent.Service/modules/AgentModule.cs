@@ -33,9 +33,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly bool useBackupAndRestore;
         readonly Option<string> storageBackupPath;
         readonly Option<ulong> storageTotalMaxWalSize;
+        readonly Option<StorageLogLevel> storageLogLevel;
 
-        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, bool usePersistentStorage, string storagePath, bool useBackupAndRestore, Option<string> storageBackupPath, Option<ulong> storageTotalMaxWalSize)
-            : this(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.None<Uri>(), Option.None<string>(), Constants.EdgeAgentModuleIdentityName, Option.None<string>(), useBackupAndRestore, storageBackupPath, storageTotalMaxWalSize)
+        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, bool usePersistentStorage, string storagePath, bool useBackupAndRestore, Option<string> storageBackupPath, Option<ulong> storageTotalMaxWalSize, Option<StorageLogLevel> storageLogLevel)
+            : this(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.None<Uri>(), Option.None<string>(), Constants.EdgeAgentModuleIdentityName, Option.None<string>(), useBackupAndRestore, storageBackupPath, storageTotalMaxWalSize, storageLogLevel)
         {
         }
 
@@ -51,7 +52,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             Option<string> moduleGenerationId,
             bool useBackupAndRestore,
             Option<string> storageBackupPath,
-            Option<ulong> storageTotalMaxWalSize)
+            Option<ulong> storageTotalMaxWalSize,
+            Option<StorageLogLevel> storageLogLevel)
         {
             this.maxRestartCount = maxRestartCount;
             this.intensiveCareTime = intensiveCareTime;
@@ -65,6 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.useBackupAndRestore = useBackupAndRestore;
             this.storageBackupPath = storageBackupPath;
             this.storageTotalMaxWalSize = storageTotalMaxWalSize;
+            this.storageLogLevel = storageLogLevel;
         }
 
         static Dictionary<Type, IDictionary<string, Type>> DeploymentConfigTypeMapping
@@ -141,7 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // IRocksDbOptionsProvider
             // For EdgeAgent, we don't need high performance from RocksDb, so always turn off optimizeForPerformance
-            builder.Register(c => new RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), false, this.storageTotalMaxWalSize))
+            builder.Register(c => new RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), false, this.storageTotalMaxWalSize, this.storageLogLevel))
                 .As<IRocksDbOptionsProvider>()
                 .SingleInstance();
 
