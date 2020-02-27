@@ -29,21 +29,21 @@ parameters:
 
 steps:
   - task: CopyFiles@2
-    condition: eq(variables['run.steps'], 1)
+    condition: and(succeeded(), eq(variables['run.steps'], 1))
     displayName: 'Copy Edgelet Artifact'
     inputs:
       SourceFolder: "$(Build.StagingDirectory)/${{ parameters['edgelet.artifact.name'] }}"
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['edgelet.artifact.name'] }}"
       CleanTargetFolder: true
   - task: CopyFiles@2
-    condition: eq(variables['run.steps'], 1)
+    condition: and(succeeded(), eq(variables['run.steps'], 1))
     displayName: 'Copy Images Artifact'
     inputs:
       SourceFolder: "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}"
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
       CleanTargetFolder: true
   - task: Bash@3
-    condition: eq(variables['run.steps'], 1)
+    condition: and(succeeded(), eq(variables['run.steps'], 1))
     displayName: 'Run Connectivity Deployment'
     inputs:
       targetType: inline

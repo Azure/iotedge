@@ -88,7 +88,7 @@ jobs:
               echo "run.steps=0"
             fi
       - checkout: none
-        condition: eq(variables['run.steps'], 1)
+        condition: and(succeeded(), eq(variables['run.steps'], 1))
       - task: AzureKeyVault@1
         condition: eq(variables['run.steps'], 1)
         displayName: 'Azure Key Vault'
@@ -97,7 +97,7 @@ jobs:
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeConnectivityStorageAccountConnString'
       - task: DownloadBuildArtifacts@0
-        condition: eq(variables['run.steps'], 1)
+        condition: and(succeeded(), eq(variables['run.steps'], 1))
         displayName: 'Download Edgelet Artifacts'
         inputs:
           buildType: specific
@@ -108,7 +108,7 @@ jobs:
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
-        condition: eq(variables['run.steps'], 1)
+        condition: and(succeeded(), eq(variables['run.steps'], 1))
         displayName: 'Download Images Artifacts'
         inputs:
           buildType: specific
