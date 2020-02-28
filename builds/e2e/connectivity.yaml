@@ -65,8 +65,8 @@ jobs:
       edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
     steps:
       - task: Bash@3
-        name: Print test parameters
-        displayName: 'Set run flag'
+        name: Print_test_parameters
+        displayName: 'Print test parameters'
         inputs:
           targetType: inline
           script: |
@@ -168,8 +168,8 @@ jobs:
       edgelet.artifact.name: 'iotedged-debian9-arm32v7'
     steps:
       - task: Bash@3
-        name: Print test parameters
-        displayName: 'Set run flag'
+        name: Print_test_parameters
+        displayName: 'Print test parameters'
         inputs:
           targetType: inline
           script: |
