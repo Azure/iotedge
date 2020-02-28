@@ -72,7 +72,7 @@ namespace VstsPipelineSync
 
         async Task<Dictionary<BuildDefinitionId, DateTime>> ImportVstsBuildsDataAsync(BuildManagement buildManagement, string branch, HashSet<BuildDefinitionId> buildDefinitionIds)
         {
-            Console.WriteLine($"Import VSTS builds from branch [{branch}]");
+            Console.WriteLine($"Import VSTS builds from branch [{branch}] started at {DateTime.UtcNow}.");
             Dictionary<BuildDefinitionId, DateTime> lastUpdatePerDefinition = this.buildLastUpdatePerBranchPerDefinition.GetIfExists(branch);
 
             if (lastUpdatePerDefinition == null)
@@ -162,7 +162,9 @@ namespace VstsPipelineSync
                 sqlConnection.Open();
 
                 List<IoTEdgeRelease> releaseResults = await releaseManagement.GetReleasesAsync(releaseDefinitionId, branch, 200);
-                Console.WriteLine($"Query VSTS for branch [{branch}] and release definition [{releaseDefinitionId.ToString()}]: result count={releaseResults.Count}");
+                Console.WriteLine($"Query VSTS for branch [{branch}] and release definition [{releaseDefinitionId.ToString()}]: result count={releaseResults.Count} at {DateTime.UtcNow}.");
+
+                int releaseCount = 0;
 
                 foreach (IoTEdgeRelease release in releaseResults.Where(r => r.HasResult()))
                 {
@@ -180,12 +182,21 @@ namespace VstsPipelineSync
                             {
                                 UpsertVstsReleaseDeploymentToDb(sqlConnection, releaseEnvironment.Id, deployment);
 
-                                foreach(IoTEdgePipelineTask pipelineTask in deployment.Tasks.Where(x => IsTestTask(x)))
+                                const string testTaskPrefix = "Test:";
+
+                                foreach(IoTEdgePipelineTask pipelineTask in deployment.Tasks.Where(x => IsTestTask(x, testTaskPrefix)))
                                 {
-                                    UpsertVstsReleaseTaskToDb(sqlConnection, deployment.Id, pipelineTask);
+                                    UpsertVstsReleaseTaskToDb(sqlConnection, deployment.Id, pipelineTask, testTaskPrefix);
                                 }
                             }
                         }
+                    }
+
+                    releaseCount++;
+
+                    if (releaseCount % 10 ==0)
+                    {
+                        Console.WriteLine($"Query VSTS for branch [{branch}] and release definition [{releaseDefinitionId.ToString()}]: release count={releaseCount} at {DateTime.UtcNow}.");
                     }
                 }
             }
@@ -199,9 +210,9 @@ namespace VstsPipelineSync
             }
         }
 
-        bool IsTestTask(IoTEdgePipelineTask pipelineTask)
+        bool IsTestTask(IoTEdgePipelineTask pipelineTask, string testTaskPrefix)
         {
-            return pipelineTask.Name.StartsWith("E2E");
+            return pipelineTask.Name.StartsWith(testTaskPrefix);
         }
 
         void UpsertVstsReleaseToDb(SqlConnection sqlConnection, IoTEdgeRelease release)
@@ -253,11 +264,11 @@ namespace VstsPipelineSync
             cmd.Parameters.Add(new SqlParameter("@ReleaseEnvironmentId", releaseEnvironmentId));
             cmd.Parameters.Add(new SqlParameter("@Attempt", deployment.Attempt));
             cmd.Parameters.Add(new SqlParameter("@Status", deployment.Status.ToString()));
-            cmd.Parameters.Add(new SqlParameter("@LastModifiedOn", deployment.LastModifiedOn));
+            cmd.Parameters.Add(new SqlParameter("@LastModifiedOn", SqlDbType.DateTime2) { Value = deployment.LastModifiedOn });
             cmd.ExecuteNonQuery();
         }
 
-        void UpsertVstsReleaseTaskToDb(SqlConnection sqlConnection, int releaseDeploymentId, IoTEdgePipelineTask task)
+        void UpsertVstsReleaseTaskToDb(SqlConnection sqlConnection, int releaseDeploymentId, IoTEdgePipelineTask task, string testTaskPrefix)
         {
             var cmd = new SqlCommand
             {
@@ -268,11 +279,11 @@ namespace VstsPipelineSync
 
             cmd.Parameters.Add(new SqlParameter("@ReleaseDeploymentId", releaseDeploymentId));
             cmd.Parameters.Add(new SqlParameter("@Id", task.Id));
-            cmd.Parameters.Add(new SqlParameter("@Name", task.Name));
+            cmd.Parameters.Add(new SqlParameter("@Name", task.Name.StartsWith(testTaskPrefix) ? task.Name.Substring(testTaskPrefix.Length) : task.Name));
             cmd.Parameters.Add(new SqlParameter("@Status", task.Status));
-            cmd.Parameters.Add(new SqlParameter("@StartTime", task.StartTime));
-            cmd.Parameters.Add(new SqlParameter("@FinishTime", task.FinishTime));
-            cmd.Parameters.Add(new SqlParameter("@LogUrl", task.LogUrl.AbsoluteUri));
+            cmd.Parameters.Add(new SqlParameter("@StartTime", SqlDbType.DateTime2) { Value = task.StartTime });
+            cmd.Parameters.Add(new SqlParameter("@FinishTime", SqlDbType.DateTime2) { Value = task.FinishTime });
+            cmd.Parameters.Add(new SqlParameter("@LogUrl", task.LogUrl?.AbsoluteUri));
             cmd.ExecuteNonQuery();
         }
     }

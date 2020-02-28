@@ -157,6 +157,8 @@ jobs:
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
           metricsCollector.hostPlatform: 'linux_amd64_moby'
           edgeRuntime.buildNumber: '$(edgeRuntime.buildNumber)'
+          customEdgeAgent.image: '$(customEdgeAgent.image)'
+          customEdgeHub.image: '$(customEdgeHub.image)'
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -238,3 +240,5 @@ jobs:
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
           metricsCollector.hostPlatform: 'linux_arm32v7_moby'
           edgeRuntime.buildNumber: '$(edgeRuntime.buildNumber)'
+          customEdgeAgent.image: '$(customEdgeAgent.image)'
+          customEdgeHub.image: '$(customEdgeHub.image)'
