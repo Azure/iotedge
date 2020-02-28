@@ -83,6 +83,12 @@ namespace DevOpsLib
                 {
                     new AgentCapability("run-e2e-tests", "true"),
                 }),
+            new AgentDemandSet(
+                "Connectivity Tests",
+                new HashSet<AgentCapability>
+                {
+                    new AgentCapability("run-connectivity", "true"),
+                }),
         };
 
         Dictionary<AgentDemandSet, Dictionary<AgentDemandSet, HashSet<IoTEdgeAgent>>> matrix;
