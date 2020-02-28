@@ -61,6 +61,7 @@ steps:
         $testInfo=$testInfo+",EdgeletSourceBranch=${{ parameters['edgelet.source.branch'] }}"
         $testInfo=$testInfo+",ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
         $testInfo=$testInfo+",HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
+        $testInfo=$testInfo+",TestName=$testName"
         
         $ArtifactInfo=convertfrom-stringdata (get-content $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt -raw)
         $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/windows/test/Run-E2ETest.ps1 `
