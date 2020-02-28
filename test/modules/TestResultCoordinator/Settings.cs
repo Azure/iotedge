@@ -41,7 +41,7 @@ namespace TestResultCoordinator
             TimeSpan testDuration,
             TimeSpan verificationDelay,
             string storageAccountConnectionString,
-            string networkControllerType)
+            string networkControllerRunProfileName)
         {
             Preconditions.CheckRange(testDuration.Ticks, 1);
 
@@ -62,7 +62,21 @@ namespace TestResultCoordinator
             this.DurationBeforeVerification = verificationDelay;
             this.ConsumerGroupName = "$Default";
             this.StorageAccountConnectionString = Preconditions.CheckNonWhiteSpace(storageAccountConnectionString, nameof(storageAccountConnectionString));
-            this.NetworkControllerType = (NetworkControllerType)Enum.Parse(typeof(NetworkControllerType), networkControllerType);
+            this.NetworkControllerType = GetNetworkControllerType(networkControllerRunProfileName);
+        }
+
+        private NetworkControllerType GetNetworkControllerType(string networkControllerRunProfileName)
+        {
+            // TODO: remove this; network controller should report this information.
+            switch (networkControllerRunProfileName)
+            {
+                case "SatelliteGood":
+                    return NetworkControllerType.Satellite;
+                case "Cellular3G":
+                    return NetworkControllerType.Cellular;
+                default:
+                    return (NetworkControllerType)Enum.Parse(typeof(NetworkControllerType), networkControllerRunProfileName;
+            }
         }
 
         static Settings Create()
