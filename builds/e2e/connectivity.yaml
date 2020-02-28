@@ -167,6 +167,19 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-debian9-arm32v7'
     steps:
+      - task: Bash@3
+        name: Print test parameters
+        displayName: 'Set run flag'
+        inputs:
+          targetType: inline
+          script: |
+            # print all matrix variables here
+            echo "testrun.config=$(testrun.config)"
+            echo "testrun.network.frequencies=$(testrun.network.frequencies)"
+            echo "testrun.network.runProfile=$(testrun.network.runProfile)"
+            echo "testrun.duration=$(testrun.duration)"
+            echo "deploymentFileName=$(deploymentFileName)"
+      - template: templates/set-run-flag.yaml
       - checkout: none
         condition: eq(variables['run.steps'], 1)
       - task: AzureKeyVault@1
