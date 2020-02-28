@@ -65,7 +65,7 @@ jobs:
       edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
     steps:
       - task: Bash@3
-        name: Set_run_flag
+        name: Print test parameters
         displayName: 'Set run flag'
         inputs:
           targetType: inline
@@ -76,17 +76,7 @@ jobs:
             echo "testrun.network.runProfile=$(testrun.network.runProfile)"
             echo "testrun.duration=$(testrun.duration)"
             echo "deploymentFileName=$(deploymentFileName)"
-
-            output1=$(curl -s -u :$accessToken --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$buildId?api-version=5.1" | grep -oe '"status":"cancel')
-            output2=$(curl -s -u :$(System.AccessToken) --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$(Build.BuildId)/Timeline?api-version=5.1" | grep -oe '"result":"canceled"')
-            
-            if [[ ( "$(testrun.config)" == "$(config.to.run)" || "$(config.to.run)" == "0" ) && ( -z "$output1" ) && ( -z "$output2" ) ]]; then
-              echo "##vso[task.setvariable variable=run.steps]1"
-              echo "run.steps=1"
-            else
-              echo "##vso[task.setvariable variable=run.steps]0"
-              echo "run.steps=0"
-            fi
+      - template: templates/set-run-flag.yaml
       - checkout: none
         condition: and(succeeded(), eq(variables['run.steps'], 1))
       - task: AzureKeyVault@1
@@ -178,13 +168,16 @@ jobs:
       edgelet.artifact.name: 'iotedged-debian9-arm32v7'
     steps:
       - checkout: none
+        condition: eq(variables['run.steps'], 1)
       - task: AzureKeyVault@1
+        condition: eq(variables['run.steps'], 1)
         displayName: 'Azure Key Vault'
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeConnectivityStorageAccountConnString'
       - task: DownloadBuildArtifacts@0
+        condition: eq(variables['run.steps'], 1)
         displayName: 'Download Edgelet Artifacts'
         inputs:
           buildType: specific
@@ -195,6 +188,7 @@ jobs:
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
+        condition: eq(variables['run.steps'], 1)
         displayName: 'Download Images Artifacts'
         inputs:
           buildType: specific
