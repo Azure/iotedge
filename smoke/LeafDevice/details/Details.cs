@@ -307,7 +307,7 @@ namespace LeafDeviceTest
 
                 CloudToDeviceMethodResult result = null;
                 bool isRetrying = true;
-                while(isRetrying)
+                while (isRetrying)
                 {
                     try
                     {
