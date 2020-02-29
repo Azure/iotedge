@@ -75,7 +75,7 @@ namespace TestResultCoordinator
                 case "Cellular3G":
                     return NetworkControllerType.Cellular;
                 default:
-                    return (NetworkControllerType)Enum.Parse(typeof(NetworkControllerType), networkControllerRunProfileName;
+                    return (NetworkControllerType)Enum.Parse(typeof(NetworkControllerType), networkControllerRunProfileName);
             }
         }
 
