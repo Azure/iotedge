@@ -15,13 +15,20 @@ namespace DevOpsLibTest
         {
             HashSet<BuildDefinitionId> ids = BuildExtension.BuildDefinitions;
 
-            Assert.AreEqual(6, ids.Count);
+            Assert.AreEqual(13, ids.Count);
             Assert.True(ids.Contains(BuildDefinitionId.CI));
             Assert.True(ids.Contains(BuildDefinitionId.EdgeletCI));
             Assert.True(ids.Contains(BuildDefinitionId.LibiohsmCI));
             Assert.True(ids.Contains(BuildDefinitionId.BuildImages));
             Assert.True(ids.Contains(BuildDefinitionId.EdgeletPackages));
             Assert.True(ids.Contains(BuildDefinitionId.EndToEndTest));
+            Assert.True(ids.Contains(BuildDefinitionId.ConnectivityTest));
+            Assert.True(ids.Contains(BuildDefinitionId.LonghaulTestEnv1));
+            Assert.True(ids.Contains(BuildDefinitionId.LonghaulTestEnv2));
+            Assert.True(ids.Contains(BuildDefinitionId.LonghaulTestEnv3));
+            Assert.True(ids.Contains(BuildDefinitionId.StressTestEnv1));
+            Assert.True(ids.Contains(BuildDefinitionId.StressTestEnv2));
+            Assert.True(ids.Contains(BuildDefinitionId.StressTestEnv3));
         }
 
         [Test]

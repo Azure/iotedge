@@ -84,7 +84,7 @@ namespace DevOpsLib
                     new AgentCapability("run-e2e-tests", "true"),
                 }),
             new AgentDemandSet(
-                "Connectivity Test",
+                "Connectivity Tests",
                 new HashSet<AgentCapability>
                 {
                     new AgentCapability("run-connectivity", "true"),

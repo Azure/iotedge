@@ -52,6 +52,14 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHAREDKEY@g" "$deployment_working_file"
     sed -i -e "s@<UpstreamProtocol>@$UPSTREAM_PROTOCOL@g" "$deployment_working_file"
     
+    if [[ ! -z "$CUSTOM_EDGE_AGENT_IMAGE" ]]; then
+        sed -i -e "s@\"image\":.*azureiotedge-agent:.*\"@\"image\": \"$CUSTOM_EDGE_AGENT_IMAGE\"@g" "$deployment_working_file"
+    fi
+    
+    if [[ ! -z "$CUSTOM_EDGE_HUB_IMAGE" ]]; then
+        sed -i -e "s@\"image\":.*azureiotedge-hub:.*\"@\"image\": \"$CUSTOM_EDGE_HUB_IMAGE\"@g" "$deployment_working_file"
+    fi
+    
     sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
 
     sed -i -e "s@<EdgeHubRestartTest.RestartPeriod>@$RESTART_TEST_RESTART_PERIOD@g" "$deployment_working_file"
@@ -258,6 +266,12 @@ function process_args() {
         elif [ $saveNextArg -eq 35 ]; then
             EDGE_RUNTIME_BUILD_NUMBER="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 36 ]; then
+            CUSTOM_EDGE_AGENT_IMAGE="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 37 ]; then
+            CUSTOM_EDGE_HUB_IMAGE="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -296,6 +310,8 @@ function process_args() {
                 '-EdgeHubRestartTestRestartPeriod' ) saveNextArg=33;;
                 '-EdgeHubRestartTestSdkOperationTimeout' ) saveNextArg=34;;
                 '-edgeRuntimeBuildNumber' ) saveNextArg=35;;
+                '-customEdgeAgentImage' ) saveNextArg=36;;
+                '-customEdgeHubImage' ) saveNextArg=37;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
