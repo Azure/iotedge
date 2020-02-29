@@ -18,7 +18,7 @@ Add the following to EdgeHub createOptions (on Windows only):
 ```JSON
 createOptions: {
   "User": "ContainerAdministrator",
-  "ExposedPorts": {...}
+  "ExposedPorts": {}
 }
 ```
 
