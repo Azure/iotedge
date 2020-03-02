@@ -11,6 +11,17 @@ As of release 1.0.9, metrics are exposed as an experimental feature available at
 | `ExperimentalFeatures__Enabled`          | `true` |
 | `ExperimentalFeatures__EnableMetrics`    | `true` |
 
+### Windows Note
+Metrics on Windows are not fully supported the 1.0.9 experimental release. Host metrics (cpu, memory and disk usage) will all show as 0. Moby metrics are supported. In addition, edgeHub must be started as a container administrator to expose metrics. 
+
+Add the following to EdgeHub createOptions (on Windows only):
+```JSON
+createOptions: {
+  "User": "ContainerAdministrator",
+  "ExposedPorts": {}
+}
+```
+
 ## Metrics
 
 Note: All metrics contain the following tags
