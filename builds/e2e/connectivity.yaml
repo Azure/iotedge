@@ -65,8 +65,8 @@ jobs:
       edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
     steps:
       - task: Bash@3
-        name: Set_run_flag
-        displayName: 'Set run flag'
+        name: Print_test_parameters
+        displayName: 'Print test parameters'
         inputs:
           targetType: inline
           script: |
@@ -76,28 +76,18 @@ jobs:
             echo "testrun.network.runProfile=$(testrun.network.runProfile)"
             echo "testrun.duration=$(testrun.duration)"
             echo "deploymentFileName=$(deploymentFileName)"
-
-            output1=$(curl -s -u :$accessToken --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$buildId?api-version=5.1" | grep -oe '"status":"cancel')
-            output2=$(curl -s -u :$(System.AccessToken) --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$(Build.BuildId)/Timeline?api-version=5.1" | grep -oe '"result":"canceled"')
-            
-            if [[ ( "$(testrun.config)" == "$(config.to.run)" || "$(config.to.run)" == "0" ) && ( -z "$output1" ) && ( -z "$output2" ) ]]; then
-              echo "##vso[task.setvariable variable=run.steps]1"
-              echo "run.steps=1"
-            else
-              echo "##vso[task.setvariable variable=run.steps]0"
-              echo "run.steps=0"
-            fi
+      - template: templates/set-run-flag.yaml
       - checkout: none
-        condition: and(succeeded(), eq(variables['run.steps'], 1))
+        condition: and(succeeded(), eq(variables['run.flag'], 1))
       - task: AzureKeyVault@1
-        condition: eq(variables['run.steps'], 1)
+        condition: eq(variables['run.flag'], 1)
         displayName: 'Azure Key Vault'
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeConnectivityStorageAccountConnString'
       - task: DownloadBuildArtifacts@0
-        condition: and(succeeded(), eq(variables['run.steps'], 1))
+        condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download Edgelet Artifacts'
         inputs:
           buildType: specific
@@ -108,7 +98,7 @@ jobs:
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
-        condition: and(succeeded(), eq(variables['run.steps'], 1))
+        condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download Images Artifacts'
         inputs:
           buildType: specific
@@ -165,7 +155,49 @@ jobs:
 ################################################################################
     displayName: Linux ARM32v7 Moby
     condition: and(eq(variables['run.linux.arm32v7.moby'], 'true'), ne(variables['agent.group'], ''))
-    timeoutInMinutes: 120
+    timeoutInMinutes: 180
+    strategy:
+      matrix:
+        Online:
+          testrun.config: 1
+          testrun.network.runProfile: "Online"
+          testrun.network.frequencies: "00:00:00 00:00:00 0"
+          testrun.duration: "01:00:00"
+        Offline(5/5/5):
+          testrun.config: 2
+          testrun.network.frequencies: "00:05:00 00:05:00 5"
+          testrun.network.runProfile: "Offline"
+          testrun.duration: "00:50:00"
+        Offline(10/10/3):
+          testrun.config: 3
+          testrun.network.frequencies: "00:10:00 00:10:00 3"
+          testrun.network.runProfile: "Offline"
+          testrun.duration: "01:00:00"
+        Offline(15/15/3):
+          testrun.config: 4
+          testrun.network.frequencies: "00:15:00 00:15:00 3"
+          testrun.network.runProfile: "Offline"
+          testrun.duration: "01:30:00"
+        Offline(30/30/2):
+          testrun.config: 5
+          testrun.network.frequencies: "00:30:00 00:30:00 2"
+          testrun.network.runProfile: "Offline"
+          testrun.duration: "02:00:00"
+        Offline(5/20/3):
+          testrun.config: 6
+          testrun.network.frequencies: "00:05:00 00:20:00 3"
+          testrun.network.runProfile: "Offline"
+          testrun.duration: "01:15:00"
+        SatelliteGood(60/0/1):
+          testrun.config: 7
+          testrun.network.frequencies: "01:00:00 00:00:00 1"
+          testrun.network.runProfile: "SatelliteGood"
+          testrun.duration: "01:00:00"
+        Cellular3G(60/0/1):
+          testrun.config: 8
+          testrun.network.frequencies: "01:00:00 00:00:00 1"
+          testrun.network.runProfile: "Cellular3G"
+          testrun.duration: "01:00:00"
     pool:
       name: $(pool.name)
       demands:
@@ -177,14 +209,30 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-debian9-arm32v7'
     steps:
+      - task: Bash@3
+        name: Print_test_parameters
+        displayName: 'Print test parameters'
+        inputs:
+          targetType: inline
+          script: |
+            # print all matrix variables here
+            echo "testrun.config=$(testrun.config)"
+            echo "testrun.network.frequencies=$(testrun.network.frequencies)"
+            echo "testrun.network.runProfile=$(testrun.network.runProfile)"
+            echo "testrun.duration=$(testrun.duration)"
+            echo "deploymentFileName=$(deploymentFileName)"
+      - template: templates/set-run-flag.yaml
       - checkout: none
+        condition: and(succeeded(), eq(variables['run.flag'], 1))
       - task: AzureKeyVault@1
+        condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Azure Key Vault'
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeConnectivityStorageAccountConnString'
       - task: DownloadBuildArtifacts@0
+        condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download Edgelet Artifacts'
         inputs:
           buildType: specific
@@ -195,6 +243,7 @@ jobs:
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
       - task: DownloadBuildArtifacts@0
+        condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download Images Artifacts'
         inputs:
           buildType: specific
@@ -224,12 +273,15 @@ jobs:
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
           iotHub.connectionString: '$(EdgeConnectivityTestHubConnString)'
           eventHub.connectionString: '$(EdgeConnectivityEventHubConnString)'
+          deploymentFileName: '$(deploymentFileName)'
           upstream.protocol: '$(upstream.protocol)'
           loadGen.message.frequency: '$(loadGen.message.frequency.arm32)'
-          testDuration: '$(testDuration)'
+          edgeHubRestartTest.restartPeriod: '$(edgeHubRestartTest.restartPeriod)'
+          edgeHubRestartTest.sdkOperationTimeout: '$(edgeHubRestartTest.sdkOperationTimeout)'
+          testDuration: '$(testrun.duration)'
           testStartDelay: '$(testStartDelay.arm32)'
-          networkController.frequencies: '$(networkController.frequencies)'
-          networkController.runProfile: '$(networkController.runProfile)'
+          networkController.frequencies: '$(testrun.network.frequencies)'
+          networkController.runProfile: '$(testrun.network.runProfile)'
           logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
           testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
