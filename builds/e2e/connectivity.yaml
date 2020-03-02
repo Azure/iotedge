@@ -278,7 +278,7 @@ jobs:
           loadGen.message.frequency: '$(loadGen.message.frequency.arm32)'
           edgeHubRestartTest.restartPeriod: '$(edgeHubRestartTest.restartPeriod)'
           edgeHubRestartTest.sdkOperationTimeout: '$(edgeHubRestartTest.sdkOperationTimeout)'
-          testDuration: '$(testDuration)'
+          testDuration: '$(testrun.duration)'
           testStartDelay: '$(testStartDelay.arm32)'
           networkController.frequencies: '$(testrun.network.frequencies)'
           networkController.runProfile: '$(testrun.network.runProfile)'
