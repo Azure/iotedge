@@ -32,6 +32,6 @@ AS
 	END
 	ELSE
 	BEGIN
-		INSERT INTO dbo.VstsBuild(BuildNumber, DefinitionId, DefinitionName, SourceBranch, SourceVersionDisplayUri, WebUri, [Status], Result, QueueTime, StartTime, FinishTime, CreatedAt, UpdatedAt)
+		INSERT INTO dbo.VstsBuild(BuildNumber, DefinitionId, DefinitionName, SourceBranch, SourceVersionDisplayUri, WebUri, [Status], Result, QueueTime, StartTime, FinishTime, InsertedAt, UpdatedAt)
 		VALUES (@BuildNumber, @DefinitionId, @DefinitionName, @SourceBranch, @SourceVersionDisplayUri, @WebUri, @Status, @Result, @QueueTime, @StartTime, @FinishTime, @now, @now)
 	END

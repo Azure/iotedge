@@ -17,8 +17,21 @@ namespace TestAnalyzer
 
         internal static Settings Current = Create();
 
-        Settings(string eventHubConnectionString, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance, bool logAnalyticsEnabled, string logAnalyticsWorkspaceIdName, string logAnalyticsSharedKeyName, string logAnalyticsLogTypeName, string storagePath, bool storageOptimizeForPerformance)
+        Settings(
+            string eventHubConnectionString,
+            string consumerGroupId,
+            string deviceId,
+            IList<string> excludedModuleIds,
+            string webhostPort,
+            double tolerance,
+            string logAnalyticsWorkspaceIdName,
+            string logAnalyticsSharedKeyName,
+            string storagePath,
+            bool storageOptimizeForPerformance,
+            string testInfo)
         {
+            Preconditions.CheckNonWhiteSpace(testInfo, nameof(testInfo));
+
             this.EventHubConnectionString = Preconditions.CheckNonWhiteSpace(eventHubConnectionString, nameof(eventHubConnectionString));
             this.ConsumerGroupId = Preconditions.CheckNonWhiteSpace(consumerGroupId, nameof(consumerGroupId));
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -26,11 +39,15 @@ namespace TestAnalyzer
             this.WebhostPort = Preconditions.CheckNonWhiteSpace(webhostPort, nameof(webhostPort));
             this.ToleranceInMilliseconds = Preconditions.CheckRange(tolerance, 0);
             this.StoragePath = storagePath;
+            this.TestInfo = testInfo.Split(",", StringSplitOptions.RemoveEmptyEntries)
+                                .Select(x => (KeyAndValue: x, SplitIndex: x.IndexOf('=')))
+                                .Where(x => x.SplitIndex >= 1)
+                                .ToDictionary(
+                                    x => x.KeyAndValue.Substring(0, x.SplitIndex),
+                                    x => x.KeyAndValue.Substring(x.SplitIndex + 1, x.KeyAndValue.Length - x.SplitIndex - 1));
             this.OptimizeForPerformance = Preconditions.CheckNotNull(storageOptimizeForPerformance);
-            this.LogAnalyticsEnabled = logAnalyticsEnabled;
             this.LogAnalyticsWorkspaceId = logAnalyticsWorkspaceIdName;
             this.LogAnalyticsSharedKey = logAnalyticsSharedKeyName;
-            this.LogAnalyticsLogType = logAnalyticsLogTypeName;
         }
 
         static Settings Create()
@@ -50,12 +67,11 @@ namespace TestAnalyzer
                 excludedModules,
                 configuration.GetValue("WebhostPort", DefaultWebhostPort),
                 configuration.GetValue("ToleranceInMilliseconds", DefaultToleranceInMilliseconds),
-                configuration.GetValue<bool>("LogAnalyticsEnabled"),
                 configuration.GetValue<string>("LogAnalyticsWorkspaceId"),
                 configuration.GetValue<string>("LogAnalyticsSharedKey"),
-                configuration.GetValue<string>("LogAnalyticsLogType"),
                 configuration.GetValue<string>("storagePath", DefaultStoragePath),
-                configuration.GetValue<bool>("StorageOptimizeForPerformance", true));
+                configuration.GetValue<bool>("StorageOptimizeForPerformance", true),
+                configuration.GetValue<string>("TestInfo"));
         }
 
         public string EventHubConnectionString { get; }
@@ -72,15 +88,13 @@ namespace TestAnalyzer
 
         public string StoragePath { get; }
 
-        public bool OptimizeForPerformance { get; }
+        public Dictionary<string, string> TestInfo { get; }
 
-        public bool LogAnalyticsEnabled { get; }
+        public bool OptimizeForPerformance { get; }
 
         public string LogAnalyticsWorkspaceId { get; }
 
         public string LogAnalyticsSharedKey { get; }
-
-        public string LogAnalyticsLogType { get; }
 
         public override string ToString()
         {
@@ -93,9 +107,7 @@ namespace TestAnalyzer
                 { nameof(this.WebhostPort), this.WebhostPort },
                 { nameof(this.ToleranceInMilliseconds), this.ToleranceInMilliseconds.ToString() },
                 { nameof(this.OptimizeForPerformance), this.OptimizeForPerformance.ToString() },
-                { nameof(this.LogAnalyticsEnabled), this.LogAnalyticsEnabled.ToString() },
                 { nameof(this.LogAnalyticsWorkspaceId), this.LogAnalyticsWorkspaceId },
-                { nameof(this.LogAnalyticsLogType), this.LogAnalyticsLogType },
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";

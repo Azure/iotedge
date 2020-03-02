@@ -299,18 +299,40 @@ namespace LeafDeviceTest
                 ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString, this.serviceClientTransportType, settings);
 
             // Call a direct method
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(300)))
+            TimeSpan testDuration = TimeSpan.FromSeconds(300);
+            DateTime endTime = DateTime.UtcNow + testDuration;
+            using (var cts = new CancellationTokenSource(testDuration))
             {
                 CloudToDeviceMethod cloudToDeviceMethod = new CloudToDeviceMethod("DirectMethod").SetPayloadJson("{\"TestKey\" : \"TestValue\"}");
 
-                CloudToDeviceMethodResult result = await serviceClient.InvokeDeviceMethodAsync(
-                    this.context.Device.Id,
-                    cloudToDeviceMethod,
-                    cts.Token);
-
-                if (result.Status != 200)
+                CloudToDeviceMethodResult result = null;
+                bool isRetrying = true;
+                while (isRetrying)
                 {
-                    throw new Exception($"Could not invoke Direct Method on Device with result status {result.Status}.");
+                    try
+                    {
+                        result = await serviceClient.InvokeDeviceMethodAsync(
+                            this.context.Device.Id,
+                            cloudToDeviceMethod,
+                            cts.Token);
+                    }
+                    catch (Exception ex)
+                    {
+                        if (DateTime.UtcNow >= endTime)
+                        {
+                            Console.WriteLine($"Failed to send direct method from device '{this.context.Device.Id}' with payload '{cloudToDeviceMethod}: {ex}'");
+                            isRetrying = false;
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Failed to send direct method from device '{this.context.Device.Id}' with payload '{cloudToDeviceMethod}: {ex.Message}'");
+                        }
+                    }
+                }
+
+                if (result?.Status != 200)
+                {
+                    throw new Exception($"Could not invoke Direct Method on Device with result status {result?.Status}.");
                 }
 
                 if (!result.GetPayloadAsJson().Equals("{\"TestKey\":\"TestValue\"}", StringComparison.Ordinal))

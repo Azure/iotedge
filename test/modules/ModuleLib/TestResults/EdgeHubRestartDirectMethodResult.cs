@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
             DateTime createdAt,
             string trackingId,
             Guid batchId,
-            string sequenceNumber,
+            ulong sequenceNumber,
             DateTime edgeHubRestartedTime,
             DateTime directMethodCompletedTime,
             HttpStatusCode directMethodCompletedStatusCode)

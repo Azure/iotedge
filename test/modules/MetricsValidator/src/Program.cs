@@ -37,10 +37,18 @@ namespace MetricsValidator
                     .AddEnvironmentVariables()
                     .Build();
 
-                using (ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync())
+                var transportType = configuration.GetValue("ClientTransportType", Microsoft.Azure.Devices.Client.TransportType.Mqtt);
+                using (ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
+                    transportType,
+                    ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
+                    ModuleUtil.DefaultTransientRetryStrategy,
+                    Logger))
                 using (MetricsScraper scraper = new MetricsScraper(new List<string> { "http://edgeHub:9600/metrics", "http://edgeAgent:9600/metrics" }))
                 {
+                    Logger.LogInformation("Open Async");
                     await moduleClient.OpenAsync();
+
+                    Logger.LogInformation("Set method handler");
                     await moduleClient.SetMethodHandlerAsync(
                         "ValidateMetrics",
                         async (MethodRequest methodRequest, object _) =>
@@ -50,9 +58,9 @@ namespace MetricsValidator
                             TestReporter testReporter = new TestReporter("Metrics Validation");
                             List<TestBase> tests = new List<TestBase>
                             {
-                                new ValidateNumberOfMessagesSent(testReporter, scraper, moduleClient),
+                                new ValidateMessages(testReporter, scraper, moduleClient, transportType),
                                 new ValidateDocumentedMetrics(testReporter, scraper, moduleClient),
-                                new ValidateHostRanges(testReporter, scraper, moduleClient),
+                                // new ValidateHostRanges(testReporter, scraper, moduleClient),
                             };
 
                             using (testReporter.MeasureDuration())
