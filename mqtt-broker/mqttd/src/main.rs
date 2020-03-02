@@ -42,7 +42,7 @@ async fn main() -> Result<(), Error> {
 
     // Tick the snapshotter
     let tick = tick_snapshot(
-        Duration::from_secs(5),
+        Duration::from_secs(5 * 60),
         broker.handle(),
         snapshot_handle.clone(),
     );
