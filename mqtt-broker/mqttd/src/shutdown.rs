@@ -18,3 +18,12 @@ mod imp {
         }
     }
 }
+
+#[cfg(not(unix))]
+mod imp {
+    use tokio::signal;
+
+    pub(super) async fn shutdown() {
+        signal::ctrl_c().await.expect("signal handling failed");
+    }
+}
