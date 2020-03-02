@@ -12,9 +12,9 @@ steps:
         output2=$(curl -s -u :$(System.AccessToken) --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$(Build.BuildId)/Timeline?api-version=5.1" | grep -oe '"result":"canceled"')
         
         if [[ ( "$(testrun.config)" == "$(config.to.run)" || "$(config.to.run)" == "0" ) && ( -z "$output1" ) && ( -z "$output2" ) ]]; then
-          echo "##vso[task.setvariable variable=run.steps]1"
-          echo "run.steps=1"
+          echo "##vso[task.setvariable variable=run.flag]1"
+          echo "run.flag=1"
         else
-          echo "##vso[task.setvariable variable=run.steps]0"
-          echo "run.steps=0"
+          echo "##vso[task.setvariable variable=run.flag]0"
+          echo "run.flag=0"
         fi
