@@ -130,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 this.Id);
         }
 
-        public Task WaitForReportedPropertyUpdatesAsync(object expectedPatch, CancellationToken token)
+        public Task WaitForReportedPropertyUpdatesAsync(object expected, CancellationToken token)
         {
             return Profiler.Run(
                 () =>
@@ -141,20 +141,53 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                             Twin twin = await this.iotHub.GetTwinAsync(this.deviceId, this.Id, token);
                             return twin.Properties.Reported;
                         },
-                        reported =>
-                        {
-                            JObject expected = JObject.FromObject(expectedPatch)
-                                .Value<JObject>("properties")
-                                .Value<JObject>("reported");
-                            return expected.Value<JObject>().All<KeyValuePair<string, JToken>>(
-                                prop => reported.Contains(prop.Key) && reported[prop.Key] == prop.Value);
-                        },
+                        reported => JsonEquals((expected, "properties.reported"), (reported, "@")),
                         null,
                         TimeSpan.FromSeconds(5),
                         token);
                 },
                 "Received expected twin updates for module '{Module}'",
                 this.Id);
+        }
+
+        // reference.rootPath and comparand.rootPath are path strings like those returned from
+        // Newtonsoft.Json.Linq.JToken.Path, and compatible with the path argument to
+        // Newtonsoft.Json.Linq.JToken.SelectToken(path)
+        bool JsonEquals((object obj, string rootPath) reference, (object obj, string rootPath) comparand)
+        {
+            Serilog.Log.Information($"\nREFERENCE:\n{JToken.FromObject(reference.obj).ToString()}");
+            Serilog.Log.Information($"\nCOMPARAND:\n{JToken.FromObject(comparand.obj).ToString()}");
+
+            // find the starting points of the comparison
+            var rootRef = (JContainer)JObject
+                .FromObject(reference.obj)
+                .SelectToken(reference.rootPath);
+            var rootCmp = (JContainer)JObject
+                .FromObject(comparand.obj)
+                .SelectToken(comparand.rootPath);
+
+            // do an inner join on the leaf elements
+            var descendantsRef = rootRef
+                .DescendantsAndSelf()
+                .Where(t => t is JValue)
+                .Select(t => (JValue)t);
+            var descendantsCmp = rootCmp
+                .DescendantsAndSelf()
+                .Where(t => t is JValue)
+                .Select(t => (JValue)t);
+            var joined = descendantsRef.Join(
+                descendantsCmp,
+                v => v.Path.Substring(reference.rootPath.Length),
+                v => v.Path.Substring(comparand.rootPath.Length),
+                (v1, v2) => (v1, v2));
+
+            // collect the paths of the subset of leaf elements whose values match
+            var result = joined
+                .Where(values => values.Item1.Equals(values.Item2))
+                .Select(values => values.Item2.Path.Substring(reference.rootPath.Length));
+
+            // comparand equals reference if subset has the same paths as reference
+            return result.All(path => descendantsRef.Select(d => d.Path).Contains(path));
         }
     }
 }

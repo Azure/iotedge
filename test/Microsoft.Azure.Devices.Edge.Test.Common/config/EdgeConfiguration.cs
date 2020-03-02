@@ -6,11 +6,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
     using System.Threading;
     using System.Threading.Tasks;
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
 
     public class EdgeConfiguration
     {
         readonly ConfigurationContent config;
         readonly string deviceId;
+        readonly object expectedConfig;
         readonly IEnumerable<string> moduleImages;
 
         public string[] ModuleNames { get; }
@@ -19,18 +21,22 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             string deviceId,
             IEnumerable<string> moduleNames,
             IEnumerable<string> moduleImages,
-            ConfigurationContent config)
+            ConfigurationContent config,
+            object expectedConfig)
         {
             this.config = config;
             this.deviceId = deviceId;
+            this.expectedConfig = expectedConfig;
             this.moduleImages = moduleImages;
             this.ModuleNames = moduleNames
                 .Select(id => id.StartsWith('$') ? id.Substring(1) : id)
                 .ToArray();
         }
 
-        public static EdgeConfiguration Create(string deviceId, IEnumerable<ModuleConfiguration> modules)
+        public static EdgeConfiguration Create(string deviceId, IEnumerable<ModuleConfiguration> moduleConfigs)
         {
+            ModuleConfiguration[] modules = moduleConfigs.ToArray();
+
             var names = modules.Select(m => m.Name).ToArray();
             var images = modules.Select(m => m.Image).ToArray();
             var config = new ConfigurationContent
@@ -48,7 +54,55 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             // Make a copy
             config = JsonConvert.DeserializeObject<ConfigurationContent>(JsonConvert.SerializeObject(config));
 
-            return new EdgeConfiguration(deviceId, names, images, config);
+            // Build the object we'll use later to verify the deployment
+            var edgeAgent = modules.Where(m => m.Name == ModuleName.EdgeAgent).FirstOrDefault()
+                ?? new ModuleConfiguration();
+            var desired = JObject
+                .FromObject(edgeAgent.DesiredProperties)
+                .Value<JObject>("properties.desired");
+
+            var expected = new
+            {
+                properties = new
+                {
+                    reported = new Dictionary<string, object>
+                    {
+                        ["systemModules"] = desired
+                            .Value<JObject>("systemModules")
+                            .Children<JProperty>()
+                            .ToDictionary(
+                                p => p.Name,
+                                p => CreateExpectedModuleConfig((JObject)p.Value)),
+                        ["modules"] = desired
+                            .Value<JObject>("modules")
+                            .Children<JProperty>()
+                            .ToDictionary(
+                                p => p.Name,
+                                p => CreateExpectedModuleConfig((JObject)p.Value))
+                    }
+                }
+            };
+
+            return new EdgeConfiguration(deviceId, names, images, config, expected);
+        }
+
+        static object CreateExpectedModuleConfig(JObject source)
+        {
+            var image = source.SelectToken($"settings.image"); // not optional
+            var createOptions = source.SelectToken($"settings.createOptions") ?? new JObject();
+            var env = source.SelectToken($"env").Value<JObject>() ?? new JObject();
+
+            var module = new
+            {
+                settings = new
+                {
+                    image = image.Value<string>(),
+                    createOptions = createOptions.ToString()
+                },
+                env = env.ToObject<IDictionary<string, object>>()
+            };
+
+            return module;
         }
 
         public Task DeployAsync(IotHub iotHub, CancellationToken token)
@@ -57,6 +111,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 () => iotHub.DeployDeviceConfigurationAsync(this.deviceId, this.config, token),
                 "Deployed edge configuration to device with modules:\n    {Modules}",
                 string.Join("\n    ", this.moduleImages));
+        }
+
+        public Task VerifyAsync(IotHub iotHub, CancellationToken token)
+        {
+            async Task VerifyDeploymentAsync()
+            {
+                EdgeModule agent = new EdgeModule(ModuleName.EdgeAgent, this.deviceId, iotHub);
+                await agent.WaitForReportedPropertyUpdatesAsync(this.expectedConfig, token);
+            }
+
+            return Profiler.Run(() => VerifyDeploymentAsync(), "Edge Agent confirmed configuration");
         }
 
         public override string ToString() => JsonConvert.SerializeObject(this.config, Formatting.Indented);
