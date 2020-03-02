@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "mqtt-broker",
+    "mqttd",
+]
+
+[profile.release]
+debug = true
