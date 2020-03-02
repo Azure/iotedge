@@ -83,8 +83,8 @@ steps:
           -edgeletBranchName "${{ parameters['edgelet.branchName'] }}" \
           -hostPlatform "${{ parameters['metricsCollector.hostPlatform'] }}" \
           -storageAccountConnectionString "${{ parameters['testResultCoordinator.storageAccountConnectionString'] }}" \
-          -devOpsAccessToken $(System.AccessToken) \
-          -devOpsBuildId $(Build.BuildId) \
+          -devOpsAccessToken "$(System.AccessToken)" \
+          -devOpsBuildId "$(Build.BuildId)" \
           -edgeRuntimeBuildNumber "${{ parameters['edgeRuntime.buildNumber'] }}" \
           -customEdgeAgentImage "${{ parameters['customEdgeAgent.image'] }}" \
           -customEdgeHubImage "${{ parameters['customEdgeHub.image'] }}" \
