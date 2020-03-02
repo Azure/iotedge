@@ -83,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 this.GetStoreAndForwardConfiguration();
 
             IConfiguration configuration = this.configuration.GetSection("experimentalFeatures");
-            ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration);
+            ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration, Logger.Factory.CreateLogger("EdgeHub"));
 
             MetricsListenerConfig listenerConfig = experimentalFeatures.EnableMetrics
                 ? MetricsListenerConfig.Create(this.configuration.GetSection("metrics:listener"))
