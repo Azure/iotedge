@@ -193,7 +193,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
-            var mapper = CreateMapper("a-volume", null);
+            var mapper = CreateMapper(true, null);
 
             var deployment = mapper.CreateDeployment(identity, module, labels);
 
@@ -573,7 +573,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 ["feature1"] = true,
                 ["feature2"] = false
             };
-            var mapper = CreateMapper(runAsNonRoot: true, persistentVolumeName: "pvname", storageClassName: "scname", proxyImagePullSecretName: "secret name", experimentalFeatures: features);
+            var mapper = CreateMapper(runAsNonRoot: true, useMountSourceForVolumeName: true, storageClassName: "scname", proxyImagePullSecretName: "secret name", experimentalFeatures: features);
 
             var deployment = mapper.CreateDeployment(identity, module, labels);
 
@@ -598,7 +598,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.Equal("123", container.Env.Single(e => e.Name == KubernetesConstants.EdgeK8sObjectOwnerUidKey).Value);
             Assert.Equal("ClusterIP", container.Env.Single(e => e.Name == KubernetesConstants.PortMappingServiceType).Value);
             Assert.Equal("False", container.Env.Single(e => e.Name == KubernetesConstants.EnableK8sServiceCallTracingName).Value);
-            Assert.Equal("pvname", container.Env.Single(e => e.Name == KubernetesConstants.PersistentVolumeNameKey).Value);
+            Assert.Equal("True", container.Env.Single(e => e.Name == KubernetesConstants.UseMountSourceForVolumeNameKey).Value);
             Assert.Equal("scname", container.Env.Single(e => e.Name == KubernetesConstants.StorageClassNameKey).Value);
             Assert.Equal("100", container.Env.Single(e => e.Name == KubernetesConstants.PersistentVolumeClaimDefaultSizeInMbKey).Value);
             Assert.Equal("True", container.Env.Single(e => e.Name == "feature1").Value);
@@ -606,7 +606,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         static KubernetesDeploymentMapper CreateMapper(
-          string persistentVolumeName = "",
+          bool useMountSourceForVolumeName = false,
           string storageClassName = "",
           string proxyImagePullSecretName = null,
           bool runAsNonRoot = false,
@@ -623,7 +623,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 "trustBundleVolumeName",
                 "trustBundleConfigMapName",
                 PortMapServiceType.ClusterIP,
-                persistentVolumeName,
+                useMountSourceForVolumeName,
                 storageClassName,
                 Option.Some<uint>(100),
                 "apiVersion",
