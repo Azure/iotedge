@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use failure::ResultExt;
-use mqtt::proto;
+use mqtt3::proto;
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tracing::{debug, info, span, warn, Level};
 use tracing_futures::Instrument;

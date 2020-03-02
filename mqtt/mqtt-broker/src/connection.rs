@@ -9,7 +9,7 @@ use futures_util::pin_mut;
 use futures_util::sink::{Sink, SinkExt};
 use futures_util::stream::{Stream, StreamExt};
 use lazy_static::lazy_static;
-use mqtt::proto::{self, DecodeError, EncodeError, Packet, PacketCodec};
+use mqtt3::proto::{self, DecodeError, EncodeError, Packet, PacketCodec};
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tokio_io_timeout::TimeoutStream;

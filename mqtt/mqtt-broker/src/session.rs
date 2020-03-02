@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::{cmp, fmt, mem};
 
 use failure::ResultExt;
-use mqtt::proto;
+use mqtt3::proto;
 use tracing::{debug, warn};
 
 use crate::subscription::Subscription;

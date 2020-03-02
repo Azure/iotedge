@@ -1,7 +1,7 @@
 use std::fmt;
 
 use failure::{Backtrace, Context, Fail};
-use mqtt::proto::Packet;
+use mqtt3::proto::Packet;
 
 #[derive(Debug)]
 pub struct Error {

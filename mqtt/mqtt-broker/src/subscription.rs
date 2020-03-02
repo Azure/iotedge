@@ -1,7 +1,7 @@
 use std::fmt;
 use std::str::FromStr;
 
-use mqtt::proto;
+use mqtt3::proto;
 
 use crate::{Error, ErrorKind};
 

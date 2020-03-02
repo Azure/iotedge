@@ -12,7 +12,7 @@
 use std::fmt;
 use std::sync::Arc;
 
-use mqtt::*;
+use mqtt3::*;
 
 mod broker;
 mod connection;
