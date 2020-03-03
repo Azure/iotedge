@@ -120,13 +120,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
         public Task VerifyAsync(IotHub iotHub, CancellationToken token)
         {
-            async Task VerifyDeploymentAsync()
-            {
-                EdgeModule agent = new EdgeModule(ModuleName.EdgeAgent, this.deviceId, iotHub);
-                await agent.WaitForReportedPropertyUpdatesAsync(this.expectedConfig, token);
-            }
-
-            return Profiler.Run(() => VerifyDeploymentAsync(), "Edge Agent confirmed configuration");
+            return Profiler.Run(
+                () =>
+                {
+                    EdgeModule agent = new EdgeModule(ModuleName.EdgeAgent, this.deviceId, iotHub);
+                    return agent.WaitForReportedPropertyUpdatesAsync(this.expectedConfig, token);
+                },
+                "Edge Agent confirmed configuration");
         }
 
         public override string ToString() => JsonConvert.SerializeObject(this.config, Formatting.Indented);
