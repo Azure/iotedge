@@ -159,29 +159,26 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             (object obj, string rootPath) reference,
             (object obj, string rootPath) comparand)
         {
-            // find the starting points of the comparison
-            var rootRef = (JContainer)JObject
+            // get all json values under root path
+            var descendantsRef = JObject
                 .FromObject(reference.obj)
-                .SelectToken(reference.rootPath);
-            var rootCmp = (JContainer)JObject
+                .SelectToken(reference.rootPath)
+                .Cast<JContainer>()
+                .DescendantsAndSelf()
+                .OfType<JValue>();
+            var descendantsCmp = (JContainer)JObject
                 .FromObject(comparand.obj)
-                .SelectToken(comparand.rootPath);
-
-            // do an inner join on the leaf elements
-            var descendantsRef = rootRef
+                .SelectToken(comparand.rootPath)
+                .Cast<JContainer>()
                 .DescendantsAndSelf()
-                .Where(t => t is JValue)
-                .Select(t => (JValue)t);
-            var descendantsCmp = rootCmp
-                .DescendantsAndSelf()
-                .Where(t => t is JValue)
-                .Select(t => (JValue)t);
+                .OfType<JValue>();
 
             int pathLengthRef =
                 reference.rootPath.Length + (reference.rootPath == string.Empty ? 0 : 1);
             int pathLengthCmp =
                 comparand.rootPath.Length + (comparand.rootPath == string.Empty ? 0 : 1);
 
+            // do an inner join on the leaf elements
             var joined = descendantsRef.Join(
                 descendantsCmp,
                 v => v.Path.Substring(pathLengthRef),
