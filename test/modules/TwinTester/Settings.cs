@@ -38,7 +38,7 @@ namespace TwinTester
                 configuration.GetValue<bool>("StorageOptimizeForPerformance", true),
                 configuration.GetValue<TwinTestMode>("TwinTestMode", TwinTestMode.TwinAllOperations),
                 Option.Maybe(configuration.GetValue<string>("trackingId")),
-                configuration.GetValue("testStartDelay", TimeSpan.Zero),
+                configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
                 configuration.GetValue("testDuration", TimeSpan.FromMilliseconds(-1)));
         }
 
