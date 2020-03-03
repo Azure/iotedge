@@ -46,7 +46,8 @@ namespace TestResultCoordinator
                     new RocksDbOptionsProvider(
                         new SystemEnvironment(),
                         Settings.Current.OptimizeForPerformance,
-                        Option.None<ulong>()),
+                        Option.None<ulong>(),
+                        Option.None<StorageLogLevel>()),
                     this.GetStoragePath(Settings.Current.StoragePath),
                     sources);
 

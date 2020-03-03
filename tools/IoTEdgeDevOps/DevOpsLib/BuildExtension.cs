@@ -13,7 +13,14 @@ namespace DevOpsLib
                 BuildDefinitionId.LibiohsmCI,
                 BuildDefinitionId.BuildImages,
                 BuildDefinitionId.EdgeletPackages,
-                BuildDefinitionId.EndToEndTest
+                BuildDefinitionId.EndToEndTest,
+                BuildDefinitionId.ConnectivityTest,
+                BuildDefinitionId.LonghaulTestEnv1,
+                BuildDefinitionId.LonghaulTestEnv2,
+                BuildDefinitionId.LonghaulTestEnv3,
+                BuildDefinitionId.StressTestEnv1,
+                BuildDefinitionId.StressTestEnv2,
+                BuildDefinitionId.StressTestEnv3
             };
 
         public static string DisplayName(this BuildDefinitionId buildDefinitionId)
@@ -25,9 +32,16 @@ namespace DevOpsLib
                 { BuildDefinitionId.EdgeletCI, "Edgelet CI" },
                 { BuildDefinitionId.EdgeletPackages, "Edgelet Packages" },
                 { BuildDefinitionId.EdgeletRelease, "Edgelet Release" },
-                { BuildDefinitionId.EndToEndTest, "End-to-End Test" },
+                { BuildDefinitionId.EndToEndTest, "New E2E Test" },
                 { BuildDefinitionId.ImageRelease, "Image Release" },
-                { BuildDefinitionId.LibiohsmCI, "Libiohsm CI" },
+                { BuildDefinitionId.LibiohsmCI, "Libiothsm CI" },
+                { BuildDefinitionId.ConnectivityTest, "Connectivity Test" },
+                { BuildDefinitionId.LonghaulTestEnv1, "Longhaul Test" },
+                { BuildDefinitionId.LonghaulTestEnv2, "Longhaul Test Release Candidate" },
+                { BuildDefinitionId.LonghaulTestEnv3, "Longhaul Test Release" },
+                { BuildDefinitionId.StressTestEnv1, "Stress Test" },
+                { BuildDefinitionId.StressTestEnv2, "Stress Test Release Candidate" },
+                { BuildDefinitionId.StressTestEnv3, "Stress Test Release" },
             };
 
             return definitionIdToDisplayNameMapping.ContainsKey(buildDefinitionId) ? definitionIdToDisplayNameMapping[buildDefinitionId] : buildDefinitionId.ToString();
