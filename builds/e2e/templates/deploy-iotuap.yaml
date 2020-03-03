@@ -96,7 +96,7 @@ steps:
         $testInfo=$testInfo+",BuildSourceBranch=${{ parameters['build.source.branch'] }}"
         $testInfo=$testInfo+",EdgeletSourceBranch=${{ parameters['edgelet.source.branch'] }}"
         $testInfo=$testInfo+",ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
-        $testInfo=$testInfo+",HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
+        $testInfo=$testInfo+",HostPlatform=${{ parameters['hostPlatform'] }}"
         $testInfo=$testInfo+",TestName=${{ parameters['testName'] }}"
         
         $ArtifactInfo=convertfrom-stringdata (get-content C:\Data\e2etests\artifacts\${{ parameters['images.artifact.name'] }}\artifactInfo.txt -raw)
