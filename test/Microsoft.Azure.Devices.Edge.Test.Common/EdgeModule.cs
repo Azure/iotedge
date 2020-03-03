@@ -153,7 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         // reference.rootPath and comparand.rootPath are path strings like those returned from
         // Newtonsoft.Json.Linq.JToken.Path, and compatible with the path argument to
         // Newtonsoft.Json.Linq.JToken.SelectToken(path)
-        bool JsonEquals((object obj, string rootPath) reference, (object obj, string rootPath) comparand)
+        static bool JsonEquals((object obj, string rootPath) reference, (object obj, string rootPath) comparand)
         {
             // find the starting points of the comparison
             var rootRef = (JContainer)JObject
