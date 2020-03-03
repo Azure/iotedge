@@ -155,7 +155,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         // reference.rootPath and comparand.rootPath are path strings like those returned from
         // Newtonsoft.Json.Linq.JToken.Path, and compatible with the path argument to
         // Newtonsoft.Json.Linq.JToken.SelectToken(path)
-        static bool JsonEquals((object obj, string rootPath) reference, (object obj, string rootPath) comparand)
+        static bool JsonEquals(
+            (object obj, string rootPath) reference,
+            (object obj, string rootPath) comparand)
         {
             // find the starting points of the comparison
             var rootRef = (JContainer)JObject
@@ -164,9 +166,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             var rootCmp = (JContainer)JObject
                 .FromObject(comparand.obj)
                 .SelectToken(comparand.rootPath);
-
-            // Serilog.Log.Information($"\nREFERENCE:\n{rootRef.ToString()}");
-            // Serilog.Log.Information($"\nCOMPARAND:\n{rootCmp.ToString()}");
 
             // do an inner join on the leaf elements
             var descendantsRef = rootRef
@@ -178,20 +177,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 .Where(t => t is JValue)
                 .Select(t => (JValue)t);
 
-            int pathLengthRef = reference.rootPath == string.Empty ? 0 : reference.rootPath.Length + 1;
-            int pathLengthCmp = comparand.rootPath == string.Empty ? 0 : comparand.rootPath.Length + 1;
-
-            // Serilog.Log.Information($"\nREFERENCE PATHS:");
-            // foreach (var p in descendantsRef)
-            // {
-            //     Serilog.Log.Information(p.Path.Substring(pathLengthRef));
-            // }
-
-            // Serilog.Log.Information($"\nCOMPARAND PATHS:");
-            // foreach (var p in descendantsCmp)
-            // {
-            //     Serilog.Log.Information(p.Path.Substring(pathLengthCmp));
-            // }
+            int pathLengthRef =
+                reference.rootPath.Length + reference.rootPath == string.Empty ? 0 : 1;
+            int pathLengthCmp =
+                comparand.rootPath.Length + comparand.rootPath == string.Empty ? 0 : 1;
 
             var joined = descendantsRef.Join(
                 descendantsCmp,
@@ -199,33 +188,22 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 v => v.Path.Substring(pathLengthCmp),
                 (v1, v2) => (v1, v2));
 
-            // Serilog.Log.Information($"\nJOIN:");
-            // foreach (var j in joined)
-            // {
-            //     Serilog.Log.Information(j.v1.Path.Substring(pathLengthRef));
-            // }
-
             // collect the paths of the subset of leaf elements whose values match
-            var result = joined
+            var matches = joined
                 .Where(values => values.Item1.Equals(values.Item2))
                 .Select(values => values.Item1.Path.Substring(pathLengthRef));
 
-            // Serilog.Log.Information($"\nEQUALS:");
-            // foreach (var p in result)
-            // {
-            //     Serilog.Log.Information(p);
-            // }
-
-            // Serilog.Log.Information($"\nSAME:");
-            // foreach (var p in descendantsRef.Select(d => d.Path.Substring(pathLengthRef)))
-            // {
-            //     Serilog.Log.Information($"{p} => IN RESULT? {result.Contains(p)}");
-            // }
-
             // comparand equals reference if subset has the same paths as reference
+            Log.Verbose("Checking for expected configuration values in agent twin:");
             return descendantsRef
                 .Select(d => d.Path.Substring(pathLengthRef))
-                .All(path => result.Contains(path));
+                .All(
+                    path =>
+                    {
+                        bool found = matches.Contains(path);
+                        Log.Verbose("'{ValuePath}' found in twin? {Found}", path, found);
+                        return found;
+                    });
         }
     }
 }
