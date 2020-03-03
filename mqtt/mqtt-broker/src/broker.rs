@@ -770,6 +770,8 @@ pub enum SessionError {
 mod tests {
     use super::*;
 
+    use std::time::Duration;
+
     use futures_util::future::FutureExt;
     use matches::assert_matches;
     use uuid::Uuid;
@@ -788,7 +790,7 @@ mod tests {
             password: None,
             will: None,
             client_id: proto::ClientId::IdWithCleanSession(id),
-            keep_alive: Default::default(),
+            keep_alive: Duration::default(),
             protocol_name: "MQTT".to_string(),
             protocol_level: 0x4,
         }
@@ -800,7 +802,7 @@ mod tests {
             password: None,
             will: None,
             client_id: proto::ClientId::IdWithExistingSession(id),
-            keep_alive: Default::default(),
+            keep_alive: Duration::default(),
             protocol_name: "MQTT".to_string(),
             protocol_level: 0x4,
         }
@@ -818,7 +820,7 @@ mod tests {
             password: None,
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
-            keep_alive: Default::default(),
+            keep_alive: Duration::default(),
             protocol_name: "MQTT".to_string(),
             protocol_level: 0x4,
         };
@@ -827,7 +829,7 @@ mod tests {
             password: None,
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
-            keep_alive: Default::default(),
+            keep_alive: Duration::default(),
             protocol_name: "MQTT".to_string(),
             protocol_level: 0x4,
         };
@@ -877,7 +879,7 @@ mod tests {
             password: None,
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
-            keep_alive: Default::default(),
+            keep_alive: Duration::default(),
             protocol_name: "MQTT".to_string(),
             protocol_level: 0x4,
         };
@@ -886,7 +888,7 @@ mod tests {
             password: None,
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
-            keep_alive: Default::default(),
+            keep_alive: Duration::default(),
             protocol_name: "MQTT".to_string(),
             protocol_level: 0x4,
         };
@@ -941,7 +943,7 @@ mod tests {
             password: None,
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
-            keep_alive: Default::default(),
+            keep_alive: Duration::default(),
             protocol_name: "AMQP".to_string(),
             protocol_level: 0x4,
         };
@@ -976,7 +978,7 @@ mod tests {
             password: None,
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
-            keep_alive: Default::default(),
+            keep_alive: Duration::default(),
             protocol_name: "MQTT".to_string(),
             protocol_level: 0x3,
         };
@@ -1015,7 +1017,7 @@ mod tests {
         let id = "id1".to_string();
         let mut broker = Broker::default();
         let client_id = ClientId::from(id.clone());
-        let connect = transient_connect(id.clone());
+        let connect = transient_connect(id);
         let handle = connection_handle();
         let req = ConnReq::new(client_id.clone(), connect, handle);
 
@@ -1036,7 +1038,7 @@ mod tests {
         let id = "id1".to_string();
         let mut broker = Broker::default();
         let client_id = ClientId::from(id.clone());
-        let connect = persistent_connect(id.clone());
+        let connect = persistent_connect(id);
         let handle = connection_handle();
         let req = ConnReq::new(client_id.clone(), connect, handle);
 
@@ -1059,14 +1061,14 @@ mod tests {
         let mut broker = Broker::default();
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id.clone());
-        let connect2 = transient_connect(id.clone());
+        let connect2 = transient_connect(id);
         let id = Uuid::new_v4();
         let (tx1, _rx1) = mpsc::channel(128);
-        let handle1 = ConnectionHandle::new(id.clone(), tx1.clone());
+        let handle1 = ConnectionHandle::new(id, tx1.clone());
         let handle2 = ConnectionHandle::new(id, tx1);
 
         let req1 = ConnReq::new(client_id.clone(), connect1, handle1);
-        let req2 = ConnReq::new(client_id.clone(), connect2, handle2);
+        let req2 = ConnReq::new(client_id, connect2, handle2);
 
         broker.open_session(req1).unwrap();
         assert_eq!(1, broker.sessions.len());
@@ -1083,14 +1085,14 @@ mod tests {
         let mut broker = Broker::default();
         let client_id = ClientId::from(id.clone());
         let connect1 = persistent_connect(id.clone());
-        let connect2 = persistent_connect(id.clone());
+        let connect2 = persistent_connect(id);
         let id = Uuid::new_v4();
         let (tx1, _rx1) = mpsc::channel(128);
-        let handle1 = ConnectionHandle::new(id.clone(), tx1.clone());
+        let handle1 = ConnectionHandle::new(id, tx1.clone());
         let handle2 = ConnectionHandle::new(id, tx1);
 
         let req1 = ConnReq::new(client_id.clone(), connect1, handle1);
-        let req2 = ConnReq::new(client_id.clone(), connect2, handle2);
+        let req2 = ConnReq::new(client_id, connect2, handle2);
 
         broker.open_session(req1).unwrap();
         assert_eq!(1, broker.sessions.len());
@@ -1106,7 +1108,7 @@ mod tests {
         let mut broker = Broker::default();
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id.clone());
-        let connect2 = transient_connect(id.clone());
+        let connect2 = transient_connect(id);
         let handle1 = connection_handle();
         let handle2 = connection_handle();
         let req1 = ConnReq::new(client_id.clone(), connect1, handle1);
@@ -1127,7 +1129,7 @@ mod tests {
         let mut broker = Broker::default();
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id.clone());
-        let connect2 = persistent_connect(id.clone());
+        let connect2 = persistent_connect(id);
         let handle1 = connection_handle();
         let handle2 = connection_handle();
         let req1 = ConnReq::new(client_id.clone(), connect1, handle1);
@@ -1148,7 +1150,7 @@ mod tests {
         let mut broker = Broker::default();
         let client_id = ClientId::from(id.clone());
         let connect1 = persistent_connect(id.clone());
-        let connect2 = transient_connect(id.clone());
+        let connect2 = transient_connect(id);
         let handle1 = connection_handle();
         let handle2 = connection_handle();
         let req1 = ConnReq::new(client_id.clone(), connect1, handle1);
@@ -1169,7 +1171,7 @@ mod tests {
         let mut broker = Broker::default();
         let client_id = ClientId::from(id.clone());
         let connect1 = persistent_connect(id.clone());
-        let connect2 = persistent_connect(id.clone());
+        let connect2 = persistent_connect(id);
         let handle1 = connection_handle();
         let handle2 = connection_handle();
         let req1 = ConnReq::new(client_id.clone(), connect1, handle1);
@@ -1190,7 +1192,7 @@ mod tests {
         let mut broker = Broker::default();
         let client_id = ClientId::from(id.clone());
         let connect1 = persistent_connect(id.clone());
-        let connect2 = persistent_connect(id.clone());
+        let connect2 = persistent_connect(id);
         let handle1 = connection_handle();
         let handle2 = connection_handle();
         let req1 = ConnReq::new(client_id.clone(), connect1, handle1);
@@ -1236,7 +1238,7 @@ mod tests {
         assert_matches!(broker.sessions[&client_id], Session::Offline(_));
 
         // Reopen session
-        let connect2 = transient_connect(id.clone());
+        let connect2 = transient_connect(id);
         let req2 = ConnReq::new(client_id.clone(), connect2, handle2);
         broker.open_session(req2).unwrap();
 

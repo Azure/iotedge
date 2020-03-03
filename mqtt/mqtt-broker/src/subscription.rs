@@ -222,7 +222,7 @@ mod tests {
             ),
         ];
 
-        for (case, expected) in cases.iter() {
+        for (case, expected) in &cases {
             let result = TopicFilter::from_str(case).unwrap();
             assert_eq!(*expected, result);
         }
@@ -239,7 +239,7 @@ mod tests {
             "bla\0h+",
         ];
 
-        for case in cases.iter() {
+        for case in &cases {
             let result = TopicFilter::from_str(case);
             assert!(result.is_err());
         }
@@ -296,7 +296,7 @@ mod tests {
             ("+", "$SYS", false),
         ];
 
-        for (filter, topic, expected) in cases.iter() {
+        for (filter, topic, expected) in &cases {
             let parsed = TopicFilter::from_str(filter).unwrap();
             assert_eq!(
                 *expected,

@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use std::{convert::TryInto, time::Duration};
 
 use bytes::{Buf, BufMut};
 use tokio_util::codec::Decoder;
@@ -130,7 +130,7 @@ pub struct Connect {
     pub password: Option<String>,
     pub will: Option<Publication>,
     pub client_id: super::ClientId,
-    pub keep_alive: std::time::Duration,
+    pub keep_alive: Duration,
     pub protocol_name: String,
     pub protocol_level: u8,
 }
@@ -171,7 +171,7 @@ impl PacketMeta for Connect {
             return Err(super::DecodeError::ConnectReservedSet);
         }
 
-        let keep_alive = std::time::Duration::from_secs(u64::from(src.try_get_u16_be()?));
+        let keep_alive = Duration::from_secs(u64::from(src.try_get_u16_be()?));
 
         let client_id = super::Utf8StringDecoder::default()
             .decode(&mut src)?

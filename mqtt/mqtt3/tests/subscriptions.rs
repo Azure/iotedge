@@ -200,7 +200,7 @@ fn server_generated_id_must_always_resubscribe() {
         ],
     );
 
-    let () = runtime
+    runtime
         .block_on(done)
         .expect("connection broken while there were still steps remaining on the server");
 }
@@ -425,7 +425,7 @@ fn client_id_should_not_resubscribe_when_session_is_present() {
         ],
     );
 
-    let () = runtime
+    runtime
         .block_on(done)
         .expect("connection broken while there were still steps remaining on the server");
 }
@@ -534,7 +534,7 @@ fn should_combine_pending_subscription_updates() {
         ],
     );
 
-    let () = runtime
+    runtime
         .block_on(done)
         .expect("connection broken while there were still steps remaining on the server");
 }
@@ -558,7 +558,7 @@ fn should_reject_invalid_subscriptions() {
 		Err(mqtt3::UpdateSubscriptionError::EncodePacket(_, mqtt3::proto::EncodeError::StringTooLarge(_))) => (),
 		result => panic!("expected client.subscribe() to fail with EncodePacket(StringTooLarge) but it returned {:?}", result),
 	}
-    match client.unsubscribe(too_large_topic_filter.clone()) {
+    match client.unsubscribe(too_large_topic_filter) {
 		Err(mqtt3::UpdateSubscriptionError::EncodePacket(_, mqtt3::proto::EncodeError::StringTooLarge(_))) => (),
 		result => panic!("expected client.unsubscribe() to fail with EncodePacket(StringTooLarge) but it returned {:?}", result),
 	}

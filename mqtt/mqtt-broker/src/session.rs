@@ -702,9 +702,9 @@ impl PacketIdentifiers {
     /// Packet identifiers are u16's, so the number of usize's required
     /// = number of u16's / number of bits in a usize
     /// = pow(2, number of bits in a u16) / number of bits in a usize
-    /// = pow(2, 16) / (size_of::<usize>() * 8)
+    /// = pow(2, 16) / (`size_of::<usize>()` * 8)
     ///
-    /// We use a bitshift instead of usize::pow because the latter is not a const fn
+    /// We use a bitshift instead of `usize::pow` because the latter is not a const fn
     const SIZE: usize = (1 << 16) / (mem::size_of::<usize>() * 8);
 
     fn reserve(&mut self) -> Result<proto::PacketIdentifier, Error> {
@@ -759,6 +759,8 @@ impl Default for PacketIdentifiers {
 mod tests {
     use super::*;
 
+    use std::time::Duration;
+
     use tokio::sync::mpsc;
     use uuid::Uuid;
 
@@ -776,7 +778,7 @@ mod tests {
             password: None,
             will: None,
             client_id: proto::ClientId::IdWithCleanSession(id),
-            keep_alive: Default::default(),
+            keep_alive: Duration::default(),
             protocol_name: crate::PROTOCOL_NAME.to_string(),
             protocol_level: crate::PROTOCOL_LEVEL,
         }
@@ -786,9 +788,9 @@ mod tests {
     fn test_subscribe() {
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
-        let connect1 = transient_connect(id.clone());
+        let connect1 = transient_connect(id);
         let handle1 = connection_handle();
-        let req1 = ConnReq::new(client_id.clone(), connect1, handle1);
+        let req1 = ConnReq::new(client_id, connect1, handle1);
         let mut session = Session::new_transient(req1);
 
         let subscribe = proto::Subscribe {
@@ -840,9 +842,9 @@ mod tests {
     fn test_unsubscribe() {
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
-        let connect1 = transient_connect(id.clone());
+        let connect1 = transient_connect(id);
         let handle1 = connection_handle();
-        let req1 = ConnReq::new(client_id.clone(), connect1, handle1);
+        let req1 = ConnReq::new(client_id, connect1, handle1);
         let mut session = Session::new_transient(req1);
 
         let subscribe = proto::Subscribe {
@@ -902,7 +904,7 @@ mod tests {
     #[test]
     fn test_offline_subscribe() {
         let id = "id1".to_string();
-        let client_id = ClientId::from(id.clone());
+        let client_id = ClientId::from(id);
         let mut session = Session::new_offline(SessionState::new(client_id));
 
         let subscribe = proto::Subscribe {
@@ -919,7 +921,7 @@ mod tests {
     #[test]
     fn test_offline_unsubscribe() {
         let id = "id1".to_string();
-        let client_id = ClientId::from(id.clone());
+        let client_id = ClientId::from(id);
         let mut session = Session::new_offline(SessionState::new(client_id));
 
         let unsubscribe = proto::Unsubscribe {
@@ -937,7 +939,7 @@ mod tests {
         #[cfg(target_pointer_width = "64")]
         assert_eq!(PacketIdentifiers::SIZE, 1024);
 
-        let mut packet_identifiers: PacketIdentifiers = Default::default();
+        let mut packet_identifiers = PacketIdentifiers::default();
         assert_eq!(
             packet_identifiers.in_use[..],
             Box::new([0; PacketIdentifiers::SIZE])[..]

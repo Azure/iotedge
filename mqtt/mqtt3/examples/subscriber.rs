@@ -89,11 +89,11 @@ fn main() {
         .shutdown_handle()
         .expect("couldn't get shutdown handle");
     runtime.spawn(async move {
-        let () = tokio::signal::ctrl_c()
+        tokio::signal::ctrl_c()
             .await
             .expect("couldn't get Ctrl-C notification");
         let result = shutdown_handle.shutdown().await;
-        let () = result.expect("couldn't send shutdown notification");
+        result.expect("couldn't send shutdown notification");
     });
 
     let mut update_subscription_handle = client
@@ -108,7 +108,7 @@ fn main() {
         }
     });
 
-    let () = runtime.block_on(async {
+    runtime.block_on(async {
         use futures_util::StreamExt;
 
         while let Some(event) = client.next().await {

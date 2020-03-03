@@ -95,7 +95,7 @@ fn server_generated_id_can_connect_and_idle() {
         ],
     );
 
-    let () = runtime
+    runtime
         .block_on(done)
         .expect("connection broken while there were still steps remaining on the server");
 }
@@ -238,7 +238,7 @@ fn client_id_can_connect_and_idle() {
         ],
     );
 
-    let () = runtime
+    runtime
         .block_on(done)
         .expect("connection broken while there were still steps remaining on the server");
 }

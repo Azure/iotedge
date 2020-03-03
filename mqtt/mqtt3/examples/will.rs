@@ -120,7 +120,7 @@ fn main() {
         }
     });
 
-    let () = runtime.block_on(async move {
+    runtime.block_on(async move {
         use futures_util::StreamExt;
 
         while let Some(event) = client.next().await {

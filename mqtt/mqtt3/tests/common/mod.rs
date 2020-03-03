@@ -81,6 +81,7 @@ impl IoSource {
 impl mqtt3::IoSource for IoSource {
     type Io = TestConnection;
     type Error = std::io::Error;
+    #[allow(clippy::type_complexity)]
     type Future =
         std::pin::Pin<Box<dyn Future<Output = std::io::Result<(Self::Io, Option<String>)>> + Send>>;
 
@@ -100,7 +101,7 @@ impl mqtt3::IoSource for IoSource {
             // If the connection broke while there were still steps remaining in the TestConnection, then the dropped sender will cause the test
             // to receive a futures_channel::oneshot::Canceled error, so the test will panic before this deadline elapses anyway.
             Box::pin(async {
-                let () = tokio::time::delay_for(std::time::Duration::from_secs(5)).await;
+                tokio::time::delay_for(std::time::Duration::from_secs(5)).await;
                 unreachable!();
             })
         }
@@ -108,6 +109,7 @@ impl mqtt3::IoSource for IoSource {
 }
 
 /// A single connection between a client and a server
+#[allow(clippy::type_complexity)]
 #[derive(Debug)]
 pub(crate) struct TestConnection {
     steps: std::collections::VecDeque<

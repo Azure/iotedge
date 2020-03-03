@@ -22,7 +22,7 @@ impl Persist for NullPersistor {
         Ok(BrokerState::default())
     }
 
-    async fn store(&mut self, _state: BrokerState) -> Result<(), Self::Error> {
+    async fn store(&mut self, _: BrokerState) -> Result<(), Self::Error> {
         Ok(())
     }
 }

@@ -15,7 +15,9 @@ async fn main() -> Result<(), Error> {
         .finish();
     let _ = tracing::subscriber::set_global_default(subscriber);
 
-    let addr = env::args().nth(1).unwrap_or("127.0.0.1:1883".to_string());
+    let addr = env::args()
+        .nth(1)
+        .unwrap_or_else(|| "127.0.0.1:1883".to_string());
 
     let _state = Server::new().serve(addr, pending::<()>()).await;
     Ok(())

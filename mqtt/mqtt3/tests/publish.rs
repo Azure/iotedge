@@ -89,7 +89,7 @@ fn server_publishes_at_most_once() {
         ],
     );
 
-    let () = runtime
+    runtime
         .block_on(done)
         .expect("connection broken while there were still steps remaining on the server");
 }
@@ -189,7 +189,7 @@ fn server_publishes_at_least_once() {
         ],
     );
 
-    let () = runtime
+    runtime
         .block_on(done)
         .expect("connection broken while there were still steps remaining on the server");
 }
@@ -353,7 +353,7 @@ fn server_publishes_at_least_once_with_reconnect_before_publish() {
         ],
     );
 
-    let () = runtime
+    runtime
         .block_on(done)
         .expect("connection broken while there were still steps remaining on the server");
 }
@@ -535,7 +535,7 @@ fn server_publishes_at_least_once_with_reconnect_before_ack() {
         ],
     );
 
-    let () = runtime
+    runtime
         .block_on(done)
         .expect("connection broken while there were still steps remaining on the server");
 }
@@ -596,7 +596,7 @@ fn should_reject_invalid_publications() {
         }],
     );
 
-    let () = runtime
+    runtime
         .block_on(done)
         .expect("connection broken while there were still steps remaining on the server");
     match runtime.block_on(publish_future) {

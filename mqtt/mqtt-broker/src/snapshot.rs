@@ -69,7 +69,7 @@ where
             match event {
                 Event::State(state) => {
                     info!("persisting broker state...");
-                    if let Err(e) = self.persistor.store(state).await.map_err(|e| e.into()) {
+                    if let Err(e) = self.persistor.store(state).await.map_err(Into::into) {
                         warn!(message = "an error occurred persisting state snapshot.", error=%e);
                     } else {
                         info!("broker state persisted.");
