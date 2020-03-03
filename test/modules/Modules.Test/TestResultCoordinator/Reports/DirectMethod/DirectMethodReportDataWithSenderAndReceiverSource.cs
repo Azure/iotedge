@@ -5,6 +5,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
 
     class DirectMethodReportDataWithSenderAndReceiverSource
     {
@@ -178,7 +179,45 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                         // MismatchFailure is the presence of 11 in the actualStoreValues
                     },
                     10, 3, 2, 1, 1, 1, 1, 1, 1, false
-                }
+                },
+                new object[]
+                {
+                    // Non-Offline test
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
+                    new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.InternalServerError, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
+                    new DateTime[]
+                    {
+                        new DateTime(2020, 1, 1, 9, 10, 12, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 13, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 21, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 22, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 23, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 24, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 24, 15)
+                    },
+                    10, 6, 0, 0, 0, 1, 0, 0, 0, false,
+                    NetworkControllerType.Satellite
+                },
+                new object[]
+                {
+                    // MismatchSuccess Non-offline
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
+                    new[] { 1UL, 2UL, 3UL, 5UL, 6UL, 7UL },
+                    new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
+                    new DateTime[]
+                    {
+                        new DateTime(2020, 1, 1, 9, 10, 12, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 13, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 21, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 22, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 23, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 24, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 24, 15)
+                    },
+                    10, 6, 0, 0, 0, 0, 0, 1, 0, true,
+                    NetworkControllerType.Satellite
+                },
             };
     }
 }
