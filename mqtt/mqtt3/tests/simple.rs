@@ -17,6 +17,8 @@ fn server_generated_id_can_connect_and_idle() {
                     will: None,
                     client_id: mqtt3::proto::ClientId::ServerGenerated,
                     keep_alive: std::time::Duration::from_secs(4),
+                    protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
+                    protocol_level: mqtt3::PROTOCOL_LEVEL,
                 },
             )),
             common::TestConnectionStep::Sends(mqtt3::proto::Packet::ConnAck(
@@ -46,6 +48,8 @@ fn server_generated_id_can_connect_and_idle() {
                     will: None,
                     client_id: mqtt3::proto::ClientId::ServerGenerated,
                     keep_alive: std::time::Duration::from_secs(4),
+                    protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
+                    protocol_level: mqtt3::PROTOCOL_LEVEL,
                 },
             )),
             common::TestConnectionStep::Sends(mqtt3::proto::Packet::ConnAck(
@@ -115,6 +119,8 @@ fn client_id_can_connect_and_idle() {
                         "idle_client_id".to_string(),
                     ),
                     keep_alive: std::time::Duration::from_secs(4),
+                    protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
+                    protocol_level: mqtt3::PROTOCOL_LEVEL,
                 },
             )),
             common::TestConnectionStep::Sends(mqtt3::proto::Packet::ConnAck(
@@ -146,6 +152,8 @@ fn client_id_can_connect_and_idle() {
                         "idle_client_id".to_string(),
                     ),
                     keep_alive: std::time::Duration::from_secs(4),
+                    protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
+                    protocol_level: mqtt3::PROTOCOL_LEVEL,
                 },
             )),
             common::TestConnectionStep::Sends(mqtt3::proto::Packet::ConnAck(
@@ -180,6 +188,8 @@ fn client_id_can_connect_and_idle() {
                         "idle_client_id".to_string(),
                     ),
                     keep_alive: std::time::Duration::from_secs(4),
+                    protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
+                    protocol_level: mqtt3::PROTOCOL_LEVEL,
                 },
             )),
             common::TestConnectionStep::Sends(mqtt3::proto::Packet::ConnAck(

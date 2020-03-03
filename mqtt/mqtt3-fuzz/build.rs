@@ -31,6 +31,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }),
                 client_id: mqtt3::proto::ClientId::IdWithExistingSession("id".to_string()),
                 keep_alive: std::time::Duration::from_secs(5),
+                protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
+                protocol_level: mqtt3::PROTOCOL_LEVEL,
             }),
         ),
         (

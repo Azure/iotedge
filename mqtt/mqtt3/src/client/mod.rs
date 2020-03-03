@@ -69,7 +69,7 @@ where
         let (shutdown_send, shutdown_recv) = futures_channel::mpsc::channel(0);
 
         // TODO: username / password / will can be too large and prevent a CONNECT packet from being encoded.
-        //       `Client::new()` should detect that and retrurn an error.
+        //       `Client::new()` should detect that and return an error.
         //       But password is provided by the IoSource, so it can't be done here?
 
         Client(ClientState::Up {

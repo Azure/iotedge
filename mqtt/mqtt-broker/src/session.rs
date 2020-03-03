@@ -777,8 +777,8 @@ mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession(id),
             keep_alive: Default::default(),
-            protocol_name: "MQTT".to_string(),
-            protocol_level: 0x4,
+            protocol_name: crate::PROTOCOL_NAME.to_string(),
+            protocol_level: crate::PROTOCOL_LEVEL,
         }
     }
 

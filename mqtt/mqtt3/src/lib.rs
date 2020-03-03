@@ -20,6 +20,10 @@
     clippy::use_self
 )]
 
+pub static PROTOCOL_NAME: &str = "MQTT";
+
+pub const PROTOCOL_LEVEL: u8 = 0x04;
+
 mod client;
 pub use client::{
     Client, Error, Event, IoSource, PublishError, PublishHandle, ReceivedPublication,

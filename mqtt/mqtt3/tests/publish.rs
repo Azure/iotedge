@@ -16,6 +16,8 @@ fn server_publishes_at_most_once() {
                 will: None,
                 client_id: mqtt3::proto::ClientId::ServerGenerated,
                 keep_alive: std::time::Duration::from_secs(4),
+                protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
+                protocol_level: mqtt3::PROTOCOL_LEVEL,
             },
         )),
         common::TestConnectionStep::Sends(mqtt3::proto::Packet::ConnAck(mqtt3::proto::ConnAck {
@@ -108,6 +110,8 @@ fn server_publishes_at_least_once() {
                 will: None,
                 client_id: mqtt3::proto::ClientId::ServerGenerated,
                 keep_alive: std::time::Duration::from_secs(4),
+                protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
+                protocol_level: mqtt3::PROTOCOL_LEVEL,
             },
         )),
         common::TestConnectionStep::Sends(mqtt3::proto::Packet::ConnAck(mqtt3::proto::ConnAck {
@@ -207,6 +211,8 @@ fn server_publishes_at_least_once_with_reconnect_before_publish() {
                     will: None,
                     client_id: mqtt3::proto::ClientId::IdWithCleanSession("client_id".to_owned()),
                     keep_alive: std::time::Duration::from_secs(4),
+                    protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
+                    protocol_level: mqtt3::PROTOCOL_LEVEL,
                 },
             )),
             common::TestConnectionStep::Sends(mqtt3::proto::Packet::ConnAck(
@@ -226,6 +232,8 @@ fn server_publishes_at_least_once_with_reconnect_before_publish() {
                         "client_id".to_owned(),
                     ),
                     keep_alive: std::time::Duration::from_secs(4),
+                    protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
+                    protocol_level: mqtt3::PROTOCOL_LEVEL,
                 },
             )),
             common::TestConnectionStep::Sends(mqtt3::proto::Packet::ConnAck(
@@ -260,6 +268,8 @@ fn server_publishes_at_least_once_with_reconnect_before_publish() {
                         "client_id".to_owned(),
                     ),
                     keep_alive: std::time::Duration::from_secs(4),
+                    protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
+                    protocol_level: mqtt3::PROTOCOL_LEVEL,
                 },
             )),
             common::TestConnectionStep::Sends(mqtt3::proto::Packet::ConnAck(
@@ -365,6 +375,8 @@ fn server_publishes_at_least_once_with_reconnect_before_ack() {
                     will: None,
                     client_id: mqtt3::proto::ClientId::IdWithCleanSession("client_id".to_owned()),
                     keep_alive: std::time::Duration::from_secs(4),
+                    protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
+                    protocol_level: mqtt3::PROTOCOL_LEVEL,
                 },
             )),
             common::TestConnectionStep::Sends(mqtt3::proto::Packet::ConnAck(
@@ -384,6 +396,8 @@ fn server_publishes_at_least_once_with_reconnect_before_ack() {
                         "client_id".to_owned(),
                     ),
                     keep_alive: std::time::Duration::from_secs(4),
+                    protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
+                    protocol_level: mqtt3::PROTOCOL_LEVEL,
                 },
             )),
             common::TestConnectionStep::Sends(mqtt3::proto::Packet::ConnAck(
@@ -429,6 +443,8 @@ fn server_publishes_at_least_once_with_reconnect_before_ack() {
                         "client_id".to_owned(),
                     ),
                     keep_alive: std::time::Duration::from_secs(4),
+                    protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
+                    protocol_level: mqtt3::PROTOCOL_LEVEL,
                 },
             )),
             common::TestConnectionStep::Sends(mqtt3::proto::Packet::ConnAck(
@@ -540,6 +556,8 @@ fn should_reject_invalid_publications() {
                 will: None,
                 client_id: mqtt3::proto::ClientId::ServerGenerated,
                 keep_alive: std::time::Duration::from_secs(4),
+                protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
+                protocol_level: mqtt3::PROTOCOL_LEVEL,
             },
         )),
         common::TestConnectionStep::Sends(mqtt3::proto::Packet::ConnAck(mqtt3::proto::ConnAck {

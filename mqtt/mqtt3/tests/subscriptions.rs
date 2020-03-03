@@ -17,6 +17,8 @@ fn server_generated_id_must_always_resubscribe() {
                     will: None,
                     client_id: mqtt3::proto::ClientId::ServerGenerated,
                     keep_alive: std::time::Duration::from_secs(4),
+                    protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
+                    protocol_level: mqtt3::PROTOCOL_LEVEL,
                 },
             )),
             common::TestConnectionStep::Sends(mqtt3::proto::Packet::ConnAck(
@@ -67,6 +69,8 @@ fn server_generated_id_must_always_resubscribe() {
                     will: None,
                     client_id: mqtt3::proto::ClientId::ServerGenerated,
                     keep_alive: std::time::Duration::from_secs(4),
+                    protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
+                    protocol_level: mqtt3::PROTOCOL_LEVEL,
                 },
             )),
             common::TestConnectionStep::Sends(mqtt3::proto::Packet::ConnAck(
@@ -220,6 +224,8 @@ fn client_id_should_not_resubscribe_when_session_is_present() {
                         "idle_client_id".to_string(),
                     ),
                     keep_alive: std::time::Duration::from_secs(4),
+                    protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
+                    protocol_level: mqtt3::PROTOCOL_LEVEL,
                 },
             )),
             common::TestConnectionStep::Sends(mqtt3::proto::Packet::ConnAck(
@@ -272,6 +278,8 @@ fn client_id_should_not_resubscribe_when_session_is_present() {
                         "idle_client_id".to_string(),
                     ),
                     keep_alive: std::time::Duration::from_secs(4),
+                    protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
+                    protocol_level: mqtt3::PROTOCOL_LEVEL,
                 },
             )),
             common::TestConnectionStep::Sends(mqtt3::proto::Packet::ConnAck(
@@ -327,6 +335,8 @@ fn client_id_should_not_resubscribe_when_session_is_present() {
                         "idle_client_id".to_string(),
                     ),
                     keep_alive: std::time::Duration::from_secs(4),
+                    protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
+                    protocol_level: mqtt3::PROTOCOL_LEVEL,
                 },
             )),
             common::TestConnectionStep::Sends(mqtt3::proto::Packet::ConnAck(
@@ -436,6 +446,8 @@ fn should_combine_pending_subscription_updates() {
                 will: None,
                 client_id: mqtt3::proto::ClientId::ServerGenerated,
                 keep_alive: std::time::Duration::from_secs(4),
+                protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
+                protocol_level: mqtt3::PROTOCOL_LEVEL,
             },
         )),
         common::TestConnectionStep::Sends(mqtt3::proto::Packet::ConnAck(mqtt3::proto::ConnAck {

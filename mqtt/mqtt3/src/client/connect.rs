@@ -154,6 +154,8 @@ where
                             will: will.cloned(),
                             client_id: client_id.clone(),
                             keep_alive,
+                            protocol_name: crate::PROTOCOL_NAME.to_string(),
+                            protocol_level: crate::PROTOCOL_LEVEL,
                         });
 
                         match std::pin::Pin::new(&mut *framed).start_send(packet) {
