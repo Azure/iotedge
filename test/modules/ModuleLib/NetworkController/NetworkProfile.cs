@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace NetworkController
+namespace Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController
 {
-    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Newtonsoft.Json;
 
     public class NetworkProfile
