@@ -130,15 +130,10 @@ edgeAgent:
     # Configure the default claim size to use (in megabytes) when creating PVCs.
     # persistentVolumeClaimDefaultSizeInMb: ""
 
-    # Set this to the name of a persistent volume if you wish the volumes that
-    # back persistent storage in modules to use that PV. Note that you may
-    # sometimes to also need to set the "storageClassName" field below to an
-    # empty string in order for this to work. Since Helm does not provide a
-    # clean way of specifying an empty string (see: https://github.com/helm/helm/issues/2600)
-    # you'll need to set the value "-" in liue of an empty string. This literal
-    # will be interpreted to mean that the storage class needs to be set to an
-    # empty string.
-    # persistentVolumeName: ""
+    # Set this as guidance for converting Docker Volume mounts to Persistent Volume Claims.
+    # Set to true to tell the runtime to use the Volume mount source (mount.Source) as the
+    # Persistent volume name (volumeName) in the PVC
+    useMountSourceForVolumeName: false
 
     # Set this to the name of a storage class name if you wish the volumes that
     # back persistent storage in modules to use dynamically provisioned PVCs.

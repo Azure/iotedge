@@ -191,7 +191,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string proxyTrustBundleConfigMapName = configuration.GetValue<string>(K8sConstants.ProxyTrustBundleConfigMapEnvKey);
                         PortMapServiceType mappedServiceDefault = GetDefaultServiceType(configuration);
                         bool enableServiceCallTracing = configuration.GetValue<bool>(K8sConstants.EnableK8sServiceCallTracingName);
-                        string persistentVolumeName = configuration.GetValue<string>(K8sConstants.PersistentVolumeNameKey);
+                        bool useMountSourceForVolumeName = configuration.GetValue<bool>(K8sConstants.UseMountSourceForVolumeNameKey, false);
                         string storageClassName = configuration.GetValue<string>(K8sConstants.StorageClassNameKey);
                         Option<uint> persistentVolumeClaimDefaultSizeMb = Option.Maybe(configuration.GetValue<uint?>(K8sConstants.PersistentVolumeClaimDefaultSizeInMbKey));
                         string deviceNamespace = configuration.GetValue<string>(K8sConstants.K8sNamespaceKey);
@@ -226,7 +226,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                                 Option.Some(productInfo),
                                 mappedServiceDefault,
                                 enableServiceCallTracing,
-                                persistentVolumeName,
+                                useMountSourceForVolumeName,
                                 storageClassName,
                                 persistentVolumeClaimDefaultSizeMb,
                                 proxy,
