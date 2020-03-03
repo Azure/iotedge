@@ -47,8 +47,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             var routeFactory = new EdgeRouteFactory(endpointFactory.Object);
 
             var endpointExecutorFactory = new Mock<IEndpointExecutorFactory>();
-            endpointExecutorFactory.Setup(e => e.CreateAsync(It.IsAny<Endpoint>()))
-                    .Returns<Endpoint>(endpoint => Task.FromResult(Mock.Of<IEndpointExecutor>(e => e.Endpoint == endpoint)));
+            endpointExecutorFactory.Setup(e => e.CreateAsync(It.IsAny<Endpoint>(), It.IsAny<IList<uint>>()))
+                    .Returns<Endpoint, IList<uint>>((endpoint, priorities) => Task.FromResult(Mock.Of<IEndpointExecutor>(e => e.Endpoint == endpoint)));
             Router router = await Router.CreateAsync(id, iotHub, routerConfig, endpointExecutorFactory.Object);
 
             var routes1 = Routes.Take(2)
@@ -109,8 +109,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             var routeFactory = new EdgeRouteFactory(endpointFactory.Object);
 
             var endpointExecutorFactory = new Mock<IEndpointExecutorFactory>();
-            endpointExecutorFactory.Setup(e => e.CreateAsync(It.IsAny<Endpoint>()))
-                    .Returns<Endpoint>(endpoint => Task.FromResult(Mock.Of<IEndpointExecutor>(e => e.Endpoint == endpoint)));
+            endpointExecutorFactory.Setup(e => e.CreateAsync(It.IsAny<Endpoint>(), It.IsAny<IList<uint>>()))
+                    .Returns<Endpoint, IList<uint>>((endpoint, priorities) => Task.FromResult(Mock.Of<IEndpointExecutor>(e => e.Endpoint == endpoint)));
             Router router = await Router.CreateAsync(id, iotHub, routerConfig, endpointExecutorFactory.Object);
 
             var routes1 = Routes.Take(2)
@@ -165,8 +165,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             var routeFactory = new EdgeRouteFactory(endpointFactory.Object);
 
             var endpointExecutorFactory = new Mock<IEndpointExecutorFactory>();
-            endpointExecutorFactory.Setup(e => e.CreateAsync(It.IsAny<Endpoint>()))
-                .Returns<Endpoint>(endpoint => Task.FromResult(Mock.Of<IEndpointExecutor>(e => e.Endpoint == endpoint)));
+            endpointExecutorFactory.Setup(e => e.CreateAsync(It.IsAny<Endpoint>(), It.IsAny<IList<uint>>()))
+                .Returns<Endpoint, IList<uint>>((endpoint, priorities) => Task.FromResult(Mock.Of<IEndpointExecutor>(e => e.Endpoint == endpoint)));
             Router router = await Router.CreateAsync(id, iotHub, routerConfig, endpointExecutorFactory.Object);
 
             var routes1 = Routes.Take(2)
@@ -230,56 +230,56 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
 
             // Assert
             configProvider.Verify(c => c.GetConfig(), Times.Once);
-            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
+            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>(), It.IsAny<IList<uint>>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Once);
             storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.Is<Option<long>>(x => x.Equals(Option.None<long>()))), Times.Once);
 
             // After 5 seconds, the periodic task should not have run.
             await Task.Delay(TimeSpan.FromSeconds(5));
             configProvider.Verify(c => c.GetConfig(), Times.Once);
-            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
+            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>(), It.IsAny<IList<uint>>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Once);
             storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.Is<Option<long>>(x => x.Equals(Option.None<long>()))), Times.Once);
 
             await Task.Delay(TimeSpan.FromSeconds(20));
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(3));
-            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
+            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>(), It.IsAny<IList<uint>>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Once);
             storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.Is<Option<long>>(x => x.Equals(Option.None<long>()))), Times.Once);
 
             await Task.Delay(TimeSpan.FromSeconds(10));
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(4));
-            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
+            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>(), It.IsAny<IList<uint>>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Exactly(2));
             storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.Is<Option<long>>(x => x.Equals(Option.None<long>()))), Times.Exactly(2));
 
             await Task.Delay(TimeSpan.FromSeconds(10));
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(5));
-            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
+            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>(), It.IsAny<IList<uint>>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Exactly(3));
             storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.Is<Option<long>>(x => x.Equals(Option.None<long>()))), Times.Exactly(3));
 
             await Task.Delay(TimeSpan.FromSeconds(10));
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(6));
-            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
+            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>(), It.IsAny<IList<uint>>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Exactly(4));
             storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.Is<Option<long>>(x => x.Equals(Option.None<long>()))), Times.Exactly(4));
 
             await Task.Delay(TimeSpan.FromSeconds(10));
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(7));
-            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
+            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>(), It.IsAny<IList<uint>>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Exactly(5));
             storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.Is<Option<long>>(x => !x.Equals(Option.None<long>()))), Times.Once);
 
             await Task.Delay(TimeSpan.FromSeconds(10));
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(8));
-            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
+            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>(), It.IsAny<IList<uint>>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Exactly(6));
             storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.Is<Option<long>>(x => !x.Equals(Option.None<long>()))), Times.Exactly(2));
 
             await Task.Delay(TimeSpan.FromSeconds(10));
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(9));
-            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
+            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>(), It.IsAny<IList<uint>>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Exactly(6));
             storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.Is<Option<long>>(x => !x.Equals(Option.None<long>()))), Times.Exactly(2));
         }
@@ -306,8 +306,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             var routeFactory = new EdgeRouteFactory(endpointFactory.Object);
 
             var endpointExecutorFactory = new Mock<IEndpointExecutorFactory>();
-            endpointExecutorFactory.Setup(e => e.CreateAsync(It.IsAny<Endpoint>()))
-                .Returns<Endpoint>(endpoint => Task.FromResult(Mock.Of<IEndpointExecutor>(e => e.Endpoint == endpoint)));
+            endpointExecutorFactory.Setup(e => e.CreateAsync(It.IsAny<Endpoint>(), It.IsAny<IList<uint>>()))
+                .Returns<Endpoint, IList<uint>>((endpoint, priorities) => Task.FromResult(Mock.Of<IEndpointExecutor>(e => e.Endpoint == endpoint)));
             Router router = await Router.CreateAsync(id, iotHub, routerConfig, endpointExecutorFactory.Object);
 
             var routes1 = Routes.Take(2)
@@ -342,33 +342,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
 
             // Assert
             configProvider.Verify(c => c.GetConfig(), Times.Once);
-            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
+            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>(), It.IsAny<IList<uint>>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Once);
             storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.Is<Option<long>>(x => x.Equals(Option.None<long>()))), Times.Once);
 
             // call update with no changes
             await updateCallback(edgeHubConfig1);
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(1));
-            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
+            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>(), It.IsAny<IList<uint>>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Once);
             storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.Is<Option<long>>(x => x.Equals(Option.None<long>()))), Times.Once);
 
             await Task.Delay(TimeSpan.FromSeconds(12));
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(2));
-            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
+            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>(), It.IsAny<IList<uint>>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Exactly(2));
             storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.Is<Option<long>>(x => x.Equals(Option.None<long>()))), Times.Exactly(2));
 
             // call update with changes
             await updateCallback(edgeHubConfig3);
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(2));
-            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
+            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>(), It.IsAny<IList<uint>>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Exactly(3));
             storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.Is<Option<long>>(x => x.Equals(Option.None<long>()))), Times.Exactly(3));
 
             await Task.Delay(TimeSpan.FromSeconds(10));
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(3));
-            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
+            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>(), It.IsAny<IList<uint>>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Exactly(3));
             storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.Is<Option<long>>(x => x.Equals(Option.None<long>()))), Times.Exactly(3));
         }

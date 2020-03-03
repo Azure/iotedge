@@ -20,10 +20,7 @@ namespace TestAnalyzer.Controllers
         public async Task<ContentResult> GetReport()
         {
             TestResultAnalysis deviceAnalysis = TestResultReporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
-            if (Settings.Current.LogAnalyticsEnabled)
-            {
-                await this.PublishToLogAnalyticsAsync(deviceAnalysis);
-            }
+            await this.PublishToLogAnalyticsAsync(deviceAnalysis);
 
             return new ContentResult { Content = deviceAnalysis.ToString() };
         }
@@ -33,10 +30,7 @@ namespace TestAnalyzer.Controllers
         public async Task<ContentResult> GetMessagesAsync()
         {
             TestResultAnalysis deviceAnalysis = TestResultReporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
-            if (Settings.Current.LogAnalyticsEnabled)
-            {
-                await this.PublishToLogAnalyticsAsync(deviceAnalysis);
-            }
+            await this.PublishToLogAnalyticsAsync(deviceAnalysis);
 
             return new ContentResult { Content = JsonConvert.SerializeObject(deviceAnalysis.MessagesReport, Formatting.Indented) }; // explicit serialization needed due to the wrapping list
         }
@@ -49,7 +43,6 @@ namespace TestAnalyzer.Controllers
 
             string workspaceId = Settings.Current.LogAnalyticsWorkspaceId;
             string sharedKey = Settings.Current.LogAnalyticsSharedKey;
-            string logType = Settings.Current.LogAnalyticsLogType;
 
             // Upload the data to Log Analytics for our dashboards
             try
@@ -58,19 +51,19 @@ namespace TestAnalyzer.Controllers
                     workspaceId,
                     sharedKey,
                     messagesJson,
-                    logType);
+                    "messagingReportsLonghaulStress");
 
                 Task reportTwins = AzureLogAnalytics.Instance.PostAsync(
                     workspaceId,
                     sharedKey,
                     twinsJson,
-                    logType);
+                    "twinReportsLonghaulStress");
 
                 Task reportDirectMethods = AzureLogAnalytics.Instance.PostAsync(
                     workspaceId,
                     sharedKey,
                     directMethodsJson,
-                    logType);
+                    "directMethodReportsLonghaulStress");
 
                 await Task.WhenAll(reportMessages, reportTwins, reportDirectMethods);
             }

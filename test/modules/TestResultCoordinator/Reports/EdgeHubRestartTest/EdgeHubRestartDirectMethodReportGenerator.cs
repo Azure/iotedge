@@ -4,7 +4,6 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
@@ -20,7 +19,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         // Value: (completedStatusCode, DirectMethodCompletedTime - EdgeHubRestartedTime)
         Dictionary<HttpStatusCode, List<TimeSpan>> completedStatusHistogram;
 
-        delegate Task<(ulong count, bool hasValue, long sequenceNumber)> MoveNextResultAsync(ulong count);
+        delegate Task<(ulong count, bool hasValue, ulong sequenceNumber)> MoveNextResultAsync(ulong count);
 
         internal EdgeHubRestartDirectMethodReportGenerator(
             string trackingId,
@@ -55,14 +54,14 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         {
             Logger.LogInformation($"Generating report: {nameof(EdgeHubRestartDirectMethodReport)} for [{this.SenderSource}] and [{this.ReceiverSource}]");
 
-            long previousSeqNum = 0;
+            ulong previousSeqNum = 0;
             ulong passedDirectMethodCount = 0;
             ulong senderResultCount = 0;
             ulong receiverResultCount = 0;
             bool hasSenderResult = false;
-            long senderSeqNum = 0;
+            ulong senderSeqNum = 0;
             bool hasReceiverResult = false;
-            long receiverSeqNum = 0;
+            ulong receiverSeqNum = 0;
 
             (senderResultCount, hasSenderResult, senderSeqNum) =
                 await this.MoveNextSenderResultAsync(senderResultCount);
@@ -147,9 +146,9 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         }
 
         bool VerifyCurrentResult(
-            long senderSeqNum,
-            long receiverSeqNum,
-            long previousSeqNum)
+            ulong senderSeqNum,
+            ulong receiverSeqNum,
+            ulong previousSeqNum)
         {
             // Check if the current dm is passing
             bool isCurrentDirectMethodPassing = true;
@@ -173,13 +172,13 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             return isCurrentDirectMethodPassing;
         }
 
-        async Task<(ulong resultCount, bool hasValue, long sequenceNum)> IterateResultToSequenceNumberAsync(
+        async Task<(ulong resultCount, bool hasValue, ulong sequenceNum)> IterateResultToSequenceNumberAsync(
             bool hasValue,
             MoveNextResultAsync MoveNextResultAsync,
-            long targetSequenceNumber,
+            ulong targetSequenceNumber,
             ulong resultCount)
         {
-            long seqNum = 0;
+            ulong seqNum = 0;
 
             while (hasValue && (seqNum < targetSequenceNumber))
             {
@@ -216,18 +215,11 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             this.completedStatusHistogram[completedStatus].Add(completedPeriod);
         }
 
-        long ConvertStringToLong(string result)
-        {
-            long seqNum;
-            long.TryParse(result, out seqNum);
-            return seqNum;
-        }
-
         // (sequenceNumber) is only valid if and only if (hasValue) is true
-        async Task<(ulong resultCount, bool hasValue, long sequenceNumber)> MoveNextSenderResultAsync(ulong senderResultCount)
+        async Task<(ulong resultCount, bool hasValue, ulong sequenceNumber)> MoveNextSenderResultAsync(ulong senderResultCount)
         {
             bool hasValue = await this.SenderTestResults.MoveNextAsync();
-            long seqNum = 0;
+            ulong seqNum = 0;
 
             if (!hasValue)
             {
@@ -239,7 +231,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             senderResultCount++;
 
             EdgeHubRestartDirectMethodResult senderResult = JsonConvert.DeserializeObject<EdgeHubRestartDirectMethodResult>(this.SenderTestResults.Current.Result);
-            seqNum = this.ConvertStringToLong(senderResult.SequenceNumber);
+            seqNum = senderResult.SequenceNumber;
 
             this.AddEntryToCompletedStatusHistogram(senderResult);
 
@@ -249,10 +241,10 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         }
 
         // (sequenceNumber) is only valid if and only if (hasValue) is true
-        async Task<(ulong resultCount, bool hasValue, long sequenceNumber)> MoveNextReceiverResultAsync(ulong receiverResultCount)
+        async Task<(ulong resultCount, bool hasValue, ulong sequenceNumber)> MoveNextReceiverResultAsync(ulong receiverResultCount)
         {
             bool hasValue = await this.ReceiverTestResults.MoveNextAsync();
-            long seqNum = 0;
+            ulong seqNum = 0;
 
             if (!hasValue)
             {
@@ -264,7 +256,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             receiverResultCount++;
 
             DirectMethodTestResult receiverResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(this.ReceiverTestResults.Current.Result);
-            seqNum = this.ConvertStringToLong(receiverResult.SequenceNumber);
+            seqNum = receiverResult.SequenceNumber;
 
             return (resultCount: receiverResultCount,
                 hasValue: hasValue,
