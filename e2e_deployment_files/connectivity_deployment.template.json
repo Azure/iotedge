@@ -394,16 +394,16 @@
               "trackingId": {
                 "value": "<TrackingId>"
               },
-              "TestResultCoordinatorUrl": {
+              "testResultCoordinatorUrl": {
                 "value": "http://localhost:5001"
               },
               "TwinTestMode": {
                 "value": "TwinCloudOperations"
               },
-              "TestStartDelay": {
+              "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "TestDuration": {
+              "testDuration": {
                 "value": "<TestDuration>"
               },
               "ServiceClientConnectionString": {
@@ -427,16 +427,16 @@
               "trackingId": {
                 "value": "<TrackingId>"
               },
-              "TestResultCoordinatorUrl": {
+              "testResultCoordinatorUrl": {
                 "value": "http://testResultCoordinator:5001"
               },
               "TwinTestMode": {
                 "value": "TwinEdgeOperations"
               },
-              "TestStartDelay": {
+              "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "TestDuration": {
+              "testDuration": {
                 "value": "<TestDuration>"
               },
               "ServiceClientConnectionString": {
@@ -460,16 +460,16 @@
               "trackingId": {
                 "value": "<TrackingId>"
               },
-              "TestResultCoordinatorUrl": {
+              "testResultCoordinatorUrl": {
                 "value": "http://localhost:5001"
               },
               "TwinTestMode": {
                 "value": "TwinCloudOperations"
               },
-              "TestStartDelay": {
+              "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "TestDuration": {
+              "testDuration": {
                 "value": "<TestDuration>"
               },
               "ServiceClientConnectionString": {
@@ -493,16 +493,16 @@
               "trackingId": {
                 "value": "<TrackingId>"
               },
-              "TestResultCoordinatorUrl": {
+              "testResultCoordinatorUrl": {
                 "value": "http://testResultCoordinator:5001"
               },
               "TwinTestMode": {
                 "value": "TwinEdgeOperations"
               },
-              "TestStartDelay": {
+              "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "TestDuration": {
+              "testDuration": {
                 "value": "<TestDuration>"
               },
               "ServiceClientConnectionString": {
@@ -526,10 +526,10 @@
               "DEPLOYMENT_TESTER_MODE": {
                 "value": "Sender"
               },
-              "TestStartDelay": {
+              "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "TestDuration": {
+              "testDuration": {
                 "value": "<TestDuration>"
               },
               "IOT_HUB_CONNECTION_STRING": {
