@@ -91,7 +91,6 @@ steps:
           -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \
           -twinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" \
           -twinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" \
-          -hostPlatform "${{ parameters['hostPlatform'] }}" \
           -testInfo "$testInfo" \
           -cleanAll
         #Remove all pending jobs

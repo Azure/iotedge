@@ -80,6 +80,5 @@ steps:
           -TwinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" `
           -TwinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" `
           -TwinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" `
-          -HostPlatform "${{ parameters['hostPlatform'] }}" `
           -TestInfo "$testInfo"
       workingDirectory: "$(Agent.HomeDirectory)/.."
