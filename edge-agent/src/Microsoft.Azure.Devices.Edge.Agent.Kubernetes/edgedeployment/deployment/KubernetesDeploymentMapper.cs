@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         readonly string proxyTrustBundleVolumeName;
         readonly string proxyTrustBundleConfigMapName;
         readonly PortMapServiceType defaultServiceType;
-        readonly Option<string> persistentVolumeName;
+        readonly bool useMountSourceForVolumeName;
         readonly Option<string> storageClassName;
         readonly Option<uint> persistentVolumeClaimDefaultSizeMb;
         readonly string workloadApiVersion;
@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             string proxyTrustBundleVolumeName,
             string proxyTrustBundleConfigMapName,
             PortMapServiceType defaultServiceType,
-            string persistentVolumeName,
+            bool useMountSourceForVolumeName,
             string storageClassName,
             Option<uint> persistentVolumeClaimDefaultSizeMb,
             string workloadApiVersion,
@@ -74,8 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             this.proxyTrustBundleVolumeName = proxyTrustBundleVolumeName;
             this.proxyTrustBundleConfigMapName = proxyTrustBundleConfigMapName;
             this.defaultServiceType = defaultServiceType;
-            this.persistentVolumeName = Option.Maybe(persistentVolumeName)
-                .Filter(p => !string.IsNullOrWhiteSpace(p));
+            this.useMountSourceForVolumeName = useMountSourceForVolumeName;
             this.storageClassName = Option.Maybe(storageClassName);
             this.persistentVolumeClaimDefaultSizeMb = persistentVolumeClaimDefaultSizeMb;
             this.workloadApiVersion = workloadApiVersion;
@@ -228,7 +227,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                 envList.Add(new V1EnvVar(KubernetesConstants.EdgeK8sObjectOwnerUidKey, module.Owner.Uid));
                 envList.Add(new V1EnvVar(KubernetesConstants.PortMappingServiceType, this.defaultServiceType.ToString()));
                 envList.Add(new V1EnvVar(KubernetesConstants.EnableK8sServiceCallTracingName, this.enableServiceCallTracing.ToString()));
-                this.persistentVolumeName.ForEach(pvName => envList.Add(new V1EnvVar(KubernetesConstants.PersistentVolumeNameKey, pvName)));
+                envList.Add(new V1EnvVar(KubernetesConstants.UseMountSourceForVolumeNameKey, this.useMountSourceForVolumeName.ToString()));
                 this.storageClassName.ForEach(scName => envList.Add(new V1EnvVar(KubernetesConstants.StorageClassNameKey, scName)));
                 this.persistentVolumeClaimDefaultSizeMb.ForEach(size => envList.Add(new V1EnvVar(KubernetesConstants.PersistentVolumeClaimDefaultSizeInMbKey, size.ToString())));
                 envList.AddRange(this.experimentalFeatures.Select(env => new V1EnvVar(env.Key, env.Value.ToString())));
@@ -361,10 +360,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
 
         V1Volume GetVolume(KubernetesModule module, Mount mount)
         {
-            // Volume name will be pvName if persistent volume is set, else will be volumeName
-            string volumeName = this.persistentVolumeName
-                .Map(KubeUtils.SanitizeK8sValue)
-                .GetOrElse(() => KubeUtils.SanitizeDNSValue(mount.Source));
+            // Volume name will be mount.Source
+            string volumeName = KubeUtils.SanitizeDNSValue(mount.Source);
             // PVC name will be volume name
             string pvcName = volumeName;
 
@@ -377,10 +374,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
 
         V1VolumeMount GetVolumeMount(Mount mount)
         {
-            // Volume name will be pvName if persistent volume is set, else will be volumeName
-            string volumeName = this.persistentVolumeName
-                .Map(KubeUtils.SanitizeK8sValue)
-                .GetOrElse(() => KubeUtils.SanitizeDNSValue(mount.Source));
+            // Volume name will be mount.Source
+            string volumeName = KubeUtils.SanitizeDNSValue(mount.Source);
 
             return new V1VolumeMount(mount.Target, volumeName, readOnlyProperty: mount.ReadOnly);
         }
