@@ -215,16 +215,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             // }
 
             Serilog.Log.Information($"\nSAME:");
-            foreach (var p in result)
+            foreach (var p in descendantsRef.Select(d => d.Path.Substring(pathLengthRef)))
             {
-                Serilog.Log.Information($"[{p}] IN REF? {descendantsRef.Select(d => d.Path.Substring(pathLengthRef)).Contains(p)}");
+                Serilog.Log.Information($"{p} => IN RESULT? {result.Contains(p)}");
             }
 
             // comparand equals reference if subset has the same paths as reference
-            return result.All(
-                path => descendantsRef
-                    .Select(d => d.Path.Substring(pathLengthRef))
-                    .Contains(path));
+            return descendantsRef
+                .Select(d => d.Path.Substring(pathLengthRef))
+                .All(path => result.Contains(path));
         }
     }
 }
