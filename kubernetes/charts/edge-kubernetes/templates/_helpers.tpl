@@ -82,8 +82,8 @@ agent:
     {{- if .Values.iotedged.data.httpsProxy }}
     https_proxy: {{ .Values.iotedged.data.httpsProxy | quote }}
     {{- end}}
-    {{- if .Values.edgeAgent.env.persistentVolumeName}}
-    PersistentVolumeName: {{ .Values.edgeAgent.env.persistentVolumeName | quote }}
+    {{- if .Values.edgeAgent.env.useMountSourceForVolumeName}}
+    UseMountSourceForVolumeName: {{ .Values.edgeAgent.env.useMountSourceForVolumeName | quote }}
     {{- end }}
     {{- if .Values.edgeAgent.env.storageClassName}}
     StorageClassName: {{- if (eq "-" .Values.edgeAgent.env.storageClassName) }} "" {{- else }} {{ .Values.edgeAgent.env.storageClassName | quote }} {{- end }}
