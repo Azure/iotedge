@@ -206,7 +206,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             // collect the paths of the subset of leaf elements whose values match
             var result = joined
                 .Where(values => values.Item1.Equals(values.Item2))
-                .Select(values => values.Item2.Path.Substring(pathLengthRef));
+                .Select(values => values.Item1.Path.Substring(pathLengthRef));
 
             Serilog.Log.Information($"\nEQUALS:");
             foreach (var p in result)
@@ -217,11 +217,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             Serilog.Log.Information($"\nSAME:");
             foreach (var p in result)
             {
-                Serilog.Log.Information($"[{p}] IN REF? {descendantsRef.Select(d => d.Path).Contains(p)}");
+                Serilog.Log.Information($"[{p}] IN REF? {descendantsRef.Select(d => d.Path.Substring(pathLengthRef)).Contains(p)}");
             }
 
             // comparand equals reference if subset has the same paths as reference
-            return result.All(path => descendantsRef.Select(d => d.Path).Contains(path));
+            return result.All(
+                path => descendantsRef
+                    .Select(d => d.Path.Substring(pathLengthRef))
+                    .Contains(path));
         }
     }
 }
