@@ -2,6 +2,8 @@
 //
 //     cargo run --example subscriber -- --server 127.0.0.1:1883 --client-id 'example-subscriber' --topic-filter foo --qos 1
 
+#![allow(clippy::let_unit_value)]
+
 mod common;
 
 #[derive(Debug, structopt::StructOpt)]
@@ -89,11 +91,11 @@ fn main() {
         .shutdown_handle()
         .expect("couldn't get shutdown handle");
     runtime.spawn(async move {
-        tokio::signal::ctrl_c()
+        let () = tokio::signal::ctrl_c()
             .await
             .expect("couldn't get Ctrl-C notification");
         let result = shutdown_handle.shutdown().await;
-        result.expect("couldn't send shutdown notification");
+        let () = result.expect("couldn't send shutdown notification");
     });
 
     let mut update_subscription_handle = client

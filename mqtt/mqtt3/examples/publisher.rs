@@ -2,6 +2,8 @@
 //
 //     cargo run --example publisher -- --server 127.0.0.1:1883 --client-id 'example-publisher' --publish-frequency 1000 --topic foo --qos 1 --payload 'hello, world'
 
+#![allow(clippy::let_unit_value)]
+
 mod common;
 
 #[derive(Debug, structopt::StructOpt)]
@@ -103,11 +105,11 @@ fn main() {
         .shutdown_handle()
         .expect("couldn't get shutdown handle");
     runtime.spawn(async move {
-        tokio::signal::ctrl_c()
+        let () = tokio::signal::ctrl_c()
             .await
             .expect("couldn't get Ctrl-C notification");
         let result = shutdown_handle.shutdown().await;
-        result.expect("couldn't send shutdown notification");
+        let () = result.expect("couldn't send shutdown notification");
     });
 
     let payload: bytes::Bytes = payload.into();
@@ -134,14 +136,14 @@ fn main() {
                         payload,
                     })
                     .await;
-                result.expect("couldn't publish");
+                let () = result.expect("couldn't publish");
                 log::info!("Published to {}", topic);
                 Ok::<_, ()>(())
             });
         }
     });
 
-    runtime.block_on(async {
+    let () = runtime.block_on(async {
         use futures_util::StreamExt;
 
         while let Some(event) = client.next().await {

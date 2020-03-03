@@ -12,6 +12,8 @@
 //     cargo run --example will -- --server 127.0.0.1:1883 --client-id 'example-will-1' --topic foo --qos 1 --payload '"goodbye, world"  - example-will-1'
 //     cargo run --example will -- --server 127.0.0.1:1883 --client-id 'example-will-2' --topic foo --qos 1 --payload '"goodbye, world"  - example-will-2'
 
+#![allow(clippy::let_unit_value)]
+
 mod common;
 
 #[derive(Debug, structopt::StructOpt)]
@@ -120,7 +122,7 @@ fn main() {
         }
     });
 
-    runtime.block_on(async move {
+    let () = runtime.block_on(async move {
         use futures_util::StreamExt;
 
         while let Some(event) = client.next().await {

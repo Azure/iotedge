@@ -1,3 +1,5 @@
+#![allow(clippy::let_unit_value)]
+
 mod common;
 
 #[test]
@@ -89,7 +91,7 @@ fn server_publishes_at_most_once() {
         ],
     );
 
-    runtime
+    let () = runtime
         .block_on(done)
         .expect("connection broken while there were still steps remaining on the server");
 }
@@ -189,7 +191,7 @@ fn server_publishes_at_least_once() {
         ],
     );
 
-    runtime
+    let () = runtime
         .block_on(done)
         .expect("connection broken while there were still steps remaining on the server");
 }
@@ -353,7 +355,7 @@ fn server_publishes_at_least_once_with_reconnect_before_publish() {
         ],
     );
 
-    runtime
+    let () = runtime
         .block_on(done)
         .expect("connection broken while there were still steps remaining on the server");
 }
@@ -535,7 +537,7 @@ fn server_publishes_at_least_once_with_reconnect_before_ack() {
         ],
     );
 
-    runtime
+    let () = runtime
         .block_on(done)
         .expect("connection broken while there were still steps remaining on the server");
 }
@@ -596,7 +598,7 @@ fn should_reject_invalid_publications() {
         }],
     );
 
-    runtime
+    let () = runtime
         .block_on(done)
         .expect("connection broken while there were still steps remaining on the server");
     match runtime.block_on(publish_future) {
