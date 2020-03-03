@@ -178,9 +178,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 .Select(t => (JValue)t);
 
             int pathLengthRef =
-                reference.rootPath.Length + reference.rootPath == string.Empty ? 0 : 1;
+                reference.rootPath.Length + (reference.rootPath == string.Empty ? 0 : 1);
             int pathLengthCmp =
-                comparand.rootPath.Length + comparand.rootPath == string.Empty ? 0 : 1;
+                comparand.rootPath.Length + (comparand.rootPath == string.Empty ? 0 : 1);
 
             var joined = descendantsRef.Join(
                 descendantsCmp,
