@@ -20,5 +20,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     token),
                 "Pinged module '{Module}' from the cloud",
                 this.Id);
+
+        public Task WaitForReportedConfigurationAsync(object expected, CancellationToken token)
+        {
+            return Profiler.Run(
+                () =>  this.WaitForReportedPropertyUpdatesInternalAsync(expected, token),
+                "Edge Agent confirmed deployment");
+        }
     }
 }

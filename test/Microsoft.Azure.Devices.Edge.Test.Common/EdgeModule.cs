@@ -133,21 +133,23 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public Task WaitForReportedPropertyUpdatesAsync(object expected, CancellationToken token)
         {
             return Profiler.Run(
-                () =>
-                {
-                    return Retry.Do(
-                        async () =>
-                        {
-                            Twin twin = await this.iotHub.GetTwinAsync(this.deviceId, this.Id, token);
-                            return twin.Properties.Reported;
-                        },
-                        reported => JsonEquals((expected, "properties.reported"), (reported, string.Empty)),
-                        null,
-                        TimeSpan.FromSeconds(5),
-                        token);
-                },
+                () => WaitForReportedPropertyUpdatesInternalAsync(expected, token),
                 "Received expected twin updates for module '{Module}'",
                 this.Id);
+        }
+
+        protected Task WaitForReportedPropertyUpdatesInternalAsync(object expected, CancellationToken token)
+        {
+            return Retry.Do(
+                async () =>
+                {
+                    Twin twin = await this.iotHub.GetTwinAsync(this.deviceId, this.Id, token);
+                    return twin.Properties.Reported;
+                },
+                reported => JsonEquals((expected, "properties.reported"), (reported, string.Empty)),
+                null,
+                TimeSpan.FromSeconds(5),
+                token);
         }
 
         // reference.rootPath and comparand.rootPath are path strings like those returned from
