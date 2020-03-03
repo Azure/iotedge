@@ -175,6 +175,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 .DescendantsAndSelf()
                 .Where(t => t is JValue)
                 .Select(t => (JValue)t);
+
+            Serilog.Log.Information($"\nREFERENCE PATHS:");
+            foreach (var p in descendantsRef)
+            {
+                Serilog.Log.Information(p.Path);
+            }
+
+            Serilog.Log.Information($"\nCOMPARAND PATHS:");
+            foreach (var p in descendantsCmp)
+            {
+                Serilog.Log.Information(p.Path);
+            }
+
             var joined = descendantsRef.Join(
                 descendantsCmp,
                 v => v.Path.Substring(reference.rootPath.Length),
@@ -185,12 +198,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             var result = joined
                 .Where(values => values.Item1.Equals(values.Item2))
                 .Select(values => values.Item2.Path.Substring(reference.rootPath.Length));
-
-            Serilog.Log.Information($"\nJOIN:");
-            foreach (var r in result)
-            {
-                Serilog.Log.Information(r);
-            }
 
             // comparand equals reference if subset has the same paths as reference
             return result.All(path => descendantsRef.Select(d => d.Path).Contains(path));
