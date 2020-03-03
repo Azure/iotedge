@@ -214,11 +214,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             //     Serilog.Log.Information(p);
             // }
 
-            Serilog.Log.Information($"\nSAME:");
-            foreach (var p in descendantsRef.Select(d => d.Path.Substring(pathLengthRef)))
-            {
-                Serilog.Log.Information($"{p} => IN RESULT? {result.Contains(p)}");
-            }
+            // Serilog.Log.Information($"\nSAME:");
+            // foreach (var p in descendantsRef.Select(d => d.Path.Substring(pathLengthRef)))
+            // {
+            //     Serilog.Log.Information($"{p} => IN RESULT? {result.Contains(p)}");
+            // }
 
             // comparand equals reference if subset has the same paths as reference
             return descendantsRef
