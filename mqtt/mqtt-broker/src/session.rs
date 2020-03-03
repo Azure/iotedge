@@ -3,6 +3,9 @@ use std::{cmp, fmt, mem};
 
 use failure::ResultExt;
 use mqtt3::proto;
+use serde::de::{SeqAccess, Visitor};
+use serde::ser::SerializeTuple;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use tracing::{debug, warn};
 
 use crate::subscription::Subscription;
@@ -274,7 +277,7 @@ impl DisconnectingSession {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SessionState {
     client_id: ClientId,
     subscriptions: HashMap<String, Subscription>,
@@ -691,8 +694,59 @@ impl Session {
 }
 
 #[derive(Clone)]
+struct IdentifiersInUse(Box<[usize; PacketIdentifiers::SIZE]>);
+
+struct IdentifiersInUseVisitor;
+
+impl<'de> Visitor<'de> for IdentifiersInUseVisitor {
+    type Value = IdentifiersInUse;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "an array of length {}", PacketIdentifiers::SIZE)
+    }
+
+    #[inline]
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        let mut ids = Box::new([0; PacketIdentifiers::SIZE]);
+        for i in 0..PacketIdentifiers::SIZE {
+            ids[i] = match seq.next_element()? {
+                Some(val) => val,
+                None => return Err(serde::de::Error::invalid_length(i, &self)),
+            };
+        }
+        Ok(IdentifiersInUse(ids))
+    }
+}
+
+impl Serialize for IdentifiersInUse {
+    #[inline]
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_tuple(PacketIdentifiers::SIZE)?;
+        for e in self.0.iter() {
+            seq.serialize_element(e)?;
+        }
+        seq.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for IdentifiersInUse {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_tuple(PacketIdentifiers::SIZE, IdentifiersInUseVisitor)
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize)]
 struct PacketIdentifiers {
-    in_use: Box<[usize; PacketIdentifiers::SIZE]>,
+    in_use: IdentifiersInUse,
     previous: proto::PacketIdentifier,
 }
 
@@ -734,7 +788,7 @@ impl PacketIdentifiers {
             packet_identifier / (mem::size_of::<usize>() * 8),
             packet_identifier % (mem::size_of::<usize>() * 8),
         );
-        (&mut self.in_use[block], 1 << offset)
+        (&mut self.in_use.0[block], 1 << offset)
     }
 }
 
@@ -749,7 +803,7 @@ impl fmt::Debug for PacketIdentifiers {
 impl Default for PacketIdentifiers {
     fn default() -> Self {
         PacketIdentifiers {
-            in_use: Box::new([0; PacketIdentifiers::SIZE]),
+            in_use: IdentifiersInUse(Box::new([0; PacketIdentifiers::SIZE])),
             previous: proto::PacketIdentifier::max_value(),
         }
     }

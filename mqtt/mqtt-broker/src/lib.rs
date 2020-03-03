@@ -14,6 +14,7 @@ use std::fmt;
 use std::sync::Arc;
 
 use mqtt3::*;
+use serde::{Deserialize, Serialize};
 
 mod broker;
 mod connection;
@@ -31,7 +32,7 @@ pub use crate::persist::{NullPersistor, Persist};
 pub use crate::server::Server;
 pub use crate::snapshot::{Snapshotter, StateSnapshotHandle};
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ClientId(Arc<String>);
 
 impl ClientId {
@@ -93,7 +94,7 @@ impl ConnReq {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Publish {
     QoS0(proto::PacketIdentifier, proto::Publish),
     QoS12(proto::PacketIdentifier, proto::Publish),

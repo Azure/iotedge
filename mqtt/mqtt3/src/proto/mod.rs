@@ -5,6 +5,8 @@
 use std::convert::TryInto;
 
 use bytes::{Buf, BufMut};
+#[cfg(feature = "serde1")]
+use serde::{Deserialize, Serialize};
 
 mod packet;
 pub use packet::{
@@ -228,6 +230,7 @@ where
 
 /// A packet identifier. Two-byte unsigned integer that cannot be zero.
 #[derive(Clone, Copy, Debug, Eq, Ord, Hash, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde1", derive(Deserialize, Serialize))]
 pub struct PacketIdentifier(u16);
 
 impl PacketIdentifier {

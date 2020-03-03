@@ -11,6 +11,7 @@ async-trait = "0.1"
 failure = "0.1"
 futures-util = { version = "0.3", features = ["sink"] }
 lazy_static = "1"
+serde = { version = "1.0", features = ["derive", "rc"] }
 tokio = { version = "0.2", features = ["macros", "rt-threaded", "signal", "stream", "sync", "tcp"] }
 tokio-io-timeout = "0.4"
 tokio-util = { version = "0.2", features = ["codec"] }
@@ -18,7 +19,7 @@ tracing = "0.1"
 tracing-futures = "0.2"
 uuid = { version = "0.8", features = ["v4"] }
 
-mqtt3 = { path = "../mqtt3" }
+mqtt3 = { path = "../mqtt3", features = ["serde1"] }
 
 [dev-dependencies]
 atty = "0.2"

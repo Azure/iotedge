@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use failure::ResultExt;
 use mqtt3::proto;
+use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tracing::{debug, info, span, warn, Level};
 use tracing_futures::Instrument;
@@ -20,7 +21,7 @@ macro_rules! try_send {
     }};
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct BrokerState {
     retained: HashMap<String, proto::Publication>,
     sessions: Vec<SessionState>,

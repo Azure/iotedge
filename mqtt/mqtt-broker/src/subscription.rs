@@ -2,6 +2,7 @@ use std::fmt;
 use std::str::FromStr;
 
 use mqtt3::proto;
+use serde::{Deserialize, Serialize};
 
 use crate::{Error, ErrorKind};
 
@@ -10,7 +11,7 @@ const TOPIC_SEPARATOR: char = '/';
 static MULTILEVEL_WILDCARD: &str = "#";
 static SINGLELEVEL_WILDCARD: &str = "+";
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Subscription {
     filter: TopicFilter,
     max_qos: proto::QoS,
@@ -30,7 +31,7 @@ impl Subscription {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TopicFilter {
     segments: Vec<Segment>,
     multilevel: bool,
@@ -82,7 +83,7 @@ impl TopicFilter {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 enum Segment {
     Level(String),
     SingleLevelWildcard,
