@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
         {
             var image = source.SelectToken($"settings.image"); // not optional
             var createOptions = source.SelectToken($"settings.createOptions") ?? new JObject();
-            var env = source.SelectToken($"env").Value<JObject>() ?? new JObject();
+            var env = source.SelectToken($"env") ?? new JObject();
 
             var module = new
             {
