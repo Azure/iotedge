@@ -179,13 +179,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             Serilog.Log.Information($"\nREFERENCE PATHS:");
             foreach (var p in descendantsRef)
             {
-                Serilog.Log.Information(p.Path);
+                Serilog.Log.Information(p.Path.Substring(reference.rootPath.Length));
             }
 
             Serilog.Log.Information($"\nCOMPARAND PATHS:");
             foreach (var p in descendantsCmp)
             {
-                Serilog.Log.Information(p.Path);
+                Serilog.Log.Information(p.Path.Substring(comparand.rootPath.Length));
             }
 
             var joined = descendantsRef.Join(
