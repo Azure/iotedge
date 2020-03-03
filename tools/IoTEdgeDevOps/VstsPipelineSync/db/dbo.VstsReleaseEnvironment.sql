@@ -20,9 +20,9 @@ CREATE TABLE [dbo].[VstsReleaseEnvironment](
 ) ON [PRIMARY]
 GO
 
-ALTER TABLE [dbo].[VstsReleaseEnvrionment]  WITH CHECK ADD  CONSTRAINT [FK_VstsReleaseEnvrionment_RelaseId] FOREIGN KEY([ReleaseId])
+ALTER TABLE [dbo].[VstsReleaseEnvironment]  WITH CHECK ADD  CONSTRAINT [FK_VstsReleaseEnvironment_RelaseId] FOREIGN KEY([ReleaseId])
 REFERENCES [dbo].[VstsRelease] ([id])
 GO
 
-ALTER TABLE [dbo].[VstsReleaseEnvrionment] CHECK CONSTRAINT [FK_VstsReleaseEnvrionment_RelaseId]
+ALTER TABLE [dbo].[VstsReleaseEnvironment] CHECK CONSTRAINT [FK_VstsReleaseEnvironment_RelaseId]
 GO

@@ -71,14 +71,16 @@ namespace DevOpsLibTest
                                     id = 3660597,
                                     name = "Linux AMD64 Docker",
                                     definitionEnvironmentId = 10073,
-                                    status = "succeeded"
+                                    status = "succeeded",
+                                    deployments = new object[] { }
                                 },
                                 new
                                 {
                                     id = 3665008,
                                     name = "RBPi ARM32 Moby",
                                     definitionEnvironmentId = 10075,
-                                    status = "InProgress"
+                                    status = "InProgress",
+                                    deployments = new object[] { }
                                 }
                             }
                         },
@@ -104,24 +106,100 @@ namespace DevOpsLibTest
                                     id = 3653535,
                                     name = "Linux AMD64 Docker",
                                     definitionEnvironmentId = 10073,
-                                    status = "partiallySucceeded"
+                                    status = "partiallySucceeded",
+                                    deployments = new object[] { }
                                 },
                                 new
                                 {
                                     id = 3653536,
                                     name = "RBPi ARM32 Moby",
                                     definitionEnvironmentId = 10075,
-                                    status = "Queued"
+                                    status = "Queued",
+                                    deployments = new object[] { }
                                 }
                             }
                         }
                     }
+                }); ;
+
+            this.httpTest.RespondWithJson(
+                new
+                {
+                    id = 1429321,
+                    releaseDefinition = new
+                    {
+                        id = 2189
+                    },
+                    name = "Release-1766",
+                    _links = new
+                    {
+                        web = new
+                        {
+                            href = "https://dev.azure.com/msazure/b32aa71e-8ed2-41b2-9d77-5bc261222004/_release?releaseId=1429321&_a=release-summary"
+                        }
+                    },
+                    environments = new object[]
+                                {
+                                    new
+                                    {
+                                        id = 3660597,
+                                        name = "Linux AMD64 Docker",
+                                        definitionEnvironmentId = 10073,
+                                        status = "succeeded",
+                                        deployments = new object[] { }
+                                    },
+                                    new
+                                    {
+                                        id = 3665008,
+                                        name = "RBPi ARM32 Moby",
+                                        definitionEnvironmentId = 10075,
+                                        status = "InProgress",
+                                        deployments = new object[] { }
+                                    }
+                                }
+                });
+
+            this.httpTest.RespondWithJson(
+                new
+                {
+                    id = 1429401,
+                    releaseDefinition = new
+                    {
+                        id = 2189
+                    },
+                    name = "Release-1765",
+                    _links = new
+                    {
+                        web = new
+                        {
+                            href = "https://dev.azure.com/msazure/b32aa71e-8ed2-41b2-9d77-5bc261222004/_release?releaseId=1429401&_a=release-summary"
+                        }
+                    },
+                    environments = new object[]
+                            {
+                                new
+                                {
+                                    id = 3653535,
+                                    name = "Linux AMD64 Docker",
+                                    definitionEnvironmentId = 10073,
+                                    status = "partiallySucceeded",
+                                    deployments = new object[] { }
+                                },
+                                new
+                                {
+                                    id = 3653536,
+                                    name = "RBPi ARM32 Moby",
+                                    definitionEnvironmentId = 10075,
+                                    status = "Queued",
+                                    deployments = new object[] { }
+                                }
+                            }
                 });
 
             string branch = "refs/heads/master";
             List<IoTEdgeRelease> releases = await this.releaseManagement.GetReleasesAsync(ReleaseDefinitionId.E2ETest, branch).ConfigureAwait(false);
 
-            string requestUri = $"https://vsrm.dev.azure.com/{DevOpsAccessSetting.AzureOrganization}/{DevOpsAccessSetting.AzureProject}/_apis/release/releases?definitionId={ReleaseDefinitionId.E2ETest.IdString()}&queryOrder=descending&$expand=environments&$top=5&api-version=5.1&sourceBranchFilter={Url.Encode(branch)}";
+            string requestUri = $"https://vsrm.dev.azure.com/{DevOpsAccessSetting.AzureOrganization}/{DevOpsAccessSetting.AzureProject}/_apis/release/releases?definitionId={ReleaseDefinitionId.E2ETest.IdString()}&queryOrder=descending&$top=200&api-version=5.1&sourceBranchFilter={Url.Encode(branch)}";
             this.httpTest.ShouldHaveCalled(requestUri)
                 .WithVerb(HttpMethod.Get)
                 .WithBasicAuth(string.Empty, PersonalAccessToken)
@@ -167,7 +245,7 @@ namespace DevOpsLibTest
             string branch = "refs/heads/master";
             List<IoTEdgeRelease> releases = await this.releaseManagement.GetReleasesAsync(ReleaseDefinitionId.E2ETest, branch).ConfigureAwait(false);
 
-            string requestUri = $"https://vsrm.dev.azure.com/{DevOpsAccessSetting.AzureOrganization}/{DevOpsAccessSetting.AzureProject}/_apis/release/releases?definitionId={ReleaseDefinitionId.E2ETest.IdString()}&queryOrder=descending&$expand=environments&$top=5&api-version=5.1&sourceBranchFilter={Url.Encode(branch)}";
+            string requestUri = $"https://vsrm.dev.azure.com/{DevOpsAccessSetting.AzureOrganization}/{DevOpsAccessSetting.AzureProject}/_apis/release/releases?definitionId={ReleaseDefinitionId.E2ETest.IdString()}&queryOrder=descending&$top=200&api-version=5.1&sourceBranchFilter={Url.Encode(branch)}";
             this.httpTest.ShouldHaveCalled(requestUri)
                 .WithVerb(HttpMethod.Get)
                 .WithBasicAuth(string.Empty, PersonalAccessToken)
@@ -188,7 +266,7 @@ namespace DevOpsLibTest
             string branch = "refs/heads/master";
             List<IoTEdgeRelease> releases = await this.releaseManagement.GetReleasesAsync(ReleaseDefinitionId.E2ETest, branch).ConfigureAwait(false);
 
-            string requestUri = $"https://vsrm.dev.azure.com/{DevOpsAccessSetting.AzureOrganization}/{DevOpsAccessSetting.AzureProject}/_apis/release/releases?definitionId={ReleaseDefinitionId.E2ETest.IdString()}&queryOrder=descending&$expand=environments&$top=5&api-version=5.1&sourceBranchFilter={Url.Encode(branch)}";
+            string requestUri = $"https://vsrm.dev.azure.com/{DevOpsAccessSetting.AzureOrganization}/{DevOpsAccessSetting.AzureProject}/_apis/release/releases?definitionId={ReleaseDefinitionId.E2ETest.IdString()}&queryOrder=descending&$top=200&api-version=5.1&sourceBranchFilter={Url.Encode(branch)}";
             this.httpTest.ShouldHaveCalled(requestUri)
                 .WithVerb(HttpMethod.Get)
                 .WithBasicAuth(string.Empty, PersonalAccessToken)
