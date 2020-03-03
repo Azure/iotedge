@@ -190,7 +190,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         !kvp.Value.Equals(descendantsCmp[kvp.Key]))
                     .Select(kvp => kvp.Key);
                 Log.Verbose(
-                    "Expected configuration values missing in agent twin:\n{MissingValues}",
+                    "Expected configuration values missing in agent twin:\n  {MissingValues}",
                     string.Join("\n  ", missing));
             }
 
