@@ -1025,7 +1025,8 @@ Function RunLongHaulTest
     TestSetup
 
     $testStartAt = Get-Date
-    $deviceId = "${ReleaseLabel}-Windows-${Architecture}-longHaul"
+    $randomId = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 8 | % {[char]$_})
+    $deviceId = "${ReleaseLabel}-Windows-${Architecture}-longHaul-${randomId}"
     PrintHighlightedMessage "Run Long Haul test with -d ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``
@@ -1057,7 +1058,8 @@ Function RunStressTest
     TestSetup
 
     $testStartAt = Get-Date
-    $deviceId = "${ReleaseLabel}-Windows-${Architecture}-stress"
+    $randomId = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 8 | % {[char]$_})
+    $deviceId = "${ReleaseLabel}-Windows-${Architecture}-stress-${randomId}"
     PrintHighlightedMessage "Run Stress test with -d ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``
