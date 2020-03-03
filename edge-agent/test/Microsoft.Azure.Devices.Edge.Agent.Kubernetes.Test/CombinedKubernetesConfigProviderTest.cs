@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
+    using Newtonsoft.Json;
     using Xunit;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
 
@@ -309,6 +310,74 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             // Assert
             Assert.True(config.CreateOptions.WorkingDir.HasValue);
             config.CreateOptions.WorkingDir.ForEach(wd => Assert.Equal("a-directory", wd));
+        }
+
+        const string InvalidCmdCreateOptions =
+    @"{
+""Cmd"" : {
+  ""argument1"":  ""argument2""
+  }
+}";
+
+        [Fact]
+        public void InvalidCmdEntryOptionsThrows()
+        {
+            var runtimeInfo = new Mock<IRuntimeInfo<DockerRuntimeConfig>>();
+            runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
+
+            var module = new Mock<IModule<DockerConfig>>();
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", InvalidCmdCreateOptions));
+            module.SetupGet(m => m.Name).Returns("mod1");
+
+            CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), true);
+
+            // Act
+            // Assert
+            Assert.Throws<JsonSerializationException>(() => provider.GetCombinedConfig(module.Object, runtimeInfo.Object));
+        }
+
+        const string InvalidEntryPointCreateOptions =
+            @"{
+""Entrypoint"" : ""a-command""
+}";
+
+        [Fact]
+        public void InvalidEntrypointOptionsThrows()
+        {
+            var runtimeInfo = new Mock<IRuntimeInfo<DockerRuntimeConfig>>();
+            runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
+
+            var module = new Mock<IModule<DockerConfig>>();
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", InvalidEntryPointCreateOptions));
+            module.SetupGet(m => m.Name).Returns("mod1");
+
+            CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), true);
+
+            // Act
+            // Assert
+            Assert.Throws<JsonSerializationException>(() => provider.GetCombinedConfig(module.Object, runtimeInfo.Object));
+        }
+
+        const string InvalidWorkingDirCreateOptions =
+    @"{
+""WorkingDir"" : [ ""/tmp/working"" ]
+}";
+
+        [Fact]
+        public void InvalidWorkingDirOptionsThrows()
+        {
+            var runtimeInfo = new Mock<IRuntimeInfo<DockerRuntimeConfig>>();
+            runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
+
+            var module = new Mock<IModule<DockerConfig>>();
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", InvalidWorkingDirCreateOptions));
+            module.SetupGet(m => m.Name).Returns("mod1");
+
+            CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), true);
+
+            // Act
+            // Assert
+            Assert.Throws<ArgumentException>(() => provider.GetCombinedConfig(module.Object, runtimeInfo.Object));
         }
     }
 }
