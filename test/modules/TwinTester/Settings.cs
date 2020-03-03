@@ -33,7 +33,7 @@ namespace TwinTester
                 configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
                 configuration.GetValue<string>("AnalyzerUrl", "http://analyzer:15000"),
                 configuration.GetValue<string>("testResultCoordinatorUrl"),
-                configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING"),
+                configuration.GetValue<string>("ServiceClientConnectionString"),
                 configuration.GetValue<string>("StoragePath"),
                 configuration.GetValue<bool>("StorageOptimizeForPerformance", true),
                 configuration.GetValue<TwinTestMode>("TwinTestMode", TwinTestMode.TwinAllOperations),

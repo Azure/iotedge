@@ -403,7 +403,7 @@
               "testDuration": {
                 "value": "<TestDuration>"
               },
-              "IOT_HUB_CONNECTION_STRING": {
+              "ServiceClientConnectionString": {
                 "value": "<IoTHubConnectionString>"
               },
               "TargetModuleId": {
