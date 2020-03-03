@@ -11,9 +11,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json.Linq;
 
     public class CombinedKubernetesConfigProvider : ICombinedConfigProvider<CombinedKubernetesConfig>
     {
+        const string CmdKey = "Cmd";
+        const string EntrypointKey = "Entrypoint";
+        const string WorkingDirKey = "WorkingDir";
+
         readonly CombinedDockerConfigProvider dockerConfigProvider;
         readonly Uri workloadUri;
         readonly Uri managementUri;
@@ -43,7 +48,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 dockerConfig.CreateOptions.ExposedPorts,
                 hostConfig,
                 dockerConfig.CreateOptions.Image,
-                dockerConfig.CreateOptions.Labels);
+                dockerConfig.CreateOptions.Labels,
+                GetPropertiesStringArray(CmdKey, dockerConfig.CreateOptions.OtherProperties),
+                GetPropertiesStringArray(EntrypointKey, dockerConfig.CreateOptions.OtherProperties),
+                GetPropertiesString(WorkingDirKey, dockerConfig.CreateOptions.OtherProperties));
 
             if (this.enableKubernetesExtensions)
             {
@@ -92,5 +100,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 ? Path.GetDirectoryName(uri.LocalPath)
                 : uri.AbsolutePath;
         }
+
+        static IReadOnlyList<string> GetPropertiesStringArray(string key, IDictionary<string, JToken> other) =>
+            Option.Maybe(other).FlatMap(options => options.Get(key).FlatMap(option => Option.Maybe(option.ToObject<IReadOnlyList<string>>()))).OrDefault();
+
+        static string GetPropertiesString(string key, IDictionary<string, JToken> other) =>
+            Option.Maybe(other).FlatMap(options => options.Get(key).FlatMap(option => Option.Maybe(option.ToObject<string>()))).OrDefault();
     }
 }
