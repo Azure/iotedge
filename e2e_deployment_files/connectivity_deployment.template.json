@@ -849,7 +849,7 @@
           "reportMetadata12": {
             "TestReportType": "DirectMethodReport",
             "SenderSource": "directMethodSender3.send",
-            "TolerancePeriod": "00:01:00"
+            "TolerancePeriod": "00:01:20"
           },
           "reportMetadata13": {
             "TestReportType": "CountingReport",
