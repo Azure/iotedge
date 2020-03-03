@@ -155,9 +155,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         // Newtonsoft.Json.Linq.JToken.SelectToken(path)
         bool JsonEquals((object obj, string rootPath) reference, (object obj, string rootPath) comparand)
         {
-            Serilog.Log.Information($"\nREFERENCE:\n{JToken.FromObject(reference.obj).ToString()}");
-            Serilog.Log.Information($"\nCOMPARAND:\n{JToken.FromObject(comparand.obj).ToString()}");
-
             // find the starting points of the comparison
             var rootRef = (JContainer)JObject
                 .FromObject(reference.obj)
@@ -165,6 +162,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             var rootCmp = (JContainer)JObject
                 .FromObject(comparand.obj)
                 .SelectToken(comparand.rootPath);
+
+            Serilog.Log.Information($"\nREFERENCE:\n{rootRef.ToString()}");
+            Serilog.Log.Information($"\nCOMPARAND:\n{rootCmp.ToString()}");
 
             // do an inner join on the leaf elements
             var descendantsRef = rootRef

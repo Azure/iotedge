@@ -58,8 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             var edgeAgent = modules.Where(m => m.Name == ModuleName.EdgeAgent).FirstOrDefault()
                 ?? new ModuleConfiguration();
             var desired = JObject
-                .FromObject(edgeAgent.DesiredProperties)
-                .Value<JObject>("properties.desired");
+                .FromObject(edgeAgent.DesiredProperties);
 
             var reported = new Dictionary<string, object>
             {
