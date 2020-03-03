@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public static Task WaitForStatusAsync(IEnumerable<EdgeModule> modules, EdgeModuleStatus desired, CancellationToken token)
         {
-            string[] moduleIds = modules.Select(m => m.Id).Distinct().ToArray();
+            string[] moduleIds = modules.Select(m => m.Id.TrimStart('$')).Distinct().ToArray();
 
             string FormatModulesList() => moduleIds.Length == 1 ? "Module '{0}'" : "Modules ({0})";
 

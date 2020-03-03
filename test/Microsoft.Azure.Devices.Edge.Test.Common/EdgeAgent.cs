@@ -3,11 +3,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Test.Common.Config;
 
     public class EdgeAgent : EdgeModule
     {
         public EdgeAgent(string deviceId, IotHub iotHub)
-            : base("edgeAgent", deviceId, iotHub)
+            : base(ModuleName.EdgeAgent, deviceId, iotHub)
         {
         }
 
@@ -15,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             Profiler.Run(
                 () => this.iotHub.InvokeMethodAsync(
                     this.deviceId,
-                    $"${this.Id}",
+                    this.Id,
                     new CloudToDeviceMethod("ping"),
                     token),
                 "Pinged module '{Module}' from the cloud",
