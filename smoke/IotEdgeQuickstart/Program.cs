@@ -36,28 +36,29 @@ Defaults:
   its corresponding environment variable is not defined, then the default will
   be used.
 
-  Option                     Default value
-  --bootstrapper             'iotedged'
-  --bootstrapper-archive     no path (archive is installed from apt or pypi)
-  --connection-string        get the value from Key Vault
-  --device-id                an auto-generated unique identifier
-  --edge-hostname            'quickstart'
-  --eventhub-endpoint        get the value from Key Vault
-  --leave-running            none (or 'all' if given as a switch)
-  --password                 anonymous, or Key Vault if --registry is specified
-  --registry                 mcr.microsoft.com (anonymous)
-  --tag                      '1.0'
-  --use-http                 if --bootstrapper=iotedged then use Unix Domain
-                             Sockets, otherwise N/A
-                             switch form uses local IP address as hostname
-  --username                 anonymous, or Key Vault if --registry is specified
-  --no-verify                false
-  --optimize_for_performance true
-  --verify-data-from-module  tempSensor
-  --deployment               deployment json file
-  --runtime-log-level        debug
-  --clean_up_existing_device false
-  --proxy                    no proxy is used
+  Option                                Default value
+  --bootstrapper                        'iotedged'
+  --bootstrapper-archive                no path (archive is installed from apt or pypi)
+  --connection-string                   get the value from Key Vault
+  --device-id                           an auto-generated unique identifier
+  --initialize-with-agent-artifact      false
+  --edge-hostname                       'quickstart'
+  --eventhub-endpoint                   get the value from Key Vault
+  --leave-running                       none (or 'all' if given as a switch)
+  --password                            anonymous, or Key Vault if --registry is specified
+  --registry                            mcr.microsoft.com (anonymous)
+  --tag                                 '1.0'
+  --use-http                            if --bootstrapper=iotedged then use Unix Domain
+                                        Sockets, otherwise N/A
+                                        switch form uses local IP address as hostname
+  --username                            anonymous, or Key Vault if --registry is specified
+  --no-verify                           false
+  --optimize_for_performance            true
+  --verify-data-from-module             tempSensor
+  --deployment                          deployment json file
+  --runtime-log-level                   debug
+  --clean_up_existing_device            false
+  --proxy                               no proxy is used
 ")]
     [HelpOption]
     class Program
@@ -73,6 +74,9 @@ Defaults:
 
         [Option("-d|--device-id", Description = "Edge device identifier registered with IoT Hub")]
         public string DeviceId { get; } = $"iot-edge-quickstart-{Guid.NewGuid()}";
+
+        [Option("--initialize-with-agent-artifact <true/false>", CommandOptionType.SingleValue, Description = "Boolean specifying whether to bypass startup of edge agent 1.0 and start with the desired agent artifact directly")]
+        public bool InitializeWithAgentArtifact { get; } = false;
 
         [Option("-e|--eventhub-endpoint <value>", Description = "Event Hub-compatible endpoint for IoT Hub, including EntityPath")]
         public string EventHubCompatibleEndpointWithEntityPath { get; } = Environment.GetEnvironmentVariable("eventhubCompatibleEndpointWithEntityPath");
@@ -279,6 +283,7 @@ Defaults:
                     this.DeviceCaPk,
                     this.DeviceCaCerts,
                     this.OptimizeForPerformance,
+                    this.InitializeWithAgentArtifact,
                     this.RuntimeLogLevel,
                     this.CleanUpExistingDeviceOnSuccess,
                     dpsAttestation);

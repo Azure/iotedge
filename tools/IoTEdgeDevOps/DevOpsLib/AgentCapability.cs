@@ -11,7 +11,7 @@ namespace DevOpsLib
         public AgentCapability(string name, string value)
         {
             ValidationUtil.ThrowIfNullOrWhiteSpace(name, nameof(name));
-            ValidationUtil.ThrowIfNullOrWhiteSpace(value, nameof(value));
+            ValidationUtil.ThrowIfNull(value, nameof(value));
 
             // vsts agent capability is case-insensitive
             this.name = name;

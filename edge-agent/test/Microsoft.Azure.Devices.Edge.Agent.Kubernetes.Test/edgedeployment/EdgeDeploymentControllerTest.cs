@@ -6,9 +6,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
     using k8s;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
 
+    [Unit]
     public class EdgeDeploymentControllerTest
     {
         const string DeviceSelector = "selector";

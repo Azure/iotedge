@@ -34,10 +34,11 @@ namespace IotEdgeQuickstart
             string deviceCaPk,
             string deviceCaCerts,
             bool optimizedForPerformance,
+            bool initializeWithAgentArtifact,
             LogLevel runtimeLogLevel,
             bool cleanUpExistingDeviceOnSuccess,
             Option<DPSAttestation> dpsAttestation)
-            : base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, upstreamProtocol, proxy, imageTag, deviceId, hostname, deploymentFileName, twinTestFileName, deviceCaCert, deviceCaPk, deviceCaCerts, optimizedForPerformance, runtimeLogLevel, cleanUpExistingDeviceOnSuccess, dpsAttestation)
+            : base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, upstreamProtocol, proxy, imageTag, deviceId, hostname, deploymentFileName, twinTestFileName, deviceCaCert, deviceCaPk, deviceCaCerts, optimizedForPerformance, initializeWithAgentArtifact, runtimeLogLevel, cleanUpExistingDeviceOnSuccess, dpsAttestation)
         {
             this.leaveRunning = leaveRunning;
             this.noVerify = noVerify;

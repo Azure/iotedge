@@ -23,6 +23,7 @@ namespace TestResultCoordinator
         List<ITestReportMetadata> reportMetadatas = null;
 
         Settings(
+            string testBuildNumber,
             string trackingId,
             string eventHubConnectionString,
             string iotHubConnectionString,
@@ -36,10 +37,12 @@ namespace TestResultCoordinator
             bool optimizeForPerformance,
             TimeSpan testStartDelay,
             TimeSpan testDuration,
-            TimeSpan verificationDelay)
+            TimeSpan verificationDelay,
+            string storageAccountConnectionString)
         {
             Preconditions.CheckRange(testDuration.Ticks, 1);
 
+            this.TestBuildNumber = Preconditions.CheckNonWhiteSpace(testBuildNumber, nameof(testBuildNumber));
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.EventHubConnectionString = Preconditions.CheckNonWhiteSpace(eventHubConnectionString, nameof(eventHubConnectionString));
             this.IoTHubConnectionString = Preconditions.CheckNonWhiteSpace(iotHubConnectionString, nameof(iotHubConnectionString));
@@ -55,6 +58,7 @@ namespace TestResultCoordinator
             this.TestStartDelay = testStartDelay;
             this.DurationBeforeVerification = verificationDelay;
             this.ConsumerGroupName = "$Default";
+            this.StorageAccountConnectionString = Preconditions.CheckNonWhiteSpace(storageAccountConnectionString, nameof(storageAccountConnectionString));
         }
 
         static Settings Create()
@@ -66,6 +70,7 @@ namespace TestResultCoordinator
                 .Build();
 
             return new Settings(
+                configuration.GetValue<string>("TEST_BUILD_NUMBER"),
                 configuration.GetValue<string>("trackingId"),
                 configuration.GetValue<string>("eventHubConnectionString"),
                 configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING"),
@@ -79,7 +84,8 @@ namespace TestResultCoordinator
                 configuration.GetValue<bool>("optimizeForPerformance", true),
                 configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
                 configuration.GetValue("testDuration", TimeSpan.FromHours(1)),
-                configuration.GetValue("verificationDelay", TimeSpan.FromMinutes(15)));
+                configuration.GetValue("verificationDelay", TimeSpan.FromMinutes(15)),
+                configuration.GetValue<string>("STORAGE_ACCOUNT_CONNECTION_STRING"));
         }
 
         public string EventHubConnectionString { get; }
@@ -112,12 +118,17 @@ namespace TestResultCoordinator
 
         public string ConsumerGroupName { get; }
 
+        public string StorageAccountConnectionString { get; }
+
+        public string TestBuildNumber { get; }
+
         public override string ToString()
         {
             // serializing in this pattern so that secrets don't accidentally get added anywhere in the future
             var fields = new Dictionary<string, string>
             {
                 { nameof(this.TrackingId), this.TrackingId },
+                { nameof(this.TestBuildNumber), this.TestBuildNumber },
                 { nameof(this.DeviceId), this.DeviceId },
                 { nameof(this.ModuleId), this.ModuleId },
                 { nameof(this.WebHostPort), this.WebHostPort.ToString() },
@@ -147,10 +158,7 @@ namespace TestResultCoordinator
         internal async Task<HashSet<string>> GetResultSourcesAsync(ILogger logger)
         {
             HashSet<string> sources = (await this.GetReportMetadataListAsync(logger)).SelectMany(r => r.ResultSources).ToHashSet();
-            string[] additionalResultSources = new string[]
-            {
-                "networkController"
-            };
+            string[] additionalResultSources = new string[] { };
 
             foreach (string rs in additionalResultSources)
             {

@@ -173,8 +173,8 @@ function prepare_test_from_artifacts() {
 
                 sed -i -e "s@<Analyzer.ConsumerGroupId>@$EVENT_HUB_CONSUMER_GROUP_ID@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
-                sed -i -e "s@<Analyzer.LogAnalyticsEnabled>@$LOG_ANALYTICS_ENABLED@g" "$deployment_working_file"
-                sed -i -e "s@<Analyzer.LogAnalyticsLogType>@$LOG_ANALYTICS_LOG_TYPE@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.TestInfo>@$TEST_INFO@g" "$deployment_working_file"
+                sed -i -e "s@<MetricsCollector.HostPlatform>@$HOST_PLATFORM@g" "$deployment_working_file"
                 sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
                 sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHARED_KEY@g" "$deployment_working_file"
                 sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACE_ID@g" "$deployment_working_file"
@@ -373,34 +373,37 @@ function process_args() {
             RESTART_INTERVAL_IN_MINS="$arg"
             saveNextArg=0;
         elif [ $saveNextArg -eq 32 ]; then
-            LOG_ANALYTICS_ENABLED="$arg"
-            saveNextArg=0
-        elif [ $saveNextArg -eq 33 ]; then
             LOG_ANALYTICS_WORKSPACE_ID="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 34 ]; then
+        elif [ $saveNextArg -eq 33 ]; then
             LOG_ANALYTICS_SHARED_KEY="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 35 ]; then
-            LOG_ANALYTICS_LOG_TYPE="$arg"
-            saveNextArg=0
-        elif [ $saveNextArg -eq 36 ]; then
+        elif [ $saveNextArg -eq 34 ]; then
             TWIN_UPDATE_SIZE="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 37 ]; then
+        elif [ $saveNextArg -eq 35 ]; then
             TWIN_UPDATE_FREQUENCY="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 38 ]; then
+        elif [ $saveNextArg -eq 36 ]; then
             TWIN_UPDATE_FAILURE_THRESHOLD="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 39 ]; then
+        elif [ $saveNextArg -eq 37 ]; then
             METRICS_ENDPOINTS_CSV="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 40 ]; then
+        elif [ $saveNextArg -eq 38 ]; then
             METRICS_SCRAPE_FREQUENCY_IN_SECS="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 41 ]; then
+        elif [ $saveNextArg -eq 39 ]; then
             METRICS_UPLOAD_TARGET="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 40 ]; then
+            HOST_PLATFORM="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 41 ]; then
+            INITIALIZE_WITH_AGENT_ARTIFACT="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 42 ]; then
+            TEST_INFO="$arg"
             saveNextArg=0
         else
             case "$arg" in
@@ -436,16 +439,17 @@ function process_args() {
                 '-eventHubConsumerGroupId' ) saveNextArg=29;;
                 '-desiredModulesToRestartCSV' ) saveNextArg=30;;
                 '-restartIntervalInMins' ) saveNextArg=31;;
-                '-logAnalyticsEnabled' ) saveNextArg=32;;
-                '-logAnalyticsWorkspaceId' ) saveNextArg=33;;
-                '-logAnalyticsSharedKey' ) saveNextArg=34;;
-                '-logAnalyticsLogType' ) saveNextArg=35;;
-                '-twinUpdateSize' ) saveNextArg=36;;
-                '-twinUpdateFrequency' ) saveNextArg=37;;
-                '-twinUpdateFailureThreshold' ) saveNextArg=38;;
-                '-metricsEndpointsCSV' ) saveNextArg=39;;
-                '-metricsScrapeFrequencyInSecs' ) saveNextArg=40;;
-                '-metricsUploadTarget' ) saveNextArg=41;;
+                '-logAnalyticsWorkspaceId' ) saveNextArg=32;;
+                '-logAnalyticsSharedKey' ) saveNextArg=33;;
+                '-twinUpdateSize' ) saveNextArg=34;;
+                '-twinUpdateFrequency' ) saveNextArg=35;;
+                '-twinUpdateFailureThreshold' ) saveNextArg=36;;
+                '-metricsEndpointsCSV' ) saveNextArg=37;;
+                '-metricsScrapeFrequencyInSecs' ) saveNextArg=38;;
+                '-metricsUploadTarget' ) saveNextArg=39;;
+                '-hostPlatform' ) saveNextArg=40;;
+                '-initializeWithAgentArtifact' ) saveNextArg=41;;
+                '-testInfo' ) saveNextArg=42;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -460,11 +464,6 @@ function process_args() {
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
     [[ -z "$IOTHUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
     [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
-    [[ -z "$LOG_ANALYTICS_ENABLED" ]] && { LOG_ANALYTICS_ENABLED="false"; }
-    [[ "$LOG_ANALYTICS_ENABLED" == true ]] && \
-    {  [[ -z "$LOG_ANALYTICS_WORKSPACE_ID" ]] && { print_error 'Log Analytics Workspace ID is required'; exit 1; }; \
-       [[ -z "$LOG_ANALYTICS_SHARED_KEY" ]] && { print_error 'Log Analytics secret is required'; exit 1; }; \
-       [[ -z "$LOG_ANALYTICS_LOG_TYPE" ]] && { print_error 'Log Analytics Log Type is required'; exit 1; }; }
 
     echo 'Required parameters are provided'
 }
@@ -542,6 +541,7 @@ function run_directmethod_test()
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -n "$(hostname)" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --verify-data-from-module "DirectMethodSender" \
         -l "$deployment_working_file" && ret=$? || ret=$?
 
@@ -673,7 +673,8 @@ function run_dps_provisioning_test() {
         -tw "$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json" \
         --optimize_for_performance="$optimize_for_performance" \
         $dps_command_flags \
-        -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$?
+        -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$? \
+        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT"
 
     local elapsed_seconds=$SECONDS
     test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -703,6 +704,7 @@ function run_longhaul_test() {
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -n "$(hostname)" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --leave-running=All \
         -l "$deployment_working_file" \
         --runtime-log-level "Info" \
@@ -735,6 +737,7 @@ function run_quickstartcerts_test() {
         -u "$CONTAINER_REGISTRY_USERNAME" \
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --leave-running=Core \
         --optimize_for_performance="$optimize_for_performance" \
         --no-verify && ret=$? || ret=$?
@@ -779,6 +782,7 @@ function run_stress_test() {
         -p "$CONTAINER_REGISTRY_PASSWORD" \
         -n "$(hostname)" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --leave-running=All \
         -l "$deployment_working_file" \
         --runtime-log-level "Info" \
@@ -812,6 +816,7 @@ function run_tempfilter_test() {
         -n "$(hostname)" \
         --verify-data-from-module "tempFilter" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         -l "$deployment_working_file" && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -842,6 +847,7 @@ function run_tempfilterfunctions_test() {
         -n "$(hostname)" \
         --verify-data-from-module "tempFilterFunctions" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         -l "$deployment_working_file" && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -872,7 +878,8 @@ function run_tempsensor_test() {
         -n "$(hostname)" \
         -tw "$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json" \
         --optimize_for_performance="$optimize_for_performance" \
-        -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$?
+        -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$? \
+        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT"
 
     local elapsed_seconds=$SECONDS
     test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -983,6 +990,26 @@ function validate_test_parameters() {
             print_error "Required snitch storage master key."
             ((error++))
         fi
+
+        if [[ -z "$HOST_PLATFORM" ]]; then
+            print_error "Required host platform."
+            ((error++))
+        fi
+        
+        if [[ -z "$TEST_INFO" ]]; then
+            print_error "Required test info."
+            ((error++))
+        fi
+
+        if [[ -z "$LOG_ANALYTICS_WORKSPACE_ID" ]]; then
+            print_error "Required log analytics workspace id"
+            ((error++))
+        fi
+
+        if [[ -z "$LOG_ANALYTICS_SHARED_KEY" ]]; then
+            print_error "Required log analytics shared key"
+            ((error++))
+        fi
     fi
 
     if (( error > 0 )); then
@@ -1030,22 +1057,24 @@ function usage() {
     echo ' -installRootCAKeyPassword         Optional password to access the root CA certificate private key to be used for certificate generation'
     echo ' -desiredModulesToRestartCSV       Optional CSV string of module names for long haul specifying what modules to restart. If specified, then "restartIntervalInMins" must be specified as well.'
     echo ' -restartIntervalInMins            Optional value for long haul specifying how often a random module will restart. If specified, then "desiredModulesToRestartCSV" must be specified as well.'
-    echo ' -logAnalyticsEnabled              Optional Log Analytics enable string for the Analyzer module. If logAnalyticsEnabled is set to enable (true), the rest of Log Analytics parameters must be provided.'
     echo ' -logAnalyticsWorkspaceId          Optional Log Analytics workspace ID for metrics collection and reporting.'
     echo ' -logAnalyticsSharedKey            Optional Log Analytics shared key for metrics collection and reporting.'
-    echo ' -logAnalyticsLogType              Optional Log Analytics log type for the Analyzer module.'
     echo ' -twinUpdateSize                   Specifies the char count (i.e. size) of each twin update. Default is 1 for long haul and 100 for stress test.'
     echo ' -twinUpdateFrequency              Frequency to make twin updates. This should be specified in DateTime format. Default is 00:00:15 for long haul and 00:00:05 for stress test.'
     echo ' -twinUpdateFailureThreshold       Specifies the longest period of time a twin update can take before being marked as a failure. This should be specified in DateTime format. Default is 00:01:00'
     echo ' -metricsEndpointsCSV              Optional csv of exposed endpoints for which to scrape metrics.'
     echo ' -metricsScrapeFrequencyInSecs     Optional frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
     echo ' -metricsUploadTarget              Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
+    echo ' -hostPlatform                     Describes the host OS and cpu architecture. This information is added to scraped metrics.'
+    echo ' -initializeWithAgentArtifact      Boolean specifying if the iotedge installation should initialize edge agent with the official 1.0 image or the desired artifact. If false, the deployment after installation will start the desired agent artifact.'
+    echo ' -testInfo                         Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.' 
     exit 1;
 }
 
 process_args "$@"
 
 CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
+INITIALIZE_WITH_AGENT_ARTIFACT="${INITIALIZE_WITH_AGENT_ARTIFACT:-false}"
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
 EVENT_HUB_CONSUMER_GROUP_ID=${EVENT_HUB_CONSUMER_GROUP_ID:-\$Default}
 SNITCH_BUILD_NUMBER="${SNITCH_BUILD_NUMBER:-1.2}"

@@ -73,7 +73,8 @@ agent:
     RuntimeLogLevel: {{ .Values.edgeAgent.env.runtimeLogLevel | quote }}
     {{- end }}
     {{- if .Values.edgeAgent.env.persistentVolumeClaimDefaultSizeInMb}}
-    PersistentVolumeClaimDefaultSizeInMb: {{ .Values.edgeAgent.env.persistentVolumeClaimDefaultSizeInMb | quote }}
+    {{- $sizeInMb :=  .Values.edgeAgent.env.persistentVolumeClaimDefaultSizeInMb }}
+    PersistentVolumeClaimDefaultSizeInMb: {{- if kindIs "float64" $sizeInMb }} {{ printf "%.0f" $sizeInMb | quote }} {{- else }} {{ $sizeInMb | quote }} {{end}}
     {{- end }}
     {{- if .Values.edgeAgent.env.upstreamProtocol}}
     UpstreamProtocol: {{ .Values.edgeAgent.env.upstreamProtocol | quote }}

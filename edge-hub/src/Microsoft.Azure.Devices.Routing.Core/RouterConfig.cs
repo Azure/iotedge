@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
         }
 
         RouterConfig(IList<Route> routesList)
-            : this(routesList.SelectMany(r => r.Endpoints), routesList)
+            : this(routesList.Select(r => r.Endpoint), routesList)
         {
         }
 

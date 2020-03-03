@@ -3,10 +3,7 @@
 function clean_up() {
     print_highlighted_message 'Clean up'
 
-    echo 'Stop IoT Edge services'
-    systemctl stop iotedge.socket iotedge.mgmt.socket || true
-    systemctl kill iotedge || true
-    systemctl stop iotedge || true
+    stop_iotedge_service || true
 
     echo 'Remove IoT Edge and config file'
     apt-get purge libiothsm-std --yes || true
@@ -96,12 +93,29 @@ function get_leafdevice_artifact_file() {
     echo "$path"
 }
 
-function get_hash()
-{
+function get_hash() {
     local length=$1
     local hash=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c $length)
     
     echo "$hash"
+}
+
+function is_cancel_build_requested() {
+    local accessToken=$1
+    local buildId=$2
+    
+    if [[ ( -z "$accessToken" ) || ( -z "$buildId" ) ]]; then
+        echo 0
+    fi
+    
+    local output1=$(curl -s -u :$accessToken --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$buildId?api-version=5.1" | grep -oe '"status":"cancel')
+    local output2=$(curl -s -u :$accessToken --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$buildId/Timeline?api-version=5.1" | grep -oe '"result":"canceled"')
+    
+    if [[ -z "$output1" && -z "$output2" ]]; then
+        echo 0
+    else
+        echo 1
+    fi
 }
 
 function print_error() {
@@ -116,4 +130,11 @@ function print_highlighted_message() {
     local cyan='\033[0;36m'
     local color_reset='\033[0m'
     echo -e "${cyan}$message${color_reset}"
+}
+
+function stop_iotedge_service() {
+    echo 'Stop IoT Edge services'
+    systemctl stop iotedge.socket iotedge.mgmt.socket || true
+    systemctl kill iotedge || true
+    systemctl stop iotedge || true
 }

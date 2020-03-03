@@ -20,5 +20,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             this.Image = image;
             this.Name = name;
         }
+
+        public bool IsSystemModule()
+        {
+            return this.Name.StartsWith('$');
+        }
     }
 }

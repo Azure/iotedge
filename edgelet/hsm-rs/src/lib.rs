@@ -4,6 +4,7 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::cognitive_complexity,
+    clippy::missing_errors_doc,
     clippy::module_name_repetitions,
     clippy::must_use_candidate,
     clippy::similar_names,

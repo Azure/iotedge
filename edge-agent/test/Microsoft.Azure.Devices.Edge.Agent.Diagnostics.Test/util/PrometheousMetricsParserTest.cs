@@ -5,11 +5,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Text;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util;
-    using Newtonsoft.Json;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
+    [Unit]
     public class PrometheousMetricsParserTest
     {
         [Fact]

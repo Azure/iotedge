@@ -23,12 +23,12 @@ namespace DeploymentTester
         {
             Logger.LogInformation($"Starting Deployment Tester with the following settings: \r\n{Settings.Current}");
 
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
+
+            var testResultReportingClient = new TestResultReportingClient { BaseUrl = Settings.Current.TestResultCoordinatorUrl.AbsoluteUri };
+
             try
             {
-                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
-
-                var testResultReportingClient = new TestResultReportingClient { BaseUrl = Settings.Current.TestResultCoordinatorUrl.AbsoluteUri };
-
                 if (Settings.Current.TestMode == DeploymentTesterMode.Receiver)
                 {
                     await ReportDeploymentEnvironmentVariablesAsync(testResultReportingClient);
@@ -38,16 +38,17 @@ namespace DeploymentTester
                     await Task.Delay(Settings.Current.TestStartDelay);
                     await UpdateDeploymentEnvironmentVariablesAsync(testResultReportingClient, cts);
                 }
-
-                await cts.Token.WhenCanceled();
-                completed.Set();
-                handler.ForEach(h => GC.KeepAlive(h));
-                Logger.LogInformation("DeploymentTester Main() finished.");
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Unexpected exception found.");
+                await ModuleUtil.ReportTestResultAsync(testResultReportingClient, Logger, new ErrorTestResult(Settings.Current.TrackingId, Settings.Current.ModuleId, ex));
             }
+
+            await cts.Token.WhenCanceled();
+            completed.Set();
+            handler.ForEach(h => GC.KeepAlive(h));
+            Logger.LogInformation("DeploymentTester Main() finished.");
         }
 
         static async Task UpdateDeploymentEnvironmentVariablesAsync(TestResultReportingClient apiClient, CancellationTokenSource cts)

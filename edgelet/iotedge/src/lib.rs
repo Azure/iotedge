@@ -4,6 +4,7 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::default_trait_access,
+    clippy::missing_errors_doc,
     clippy::module_name_repetitions,
     clippy::must_use_candidate,
     clippy::too_many_arguments,
@@ -29,7 +30,7 @@ pub use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
 pub use crate::list::List;
 pub use crate::logs::Logs;
 pub use crate::restart::Restart;
-pub use crate::support_bundle::SupportBundle;
+pub use crate::support_bundle::{OutputLocation, SupportBundle};
 pub use crate::unknown::Unknown;
 pub use crate::version::Version;
 

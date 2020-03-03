@@ -2,6 +2,7 @@
 namespace IotEdgeQuickstart.Details
 {
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public interface IBootstrapper
     {
@@ -13,10 +14,10 @@ namespace IotEdgeQuickstart.Details
 
         Task Install();
 
-        /* This will set up the device with edge agent image 1.0.
-           This is necessary because, if iotedged instead starts a the desired agent image, edgeAgent will not update its initial environment variables, createOptions, etc.
+        /* This will set up the device with edge agent image 1.0 if the Bootstrapper is not passed an agent image to use.
+           This is usually desired because, if iotedged instead starts a the desired agent image, edgeAgent will not update its initial environment variables, createOptions, etc.
            A deployment is necessary to start the desired agent image. */
-        Task Configure(DeviceProvisioningMethod method, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel);
+        Task Configure(DeviceProvisioningMethod method, Option<string> agentImage, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel);
 
         Task Start();
 

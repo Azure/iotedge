@@ -120,7 +120,7 @@ namespace Relayer
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Error in ProcessAndSendMessageAsync");
+                Logger.LogError(ex, $"Error in {nameof(ProcessAndSendMessageAsync)} method");
             }
 
             return MessageResponse.Completed;

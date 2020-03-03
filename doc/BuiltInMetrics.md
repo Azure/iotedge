@@ -11,6 +11,17 @@ As of release 1.0.9, metrics are exposed as an experimental feature available at
 | `ExperimentalFeatures__Enabled`          | `true` |
 | `ExperimentalFeatures__EnableMetrics`    | `true` |
 
+### Windows Note
+Metrics on Windows are not fully supported the 1.0.9 experimental release. Host metrics (cpu, memory and disk usage) will all show as 0. Moby metrics are supported. In addition, edgeHub must be started as a container administrator to expose metrics. 
+
+Add the following to EdgeHub createOptions (on Windows only):
+```JSON
+createOptions: {
+  "User": "ContainerAdministrator",
+  "ExposedPorts": {}
+}
+```
+
 ## Metrics
 
 Note: All metrics contain the following tags
@@ -50,14 +61,14 @@ instance_number | A Guid representing the current runtime. On restart, all metri
 | `edgeAgent_iotedged_uptime_seconds` || How long iotedged has been running | Gauge |
 | `edgeAgent_available_disk_space_bytes` | `disk_name`, `disk_filesystem`, `disk_filetype` | Amount of space left on the disk | Gauge |
 | `edgeAgent_total_disk_space_bytes` | `disk_name`, `disk_filesystem`, `disk_filetype`| Size of the disk | Gauge |
-| `edgeAgent_used_memory_bytes` | `module` | Amount of RAM used by all processes | Gauge |
-| `edgeAgent_total_memory_bytes` | `module` | RAM available | Gauge |
-| `edgeAgent_used_cpu_percent` | `module` | Percent of cpu used by all processes | Histogram |
-| `edgeAgent_created_pids_total` | `module` | The number of processes or threads the container has created | Gauge |
-| `edgeAgent_total_network_in_bytes` | `module` | The amount of bytes recieved from the network | Gauge |
-| `edgeAgent_total_network_out_bytes` | `module` | The amount of bytes sent to network | Gauge |
-| `edgeAgent_total_disk_read_bytes` | `module` | The amount of bytes read from the disk | Gauge |
-| `edgeAgent_total_disk_write_bytes` | `module` | The amount of bytes written to disk | Gauge |
+| `edgeAgent_used_memory_bytes` | `module_name` | Amount of RAM used by all processes | Gauge |
+| `edgeAgent_total_memory_bytes` | `module_name` | RAM available | Gauge |
+| `edgeAgent_used_cpu_percent` | `module_name` | Percent of cpu used by all processes | Histogram |
+| `edgeAgent_created_pids_total` | `module_name` | The number of processes or threads the container has created | Gauge |
+| `edgeAgent_total_network_in_bytes` | `module_name` | The amount of bytes recieved from the network | Gauge |
+| `edgeAgent_total_network_out_bytes` | `module_name` | The amount of bytes sent to network | Gauge |
+| `edgeAgent_total_disk_read_bytes` | `module_name` | The amount of bytes read from the disk | Gauge |
+| `edgeAgent_total_disk_write_bytes` | `module_name` | The amount of bytes written to disk | Gauge |
 
 ### Collecting
 

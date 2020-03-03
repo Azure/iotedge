@@ -12,10 +12,12 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Newtonsoft.Json;
     using Xunit;
 
+    [Unit]
     public class DirectMethodReportGeneratorTest
     {
         static NetworkStatusTimeline NetworkStatusTimeline => MockNetworkStatusTimeline.GetMockAsync(new TimeSpan(0, 0, 0, 0, 5)).Result;
@@ -221,8 +223,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         [Theory]
         [MemberData(nameof(DirectMethodReportDataWithSenderAndReceiverSource.GetCreateReportData), MemberType = typeof(DirectMethodReportDataWithSenderAndReceiverSource))]
         public async Task TestCreateReportAsync(
-            IEnumerable<string> senderStoreValues,
-            IEnumerable<string> receiverStoreValues,
+            IEnumerable<ulong> senderStoreValues,
+            IEnumerable<ulong> receiverStoreValues,
             IEnumerable<HttpStatusCode> statusCodes,
             IEnumerable<DateTime> timestamps,
             int batchSize,
@@ -286,7 +288,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         [Theory]
         [MemberData(nameof(DirectMethodReportDataWithSenderSourceOnly.GetCreateReportData), MemberType = typeof(DirectMethodReportDataWithSenderSourceOnly))]
         public async Task TestCreateReportWithSenderResultsOnlyAsync(
-            IEnumerable<string> senderStoreValues,
+            IEnumerable<ulong> senderStoreValues,
             IEnumerable<HttpStatusCode> statusCodes,
             IEnumerable<DateTime> timestamps,
             int batchSize,
@@ -340,7 +342,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         static List<(long, TestOperationResult)> GetSenderStoreData(
             string source,
             string resultType,
-            IEnumerable<string> resultValues,
+            IEnumerable<ulong> resultValues,
             IEnumerable<HttpStatusCode> statusCodes,
             IEnumerable<DateTime> timestamps,
             Guid guid,
@@ -368,7 +370,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         static List<(long, TestOperationResult)> GetReceiverStoreData(
             string source,
             string resultType,
-            IEnumerable<string> resultValues,
+            IEnumerable<ulong> resultValues,
             IEnumerable<DateTime> timestamps,
             Guid guid,
             int start = 0)

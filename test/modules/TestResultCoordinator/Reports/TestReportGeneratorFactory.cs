@@ -6,6 +6,7 @@ namespace TestResultCoordinator.Reports
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using TestResultCoordinator.Reports.DirectMethod;
+    using TestResultCoordinator.Reports.EdgeHubRestartTest;
     using TestResultCoordinator.Storage;
 
     class TestReportGeneratorFactory : ITestReportGeneratorFactory
@@ -91,15 +92,70 @@ namespace TestResultCoordinator.Reports
                             networkStatusTimeline);
                     }
 
+                case TestReportType.EdgeHubRestartDirectMethodReport:
+                    {
+                        var metadata = (EdgeHubRestartDirectMethodReportMetadata)testReportMetadata;
+                        var senderTestResults = this.GetResults(metadata.SenderSource);
+                        var receiverTestResults = this.GetResults(metadata.ReceiverSource);
+
+                        return new EdgeHubRestartDirectMethodReportGenerator(
+                            trackingId,
+                            metadata.SenderSource,
+                            metadata.ReceiverSource,
+                            metadata.TestReportType,
+                            senderTestResults,
+                            receiverTestResults);
+                    }
+
+                case TestReportType.EdgeHubRestartMessageReport:
+                    {
+                        var metadata = (EdgeHubRestartMessageReportMetadata)testReportMetadata;
+                        var senderTestResults = this.GetResults(metadata.SenderSource);
+                        var receiverTestResults = this.GetResults(metadata.ReceiverSource);
+
+                        return new EdgeHubRestartMessageReportGenerator(
+                            trackingId,
+                            metadata.SenderSource,
+                            metadata.ReceiverSource,
+                            metadata.TestReportType,
+                            senderTestResults,
+                            receiverTestResults);
+                    }
+
                 case TestReportType.NetworkControllerReport:
                     {
                         var metadata = (NetworkControllerReportMetadata)testReportMetadata;
                         var testResults = this.GetResults(metadata.Source);
 
-                        return new NetworkControllerReportGenerator(
+                        return new SimpleReportGenerator(
                             trackingId,
                             metadata.Source,
-                            testResults);
+                            testResults,
+                            TestOperationResultType.Network);
+                    }
+
+                case TestReportType.ErrorReport:
+                    {
+                        var metadata = (ErrorReportMetadata)testReportMetadata;
+                        var testResults = this.GetResults(metadata.Source);
+
+                        return new SimpleReportGenerator(
+                            trackingId,
+                            metadata.Source,
+                            testResults,
+                            TestOperationResultType.Error);
+                    }
+
+                case TestReportType.TestInfoReport:
+                    {
+                        var metadata = (TestInfoReportMetadata)testReportMetadata;
+                        var testResults = this.GetResults(metadata.Source);
+
+                        return new SimpleReportGenerator(
+                            trackingId,
+                            metadata.Source,
+                            testResults,
+                            TestOperationResultType.TestInfo);
                     }
 
                 default:

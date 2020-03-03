@@ -8,8 +8,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
     using NUnit.Framework;
 
+    [EndToEnd]
     public class Module : SasManualProvisioningFixture
     {
         private sealed class TempSensorModule
@@ -94,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         .WithEnvironment(new[] { ("MessageCount", "1") });
                     builder.AddModule(filterModuleName, filterImage)
                         .WithEnvironment(new[] { ("TemperatureThreshold", "19") });
-                    builder.GetModule("$edgeHub")
+                    builder.GetModule(ModuleName.EdgeHub)
                         .WithDesiredProperties(new Dictionary<string, object>
                         {
                             ["routes"] = new
@@ -129,7 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         .WithEnvironment(new[] { ("MessageCount", "1") });
                     builder.AddModule(filterFuncModuleName, filterFunc)
                         .WithEnvironment(new[] { ("AZURE_FUNCTIONS_ENVIRONMENT", "Development") });
-                    builder.GetModule("$edgeHub")
+                    builder.GetModule(ModuleName.EdgeHub)
                         .WithDesiredProperties(new Dictionary<string, object>
                         {
                             ["routes"] = new

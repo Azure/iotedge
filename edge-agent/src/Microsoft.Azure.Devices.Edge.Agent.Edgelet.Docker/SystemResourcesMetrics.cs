@@ -76,42 +76,42 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             this.usedMemory = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
                 "used_memory_bytes",
                 "Amount of RAM used by all processes",
-                new List<string> { "module", MetricsConstants.MsTelemetry }));
+                new List<string> { "module_name", MetricsConstants.MsTelemetry }));
 
             this.totalMemory = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
                 "total_memory_bytes",
                 "RAM available",
-                new List<string> { "module", MetricsConstants.MsTelemetry }));
+                new List<string> { "module_name", MetricsConstants.MsTelemetry }));
 
             this.cpuPercentage = Preconditions.CheckNotNull(metricsProvider.CreateHistogram(
                 "used_cpu_percent",
                 "Percent of cpu used by all processes",
-                new List<string> { "module", MetricsConstants.MsTelemetry }));
+                new List<string> { "module_name", MetricsConstants.MsTelemetry }));
 
             this.createdPids = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
                 "created_pids_total",
                 "The number of processes or threads the container has created",
-                new List<string> { "module", MetricsConstants.MsTelemetry }));
+                new List<string> { "module_name", MetricsConstants.MsTelemetry }));
 
             this.networkIn = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
                 "total_network_in_bytes",
                 "The amount of bytes recieved from the network",
-                new List<string> { "module", MetricsConstants.MsTelemetry }));
+                new List<string> { "module_name", MetricsConstants.MsTelemetry }));
 
             this.networkOut = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
                 "total_network_out_bytes",
                 "The amount of bytes sent to network",
-                new List<string> { "module", MetricsConstants.MsTelemetry }));
+                new List<string> { "module_name", MetricsConstants.MsTelemetry }));
 
             this.diskRead = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
                 "total_disk_read_bytes",
                 "The amount of bytes read from the disk",
-                new List<string> { "module", MetricsConstants.MsTelemetry }));
+                new List<string> { "module_name", MetricsConstants.MsTelemetry }));
 
             this.diskWrite = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
                 "total_disk_write_bytes",
                 "The amount of bytes written to disk",
-                new List<string> { "module", MetricsConstants.MsTelemetry }));
+                new List<string> { "module_name", MetricsConstants.MsTelemetry }));
         }
 
         public void Start(ILogger logger)

@@ -9,13 +9,13 @@ set -e
 . $(dirname "$0")/testHelper.sh
 
 function examine_test_result() {
-    found_test_passed="$(docker logs testResultCoordinator 2>&1 | sed -n '/Test result report/,/"TestResultReports"/p' | grep '"IsPassed": true')"
+    found_test_passed="$(docker logs testResultCoordinator 2>&1 | sed -n '/Test summary/,/"TestResultReports"/p' | grep '"IsPassed": true')"
 
-    if [[ ! -z "$found_test_passed" ]]; then
+    if [[ -z "$found_test_passed" ]]; then
         echo 0
+    else
+        echo 1
     fi
-
-    echo 1
 }
 
 function prepare_test_from_artifacts() {
@@ -35,40 +35,56 @@ function prepare_test_from_artifacts() {
 
     echo "Copy deployment file from $connectivity_deployment_artifact_file"
     cp "$connectivity_deployment_artifact_file" "$deployment_working_file"
-
-    sed -i -e "s@<TestResultCoordinator.ConsumerGroupId>@$EVENT_HUB_CONSUMER_GROUP_ID@g" "$deployment_working_file"
-    sed -i -e "s@<TestResultCoordinator.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
+    
+    local tracking_id=$(cat /proc/sys/kernel/random/uuid)
     sed -i -e "s@<Architecture>@$image_architecture_label@g" "$deployment_working_file"
     sed -i -e "s/<Build.BuildNumber>/$ARTIFACT_IMAGE_BUILD_NUMBER/g" "$deployment_working_file"
+    sed -i -e "s/<EdgeRuntime.BuildNumber>/$EDGE_RUNTIME_BUILD_NUMBER/g" "$deployment_working_file"
     sed -i -e "s@<Container_Registry>@$CONTAINER_REGISTRY@g" "$deployment_working_file"
     sed -i -e "s@<CR.Username>@$CONTAINER_REGISTRY_USERNAME@g" "$deployment_working_file"
     sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
     sed -i -e "s@<IoTHubConnectionString>@$IOT_HUB_CONNECTION_STRING@g" "$deployment_working_file"
-
-    local tracking_id=$(cat /proc/sys/kernel/random/uuid)
-
-    sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
+    sed -i -e "s@<Test.BuildNumber>@$TEST_BUILD_NUMBER@g" "$deployment_working_file"
     sed -i -e "s@<TestDuration>@$TEST_DURATION@g" "$deployment_working_file"
     sed -i -e "s@<TestStartDelay>@$TEST_START_DELAY@g" "$deployment_working_file"
     sed -i -e "s@<TrackingId>@$tracking_id@g" "$deployment_working_file"
-    sed -i -e "s@<UpstreamProtocol>@$UPSTREAM_PROTOCOL@g" "$deployment_working_file"
-
-    sed -i -e "s@<TestResultCoordinator.VerificationDelay>@$VERIFICATION_DELAY@g" "$deployment_working_file"
-    sed -i -e "s@<TestResultCoordinator.OptimizeForPerformance>@$optimize_for_performance@g" "$deployment_working_file"
     sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACEID@g" "$deployment_working_file"
     sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHAREDKEY@g" "$deployment_working_file"
+    sed -i -e "s@<UpstreamProtocol>@$UPSTREAM_PROTOCOL@g" "$deployment_working_file"
+    
+    if [[ ! -z "$CUSTOM_EDGE_AGENT_IMAGE" ]]; then
+        sed -i -e "s@\"image\":.*azureiotedge-agent:.*\"@\"image\": \"$CUSTOM_EDGE_AGENT_IMAGE\"@g" "$deployment_working_file"
+    fi
+    
+    if [[ ! -z "$CUSTOM_EDGE_HUB_IMAGE" ]]; then
+        sed -i -e "s@\"image\":.*azureiotedge-hub:.*\"@\"image\": \"$CUSTOM_EDGE_HUB_IMAGE\"@g" "$deployment_working_file"
+    fi
+    
+    sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
+
+    sed -i -e "s@<EdgeHubRestartTest.RestartPeriod>@$RESTART_TEST_RESTART_PERIOD@g" "$deployment_working_file"
+    sed -i -e "s@<EdgeHubRestartTest.SdkOperationTimeout>@$RESTART_TEST_SDK_OPERATION_TIMEOUT@g" "$deployment_working_file"
+
+    sed -i -e "s@<TestResultCoordinator.ConsumerGroupId>@$EVENT_HUB_CONSUMER_GROUP_ID@g" "$deployment_working_file"
+    sed -i -e "s@<TestResultCoordinator.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
+    sed -i -e "s@<TestResultCoordinator.VerificationDelay>@$VERIFICATION_DELAY@g" "$deployment_working_file"
+    sed -i -e "s@<TestResultCoordinator.OptimizeForPerformance>@$optimize_for_performance@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.LogAnalyticsLogType>@$LOG_ANALYTICS_LOGTYPE@g" "$deployment_working_file"
+    sed -i -e "s@<TestResultCoordinator.StorageAccountConnectionString>@$STORAGE_ACCOUNT_CONNECTION_STRING@g" "$deployment_working_file"
 
     sed -i -e "s@<NetworkController.OfflineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[0]}@g" "$deployment_working_file"
     sed -i -e "s@<NetworkController.OnlineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[1]}@g" "$deployment_working_file"
     sed -i -e "s@<NetworkController.RunsCount0>@${NETWORK_CONTROLLER_FREQUENCIES[2]}@g" "$deployment_working_file"
-    sed -i -e "s@<NetworkController.Mode>@$NETWORK_CONTROLLER_MODE@g" "$deployment_working_file"
+    sed -i -e "s@<NetworkController.RunProfile>@$NETWORK_CONTROLLER_RUNPROFILE@g" "$deployment_working_file"
     
     sed -i -e "s@<DeploymentTester1.DeploymentUpdatePeriod>@$DEPLOYMENT_TEST_UPDATE_PERIOD@g" "$deployment_working_file"
 
     sed -i -e "s@<MetricsCollector.MetricsEndpointsCSV>@$METRICS_ENDPOINTS_CSV@g" "$deployment_working_file"
     sed -i -e "s@<MetricsCollector.ScrapeFrequencyInSecs>@$METRICS_SCRAPE_FREQUENCY_IN_SECS@g" "$deployment_working_file"
     sed -i -e "s@<MetricsCollector.UploadTarget>@$METRICS_UPLOAD_TARGET@g" "$deployment_working_file"
+    sed -i -e "s@<MetricsCollector.Images.BranchName>@$IMAGES_BRANCH_NAME@g" "$deployment_working_file"
+    sed -i -e "s@<MetricsCollector.Edgelet.BranchName>@$EDGELET_BRANCH_NAME@g" "$deployment_working_file"
+    sed -i -e "s@<MetricsCollector.HostPlatform>@$HOST_PLATFORM@g" "$deployment_working_file"
 }
 
 function print_deployment_logs() {
@@ -82,7 +98,7 @@ function print_deployment_logs() {
 function print_test_run_logs() {
     local ret=$1
 
-    print_highlighted_message 'test run exit code=$ret'
+    print_highlighted_message "test run exit code=$ret"
     print_highlighted_message 'Print logs'
     print_highlighted_message 'testResultCoordinator LOGS'
     docker logs testResultCoordinator || true
@@ -185,7 +201,7 @@ function process_args() {
             NETWORK_CONTROLLER_FREQUENCIES=($arg)
             saveNextArg=0
         elif [ $saveNextArg -eq 14 ]; then
-            NETWORK_CONTROLLER_MODE="$arg"
+            NETWORK_CONTROLLER_RUNPROFILE="$arg"
             saveNextArg=0    
         elif [ $saveNextArg -eq 15 ]; then
             LOG_ANALYTICS_WORKSPACEID="$arg"
@@ -217,6 +233,45 @@ function process_args() {
         elif [ $saveNextArg -eq 24 ]; then
             METRICS_UPLOAD_TARGET="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 25 ]; then
+            IMAGES_BRANCH_NAME="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 26 ]; then
+            EDGELET_BRANCH_NAME="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 27 ]; then
+            TEST_BUILD_NUMBER="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 28 ]; then
+            HOST_PLATFORM="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 29 ]; then
+            STORAGE_ACCOUNT_CONNECTION_STRING="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 30 ]; then
+            DEVOPS_ACCESS_TOKEN="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 31 ]; then
+            DEVOPS_BUILDID="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 32 ]; then
+            DEPLOYMENT_FILE_NAME="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 33 ]; then
+            RESTART_TEST_RESTART_PERIOD="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 34 ]; then
+            RESTART_TEST_SDK_OPERATION_TIMEOUT="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 35 ]; then
+            EDGE_RUNTIME_BUILD_NUMBER="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 36 ]; then
+            CUSTOM_EDGE_AGENT_IMAGE="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 37 ]; then
+            CUSTOM_EDGE_HUB_IMAGE="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -233,7 +288,7 @@ function process_args() {
                 '-testStartDelay' ) saveNextArg=11;;
                 '-loadGenMessageFrequency' ) saveNextArg=12;;
                 '-networkControllerFrequency' ) saveNextArg=13;;
-                '-networkControllerMode' ) saveNextArg=14;;
+                '-networkControllerRunProfile' ) saveNextArg=14;;
                 '-logAnalyticsWorkspaceId' ) saveNextArg=15;;
                 '-logAnalyticsSharedKey' ) saveNextArg=16;;
                 '-logAnalyticsLogType' ) saveNextArg=17;;
@@ -244,8 +299,20 @@ function process_args() {
                 '-metricsEndpointsCSV' ) saveNextArg=22;;
                 '-metricsScrapeFrequencyInSecs' ) saveNextArg=23;;
                 '-metricsUploadTarget' ) saveNextArg=24;;
+                '-imagesBranchName' ) saveNextArg=25;;
+                '-edgeletBranchName' ) saveNextArg=26;;
+                '-testBuildNumber' ) saveNextArg=27;;
+                '-hostPlatform' ) saveNextArg=28;;
+                '-storageAccountConnectionString' ) saveNextArg=29;;
+                '-devOpsAccessToken' ) saveNextArg=30;;
+                '-devOpsBuildId' ) saveNextArg=31;;
+                '-deploymentFileName' ) saveNextArg=32;;
+                '-EdgeHubRestartTestRestartPeriod' ) saveNextArg=33;;
+                '-EdgeHubRestartTestSdkOperationTimeout' ) saveNextArg=34;;
+                '-edgeRuntimeBuildNumber' ) saveNextArg=35;;
+                '-customEdgeAgentImage' ) saveNextArg=36;;
+                '-customEdgeHubImage' ) saveNextArg=37;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
-
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -257,10 +324,19 @@ function process_args() {
     [[ -z "$ARTIFACT_IMAGE_BUILD_NUMBER" ]] && { print_error 'Artifact image build number is required'; exit 1; }
     [[ -z "$CONTAINER_REGISTRY_USERNAME" ]] && { print_error 'Container registry username is required'; exit 1; }
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
+    [[ -z "$DEPLOYMENT_FILE_NAME" ]] && { print_error 'Deployment file name is required'; exit 1; }
+    [[ -z "$EDGELET_BRANCH_NAME" ]] && { print_error 'Edgelet branch name is required'; exit 1; }
     [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
+    [[ -z "$HOST_PLATFORM" ]] && { print_error 'Host platform is required'; exit 1; }
     [[ -z "$IOT_HUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
-    [[ -z "$LOG_ANALYTICS_WORKSPACEID" ]] && { print_error 'Log analytics workspace id is required'; exit 1; }
+    [[ -z "$IMAGES_BRANCH_NAME" ]] && { print_error 'Images branch name is required'; exit 1; }
     [[ -z "$LOG_ANALYTICS_SHAREDKEY" ]] && { print_error 'Log analytics shared key is required'; exit 1; }
+    [[ -z "$LOG_ANALYTICS_WORKSPACEID" ]] && { print_error 'Log analytics workspace id is required'; exit 1; }
+    [[ -z "$METRICS_ENDPOINTS_CSV" ]] && { print_error 'Metrics endpoints csv is required'; exit 1; }
+    [[ -z "$METRICS_SCRAPE_FREQUENCY_IN_SECS" ]] && { print_error 'Metrics scrape frequency is required'; exit 1; }
+    [[ -z "$METRICS_UPLOAD_TARGET" ]] && { print_error 'Metrics upload target is required'; exit 1; }
+    [[ -z "$STORAGE_ACCOUNT_CONNECTION_STRING" ]] && { print_error 'Storage account connection string is required'; exit 1; }
+    [[ -z "$TEST_BUILD_NUMBER" ]] && { print_error 'Test build number is required'; exit 1; }
 
     echo 'Required parameters are provided'
 }
@@ -311,13 +387,26 @@ function run_connectivity_test() {
                                     $(echo $TEST_DURATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
                                     $(echo $VERIFICATION_DELAY | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
                                     $(echo $TIME_FOR_REPORT_GENERATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }')))
+    echo "test start delay=$TEST_START_DELAY"
+    echo "test duration=$TEST_DURATION"
+    echo "verificaiton delay=$VERIFICATION_DELAY"
+    echo "time for report generation=$TIME_FOR_REPORT_GENERATION"
+    echo "time for test to complete in seconds=$time_for_test_to_complete"
 
     if [ $WAIT_FOR_TEST_COMPLETE -eq 1 ]; then
-        local sleep_frequency_secs=300
+        local sleep_frequency_secs=60
         local total_wait=0
 
         while [ $total_wait -lt $time_for_test_to_complete ]
         do
+            local is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)
+            
+            if [ $is_build_canceled -eq 1 ]; then
+                print_highlighted_message "build is canceled."
+                stop_iotedge_service || true
+                return 3
+            fi
+        
             sleep "$sleep_frequency_secs"s
             total_wait=$((total_wait+sleep_frequency_secs))
             echo "total wait time=$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$total_wait")"
@@ -325,14 +414,20 @@ function run_connectivity_test() {
 
         test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"
         print_highlighted_message "Connectivity test should be completed at $test_end_time."
-        testResult=$(examine_test_result)
-        print_test_run_logs $testResult
+        testExitCode=$(examine_test_result)
+        if [[ "$(examine_test_result)" -eq '0' ]]; then
+            testExitCode=1
+        else
+            testExitCode=0
+        fi
+
+        print_test_run_logs $testExitCode
 
         # stop IoT Edge service after test complete to prevent sending metrics
         sudo systemctl stop iotedge
     fi
 
-    return $testResult
+    return $testExitCode
 }
 
 function test_setup() {
@@ -401,7 +496,7 @@ function usage() {
     echo ' -testStartDelay                 Connectivity test start after delay'
     echo ' -loadGenMessageFrequency        Message frequency sent by load gen' 
     echo ' -networkControllerFrequency     Frequency for controlling the network with offlineFrequence, onlineFrequence, runsCount. Example "00:05:00 00:05:00 6"' 
-    echo ' -networkControllerMode          OfflineNetworkInterface, OfflineTrafficController or SatelliteTrafficController' 
+    echo ' -networkControllerRunProfile    Online, Offline, SatelliteGood or Cellular3G'
     echo ' -logAnalyticsWorkspaceId        Log Analytics Workspace Id'
     echo ' -logAnalyticsSharedKey          Log Analytics shared key'
     echo ' -logAnalyticsLogType            Log Analytics log type'
@@ -410,13 +505,28 @@ function usage() {
     echo ' -deploymentTestUpdatePeriod     duration of updating deployment of target module in deployment test'
     echo ' -timeForReportingGeneration     Time reserved for report generation'
     echo ' -waitForTestComplete            Wait for test to complete if this parameter is provided.  Otherwise it will finish once deployment is done.'
-    echo ' -metricsEndpointsCSV            Optional csv of exposed endpoints for which to scrape metrics.'
-    echo ' -metricsScrapeFrequencyInSecs   Optional frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
-    echo ' -metricsUploadTarget            Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
+    echo ' -metricsEndpointsCSV            Csv of exposed endpoints for which to scrape metrics.'
+    echo ' -metricsScrapeFrequencyInSecs   Frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
+    echo ' -metricsUploadTarget            Upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
+    echo ' -imagesBranchName               Branch name that built the image artifacts'
+    echo ' -edgeletBranchName              Branch name that built the edgelet artifacts'
+    echo ' -testBuildNumber                Unique identifier for the main connectivity test run'
+    echo ' -hostPlatform                   Describes the host OS and cpu architecture.'
+    echo ' -deploymentFileName             Deployment file name'
+    echo ' -EdgeHubRestartTestRestartPeriod        EdgeHub restart period (must be greater than 1 minutes)'
+    echo ' -EdgeHubRestartTestSdkOperationTimeout  SDK retry timeout'
+    echo ' -storageAccountConnectionString Azure storage account connection string with privilege to create blob container.'
+    echo ' -edgeRuntimeBuildNumber         Build number for specifying edge runtime (edgeHub and edgeAgent)'
 
     echo ' -cleanAll                       Do docker prune for containers, logs and volumes.'
     exit 1;
 }
+
+is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)         
+if [ $is_build_canceled -eq 1 ]; then
+    print_highlighted_message "build is canceled."
+    exit 3
+fi
 
 process_args "$@"
 
@@ -425,9 +535,10 @@ E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
 TEST_DURATION="${TEST_DURATION:-01:00:00}"
 DEPLOYMENT_TEST_UPDATE_PERIOD="${DEPLOYMENT_TEST_UPDATE_PERIOD:-00:03:00}"
 EVENT_HUB_CONSUMER_GROUP_ID=${EVENT_HUB_CONSUMER_GROUP_ID:-\$Default}
+EDGE_RUNTIME_BUILD_NUMBER=${EDGE_RUNTIME_BUILD_NUMBER:-$ARTIFACT_IMAGE_BUILD_NUMBER}
 LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:01}"
 NETWORK_CONTROLLER_FREQUENCIES=${NETWORK_CONTROLLER_FREQUENCIES:(null)}
-NETWORK_CONTROLLER_MODE=${NETWORK_CONTROLLER_MODE:-OfflineTrafficController}
+NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Offline}
 TEST_START_DELAY="${TEST_START_DELAY:-00:02:00}"
 LOG_ANALYTICS_LOGTYPE="${LOG_ANALYTICS_LOGTYPE:-connectivity}"
 VERIFICATION_DELAY="${VERIFICATION_DELAY:-00:15:00}"
@@ -445,7 +556,7 @@ fi
 
 iotedged_artifact_folder="$(get_iotedged_artifact_folder $E2E_TEST_DIR)"
 iotedge_quickstart_artifact_file="$(get_iotedge_quickstart_artifact_file $E2E_TEST_DIR)"
-connectivity_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/connectivity_deployment.template.json"
+connectivity_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/$DEPLOYMENT_FILE_NAME"
 deployment_working_file="$working_folder/deployment.json"
 
 testRet=0

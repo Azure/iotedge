@@ -9,9 +9,11 @@ namespace Modules.Test.TestResultCoordinator.Reports
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
 
+    [Unit]
     public class DeploymentTestReportGeneratorTest
     {
         public static IEnumerable<object[]> GetCreateReportData =>
