@@ -17,8 +17,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             IDictionary<string, EmptyStruct> exposedPorts,
             HostConfig hostConfig,
             string image,
-            IDictionary<string, string> labels)
-            : this(env?.ToList(), exposedPorts, hostConfig, image, labels, null, null, null, null)
+            IDictionary<string, string> labels,
+            IEnumerable<string> cmd,
+            IEnumerable<string> entrypoint,
+            string workingDir)
+            : this(env?.ToList(), exposedPorts, hostConfig, image, labels, cmd?.ToList(), entrypoint?.ToList(), workingDir, null, null, null, null)
         {
         }
 
@@ -29,6 +32,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             HostConfig hostConfig,
             string image,
             IDictionary<string, string> labels,
+            IReadOnlyList<string> cmd,
+            IReadOnlyList<string> entrypoint,
+            string workingDir,
             IDictionary<string, string> nodeSelector,
             V1ResourceRequirements resources,
             IReadOnlyList<KubernetesModuleVolumeSpec> volumes,
@@ -39,6 +45,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.HostConfig = Option.Maybe(hostConfig);
             this.Image = Option.Maybe(image);
             this.Labels = Option.Maybe(labels);
+            this.Cmd = Option.Maybe(cmd);
+            this.Entrypoint = Option.Maybe(entrypoint);
+            this.WorkingDir = Option.Maybe(workingDir);
             this.NodeSelector = Option.Maybe(nodeSelector);
             this.Resources = Option.Maybe(resources);
             this.Volumes = Option.Maybe(volumes);
@@ -51,11 +60,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             HostConfig hostConfig = null,
             string image = null,
             IDictionary<string, string> labels = null,
+            IReadOnlyList<string> cmd = null,
+            IReadOnlyList<string> entrypoint = null,
+            string workingDir = null,
             IDictionary<string, string> nodeSelector = null,
             V1ResourceRequirements resources = null,
             IReadOnlyList<KubernetesModuleVolumeSpec> volumes = null,
             V1PodSecurityContext securityContext = null)
-            => new CreatePodParameters(env, exposedPorts, hostConfig, image, labels, nodeSelector, resources, volumes, securityContext);
+            => new CreatePodParameters(env, exposedPorts, hostConfig, image, labels, cmd, entrypoint, workingDir, nodeSelector, resources, volumes, securityContext);
 
         [JsonProperty("env", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [JsonConverter(typeof(OptionConverter<IReadOnlyList<string>>))]
@@ -92,5 +104,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         [JsonProperty("securityContext", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [JsonConverter(typeof(OptionConverter<V1PodSecurityContext>))]
         public Option<V1PodSecurityContext> SecurityContext { get; set; }
+
+        [JsonProperty("cmd", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonConverter(typeof(OptionConverter<IReadOnlyList<string>>))]
+        public Option<IReadOnlyList<string>> Cmd { get; }
+
+        [JsonProperty("entrypoint", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonConverter(typeof(OptionConverter<IReadOnlyList<string>>))]
+        public Option<IReadOnlyList<string>> Entrypoint { get; }
+
+        [JsonProperty("workingDir", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonConverter(typeof(OptionConverter<string>))]
+        public Option<string> WorkingDir { get; }
     }
 }
