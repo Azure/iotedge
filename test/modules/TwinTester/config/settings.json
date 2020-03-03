@@ -8,6 +8,5 @@
     "serviceClientConnectionString": "",
     "StoragePath": "",
     "StorageOptimizeForPerformance": true,
-    "TwinTestMode": "TwinAllOperations",
-    "TestStartDelay":  "00:02:00"
+    "TwinTestMode": "TwinAllOperations"
 }

@@ -180,7 +180,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                 VolumeMounts = volumeMounts,
                 SecurityContext = securityContext.OrDefault(),
                 Ports = exposedPorts.OrDefault(),
-                Resources = module.Config.CreateOptions.Resources.OrDefault()
+                Resources = module.Config.CreateOptions.Resources.OrDefault(),
+                Command = module.Config.CreateOptions.Entrypoint.Map(list => list.ToList()).OrDefault(),
+                Args = module.Config.CreateOptions.Cmd.Map(list => list.ToList()).OrDefault(),
+                WorkingDir = module.Config.CreateOptions.WorkingDir.OrDefault(),
             };
 
             return (container, volumes);
