@@ -176,28 +176,31 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 .Where(t => t is JValue)
                 .Select(t => (JValue)t);
 
+            int pathLengthRef = reference.rootPath == string.Empty ? 0 : reference.rootPath.Length + 1;
+            int pathLengthCmp = comparand.rootPath == string.Empty ? 0 : comparand.rootPath.Length + 1;
+
             Serilog.Log.Information($"\nREFERENCE PATHS:");
             foreach (var p in descendantsRef)
             {
-                Serilog.Log.Information(p.Path.Substring(reference.rootPath.Length));
+                Serilog.Log.Information(p.Path.Substring(pathLengthRef));
             }
 
             Serilog.Log.Information($"\nCOMPARAND PATHS:");
             foreach (var p in descendantsCmp)
             {
-                Serilog.Log.Information(p.Path.Substring(comparand.rootPath.Length));
+                Serilog.Log.Information(p.Path.Substring(pathLengthCmp));
             }
 
             var joined = descendantsRef.Join(
                 descendantsCmp,
-                v => v.Path.Substring(reference.rootPath.Length),
-                v => v.Path.Substring(comparand.rootPath.Length),
+                v => v.Path.Substring(pathLengthRef),
+                v => v.Path.Substring(pathLengthCmp),
                 (v1, v2) => (v1, v2));
 
             // collect the paths of the subset of leaf elements whose values match
             var result = joined
                 .Where(values => values.Item1.Equals(values.Item2))
-                .Select(values => values.Item2.Path.Substring(reference.rootPath.Length));
+                .Select(values => values.Item2.Path.Substring(pathLengthRef));
 
             // comparand equals reference if subset has the same paths as reference
             return result.All(path => descendantsRef.Select(d => d.Path).Contains(path));
