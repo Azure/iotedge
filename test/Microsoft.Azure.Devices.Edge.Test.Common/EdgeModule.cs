@@ -159,48 +159,42 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             (object obj, string rootPath) reference,
             (object obj, string rootPath) comparand)
         {
-            // get all json values under root path
-            var descendantsRef = JObject
-                .FromObject(reference.obj)
-                .SelectToken(reference.rootPath)
-                .Cast<JContainer>()
-                .DescendantsAndSelf()
-                .OfType<JValue>();
-            var descendantsCmp = (JContainer)JObject
-                .FromObject(comparand.obj)
-                .SelectToken(comparand.rootPath)
-                .Cast<JContainer>()
-                .DescendantsAndSelf()
-                .OfType<JValue>();
+            Dictionary<string, JValue> ProcessJson(object obj, string rootPath)
+            {
+                // return all json values under root path, with their relative
+                // paths as keys
+                int length = rootPath.Length + (rootPath == string.Empty ? 0 : 1);
+                return JObject
+                    .FromObject(obj)
+                    .SelectToken(rootPath)
+                    .Cast<JContainer>()
+                    .DescendantsAndSelf()
+                    .OfType<JValue>()
+                    .ToDictionary(v => v.Path.Substring(length));
+            }
 
-            int pathLengthRef =
-                reference.rootPath.Length + (reference.rootPath == string.Empty ? 0 : 1);
-            int pathLengthCmp =
-                comparand.rootPath.Length + (comparand.rootPath == string.Empty ? 0 : 1);
+            var descendantsRef = ProcessJson(reference.obj, reference.rootPath);
+            var descendantsCmp = ProcessJson(comparand.obj, comparand.rootPath);
 
-            // do an inner join on the leaf elements
-            var joined = descendantsRef.Join(
-                descendantsCmp,
-                v => v.Path.Substring(pathLengthRef),
-                v => v.Path.Substring(pathLengthCmp),
-                (v1, v2) => (v1, v2));
+            // comparand equals reference if, for each json value in reference:
+            // - comparand has a json value with the same path
+            // - the json values match
+            bool match = descendantsRef.All(kvp => descendantsCmp.ContainsKey(kvp.Key) &&
+                kvp.Value.Equals(descendantsCmp[kvp.Key]));
 
-            // collect the paths of the subset of leaf elements whose values match
-            var matches = joined
-                .Where(values => values.Item1.Equals(values.Item2))
-                .Select(values => values.Item1.Path.Substring(pathLengthRef));
+            if (!match)
+            {
+                var missing = descendantsRef
+                    .Where(kvp =>
+                        !descendantsCmp.ContainsKey(kvp.Key) ||
+                        !kvp.Value.Equals(descendantsCmp[kvp.Key]))
+                    .Select(kvp => kvp.Key);
+                Log.Verbose(
+                    "Expected configuration values missing in agent twin:\n{MissingValues}",
+                    string.Join("\n  ", missing));
+            }
 
-            // comparand equals reference if subset has the same paths as reference
-            Log.Verbose("Checking for expected configuration values in agent twin:");
-            return descendantsRef
-                .Select(d => d.Path.Substring(pathLengthRef))
-                .All(
-                    path =>
-                    {
-                        bool found = matches.Contains(path);
-                        Log.Verbose("'{ValuePath}' found in twin? {Found}", path, found);
-                        return found;
-                    });
+            return match;
         }
     }
 }
