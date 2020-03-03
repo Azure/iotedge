@@ -197,22 +197,22 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 v => v.Path.Substring(pathLengthCmp),
                 (v1, v2) => (v1, v2));
 
-            Serilog.Log.Information($"\nJOIN:");
-            foreach (var j in joined)
-            {
-                Serilog.Log.Information(j.v1.Path.Substring(pathLengthRef));
-            }
+            // Serilog.Log.Information($"\nJOIN:");
+            // foreach (var j in joined)
+            // {
+            //     Serilog.Log.Information(j.v1.Path.Substring(pathLengthRef));
+            // }
 
             // collect the paths of the subset of leaf elements whose values match
             var result = joined
                 .Where(values => values.Item1.Equals(values.Item2))
                 .Select(values => values.Item1.Path.Substring(pathLengthRef));
 
-            Serilog.Log.Information($"\nEQUALS:");
-            foreach (var p in result)
-            {
-                Serilog.Log.Information(p);
-            }
+            // Serilog.Log.Information($"\nEQUALS:");
+            // foreach (var p in result)
+            // {
+            //     Serilog.Log.Information(p);
+            // }
 
             Serilog.Log.Information($"\nSAME:");
             foreach (var p in result)
