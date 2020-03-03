@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "mqtt3",
-    "mqtt3-fuzz",
     "mqtt-broker",
     "mqttd",
 ]
