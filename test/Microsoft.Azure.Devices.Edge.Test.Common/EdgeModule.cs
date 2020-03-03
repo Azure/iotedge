@@ -163,8 +163,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 .FromObject(comparand.obj)
                 .SelectToken(comparand.rootPath);
 
-            Serilog.Log.Information($"\nREFERENCE:\n{rootRef.ToString()}");
-            Serilog.Log.Information($"\nCOMPARAND:\n{rootCmp.ToString()}");
+            // Serilog.Log.Information($"\nREFERENCE:\n{rootRef.ToString()}");
+            // Serilog.Log.Information($"\nCOMPARAND:\n{rootCmp.ToString()}");
 
             // do an inner join on the leaf elements
             var descendantsRef = rootRef
@@ -179,17 +179,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             int pathLengthRef = reference.rootPath == string.Empty ? 0 : reference.rootPath.Length + 1;
             int pathLengthCmp = comparand.rootPath == string.Empty ? 0 : comparand.rootPath.Length + 1;
 
-            Serilog.Log.Information($"\nREFERENCE PATHS:");
-            foreach (var p in descendantsRef)
-            {
-                Serilog.Log.Information(p.Path.Substring(pathLengthRef));
-            }
+            // Serilog.Log.Information($"\nREFERENCE PATHS:");
+            // foreach (var p in descendantsRef)
+            // {
+            //     Serilog.Log.Information(p.Path.Substring(pathLengthRef));
+            // }
 
-            Serilog.Log.Information($"\nCOMPARAND PATHS:");
-            foreach (var p in descendantsCmp)
-            {
-                Serilog.Log.Information(p.Path.Substring(pathLengthCmp));
-            }
+            // Serilog.Log.Information($"\nCOMPARAND PATHS:");
+            // foreach (var p in descendantsCmp)
+            // {
+            //     Serilog.Log.Information(p.Path.Substring(pathLengthCmp));
+            // }
 
             var joined = descendantsRef.Join(
                 descendantsCmp,
@@ -197,10 +197,28 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 v => v.Path.Substring(pathLengthCmp),
                 (v1, v2) => (v1, v2));
 
+            Serilog.Log.Information($"\nJOIN:");
+            foreach (var j in joined)
+            {
+                Serilog.Log.Information(j.v1.Path.Substring(pathLengthRef));
+            }
+
             // collect the paths of the subset of leaf elements whose values match
             var result = joined
                 .Where(values => values.Item1.Equals(values.Item2))
                 .Select(values => values.Item2.Path.Substring(pathLengthRef));
+
+            Serilog.Log.Information($"\nEQUALS:");
+            foreach (var p in result)
+            {
+                Serilog.Log.Information(p);
+            }
+
+            Serilog.Log.Information($"\nSAME:");
+            foreach (var p in result)
+            {
+                Serilog.Log.Information($"[{p}] IN REF? {descendantsRef.Select(d => d.Path).Contains(p)}");
+            }
 
             // comparand equals reference if subset has the same paths as reference
             return result.All(path => descendantsRef.Select(d => d.Path).Contains(path));
