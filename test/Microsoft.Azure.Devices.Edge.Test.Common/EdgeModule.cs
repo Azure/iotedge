@@ -133,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public Task WaitForReportedPropertyUpdatesAsync(object expected, CancellationToken token)
         {
             return Profiler.Run(
-                () => WaitForReportedPropertyUpdatesInternalAsync(expected, token),
+                () => this.WaitForReportedPropertyUpdatesInternalAsync(expected, token),
                 "Received expected twin updates for module '{Module}'",
                 this.Id);
         }

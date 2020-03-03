@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public Task WaitForReportedConfigurationAsync(object expected, CancellationToken token)
         {
             return Profiler.Run(
-                () =>  this.WaitForReportedPropertyUpdatesInternalAsync(expected, token),
+                () => this.WaitForReportedPropertyUpdatesInternalAsync(expected, token),
                 "Edge Agent confirmed deployment");
         }
     }
