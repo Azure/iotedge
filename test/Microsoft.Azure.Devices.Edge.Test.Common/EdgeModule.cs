@@ -186,6 +186,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 .Where(values => values.Item1.Equals(values.Item2))
                 .Select(values => values.Item2.Path.Substring(reference.rootPath.Length));
 
+            Serilog.Log.Information($"\nJOIN:");
+            foreach (var r in result)
+            {
+                Serilog.Log.Information(r);
+            }
+
             // comparand equals reference if subset has the same paths as reference
             return result.All(path => descendantsRef.Select(d => d.Path).Contains(path));
         }
