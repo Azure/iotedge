@@ -61,25 +61,31 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 .FromObject(edgeAgent.DesiredProperties)
                 .Value<JObject>("properties.desired");
 
-            var expected = new
+            var reported = new Dictionary<string, object>
             {
-                properties = new
-                {
-                    reported = new Dictionary<string, object>
-                    {
-                        ["systemModules"] = desired
+                ["systemModules"] = desired
                             .Value<JObject>("systemModules")
                             .Children<JProperty>()
                             .ToDictionary(
                                 p => p.Name,
-                                p => CreateExpectedModuleConfig((JObject)p.Value)),
-                        ["modules"] = desired
-                            .Value<JObject>("modules")
-                            .Children<JProperty>()
-                            .ToDictionary(
-                                p => p.Name,
                                 p => CreateExpectedModuleConfig((JObject)p.Value))
-                    }
+            };
+
+            if (desired.ContainsKey("modules"))
+            {
+                reported["modules"] = desired
+                    .Value<JObject>("modules")
+                    .Children<JProperty>()
+                    .ToDictionary(
+                        p => p.Name,
+                        p => CreateExpectedModuleConfig((JObject)p.Value));
+            }
+
+            var expected = new
+            {
+                properties = new
+                {
+                    reported = reported
                 }
             };
 
