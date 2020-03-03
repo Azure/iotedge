@@ -291,17 +291,11 @@
               "ConsumerGroupId": {
                 "value": "<Analyzer.ConsumerGroupId>"
               }, 
-              "LogAnalyticsEnabled": {
-                "value": "<Analyzer.LogAnalyticsEnabled>"
-              },
               "LogAnalyticsWorkspaceId": {
                 "value": "<LogAnalyticsWorkspaceId>"
               },
               "LogAnalyticsSharedKey": {
                 "value": "<LogAnalyticsSharedKey>"
-              },
-              "LogAnalyticsLogType": {
-                "value": "<Analyzer.LogAnalyticsLogType>"
               },
               "Logging:LogLevel:Microsoft": {
                 "value": "Error"
