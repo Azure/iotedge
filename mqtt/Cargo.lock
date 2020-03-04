@@ -488,6 +488,7 @@ dependencies = [
  "async-trait",
  "atty",
  "bincode",
+ "chrono",
  "failure",
  "flate2",
  "futures-util",

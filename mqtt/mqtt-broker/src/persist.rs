@@ -1,4 +1,8 @@
 use std::fs::{self, OpenOptions};
+#[cfg(unix)]
+use std::os::unix::fs::symlink;
+#[cfg(windows)]
+use std::os::windows::fs::symlink_file;
 use std::path::PathBuf;
 
 use async_trait::async_trait;
@@ -11,6 +15,8 @@ use tracing::debug;
 use crate::error::{Error, ErrorKind};
 use crate::BrokerState;
 
+/// sets the number of past states to save - 2 means we save the current and the pervious
+const STATE_COUNT: usize = 2;
 static STATE_DEFAULT_STEM: &str = "state";
 static STATE_EXTENSION: &str = "dat";
 
@@ -75,7 +81,13 @@ impl Persist for FilePersistor {
     async fn store(&mut self, state: BrokerState) -> Result<(), Self::Error> {
         let dir = self.dir.clone();
         tokio::task::spawn_blocking(move || {
-            let path = dir.join(format!("{}.{}", STATE_DEFAULT_STEM, STATE_EXTENSION));
+            let default_path = dir.join(format!("{}.{}", STATE_DEFAULT_STEM, STATE_EXTENSION));
+            let path = dir.join(format!(
+                "{}.{}.{}",
+                STATE_DEFAULT_STEM,
+                chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3f%z"),
+                STATE_EXTENSION
+            ));
             debug!("opening {} for writing state...", path.display());
             let file = OpenOptions::new()
                 .create(true)
@@ -83,10 +95,60 @@ impl Persist for FilePersistor {
                 .open(&path)
                 .context(ErrorKind::General)?;
             debug!("{} opened.", path.display());
+
+            debug!("persisting state to {}...", path.display());
             let encoder = GzEncoder::new(file, Compression::default());
-            if let Err(e) = bincode::serialize_into(encoder, &state).context(ErrorKind::General) {
-                fs::remove_file(path).context(ErrorKind::General)?;
-                return Err(e.into());
+            match bincode::serialize_into(encoder, &state).context(ErrorKind::General) {
+                Ok(_) => {
+                    debug!("state persisted to {}.", path.display());
+
+                    // Swap the symlink
+                    //   - remove the old link if exists
+                    //   - link the new file
+                    if default_path.exists() {
+                        fs::remove_file(&default_path).context(ErrorKind::General)?;
+                    }
+
+                    debug!("linking {} to {}", default_path.display(), path.display());
+
+                    #[cfg(unix)]
+                    symlink(&path, &default_path).context(ErrorKind::General)?;
+
+                    #[cfg(windows)]
+                    symlink_file(&path, &default_path).context(ErrorKind::General)?;
+
+                    // Prune old states
+                    let mut entries = fs::read_dir(&dir)
+                        .context(ErrorKind::General)?
+                        .filter_map(|maybe_entry| maybe_entry.ok())
+                        .filter(|entry| {
+                            entry.file_type().ok().map(|e| e.is_file()).unwrap_or(false)
+                        })
+                        .filter(|entry| {
+                            entry
+                                .file_name()
+                                .to_string_lossy()
+                                .starts_with(STATE_DEFAULT_STEM)
+                        })
+                        .collect::<Vec<fs::DirEntry>>();
+
+                    entries.sort_unstable_by(|a, b| {
+                        b.file_name().partial_cmp(&a.file_name()).unwrap()
+                    });
+
+                    for entry in entries.iter().skip(STATE_COUNT) {
+                        debug!(
+                            "pruning old state file {}...",
+                            entry.file_name().to_string_lossy()
+                        );
+                        fs::remove_file(entry.file_name()).context(ErrorKind::General)?;
+                        debug!("{} pruned.", entry.file_name().to_string_lossy());
+                    }
+                }
+                Err(e) => {
+                    fs::remove_file(path).context(ErrorKind::General)?;
+                    return Err(e.into());
+                }
             }
             Ok(())
         })

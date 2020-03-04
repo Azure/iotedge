@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 async-trait = "0.1"
 bincode = "1.2"
+chrono = "0.4"
 failure = "0.1"
 flate2 = "1.0"
 futures-util = { version = "0.3", features = ["sink"] }
