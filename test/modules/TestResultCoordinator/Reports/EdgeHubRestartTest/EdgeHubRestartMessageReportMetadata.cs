@@ -11,10 +11,12 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
     {
         public EdgeHubRestartMessageReportMetadata(
             string senderSource,
-            string receiverSource)
+            string receiverSource,
+            string testDescription)
         {
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
             this.ReceiverSource = Preconditions.CheckNonWhiteSpace(receiverSource, nameof(receiverSource));
+            this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
         }
 
         public string SenderSource { get; }
@@ -26,5 +28,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         public TestReportType TestReportType => TestReportType.EdgeHubRestartMessageReport;
 
         public TestOperationResultType TestOperationResultType => TestOperationResultType.EdgeHubRestartMessage;
+
+        public string TestDescription { get; }
     }
 }

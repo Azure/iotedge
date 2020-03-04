@@ -9,12 +9,15 @@ namespace TestResultCoordinator.Reports.DirectMethod
 
     class DirectMethodReportMetadata : ITestReportMetadata
     {
-        public DirectMethodReportMetadata(string senderSource, TimeSpan tolerancePeriod, string receiverSource = "")
+        public DirectMethodReportMetadata(string testDescription, string senderSource, TimeSpan tolerancePeriod, string receiverSource = "")
         {
+            this.TestDescription = testDescription;
             this.SenderSource = senderSource;
             this.TolerancePeriod = tolerancePeriod;
             this.ReceiverSource = string.IsNullOrEmpty(receiverSource) ? Option.None<string>() : Option.Some(receiverSource);
         }
+
+        public string TestDescription { get; }
 
         public TimeSpan TolerancePeriod { get; }
 

@@ -10,5 +10,7 @@ namespace TestResultCoordinator.Reports
         TestReportType TestReportType { get; }
 
         TestOperationResultType TestOperationResultType { get; }
+
+        string TestDescription { get; }
     }
 }

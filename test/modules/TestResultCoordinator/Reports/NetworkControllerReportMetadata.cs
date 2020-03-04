@@ -6,12 +6,15 @@ namespace TestResultCoordinator.Reports
 
     class NetworkControllerReportMetadata : ITestReportMetadata
     {
-        public NetworkControllerReportMetadata(string source)
+        public NetworkControllerReportMetadata(string source, string testDescription)
         {
             this.Source = Preconditions.CheckNonWhiteSpace(source, nameof(source));
+            this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
         }
 
         public string Source { get; }
+
+        public string TestDescription { get; }
 
         public TestReportType TestReportType => TestReportType.NetworkControllerReport;
 
@@ -21,7 +24,7 @@ namespace TestResultCoordinator.Reports
 
         public override string ToString()
         {
-            return $"Source: {this.Source}, TestOperationResultType: {this.TestOperationResultType.ToString()}, ReportType: {this.TestReportType.ToString()}";
+            return $"Source: {this.Source}, TestOperationResultType: {this.TestOperationResultType.ToString()}, TestDescription: {this.TestDescription}, ReportType: {this.TestReportType.ToString()}";
         }
     }
 }

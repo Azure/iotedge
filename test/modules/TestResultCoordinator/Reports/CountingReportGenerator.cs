@@ -20,6 +20,7 @@ namespace TestResultCoordinator.Reports
         readonly string trackingId;
 
         internal CountingReportGenerator(
+            string testDescription,
             string trackingId,
             string expectedSource,
             ITestResultCollection<TestOperationResult> expectedTestResults,
@@ -46,6 +47,8 @@ namespace TestResultCoordinator.Reports
         internal ITestResultCollection<TestOperationResult> ExpectedTestResults { get; }
 
         internal string ResultType { get; }
+
+        internal string TestDescription { get; }
 
         internal ITestResultComparer<TestOperationResult> TestResultComparer { get; }
 
@@ -123,6 +126,7 @@ namespace TestResultCoordinator.Reports
             }
 
             return new CountingReport(
+                this.TestDescription,
                 this.trackingId,
                 this.ExpectedSource,
                 this.ActualSource,
