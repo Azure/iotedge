@@ -2216,12 +2216,12 @@ function Import-IntermediateCertChain([string] $DeviceIdentityCertPath){
     $certificateStore = New-Object System.Security.Cryptography.X509Certificates.X509Store ("CA", "LocalMachine")
     $certificateStore.Open("ReadWrite");
 
-    $certEnd = "-----END CERTIFICATE-----"
+    $certEnd = "END CERTIFICATE"
     
     $certs = New-Object System.Collections.ArrayList
     $currentCert = [System.Text.StringBuilder]::new()
     foreach($line in [System.IO.File]::ReadLines($DeviceIdentityCertPath)) {
-        if ($line -match $certEnd){
+        if ($line -Match $certEnd){
             [void]$currentCert.AppendLine($line)
             [void]$certs.Add($currentCert.ToString())
             [void]$currentCert.Clear()
