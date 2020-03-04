@@ -10,17 +10,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
 
     public class KubernetesPvcMapper : IKubernetesPvcMapper
     {
-        readonly Option<string> persistentVolumeName;
+        readonly bool useMountSourceForVolumeName;
         readonly Option<string> storageClassName;
         readonly uint persistentVolumeClaimSizeMb;
 
         public KubernetesPvcMapper(
-            string persistentVolumeName,
+            bool useMountSourceForVolumeName,
             string storageClassName,
             uint persistentVolumeClaimSizeMb)
         {
-            this.persistentVolumeName = Option.Maybe(persistentVolumeName)
-                .Filter(p => !string.IsNullOrWhiteSpace(p));
+            this.useMountSourceForVolumeName = useMountSourceForVolumeName;
             this.storageClassName = Option.Maybe(storageClassName);
             this.persistentVolumeClaimSizeMb = persistentVolumeClaimSizeMb;
         }
@@ -38,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
                 return false;
             }
 
-            return this.storageClassName.HasValue || this.persistentVolumeName.HasValue;
+            return this.storageClassName.HasValue;
         }
 
         V1PersistentVolumeClaim ExtractPvc(KubernetesModule module, Mount mount, IDictionary<string, string> labels)
@@ -58,11 +57,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
                     Requests = new Dictionary<string, ResourceQuantity>() { { "storage", new ResourceQuantity($"{this.persistentVolumeClaimSizeMb}Mi") } }
                 },
             };
-            if (this.persistentVolumeName.HasValue)
+            if (this.useMountSourceForVolumeName)
             {
-                string pvName = this.persistentVolumeName.OrDefault();
-                pvcName = KubeUtils.SanitizeK8sValue(pvName);
-                persistentVolumeClaimSpec.VolumeName = pvcName;
+                persistentVolumeClaimSpec.VolumeName = volumeName;
             }
 
             if (this.storageClassName.HasValue)
