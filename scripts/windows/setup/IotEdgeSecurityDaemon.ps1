@@ -2216,7 +2216,6 @@ function Import-IntermediateCertChain([string] $DeviceIdentityCertPath){
     $certificateStore = New-Object System.Security.Cryptography.X509Certificates.X509Store ("CA", "LocalMachine")
     $certificateStore.Open("ReadWrite");
 
-    $certIndex = 0
     $certEnd = "-----END CERTIFICATE-----"
     
     $certs = New-Object System.Collections.ArrayList
