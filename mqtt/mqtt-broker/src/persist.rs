@@ -1,10 +1,10 @@
-use std::fmt;
 use std::fs::{self, OpenOptions};
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
 #[cfg(windows)]
 use std::os::windows::fs::symlink_file;
 use std::path::PathBuf;
+use std::{cmp, fmt};
 
 use async_trait::async_trait;
 use failure::ResultExt;
@@ -139,7 +139,9 @@ impl Persist for FilePersistor {
                         .collect::<Vec<fs::DirEntry>>();
 
                     entries.sort_unstable_by(|a, b| {
-                        b.file_name().partial_cmp(&a.file_name()).unwrap()
+                        b.file_name()
+                            .partial_cmp(&a.file_name())
+                            .unwrap_or(cmp::Ordering::Equal)
                     });
 
                     for entry in entries.iter().skip(STATE_COUNT) {

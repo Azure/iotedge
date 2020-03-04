@@ -29,9 +29,9 @@ async fn main() -> Result<(), Error> {
     pin_mut!(shutdown);
 
     // Setup the snapshotter
-    let mut persistor = FilePersistor::new(env::current_dir().context(ErrorKind::General)?);
+    let mut persistor = FilePersistor::new(env::current_dir().expect("can't get cwd"));
     info!("Loading state...");
-    let state = persistor.load().await.context(ErrorKind::General)?;
+    let state = persistor.load().await?;
     let broker = Broker::from_state(state);
     info!("state loaded.");
 
