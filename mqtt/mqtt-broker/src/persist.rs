@@ -3,6 +3,9 @@ use std::path::PathBuf;
 
 use async_trait::async_trait;
 use failure::ResultExt;
+use flate2::read::GzDecoder;
+use flate2::write::GzEncoder;
+use flate2::Compression;
 use tracing::debug;
 
 use crate::error::{Error, ErrorKind};
@@ -58,7 +61,8 @@ impl Persist for FilePersistor {
                     .read(true)
                     .open(path)
                     .context(ErrorKind::General)?;
-                let state = bincode::deserialize_from(file).context(ErrorKind::General)?;
+                let decoder = GzDecoder::new(file);
+                let state = bincode::deserialize_from(decoder).context(ErrorKind::General)?;
                 Ok(state)
             } else {
                 Ok(BrokerState::default())
@@ -79,7 +83,8 @@ impl Persist for FilePersistor {
                 .open(&path)
                 .context(ErrorKind::General)?;
             debug!("{} opened.", path.display());
-            if let Err(e) = bincode::serialize_into(file, &state).context(ErrorKind::General) {
+            let encoder = GzEncoder::new(file, Compression::default());
+            if let Err(e) = bincode::serialize_into(encoder, &state).context(ErrorKind::General) {
                 fs::remove_file(path).context(ErrorKind::General)?;
                 return Err(e.into());
             }
