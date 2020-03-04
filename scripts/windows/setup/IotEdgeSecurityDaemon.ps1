@@ -2212,6 +2212,26 @@ function Download-File([string] $Description, [string] $Url, [string] $DownloadF
     return $result
 }
 
+<#
+.SYNOPSIS
+
+Import intermeidate certificates into Windows certificate store.
+
+
+.INPUTS
+
+None
+
+
+.OUTPUTS
+
+None
+
+
+.EXAMPLE
+
+PS> Import-IntermediateCertChain $DeviceIdentityCertPath
+#>
 function Import-IntermediateCertChain([string] $DeviceIdentityCertPath){ 
     $certificateStore = New-Object System.Security.Cryptography.X509Certificates.X509Store ("CA", "LocalMachine")
     $certificateStore.Open("ReadWrite");
