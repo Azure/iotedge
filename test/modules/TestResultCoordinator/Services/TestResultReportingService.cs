@@ -59,7 +59,7 @@ namespace TestResultCoordinator.Services
 
         async void DoWorkAsync(object state)
         {
-            var tesReportGeneratorFactory = new TestReportGeneratorFactory(this.storage);
+            var tesReportGeneratorFactory = new TestReportGeneratorFactory(this.storage, Settings.Current.NetworkControllerType);
             List<ITestReportMetadata> reportMetadataList = await Settings.Current.GetReportMetadataListAsync(this.logger);
             ITestResultReport[] testResultReports = await TestReportUtil.GenerateTestResultReportsAsync(Settings.Current.TrackingId, reportMetadataList, tesReportGeneratorFactory, this.logger);
 
