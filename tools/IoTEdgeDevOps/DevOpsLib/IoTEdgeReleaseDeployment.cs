@@ -38,7 +38,7 @@ namespace DevOpsLib
         public HashSet<IoTEdgePipelineTask> Tasks => this.tasks;
 
         public static IoTEdgeReleaseDeployment Create(VstsReleaseDeployment vstsReleaseDeployment)
-            => new IoTEdgeReleaseDeployment(vstsReleaseDeployment.Id, vstsReleaseDeployment.Attempt, vstsReleaseDeployment.Status, vstsReleaseDeployment.LastModifiedOn, vstsReleaseDeployment.Tasks.Select(IoTEdgePipelineTask.Create).ToHashSet());
+            => new IoTEdgeReleaseDeployment(vstsReleaseDeployment.Id, vstsReleaseDeployment.Attempt, vstsReleaseDeployment.Status, vstsReleaseDeployment.LastModifiedOn, vstsReleaseDeployment.Tasks?.Select(IoTEdgePipelineTask.Create).ToHashSet() ?? new HashSet<IoTEdgePipelineTask>());
 
         public bool Equals(IoTEdgeReleaseDeployment other)
         {

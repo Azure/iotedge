@@ -1,0 +1,20 @@
+steps:
+  - task: Bash@3
+    name: Set_run_flag
+    displayName: 'Set run flag'
+    inputs:
+      targetType: inline
+      script: |
+        # This script is used to set run flag to 1 if:
+        # 1. there is no job canceled before in this build.
+        # 2. config to run variable is set to zero or matched for this config.
+        output1=$(curl -s -u :$accessToken --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$buildId?api-version=5.1" | grep -oe '"status":"cancel')
+        output2=$(curl -s -u :$(System.AccessToken) --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$(Build.BuildId)/Timeline?api-version=5.1" | grep -oe '"result":"canceled"')
+        
+        if [[ ( "$(testrun.config)" == "$(config.to.run)" || "$(config.to.run)" == "0" ) && ( -z "$output1" ) && ( -z "$output2" ) ]]; then
+          echo "##vso[task.setvariable variable=run.flag]1"
+          echo "run.flag=1"
+        else
+          echo "##vso[task.setvariable variable=run.flag]0"
+          echo "run.flag=0"
+        fi
