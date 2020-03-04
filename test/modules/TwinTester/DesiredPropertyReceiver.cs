@@ -22,6 +22,7 @@ namespace TwinTester
 
         public Task UpdateAsync()
         {
+            Logger.LogInformation("Setting desired property update callback");
             return this.moduleClient.SetDesiredPropertyUpdateCallbackAsync(this.OnDesiredPropertyUpdateAsync, null);
         }
 
