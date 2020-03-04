@@ -69,7 +69,7 @@ impl Broker {
         while let Some(message) = self.messages.recv().await {
             match message {
                 Message::Client(client_id, event) => {
-                    let span = span!(Level::INFO, "broker", client_id=%client_id);
+                    let span = span!(Level::INFO, "broker", client_id=%client_id, event="client");
                     if let Err(e) = self
                         .process_message(client_id, event)
                         .instrument(span)
@@ -78,21 +78,27 @@ impl Broker {
                         warn!(message = "an error occurred processing a message", error=%e);
                     }
                 }
-                Message::System(SystemEvent::Shutdown) => {
-                    info!("gracefully shutting down the broker...");
-                    debug!("closing sessions...");
-                    if let Err(e) = self.process_shutdown().await {
-                        warn!(message = "an error occurred shutting down the broker", error=%e);
-                    }
-                    break;
-                }
-                Message::System(SystemEvent::StateSnapshot(mut handle)) => {
-                    let state = self.snapshot();
-                    info!("asking snapshotter to persist state...");
-                    if let Err(e) = handle.send(state).await {
-                        warn!(message = "an error occurred communicating with the snapshotter", error=%e);
-                    } else {
-                        info!("sent state to snapshotter.");
+                Message::System(event) => {
+                    let span = span!(Level::INFO, "broker", event = "system");
+                    match event {
+                        SystemEvent::Shutdown => {
+                            info!("gracefully shutting down the broker...");
+                            debug!("closing sessions...");
+                            if let Err(e) = self.process_shutdown().instrument(span).await {
+                                warn!(message = "an error occurred shutting down the broker", error=%e);
+                            }
+                            break;
+                        }
+                        SystemEvent::StateSnapshot(mut handle) => {
+                            let state = self.snapshot();
+                            let _guard = span.enter();
+                            info!("asking snapshotter to persist state...");
+                            if let Err(e) = handle.send(state).await {
+                                warn!(message = "an error occurred communicating with the snapshotter", error=%e);
+                            } else {
+                                info!("sent state to snapshotter.");
+                            }
+                        }
                     }
                 }
             }
