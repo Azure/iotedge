@@ -995,55 +995,55 @@ mod tests {
 
         let mut packet_identifiers = PacketIdentifiers::default();
         assert_eq!(
-            packet_identifiers.in_use[..],
+            packet_identifiers.in_use.0[..],
             Box::new([0; PacketIdentifiers::SIZE])[..]
         );
 
         assert_eq!(packet_identifiers.reserve().unwrap().get(), 1);
         let mut expected = Box::new([0; PacketIdentifiers::SIZE]);
         expected[0] = 1 << 1;
-        assert_eq!(packet_identifiers.in_use[..], expected[..]);
+        assert_eq!(packet_identifiers.in_use.0[..], expected[..]);
 
         assert_eq!(packet_identifiers.reserve().unwrap().get(), 2);
         let mut expected = Box::new([0; PacketIdentifiers::SIZE]);
         expected[0] = (1 << 1) | (1 << 2);
-        assert_eq!(packet_identifiers.in_use[..], expected[..]);
+        assert_eq!(packet_identifiers.in_use.0[..], expected[..]);
 
         assert_eq!(packet_identifiers.reserve().unwrap().get(), 3);
         let mut expected = Box::new([0; PacketIdentifiers::SIZE]);
         expected[0] = (1 << 1) | (1 << 2) | (1 << 3);
-        assert_eq!(packet_identifiers.in_use[..], expected[..]);
+        assert_eq!(packet_identifiers.in_use.0[..], expected[..]);
 
         packet_identifiers.discard(crate::proto::PacketIdentifier::new(2).unwrap());
         let mut expected = Box::new([0; PacketIdentifiers::SIZE]);
         expected[0] = (1 << 1) | (1 << 3);
-        assert_eq!(packet_identifiers.in_use[..], expected[..]);
+        assert_eq!(packet_identifiers.in_use.0[..], expected[..]);
 
         assert_eq!(packet_identifiers.reserve().unwrap().get(), 4);
         let mut expected = Box::new([0; PacketIdentifiers::SIZE]);
         expected[0] = (1 << 1) | (1 << 3) | (1 << 4);
-        assert_eq!(packet_identifiers.in_use[..], expected[..]);
+        assert_eq!(packet_identifiers.in_use.0[..], expected[..]);
 
         packet_identifiers.discard(crate::proto::PacketIdentifier::new(1).unwrap());
         let mut expected = Box::new([0; PacketIdentifiers::SIZE]);
         expected[0] = (1 << 3) | (1 << 4);
-        assert_eq!(packet_identifiers.in_use[..], expected[..]);
+        assert_eq!(packet_identifiers.in_use.0[..], expected[..]);
 
         packet_identifiers.discard(crate::proto::PacketIdentifier::new(3).unwrap());
         let mut expected = Box::new([0; PacketIdentifiers::SIZE]);
         expected[0] = 1 << 4;
-        assert_eq!(packet_identifiers.in_use[..], expected[..]);
+        assert_eq!(packet_identifiers.in_use.0[..], expected[..]);
 
         packet_identifiers.discard(crate::proto::PacketIdentifier::new(4).unwrap());
         assert_eq!(
-            packet_identifiers.in_use[..],
+            packet_identifiers.in_use.0[..],
             Box::new([0; PacketIdentifiers::SIZE])[..]
         );
 
         assert_eq!(packet_identifiers.reserve().unwrap().get(), 5);
         let mut expected = Box::new([0; PacketIdentifiers::SIZE]);
         expected[0] = 1 << 5;
-        assert_eq!(packet_identifiers.in_use[..], expected[..]);
+        assert_eq!(packet_identifiers.in_use.0[..], expected[..]);
 
         let goes_in_next_block = std::mem::size_of::<usize>() * 8;
         #[allow(clippy::cast_possible_truncation)]
@@ -1056,7 +1056,7 @@ mod tests {
             expected[0] = usize::max_value() - (1 << 0) - (1 << 1) - (1 << 2) - (1 << 3) - (1 << 4);
             expected[1] |= 1 << 0;
         }
-        assert_eq!(packet_identifiers.in_use[..], expected[..]);
+        assert_eq!(packet_identifiers.in_use.0[..], expected[..]);
 
         #[allow(clippy::cast_possible_truncation, clippy::range_minus_one)]
         for i in 5..=(goes_in_next_block - 1) {
@@ -1067,6 +1067,6 @@ mod tests {
         {
             expected[1] |= 1 << 0;
         }
-        assert_eq!(packet_identifiers.in_use[..], expected[..]);
+        assert_eq!(packet_identifiers.in_use.0[..], expected[..]);
     }
 }
