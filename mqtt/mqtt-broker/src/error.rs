@@ -63,6 +63,9 @@ pub enum ErrorKind {
 
     #[fail(display = "An error occurred joining a task.")]
     TaskJoin,
+
+    #[fail(display = "An error occurred persisting state: {}", _0)]
+    Persist(crate::persist::ErrorReason),
 }
 
 impl Fail for Error {

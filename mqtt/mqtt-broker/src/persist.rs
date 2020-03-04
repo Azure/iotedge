@@ -1,3 +1,4 @@
+use std::fmt;
 use std::fs::{self, OpenOptions};
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
@@ -66,9 +67,10 @@ impl Persist for FilePersistor {
                 let file = OpenOptions::new()
                     .read(true)
                     .open(path)
-                    .context(ErrorKind::General)?;
+                    .context(ErrorKind::Persist(ErrorReason::Blah))?;
                 let decoder = GzDecoder::new(file);
-                let state = bincode::deserialize_from(decoder).context(ErrorKind::General)?;
+                let state = bincode::deserialize_from(decoder)
+                    .context(ErrorKind::Persist(ErrorReason::Blah))?;
                 Ok(state)
             } else {
                 Ok(BrokerState::default())
@@ -93,12 +95,14 @@ impl Persist for FilePersistor {
                 .create(true)
                 .write(true)
                 .open(&path)
-                .context(ErrorKind::General)?;
+                .context(ErrorKind::Persist(ErrorReason::Blah))?;
             debug!("{} opened.", path.display());
 
             debug!("persisting state to {}...", path.display());
             let encoder = GzEncoder::new(file, Compression::default());
-            match bincode::serialize_into(encoder, &state).context(ErrorKind::General) {
+            match bincode::serialize_into(encoder, &state)
+                .context(ErrorKind::Persist(ErrorReason::Blah))
+            {
                 Ok(_) => {
                     debug!("state persisted to {}.", path.display());
 
@@ -106,20 +110,22 @@ impl Persist for FilePersistor {
                     //   - remove the old link if exists
                     //   - link the new file
                     if default_path.exists() {
-                        fs::remove_file(&default_path).context(ErrorKind::General)?;
+                        fs::remove_file(&default_path)
+                            .context(ErrorKind::Persist(ErrorReason::Blah))?;
                     }
 
                     debug!("linking {} to {}", default_path.display(), path.display());
 
                     #[cfg(unix)]
-                    symlink(&path, &default_path).context(ErrorKind::General)?;
+                    symlink(&path, &default_path).context(ErrorKind::Persist(ErrorReason::Blah))?;
 
                     #[cfg(windows)]
-                    symlink_file(&path, &default_path).context(ErrorKind::General)?;
+                    symlink_file(&path, &default_path)
+                        .context(ErrorKind::Persist(ErrorReason::Blah))?;
 
                     // Prune old states
                     let mut entries = fs::read_dir(&dir)
-                        .context(ErrorKind::General)?
+                        .context(ErrorKind::Persist(ErrorReason::Blah))?
                         .filter_map(|maybe_entry| maybe_entry.ok())
                         .filter(|entry| {
                             entry.file_type().ok().map(|e| e.is_file()).unwrap_or(false)
@@ -141,12 +147,13 @@ impl Persist for FilePersistor {
                             "pruning old state file {}...",
                             entry.file_name().to_string_lossy()
                         );
-                        fs::remove_file(entry.file_name()).context(ErrorKind::General)?;
+                        fs::remove_file(entry.file_name())
+                            .context(ErrorKind::Persist(ErrorReason::Blah))?;
                         debug!("{} pruned.", entry.file_name().to_string_lossy());
                     }
                 }
                 Err(e) => {
-                    fs::remove_file(path).context(ErrorKind::General)?;
+                    fs::remove_file(path).context(ErrorKind::Persist(ErrorReason::Blah))?;
                     return Err(e.into());
                 }
             }
@@ -154,5 +161,18 @@ impl Persist for FilePersistor {
         })
         .await
         .context(ErrorKind::TaskJoin)?
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum ErrorReason {
+    Blah,
+}
+
+impl fmt::Display for ErrorReason {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ErrorReason::Blah => write!(f, "blah"),
+        }
     }
 }
