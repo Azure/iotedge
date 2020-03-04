@@ -364,7 +364,9 @@ function Initialize-IoTEdge {
 
     Set-ProvisioningMode
     Set-Certificates
-    Import-IntermediateCertChain $X509IdentityCertificate
+    if($DpsX509) {
+        Import-IntermediateCertChain $X509IdentityCertificate
+    }
     Set-AgentImage
     Set-Hostname
     if ($ContainerOs -eq 'Linux') {
