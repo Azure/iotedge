@@ -270,6 +270,9 @@
               },
               "LogAnalyticsLogType": {
                 "value": "<Analyzer.LogAnalyticsLogType>"
+              },
+              "TestInfo": {
+                "value": "<Analyzer.TestInfo>"
               }
             },
             "settings": {
