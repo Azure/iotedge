@@ -173,21 +173,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     .ToDictionary(v => v.Path.Substring(length));
             }
 
-            var descendantsRef = ProcessJson(reference.obj, reference.rootPath);
-            var descendantsCmp = ProcessJson(comparand.obj, comparand.rootPath);
+            var referenceValues = ProcessJson(reference.obj, reference.rootPath);
+            var comparandValues = ProcessJson(comparand.obj, comparand.rootPath);
 
             // comparand equals reference if, for each json value in reference:
             // - comparand has a json value with the same path
             // - the json values match
-            bool match = descendantsRef.All(kvp => descendantsCmp.ContainsKey(kvp.Key) &&
-                kvp.Value.Equals(descendantsCmp[kvp.Key]));
+            bool match = referenceValues.All(kvp => comparandValues.ContainsKey(kvp.Key) &&
+                kvp.Value.Equals(comparandValues[kvp.Key]));
 
             if (!match)
             {
-                var missing = descendantsRef
+                var missing = referenceValues
                     .Where(kvp =>
-                        !descendantsCmp.ContainsKey(kvp.Key) ||
-                        !kvp.Value.Equals(descendantsCmp[kvp.Key]))
+                        !comparandValues.ContainsKey(kvp.Key) ||
+                        !kvp.Value.Equals(comparandValues[kvp.Key]))
                     .Select(kvp => kvp.Key);
                 Log.Verbose(
                     "Expected configuration values missing in agent's reported properties:\n  {MissingValues}",
