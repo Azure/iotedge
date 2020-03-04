@@ -2215,7 +2215,7 @@ function Download-File([string] $Description, [string] $Url, [string] $DownloadF
 <#
 .SYNOPSIS
 
-Import intermeidate certificates into Windows certificate store.
+Import intermediate certificates into Windows certificate store.
 
 
 .INPUTS
@@ -2232,15 +2232,15 @@ None
 
 PS> Import-IntermediateCertChain $DeviceIdentityCertPath
 #>
-function Import-IntermediateCertChain([string] $DeviceIdentityCertPath){ 
-    $certificateStore = New-Object System.Security.Cryptography.X509Certificates.X509Store ("CA", "LocalMachine")
-    $certificateStore.Open("ReadWrite");
+function Import-IntermediateCertChain ([string] $DeviceIdentityCertPath){ 
+    $certificateStore = New-Object System.Security.Cryptography.X509Certificates.X509Store ([System.Security.Cryptography.X509Certificates.StoreName]::CertificateAuthority, [System.Security.Cryptography.X509Certificates.StoreLocation]::LocalMachine)
+    $certificateStore.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite);
 
     $certEnd = "END CERTIFICATE"
     
     $certs = New-Object System.Collections.ArrayList
-    $currentCert = [System.Text.StringBuilder]::new()
-    foreach($line in [System.IO.File]::ReadLines($DeviceIdentityCertPath)) {
+    $currentCert = New-Object System.Text.StringBuilder
+    foreach ($line in [System.IO.File]::ReadLines($DeviceIdentityCertPath)) {
         if ($line -Match $certEnd){
             [void]$currentCert.AppendLine($line)
             [void]$certs.Add($currentCert.ToString())
@@ -2252,7 +2252,7 @@ function Import-IntermediateCertChain([string] $DeviceIdentityCertPath){
     }
 
     # Drop the first certificate and add all remaining to certificate store
-    $enc = [system.Text.Encoding]::UTF8
+    $enc = [System.Text.Encoding]::UTF8
     for($i = 1; $i -lt $certs.Count; $i++){
         $bytes = $enc.GetBytes($certs[$i])
         $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2
