@@ -28,29 +28,18 @@ namespace TwinTester
             this.desiredPropertiesReceiver = new DesiredPropertyReceiver(moduleClient, reporter);
         }
 
-        public static async Task<TwinEdgeOperationsInitializer> CreateAsync(RegistryManager registryManager, ModuleClient moduleClient, ITwinTestResultHandler reporter)
+        public static Task<TwinEdgeOperationsInitializer> CreateAsync(RegistryManager registryManager, ModuleClient moduleClient, ITwinTestResultHandler reporter)
         {
-            try
-            {
-                Twin twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId);
-
-                // reset reported properties
-                await TwinTesterUtil.ResetTwinReportedPropertiesAsync(moduleClient, twin);
-                return new TwinEdgeOperationsInitializer(registryManager, moduleClient, reporter, 0);
-            }
-            catch (Exception e)
-            {
-                throw new Exception($"Shutting down module. Initialization failure: {e}");
-            }
+            return Task.FromResult(new TwinEdgeOperationsInitializer(registryManager, moduleClient, reporter, 0));
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
+            await this.desiredPropertiesReceiver.UpdateAsync();
             Logger.LogInformation($"Waiting for {Settings.Current.TestStartDelay} based on TestStartDelay setting before starting.");
             await Task.Delay(Settings.Current.TestStartDelay, cancellationToken);
             await this.LogEdgeDeviceTwin();
             this.periodicUpdate = new PeriodicTask(this.UpdateAsync, Settings.Current.TwinUpdateFrequency, Settings.Current.TwinUpdateFrequency, Logger, "TwinReportedPropertiesUpdate");
-            await this.desiredPropertiesReceiver.UpdateAsync();
         }
 
         async Task LogEdgeDeviceTwin()
