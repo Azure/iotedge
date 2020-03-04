@@ -163,8 +163,16 @@ impl PacketMeta for Connect {
         let protocol_name = super::Utf8StringDecoder::default()
             .decode(&mut src)?
             .ok_or(super::DecodeError::IncompletePacket)?;
+        if protocol_name != crate::PROTOCOL_NAME {
+            return Err(super::DecodeError::UnrecognizedProtocolName(protocol_name));
+        }
 
         let protocol_level = src.try_get_u8()?;
+        if protocol_level != crate::PROTOCOL_LEVEL {
+            return Err(super::DecodeError::UnrecognizedProtocolLevel(
+                protocol_level,
+            ));
+        }
 
         let connect_flags = src.try_get_u8()?;
         if connect_flags & 0x01 != 0 {
