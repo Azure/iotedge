@@ -2226,7 +2226,9 @@ function Import-IntermediateCertChain([string] $DeviceIdentityCertPath){
             [void]$certs.Add($currentCert.ToString())
             [void]$currentCert.Clear()
         }
-        [void]$currentCert.AppendLine($line)
+        else {
+            [void]$currentCert.AppendLine($line)
+        }
     }
 
     # Drop the first certificate and add all remaining to certificate store
