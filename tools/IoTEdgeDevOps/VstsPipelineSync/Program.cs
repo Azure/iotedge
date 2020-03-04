@@ -36,6 +36,7 @@ namespace VstsPipelineSync
             TimeSpan waitPeriodBeforeNextUpdate = TimeSpan.Parse(args[1]);
             string pat;
             string dbConnectionString;
+
             if (args.Length == 4)
             {
                 pat = args[2];
