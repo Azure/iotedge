@@ -29,13 +29,13 @@ async fn main() -> Result<(), Error> {
     pin_mut!(shutdown);
 
     // Setup the snapshotter
-    let mut persistor = NullPersistor;
+    let mut persistor = FilePersistor::new(env::current_dir().context(ErrorKind::General)?);
     info!("Loading state...");
     let state = persistor.load().await.context(ErrorKind::General)?;
     let broker = Broker::from_state(state);
     info!("state loaded.");
 
-    let snapshotter = Snapshotter::new(NullPersistor);
+    let snapshotter = Snapshotter::new(persistor);
     let snapshot_handle = snapshotter.snapshot_handle();
     let mut shutdown_handle = snapshotter.shutdown_handle();
     let join_handle = tokio::spawn(snapshotter.run());
@@ -57,7 +57,7 @@ async fn main() -> Result<(), Error> {
 
     // Stop snapshotting
     shutdown_handle.shutdown().await?;
-    let mut persistor = join_handle.await.context(ErrorKind::BrokerJoin)?;
+    let mut persistor = join_handle.await.context(ErrorKind::TaskJoin)?;
     info!("state snapshotter shutdown.");
 
     info!("persisting state before exiting...");
