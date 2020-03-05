@@ -10,8 +10,8 @@ use tracing_futures::Instrument;
 use crate::session::{ConnectedSession, Session, SessionState};
 use crate::{ClientEvent, ClientId, ConnReq, Error, ErrorKind, Message, SystemEvent};
 
-static EXPECTED_PROTOCOL_NAME: &str = "MQTT";
-const EXPECTED_PROTOCOL_LEVEL: u8 = 0x4;
+static EXPECTED_PROTOCOL_NAME: &str = mqtt3::PROTOCOL_NAME;
+const EXPECTED_PROTOCOL_LEVEL: u8 = mqtt3::PROTOCOL_LEVEL;
 
 macro_rules! try_send {
     ($session:expr, $msg:expr) => {{
@@ -798,8 +798,8 @@ mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession(id),
             keep_alive: Duration::default(),
-            protocol_name: "MQTT".to_string(),
-            protocol_level: 0x4,
+            protocol_name: crate::PROTOCOL_NAME.to_string(),
+            protocol_level: crate::PROTOCOL_LEVEL,
         }
     }
 
@@ -810,8 +810,8 @@ mod tests {
             will: None,
             client_id: proto::ClientId::IdWithExistingSession(id),
             keep_alive: Duration::default(),
-            protocol_name: "MQTT".to_string(),
-            protocol_level: 0x4,
+            protocol_name: crate::PROTOCOL_NAME.to_string(),
+            protocol_level: crate::PROTOCOL_LEVEL,
         }
     }
 
@@ -828,8 +828,8 @@ mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: "MQTT".to_string(),
-            protocol_level: 0x4,
+            protocol_name: crate::PROTOCOL_NAME.to_string(),
+            protocol_level: crate::PROTOCOL_LEVEL,
         };
         let connect2 = proto::Connect {
             username: None,
@@ -837,8 +837,8 @@ mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: "MQTT".to_string(),
-            protocol_level: 0x4,
+            protocol_name: crate::PROTOCOL_NAME.to_string(),
+            protocol_level: crate::PROTOCOL_LEVEL,
         };
         let id = Uuid::new_v4();
         let (tx1, mut rx1) = mpsc::channel(128);
@@ -887,8 +887,8 @@ mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: "MQTT".to_string(),
-            protocol_level: 0x4,
+            protocol_name: crate::PROTOCOL_NAME.to_string(),
+            protocol_level: crate::PROTOCOL_LEVEL,
         };
         let connect2 = proto::Connect {
             username: None,
@@ -896,8 +896,8 @@ mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: "MQTT".to_string(),
-            protocol_level: 0x4,
+            protocol_name: crate::PROTOCOL_NAME.to_string(),
+            protocol_level: crate::PROTOCOL_LEVEL,
         };
         let (tx1, mut rx1) = mpsc::channel(128);
         let (tx2, mut rx2) = mpsc::channel(128);
@@ -952,7 +952,7 @@ mod tests {
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
             protocol_name: "AMQP".to_string(),
-            protocol_level: 0x4,
+            protocol_level: crate::PROTOCOL_LEVEL,
         };
         let (tx1, mut rx1) = mpsc::channel(128);
         let conn1 = ConnectionHandle::from_sender(tx1);
@@ -986,7 +986,7 @@ mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: "MQTT".to_string(),
+            protocol_name: crate::PROTOCOL_NAME.to_string(),
             protocol_level: 0x3,
         };
         let (tx1, mut rx1) = mpsc::channel(128);

@@ -1,3 +1,5 @@
+#![allow(clippy::let_unit_value)]
+
 mod common;
 
 #[test]
@@ -200,7 +202,7 @@ fn server_generated_id_must_always_resubscribe() {
         ],
     );
 
-    runtime
+    let () = runtime
         .block_on(done)
         .expect("connection broken while there were still steps remaining on the server");
 }
@@ -425,7 +427,7 @@ fn client_id_should_not_resubscribe_when_session_is_present() {
         ],
     );
 
-    runtime
+    let () = runtime
         .block_on(done)
         .expect("connection broken while there were still steps remaining on the server");
 }
@@ -534,7 +536,7 @@ fn should_combine_pending_subscription_updates() {
         ],
     );
 
-    runtime
+    let () = runtime
         .block_on(done)
         .expect("connection broken while there were still steps remaining on the server");
 }

@@ -32,14 +32,14 @@ namespace TwinTester
                 configuration.GetValue<TimeSpan>("TwinUpdateFailureThreshold", TimeSpan.FromMinutes(1)),
                 configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
                 configuration.GetValue<string>("AnalyzerUrl", "http://analyzer:15000"),
-                configuration.GetValue<string>("TestResultCoordinatorUrl"),
+                configuration.GetValue<string>("testResultCoordinatorUrl"),
                 configuration.GetValue<string>("ServiceClientConnectionString"),
                 configuration.GetValue<string>("StoragePath"),
                 configuration.GetValue<bool>("StorageOptimizeForPerformance", true),
                 configuration.GetValue<TwinTestMode>("TwinTestMode", TwinTestMode.TwinAllOperations),
                 Option.Maybe(configuration.GetValue<string>("trackingId")),
-                configuration.GetValue("TestStartDelay", TimeSpan.Zero),
-                configuration.GetValue("TestDuration", TimeSpan.FromMilliseconds(-1)));
+                configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
+                configuration.GetValue("testDuration", TimeSpan.FromMilliseconds(-1)));
         }
 
         Settings(

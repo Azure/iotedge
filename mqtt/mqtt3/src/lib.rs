@@ -17,7 +17,8 @@
     clippy::single_match_else,
     clippy::too_many_arguments,
     clippy::too_many_lines,
-    clippy::use_self
+    clippy::use_self,
+    clippy::let_unit_value
 )]
 
 pub static PROTOCOL_NAME: &str = "MQTT";
