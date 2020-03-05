@@ -1,3 +1,12 @@
+# 1.0.9-rc6 (2020-02-29)
+## Edge Hub
+### Bug Fixes
+Hotfix [Linux ARM32 and ARM64 security vulnerability](https://lists.ubuntu.com/archives/ubuntu-security-announce/2020-January/005286.html) by updating base dotnet core runtime images ([fa634ef](https://github.com/Azure/iotedge/commit/fa634efccdc9694e611d97c4dd57a44ad9b742bb))
+
+## Edge Agent
+### Bug Fixes
+Hotfix [Linux ARM32 and ARM64 security vulnerability](https://lists.ubuntu.com/archives/ubuntu-security-announce/2020-January/005286.html) by updating base dotnet core runtime images ([fa634ef](https://github.com/Azure/iotedge/commit/fa634efccdc9694e611d97c4dd57a44ad9b742bb))
+
 # 1.0.9-rc5 (2020-02-14)
 ## Edge Hub
 ### Features

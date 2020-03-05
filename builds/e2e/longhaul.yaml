@@ -13,8 +13,6 @@ variables:
   #pool.name: ''
   #container.registry: ''
   #snitch.storage.account: ''
-  #analyzer.logAnalytics.enabled  
-  #analyzer.logAnalytics.logType
   # Variables settable at queue time
   #edgelet.package.branchName
   #images.branchName
@@ -83,6 +81,11 @@ jobs:
       - template: templates/longhaul-deploy.yaml
         parameters:
           release.label: 'lh$(agent.group)'
+          test.buildNumber: '$(Build.BuildNumber)'
+          test.buildId: '$(Build.BuildId)'
+          build.source.branch: '$(Build.SourceBranchName)'
+          edgelet.source.branch: '$(edgelet.package.branchName)'
+          images.source.branch: '$(images.branchName)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
@@ -98,13 +101,12 @@ jobs:
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_linux_amd64'
-          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
-          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
           twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
           twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
+          hostPlatform: 'linux_amd64_moby'
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -158,6 +160,11 @@ jobs:
       - template: templates/longhaul-deploy.yaml
         parameters:
           release.label: 'lh$(agent.group)'
+          test.buildNumber: '$(Build.BuildNumber)'
+          test.buildId: '$(Build.BuildId)'
+          build.source.branch: '$(Build.SourceBranchName)'
+          edgelet.source.branch: '$(edgelet.package.branchName)'
+          images.source.branch: '$(images.branchName)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
@@ -173,13 +180,12 @@ jobs:
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_linux_arm32v7'
-          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
-          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
           twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
           twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
+          hostPlatform: 'linux_arm32v7_moby'
 
 ################################################################################
   - job: linux_arm64v8_docker
@@ -233,6 +239,11 @@ jobs:
       - template: templates/longhaul-deploy.yaml
         parameters:
           release.label: 'lh$(agent.group)'
+          test.buildNumber: '$(Build.BuildNumber)'
+          test.buildId: '$(Build.BuildId)'
+          build.source.branch: '$(Build.SourceBranchName)'
+          edgelet.source.branch: '$(edgelet.package.branchName)'
+          images.source.branch: '$(images.branchName)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
@@ -248,13 +259,12 @@ jobs:
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_linux_arm64v8'
-          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
-          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
           twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
           twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
+          hostPlatform: 'linux_arm64v8_docker'
           
 ################################################################################
   - job: windows_amd64_moby
@@ -310,6 +320,11 @@ jobs:
       - template: templates/longhaul-deploy-windows.yaml
         parameters:
           release.label: 'winpro-lh$(agent.group)'
+          test.buildNumber: '$(Build.BuildNumber)'
+          test.buildId: '$(Build.BuildId)'
+          build.source.branch: '$(Build.SourceBranchName)'
+          edgelet.source.branch: '$(edgelet.package.branchName)'
+          images.source.branch: '$(images.branchName)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.windows)'
           container.registry: '$(container.registry)'
@@ -325,13 +340,12 @@ jobs:
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_windows_amd64'
-          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
-          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
           twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
           twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
+          hostPlatform: 'windows_amd64_moby'
 
 ################################################################################
   - job: windows_servercore_amd64_moby
@@ -387,6 +401,11 @@ jobs:
       - template: templates/longhaul-deploy-windows.yaml
         parameters:
           release.label: 'servercore-lh$(agent.group)'
+          test.buildNumber: '$(Build.BuildNumber)'
+          test.buildId: '$(Build.BuildId)'
+          build.source.branch: '$(Build.SourceBranchName)'
+          edgelet.source.branch: '$(edgelet.package.branchName)'
+          images.source.branch: '$(images.branchName)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.windows)'
           container.registry: '$(container.registry)'
@@ -402,13 +421,12 @@ jobs:
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_windows_servercore_amd64'
-          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
-          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
           twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
           twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
+          hostPlatform: 'windows_servercore_amd64_moby'
 
 ################################################################################
   - job: iotuap_amd64_moby
@@ -463,6 +481,11 @@ jobs:
         parameters:
           testName: 'LongHaul'
           release.label: 'iotuap-lh$(agent.group)'
+          test.buildNumber: '$(Build.BuildNumber)'
+          test.buildId: '$(Build.BuildId)'
+          build.source.branch: '$(Build.SourceBranchName)'
+          edgelet.source.branch: '$(edgelet.package.branchName)'
+          images.source.branch: '$(images.branchName)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.windows)'
           container.registry: '$(container.registry)'
@@ -478,10 +501,9 @@ jobs:
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_iotuap_amd64'
-          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
-          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
           twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
           twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
+          hostPlatform: 'iotuap_amd64_moby'

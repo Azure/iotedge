@@ -115,8 +115,8 @@ process_args()
         print_help_and_exit
     fi
 
-    if [[ "azureiotedge-module-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-hub-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-agent-base" != ${DOCKER_IMAGENAME} ]]; then
-        echo "Docker image name must be azureiotedge-module-base or azureiotedge-hub-base"
+    if [[ "azureiotedge-module-base-rocksdb" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-module-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-hub-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-agent-base" != ${DOCKER_IMAGENAME} ]]; then
+        echo "Docker image name must be azureiotedge-module-base, azureiotedge-module-base-rocksdb, azureiotedge-agent-base or azureiotedge-hub-base"
         print_help_and_exit
     fi
 
