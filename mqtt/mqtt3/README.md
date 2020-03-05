@@ -28,7 +28,7 @@ The crate is coming with fuzz tests.
 
 ```bash
 sudo apt install tmux binutils
-cargo install afl
+cargo install afl --version '^0.6'
 ```
 
 ## Run fuzzer

@@ -39,10 +39,6 @@ rm -rf out/
 (
 sleep 1
 
-tmux set-option -t 'mqtt-fuzz' pane-border-status top
-tmux set-option -t 'mqtt-fuzz' status-interval 1
-tmux set-option -t 'mqtt-fuzz' status-right '#{pane_title} %Y-%m-%d %H:%M:%S'
-
 tmux split-window -t 0 -h -p 66 'read -rsp "Press enter to continue..." && cargo afl fuzz -i in -o out -S fuzzer02 -t 1000 target/release/mqtt3-fuzz'
 tmux select-pane -t 1 -T 'fuzzer02'
 
