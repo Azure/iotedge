@@ -55,5 +55,3 @@ build/linux/mqtt-fuzz-rerun.sh ../mqtt3-fuzz/
 
 MIT
 
-
-TEST
