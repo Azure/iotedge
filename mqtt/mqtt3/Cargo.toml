@@ -1,0 +1,21 @@
+[package]
+name = "mqtt3"
+version = "0.1.0"
+authors = ["Azure IoT Edge Devs"]
+license = "MIT"
+edition = "2018"
+
+[dependencies]
+bytes = "0.5"
+futures-core = "0.3"
+futures-channel = { version = "0.3", features = ["sink"] }
+futures-sink = "0.3"
+futures-util = { version = "0.3", features = ["sink"] }
+log = "0.4"
+tokio = { version = "0.2", features = ["time"] }
+tokio-util = { version = "0.2", features = ["codec"] }
+
+[dev-dependencies]
+env_logger = "0.7"
+structopt = "0.3"
+tokio = { version = "0.2", features = ["rt-core", "signal", "stream", "tcp"] }
