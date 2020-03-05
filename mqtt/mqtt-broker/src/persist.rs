@@ -18,7 +18,7 @@ use crate::error::{Error, ErrorKind};
 use crate::BrokerState;
 
 /// sets the number of past states to save - 2 means we save the current and the pervious
-const STATE_COUNT: usize = 2;
+const STATE_DEFAULT_COUNT: usize = 2;
 static STATE_DEFAULT_STEM: &str = "state";
 static STATE_EXTENSION: &str = "dat";
 
@@ -54,10 +54,21 @@ pub trait FileFormat {
     fn store<W: Write>(&self, writer: W, state: BrokerState) -> Result<(), Self::Error>;
 }
 
+/// Loads/stores the broker state to a file defined by `FileFormat`.
+///
+/// The FilePersistor works by storing to a new state file and then updating
+/// a symlink to `state.dat`.
+///
+/// Loading always reads from `state.dat`. This allows for saving multiple
+/// copies of the state and rollback in case something gets corrupted.
+/// It also aids in "transactionally" saving the state. Updating the symlink
+/// "commits" the changes. This is an attempt to prevent corrupting the state
+/// file in case the process crashes in the middle of writing.
 #[derive(Debug)]
 pub struct FilePersistor<F> {
     dir: PathBuf,
     format: F,
+    count: usize,
 }
 
 impl<F> FilePersistor<F> {
@@ -65,7 +76,18 @@ impl<F> FilePersistor<F> {
         FilePersistor {
             dir: dir.into(),
             format,
+            count: STATE_DEFAULT_COUNT,
         }
+    }
+
+    /// Sets the number of past states to save
+    ///
+    /// The intent is to allow rollback to a pervious state.
+    /// The default is `2`, which saves the current and previous state.
+    /// The minimum value is `1` (the current state).
+    pub fn with_count(mut self, count: usize) -> Self {
+        self.count = cmp::max(1, count);
+        self
     }
 }
 
@@ -131,6 +153,7 @@ where
     async fn store(&mut self, state: BrokerState) -> Result<(), Self::Error> {
         let dir = self.dir.clone();
         let format = self.format.clone();
+        let count = self.count;
         tokio::task::spawn_blocking(move || {
             let span = span!(Level::INFO, "persistor", dir = %dir.display());
             let _guard = span.enter();
@@ -196,7 +219,7 @@ where
                             .unwrap_or(cmp::Ordering::Equal)
                     });
 
-                    for entry in entries.iter().skip(STATE_COUNT) {
+                    for entry in entries.iter().skip(count) {
                         debug!(
                             "pruning old state file {}...",
                             entry.file_name().to_string_lossy()
