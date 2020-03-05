@@ -4,7 +4,7 @@ use failure::ResultExt;
 use futures_util::pin_mut;
 use mqtt_broker::*;
 use tokio::signal::unix::SignalKind;
-use tokio::time::Duration;
+use tokio::time::{Duration, Instant};
 use tracing::{info, warn, Level};
 use tracing_subscriber::{fmt, EnvFilter};
 
@@ -29,7 +29,10 @@ async fn main() -> Result<(), Error> {
     pin_mut!(shutdown);
 
     // Setup the snapshotter
-    let mut persistor = FilePersistor::new(env::current_dir().expect("can't get cwd"));
+    let mut persistor = FilePersistor::new(
+        env::current_dir().expect("can't get cwd"),
+        BincodeFormat::new(),
+    );
     info!("Loading state...");
     let state = persistor.load().await?;
     let broker = Broker::from_state(state);
@@ -63,7 +66,7 @@ async fn main() -> Result<(), Error> {
     info!("persisting state before exiting...");
     persistor.store(state).await?;
     info!("state persisted.");
-    info!("exiting... good bye");
+    info!("exiting... goodbye");
 
     Ok(())
 }
@@ -74,7 +77,8 @@ async fn tick_snapshot(
     snapshot_handle: StateSnapshotHandle,
 ) {
     info!("Persisting state every {:?}", period);
-    let mut interval = tokio::time::interval(period);
+    let start = Instant::now() + period;
+    let mut interval = tokio::time::interval_at(start, period);
     loop {
         interval.tick().await;
         if let Err(e) = broker_handle

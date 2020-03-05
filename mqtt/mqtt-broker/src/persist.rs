@@ -1,4 +1,5 @@
 use std::fs::{self, OpenOptions};
+use std::io::{Read, Write};
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
 #[cfg(windows)]
@@ -30,6 +31,7 @@ pub trait Persist {
     async fn store(&mut self, state: BrokerState) -> Result<(), Self::Error>;
 }
 
+#[derive(Debug)]
 pub struct NullPersistor;
 
 #[async_trait]
@@ -45,34 +47,80 @@ impl Persist for NullPersistor {
     }
 }
 
-pub struct FilePersistor {
-    dir: PathBuf,
+pub trait FileFormat {
+    type Error: Into<Error>;
+
+    fn load<R: Read>(&self, reader: R) -> Result<BrokerState, Self::Error>;
+    fn store<W: Write>(&self, writer: W, state: BrokerState) -> Result<(), Self::Error>;
 }
 
-impl FilePersistor {
-    pub fn new<P: Into<PathBuf>>(dir: P) -> Self {
-        FilePersistor { dir: dir.into() }
+#[derive(Debug)]
+pub struct FilePersistor<F> {
+    dir: PathBuf,
+    format: F,
+}
+
+impl<F> FilePersistor<F> {
+    pub fn new<P: Into<PathBuf>>(dir: P, format: F) -> Self {
+        FilePersistor {
+            dir: dir.into(),
+            format,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct BincodeFormat;
+
+impl BincodeFormat {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl FileFormat for BincodeFormat {
+    type Error = Error;
+
+    fn load<R: Read>(&self, reader: R) -> Result<BrokerState, Self::Error> {
+        let decoder = GzDecoder::new(reader);
+        let state = bincode::deserialize_from(decoder)
+            .context(ErrorKind::Persist(ErrorReason::Deserialize))?;
+        Ok(state)
+    }
+
+    fn store<W: Write>(&self, writer: W, state: BrokerState) -> Result<(), Self::Error> {
+        let encoder = GzEncoder::new(writer, Compression::default());
+        bincode::serialize_into(encoder, &state)
+            .context(ErrorKind::Persist(ErrorReason::Serialize))?;
+        Ok(())
     }
 }
 
 #[async_trait]
-impl Persist for FilePersistor {
+impl<F> Persist for FilePersistor<F>
+where
+    F: FileFormat + Clone + Send + 'static,
+{
     type Error = Error;
 
     async fn load(&mut self) -> Result<BrokerState, Self::Error> {
         let dir = self.dir.clone();
+        let format = self.format.clone();
         tokio::task::spawn_blocking(move || {
             let path = dir.join(format!("{}.{}", STATE_DEFAULT_STEM, STATE_EXTENSION));
             if path.exists() {
+                info!("loading state from file {}.", path.display());
                 let file = OpenOptions::new()
                     .read(true)
                     .open(path)
                     .context(ErrorKind::Persist(ErrorReason::FileOpen))?;
-                let decoder = GzDecoder::new(file);
-                let state = bincode::deserialize_from(decoder)
-                    .context(ErrorKind::Persist(ErrorReason::Deserialize))?;
+                let state = format.load(file).map_err(|e| e.into())?;
                 Ok(state)
             } else {
+                info!(
+                    "no state file found at {}. initializing with empty state.",
+                    path.display()
+                );
                 Ok(BrokerState::default())
             }
         })
@@ -82,6 +130,7 @@ impl Persist for FilePersistor {
 
     async fn store(&mut self, state: BrokerState) -> Result<(), Self::Error> {
         let dir = self.dir.clone();
+        let format = self.format.clone();
         tokio::task::spawn_blocking(move || {
             let span = span!(Level::INFO, "persistor", dir = %dir.display());
             let _guard = span.enter();
@@ -104,10 +153,7 @@ impl Persist for FilePersistor {
             debug!("{} opened.", path.display());
 
             debug!("persisting state to {}...", path.display());
-            let encoder = GzEncoder::new(file, Compression::default());
-            match bincode::serialize_into(encoder, &state)
-                .context(ErrorKind::Persist(ErrorReason::Serialize))
-            {
+            match format.store(file, state).map_err(|e| e.into()) {
                 Ok(_) => {
                     debug!("state persisted to {}.", path.display());
 
@@ -197,4 +243,3 @@ impl fmt::Display for ErrorReason {
         }
     }
 }
-
