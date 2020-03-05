@@ -34,15 +34,21 @@ cargo install afl
 ## Run fuzzer
 
 ```bash
+# afl requires dumps to be taken as quickly as possible, so configure kernel 
+# to just write the coredump instead of anything fancy.
 echo 'core' | sudo tee /proc/sys/kernel/core_pattern
 
-which gold
+# mqtt-fuzz.sh spawns a tmux session with 6 panes. The first pane is the master 
+# afl instance, and the remaining five are slave instances.
+# Press any key to start the master instance, wait for it to start running, 
+# then press any key in the five slave instances to start them too.
+build/linux/mqtt-fuzz.sh ../mqtt3-fuzz/
 
-/build/linux/mqtt-fuzz.sh ../mqtt3-fuzz/
-
+# mqtt-fuzz-rerun.sh uses the output of a previous run of mqtt-fuzz.sh
+# or mqtt-fuzz-rerun.sh as the starting corpus.
+# Use this if you interrupted a previous run of mqtt-fuzz.sh or mqtt-fuzz-rerun.sh 
+# and want to resume from where it left off.
 build/linux/mqtt-fuzz-rerun.sh ../mqtt3-fuzz/
-
-echo '|/usr/lib/systemd/systemd-coredump %P %u %g %s %t %c %h' | sudo tee /proc/sys/kernel/core_pattern
 ```
 
 # License
