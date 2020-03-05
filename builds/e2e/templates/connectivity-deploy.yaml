@@ -97,6 +97,7 @@ steps:
           -edgeRuntimeBuildNumber "${{ parameters['edgeRuntime.buildNumber'] }}" \
           -customEdgeAgentImage "${{ parameters['customEdgeAgent.image'] }}" \
           -customEdgeHubImage "${{ parameters['customEdgeHub.image'] }}" \
+          -testInfo "$testInfo" \
           -waitForTestComplete \
           -cleanAll
         
