@@ -20,6 +20,31 @@ The crate is not published to crates.io yet. Please generate docs locally with `
 
 See the `examples/` directory for examples of a publisher and subscriber, and for how to set a will.
 
+# Fuzz testing
+
+The crate is coming with fuzz tests. 
+
+## Prerequisites
+
+```bash
+sudo apt install tmux binutils
+cargo install afl
+```
+
+## Run fuzzer
+
+```bash
+echo 'core' | sudo tee /proc/sys/kernel/core_pattern
+
+which gold
+
+/build/linux/mqtt-fuzz.sh ../mqtt3-fuzz/
+
+build/linux/mqtt-fuzz-rerun.sh ../mqtt3-fuzz/
+
+echo '|/usr/lib/systemd/systemd-coredump %P %u %g %s %t %c %h' | sudo tee /proc/sys/kernel/core_pattern
+```
+
 # License
 
 MIT
