@@ -696,6 +696,12 @@ impl Session {
 #[derive(Clone)]
 struct IdentifiersInUse(Box<[usize; PacketIdentifiers::SIZE]>);
 
+impl fmt::Debug for IdentifiersInUse {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("IdentifiersInUse").finish()
+    }
+}
+
 struct IdentifiersInUseVisitor;
 
 impl<'de> Visitor<'de> for IdentifiersInUseVisitor {
@@ -810,15 +816,67 @@ impl Default for PacketIdentifiers {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     use std::time::Duration;
 
+    use proptest::collection::{hash_map, hash_set, vec, vec_deque};
+    use proptest::num;
+    use proptest::prelude::*;
     use tokio::sync::mpsc;
     use uuid::Uuid;
 
+    use crate::subscription::tests::arb_subscription;
+    use crate::tests::*;
     use crate::ConnectionHandle;
+
+    fn arb_identifiers_in_use() -> impl Strategy<Value = IdentifiersInUse> {
+        vec(num::usize::ANY, PacketIdentifiers::SIZE).prop_map(|v| {
+            let mut array = [0; PacketIdentifiers::SIZE];
+            let nums = &v[..array.len()];
+            array.copy_from_slice(nums);
+            IdentifiersInUse(Box::new(array))
+        })
+    }
+
+    prop_compose! {
+        fn arb_packet_identifiers()(
+            in_use in arb_identifiers_in_use(),
+            previous in arb_packet_identifier(),
+        ) -> PacketIdentifiers {
+            PacketIdentifiers {
+                in_use,
+                previous,
+            }
+        }
+    }
+
+    prop_compose! {
+        pub fn arb_session_state()(
+            client_id in arb_clientid(),
+            subscriptions in hash_map(arb_topic(), arb_subscription(), 0..10),
+            packet_identifiers in arb_packet_identifiers(),
+            packet_identifiers_qos0 in arb_packet_identifiers(),
+            waiting_to_be_sent in vec_deque(arb_publication(), 0..10),
+            waiting_to_be_released in hash_map(arb_packet_identifier(), arb_proto_publish(), 0..10),
+            waiting_to_be_acked in hash_map(arb_packet_identifier(), arb_publish(), 0..10),
+            waiting_to_be_acked_qos0 in hash_map(arb_packet_identifier(), arb_publish(), 0..10),
+            waiting_to_be_completed in hash_set(arb_packet_identifier(), 0..10),
+        ) -> SessionState {
+            SessionState {
+                client_id,
+                subscriptions,
+                packet_identifiers,
+                packet_identifiers_qos0,
+                waiting_to_be_sent,
+                waiting_to_be_released,
+                waiting_to_be_acked,
+                waiting_to_be_acked_qos0,
+                waiting_to_be_completed,
+            }
+        }
+    }
 
     fn connection_handle() -> ConnectionHandle {
         let id = Uuid::new_v4();

@@ -774,16 +774,32 @@ pub enum SessionError {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     use std::time::Duration;
 
     use futures_util::future::FutureExt;
     use matches::assert_matches;
+    use proptest::collection::{hash_map, vec};
+    use proptest::prelude::*;
     use uuid::Uuid;
 
+    use crate::session::tests::*;
+    use crate::tests::*;
     use crate::ConnectionHandle;
+
+    prop_compose! {
+        pub fn arb_broker_state()(
+            retained in hash_map(arb_topic(), arb_publication(), 0..20),
+            sessions in vec(arb_session_state(), 0..10),
+        ) -> BrokerState {
+            BrokerState {
+                retained,
+                sessions,
+            }
+        }
+    }
 
     fn connection_handle() -> ConnectionHandle {
         let id = Uuid::new_v4();

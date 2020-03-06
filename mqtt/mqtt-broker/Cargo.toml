@@ -26,6 +26,7 @@ mqtt3 = { path = "../mqtt3", features = ["serde1"] }
 
 [dev-dependencies]
 atty = "0.2"
+bytes = "0.5"
 matches = "0.1"
 proptest = "0.9"
 tracing-subscriber = "0.1"

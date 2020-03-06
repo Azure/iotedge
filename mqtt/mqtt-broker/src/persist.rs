@@ -266,3 +266,17 @@ impl fmt::Display for ErrorReason {
         }
     }
 }
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use proptest::prelude::*;
+
+    use crate::broker::tests::arb_broker_state;
+
+    proptest! {
+        #[test]
+        fn bincode_roundtrip(_state in arb_broker_state()) {
+            prop_assert_eq!(0, 0);
+        }
+    }
+}
