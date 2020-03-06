@@ -9,7 +9,7 @@ set -e
 ###############################################################################
 # These are the packages this script will build.
 ###############################################################################
-packages=(iotedge iotedged iotedge-diagnostics iotedge-proxy)
+packages=(mqttd)
 
 ###############################################################################
 # Define Environment Variables
