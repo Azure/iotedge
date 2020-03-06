@@ -269,14 +269,25 @@ impl fmt::Display for ErrorReason {
 
 #[cfg(test)]
 pub(crate) mod tests {
+    use super::*;
+
     use proptest::prelude::*;
+    use std::io::Cursor;
 
     use crate::broker::tests::arb_broker_state;
 
     proptest! {
         #[test]
-        fn bincode_roundtrip(_state in arb_broker_state()) {
-            prop_assert_eq!(0, 0);
+        fn bincode_roundtrip(state in arb_broker_state()) {
+            let expected = state.clone();
+            let format = BincodeFormat;
+            let mut buffer = vec![0u8; 10 * 1024 * 1024];
+            let writer = Cursor::new(&mut buffer);
+            format.store(writer, state).unwrap();
+
+            let reader = Cursor::new(buffer);
+            let state = format.load(reader).unwrap();
+            prop_assert_eq!(expected, state);
         }
     }
 }

@@ -21,7 +21,7 @@ macro_rules! try_send {
     }};
 }
 
-#[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, PartialEq, Deserialize, Serialize)]
 pub struct BrokerState {
     retained: HashMap<String, proto::Publication>,
     sessions: Vec<SessionState>,
