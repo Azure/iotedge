@@ -277,7 +277,7 @@ impl DisconnectingSession {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SessionState {
     client_id: ClientId,
     subscriptions: HashMap<String, Subscription>,
@@ -702,6 +702,12 @@ impl fmt::Debug for IdentifiersInUse {
     }
 }
 
+impl cmp::PartialEq for IdentifiersInUse {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.iter().zip(other.0.iter()).all(|(a, b)| a.eq(b))
+    }
+}
+
 struct IdentifiersInUseVisitor;
 
 impl<'de> Visitor<'de> for IdentifiersInUseVisitor {
@@ -750,7 +756,7 @@ impl<'de> Deserialize<'de> for IdentifiersInUse {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 struct PacketIdentifiers {
     in_use: IdentifiersInUse,
     previous: proto::PacketIdentifier,
