@@ -24,18 +24,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         readonly IEdgeHub edgeHub;
         readonly IConnectionManager connectionManager;
-        readonly TimeSpan messageResponseTimeout;
+        readonly TimeSpan messageAckTimeout;
         readonly AsyncLock serializeMessagesLock = new AsyncLock();
         IDeviceProxy underlyingProxy;
 
-        public DeviceMessageHandler(IIdentity identity, IEdgeHub edgeHub, IConnectionManager connectionManager, TimeSpan messageResponseTimeout)
+        public DeviceMessageHandler(IIdentity identity, IEdgeHub edgeHub, IConnectionManager connectionManager, TimeSpan messageAckTimeout)
         {
             this.Identity = Preconditions.CheckNotNull(identity, nameof(identity));
             this.edgeHub = Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
-            this.messageResponseTimeout = Preconditions.CheckNotNull(messageResponseTimeout, nameof(messageResponseTimeout));
-            Events.Log.LogDebug($"Message response timeout: {this.messageResponseTimeout.ToString()}");
-            Events.Log.LogDebug(this.messageResponseTimeout.Humanize());
+            this.messageAckTimeout = Preconditions.CheckNotNull(messageAckTimeout, nameof(messageAckTimeout));
         }
 
         public IIdentity Identity { get; }
@@ -254,7 +252,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         static class Events
         {
             const int IdStart = HubCoreEventIds.DeviceListener;
-            public static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceMessageHandler>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceMessageHandler>();
 
             enum EventIds
             {
@@ -419,7 +417,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                     Metrics.MessageProcessingLatency(this.Identity, message);
                     await this.underlyingProxy.SendMessageAsync(message, input);
 
-                    Task completedTask = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(this.messageResponseTimeout));
+                    Task completedTask = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(this.messageAckTimeout));
                     if (completedTask != taskCompletionSource.Task)
                     {
                         Events.MessageFeedbackTimedout(this.Identity, lockToken);
