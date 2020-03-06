@@ -58,9 +58,18 @@ namespace CloudToDeviceMessageTester
 
             while (!ct.IsCancellationRequested && this.IsTestTimeUp(testStartAt))
             {
-                MessageTestResult testResult = await this.SendCloudToDeviceMessageAsync(batchId, this.trackingId);
+                MessageTestResult testResult = null;
+                try
+                {
+                    testResult = await this.SendCloudToDeviceMessageAsync(batchId, this.trackingId);
+                    this.messageCount++;
+                }
+                catch (Exception ex)
+                {
+                    this.logger.LogInformation($"Error occurred while sending Cloud to Device message for Sequence number: {this.messageCount}, batchId: {batchId}. Error message: {ex.Message}");
+                }
+
                 await ModuleUtil.ReportTestResultAsync(this.testResultReportingClient, this.logger, testResult);
-                this.messageCount++;
                 await Task.Delay(this.messageDelay, ct);
             }
         }
@@ -68,26 +77,19 @@ namespace CloudToDeviceMessageTester
         internal async Task<MessageTestResult> SendCloudToDeviceMessageAsync(Guid batchId, string trackingId)
         {
             this.logger.LogInformation($"Sending C2D message to deviceId: {this.deviceId} with Sequence Number: {this.messageCount}, batchId: {batchId}, and trackingId: {trackingId}");
-            try
-            {
-                var message = new Message(Encoding.ASCII.GetBytes("Cloud to device message."));
-                message.Properties.Add(TestConstants.Message.SequenceNumberPropertyName, this.messageCount.ToString());
-                message.Properties.Add(TestConstants.Message.BatchIdPropertyName, batchId.ToString());
-                message.Properties.Add(TestConstants.Message.TrackingIdPropertyName, trackingId);
-                await this.serviceClient.SendAsync(this.deviceId, message);
+            
+            var message = new Message(Encoding.ASCII.GetBytes("Cloud to device message."));
+            message.Properties.Add(TestConstants.Message.SequenceNumberPropertyName, this.messageCount.ToString());
+            message.Properties.Add(TestConstants.Message.BatchIdPropertyName, batchId.ToString());
+            message.Properties.Add(TestConstants.Message.TrackingIdPropertyName, trackingId);
+            await this.serviceClient.SendAsync(this.deviceId, message);
 
-                return new MessageTestResult(this.moduleId + ".send", DateTime.UtcNow)
-                {
-                    TrackingId = trackingId,
-                    BatchId = batchId.ToString(),
-                    SequenceNumber = this.messageCount.ToString()
-                };
-            }
-            catch (Exception ex)
+            return new MessageTestResult(this.moduleId + ".send", DateTime.UtcNow)
             {
-                this.logger.LogError(ex, $"Error occurred while sending Cloud to Device message for Sequence nubmer: {this.messageCount}, batchId: {batchId}.");
-                throw ex;
-            }
+                TrackingId = trackingId,
+                BatchId = batchId.ToString(),
+                SequenceNumber = this.messageCount.ToString()
+            };
         }
 
         bool IsTestTimeUp(DateTime testStartAt)
