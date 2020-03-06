@@ -2,13 +2,15 @@ use std::{env, io};
 
 use failure::ResultExt;
 use futures_util::pin_mut;
-use mqtt_broker::*;
-use tokio::signal::unix::SignalKind;
 use tokio::time::Duration;
 use tracing::{info, warn, Level};
 use tracing_subscriber::{fmt, EnvFilter};
 
-mod shutdown;
+use mqtt_broker::{
+    Broker, BrokerHandle, Error, ErrorKind, Message, NullPersistor, Persist, Server, Snapshotter,
+    StateSnapshotHandle, SystemEvent,
+};
+use mqttd::{shutdown, snapshot};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -49,8 +51,8 @@ async fn main() -> Result<(), Error> {
     tokio::spawn(tick);
 
     // Signal the snapshotter
-    let signal = signal_snapshot(broker.handle(), snapshot_handle.clone());
-    tokio::spawn(signal);
+    let snapshot = snapshot::snapshot(broker.handle(), snapshot_handle.clone());
+    tokio::spawn(snapshot);
 
     info!("Starting server...");
     let state = Server::from_broker(broker).serve(addr, shutdown).await?;
@@ -84,30 +86,6 @@ async fn tick_snapshot(
             .await
         {
             warn!(message = "failed to tick the snapshotter", error=%e);
-        }
-    }
-}
-
-async fn signal_snapshot(mut broker_handle: BrokerHandle, snapshot_handle: StateSnapshotHandle) {
-    let mut stream = match tokio::signal::unix::signal(SignalKind::user_defined1()) {
-        Ok(stream) => stream,
-        Err(e) => {
-            warn!(message = "an error occurred setting up the signal handler", error=%e);
-            return;
-        }
-    };
-
-    info!("Setup to persist state on USR1 signal");
-    loop {
-        stream.recv().await;
-        info!("Received signal USR1");
-        if let Err(e) = broker_handle
-            .send(Message::System(SystemEvent::StateSnapshot(
-                snapshot_handle.clone(),
-            )))
-            .await
-        {
-            warn!(message = "failed to signal the snapshotter", error=%e);
         }
     }
 }
