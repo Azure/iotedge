@@ -202,7 +202,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public async Task MessageCompletionTimeoutTest()
+        public async Task MessageCompletionShortAckTimeoutTest()
         {
             var connMgr = new Mock<IConnectionManager>();
             connMgr.Setup(c => c.AddDeviceConnection(It.IsAny<IIdentity>(), It.IsAny<IDeviceProxy>()));
@@ -210,17 +210,57 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var cloudProxy = new Mock<ICloudProxy>();
             var edgeHub = Mock.Of<IEdgeHub>();
             var underlyingDeviceProxy = new Mock<IDeviceProxy>();
+            IMessage receivedMessage = null;
             underlyingDeviceProxy.Setup(d => d.SendMessageAsync(It.IsAny<IMessage>(), It.IsAny<string>()))
+                .Callback<IMessage, string>((m, s) => receivedMessage = m)
                 .Returns(Task.CompletedTask);
             connMgr.Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
-            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, DefaultMessageAckTimeout);
+            TimeSpan messageAckTimeout = TimeSpan.FromSeconds(5);
+            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, messageAckTimeout);
             deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
 
             IMessage message = new EdgeMessage.Builder(new byte[0]).Build();
             Task sendMessageTask = deviceMessageHandler.SendMessageAsync(message, "input1");
             Assert.False(sendMessageTask.IsCompleted);
 
+            await Task.Delay(TimeSpan.FromSeconds(10));
+
+            string messageId = receivedMessage.SystemProperties[SystemProperties.LockToken];
+            await deviceMessageHandler.ProcessMessageFeedbackAsync(messageId, FeedbackStatus.Complete);
+
+            await Task.Delay(TimeSpan.FromSeconds(1));
             await Assert.ThrowsAsync<TimeoutException>(async () => await sendMessageTask);
+        }
+
+        [Fact]
+        public async Task MessageCompletionLongAckTimeoutTest()
+        {
+            var connMgr = new Mock<IConnectionManager>();
+            connMgr.Setup(c => c.AddDeviceConnection(It.IsAny<IIdentity>(), It.IsAny<IDeviceProxy>()));
+            var identity = Mock.Of<IModuleIdentity>(m => m.DeviceId == "device1" && m.ModuleId == "module1" && m.Id == "device1/module1");
+            var cloudProxy = new Mock<ICloudProxy>();
+            var edgeHub = Mock.Of<IEdgeHub>();
+            var underlyingDeviceProxy = new Mock<IDeviceProxy>();
+            IMessage receivedMessage = null;
+            underlyingDeviceProxy.Setup(d => d.SendMessageAsync(It.IsAny<IMessage>(), It.IsAny<string>()))
+                .Callback<IMessage, string>((m, s) => receivedMessage = m)
+                .Returns(Task.CompletedTask);
+            connMgr.Setup(c => c.GetCloudConnection(It.IsAny<string>())).Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
+            TimeSpan messageAckTimeout = TimeSpan.FromSeconds(15);
+            var deviceMessageHandler = new DeviceMessageHandler(identity, edgeHub, connMgr.Object, messageAckTimeout);
+            deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
+
+            IMessage message = new EdgeMessage.Builder(new byte[0]).Build();
+            Task sendMessageTask = deviceMessageHandler.SendMessageAsync(message, "input1");
+            Assert.False(sendMessageTask.IsCompleted);
+
+            await Task.Delay(TimeSpan.FromSeconds(10));
+
+            string messageId = receivedMessage.SystemProperties[SystemProperties.LockToken];
+            await deviceMessageHandler.ProcessMessageFeedbackAsync(messageId, FeedbackStatus.Complete);
+
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            Assert.True(sendMessageTask.IsCompleted);
         }
 
         [Fact]
