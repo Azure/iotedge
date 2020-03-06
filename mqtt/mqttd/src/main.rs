@@ -34,7 +34,10 @@ async fn main() -> Result<(), Error> {
         BincodeFormat::new(),
     );
     info!("Loading state...");
-    let state = persistor.load().await?;
+    let state = persistor
+        .load()
+        .await?
+        .unwrap_or_else(|| BrokerState::default());
     let broker = Broker::from_state(state);
     info!("state loaded.");
 

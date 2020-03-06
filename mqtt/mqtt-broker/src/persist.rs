@@ -27,7 +27,7 @@ static STATE_EXTENSION: &str = "dat";
 pub trait Persist {
     type Error: Into<Error>;
 
-    async fn load(&mut self) -> Result<BrokerState, Self::Error>;
+    async fn load(&mut self) -> Result<Option<BrokerState>, Self::Error>;
 
     async fn store(&mut self, state: BrokerState) -> Result<(), Self::Error>;
 }
@@ -39,8 +39,8 @@ pub struct NullPersistor;
 impl Persist for NullPersistor {
     type Error = Error;
 
-    async fn load(&mut self) -> Result<BrokerState, Self::Error> {
-        Ok(BrokerState::default())
+    async fn load(&mut self) -> Result<Option<BrokerState>, Self::Error> {
+        Ok(None)
     }
 
     async fn store(&mut self, _: BrokerState) -> Result<(), Self::Error> {
@@ -126,7 +126,7 @@ where
 {
     type Error = Error;
 
-    async fn load(&mut self) -> Result<BrokerState, Self::Error> {
+    async fn load(&mut self) -> Result<Option<BrokerState>, Self::Error> {
         let dir = self.dir.clone();
         let format = self.format.clone();
 
@@ -147,13 +147,10 @@ where
                     Err(Error::from(ErrorKind::Persist(ErrorReason::Serialize)))
                 });
                 let state = format.load(file).map_err(|e| e.into())?;
-                Ok(state)
+                Ok(Some(state))
             } else {
-                info!(
-                    "no state file found at {}. initializing with empty state.",
-                    path.display()
-                );
-                Ok(BrokerState::default())
+                info!("no state file found at {}.", path.display());
+                Ok(None)
             }
         })
         .await;
