@@ -157,6 +157,7 @@ namespace TestResultCoordinator
             var fields = new Dictionary<string, string>
             {
                 { nameof(this.TrackingId), this.TrackingId },
+                { nameof(this.DeviceId), this.DeviceId },
                 { nameof(this.ModuleId), this.ModuleId },
                 { nameof(this.WebHostPort), this.WebHostPort.ToString() },
                 { nameof(this.StoragePath), this.StoragePath },
