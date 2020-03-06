@@ -23,6 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Moq;
     using Newtonsoft.Json;
     using EdgeHubConstants = Microsoft.Azure.Devices.Edge.Hub.Service.Constants;
+    using StorageLogLevel = Microsoft.Azure.Devices.Edge.Storage.StorageLogLevel;
 
     class DependencyManager : IDependencyManager
     {
@@ -156,6 +157,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     this.trustBundle,
                     string.Empty,
                     metricsConfig,
+                    Option.None<ulong>(),
+                    Option.None<StorageLogLevel>(),
                     enableNonPersistentStorageBackup,
                     backupFolder));
 
