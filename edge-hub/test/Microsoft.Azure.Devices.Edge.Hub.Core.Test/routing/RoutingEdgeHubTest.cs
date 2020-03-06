@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     [Unit]
     public class RoutingEdgeHubTest
     {
-        static readonly TimeSpan DefaultMessageResponseTimeout = TimeSpan.FromSeconds(30);
+        static readonly TimeSpan DefaultMessageAckTimeout = TimeSpan.FromSeconds(30);
 
         [Fact]
         public async Task ProcessDeviceMessageBatch_ConvertsMessages()
@@ -283,7 +283,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 invokeMethodHandler,
                 subscriptionProcessor);
 
-            var deviceMessageHandler = new DeviceMessageHandler(identity, routingEdgeHub, connectionManager, DefaultMessageResponseTimeout);
+            var deviceMessageHandler = new DeviceMessageHandler(identity, routingEdgeHub, connectionManager, DefaultMessageAckTimeout);
             var methodRequest = new DirectMethodRequest("device1/module1", "shutdown", null, TimeSpan.FromSeconds(2), TimeSpan.FromMilliseconds(10));
 
             // Act
@@ -365,7 +365,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 invokeMethodHandler,
                 Mock.Of<ISubscriptionProcessor>());
 
-            var deviceMessageHandler = new DeviceMessageHandler(identity, routingEdgeHub, connectionManager, DefaultMessageResponseTimeout);
+            var deviceMessageHandler = new DeviceMessageHandler(identity, routingEdgeHub, connectionManager, DefaultMessageAckTimeout);
 
             // Act
             deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
@@ -442,7 +442,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 invokeMethodHandler,
                 subscriptionProcessor);
 
-            var deviceMessageHandler = new DeviceMessageHandler(identity, routingEdgeHub, connectionManager, DefaultMessageResponseTimeout);
+            var deviceMessageHandler = new DeviceMessageHandler(identity, routingEdgeHub, connectionManager, DefaultMessageAckTimeout);
             var underlyingDeviceProxy = new Mock<IDeviceProxy>();
 
             // Arrange

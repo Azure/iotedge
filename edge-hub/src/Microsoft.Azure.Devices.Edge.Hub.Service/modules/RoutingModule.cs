@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly Option<UpstreamProtocol> upstreamProtocol;
         readonly TimeSpan connectivityCheckFrequency;
         readonly int maxConnectedClients;
-        readonly TimeSpan messageResponseTimeout;
+        readonly TimeSpan messageAckTimeout;
         readonly TimeSpan cloudConnectionIdleTimeout;
         readonly bool closeCloudConnectionOnIdleTimeout;
         readonly TimeSpan operationTimeout;
@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             Option<UpstreamProtocol> upstreamProtocol,
             TimeSpan connectivityCheckFrequency,
             int maxConnectedClients,
-            TimeSpan messageResponseTimeout,
+            TimeSpan messageAckTimeout,
             TimeSpan cloudConnectionIdleTimeout,
             bool closeCloudConnectionOnIdleTimeout,
             TimeSpan operationTimeout,
@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.upstreamProtocol = upstreamProtocol;
             this.connectivityCheckFrequency = connectivityCheckFrequency;
             this.maxConnectedClients = Preconditions.CheckRange(maxConnectedClients, 1);
-            this.messageResponseTimeout = messageResponseTimeout;
+            this.messageAckTimeout = messageAckTimeout;
             this.cloudConnectionIdleTimeout = cloudConnectionIdleTimeout;
             this.closeCloudConnectionOnIdleTimeout = closeCloudConnectionOnIdleTimeout;
             this.operationTimeout = operationTimeout;
@@ -583,7 +583,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         var edgeHubTask = c.Resolve<Task<IEdgeHub>>();
                         IConnectionManager connectionManager = await connectionManagerTask;
                         IEdgeHub edgeHub = await edgeHubTask;
-                        IConnectionProvider connectionProvider = new ConnectionProvider(connectionManager, edgeHub, this.messageResponseTimeout);
+                        IConnectionProvider connectionProvider = new ConnectionProvider(connectionManager, edgeHub, this.messageAckTimeout);
                         return connectionProvider;
                     })
                 .As<Task<IConnectionProvider>>()
