@@ -280,7 +280,7 @@ function Initialize-IoTEdge {
 
     Set-ProvisioningMode
     Set-Certificates
-    if ($DpsX509 -or $ManualX509) {
+    if (![string]::IsNullOrEmpty($X509IdentityCertificate)) {
         Import-IntermediateCertChain $X509IdentityCertificate
     }
     Set-AgentImage
