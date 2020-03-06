@@ -2260,8 +2260,6 @@ function Import-IntermediateCertChain ([string] $DeviceIdentityCertPath){
         $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 (,$bytes)
         $certificateStore.Add($cert)
     }
-
-    $certificateStore.Close();
 }
 
 New-Alias -Name Install-SecurityDaemon -Value Install-IoTEdge -Force
