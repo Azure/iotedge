@@ -13,6 +13,7 @@ namespace TestResultCoordinator
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
     using TestResultCoordinator.Reports;
 
     class Settings
@@ -25,7 +26,6 @@ namespace TestResultCoordinator
         List<ITestReportMetadata> reportMetadatas = null;
 
         Settings(
-            string testBuildNumber,
             string trackingId,
             string eventHubConnectionString,
             string iotHubConnectionString,
@@ -41,11 +41,11 @@ namespace TestResultCoordinator
             TimeSpan testDuration,
             TimeSpan verificationDelay,
             string storageAccountConnectionString,
-            string networkControllerRunProfileName)
+            string networkControllerRunProfileName,
+            string testInfo)
         {
             Preconditions.CheckRange(testDuration.Ticks, 1);
 
-            this.TestBuildNumber = Preconditions.CheckNonWhiteSpace(testBuildNumber, nameof(testBuildNumber));
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.EventHubConnectionString = Preconditions.CheckNonWhiteSpace(eventHubConnectionString, nameof(eventHubConnectionString));
             this.IoTHubConnectionString = Preconditions.CheckNonWhiteSpace(iotHubConnectionString, nameof(iotHubConnectionString));
@@ -62,7 +62,15 @@ namespace TestResultCoordinator
             this.DurationBeforeVerification = verificationDelay;
             this.ConsumerGroupName = "$Default";
             this.StorageAccountConnectionString = Preconditions.CheckNonWhiteSpace(storageAccountConnectionString, nameof(storageAccountConnectionString));
-            this.NetworkControllerType = GetNetworkControllerType(networkControllerRunProfileName);
+            this.NetworkControllerType = this.GetNetworkControllerType(networkControllerRunProfileName);
+
+            this.TestInfo = testInfo.Split(",", StringSplitOptions.RemoveEmptyEntries)
+                                .Select(x => (KeyAndValue: x, SplitIndex: x.IndexOf('=')))
+                                .Where(x => x.SplitIndex >= 1)
+                                .ToDictionary(
+                                    x => x.KeyAndValue.Substring(0, x.SplitIndex),
+                                    x => x.KeyAndValue.Substring(x.SplitIndex + 1, x.KeyAndValue.Length - x.SplitIndex - 1));
+            this.TestInfo.Add("DeviceId", this.DeviceId);
         }
 
         private NetworkControllerType GetNetworkControllerType(string networkControllerRunProfileName)
@@ -88,7 +96,6 @@ namespace TestResultCoordinator
                 .Build();
 
             return new Settings(
-                configuration.GetValue<string>("TEST_BUILD_NUMBER"),
                 configuration.GetValue<string>("trackingId"),
                 configuration.GetValue<string>("eventHubConnectionString"),
                 configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING"),
@@ -104,7 +111,8 @@ namespace TestResultCoordinator
                 configuration.GetValue("testDuration", TimeSpan.FromHours(1)),
                 configuration.GetValue("verificationDelay", TimeSpan.FromMinutes(15)),
                 configuration.GetValue<string>("STORAGE_ACCOUNT_CONNECTION_STRING"),
-                configuration.GetValue<string>(TestConstants.NetworkController.RunProfilePropertyName));
+                configuration.GetValue<string>(TestConstants.NetworkController.RunProfilePropertyName),
+                configuration.GetValue<string>("TEST_INFO"));
         }
 
         public string EventHubConnectionString { get; }
@@ -139,7 +147,7 @@ namespace TestResultCoordinator
 
         public string StorageAccountConnectionString { get; }
 
-        public string TestBuildNumber { get; }
+        public Dictionary<string, string> TestInfo { get; }
 
         public NetworkControllerType NetworkControllerType { get; }
 
@@ -149,8 +157,6 @@ namespace TestResultCoordinator
             var fields = new Dictionary<string, string>
             {
                 { nameof(this.TrackingId), this.TrackingId },
-                { nameof(this.TestBuildNumber), this.TestBuildNumber },
-                { nameof(this.DeviceId), this.DeviceId },
                 { nameof(this.ModuleId), this.ModuleId },
                 { nameof(this.WebHostPort), this.WebHostPort.ToString() },
                 { nameof(this.StoragePath), this.StoragePath },
@@ -159,7 +165,8 @@ namespace TestResultCoordinator
                 { nameof(this.TestDuration), this.TestDuration.ToString() },
                 { nameof(this.DurationBeforeVerification), this.DurationBeforeVerification.ToString() },
                 { nameof(this.ConsumerGroupName), this.ConsumerGroupName },
-                { nameof(this.NetworkControllerType), this.NetworkControllerType.ToString() }
+                { nameof(this.NetworkControllerType), this.NetworkControllerType.ToString() },
+                { nameof(this.TestInfo), JsonConvert.SerializeObject(this.TestInfo) }
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
