@@ -66,6 +66,8 @@ fn test_failpoints_smoketest() {
     scenario.teardown();
 }
 
+// Generates random sequences of events and failures and ensures
+// that the last commited snapshot isn't corrupted.
 proptest! {
     #[test]
     fn test_failpoints(count in 0usize..10, ops in vec(arb_op(), 0..50)) {

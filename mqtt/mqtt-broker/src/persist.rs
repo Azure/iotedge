@@ -32,6 +32,7 @@ pub trait Persist {
     async fn store(&mut self, state: BrokerState) -> Result<(), Self::Error>;
 }
 
+/// A persistor that does nothing.
 #[derive(Debug)]
 pub struct NullPersistor;
 
@@ -48,6 +49,7 @@ impl Persist for NullPersistor {
     }
 }
 
+/// An abstraction over the broker state's file format.
 pub trait FileFormat {
     type Error: Into<Error>;
 
@@ -92,6 +94,7 @@ impl<F> FilePersistor<F> {
     }
 }
 
+/// A simple format based on Bincode and serde
 #[derive(Clone, Debug)]
 pub struct BincodeFormat;
 
