@@ -10,6 +10,7 @@ edition = "2018"
 async-trait = "0.1"
 bincode = "1.2"
 chrono = "0.4"
+fail = "0.3"
 failure = "0.1"
 flate2 = "1.0"
 futures-util = { version = "0.3", features = ["sink"] }
@@ -27,7 +28,14 @@ mqtt3 = { path = "../mqtt3", features = ["serde1"] }
 [dev-dependencies]
 atty = "0.2"
 bytes = "0.5"
+fail = { version = "0.3", features = ["failpoints"] }
 matches = "0.1"
 proptest = "0.9"
+tempfile = "3"
+tokio = { version = "0.2", features = ["dns", "macros"] }
 tracing-subscriber = "0.1"
+
+[[test]]
+name = "persist_failpoints"
+required-features = ["fail/failpoints"]
 

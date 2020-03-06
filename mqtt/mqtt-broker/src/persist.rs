@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use std::{cmp, fmt};
 
 use async_trait::async_trait;
+use fail::fail_point;
 use failure::ResultExt;
 use flate2::read::GzDecoder;
 use flate2::write::GzEncoder;
@@ -128,14 +129,23 @@ where
     async fn load(&mut self) -> Result<BrokerState, Self::Error> {
         let dir = self.dir.clone();
         let format = self.format.clone();
-        tokio::task::spawn_blocking(move || {
+
+        let res = tokio::task::spawn_blocking(move || {
             let path = dir.join(format!("{}.{}", STATE_DEFAULT_STEM, STATE_EXTENSION));
             if path.exists() {
                 info!("loading state from file {}.", path.display());
+
+                fail_point!("filepersistor.load.fileopen", |_| {
+                    Err(Error::from(ErrorKind::Persist(ErrorReason::FileOpen)))
+                });
                 let file = OpenOptions::new()
                     .read(true)
                     .open(path)
                     .context(ErrorKind::Persist(ErrorReason::FileOpen))?;
+
+                fail_point!("filepersistor.load.format", |_| {
+                    Err(Error::from(ErrorKind::Persist(ErrorReason::Serialize)))
+                });
                 let state = format.load(file).map_err(|e| e.into())?;
                 Ok(state)
             } else {
@@ -146,15 +156,20 @@ where
                 Ok(BrokerState::default())
             }
         })
-        .await
-        .context(ErrorKind::TaskJoin)?
+        .await;
+
+        fail_point!("filepersistor.load.spawn_blocking", |_| {
+            Err(Error::from(ErrorKind::TaskJoin))
+        });
+        res.context(ErrorKind::TaskJoin)?
     }
 
     async fn store(&mut self, state: BrokerState) -> Result<(), Self::Error> {
         let dir = self.dir.clone();
         let format = self.format.clone();
         let count = self.count;
-        tokio::task::spawn_blocking(move || {
+
+        let res = tokio::task::spawn_blocking(move || {
             let span = span!(Level::INFO, "persistor", dir = %dir.display());
             let _guard = span.enter();
 
@@ -237,8 +252,12 @@ where
             info!(message="persisted state.", file=%path.display());
             Ok(())
         })
-        .await
-        .context(ErrorKind::TaskJoin)?
+        .await;
+
+        fail_point!("filepersistor.store.spawn_blocking", |_| {
+            Err(Error::from(ErrorKind::TaskJoin))
+        });
+        res.context(ErrorKind::TaskJoin)?
     }
 }
 

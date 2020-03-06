@@ -208,6 +208,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "fail"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f63eec71a3013ee912a0ecb339ff0c5fa5ed9660df04bfefa10c250b885d018c"
+dependencies = [
+ "lazy_static",
+ "log",
+ "rand 0.6.5",
+]
+
+[[package]]
 name = "failure"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -490,6 +501,7 @@ dependencies = [
  "bincode",
  "bytes",
  "chrono",
+ "fail",
  "failure",
  "flate2",
  "futures-util",
@@ -498,6 +510,7 @@ dependencies = [
  "mqtt3",
  "proptest",
  "serde",
+ "tempfile",
  "tokio",
  "tokio-io-timeout",
  "tokio-util",
