@@ -135,6 +135,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             TimeSpan connectivityCheckFrequency = connectivityCheckFrequencySecs < 0 ? TimeSpan.MaxValue : TimeSpan.FromSeconds(connectivityCheckFrequencySecs);
             // n Clients + 1 Edgehub
             int maxConnectedClients = this.configuration.GetValue("MaxConnectedClients", 100) + 1;
+            int messageResponseTimeoutSecs = this.configuration.GetValue("MessageResponseTimeoutSecs", 30);
+            TimeSpan messageResponseTimeout = TimeSpan.FromSeconds(messageResponseTimeoutSecs);
             int cloudConnectionIdleTimeoutSecs = this.configuration.GetValue("CloudConnectionIdleTimeoutSecs", 3600);
             TimeSpan cloudConnectionIdleTimeout = TimeSpan.FromSeconds(cloudConnectionIdleTimeoutSecs);
             bool closeCloudConnectionOnIdleTimeout = this.configuration.GetValue("CloseCloudConnectionOnIdleTimeout", true);
@@ -169,6 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     upstreamProtocolOption,
                     connectivityCheckFrequency,
                     maxConnectedClients,
+                    messageResponseTimeout,
                     cloudConnectionIdleTimeout,
                     closeCloudConnectionOnIdleTimeout,
                     cloudOperationTimeout,
