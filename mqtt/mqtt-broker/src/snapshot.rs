@@ -17,7 +17,7 @@ impl StateSnapshotHandle {
         self.0
             .send(Event::State(state))
             .await
-            .map_err(|_e| ErrorKind::SendSnapshotMessage)?;
+            .map_err(|_| ErrorKind::SendSnapshotMessage)?;
         Ok(())
     }
 }
@@ -30,7 +30,7 @@ impl ShutdownHandle {
         self.0
             .send(Event::Shutdown)
             .await
-            .map_err(|_e| ErrorKind::SendSnapshotMessage)?;
+            .map_err(|_| ErrorKind::SendSnapshotMessage)?;
         Ok(())
     }
 }

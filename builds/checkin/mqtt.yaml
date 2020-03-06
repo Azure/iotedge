@@ -57,8 +57,6 @@ jobs:
         displayName: Test
       - powershell: mqtt/build/windows/clippy.ps1
         displayName: Clippy
-      - powershell: mqtt/build/windows/check-arm32-patch.ps1
-        displayName: Sanity-check that ARM32 build won't break
 
   ################################################################################
   - job: style_check
