@@ -26,7 +26,7 @@ $util = Join-Path -Path $PSScriptRoot -ChildPath 'util.ps1'
 Assert-Rust -Arm
 PatchRustForArm
 
-$cargoLockContent = [System.IO.File]::ReadAllText((Join-Path (Get-EdgeletFolder) -ChildPath 'Cargo.lock'))
+$cargoLockContent = [System.IO.File]::ReadAllText((Join-Path (Get-MqttFolder) -ChildPath 'Cargo.lock'))
 
 if ($cargoLockContent.Contains("[[package]]`nname = `"winapi`"`nversion = `"0.2")) {
 	throw (
