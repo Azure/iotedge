@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 1fa0ed62e6017d51b84f7c49903ea9542197af22788c7ec18d19248e09ac3556 # shrinks to filter = TopicFilter { segments: [MultiLevelWildcard, Level("A")] }
+cc 031b65feac94540ee004dd359fa8a4ab2ba161c20ed2707f2110606bd05f137a # shrinks to filter = TopicFilter { segments: [] }

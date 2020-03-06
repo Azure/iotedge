@@ -7,6 +7,8 @@ namespace TestResultCoordinator
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
@@ -38,7 +40,8 @@ namespace TestResultCoordinator
             TimeSpan testStartDelay,
             TimeSpan testDuration,
             TimeSpan verificationDelay,
-            string storageAccountConnectionString)
+            string storageAccountConnectionString,
+            string networkControllerRunProfileName)
         {
             Preconditions.CheckRange(testDuration.Ticks, 1);
 
@@ -59,6 +62,21 @@ namespace TestResultCoordinator
             this.DurationBeforeVerification = verificationDelay;
             this.ConsumerGroupName = "$Default";
             this.StorageAccountConnectionString = Preconditions.CheckNonWhiteSpace(storageAccountConnectionString, nameof(storageAccountConnectionString));
+            this.NetworkControllerType = GetNetworkControllerType(networkControllerRunProfileName);
+        }
+
+        private NetworkControllerType GetNetworkControllerType(string networkControllerRunProfileName)
+        {
+            // TODO: remove this; network controller should report this information.
+            switch (networkControllerRunProfileName)
+            {
+                case "SatelliteGood":
+                    return NetworkControllerType.Satellite;
+                case "Cellular3G":
+                    return NetworkControllerType.Cellular;
+                default:
+                    return (NetworkControllerType)Enum.Parse(typeof(NetworkControllerType), networkControllerRunProfileName);
+            }
         }
 
         static Settings Create()
@@ -85,7 +103,8 @@ namespace TestResultCoordinator
                 configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
                 configuration.GetValue("testDuration", TimeSpan.FromHours(1)),
                 configuration.GetValue("verificationDelay", TimeSpan.FromMinutes(15)),
-                configuration.GetValue<string>("STORAGE_ACCOUNT_CONNECTION_STRING"));
+                configuration.GetValue<string>("STORAGE_ACCOUNT_CONNECTION_STRING"),
+                configuration.GetValue<string>(TestConstants.NetworkController.RunProfilePropertyName));
         }
 
         public string EventHubConnectionString { get; }
@@ -122,6 +141,8 @@ namespace TestResultCoordinator
 
         public string TestBuildNumber { get; }
 
+        public NetworkControllerType NetworkControllerType { get; }
+
         public override string ToString()
         {
             // serializing in this pattern so that secrets don't accidentally get added anywhere in the future
@@ -138,6 +159,7 @@ namespace TestResultCoordinator
                 { nameof(this.TestDuration), this.TestDuration.ToString() },
                 { nameof(this.DurationBeforeVerification), this.DurationBeforeVerification.ToString() },
                 { nameof(this.ConsumerGroupName), this.ConsumerGroupName },
+                { nameof(this.NetworkControllerType), this.NetworkControllerType.ToString() }
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
