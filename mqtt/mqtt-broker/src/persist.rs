@@ -106,6 +106,9 @@ impl FileFormat for BincodeFormat {
 
     fn load<R: Read>(&self, reader: R) -> Result<BrokerState, Self::Error> {
         let decoder = GzDecoder::new(reader);
+        fail_point!("bincodeformat.load.deserialize_from", |_| {
+            Err(Error::from(ErrorKind::Persist(ErrorReason::Deserialize)))
+        });
         let state = bincode::deserialize_from(decoder)
             .context(ErrorKind::Persist(ErrorReason::Deserialize))?;
         Ok(state)
@@ -113,6 +116,9 @@ impl FileFormat for BincodeFormat {
 
     fn store<W: Write>(&self, writer: W, state: BrokerState) -> Result<(), Self::Error> {
         let encoder = GzEncoder::new(writer, Compression::default());
+        fail_point!("bincodeformat.store.serialize_into", |_| {
+            Err(Error::from(ErrorKind::Persist(ErrorReason::Deserialize)))
+        });
         bincode::serialize_into(encoder, &state)
             .context(ErrorKind::Persist(ErrorReason::Serialize))?;
         Ok(())
@@ -180,6 +186,9 @@ where
 
             info!(message="persisting state...", file=%path.display());
             debug!("opening {} for writing state...", path.display());
+            fail_point!("filepersistor.store.fileopen", |_| {
+                Err(Error::from(ErrorKind::Persist(ErrorReason::FileOpen)))
+            });
             let file = OpenOptions::new()
                 .create(true)
                 .write(true)
@@ -196,11 +205,18 @@ where
                     //   - remove the old link if exists
                     //   - link the new file
                     if default_path.exists() {
+                        fail_point!("filepersistor.store.symlink_unlink", |_| {
+                            Err(Error::from(ErrorKind::Persist(ErrorReason::SymlinkUnlink)))
+                        });
                         fs::remove_file(&default_path)
                             .context(ErrorKind::Persist(ErrorReason::SymlinkUnlink))?;
                     }
 
                     debug!("linking {} to {}", default_path.display(), path.display());
+
+                    fail_point!("filepersistor.store.symlink", |_| {
+                        Err(Error::from(ErrorKind::Persist(ErrorReason::Symlink)))
+                    });
 
                     #[cfg(unix)]
                     symlink(&path, &default_path)
@@ -211,6 +227,10 @@ where
                         .context(ErrorKind::Persist(ErrorReason::Symlink))?;
 
                     // Prune old states
+                    fail_point!("filepersistor.store.readdir", |_| {
+                        Err(Error::from(ErrorKind::Persist(ErrorReason::ReadDir)))
+                    });
+
                     let mut entries = fs::read_dir(&dir)
                         .context(ErrorKind::Persist(ErrorReason::ReadDir))?
                         .filter_map(|maybe_entry| maybe_entry.ok())
@@ -236,12 +256,19 @@ where
                             "pruning old state file {}...",
                             entry.file_name().to_string_lossy()
                         );
+
+                        fail_point!("filepersistor.store.entry_unlink", |_| {
+                            Err(Error::from(ErrorKind::Persist(ErrorReason::FileUnlink)))
+                        });
                         fs::remove_file(entry.file_name())
                             .context(ErrorKind::Persist(ErrorReason::FileUnlink))?;
                         debug!("{} pruned.", entry.file_name().to_string_lossy());
                     }
                 }
                 Err(e) => {
+                    fail_point!("filepersistor.store.new_file_unlink", |_| {
+                        Err(Error::from(ErrorKind::Persist(ErrorReason::FileUnlink)))
+                    });
                     fs::remove_file(path).context(ErrorKind::Persist(ErrorReason::FileUnlink))?;
                     return Err(e.into());
                 }

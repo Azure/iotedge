@@ -6,9 +6,17 @@ use proptest::prelude::*;
 use tempfile::TempDir;
 
 const FAILPOINTS: &'static [&'static str] = &[
+    "bincodeformat.load.deserialize_from",
+    "bincodeformat.store.serialize_into",
     "filepersistor.load.fileopen",
     "filepersistor.load.format",
     "filepersistor.load.spawn_blocking",
+    "filepersistor.store.fileopen",
+    "filepersistor.store.symlink_unlink",
+    "filepersistor.store.symlink",
+    "filepersistor.store.readdir",
+    "filepersistor.store.entry_unlink",
+    "filepersistor.store.new_file_unlink",
     "filepersistor.store.spawn_blocking",
 ];
 
