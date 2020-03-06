@@ -6,7 +6,6 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
     using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
-    using global::TestResultCoordinator;
     using global::TestResultCoordinator.Reports;
     using global::TestResultCoordinator.Reports.DirectMethod;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
@@ -23,7 +22,6 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
     public class DirectMethodReportGeneratorTest
     {
         static NetworkStatusTimeline NetworkStatusTimeline => MockNetworkStatusTimeline.GetMockAsync(new TimeSpan(0, 0, 0, 0, 5)).Result;
-        
         static readonly string TestDescription = "dummy description";
 
         [Fact]
