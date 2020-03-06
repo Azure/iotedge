@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             this.Identity = Preconditions.CheckNotNull(identity, nameof(identity));
             this.edgeHub = Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
-            this.messageAckTimeout = Preconditions.CheckNotNull(messageAckTimeout, nameof(messageAckTimeout));
+            this.messageAckTimeout = messageAckTimeout;
         }
 
         public IIdentity Identity { get; }

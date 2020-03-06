@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.edgeHub = Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
-            this.messageAckTimeout = Preconditions.CheckNotNull(messageAckTimeout, nameof(messageAckTimeout));
+            this.messageAckTimeout = messageAckTimeout;
         }
 
         public Task<IDeviceListener> GetDeviceListenerAsync(IIdentity identity)
