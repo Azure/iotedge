@@ -55,7 +55,8 @@ steps:
         chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/testHelper.sh
         chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/connectivityTest.sh
 
-        testInfo="TestBuildId=${{ parameters['test.buildId'] }}"
+        testInfo="TestBuildNumber=${{ parameters['test.buildNumber'] }}"
+        testInfo="$testInfo,TestBuildId=${{ parameters['test.buildId'] }}"
         testInfo="$testInfo,BuildSourceBranch=${{ parameters['build.source.branch'] }}"
         testInfo="$testInfo,EdgeletSourceBranch=${{ parameters['edgelet.source.branch'] }}"
         testInfo="$testInfo,ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
