@@ -34,8 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             this.edgeHub = Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.messageResponseTimeout = Preconditions.CheckNotNull(messageResponseTimeout, nameof(messageResponseTimeout));
-            Events.Log.LogDebug($"Message response timeout: {this.messageResponseTimeout.ToString()}");
-            Events.Log.LogDebug(this.messageResponseTimeout.Humanize());
         }
 
         public IIdentity Identity { get; }
@@ -254,7 +252,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         static class Events
         {
             const int IdStart = HubCoreEventIds.DeviceListener;
-            public static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceMessageHandler>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceMessageHandler>();
 
             enum EventIds
             {
