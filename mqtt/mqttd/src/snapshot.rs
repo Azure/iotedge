@@ -42,6 +42,8 @@ mod imp {
 
 #[cfg(not(unix))]
 mod imp {
+    use mqtt_broker::{BrokerHandle, StateSnapshotHandle};
+
     pub(super) async fn snapshot(
         mut broker_handle: BrokerHandle,
         snapshot_handle: StateSnapshotHandle,
