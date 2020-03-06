@@ -37,6 +37,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "5", "6" }, 4, 7, 5, 5, 2 },
                 new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "7" }, 4, 7, 5, 5, 2 },
             };
+        public static readonly string TestDescription = "dummy description";
 
         [Theory]
         [InlineData(null)]
@@ -48,6 +49,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new TwinCountingReportGenerator(
+                    TestDescription,
                     trackingId,
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -69,6 +71,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new TwinCountingReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     expectedSource,
                     mockExpectedResults.Object,
@@ -87,6 +90,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new TwinCountingReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     null,
@@ -108,6 +112,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new TwinCountingReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -126,6 +131,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new TwinCountingReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -147,6 +153,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -166,6 +173,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new TwinCountingReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -190,6 +198,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
             var actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
 
             var reportGenerator = new CountingReportGenerator(
+                TestDescription,
                 Guid.NewGuid().ToString(),
                 expectedSource,
                 expectedResults,
@@ -227,6 +236,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
             var actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
 
             var reportGenerator = new TwinCountingReportGenerator(
+                TestDescription,
                 Guid.NewGuid().ToString(),
                 expectedSource,
                 expectedResults,

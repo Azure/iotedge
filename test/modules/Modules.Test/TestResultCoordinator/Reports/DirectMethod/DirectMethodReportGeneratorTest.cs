@@ -23,6 +23,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
     public class DirectMethodReportGeneratorTest
     {
         static NetworkStatusTimeline NetworkStatusTimeline => MockNetworkStatusTimeline.GetMockAsync(new TimeSpan(0, 0, 0, 0, 5)).Result;
+        
+        static readonly string TestDescription = "dummy description";
 
         [Fact]
         public void TestConstructorSuccess()
@@ -40,6 +42,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
 
             var reportGenerator = new DirectMethodReportGenerator(
+                TestDescription,
                 Guid.NewGuid().ToString(),
                 senderSource,
                 senderResults,
@@ -70,6 +73,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodReportGenerator(
+                    TestDescription,
                     trackingId,
                     "senderSource",
                     mockSenderResults.Object,
@@ -96,6 +100,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     senderSource,
                     mockSenderResults.Object,
@@ -119,6 +124,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new DirectMethodReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     "senderSource",
                     null,
@@ -145,6 +151,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     "senderSource",
                     mockSenderResults.Object,
@@ -166,6 +173,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     "senderSource",
                     mockSenderResults.Object,
@@ -190,6 +198,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     "senderSource",
                     mockSenderResults.Object,
@@ -217,6 +226,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
 
             var reportGenerator = new DirectMethodReportGenerator(
+                TestDescription,
                 Guid.NewGuid().ToString(),
                 senderSource,
                 senderResults,
@@ -268,6 +278,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
 
             var reportGenerator = new DirectMethodReportGenerator(
+                TestDescription,
                 Guid.NewGuid().ToString(),
                 senderSource,
                 senderResults,
@@ -332,6 +343,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             var receiverResults = Option.None<ITestResultCollection<TestOperationResult>>();
 
             var reportGenerator = new DirectMethodReportGenerator(
+                TestDescription,
                 Guid.NewGuid().ToString(),
                 senderSource,
                 senderResults,

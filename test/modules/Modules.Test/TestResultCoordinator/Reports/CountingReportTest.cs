@@ -11,10 +11,13 @@ namespace Modules.Test.TestResultCoordinator.Reports
     [Unit]
     public class CountingReportTest
     {
+        static readonly string TestDescription = "dummy description";
+
         [Fact]
         public void TestConstructorSuccess()
         {
             var report = new CountingReport(
+                TestDescription,
                 "trackingId123",
                 "expectedSource",
                 "actualSource",
@@ -54,6 +57,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
         {
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReport(
+                    TestDescription,
                     trackingId,
                     "expectedSource",
                     "actualSource",
@@ -77,6 +81,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
         {
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReport(
+                    TestDescription,
                     "trackingId-23434",
                     expectedSource,
                     "actualSource",
@@ -100,6 +105,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
         {
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReport(
+                    TestDescription,
                     "trackingId-23434",
                     "expectedSource",
                     actualSource,
@@ -123,6 +129,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
         {
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReport(
+                    TestDescription,
                     "trackingId-23434",
                     "expectedSource",
                     "actualSource",

@@ -17,6 +17,8 @@ namespace Modules.Test.TestResultCoordinator
     [Unit]
     public class TestReportUtilTest
     {
+        public static readonly string TestDescription = "dummy description";
+
         [Fact]
         public async Task TestGenerateTestResultReportsAsync_MissingTrackingId()
         {
@@ -70,13 +72,13 @@ namespace Modules.Test.TestResultCoordinator
             var mockTestReportGeneratorFactory = new Mock<ITestReportGeneratorFactory>();
 
             string trackingId = "fakeTrackingId";
-            var countingReportMetadata = new CountingReportMetadata("CountingExpectedSource", "CountingAcutalSource", TestOperationResultType.Messages, TestReportType.CountingReport);
-            var twinCountingReportMetadata = new TwinCountingReportMetadata("TwinExpectedSource", "TwinActualSource", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired);
-            var deploymentReportMetadata = new DeploymentTestReportMetadata("DeploymentExpectedSource", "DeploymentActualSource");
-            var directMethodReportMetadata = new DirectMethodReportMetadata("DirectMethodSenderSource", new TimeSpan(0, 0, 0, 0, 5), "DirectMethodReceiverSource");
-            var directMethodReportMetadataWithoutReceiverSource = new DirectMethodReportMetadata("DirectMethodSenderSource", new TimeSpan(0, 0, 0, 0, 5), "DirectMethodReceiverSource");
-            var edgeHubRestartMessageReportMetadata = new EdgeHubRestartMessageReportMetadata("edgeHubRestartTester1.EdgeHubRestartMessage", "relayer1.receive");
-            var edgeHubRestartDirectMethodReportMetadata = new EdgeHubRestartDirectMethodReportMetadata("edgeHubRestartTester1.EdgeHubRestartDirectMethod", "directMethodReceiver1.receive");
+            var countingReportMetadata = new CountingReportMetadata("CountingExpectedSource", "CountingAcutalSource", TestDescription, TestOperationResultType.Messages, TestReportType.CountingReport);
+            var twinCountingReportMetadata = new TwinCountingReportMetadata("TwinExpectedSource", "TwinActualSource", TestDescription, TestReportType.TwinCountingReport, TwinTestPropertyType.Desired);
+            var deploymentReportMetadata = new DeploymentTestReportMetadata("DeploymentExpectedSource", "DeploymentActualSource", TestDescription);
+            var directMethodReportMetadata = new DirectMethodReportMetadata(TestDescription, "DirectMethodSenderSource", new TimeSpan(0, 0, 0, 0, 5), "DirectMethodReceiverSource");
+            var directMethodReportMetadataWithoutReceiverSource = new DirectMethodReportMetadata(TestDescription, "DirectMethodSenderSource", new TimeSpan(0, 0, 0, 0, 5), "DirectMethodReceiverSource");
+            var edgeHubRestartMessageReportMetadata = new EdgeHubRestartMessageReportMetadata(TestDescription, "edgeHubRestartTester1.EdgeHubRestartMessage", "relayer1.receive");
+            var edgeHubRestartDirectMethodReportMetadata = new EdgeHubRestartDirectMethodReportMetadata(TestDescription, "edgeHubRestartTester1.EdgeHubRestartDirectMethod", "directMethodReceiver1.receive");
 
             var mockTestReportGenerator1 = new Mock<ITestResultReportGenerator>();
             mockTestReportGenerator1.Setup(g => g.CreateReportAsync()).Returns(this.MockTestResultReport(throwExceptionForTestReport1));
@@ -438,7 +440,7 @@ namespace Modules.Test.TestResultCoordinator
         {
             if (!throwException)
             {
-                return Task.FromResult<ITestResultReport>(new CountingReport("mock", "mock", "mock", "mock", 23, 21, 12, new List<TestOperationResult>()));
+                return Task.FromResult<ITestResultReport>(new CountingReport("mock", "mock", "mock", "mock", "mock", 23, 21, 12, new List<TestOperationResult>()));
             }
 
             return Task.FromException<ITestResultReport>(new ApplicationException("Inject exception for testing"));

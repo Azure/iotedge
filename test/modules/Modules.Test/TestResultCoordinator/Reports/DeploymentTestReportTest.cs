@@ -13,12 +13,15 @@ namespace Modules.Test.TestResultCoordinator.Reports
     [Unit]
     public class DeploymentTestReportTest
     {
+        static readonly string TestDescription = "dummy description";
+
         [Fact]
         public void TestConstructorSuccess()
         {
             DeploymentTestResult testResult = GetDeploymentTestResult();
 
             var report = new DeploymentTestReport(
+                TestDescription,
                 "trackingId123",
                 "expectedSource",
                 "actualSource",
@@ -62,6 +65,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DeploymentTestReport(
+                    TestDescription,
                     trackingId,
                     "expectedSource",
                     "actualSource",
@@ -88,6 +92,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DeploymentTestReport(
+                    TestDescription,
                     "trackingId123",
                     expectedSource,
                     "actualSource",
@@ -114,6 +119,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DeploymentTestReport(
+                    TestDescription,
                     "trackingId123",
                     "expectedSource",
                     actualSource,
@@ -140,6 +146,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DeploymentTestReport(
+                    TestDescription,
                     "trackingId123",
                     "expectedSource",
                     "actualSource",
