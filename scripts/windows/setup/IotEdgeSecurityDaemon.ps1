@@ -2054,8 +2054,7 @@ function Import-IntermediateCertChain ([string] $DeviceIdentityCertPath){
     $enc = [System.Text.Encoding]::UTF8
     for ($i = 1; $i -lt $certs.Count; $i++){
         $bytes = $enc.GetBytes($certs[$i])
-        $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2
-        $cert.Import($bytes)
+        $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 (,$bytes)
         $certificateStore.Add($cert)
     }
 
