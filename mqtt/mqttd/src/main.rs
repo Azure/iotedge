@@ -30,7 +30,7 @@ async fn main() -> Result<(), Error> {
 
     // Setup the snapshotter
     let mut persistor = FilePersistor::new(
-        env::current_dir().expect("can't get cwd"),
+        env::current_dir().expect("can't get cwd").join("state"),
         BincodeFormat::new(),
     );
     info!("Loading state...");

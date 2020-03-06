@@ -176,11 +176,21 @@ where
             let span = span!(Level::INFO, "persistor", dir = %dir.display());
             let _guard = span.enter();
 
-            let default_path = dir.join(format!("{}.{}", STATE_DEFAULT_STEM, STATE_EXTENSION));
+            if !dir.exists() {
+                fail_point!("filepersistor.store.createdir", |_| {
+                    Err(Error::from(ErrorKind::Persist(ErrorReason::CreateDir)))
+                });
+                fs::create_dir_all(&dir).context(ErrorKind::Persist(ErrorReason::CreateDir))?;
+            }
+
+            let link_path = dir.join(format!("{}.{}", STATE_DEFAULT_STEM, STATE_EXTENSION));
+            let temp_link_path =
+                dir.join(format!("{}.{}.tmp", STATE_DEFAULT_STEM, STATE_EXTENSION));
+
             let path = dir.join(format!(
                 "{}.{}.{}",
                 STATE_DEFAULT_STEM,
-                chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.3f%z"),
+                chrono::Utc::now().format("%Y%m%d%H%M%S%6f"),
                 STATE_EXTENSION
             ));
 
@@ -202,29 +212,38 @@ where
                     debug!("state persisted to {}.", path.display());
 
                     // Swap the symlink
-                    //   - remove the old link if exists
+                    //   - remove the old link if it exists
                     //   - link the new file
-                    if default_path.exists() {
+                    if temp_link_path.exists() {
                         fail_point!("filepersistor.store.symlink_unlink", |_| {
                             Err(Error::from(ErrorKind::Persist(ErrorReason::SymlinkUnlink)))
                         });
-                        fs::remove_file(&default_path)
+                        fs::remove_file(&temp_link_path)
                             .context(ErrorKind::Persist(ErrorReason::SymlinkUnlink))?;
                     }
 
-                    debug!("linking {} to {}", default_path.display(), path.display());
+                    debug!("linking {} to {}", temp_link_path.display(), path.display());
 
                     fail_point!("filepersistor.store.symlink", |_| {
                         Err(Error::from(ErrorKind::Persist(ErrorReason::Symlink)))
                     });
 
                     #[cfg(unix)]
-                    symlink(&path, &default_path)
+                    symlink(&path, &temp_link_path)
                         .context(ErrorKind::Persist(ErrorReason::Symlink))?;
 
                     #[cfg(windows)]
-                    symlink_file(&path, &default_path)
+                    symlink_file(&path, &temp_link_path)
                         .context(ErrorKind::Persist(ErrorReason::Symlink))?;
+
+                    // Commit the updated link by renaming the temp link.
+                    // This is the so-called "capistrano" trick for atomically updating links
+                    // https://github.com/capistrano/capistrano/blob/d04c1e3ea33e84b183d056b71c7cacf7744ce7ad/lib/capistrano/tasks/deploy.rake
+                    fail_point!("filepersistor.store.filerename", |_| {
+                        Err(Error::from(ErrorKind::Persist(ErrorReason::FileRename)))
+                    });
+                    fs::rename(&temp_link_path, &link_path)
+                        .context(ErrorKind::Persist(ErrorReason::FileRename))?;
 
                     // Prune old states
                     fail_point!("filepersistor.store.readdir", |_| {
@@ -260,7 +279,7 @@ where
                         fail_point!("filepersistor.store.entry_unlink", |_| {
                             Err(Error::from(ErrorKind::Persist(ErrorReason::FileUnlink)))
                         });
-                        fs::remove_file(entry.file_name())
+                        fs::remove_file(&entry.path())
                             .context(ErrorKind::Persist(ErrorReason::FileUnlink))?;
                         debug!("{} pruned.", entry.file_name().to_string_lossy());
                     }
@@ -288,7 +307,9 @@ where
 #[derive(Debug, PartialEq)]
 pub enum ErrorReason {
     FileOpen,
+    FileRename,
     FileUnlink,
+    CreateDir,
     ReadDir,
     Symlink,
     SymlinkUnlink,
@@ -300,7 +321,9 @@ impl fmt::Display for ErrorReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ErrorReason::FileOpen => write!(f, "failed to open file"),
+            ErrorReason::FileRename => write!(f, "failed to rename file"),
             ErrorReason::FileUnlink => write!(f, "failed to remove file"),
+            ErrorReason::CreateDir => write!(f, "failed to create state directory"),
             ErrorReason::ReadDir => write!(f, "failed to read contents of directory"),
             ErrorReason::Symlink => write!(f, "failed to create symlink"),
             ErrorReason::SymlinkUnlink => write!(f, "failed to remove symlink"),

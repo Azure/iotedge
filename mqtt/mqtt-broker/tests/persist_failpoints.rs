@@ -12,8 +12,10 @@ const FAILPOINTS: &'static [&'static str] = &[
     "filepersistor.load.format",
     "filepersistor.load.spawn_blocking",
     "filepersistor.store.fileopen",
+    "filepersistor.store.filerename",
     "filepersistor.store.symlink_unlink",
     "filepersistor.store.symlink",
+    "filepersistor.store.createdir",
     "filepersistor.store.readdir",
     "filepersistor.store.entry_unlink",
     "filepersistor.store.new_file_unlink",
@@ -45,13 +47,13 @@ fn tear_down_failpoints() {
 
 #[test]
 fn test_failpoints_smoketest() {
+    let scenario = FailScenario::setup();
     tokio::runtime::Builder::new()
         .basic_scheduler()
         .enable_all()
         .build()
         .unwrap()
         .block_on(async {
-            let scenario = FailScenario::setup();
             fail::cfg("filepersistor.load.spawn_blocking", "return").unwrap();
 
             let tmp_dir = TempDir::new().unwrap();
@@ -60,23 +62,23 @@ fn test_failpoints_smoketest() {
 
             let result = persistor.load().await;
             assert!(result.is_err());
-            scenario.teardown();
-        })
+        });
+    scenario.teardown();
 }
 
 proptest! {
     #[test]
-    fn test_failpoints(ops in vec(arb_op(), 0..20)) {
+    fn test_failpoints(count in 0usize..10, ops in vec(arb_op(), 0..50)) {
+        let scenario = FailScenario::setup();
         tokio::runtime::Builder::new()
             .basic_scheduler()
             .enable_all()
             .build()
             .unwrap()
             .block_on(async {
-                let scenario = FailScenario::setup();
                 let tmp_dir = TempDir::new().unwrap();
                 let path = tmp_dir.path().to_owned();
-                let mut persistor = FilePersistor::new(path, BincodeFormat::new());
+                let mut persistor = FilePersistor::new(path, BincodeFormat::new()).with_count(count);
 
                 // Make sure we've stored at least one state
                 persistor.store(BrokerState::default()).await.unwrap();
@@ -95,7 +97,58 @@ proptest! {
                 tear_down_failpoints();
                 let state = persistor.load().await.unwrap();
                 assert!(state.is_some());
-                scenario.teardown();
-            })
+            });
+        scenario.teardown();
     }
+}
+
+#[test]
+fn test_failpoints_regression1() {
+    let scenario = FailScenario::setup();
+    let ops = vec![
+        Op::Store(BrokerState::default()),
+        Op::Store(BrokerState::default()),
+        Op::Store(BrokerState::default()),
+        Op::RemoveFailpoint("filepersistor.store.symlink"),
+        Op::AddFailpoint("filepersistor.store.readdir"),
+        Op::RemoveFailpoint("filepersistor.store.createdir"),
+        Op::Store(BrokerState::default()),
+        Op::AddFailpoint("bincodeformat.store.serialize_into"),
+        Op::RemoveFailpoint("filepersistor.store.readdir"),
+        Op::Store(BrokerState::default()),
+    ];
+
+    tokio::runtime::Builder::new()
+        .basic_scheduler()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            let tmp_dir = TempDir::new().unwrap();
+            let path = tmp_dir.path().to_owned();
+            let mut persistor = FilePersistor::new(path, BincodeFormat::new());
+
+            // Make sure we've stored at least one state
+            persistor.store(BrokerState::default()).await.unwrap();
+
+            // process the operations
+            for op in ops {
+                match op {
+                    Op::Load => {
+                        let _ = persistor.load().await;
+                    }
+                    Op::Store(state) => {
+                        let _ = persistor.store(state).await;
+                    }
+                    Op::AddFailpoint(f) => fail::cfg(f, "return").unwrap(),
+                    Op::RemoveFailpoint(f) => fail::remove(f),
+                }
+            }
+
+            // clear the failpoints and ensure we can load at least one state
+            tear_down_failpoints();
+            let state = persistor.load().await.unwrap();
+            assert!(state.is_some());
+        });
+    scenario.teardown();
 }
