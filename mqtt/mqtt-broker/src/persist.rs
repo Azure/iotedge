@@ -352,7 +352,7 @@ pub(crate) mod tests {
         fn bincode_roundtrip(state in arb_broker_state()) {
             let expected = state.clone();
             let format = BincodeFormat;
-            let mut buffer = vec![0u8; 10 * 1024 * 1024];
+            let mut buffer = vec![0_u8; 10 * 1024 * 1024];
             let writer = Cursor::new(&mut buffer);
             format.store(writer, state).unwrap();
 
