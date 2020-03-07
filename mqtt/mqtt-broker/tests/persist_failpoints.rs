@@ -83,6 +83,7 @@ proptest! {
                 let mut persistor = FilePersistor::new(path, BincodeFormat::new()).with_count(count);
 
                 // Make sure we've stored at least one state
+                tear_down_failpoints();
                 persistor.store(BrokerState::default()).await.unwrap();
 
                 // process the operations
@@ -131,6 +132,7 @@ fn test_failpoints_regression1() {
             let mut persistor = FilePersistor::new(path, BincodeFormat::new());
 
             // Make sure we've stored at least one state
+            tear_down_failpoints();
             persistor.store(BrokerState::default()).await.unwrap();
 
             // process the operations
@@ -154,3 +156,55 @@ fn test_failpoints_regression1() {
         });
     scenario.teardown();
 }
+
+#[test]
+fn test_failpoints_windows_failure() {
+    let scenario = FailScenario::setup();
+    let count = 0;
+    let ops = vec![
+        Op::Load,
+        Op::AddFailpoint("filepersistor.store.filerename"),
+        Op::Load,
+        Op::AddFailpoint("bincodeformat.store.serialize_into"),
+        Op::Store(BrokerState::default()),
+        Op::Load,
+        Op::AddFailpoint("bincodeformat.load.deserialize_from"),
+        Op::AddFailpoint("filepersistor.load.spawn_blocking")
+    ];
+
+    tokio::runtime::Builder::new()
+        .basic_scheduler()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            let tmp_dir = TempDir::new().unwrap();
+            let path = tmp_dir.path().to_owned();
+            let mut persistor = FilePersistor::new(path, BincodeFormat::new()).with_count(count);
+
+            // Make sure we've stored at least one state
+            tear_down_failpoints();
+            persistor.store(BrokerState::default()).await.unwrap();
+
+            // process the operations
+            for op in ops {
+                match op {
+                    Op::Load => {
+                        let _ = persistor.load().await;
+                    }
+                    Op::Store(state) => {
+                        let _ = persistor.store(state).await;
+                    }
+                    Op::AddFailpoint(f) => fail::cfg(f, "return").unwrap(),
+                    Op::RemoveFailpoint(f) => fail::remove(f),
+                }
+            }
+
+            // clear the failpoints and ensure we can load at least one state
+            tear_down_failpoints();
+            let state = persistor.load().await.unwrap();
+            assert!(state.is_some());
+        });
+    scenario.teardown();
+}
+
