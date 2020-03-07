@@ -5,7 +5,7 @@ use proptest::collection::vec;
 use proptest::prelude::*;
 use tempfile::TempDir;
 
-const FAILPOINTS: &[&'static str] = &[
+const FAILPOINTS: &[&str] = &[
     "bincodeformat.load.deserialize_from",
     "bincodeformat.store.serialize_into",
     "filepersistor.load.fileopen",

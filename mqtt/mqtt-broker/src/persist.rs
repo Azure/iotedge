@@ -342,8 +342,10 @@ impl fmt::Display for ErrorReason {
 pub(crate) mod tests {
     use super::*;
 
-    use proptest::prelude::*;
     use std::io::Cursor;
+
+    use proptest::prelude::*;
+    use tempfile::TempDir;
 
     use crate::broker::tests::arb_broker_state;
 
@@ -360,5 +362,16 @@ pub(crate) mod tests {
             let state = format.load(reader).unwrap();
             prop_assert_eq!(expected, state);
         }
+    }
+
+    #[tokio::test]
+    async fn filepersistor_smoketest() {
+        let tmp_dir = TempDir::new().unwrap();
+        let path = tmp_dir.path().to_owned();
+        let mut persistor = FilePersistor::new(path, BincodeFormat::new());
+
+        persistor.store(BrokerState::default()).await.unwrap();
+        let state = persistor.load().await.unwrap().unwrap();
+        assert_eq!(BrokerState::default(), state);
     }
 }

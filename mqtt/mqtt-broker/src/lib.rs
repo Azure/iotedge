@@ -187,7 +187,7 @@ pub(crate) mod tests {
     }
 
     pub fn arb_packet_identifier() -> impl Strategy<Value = proto::PacketIdentifier> {
-        (1_u16..=std::u16::MAX)
+        (1_u16..=u16::max_value())
             .prop_map(|i| proto::PacketIdentifier::new(i).expect("packet identifier failed"))
     }
 
