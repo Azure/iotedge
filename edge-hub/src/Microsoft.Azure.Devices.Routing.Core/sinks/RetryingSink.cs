@@ -74,13 +74,17 @@ namespace Microsoft.Azure.Devices.Routing.Core.Sinks
 
                 rv = new SinkResult<T>(succeeded, failed, invalid, failureDetails);
             }
-            catch (OperationCanceledException ex)
-            {
-                failed.AddRange(messages);
-                rv = new SinkResult<T>(succeeded, failed, invalid, new SendFailureDetails(FailureKind.InternalError, ex));
-            }
             catch (Exception ex)
             {
+                // this is thrown by ThrowIfCancellationRequested() which is different to that Task.Delay() throws
+                // when it gets cancelled. Warping it to give a consistent output when the process is cancelled.
+                // "OperationCancelled" would be a nicer choice, but "TaskCancelled" happened more frequently in the
+                // past, so keeping that to avoid breaking things.
+                if (ex is OperationCanceledException)
+                {
+                    ex = new TaskCanceledException(ex.Message, ex);
+                }
+
                 failed.AddRange(messages);
                 rv = new SinkResult<T>(succeeded, failed, invalid, new SendFailureDetails(FailureKind.InternalError, ex));
             }
