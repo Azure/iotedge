@@ -76,11 +76,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Sinks
             }
             catch (Exception ex)
             {
-                if (ex is OperationCanceledException)
-                {
-                    ex = new TaskCanceledException(ex.Message, ex);
-                }
-
                 failed.AddRange(messages);
                 rv = new SinkResult<T>(succeeded, failed, invalid, new SendFailureDetails(FailureKind.InternalError, ex));
             }
