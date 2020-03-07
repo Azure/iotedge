@@ -1106,5 +1106,5 @@ fn deserialize_bytes<'de, D>(deserializer: D) -> Result<bytes::Bytes, D::Error>
 where
     D: Deserializer<'de>,
 {
-    serde::Deserialize::deserialize::<D>(deserializer).map(|v: Vec<u8>| bytes::Bytes::from(v))
+    Vec::<u8>::deserialize(deserializer).map(bytes::Bytes::from)
 }

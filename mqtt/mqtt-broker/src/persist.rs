@@ -53,13 +53,16 @@ impl Persist for NullPersistor {
 pub trait FileFormat {
     type Error: Into<Error>;
 
+    /// Load `BrokerState` from a reader.
     fn load<R: Read>(&self, reader: R) -> Result<BrokerState, Self::Error>;
+
+    /// Store `BrokerState` to a writer.
     fn store<W: Write>(&self, writer: W, state: BrokerState) -> Result<(), Self::Error>;
 }
 
 /// Loads/stores the broker state to a file defined by `FileFormat`.
 ///
-/// The FilePersistor works by storing to a new state file and then updating
+/// The `FilePersistor` works by storing to a new state file and then updating
 /// a symlink to `state.dat`.
 ///
 /// Loading always reads from `state.dat`. This allows for saving multiple
@@ -95,7 +98,7 @@ impl<F> FilePersistor<F> {
 }
 
 /// A simple format based on Bincode and serde
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct BincodeFormat;
 
 impl BincodeFormat {
@@ -155,7 +158,7 @@ where
                 fail_point!("filepersistor.load.format", |_| {
                     Err(Error::from(ErrorKind::Persist(ErrorReason::Serialize)))
                 });
-                let state = format.load(file).map_err(|e| e.into())?;
+                let state = format.load(file).map_err(Into::into)?;
                 Ok(Some(state))
             } else {
                 info!("no state file found at {}.", path.display());
@@ -170,6 +173,7 @@ where
         res.context(ErrorKind::TaskJoin)?
     }
 
+    #[allow(clippy::too_many_lines)]
     async fn store(&mut self, state: BrokerState) -> Result<(), Self::Error> {
         let dir = self.dir.clone();
         let format = self.format.clone();
@@ -210,7 +214,7 @@ where
             debug!("{} opened.", path.display());
 
             debug!("persisting state to {}...", path.display());
-            match format.store(file, state).map_err(|e| e.into()) {
+            match format.store(file, state).map_err(Into::into) {
                 Ok(_) => {
                     debug!("state persisted to {}.", path.display());
 
@@ -255,10 +259,8 @@ where
 
                     let mut entries = fs::read_dir(&dir)
                         .context(ErrorKind::Persist(ErrorReason::ReadDir))?
-                        .filter_map(|maybe_entry| maybe_entry.ok())
-                        .filter(|entry| {
-                            entry.file_type().ok().map(|e| e.is_file()).unwrap_or(false)
-                        })
+                        .filter_map(Result::ok)
+                        .filter(|entry| entry.file_type().ok().map_or(false, |f| f.is_file()))
                         .filter(|entry| {
                             entry
                                 .file_name()
@@ -292,7 +294,7 @@ where
                         Err(Error::from(ErrorKind::Persist(ErrorReason::FileUnlink)))
                     });
                     fs::remove_file(path).context(ErrorKind::Persist(ErrorReason::FileUnlink))?;
-                    return Err(e.into());
+                    return Err(e);
                 }
             }
             info!(message="persisted state.", file=%path.display());
