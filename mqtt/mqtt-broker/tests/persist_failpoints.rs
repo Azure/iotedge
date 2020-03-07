@@ -169,7 +169,7 @@ fn test_failpoints_windows_failure() {
         Op::Store(BrokerState::default()),
         Op::Load,
         Op::AddFailpoint("bincodeformat.load.deserialize_from"),
-        Op::AddFailpoint("filepersistor.load.spawn_blocking")
+        Op::AddFailpoint("filepersistor.load.spawn_blocking"),
     ];
 
     tokio::runtime::Builder::new()
@@ -207,4 +207,3 @@ fn test_failpoints_windows_failure() {
         });
     scenario.teardown();
 }
-
