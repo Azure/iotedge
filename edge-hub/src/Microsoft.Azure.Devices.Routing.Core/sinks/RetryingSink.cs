@@ -76,10 +76,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Sinks
             }
             catch (Exception ex)
             {
-                // this is thrown by ThrowIfCancellationRequested() which is different to that Task.Delay() throws
-                // when it gets cancelled. Warping it to give a consistent output when the process is cancelled.
-                // "OperationCancelled" would be a nicer choice, but "TaskCancelled" happened more frequently in the
-                // past, so keeping that to avoid breaking things.
                 if (ex is OperationCanceledException)
                 {
                     ex = new TaskCanceledException(ex.Message, ex);
