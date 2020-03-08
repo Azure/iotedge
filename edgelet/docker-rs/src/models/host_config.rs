@@ -93,9 +93,9 @@ pub struct HostConfig {
     // /// A list of devices to add to the container.
     // #[serde(rename = "Devices", skip_serializing_if = "Option::is_none")]
     // devices: Option<Vec<crate::models::DeviceMapping>>,
-    // /// a list of cgroup rules to apply to the container
-    // #[serde(rename = "DeviceCgroupRules", skip_serializing_if = "Option::is_none")]
-    // device_cgroup_rules: Option<Vec<String>>,
+    /// a list of cgroup rules to apply to the container
+    #[serde(rename = "DeviceCgroupRules", skip_serializing_if = "Option::is_none")]
+    device_cgroup_rules: Option<Vec<String>>,
     // /// Disk limit (in bytes).
     // #[serde(rename = "DiskQuota", skip_serializing_if = "Option::is_none")]
     // disk_quota: Option<i64>,
@@ -263,7 +263,7 @@ impl HostConfig {
             // cpuset_cpus: None,
             // cpuset_mems: None,
             // devices: None,
-            // device_cgroup_rules: None,
+            device_cgroup_rules: None,
             // disk_quota: None,
             // kernel_memory: None,
             // memory_reservation: None,
@@ -618,22 +618,22 @@ impl HostConfig {
     //     self.devices = None;
     // }
 
-    // pub fn set_device_cgroup_rules(&mut self, device_cgroup_rules: Vec<String>) {
-    //     self.device_cgroup_rules = Some(device_cgroup_rules);
-    // }
+    pub fn set_device_cgroup_rules(&mut self, device_cgroup_rules: Vec<String>) {
+        self.device_cgroup_rules = Some(device_cgroup_rules);
+    }
 
-    // pub fn with_device_cgroup_rules(mut self, device_cgroup_rules: Vec<String>) -> Self {
-    //     self.device_cgroup_rules = Some(device_cgroup_rules);
-    //     self
-    // }
+    pub fn with_device_cgroup_rules(mut self, device_cgroup_rules: Vec<String>) -> Self {
+        self.device_cgroup_rules = Some(device_cgroup_rules);
+        self
+    }
 
-    // pub fn device_cgroup_rules(&self) -> Option<&[String]> {
-    //     self.device_cgroup_rules.as_ref().map(AsRef::as_ref)
-    // }
+    pub fn device_cgroup_rules(&self) -> Option<&[String]> {
+        self.device_cgroup_rules.as_ref().map(AsRef::as_ref)
+    }
 
-    // pub fn reset_device_cgroup_rules(&mut self) {
-    //     self.device_cgroup_rules = None;
-    // }
+    pub fn reset_device_cgroup_rules(&mut self) {
+        self.device_cgroup_rules = None;
+    }
 
     // pub fn set_disk_quota(&mut self, disk_quota: i64) {
     //     self.disk_quota = Some(disk_quota);
