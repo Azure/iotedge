@@ -82,7 +82,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
             Assert.Equal(new List<int> { 1, 2, 3, 4, 5, 6 }, result.Failed);
             Assert.Equal(new List<InvalidDetails<int>>(), result.InvalidDetailsList);
             Assert.True(result.SendFailureDetails.HasValue);
-            result.SendFailureDetails.ForEach(sfd => Assert.IsType<TaskCanceledException>(sfd.RawException));
+            result.SendFailureDetails.ForEach(sfd => Assert.IsAssignableFrom<OperationCanceledException>(sfd.RawException));
         }
 
         [Fact]
