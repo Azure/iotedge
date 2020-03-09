@@ -125,37 +125,37 @@
                 "value": "http://testResultCoordinator:5001"
               }
             },
-            "loadGen3": {
-              "version": "1.0",
-              "type": "docker",
-              "status": "running",
-              "restartPolicy": "always",
-              "env": {
-                "messageFrequency": {
-                  "value": "<LoadGen.MessageFrequency>"
-                },
-                "testDuration": {
-                  "value": "<TestDuration>"
-                },
-                "testStartDelay": {
-                  "value": "<TestStartDelay>"
-                },
-                "trackingId": {
-                  "value": "<TrackingId>"
-                },
-                "transportType": {
-                  "value": "Mqtt"
-                },
-                "outputName": {
-                  "value": "output3"
-                },
-                "testResultCoordinatorUrl": {
-                  "value": "http://testResultCoordinator:5001"
-                }
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
+          "loadGen3": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "messageFrequency": {
+                "value": "<LoadGen.MessageFrequency>"
               },
-              "settings": {
-                "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
-                "createOptions": ""
+              "testDuration": {
+                "value": "<TestDuration>"
+              },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
+              },
+              "trackingId": {
+                "value": "<TrackingId>"
+              },
+              "transportType": {
+                "value": "Mqtt"
+              },
+              "outputName": {
+                "value": "output3"
+              },
+              "testResultCoordinatorUrl": {
+                "value": "http://testResultCoordinator:5001"
               }
             },
             "settings": {
