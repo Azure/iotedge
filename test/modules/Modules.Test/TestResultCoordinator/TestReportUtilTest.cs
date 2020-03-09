@@ -72,9 +72,9 @@ namespace Modules.Test.TestResultCoordinator
             var mockTestReportGeneratorFactory = new Mock<ITestReportGeneratorFactory>();
 
             string trackingId = "fakeTrackingId";
-            var countingReportMetadata = new CountingReportMetadata("CountingExpectedSource", "CountingAcutalSource", TestDescription, TestOperationResultType.Messages, TestReportType.CountingReport);
-            var twinCountingReportMetadata = new TwinCountingReportMetadata("TwinExpectedSource", "TwinActualSource", TestDescription, TestReportType.TwinCountingReport, TwinTestPropertyType.Desired);
-            var deploymentReportMetadata = new DeploymentTestReportMetadata("DeploymentExpectedSource", "DeploymentActualSource", TestDescription);
+            var countingReportMetadata = new CountingReportMetadata(TestDescription, "CountingExpectedSource", "CountingAcutalSource", TestOperationResultType.Messages, TestReportType.CountingReport);
+            var twinCountingReportMetadata = new TwinCountingReportMetadata(TestDescription, "TwinExpectedSource", "TwinActualSource", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired);
+            var deploymentReportMetadata = new DeploymentTestReportMetadata(TestDescription, "DeploymentExpectedSource", "DeploymentActualSource");
             var directMethodReportMetadata = new DirectMethodReportMetadata(TestDescription, "DirectMethodSenderSource", new TimeSpan(0, 0, 0, 0, 5), "DirectMethodReceiverSource");
             var directMethodReportMetadataWithoutReceiverSource = new DirectMethodReportMetadata(TestDescription, "DirectMethodSenderSource", new TimeSpan(0, 0, 0, 0, 5), "DirectMethodReceiverSource");
             var edgeHubRestartMessageReportMetadata = new EdgeHubRestartMessageReportMetadata(TestDescription, "edgeHubRestartTester1.EdgeHubRestartMessage", "relayer1.receive");

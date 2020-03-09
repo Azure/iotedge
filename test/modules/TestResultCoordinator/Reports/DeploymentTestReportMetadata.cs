@@ -6,12 +6,14 @@ namespace TestResultCoordinator.Reports
 
     class DeploymentTestReportMetadata : ITestReportMetadata
     {
-        public DeploymentTestReportMetadata(string expectedSource, string actualSource, string testDescription)
+        public DeploymentTestReportMetadata(string testDescription, string expectedSource, string actualSource)
         {
+            this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
             this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
-            this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
         }
+
+        public string TestDescription { get; }
 
         public string ExpectedSource { get; }
 
@@ -22,8 +24,6 @@ namespace TestResultCoordinator.Reports
         public TestOperationResultType TestOperationResultType => TestOperationResultType.Deployment;
 
         public string[] ResultSources => new string[] { this.ExpectedSource, this.ActualSource };
-
-        public string TestDescription { get; }
 
         public override string ToString()
         {

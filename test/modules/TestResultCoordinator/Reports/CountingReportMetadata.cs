@@ -6,14 +6,16 @@ namespace TestResultCoordinator.Reports
 
     class CountingReportMetadata : ITestReportMetadata
     {
-        public CountingReportMetadata(string expectedSource, string actualSource, string testDescription, TestOperationResultType testOperationResultType, TestReportType testReportType)
+        public CountingReportMetadata(string testDescription, string expectedSource, string actualSource, TestOperationResultType testOperationResultType, TestReportType testReportType)
         {
+            this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
             this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
-            this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.TestOperationResultType = testOperationResultType;
             this.TestReportType = testReportType;
         }
+
+        public string TestDescription { get; }
 
         public string ExpectedSource { get; }
 
@@ -24,8 +26,6 @@ namespace TestResultCoordinator.Reports
         public TestReportType TestReportType { get; }
 
         public string[] ResultSources => new string[] { this.ExpectedSource, this.ActualSource };
-
-        public string TestDescription { get; }
 
         public override string ToString()
         {
