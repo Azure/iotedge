@@ -5,8 +5,6 @@ namespace TestResultCoordinator.Reports
 
     public interface ITestReportMetadata
     {
-        string TestDescription { get; }
-
         string[] ResultSources { get; }
 
         TestReportType TestReportType { get; }

@@ -4,17 +4,17 @@ namespace TestResultCoordinator.Reports
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    class NetworkControllerReportMetadata : ITestReportMetadata
+    class NetworkControllerReportMetadata : TestReportMetadataBase, ITestReportMetadata
     {
-        public NetworkControllerReportMetadata(string source, string testDescription)
+        public NetworkControllerReportMetadata(
+            string testDescription,
+            string source)
+            : base(testDescription)
         {
             this.Source = Preconditions.CheckNonWhiteSpace(source, nameof(source));
-            this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
         }
 
         public string Source { get; }
-
-        public string TestDescription { get; }
 
         public TestReportType TestReportType => TestReportType.NetworkControllerReport;
 

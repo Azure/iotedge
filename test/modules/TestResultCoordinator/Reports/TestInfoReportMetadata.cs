@@ -4,14 +4,11 @@ namespace TestResultCoordinator.Reports
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    class TestInfoReportMetadata : ITestReportMetadata
+    class TestInfoReportMetadata : TestReportMetadataBase, ITestReportMetadata
     {
-        public TestInfoReportMetadata(string testDescription)
+        public TestInfoReportMetadata(string testDescription) : base(testDescription)
         {
-            this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
         }
-
-        public string TestDescription { get; }
 
         public string Source => TestConstants.TestInfo.TestResultSource;
 

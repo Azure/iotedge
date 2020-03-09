@@ -4,18 +4,21 @@ namespace TestResultCoordinator.Reports
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    class CountingReportMetadata : ITestReportMetadata
+    class CountingReportMetadata : TestReportMetadataBase, ITestReportMetadata
     {
-        public CountingReportMetadata(string testDescription, string expectedSource, string actualSource, TestOperationResultType testOperationResultType, TestReportType testReportType)
+        public CountingReportMetadata(
+            string testDescription,
+            string expectedSource,
+            string actualSource,
+            TestOperationResultType testOperationResultType,
+            TestReportType testReportType)
+            : base(testDescription)
         {
-            this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
             this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
             this.TestOperationResultType = testOperationResultType;
             this.TestReportType = testReportType;
         }
-
-        public string TestDescription { get; }
 
         public string ExpectedSource { get; }
 
