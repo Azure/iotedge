@@ -133,40 +133,47 @@ namespace Modules.Test.TestResultCoordinator
             const string testDataJson =
                 @"{
                     ""reportMetadata1"": {
+                        ""TestDescription"": ""messages | local | amqp"",
                         ""TestReportType"": ""CountingReport"",
                         ""TestOperationResultType"": ""Messages"",
                         ""ExpectedSource"": ""loadGen1.send"",
                         ""ActualSource"": ""relayer1.receive""
                     },
                     ""reportMetadata2"": {
+                        ""TestDescription"": ""twin | desired property | amqp"",
                         ""TestReportType"": ""TwinCountingReport"",
                         ""TwinTestPropertyType"": ""Desired"",
                         ""ExpectedSource"": ""twinTester1.desiredUpdated"",
                         ""ActualSource"": ""twinTester2.desiredReceived""
                     },
                     ""reportMetadata3"": {
+                        ""TestDescription"": ""deployment"",
                         ""TestReportType"": ""DeploymentTestReport"",
                         ""ExpectedSource"": ""deploymentTester1.send"",
                         ""ActualSource"": ""deploymentTester2.receive""
                     },
                     ""reportMetadata4"": {
+                        ""TestDescription"": ""direct method | cloud | amqp"",
                         ""TestReportType"": ""DirectMethodReport"",
                         ""SenderSource"": ""senderSource1.send"",
                         ""ReceiverSource"": ""receiverSource1.receive"",
                         ""TolerancePeriod"": ""00:00:00.005""
                     },
                     ""reportMetadata5"": {
+                        ""TestDescription"": ""edge agent ping"",
                         ""TestReportType"": ""DirectMethodReport"",
                         ""SenderSource"": ""senderSource1.send"",
                         ""TolerancePeriod"": ""00:00:00.005""
                     },
                     ""reportMetadata6"": {
+                        ""TestDescription"": ""messages | local | amqp | restart"",
                         ""TestReportType"": ""EdgeHubRestartMessageReport"",
                         ""TestOperationResultType"": ""EdgeHubRestartMessage"",
                         ""SenderSource"": ""edgeHubRestartTester1.EdgeHubRestartMessage"",
                         ""ReceiverSource"": ""relayer1.receive""
                     },
                     ""reportMetadata7"": {
+                        ""TestDescription"": ""direct method | cloud | amqp | restart"",
                         ""TestReportType"": ""EdgeHubRestartDirectMethodReport"",
                         ""TestOperationResultType"": ""EdgeHubRestartDirectMethod"",
                         ""SenderSource"": ""edgeHubRestartTester1.EdgeHubRestartDirectMethod"",
@@ -185,6 +192,7 @@ namespace Modules.Test.TestResultCoordinator
             const string testDataJson =
                 @"{
                     ""reportMetadata"": {
+                        ""TestDescription"": ""messages | local | amqp"",
                         ""TestReportType"": ""CountingReport"",
                         ""TestOperationResultType"": ""Messages"",
                         ""ExpectedSource"": ""loadGen1.send"",
@@ -209,6 +217,7 @@ namespace Modules.Test.TestResultCoordinator
             const string testDataJson =
                 @"{
                     ""reportMetadata"": {
+                        ""TestDescription"": ""twin | desired property | amqp"",
                         ""TestReportType"": ""TwinCountingReport"",
                         ""TwinTestPropertyType"": ""Desired"",
                         ""ExpectedSource"": ""twinTester1.desiredUpdated"",
@@ -234,6 +243,7 @@ namespace Modules.Test.TestResultCoordinator
             const string testDataJson =
                 @"{
                     ""reportMetadata"": {
+                        ""TestDescription"": ""deployment"",
                         ""TestReportType"": ""DeploymentTestReport"",
                         ""ExpectedSource"": ""deploymentTester1.send"",
                         ""ActualSource"": ""deploymentTester2.receive""
@@ -257,6 +267,7 @@ namespace Modules.Test.TestResultCoordinator
             const string testDataJson =
                 @"{
                     ""reportMetadata"": {
+                        ""TestDescription"": ""direct method | cloud | amqp"",
                         ""TestReportType"": ""DirectMethodReport"",
                         ""SenderSource"": ""directMethodSender1.send"",
                         ""ReceiverSource"": ""directMethodReceiver1.receive"",
@@ -283,6 +294,7 @@ namespace Modules.Test.TestResultCoordinator
             const string testDataJson =
                 @"{
                     ""reportMetadata"": {
+                        ""TestDescription"": ""edge agent ping"",
                         ""TestReportType"": ""DirectMethodReport"",
                         ""SenderSource"": ""directMethodSender1.send"",
                         ""TolerancePeriod"": ""00:00:00.005""
@@ -307,6 +319,7 @@ namespace Modules.Test.TestResultCoordinator
             const string testDataJson =
                 @"{
                     ""reportMetadata"": {
+                        ""TestDescription"": ""network controller"",
                         ""TestReportType"": ""NetworkControllerReport"",
                         ""Source"": ""networkController""
                     }
@@ -328,6 +341,7 @@ namespace Modules.Test.TestResultCoordinator
             const string testDataJson =
                 @"{
                     ""reportMetadata"": {
+                        ""TestDescription"": ""error"",
                         ""TestReportType"": ""ErrorReport""
                     }
                 }";
@@ -348,6 +362,7 @@ namespace Modules.Test.TestResultCoordinator
             const string testDataJson =
                 @"{
                     ""reportMetadata"": {
+                        ""TestDescription"": ""messages | local | amqp"",
                         ""TestReportType"": ""EdgeHubRestartMessageReport"",
                         ""TestOperationResultType"": ""EdgeHubRestartMessage"",
                         ""SenderSource"": ""edgeHubRestartTester1.EdgeHubRestartMessage"",
@@ -372,6 +387,7 @@ namespace Modules.Test.TestResultCoordinator
             const string testDataJson =
                 @"{
                     ""reportMetadata7"": {
+                        ""TestDescription"": ""direct method | cloud | amqp"",
                         ""TestReportType"": ""EdgeHubRestartDirectMethodReport"",
                         ""TestOperationResultType"": ""EdgeHubRestartDirectMethod"",
                         ""SenderSource"": ""edgeHubRestartTester1.EdgeHubRestartDirectMethod"",
@@ -396,6 +412,7 @@ namespace Modules.Test.TestResultCoordinator
             const string testDataJson =
                 @"{
                     ""reportMetadata"": {
+                        ""TestDescription"": ""test info"",
                         ""TestReportType"": ""TestInfoReport""
                     }
                 }";
@@ -416,6 +433,7 @@ namespace Modules.Test.TestResultCoordinator
             const string testDataJson =
                 @"{
                     ""reportMetadata"": {
+                        ""TestDescription"": ""dummy"",
                         ""TestReportType"": ""TypeNotExist"",
                         ""ExpectedSource"": ""deploymentTester1.send"",
                         ""ActualSource"": ""deploymentTester2.receive""

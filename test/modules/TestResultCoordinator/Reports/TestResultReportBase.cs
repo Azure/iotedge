@@ -8,11 +8,11 @@ namespace TestResultCoordinator.Reports
     /// </summary>
     abstract class TestResultReportBase : ITestResultReport
     {
-        protected TestResultReportBase(string trackingId, string resultType, string testDescription)
+        protected TestResultReportBase(string testDescription, string trackingId, string resultType)
         {
+            this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.ResultType = Preconditions.CheckNonWhiteSpace(resultType, nameof(resultType));
-            this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
         }
 
         public string TestDescription { get; }
