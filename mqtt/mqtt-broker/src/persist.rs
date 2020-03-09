@@ -76,8 +76,8 @@ pub struct FilePersistor<F> {
     format: F,
     previous_count: usize,
 
-    /// epoch is bumped on every store to disambiguate stores in the same timestamp
-    epoch: u16,
+    /// seq is bumped on every store to disambiguate stores in the same timestamp
+    seq: u16,
 }
 
 impl<F> FilePersistor<F> {
@@ -86,7 +86,7 @@ impl<F> FilePersistor<F> {
             dir: dir.into(),
             format,
             previous_count: STATE_DEFAULT_PREVIOUS_COUNT,
-            epoch: 0,
+            seq: 0,
         }
     }
 
@@ -183,8 +183,8 @@ where
         let format = self.format.clone();
         let previous_count = self.previous_count;
 
-        self.epoch = self.epoch.wrapping_add(1);
-        let epoch = self.epoch;
+        self.seq = self.seq.wrapping_add(1);
+        let seq = self.seq;
 
         let res = tokio::task::spawn_blocking(move || {
             let span = span!(Level::INFO, "persistor", dir = %dir.display());
@@ -205,7 +205,7 @@ where
                 "{}.{}-{:05}.{}",
                 STATE_DEFAULT_STEM,
                 chrono::Utc::now().format("%Y%m%d%H%M%S%3f"),
-                epoch,
+                seq,
                 STATE_EXTENSION
             ));
 
