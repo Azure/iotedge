@@ -468,6 +468,11 @@ function process_args() {
     echo 'Required parameters are provided'
 }
 
+function get_random_id()
+{
+    echo $(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 8)
+}
+
 function run_all_tests()
 {
     local funcRet=0
@@ -687,7 +692,7 @@ function run_longhaul_test() {
     print_highlighted_message "Run Long Haul test for $image_architecture_label"
     test_setup
 
-    local random_id=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 8)
+    local random_id=$(get_random_id)
     local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-longhaul-$random_id"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -766,7 +771,7 @@ function run_stress_test() {
     print_highlighted_message "Run Stress test for $image_architecture_label"
     test_setup
 
-    local random_id=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 8)
+    local random_id=$(get_random_id)
     local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-stress-$random_id"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"

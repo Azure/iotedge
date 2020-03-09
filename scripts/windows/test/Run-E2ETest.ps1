@@ -398,6 +398,11 @@ Function InitializeWorkingFolder
     Remove-Item $TestWorkingFolder -Force -Recurse -ErrorAction SilentlyContinue
 }
 
+Function GetRandomId
+{
+    return -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 8 | % {[char]$_})
+}
+
 Function PrepareTestFromArtifacts
 {
     PrintHighlightedMessage "Copy artifact files to $TestWorkingFolder"
@@ -1012,7 +1017,7 @@ Function RunLongHaulTest
     TestSetup
 
     $testStartAt = Get-Date
-    $randomId = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 8 | % {[char]$_})
+    $randomId = GetRandomId
     $deviceId = "${ReleaseLabel}-Windows-${Architecture}-longHaul-${randomId}"
     PrintHighlightedMessage "Run Long Haul test with -d ""$deviceId"" started at $testStartAt"
 
@@ -1045,7 +1050,7 @@ Function RunStressTest
     TestSetup
 
     $testStartAt = Get-Date
-    $randomId = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 8 | % {[char]$_})
+    $randomId = GetRandomId
     $deviceId = "${ReleaseLabel}-Windows-${Architecture}-stress-${randomId}"
     PrintHighlightedMessage "Run Stress test with -d ""$deviceId"" started at $testStartAt"
 
