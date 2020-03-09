@@ -33,6 +33,7 @@ namespace TestResultCoordinator
         static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
                 .UseUrls($"http://*:{Settings.Current.WebHostPort}")
+                .UseSockets()
                 .UseStartup<Startup>();
     }
 }

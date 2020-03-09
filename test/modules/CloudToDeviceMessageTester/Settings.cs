@@ -88,7 +88,7 @@ namespace CloudToDeviceMessageTester
                 configuration.GetValue<string>("IOTEDGE_IOTHUBHOSTNAME"),
                 configuration.GetValue("C2DMESSAGE_TESTER_MODE", CloudToDeviceMessageTesterMode.Receiver),
                 configuration.GetValue<string>("trackingId"),
-                configuration.GetValue("TransportType", TransportType.Amqp),
+                configuration.GetValue("transportType", TransportType.Amqp),
                 configuration.GetValue("MessageDelay", TimeSpan.FromSeconds(5)),
                 configuration.GetValue<Uri>("ReportingEndpointUrl"),
                 configuration.GetValue("testDuration", TimeSpan.Zero),
