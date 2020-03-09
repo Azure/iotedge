@@ -315,7 +315,7 @@ function process_args() {
                 '-EdgeHubRestartTestSdkOperationTimeout' ) saveNextArg=34;;
                 '-edgeRuntimeBuildNumber' ) saveNextArg=35;;
                 '-customEdgeAgentImage' ) saveNextArg=36;;
-                '-customEdgeHubImage' ) saveNextArg=37;
+                '-customEdgeHubImage' ) saveNextArg=37;;
                 '-testInfo' ) savenextarg=38;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
