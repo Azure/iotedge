@@ -45,6 +45,35 @@ fn tear_down_failpoints() {
     }
 }
 
+async fn test_persistor(count: usize, ops: Vec<Op>) {
+    let tmp_dir = TempDir::new().unwrap();
+    let path = tmp_dir.path().to_owned();
+    let mut persistor = FilePersistor::new(path, BincodeFormat::new()).with_previous_count(count);
+
+    // Make sure we've stored at least one state
+    tear_down_failpoints();
+    persistor.store(BrokerState::default()).await.unwrap();
+
+    // process the operations
+    for op in ops {
+        match op {
+            Op::Load => {
+                let _ = persistor.load().await;
+            }
+            Op::Store(state) => {
+                let _ = persistor.store(state).await;
+            }
+            Op::AddFailpoint(f) => fail::cfg(f, "return").unwrap(),
+            Op::RemoveFailpoint(f) => fail::remove(f),
+        }
+    }
+
+    // clear the failpoints and ensure we can load at least one state
+    tear_down_failpoints();
+    let state = persistor.load().await.unwrap();
+    assert!(state.is_some());
+}
+
 #[test]
 fn test_failpoints_smoketest() {
     let scenario = FailScenario::setup();
@@ -77,30 +106,7 @@ proptest! {
             .enable_all()
             .build()
             .unwrap()
-            .block_on(async {
-                let tmp_dir = TempDir::new().unwrap();
-                let path = tmp_dir.path().to_owned();
-                let mut persistor = FilePersistor::new(path, BincodeFormat::new()).with_count(count);
-
-                // Make sure we've stored at least one state
-                tear_down_failpoints();
-                persistor.store(BrokerState::default()).await.unwrap();
-
-                // process the operations
-                for op in ops {
-                    match op {
-                        Op::Load => { let _ = persistor.load().await; },
-                        Op::Store(state) => { let _ = persistor.store(state).await; },
-                        Op::AddFailpoint(f) => fail::cfg(f, "return").unwrap(),
-                        Op::RemoveFailpoint(f) => fail::remove(f),
-                    }
-                }
-
-                // clear the failpoints and ensure we can load at least one state
-                tear_down_failpoints();
-                let state = persistor.load().await.unwrap();
-                assert!(state.is_some());
-            });
+            .block_on(test_persistor(count, ops));
         scenario.teardown();
     }
 }
@@ -126,34 +132,7 @@ fn test_failpoints_regression1() {
         .enable_all()
         .build()
         .unwrap()
-        .block_on(async {
-            let tmp_dir = TempDir::new().unwrap();
-            let path = tmp_dir.path().to_owned();
-            let mut persistor = FilePersistor::new(path, BincodeFormat::new());
-
-            // Make sure we've stored at least one state
-            tear_down_failpoints();
-            persistor.store(BrokerState::default()).await.unwrap();
-
-            // process the operations
-            for op in ops {
-                match op {
-                    Op::Load => {
-                        let _ = persistor.load().await;
-                    }
-                    Op::Store(state) => {
-                        let _ = persistor.store(state).await;
-                    }
-                    Op::AddFailpoint(f) => fail::cfg(f, "return").unwrap(),
-                    Op::RemoveFailpoint(f) => fail::remove(f),
-                }
-            }
-
-            // clear the failpoints and ensure we can load at least one state
-            tear_down_failpoints();
-            let state = persistor.load().await.unwrap();
-            assert!(state.is_some());
-        });
+        .block_on(test_persistor(2, ops));
     scenario.teardown();
 }
 
@@ -177,33 +156,6 @@ fn test_failpoints_windows_failure() {
         .enable_all()
         .build()
         .unwrap()
-        .block_on(async {
-            let tmp_dir = TempDir::new().unwrap();
-            let path = tmp_dir.path().to_owned();
-            let mut persistor = FilePersistor::new(path, BincodeFormat::new()).with_count(count);
-
-            // Make sure we've stored at least one state
-            tear_down_failpoints();
-            persistor.store(BrokerState::default()).await.unwrap();
-
-            // process the operations
-            for op in ops {
-                match op {
-                    Op::Load => {
-                        let _ = persistor.load().await;
-                    }
-                    Op::Store(state) => {
-                        let _ = persistor.store(state).await;
-                    }
-                    Op::AddFailpoint(f) => fail::cfg(f, "return").unwrap(),
-                    Op::RemoveFailpoint(f) => fail::remove(f),
-                }
-            }
-
-            // clear the failpoints and ensure we can load at least one state
-            tear_down_failpoints();
-            let state = persistor.load().await.unwrap();
-            assert!(state.is_some());
-        });
+        .block_on(test_persistor(count, ops));
     scenario.teardown();
 }

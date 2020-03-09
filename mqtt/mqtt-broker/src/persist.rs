@@ -19,7 +19,7 @@ use crate::error::{Error, ErrorKind};
 use crate::BrokerState;
 
 /// sets the number of past states to save - 2 means we save the current and the pervious
-const STATE_DEFAULT_COUNT: usize = 2;
+const STATE_DEFAULT_PREVIOUS_COUNT: usize = 2;
 static STATE_DEFAULT_STEM: &str = "state";
 static STATE_EXTENSION: &str = "dat";
 
@@ -74,7 +74,10 @@ pub trait FileFormat {
 pub struct FilePersistor<F> {
     dir: PathBuf,
     format: F,
-    count: usize,
+    previous_count: usize,
+
+    /// epoch is bumped on every store to disambiguate stores in the same timestamp
+    epoch: u16,
 }
 
 impl<F> FilePersistor<F> {
@@ -82,7 +85,8 @@ impl<F> FilePersistor<F> {
         FilePersistor {
             dir: dir.into(),
             format,
-            count: STATE_DEFAULT_COUNT,
+            previous_count: STATE_DEFAULT_PREVIOUS_COUNT,
+            epoch: 0,
         }
     }
 
@@ -91,8 +95,8 @@ impl<F> FilePersistor<F> {
     /// The intent is to allow rollback to a pervious state.
     /// The default is `2`, which saves the current and previous state.
     /// The minimum value is `1` (the current state).
-    pub fn with_count(mut self, count: usize) -> Self {
-        self.count = cmp::max(1, count);
+    pub fn with_previous_count(mut self, previous_count: usize) -> Self {
+        self.previous_count = cmp::max(1, previous_count);
         self
     }
 }
@@ -177,7 +181,10 @@ where
     async fn store(&mut self, state: BrokerState) -> Result<(), Self::Error> {
         let dir = self.dir.clone();
         let format = self.format.clone();
-        let count = self.count;
+        let previous_count = self.previous_count;
+
+        self.epoch = self.epoch.wrapping_add(1);
+        let epoch = self.epoch;
 
         let res = tokio::task::spawn_blocking(move || {
             let span = span!(Level::INFO, "persistor", dir = %dir.display());
@@ -195,9 +202,10 @@ where
                 dir.join(format!("{}.{}.tmp", STATE_DEFAULT_STEM, STATE_EXTENSION));
 
             let path = dir.join(format!(
-                "{}.{}.{}",
+                "{}.{}-{:05}.{}",
                 STATE_DEFAULT_STEM,
-                chrono::Utc::now().format("%Y%m%d%H%M%S%6f"),
+                chrono::Utc::now().format("%Y%m%d%H%M%S%3f"),
+                epoch,
                 STATE_EXTENSION
             ));
 
@@ -275,7 +283,7 @@ where
                             .unwrap_or(cmp::Ordering::Equal)
                     });
 
-                    for entry in entries.iter().skip(count) {
+                    for entry in entries.iter().skip(previous_count) {
                         debug!(
                             "pruning old state file {}...",
                             entry.file_name().to_string_lossy()
