@@ -1,6 +1,6 @@
 use fail::FailScenario;
 
-use mqtt_broker::{BincodeFormat, BrokerState, FilePersistor, Persist};
+use mqtt_broker::{BincodeFormat, BrokerState, ErrorKind, FilePersistor, Persist};
 use proptest::collection::vec;
 use proptest::prelude::*;
 use tempfile::TempDir;
@@ -90,7 +90,8 @@ fn test_failpoints_smoketest() {
             let mut persistor = FilePersistor::new(path, BincodeFormat::new());
 
             let result = persistor.load().await;
-            assert!(result.is_err());
+            let err = result.unwrap_err();
+            assert_eq!(&ErrorKind::TaskJoin, err.kind());
         });
     scenario.teardown();
 }
