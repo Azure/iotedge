@@ -8,6 +8,8 @@ GO
 CREATE TABLE [dbo].[VstsBug](
 	[QueryName] [varchar](20) NOT NULL,
 	[BugCount] [int] NOT NULL,
+	[InsertedAt] [datetime2](7) NOT NULL,
+	[UpdatedAt] [datetime2](7) NOT NULL,
  CONSTRAINT [PK_QueryName] PRIMARY KEY CLUSTERED 
 (
 	[QueryName] ASC
