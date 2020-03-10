@@ -20,6 +20,11 @@ namespace DevOpsLib
             string personalAccessToken,
             string team)
         {
+            ValidationUtil.ThrowIfNullOrWhiteSpace(organization, nameof(organization));
+            ValidationUtil.ThrowIfNullOrWhiteSpace(project, nameof(project));
+            ValidationUtil.ThrowIfNullOrWhiteSpace(personalAccessToken, nameof(personalAccessToken));
+            ValidationUtil.ThrowIfNullOrWhiteSpace(team, nameof(team));
+
             this.Organization = organization;
             this.Project = project;
             this.PersonalAccessToken = personalAccessToken;
