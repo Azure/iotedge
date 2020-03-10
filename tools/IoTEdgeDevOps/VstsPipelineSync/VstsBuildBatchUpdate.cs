@@ -36,45 +36,18 @@ namespace VstsPipelineSync
 
             while (!ct.IsCancellationRequested)
             {
-                try
-                {
-                    Console.WriteLine($"Import bugs data started at {DateTime.UtcNow}");
+                await ImportVstsBugDataAsync(bugManagement);
 
-                    await ImportVstsBugDataAsync(bugManagement);
-                }
-                catch (Exception ex)
+                foreach (string branch in this.branches)
                 {
-                    Console.WriteLine($"Unexcepted Exception: {ex}");
+                    buildLastUpdatePerBranchPerDefinition.Upsert(
+                        branch,
+                        await ImportVstsBuildsDataAsync(buildManagement, branch, BuildExtension.BuildDefinitions));
                 }
 
-                try
+                foreach (string branch in this.branches)
                 {
-                    Console.WriteLine($"Import Vsts Builds data started at {DateTime.UtcNow}");
-
-                    foreach (string branch in this.branches)
-                    {
-                        buildLastUpdatePerBranchPerDefinition.Upsert(
-                            branch,
-                            await ImportVstsBuildsDataAsync(buildManagement, branch, BuildExtension.BuildDefinitions));
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Unexcepted Exception: {ex}");
-                }
-
-                try
-                {
-                    Console.WriteLine($"Import Vsts Releases data started at {DateTime.UtcNow}");
-
-                    foreach (string branch in this.branches)
-                    {
-                        await ImportVstsReleasesDataAsync(releaseManagement, branch, ReleaseDefinitionId.E2ETest);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Unexcepted Exception: {ex}");
+                    await ImportVstsReleasesDataAsync(releaseManagement, branch, ReleaseDefinitionId.E2ETest);
                 }
 
                 Console.WriteLine($"Import Vsts data finished at {DateTime.UtcNow}; wait {waitPeriodAfterEachUpdate} for next update.");
