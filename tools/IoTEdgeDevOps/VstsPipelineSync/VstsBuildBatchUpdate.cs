@@ -71,6 +71,7 @@ namespace VstsPipelineSync
                     string queryId = queryNameToId.Value;
                     int bugCount = await bugManagement.GetBugsQuery(queryId);
 
+                    Console.WriteLine($"Query VSTS bugs for work item query id {queryId}: last update={DateTime.UtcNow} => result count={bugCount}");
                     UpsertVstsBugToDb(sqlConnection, queryName, bugCount);
                 }
             }
@@ -117,7 +118,7 @@ namespace VstsPipelineSync
                 sqlConnection.Open();
 
                 IList<VstsBuild> buildResults = await buildManagement.GetBuildsAsync(new HashSet<BuildDefinitionId> { buildDefinitionId }, branch, lastUpdate);
-                Console.WriteLine($"Query VSTS for branch [{branch}] and build definition [{buildDefinitionId.ToString()}]: last update={lastUpdate} => result count={buildResults.Count}");
+                Console.WriteLine($"Query VSTS builds for branch [{branch}] and build definition [{buildDefinitionId.ToString()}]: last update={lastUpdate} => result count={buildResults.Count}");
                 DateTime maxLastChange = lastUpdate;
 
                 foreach (VstsBuild build in buildResults.Where(r => r.HasResult()))
@@ -183,6 +184,8 @@ namespace VstsPipelineSync
 
         async Task ImportVstsReleasesDataAsync(ReleaseManagement releaseManagement, string branch, ReleaseDefinitionId releaseDefinitionId)
         {
+            Console.WriteLine($"Import VSTS releases from branch [{branch}] started at {DateTime.UtcNow}.");
+
             SqlConnection sqlConnection = null;
 
             try
@@ -191,7 +194,7 @@ namespace VstsPipelineSync
                 sqlConnection.Open();
 
                 List<IoTEdgeRelease> releaseResults = await releaseManagement.GetReleasesAsync(releaseDefinitionId, branch, 200);
-                Console.WriteLine($"Query VSTS for branch [{branch}] and release definition [{releaseDefinitionId.ToString()}]: result count={releaseResults.Count} at {DateTime.UtcNow}.");
+                Console.WriteLine($"Query VSTS releases for branch [{branch}] and release definition [{releaseDefinitionId.ToString()}]: result count={releaseResults.Count} at {DateTime.UtcNow}.");
 
                 int releaseCount = 0;
 
@@ -225,7 +228,7 @@ namespace VstsPipelineSync
 
                     if (releaseCount % 10 ==0)
                     {
-                        Console.WriteLine($"Query VSTS for branch [{branch}] and release definition [{releaseDefinitionId.ToString()}]: release count={releaseCount} at {DateTime.UtcNow}.");
+                        Console.WriteLine($"Query VSTS releases for branch [{branch}] and release definition [{releaseDefinitionId.ToString()}]: release count={releaseCount} at {DateTime.UtcNow}.");
                     }
                 }
             }

@@ -10,7 +10,7 @@ namespace DevOpsLib
 
     public class BugManagement
     {
-        const string WorkItemPathSegmentFormat = "{0}/{1}/{2}/_apis/wit/wiql/{3}";
+        const string WorkItemPathSegmentFormat = "{0}/{1}/{2}/{3}/_apis/wit/wiql/{4}";
 
         readonly DevOpsAccessSetting accessSetting;
 
@@ -20,8 +20,8 @@ namespace DevOpsLib
         }
 
         /// <summary>
-        /// This method is used to execute a Dev Ops work item query and get a list of bugs. 
-        /// If result is not found for a query Id, it will return an entity with no result.
+        /// This method is used to execute a Dev Ops work item query and get the number of bugs for a given query. 
+        /// If result is not found for a query Id, it will return 0.
         /// Note: there is no validation of work item query ids.
         /// Reference: https://docs.microsoft.com/en-us/rest/api/azure/devops/wit/wiql/get?view=azure-devops-rest-5.1
         /// </summary>
@@ -32,11 +32,11 @@ namespace DevOpsLib
             ValidationUtil.ThrowIfNullOrEmptySet(bugQueryId, nameof(bugQueryId));
 
             // TODO: need to think about how to handle unexpected exception during REST API call
-            string requestPath = string.Format(WorkItemPathSegmentFormat, this.accessSetting.Organization, this.accessSetting.Project, this.accessSetting.Team, bugQueryId);
-            IFlurlRequest latestBuildRequest = GetBugsRequestUri(requestPath)
+            string requestPath = string.Format(WorkItemPathSegmentFormat, DevOpsAccessSetting.BaseUrl, this.accessSetting.Organization, this.accessSetting.Project, this.accessSetting.Team, bugQueryId);
+            IFlurlRequest workItemQueryRequest = ((Url)requestPath)
                 .WithBasicAuth(string.Empty, this.accessSetting.PersonalAccessToken);
 
-            string resultJson = await latestBuildRequest.GetStringAsync().ConfigureAwait(false);
+            string resultJson = await workItemQueryRequest.GetStringAsync().ConfigureAwait(false);
             JObject result = JObject.Parse(resultJson);
 
             if (!result.ContainsKey("queryType"))
@@ -47,12 +47,6 @@ namespace DevOpsLib
             {
                 return result["workItems"].Count();
             }
-        }
-
-        private static Url GetBugsRequestUri(string requestPath)
-        {
-            Url requestUri = DevOpsAccessSetting.BaseUrl.AppendPathSegment(requestPath);
-            return requestUri;
         }
     }
 }
