@@ -1,11 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 {
+    using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json;
 
     public class EdgeletCommandFactory<T> : ICommandFactory
     {
@@ -48,6 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         async Task<ICommand> UpdateAsync(Option<IModule> current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo, bool start)
         {
             T config = this.combinedConfigProvider.GetCombinedConfig(next.Module, runtimeInfo);
+            Console.WriteLine($"DEBUG: [{config.GetType().FullName}] GetCombinedConfig: " + Environment.NewLine + JsonConvert.SerializeObject(config));
+
             return new GroupCommand(
                 new PrepareUpdateCommand(this.moduleManager, next.Module, config),
                 await current.Match(this.StopAsync, () => Task.FromResult<ICommand>(NullCommand.Instance)),

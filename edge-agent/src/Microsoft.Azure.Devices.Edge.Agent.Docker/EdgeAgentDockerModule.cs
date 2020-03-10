@@ -15,17 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             Preconditions.CheckArgument(type?.Equals("docker") ?? false);
         }
 
-        public override bool Equals(IModule<DockerConfig> other)
-        {
-            if (ReferenceEquals(null, other))
-                return false;
-            if (ReferenceEquals(this, other))
-                return true;
-            return string.Equals(this.Name, other.Name) &&
-                string.Equals(this.Type, other.Type) &&
-                string.Equals(this.Config.Image, other.Config.Image);
-        }
-
         public override int GetHashCode()
         {
             unchecked

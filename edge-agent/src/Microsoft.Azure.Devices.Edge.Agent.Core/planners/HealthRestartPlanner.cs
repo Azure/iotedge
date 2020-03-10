@@ -119,6 +119,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             // extract list of modules that need attention
             (IList<IModule> added, IList<IModule> updateDeployed, IList<IModule> desiredStatusChanged, IList<IRuntimeModule> updateStateChanged, IList<IRuntimeModule> removed, IList<IRuntimeModule> runningGreat) = this.ProcessDiff(desired, current);
 
+            Events.LogModuleSet("added", added);
+            Events.LogModuleSet("updateDeployed", updateDeployed);
+            Events.LogModuleSet("desiredStatusChanged", desiredStatusChanged);
+            Events.LogModuleSet("updateStateChanged", updateStateChanged);
+            Events.LogModuleSet("removed", removed);
+            Events.LogModuleSet("runningGreat", runningGreat);
+
             List<ICommand> updateRuntimeCommands = await this.GetUpdateRuntimeCommands(updateDeployed, moduleIdentities, runtimeInfo);
 
             // create "stop" commands for modules that have been removed
@@ -380,8 +387,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             {
                 if (moduleIdentities.TryGetValue(edgeAgentModule.Name, out IModuleIdentity edgeAgentIdentity))
                 {
+                    Events.Print("Remove edgeAgent module from updateDeployed set.");
                     updateDeployed.Remove(edgeAgentModule);
+                    Events.Print($"GetUpdateRuntimeCommands: use [{this.commandFactory.GetType().FullName}]");
                     ICommand updateEdgeAgentCommand = await this.commandFactory.UpdateEdgeAgentAsync(new ModuleWithIdentity(edgeAgentModule, edgeAgentIdentity), runtimeInfo);
+                    Events.Print($"GetUpdateRuntimeCommands: updateEdgeAgentCommand [{updateEdgeAgentCommand.Show()}]");
                     updateRuntimeCommands.Add(updateEdgeAgentCommand);
                 }
                 else
@@ -407,7 +417,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                 UnableToUpdateEdgeAgent,
                 UnableToProcessModule,
                 CurrentModuleNotFound,
-                InvalidDesiredState
+                InvalidDesiredState,
+                Print
             }
 
             public static void PlanCreated(IList<ICommand> commands)
@@ -455,6 +466,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             {
                 IDictionary<string, IModule> modules = current.Modules.ToImmutableDictionary();
                 Log.LogDebug((int)EventIds.CurrentModules, $"List of current modules is - {JsonConvert.SerializeObject(modules)}");
+            }
+
+            internal static void LogModuleSet(string description, IList<IModule> modules)
+            {
+                IDictionary<string, IModule> moduleDict = modules.ToImmutableDictionary(m => m.Name, m => m);
+                Log.LogDebug((int)EventIds.DesiredModules, $"List of [{description} modules] is - {JsonConvert.SerializeObject(moduleDict)}");
+            }
+
+            internal static void LogModuleSet(string description, IList<IRuntimeModule> modules)
+            {
+                IDictionary<string, IRuntimeModule> moduleDict = modules.ToImmutableDictionary(m => m.Name, m => m);
+                Log.LogDebug((int)EventIds.DesiredModules, $"List of [{description} modules] is - {JsonConvert.SerializeObject(moduleDict)}");
+            }
+
+            public static void Print(string message)
+            {
+                Log.LogDebug((int)EventIds.Print, $"Custom Print Log: {message}");
             }
         }
     }
