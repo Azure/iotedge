@@ -28,7 +28,7 @@ namespace VstsPipelineSync
                 Console.WriteLine(" branches: comma deliminated name of branches");
                 Console.WriteLine(" wait-period: time between db updates (e.g. 00:01:00)");
                 Console.WriteLine(" vsts-pat: personal access token to vsts");
-                Console.WriteLine(" db-connection-string: connection string found in the azure portal");
+                Console.WriteLine(" db-connection-string: sql server connection string found in the azure portal");
                 Environment.Exit(1);
             }
 
