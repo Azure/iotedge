@@ -1950,16 +1950,16 @@ function Set-ListenConnectUri([string] $ManagementUri, [string] $WorkloadUri) {
 }
 
 function Set-ListenConnectUriForLinuxContainers {
-  # "host.docker.internal" is a well-known address that maps to the Host from inside a container on Docker Desktop.
+    # "host.docker.internal" is a well-known address that maps to the Host from inside a container on Docker Desktop.
 
-  $connectAddress = 'http://host.docker.internal'
-  $listenAddress = 'http://127.0.0.1'
+    $connectAddress = 'http://host.docker.internal'
+    $listenAddress = 'http://127.0.0.1'
 
-  Set-ConfigUri -Section 'connect' -ManagementUri "${connectAddress}:15580" -WorkloadUri "${connectAddress}:15581"
-  Set-ConfigUri -Section 'listen' -ManagementUri "${listenAddress}:15580" -WorkloadUri "${listenAddress}:15581" 
+    Set-ConfigUri -Section 'connect' -ManagementUri "${connectAddress}:15580" -WorkloadUri "${connectAddress}:15581"
+    Set-ConfigUri -Section 'listen' -ManagementUri "${listenAddress}:15580" -WorkloadUri "${listenAddress}:15581" 
 
-  Set-MachineEnvironmentVariable 'IOTEDGE_HOST' "${listenAddress}:15580" 
-  $env:IOTEDGE_HOST = "${listenAddress}:15580"
+    Set-MachineEnvironmentVariable 'IOTEDGE_HOST' "${listenAddress}:15580" 
+    $env:IOTEDGE_HOST = "${listenAddress}:15580"
 }
 
 function Set-CorrectProgramData {
