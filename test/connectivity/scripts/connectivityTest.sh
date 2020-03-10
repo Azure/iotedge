@@ -316,7 +316,7 @@ function process_args() {
                 '-edgeRuntimeBuildNumber' ) saveNextArg=35;;
                 '-customEdgeAgentImage' ) saveNextArg=36;;
                 '-customEdgeHubImage' ) saveNextArg=37;;
-                '-testInfo' ) savenextarg=38;;
+                '-testInfo' ) saveNextArg=38;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
