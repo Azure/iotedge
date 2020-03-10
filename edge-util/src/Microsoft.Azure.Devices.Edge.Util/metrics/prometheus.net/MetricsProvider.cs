@@ -29,9 +29,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
             // consume and make sense of these metrics. So suppressing the default metrics for
             // now. We can look at ways to add tags to the default metrics, or emiting the
             // metrics manually.
-            
+
             // BEARWASHERE -- Investigate the default metric if sufficients
-            //Metrics.SuppressDefaultMetrics();
+            // Metrics.SuppressDefaultMetrics();
         }
 
         public IMetricsGauge CreateGauge(string name, string description, List<string> labelNames)
