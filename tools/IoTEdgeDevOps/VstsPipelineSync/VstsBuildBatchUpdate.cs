@@ -32,9 +32,21 @@ namespace VstsPipelineSync
         {
             var buildManagement = new BuildManagement(devOpsAccessSetting);
             var releaseManagement = new ReleaseManagement(devOpsAccessSetting);
+            var bugManagement = new BugManagement(devOpsAccessSetting);
 
             while (!ct.IsCancellationRequested)
             {
+                try
+                {
+                    Console.WriteLine($"Import bugs data started at {DateTime.UtcNow}");
+
+                    await ImportVstsBugDataAsync(bugManagement);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Unexcepted Exception: {ex}");
+                }
+
                 try
                 {
                     Console.WriteLine($"Import Vsts Builds data started at {DateTime.UtcNow}");
@@ -65,8 +77,37 @@ namespace VstsPipelineSync
                     Console.WriteLine($"Unexcepted Exception: {ex}");
                 }
 
-                Console.WriteLine($"Import Vsts Builds data finished at {DateTime.UtcNow}; wait {waitPeriodAfterEachUpdate} for next update.");
+                Console.WriteLine($"Import Vsts data finished at {DateTime.UtcNow}; wait {waitPeriodAfterEachUpdate} for next update.");
                 await Task.Delay((int)waitPeriodAfterEachUpdate.TotalMilliseconds);
+            }
+        }
+
+        async Task ImportVstsBugDataAsync(BugManagement bugManagement)
+        {
+            Console.WriteLine($"Import VSTS bugs started at {DateTime.UtcNow}.");
+            SqlConnection sqlConnection = null;
+
+            try
+            {
+                sqlConnection = new SqlConnection(this.dbConnectionString);
+                sqlConnection.Open();
+
+                foreach (KeyValuePair<string, string> queryNameToId in BugQueryId.QueryNamestoIds)
+                {
+                    string queryName = queryNameToId.Key;
+                    string queryId = queryNameToId.Value;
+                    int bugCount = await bugManagement.GetBugsQuery(queryId);
+
+                    UpsertVstsBugToDb(sqlConnection, queryName, bugCount);
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            finally
+            {
+                sqlConnection?.Close();
             }
         }
 
@@ -126,6 +167,21 @@ namespace VstsPipelineSync
             {
                 sqlConnection?.Close();
             }
+        }
+
+        void UpsertVstsBugToDb(SqlConnection sqlConnection, string queryName, int bugCount)
+        {
+            var cmd = new SqlCommand
+            {
+                Connection = sqlConnection,
+                CommandType = CommandType.StoredProcedure,
+                CommandText = "UpsertVstsBug"
+            };
+
+            cmd.Parameters.Add(new SqlParameter("@QueryName", queryName));
+            cmd.Parameters.Add(new SqlParameter("@BugCount", bugCount));
+
+            cmd.ExecuteNonQuery();
         }
 
         void UpsertVstsBuildToDb(SqlConnection sqlConnection, VstsBuild build)
