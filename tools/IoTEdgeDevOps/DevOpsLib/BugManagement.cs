@@ -45,7 +45,6 @@ namespace DevOpsLib
             }
             else
             {
-                Console.WriteLine($"Bugs: {result["workItems"].Count()}");
                 return result["workItems"].Count();
             }
         }
