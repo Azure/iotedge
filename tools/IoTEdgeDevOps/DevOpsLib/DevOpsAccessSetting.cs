@@ -7,20 +7,23 @@ namespace DevOpsLib
         public const string ReleaseManagementBaseUrl = "https://vsrm.dev.azure.com";
         public const string AzureOrganization = "msazure";
         public const string AzureProject = "one";
+        public const string IoTTeam = "IoT-Platform-Edge";
 
         public DevOpsAccessSetting(string personalAccessToken)
-            : this(AzureOrganization, AzureProject, personalAccessToken)
+            : this(AzureOrganization, AzureProject, personalAccessToken, IoTTeam)
         {
         }
 
         public DevOpsAccessSetting(
             string organization,
             string project,
-            string personalAccessToken)
+            string personalAccessToken,
+            string team)
         {
             this.Organization = organization;
             this.Project = project;
             this.PersonalAccessToken = personalAccessToken;
+            this.Team = team;
         }
 
         public string Organization { get; }
@@ -28,5 +31,7 @@ namespace DevOpsLib
         public string Project { get; }
 
         public string PersonalAccessToken { get; }
+
+        public string Team { get; }
     }
 }
