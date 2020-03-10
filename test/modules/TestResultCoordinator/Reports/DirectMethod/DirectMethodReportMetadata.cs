@@ -2,22 +2,24 @@
 namespace TestResultCoordinator.Reports.DirectMethod
 {
     using System;
-    using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using TestResultCoordinator.Reports;
 
-    class DirectMethodReportMetadata : ITestReportMetadata
+    class DirectMethodReportMetadata : TestReportMetadataBase, ITestReportMetadata
     {
-        public DirectMethodReportMetadata(string testDescription, string senderSource, TimeSpan tolerancePeriod, string receiverSource = "")
+        public DirectMethodReportMetadata(
+            string testDescription,
+            string senderSource,
+            TimeSpan tolerancePeriod,
+            string receiverSource = "")
+            : base(testDescription)
         {
-            this.TestDescription = testDescription;
             this.SenderSource = senderSource;
             this.TolerancePeriod = tolerancePeriod;
             this.ReceiverSource = string.IsNullOrEmpty(receiverSource) ? Option.None<string>() : Option.Some(receiverSource);
         }
 
-        public string TestDescription { get; }
 
         public TimeSpan TolerancePeriod { get; }
 
