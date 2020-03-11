@@ -7,13 +7,13 @@ use tracing::{info, warn, Level};
 use tracing_subscriber::{fmt, EnvFilter};
 
 use mqtt_broker::{
-    Broker, BrokerHandle, Error, ErrorKind, Message, NullPersistor, Persist, Server, Snapshotter,
+    Broker, BrokerHandle, ErrorKind, Message, NullPersistor, Persist, Server, Snapshotter,
     StateSnapshotHandle, SystemEvent,
 };
-use mqttd::{shutdown, snapshot};
+use mqttd::{shutdown, snapshot, Terminate};
 
 #[tokio::main]
-async fn main() -> Result<(), Error> {
+async fn main() -> Result<(), Terminate> {
     let subscriber = fmt::Subscriber::builder()
         .with_ansi(atty::is(atty::Stream::Stderr))
         .with_max_level(Level::TRACE)
