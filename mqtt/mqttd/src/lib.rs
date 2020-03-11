@@ -1,10 +1,10 @@
-pub mod shutdown;
-pub mod snapshot;
-
 use std::fmt;
 
 use failure::{Context, Fail};
 use mqtt_broker::{Error, ErrorKind};
+
+pub mod shutdown;
+pub mod snapshot;
 
 pub struct Terminate {
     error: Error,
@@ -34,3 +34,4 @@ impl From<Context<ErrorKind>> for Terminate {
         }
     }
 }
+
