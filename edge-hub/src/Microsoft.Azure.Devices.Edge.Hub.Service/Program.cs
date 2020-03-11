@@ -66,6 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             LogLogo(logger);
             LogVersionInfo(logger);
             logger.LogInformation($"OptimizeForPerformance={configuration.GetValue("OptimizeForPerformance", true)}");
+            logger.LogInformation($"MessageAckTimeoutSecs={configuration.GetValue("MessageAckTimeoutSecs", 30)}");
             logger.LogInformation("Loaded server certificate with expiration date of {0}", certificates.ServerCertificate.NotAfter.ToString("o"));
 
             var metricsListener = container.Resolve<IMetricsListener>();

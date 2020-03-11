@@ -2,3 +2,4 @@
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test")]
+[assembly: InternalsVisibleTo("Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest")]

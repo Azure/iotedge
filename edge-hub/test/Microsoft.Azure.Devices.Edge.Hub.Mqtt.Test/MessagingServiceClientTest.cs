@@ -23,6 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     public class MessagingServiceClientTest
     {
         static readonly IByteBufferConverter ByteBufferConverter = new ByteBufferConverter(PooledByteBufferAllocator.Default);
+        static readonly TimeSpan DefaultMessageAckTimeout = TimeSpan.FromSeconds(30);
         static readonly IIdentity MockIdentity = Mock.Of<IIdentity>(i => i.Id == "device1");
         static readonly Mock<IMessagingChannel<IProtocolGatewayMessage>> Channel = new Mock<IMessagingChannel<IProtocolGatewayMessage>>();
         static readonly Mock<IEdgeHub> EdgeHub = new Mock<IEdgeHub>();
@@ -111,7 +112,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IDeviceListener listener = new DeviceMessageHandler(
                 Mock.Of<IIdentity>(i => i.Id == "d1"),
                 edgeHub,
-                Mock.Of<IConnectionManager>());
+                Mock.Of<IConnectionManager>(),
+                DefaultMessageAckTimeout);
             var channel = new Mock<IMessagingChannel<IProtocolGatewayMessage>>();
             channel.Setup(x => x.Handle(It.IsAny<IProtocolGatewayMessage>()))
                 .Callback<IProtocolGatewayMessage>(
@@ -155,7 +157,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IDeviceListener listener = new DeviceMessageHandler(
                 Mock.Of<IIdentity>(i => i.Id == "d1"),
                 edgeHub,
-                Mock.Of<IConnectionManager>());
+                Mock.Of<IConnectionManager>(),
+                DefaultMessageAckTimeout);
             var channel = new Mock<IMessagingChannel<IProtocolGatewayMessage>>();
             channel.Setup(x => x.Handle(It.IsAny<IProtocolGatewayMessage>()))
                 .Callback<IProtocolGatewayMessage>(
@@ -181,7 +184,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IDeviceListener listener = new DeviceMessageHandler(
                 Mock.Of<IIdentity>(i => i.Id == "d1"),
                 edgeHub,
-                Mock.Of<IConnectionManager>());
+                Mock.Of<IConnectionManager>(),
+                DefaultMessageAckTimeout);
             var channel = new Mock<IMessagingChannel<IProtocolGatewayMessage>>();
             ProtocolGatewayMessage message = new ProtocolGatewayMessage.Builder(ByteBufferConverter.ToByteBuffer(new byte[0]), "$iothub/twin/PATCH/properties/reported/")
                 .Build();
@@ -336,7 +340,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             connectionManager.Setup(c => c.GetCloudConnection(It.IsAny<string>()))
                 .Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
 
-            var deviceListner = new DeviceMessageHandler(MockIdentity, EdgeHub.Object, connectionManager.Object);
+            var deviceListner = new DeviceMessageHandler(MockIdentity, EdgeHub.Object, connectionManager.Object, DefaultMessageAckTimeout);
             var messagingServiceClient = new MessagingServiceClient(deviceListner, messageConverter, ByteBufferConverter);
 
             Channel.Setup(r => r.Handle(It.IsAny<IProtocolGatewayMessage>()))
@@ -367,7 +371,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(c => c.GetCloudConnection(It.IsAny<string>()))
                 .Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
-            var deviceListner = new DeviceMessageHandler(MockIdentity, EdgeHub.Object, connectionManager.Object);
+            var deviceListner = new DeviceMessageHandler(MockIdentity, EdgeHub.Object, connectionManager.Object, DefaultMessageAckTimeout);
             var messagingServiceClient = new MessagingServiceClient(deviceListner, messageConverter, ByteBufferConverter);
 
             Channel.Setup(r => r.Handle(It.IsAny<IProtocolGatewayMessage>()))
@@ -398,7 +402,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(c => c.GetCloudConnection(It.IsAny<string>()))
                 .Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
-            var deviceListner = new DeviceMessageHandler(MockIdentity, EdgeHub.Object, connectionManager.Object);
+            var deviceListner = new DeviceMessageHandler(MockIdentity, EdgeHub.Object, connectionManager.Object, DefaultMessageAckTimeout);
             var messagingServiceClient = new MessagingServiceClient(deviceListner, messageConverter, ByteBufferConverter);
 
             Channel.Setup(r => r.Handle(It.IsAny<IProtocolGatewayMessage>()))
@@ -429,7 +433,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var connectionManager = new Mock<IConnectionManager>();
             connectionManager.Setup(c => c.GetCloudConnection(It.IsAny<string>()))
                 .Returns(Task.FromResult(Option.Some(cloudProxy.Object)));
-            var deviceListner = new DeviceMessageHandler(MockIdentity, EdgeHub.Object, connectionManager.Object);
+            var deviceListner = new DeviceMessageHandler(MockIdentity, EdgeHub.Object, connectionManager.Object, DefaultMessageAckTimeout);
             var messagingServiceClient = new MessagingServiceClient(deviceListner, messageConverter, ByteBufferConverter);
 
             Channel.Setup(r => r.Handle(It.IsAny<IProtocolGatewayMessage>()))

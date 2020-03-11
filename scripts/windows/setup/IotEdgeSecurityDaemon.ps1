@@ -370,7 +370,7 @@ function Initialize-IoTEdge {
     Set-AgentImage
     Set-Hostname
     if ($ContainerOs -eq 'Linux') {
-        Set-GatewayAddress
+        Set-ListenConnectUriForLinuxContainers
     }
     else {
         Set-CorrectProgramData
@@ -1949,15 +1949,17 @@ function Set-ListenConnectUri([string] $ManagementUri, [string] $WorkloadUri) {
     $env:IOTEDGE_HOST = $ManagementUri
 }
 
-function Set-GatewayAddress {
-    $gatewayAddress = (Get-NetIpAddress |
-            Where-Object {$_.InterfaceAlias -like '*vEthernet (DockerNAT)*' -and $_.AddressFamily -eq 'IPv4'}).IPAddress
+function Set-ListenConnectUriForLinuxContainers {
+    # "host.docker.internal" is a well-known address that maps to the Host from inside a container on Docker Desktop.
 
-    Set-ListenConnectUri `
-        -ManagementUri "http://${gatewayAddress}:15580" `
-        -WorkloadUri "http://${gatewayAddress}:15581"
+    $connectAddress = 'http://host.docker.internal'
+    $listenAddress = 'http://127.0.0.1'
 
-    Write-HostGreen "Configured device with gateway address '$gatewayAddress'."
+    Set-ConfigUri -Section 'connect' -ManagementUri "${connectAddress}:15580" -WorkloadUri "${connectAddress}:15581"
+    Set-ConfigUri -Section 'listen' -ManagementUri "${listenAddress}:15580" -WorkloadUri "${listenAddress}:15581" 
+
+    Set-MachineEnvironmentVariable 'IOTEDGE_HOST' "${listenAddress}:15580" 
+    $env:IOTEDGE_HOST = "${listenAddress}:15580"
 }
 
 function Set-CorrectProgramData {
