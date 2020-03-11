@@ -5,7 +5,7 @@ Maintainer: Azure IoT Edge Devs
 Build-Depends: debhelper (>=9),
                dh-systemd
 Standards-Version: 3.9.6
-Homepage: https://github.com/azure/iot-edge
+Homepage: https://github.com/azure/iotedge
 
 Package: iotedge
 Architecture: any
