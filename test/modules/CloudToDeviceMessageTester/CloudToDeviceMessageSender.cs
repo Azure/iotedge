@@ -63,14 +63,13 @@ namespace CloudToDeviceMessageTester
                 {
                     testResult = await this.SendCloudToDeviceMessageAsync(batchId, this.trackingId);
                     this.messageCount++;
+                    await ModuleUtil.ReportTestResultAsync(this.testResultReportingClient, this.logger, testResult);
+                    await Task.Delay(this.messageDelay, ct);
                 }
                 catch (Exception ex)
                 {
                     this.logger.LogInformation($"Error occurred while sending Cloud to Device message for Sequence number: {this.messageCount}, batchId: {batchId}. Error message: {ex.Message}");
                 }
-
-                await ModuleUtil.ReportTestResultAsync(this.testResultReportingClient, this.logger, testResult);
-                await Task.Delay(this.messageDelay, ct);
             }
         }
 
