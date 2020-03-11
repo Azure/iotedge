@@ -152,12 +152,14 @@ where
                 info!("loading state from file {}.", path.display());
 
                 fail_point!("filepersistor.load.fileopen", |_| {
-                    Err(Error::from(ErrorKind::Persist(ErrorReason::FileOpen)))
+                    Err(Error::from(ErrorKind::Persist(ErrorReason::FileOpen(
+                        path.clone(),
+                    ))))
                 });
                 let file = OpenOptions::new()
                     .read(true)
-                    .open(path)
-                    .context(ErrorKind::Persist(ErrorReason::FileOpen))?;
+                    .open(&path)
+                    .context(ErrorKind::Persist(ErrorReason::FileOpen(path.clone())))?;
 
                 fail_point!("filepersistor.load.format", |_| {
                     Err(Error::from(ErrorKind::Persist(ErrorReason::Serialize)))
@@ -192,9 +194,12 @@ where
 
             if !dir.exists() {
                 fail_point!("filepersistor.store.createdir", |_| {
-                    Err(Error::from(ErrorKind::Persist(ErrorReason::CreateDir)))
+                    Err(Error::from(ErrorKind::Persist(ErrorReason::CreateDir(
+                        dir.clone(),
+                    ))))
                 });
-                fs::create_dir_all(&dir).context(ErrorKind::Persist(ErrorReason::CreateDir))?;
+                fs::create_dir_all(&dir)
+                    .context(ErrorKind::Persist(ErrorReason::CreateDir(dir.clone())))?;
             }
 
             let link_path = dir.join(format!("{}.{}", STATE_DEFAULT_STEM, STATE_EXTENSION));
@@ -212,13 +217,15 @@ where
             info!(message="persisting state...", file=%path.display());
             debug!("opening {} for writing state...", path.display());
             fail_point!("filepersistor.store.fileopen", |_| {
-                Err(Error::from(ErrorKind::Persist(ErrorReason::FileOpen)))
+                Err(Error::from(ErrorKind::Persist(ErrorReason::FileOpen(
+                    path.clone(),
+                ))))
             });
             let file = OpenOptions::new()
                 .create(true)
                 .write(true)
                 .open(&path)
-                .context(ErrorKind::Persist(ErrorReason::FileOpen))?;
+                .context(ErrorKind::Persist(ErrorReason::FileOpen(path.clone())))?;
             debug!("{} opened.", path.display());
 
             debug!("persisting state to {}...", path.display());
@@ -231,42 +238,56 @@ where
                     //   - link the new file
                     if temp_link_path.exists() {
                         fail_point!("filepersistor.store.symlink_unlink", |_| {
-                            Err(Error::from(ErrorKind::Persist(ErrorReason::SymlinkUnlink)))
+                            Err(Error::from(ErrorKind::Persist(ErrorReason::SymlinkUnlink(
+                                temp_link_path.clone(),
+                            ))))
                         });
-                        fs::remove_file(&temp_link_path)
-                            .context(ErrorKind::Persist(ErrorReason::SymlinkUnlink))?;
+                        fs::remove_file(&temp_link_path).context(ErrorKind::Persist(
+                            ErrorReason::SymlinkUnlink(temp_link_path.clone()),
+                        ))?;
                     }
 
                     debug!("linking {} to {}", temp_link_path.display(), path.display());
 
                     fail_point!("filepersistor.store.symlink", |_| {
-                        Err(Error::from(ErrorKind::Persist(ErrorReason::Symlink)))
+                        Err(Error::from(ErrorKind::Persist(ErrorReason::Symlink(
+                            temp_link_path.clone(),
+                            path.clone(),
+                        ))))
                     });
 
                     #[cfg(unix)]
-                    symlink(&path, &temp_link_path)
-                        .context(ErrorKind::Persist(ErrorReason::Symlink))?;
+                    symlink(&path, &temp_link_path).context(ErrorKind::Persist(
+                        ErrorReason::Symlink(temp_link_path.clone(), path.clone()),
+                    ))?;
 
                     #[cfg(windows)]
-                    symlink_file(&path, &temp_link_path)
-                        .context(ErrorKind::Persist(ErrorReason::Symlink))?;
+                    symlink_file(&path, &temp_link_path).context(ErrorKind::Persist(
+                        ErrorReason::Symlink(temp_link_path.clone(), path.clone()),
+                    ))?;
 
                     // Commit the updated link by renaming the temp link.
                     // This is the so-called "capistrano" trick for atomically updating links
                     // https://github.com/capistrano/capistrano/blob/d04c1e3ea33e84b183d056b71c7cacf7744ce7ad/lib/capistrano/tasks/deploy.rake
                     fail_point!("filepersistor.store.filerename", |_| {
-                        Err(Error::from(ErrorKind::Persist(ErrorReason::FileRename)))
+                        Err(Error::from(ErrorKind::Persist(ErrorReason::FileRename(
+                            temp_link_path.clone(),
+                            link_path.clone(),
+                        ))))
                     });
-                    fs::rename(&temp_link_path, &link_path)
-                        .context(ErrorKind::Persist(ErrorReason::FileRename))?;
+                    fs::rename(&temp_link_path, &link_path).context(ErrorKind::Persist(
+                        ErrorReason::FileRename(temp_link_path.clone(), link_path.clone()),
+                    ))?;
 
                     // Prune old states
                     fail_point!("filepersistor.store.readdir", |_| {
-                        Err(Error::from(ErrorKind::Persist(ErrorReason::ReadDir)))
+                        Err(Error::from(ErrorKind::Persist(ErrorReason::ReadDir(
+                            dir.clone(),
+                        ))))
                     });
 
                     let mut entries = fs::read_dir(&dir)
-                        .context(ErrorKind::Persist(ErrorReason::ReadDir))?
+                        .context(ErrorKind::Persist(ErrorReason::ReadDir(dir.clone())))?
                         .filter_map(Result::ok)
                         .filter(|entry| entry.file_type().ok().map_or(false, |f| f.is_file()))
                         .filter(|entry| {
@@ -290,18 +311,24 @@ where
                         );
 
                         fail_point!("filepersistor.store.entry_unlink", |_| {
-                            Err(Error::from(ErrorKind::Persist(ErrorReason::FileUnlink)))
+                            Err(Error::from(ErrorKind::Persist(ErrorReason::FileUnlink(
+                                entry.path().clone(),
+                            ))))
                         });
-                        fs::remove_file(&entry.path())
-                            .context(ErrorKind::Persist(ErrorReason::FileUnlink))?;
+                        fs::remove_file(&entry.path()).context(ErrorKind::Persist(
+                            ErrorReason::FileUnlink(entry.path().clone()),
+                        ))?;
                         debug!("{} pruned.", entry.file_name().to_string_lossy());
                     }
                 }
                 Err(e) => {
                     fail_point!("filepersistor.store.new_file_unlink", |_| {
-                        Err(Error::from(ErrorKind::Persist(ErrorReason::FileUnlink)))
+                        Err(Error::from(ErrorKind::Persist(ErrorReason::FileUnlink(
+                            path.clone(),
+                        ))))
                     });
-                    fs::remove_file(path).context(ErrorKind::Persist(ErrorReason::FileUnlink))?;
+                    fs::remove_file(&path)
+                        .context(ErrorKind::Persist(ErrorReason::FileUnlink(path.clone())))?;
                     return Err(e);
                 }
             }
@@ -319,13 +346,13 @@ where
 
 #[derive(Debug, PartialEq)]
 pub enum ErrorReason {
-    FileOpen,
-    FileRename,
-    FileUnlink,
-    CreateDir,
-    ReadDir,
-    Symlink,
-    SymlinkUnlink,
+    FileOpen(PathBuf),
+    FileRename(PathBuf, PathBuf),
+    FileUnlink(PathBuf),
+    CreateDir(PathBuf),
+    ReadDir(PathBuf),
+    Symlink(PathBuf, PathBuf),
+    SymlinkUnlink(PathBuf),
     Serialize,
     Deserialize,
 }
@@ -333,13 +360,29 @@ pub enum ErrorReason {
 impl fmt::Display for ErrorReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ErrorReason::FileOpen => write!(f, "failed to open file"),
-            ErrorReason::FileRename => write!(f, "failed to rename file"),
-            ErrorReason::FileUnlink => write!(f, "failed to remove file"),
-            ErrorReason::CreateDir => write!(f, "failed to create state directory"),
-            ErrorReason::ReadDir => write!(f, "failed to read contents of directory"),
-            ErrorReason::Symlink => write!(f, "failed to create symlink"),
-            ErrorReason::SymlinkUnlink => write!(f, "failed to remove symlink"),
+            ErrorReason::FileOpen(pb) => write!(f, "failed to open file {}", pb.display()),
+            ErrorReason::FileRename(from, to) => write!(
+                f,
+                "failed to rename file {} to {}",
+                from.display(),
+                to.display()
+            ),
+            ErrorReason::FileUnlink(pb) => write!(f, "failed to remove file {}", pb.display()),
+            ErrorReason::CreateDir(pb) => {
+                write!(f, "failed to create state directory {}", pb.display())
+            }
+            ErrorReason::ReadDir(pb) => {
+                write!(f, "failed to read contents of directory {}", pb.display())
+            }
+            ErrorReason::Symlink(from, to) => write!(
+                f,
+                "failed to create symlink from {} to {}",
+                from.display(),
+                to.display()
+            ),
+            ErrorReason::SymlinkUnlink(pb) => {
+                write!(f, "failed to remove symlink {}", pb.display())
+            }
             ErrorReason::Serialize => write!(f, "failed to serialize state"),
             ErrorReason::Deserialize => write!(f, "failed to deserialize state"),
         }
