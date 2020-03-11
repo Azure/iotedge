@@ -1,0 +1,26 @@
+trigger:
+  batch: true
+  branches:
+    include:
+      - master
+pr: none
+
+stages:
+  - stage: images_artifact
+    displayName: Images artifact
+    jobs:
+    - template: ../misc/e2e-images.yaml
+  - stage: packages_artifact
+    displayName: Packages artifact
+    dependsOn: []
+    jobs:
+    - template: ../misc/e2e-packages.yaml
+      parameters:
+        WindowsCodesignServiceConnection: 'Azure IoT Edge Code Sign 2'
+  - stage: E2E_Tests
+    displayName: E2E Tests
+    dependsOn: 
+    - images_artifact
+    - packages_artifact
+    jobs:
+    - template: templates/old-e2e-run.yaml
