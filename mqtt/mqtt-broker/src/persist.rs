@@ -159,7 +159,7 @@ where
                 let file = OpenOptions::new()
                     .read(true)
                     .open(&path)
-                    .context(ErrorKind::Persist(ErrorReason::FileOpen(path.clone())))?;
+                    .context(ErrorKind::Persist(ErrorReason::FileOpen(path)))?;
 
                 fail_point!("filepersistor.load.format", |_| {
                     Err(Error::from(ErrorKind::Persist(ErrorReason::Serialize)))
@@ -276,7 +276,7 @@ where
                         ))))
                     });
                     fs::rename(&temp_link_path, &link_path).context(ErrorKind::Persist(
-                        ErrorReason::FileRename(temp_link_path.clone(), link_path.clone()),
+                        ErrorReason::FileRename(temp_link_path, link_path),
                     ))?;
 
                     // Prune old states
@@ -312,7 +312,7 @@ where
 
                         fail_point!("filepersistor.store.entry_unlink", |_| {
                             Err(Error::from(ErrorKind::Persist(ErrorReason::FileUnlink(
-                                entry.path().clone(),
+                                entry.path(),
                             ))))
                         });
                         fs::remove_file(&entry.path()).context(ErrorKind::Persist(
@@ -328,7 +328,7 @@ where
                         ))))
                     });
                     fs::remove_file(&path)
-                        .context(ErrorKind::Persist(ErrorReason::FileUnlink(path.clone())))?;
+                        .context(ErrorKind::Persist(ErrorReason::FileUnlink(path)))?;
                     return Err(e);
                 }
             }
