@@ -34,4 +34,3 @@ impl From<Context<ErrorKind>> for Terminate {
         }
     }
 }
-
