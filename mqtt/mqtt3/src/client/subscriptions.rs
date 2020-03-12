@@ -399,11 +399,9 @@ impl State {
         packet_identifiers: &mut super::PacketIdentifiers,
     ) -> impl Iterator<Item = crate::proto::Packet> {
         if reset_session {
-            let mut subscriptions = std::mem::replace(&mut self.subscriptions, Default::default());
-            let subscription_updates_waiting_to_be_acked = std::mem::replace(
-                &mut self.subscription_updates_waiting_to_be_acked,
-                Default::default(),
-            );
+            let mut subscriptions = std::mem::take(&mut self.subscriptions);
+            let subscription_updates_waiting_to_be_acked =
+                std::mem::take(&mut self.subscription_updates_waiting_to_be_acked);
 
             // Apply all pending (ie unacked) changes to the set of subscriptions, in order that they were original requested
             for (packet_identifier, subscription_update_waiting_to_be_acked) in
