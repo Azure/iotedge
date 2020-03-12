@@ -128,8 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             try
             {
-                IList<IIdentity> connectedClients = this.ConnectionManager.GetConnectedClients().ToList();
-                IEnumerable<Task> tasks = connectedClients.Select(id => ProcessIdentity(id));
+                IEnumerable<Task> tasks = this.ConnectionManager.GetConnectedClients().Select(id => ProcessIdentity(id));
                 await Task.WhenAll(tasks);
             }
             catch (Exception e)
@@ -263,7 +262,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void ProcessingSubscriptionsOnDeviceConnected(IIdentity identity)
             {
-                Log.LogInformation((int)EventIds.ProcessingSubscriptions, Invariant($"Processing subscriptions for client {identity.Id}."));
+                Log.LogInformation((int)EventIds.ProcessingSubscriptions, Invariant($"Processing subscriptions for client {identity.Id} on device connected."));
             }
 
             public static void ProcessingSubscription(string id, DeviceSubscription deviceSubscription)
