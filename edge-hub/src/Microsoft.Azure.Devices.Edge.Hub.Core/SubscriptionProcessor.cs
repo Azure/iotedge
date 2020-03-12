@@ -113,21 +113,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         async void CloudConnectivityEstablished(object sender, EventArgs eventArgs)
         {
             Events.DeviceConnectedProcessingSubscriptions();
+            async Task ProcessIdentity(IIdentity identity)
+            {
+                try
+                {
+                    Events.ProcessingSubscriptionsOnDeviceConnected(identity);
+                    await this.ProcessExistingSubscriptions(identity.Id);
+                }
+                catch (Exception e)
+                {
+                    Events.ErrorProcessingSubscriptions(e, identity);
+                }
+            }
             try
             {
-                IEnumerable<IIdentity> connectedClients = this.ConnectionManager.GetConnectedClients().ToList();
-                foreach (IIdentity identity in connectedClients)
-                {
-                    try
-                    {
-                        Events.ProcessingSubscriptionsOnDeviceConnected(identity);
-                        await this.ProcessExistingSubscriptions(identity.Id);
-                    }
-                    catch (Exception e)
-                    {
-                        Events.ErrorProcessingSubscriptions(e, identity);
-                    }
-                }
+                IList<IIdentity> connectedClients = this.ConnectionManager.GetConnectedClients().ToList();
+                IEnumerable<Task> tasks = connectedClients.Select(id => ProcessIdentity(id));
+                await Task.WhenAll(tasks);
             }
             catch (Exception e)
             {
