@@ -649,6 +649,9 @@
               "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
+              "TransportType": {
+                "value": "Mqtt"
+              },
               "ReportingEndpointUrl": {
                 "value": "http://localhost:5001"
               }
