@@ -297,9 +297,7 @@ impl State {
                 .append(&mut self.waiting_to_be_completed);
 
             // Clear waiting_to_be_released
-            for (packet_identifier, _) in
-                std::mem::replace(&mut self.waiting_to_be_released, Default::default())
-            {
+            for (packet_identifier, _) in std::mem::take(&mut self.waiting_to_be_released) {
                 packet_identifiers.discard(packet_identifier);
             }
         }
