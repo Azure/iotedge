@@ -57,12 +57,12 @@ impl Server {
                     Either::Right((_, broker_task)) => {
                         debug!("sending Shutdown message to broker");
                         handle.send(Message::System(SystemEvent::Shutdown)).await?;
-                        broker_task.await.context(ErrorKind::BrokerJoin)?
+                        broker_task.await.context(ErrorKind::TaskJoin)?
                     }
                     Either::Left((broker_state, incoming_task)) => {
                         warn!("broker exited before accept loop");
                         incoming_task.await?;
-                        broker_state.context(ErrorKind::BrokerJoin)?
+                        broker_state.context(ErrorKind::TaskJoin)?
                     }
                 }
             }
@@ -70,19 +70,19 @@ impl Server {
                 Either::Right((Ok(_incoming_task), broker_task)) => {
                     debug!("sending Shutdown message to broker");
                     handle.send(Message::System(SystemEvent::Shutdown)).await?;
-                    broker_task.await.context(ErrorKind::BrokerJoin)?
+                    broker_task.await.context(ErrorKind::TaskJoin)?
                 }
                 Either::Right((Err(e), broker_task)) => {
                     error!(message = "an error occurred in the accept loop", error=%e);
                     debug!("sending Shutdown message to broker");
                     handle.send(Message::System(SystemEvent::Shutdown)).await?;
-                    broker_task.await.context(ErrorKind::BrokerJoin)?;
+                    broker_task.await.context(ErrorKind::TaskJoin)?;
                     return Err(e);
                 }
                 Either::Left((broker_state, incoming_task)) => {
                     warn!("broker exited before accept loop");
                     incoming_task.await?;
-                    broker_state.context(ErrorKind::BrokerJoin)?
+                    broker_state.context(ErrorKind::TaskJoin)?
                 }
             },
         };
