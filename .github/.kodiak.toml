@@ -31,7 +31,7 @@ title = "pull_request_title" # default: "github_default"
 body = "pull_request_body" # default: "github_default"
 
 # Add the pull request author as a coauthor of the merge commit using
-include_pull_request_author = true # default: false
+include_pull_request_author = false # default: false
 
 # remove html comments to auto remove PR templates.
 strip_html_comments = true # default: false
