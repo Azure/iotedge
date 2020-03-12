@@ -34,7 +34,7 @@
                   "value": "true"
               },
               "RuntimeLogLevel": {
-                  "value": "Debug"
+                  "value": "Info"
               }
             },
             "settings": {
