@@ -125,6 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     Events.ErrorProcessingSubscriptions(e, identity);
                 }
             }
+
             try
             {
                 IList<IIdentity> connectedClients = this.ConnectionManager.GetConnectedClients().ToList();
