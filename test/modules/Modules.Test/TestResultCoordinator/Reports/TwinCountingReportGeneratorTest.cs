@@ -42,6 +42,28 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [Theory]
         [InlineData(null)]
         [InlineData("")]
+        public void TestConstructorThrowsWhenTestDescriptionIsNotProvided(string testDescription)
+        {
+            var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockActualStore = new Mock<ITestResultCollection<TestOperationResult>>();
+
+            ArgumentException ex = Assert.Throws<ArgumentException>(
+                () => new TwinCountingReportGenerator(
+                    testDescription,
+                    Guid.NewGuid().ToString(),
+                    "expectedSource",
+                    mockExpectedResults.Object,
+                    "actualSource",
+                    mockActualStore.Object,
+                    "resultType1",
+                    new SimpleTestOperationResultComparer()));
+
+            Assert.StartsWith("testDescription", ex.Message);
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
         public void TestConstructorThrowsWhenTrackingIdIsNotProvided(string trackingId)
         {
             var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();

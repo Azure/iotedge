@@ -20,7 +20,6 @@ namespace TestResultCoordinator.Reports.DirectMethod
             this.ReceiverSource = string.IsNullOrEmpty(receiverSource) ? Option.None<string>() : Option.Some(receiverSource);
         }
 
-
         public TimeSpan TolerancePeriod { get; }
 
         public string SenderSource { get; }

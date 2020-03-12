@@ -61,12 +61,35 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 resultType,
                 new SimpleTestOperationResultComparer());
 
+            Assert.Equal(TestDescription, reportGenerator.TestDescription);
             Assert.Equal(actualSource, reportGenerator.ActualSource);
             Assert.Equal(actualResults, reportGenerator.ActualTestResults);
             Assert.Equal(expectedSource, reportGenerator.ExpectedSource);
             Assert.Equal(expectedResults, reportGenerator.ExpectedTestResults);
             Assert.Equal(resultType, reportGenerator.ResultType);
             Assert.Equal(typeof(SimpleTestOperationResultComparer), reportGenerator.TestResultComparer.GetType());
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        public void TestConstructorThrowsWhenTestDescriptionIsNotProvided(string testDescription)
+        {
+            var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockActualStore = new Mock<ITestResultCollection<TestOperationResult>>();
+
+            ArgumentException ex = Assert.Throws<ArgumentException>(
+                () => new CountingReportGenerator(
+                    testDescription,
+                    Guid.NewGuid().ToString(),
+                    "expectedSource",
+                    mockExpectedResults.Object,
+                    "actualSource",
+                    mockActualStore.Object,
+                    "resultType1",
+                    new SimpleTestOperationResultComparer()));
+
+            Assert.StartsWith("testDescription", ex.Message);
         }
 
         [Theory]

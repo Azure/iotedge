@@ -50,6 +50,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 NetworkStatusTimeline,
                 networkControllerType);
 
+            Assert.Equal(TestDescription, reportGenerator.TestDescription);
             Assert.Equal(receiverSource, reportGenerator.ReceiverSource);
             Assert.Equal(senderResults, reportGenerator.SenderTestResults);
             Assert.Equal(senderSource, reportGenerator.SenderSource);
@@ -82,6 +83,33 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     networkControllerType));
 
             Assert.StartsWith("trackingId", ex.Message);
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        public void TestConstructorThrowsWhenTestDescriptionIsNotProvided(string testDescription)
+        {
+            int batchSize = 10;
+            NetworkControllerType networkControllerType = NetworkControllerType.Offline;
+            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
+            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
+               new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+
+            ArgumentException ex = Assert.Throws<ArgumentException>(
+                () => new DirectMethodReportGenerator(
+                    testDescription,
+                    Guid.NewGuid().ToString(),
+                    "senderSource",
+                    mockSenderResults.Object,
+                    Option.Some("receiverSource"),
+                    receiverResults,
+                    "resultType1",
+                    NetworkStatusTimeline,
+                    networkControllerType));
+
+            Assert.StartsWith("testDescription", ex.Message);
         }
 
         [Theory]

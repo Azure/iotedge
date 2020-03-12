@@ -52,12 +52,33 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 actualSource,
                 actualResults);
 
+            Assert.Equal(TestDescription, reportGenerator.TestDescription);
             Assert.Equal(actualSource, reportGenerator.ActualSource);
             Assert.Equal(actualResults, reportGenerator.ActualTestResults);
             Assert.Equal(expectedSource, reportGenerator.ExpectedSource);
             Assert.Equal(expectedResults, reportGenerator.ExpectedTestResults);
             Assert.Equal(TestOperationResultType.Deployment.ToString(), reportGenerator.ResultType);
             Assert.Equal(typeof(DeploymentTestResultComparer), reportGenerator.TestResultComparer.GetType());
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        public void TestConstructorThrowsWhenTestDescriptionIsNotProvided(string testDescription)
+        {
+            var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockActualStore = new Mock<ITestResultCollection<TestOperationResult>>();
+
+            ArgumentException ex = Assert.Throws<ArgumentException>(
+                () => new DeploymentTestReportGenerator(
+                    testDescription,
+                    Guid.NewGuid().ToString(),
+                    "expectedSource",
+                    mockExpectedResults.Object,
+                    "actualSource",
+                    mockActualStore.Object));
+
+            Assert.StartsWith("testDescription", ex.Message);
         }
 
         [Theory]

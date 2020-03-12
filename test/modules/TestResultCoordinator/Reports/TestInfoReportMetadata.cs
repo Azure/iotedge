@@ -2,11 +2,11 @@
 namespace TestResultCoordinator.Reports
 {
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
-    using Microsoft.Azure.Devices.Edge.Util;
 
     class TestInfoReportMetadata : TestReportMetadataBase, ITestReportMetadata
     {
-        public TestInfoReportMetadata(string testDescription) : base(testDescription)
+        public TestInfoReportMetadata(string testDescription)
+        : base(testDescription)
         {
         }
 
