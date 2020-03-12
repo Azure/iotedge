@@ -411,7 +411,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Mock.Get(deviceConnectivityManager).Raise(d => d.DeviceConnected += null, new EventArgs());
 
             // Assert
-
             Mock.Get(device1CloudProxy).Verify(d => d.SetupDesiredPropertyUpdatesAsync(), Times.Never);
             Mock.Get(device1CloudProxy).Verify(d => d.SetupCallMethodAsync(), Times.Never);
             Mock.Get(module1CloudProxy).Verify(m => m.SetupCallMethodAsync(), Times.Once);
