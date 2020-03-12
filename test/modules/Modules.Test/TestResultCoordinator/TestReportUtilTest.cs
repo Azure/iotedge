@@ -205,6 +205,7 @@ namespace Modules.Test.TestResultCoordinator
             Assert.Single(results);
             var reportMetadata = results[0] as CountingReportMetadata;
             Assert.NotNull(reportMetadata);
+            Assert.Equal("messages | local | amqp", reportMetadata.TestDescription);
             Assert.Equal(TestOperationResultType.Messages, reportMetadata.TestOperationResultType);
             Assert.Equal(TestReportType.CountingReport, reportMetadata.TestReportType);
             Assert.Equal("loadGen1.send", reportMetadata.ExpectedSource);
@@ -230,6 +231,7 @@ namespace Modules.Test.TestResultCoordinator
             Assert.Single(results);
             var reportMetadata = results[0] as TwinCountingReportMetadata;
             Assert.NotNull(reportMetadata);
+            Assert.Equal("twin | desired property | amqp", reportMetadata.TestDescription);
             Assert.Equal(TestOperationResultType.Twin, reportMetadata.TestOperationResultType);
             Assert.Equal(TestReportType.TwinCountingReport, reportMetadata.TestReportType);
             Assert.Equal(TwinTestPropertyType.Desired, reportMetadata.TwinTestPropertyType);
@@ -255,6 +257,7 @@ namespace Modules.Test.TestResultCoordinator
             Assert.Single(results);
             var reportMetadata = results[0] as DeploymentTestReportMetadata;
             Assert.NotNull(reportMetadata);
+            Assert.Equal("deployment", reportMetadata.TestDescription);
             Assert.Equal(TestOperationResultType.Deployment, reportMetadata.TestOperationResultType);
             Assert.Equal(TestReportType.DeploymentTestReport, reportMetadata.TestReportType);
             Assert.Equal("deploymentTester1.send", reportMetadata.ExpectedSource);
@@ -280,6 +283,7 @@ namespace Modules.Test.TestResultCoordinator
             Assert.Single(results);
             var reportMetadata = results[0] as DirectMethodReportMetadata;
             Assert.NotNull(reportMetadata);
+            Assert.Equal("direct method | cloud | amqp", reportMetadata.TestDescription);
             Assert.Equal(TestOperationResultType.DirectMethod, reportMetadata.TestOperationResultType);
             Assert.Equal(TestReportType.DirectMethodReport, reportMetadata.TestReportType);
             Assert.Equal("directMethodSender1.send", reportMetadata.SenderSource);
@@ -306,6 +310,7 @@ namespace Modules.Test.TestResultCoordinator
             Assert.Single(results);
             var reportMetadata = results[0] as DirectMethodReportMetadata;
             Assert.NotNull(reportMetadata);
+            Assert.Equal("edge agent ping", reportMetadata.TestDescription);
             Assert.Equal(TestOperationResultType.DirectMethod, reportMetadata.TestOperationResultType);
             Assert.Equal(TestReportType.DirectMethodReport, reportMetadata.TestReportType);
             Assert.Equal("directMethodSender1.send", reportMetadata.SenderSource);
@@ -330,6 +335,7 @@ namespace Modules.Test.TestResultCoordinator
             Assert.Single(results);
             var reportMetadata = results[0] as NetworkControllerReportMetadata;
             Assert.NotNull(reportMetadata);
+            Assert.Equal("network controller", reportMetadata.TestDescription);
             Assert.Equal(TestOperationResultType.Network, reportMetadata.TestOperationResultType);
             Assert.Equal(TestReportType.NetworkControllerReport, reportMetadata.TestReportType);
             Assert.Equal("networkController", reportMetadata.Source);
@@ -351,6 +357,7 @@ namespace Modules.Test.TestResultCoordinator
             Assert.Single(results);
             var reportMetadata = results[0] as ErrorReportMetadata;
             Assert.NotNull(reportMetadata);
+            Assert.Equal("error", reportMetadata.TestDescription);
             Assert.Equal(TestOperationResultType.Error, reportMetadata.TestOperationResultType);
             Assert.Equal(TestReportType.ErrorReport, reportMetadata.TestReportType);
             Assert.Equal(TestConstants.Error.TestResultSource, reportMetadata.Source);
@@ -375,6 +382,7 @@ namespace Modules.Test.TestResultCoordinator
             Assert.Single(results);
             var reportMetadata = results[0] as EdgeHubRestartMessageReportMetadata;
             Assert.NotNull(reportMetadata);
+            Assert.Equal("messages | local | amqp", reportMetadata.TestDescription);
             Assert.Equal(TestOperationResultType.EdgeHubRestartMessage, reportMetadata.TestOperationResultType);
             Assert.Equal(TestReportType.EdgeHubRestartMessageReport, reportMetadata.TestReportType);
             Assert.Equal("edgeHubRestartTester1.EdgeHubRestartMessage", reportMetadata.SenderSource);
@@ -400,6 +408,7 @@ namespace Modules.Test.TestResultCoordinator
             Assert.Single(results);
             var reportMetadata = results[0] as EdgeHubRestartDirectMethodReportMetadata;
             Assert.NotNull(reportMetadata);
+            Assert.Equal("direct method | cloud | amqp", reportMetadata.TestDescription);
             Assert.Equal(TestOperationResultType.EdgeHubRestartDirectMethod, reportMetadata.TestOperationResultType);
             Assert.Equal(TestReportType.EdgeHubRestartDirectMethodReport, reportMetadata.TestReportType);
             Assert.Equal("edgeHubRestartTester1.EdgeHubRestartDirectMethod", reportMetadata.SenderSource);
@@ -422,6 +431,7 @@ namespace Modules.Test.TestResultCoordinator
             Assert.Single(results);
             var reportMetadata = results[0] as TestInfoReportMetadata;
             Assert.NotNull(reportMetadata);
+            Assert.Equal("test info", reportMetadata.TestDescription);
             Assert.Equal(TestOperationResultType.TestInfo, reportMetadata.TestOperationResultType);
             Assert.Equal(TestReportType.TestInfoReport, reportMetadata.TestReportType);
             Assert.Equal(TestConstants.TestInfo.TestResultSource, reportMetadata.Source);
