@@ -6,6 +6,7 @@ namespace CloudToDeviceMessageTester
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
+    using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -58,17 +59,21 @@ namespace CloudToDeviceMessageTester
 
             while (!ct.IsCancellationRequested && this.IsTestTimeUp(testStartAt))
             {
-                MessageTestResult testResult = null;
                 try
                 {
-                    testResult = await this.SendCloudToDeviceMessageAsync(batchId, this.trackingId);
+                    MessageTestResult testResult = await this.SendCloudToDeviceMessageAsync(batchId, this.trackingId);
                     this.messageCount++;
                     await ModuleUtil.ReportTestResultAsync(this.testResultReportingClient, this.logger, testResult);
                     await Task.Delay(this.messageDelay, ct);
                 }
+                catch (DeviceMaximumQueueDepthExceededException ex)
+                {
+                    this.logger.LogInformation($"Too many messages in IoTHub Queue for Sequence Number: {this.messageCount}, batchId: {batchId}. Error message: {ex.Message}");
+                }
                 catch (Exception ex)
                 {
-                    this.logger.LogInformation($"Error occurred while sending Cloud to Device message for Sequence number: {this.messageCount}, batchId: {batchId}. Error message: {ex.Message}");
+                    this.logger.LogError($"Error occurred while sending Cloud to Device message for Sequence number: {this.messageCount}, batchId: {batchId}. Error message: {ex.Message}");
+                    throw;
                 }
             }
         }
