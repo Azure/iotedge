@@ -364,10 +364,13 @@ function Initialize-IoTEdge {
 
     Set-ProvisioningMode
     Set-Certificates
+    if ($DpsX509 -or $ManualX509) {
+        Import-IntermediateCertChain $X509IdentityCertificate
+    }
     Set-AgentImage
     Set-Hostname
     if ($ContainerOs -eq 'Linux') {
-        Set-GatewayAddress
+        Set-ListenConnectUriForLinuxContainers
     }
     else {
         Set-CorrectProgramData
@@ -1946,15 +1949,17 @@ function Set-ListenConnectUri([string] $ManagementUri, [string] $WorkloadUri) {
     $env:IOTEDGE_HOST = $ManagementUri
 }
 
-function Set-GatewayAddress {
-    $gatewayAddress = (Get-NetIpAddress |
-            Where-Object {$_.InterfaceAlias -like '*vEthernet (DockerNAT)*' -and $_.AddressFamily -eq 'IPv4'}).IPAddress
+function Set-ListenConnectUriForLinuxContainers {
+    # "host.docker.internal" is a well-known address that maps to the Host from inside a container on Docker Desktop.
 
-    Set-ListenConnectUri `
-        -ManagementUri "http://${gatewayAddress}:15580" `
-        -WorkloadUri "http://${gatewayAddress}:15581"
+    $connectAddress = 'http://host.docker.internal'
+    $listenAddress = 'http://127.0.0.1'
 
-    Write-HostGreen "Configured device with gateway address '$gatewayAddress'."
+    Set-ConfigUri -Section 'connect' -ManagementUri "${connectAddress}:15580" -WorkloadUri "${connectAddress}:15581"
+    Set-ConfigUri -Section 'listen' -ManagementUri "${listenAddress}:15580" -WorkloadUri "${listenAddress}:15581" 
+
+    Set-MachineEnvironmentVariable 'IOTEDGE_HOST' "${listenAddress}:15580" 
+    $env:IOTEDGE_HOST = "${listenAddress}:15580"
 }
 
 function Set-CorrectProgramData {
@@ -2211,6 +2216,56 @@ function Download-File([string] $Description, [string] $Url, [string] $DownloadF
     return $result
 }
 
+<#
+.SYNOPSIS
+
+Import intermediate certificates into Windows certificate store.
+
+
+.INPUTS
+
+None
+
+
+.OUTPUTS
+
+None
+
+
+.EXAMPLE
+
+PS> Import-IntermediateCertChain $DeviceIdentityCertPath
+#>
+function Import-IntermediateCertChain ([string] $DeviceIdentityCertPath){ 
+    $certificateStore = New-Object System.Security.Cryptography.X509Certificates.X509Store ([System.Security.Cryptography.X509Certificates.StoreName]::CertificateAuthority, [System.Security.Cryptography.X509Certificates.StoreLocation]::LocalMachine)
+    $certificateStore.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite);
+
+    $certEnd = "END CERTIFICATE"
+    
+    $certs = New-Object System.Collections.ArrayList
+    $currentCert = New-Object System.Text.StringBuilder
+    foreach ($line in [System.IO.File]::ReadLines($DeviceIdentityCertPath)) {
+        if ($line -Match $certEnd){
+            [void]$currentCert.AppendLine($line)
+            [void]$certs.Add($currentCert.ToString())
+            [void]$currentCert.Clear()
+        }
+        else {
+            [void]$currentCert.AppendLine($line)
+        }
+    }
+
+    # Drop the first certificate and add all remaining to certificate store
+    $enc = [System.Text.Encoding]::UTF8
+    for ($i = 1; $i -lt $certs.Count; $i++){
+        $bytes = $enc.GetBytes($certs[$i])
+        $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 (,$bytes)
+        $certificateStore.Add($cert)
+    }
+
+    $certificateStore.Dispose()
+}
+
 New-Alias -Name Install-SecurityDaemon -Value Install-IoTEdge -Force
 New-Alias -Name Uninstall-SecurityDaemon -Value Uninstall-IoTEdge -Force
 
@@ -2221,6 +2276,7 @@ Export-ModuleMember `
         Get-IoTEdgeLog,
         Update-IoTEdge,
         Install-IoTEdge,
+        Import-IntermediateCertChain,
         Uninstall-IoTEdge `
     -Alias `
         Install-SecurityDaemon,

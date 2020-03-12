@@ -649,7 +649,7 @@
               "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "TransportType": {
+              "transportType": {
                 "value": "Mqtt"
               },
               "ReportingEndpointUrl": {

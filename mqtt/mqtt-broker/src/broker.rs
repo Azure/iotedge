@@ -535,7 +535,7 @@ impl Broker {
     fn get_session_mut(&mut self, client_id: &ClientId) -> Result<&mut Session, Error> {
         self.sessions
             .get_mut(client_id)
-            .ok_or_else(|| Error::new(ErrorKind::NoSession.into()))
+            .ok_or_else(|| ErrorKind::NoSession.into())
     }
 
     fn open_session(
@@ -559,7 +559,7 @@ impl Broker {
                         debug!("moving offline session to online for {}", client_id);
                         let (state, events) = offline
                             .into_online()
-                            .map_err(|_e| SessionError::PacketIdentifiersExhausted)?;
+                            .map_err(|_| SessionError::PacketIdentifiersExhausted)?;
                         let new_session = Session::new_persistent(connreq, state);
                         (new_session, events, true)
                     } else {
