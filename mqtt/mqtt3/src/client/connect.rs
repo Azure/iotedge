@@ -206,13 +206,13 @@ where
                                 crate::proto::ClientId::ServerGenerated => true,
                                 crate::proto::ClientId::IdWithCleanSession(id) => {
                                     *client_id = crate::proto::ClientId::IdWithExistingSession(
-                                        std::mem::replace(id, Default::default()),
+                                        std::mem::take(id),
                                     );
                                     true
                                 }
                                 crate::proto::ClientId::IdWithExistingSession(id) => {
                                     *client_id = crate::proto::ClientId::IdWithExistingSession(
-                                        std::mem::replace(id, Default::default()),
+                                        std::mem::take(id),
                                     );
                                     !session_present
                                 }
