@@ -3,6 +3,9 @@ use std::{cmp, fmt, mem};
 
 use failure::ResultExt;
 use mqtt3::proto;
+use serde::de::{SeqAccess, Visitor};
+use serde::ser::SerializeTuple;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use tracing::{debug, warn};
 
 use crate::subscription::Subscription;
@@ -274,7 +277,7 @@ impl DisconnectingSession {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SessionState {
     client_id: ClientId,
     subscriptions: HashMap<String, Subscription>,
@@ -691,8 +694,71 @@ impl Session {
 }
 
 #[derive(Clone)]
+struct IdentifiersInUse(Box<[usize; PacketIdentifiers::SIZE]>);
+
+impl fmt::Debug for IdentifiersInUse {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("IdentifiersInUse").finish()
+    }
+}
+
+impl cmp::PartialEq for IdentifiersInUse {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.iter().zip(other.0.iter()).all(|(a, b)| a.eq(b))
+    }
+}
+
+struct IdentifiersInUseVisitor;
+
+impl<'de> Visitor<'de> for IdentifiersInUseVisitor {
+    type Value = IdentifiersInUse;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "an array of length {}", PacketIdentifiers::SIZE)
+    }
+
+    #[inline]
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        let mut ids = Box::new([0; PacketIdentifiers::SIZE]);
+        for i in 0..PacketIdentifiers::SIZE {
+            ids[i] = match seq.next_element()? {
+                Some(val) => val,
+                None => return Err(serde::de::Error::invalid_length(i, &self)),
+            };
+        }
+        Ok(IdentifiersInUse(ids))
+    }
+}
+
+impl Serialize for IdentifiersInUse {
+    #[inline]
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_tuple(PacketIdentifiers::SIZE)?;
+        for e in self.0.iter() {
+            seq.serialize_element(e)?;
+        }
+        seq.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for IdentifiersInUse {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_tuple(PacketIdentifiers::SIZE, IdentifiersInUseVisitor)
+    }
+}
+
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 struct PacketIdentifiers {
-    in_use: Box<[usize; PacketIdentifiers::SIZE]>,
+    in_use: IdentifiersInUse,
     previous: proto::PacketIdentifier,
 }
 
@@ -734,7 +800,7 @@ impl PacketIdentifiers {
             packet_identifier / (mem::size_of::<usize>() * 8),
             packet_identifier % (mem::size_of::<usize>() * 8),
         );
-        (&mut self.in_use[block], 1 << offset)
+        (&mut self.in_use.0[block], 1 << offset)
     }
 }
 
@@ -749,22 +815,74 @@ impl fmt::Debug for PacketIdentifiers {
 impl Default for PacketIdentifiers {
     fn default() -> Self {
         PacketIdentifiers {
-            in_use: Box::new([0; PacketIdentifiers::SIZE]),
+            in_use: IdentifiersInUse(Box::new([0; PacketIdentifiers::SIZE])),
             previous: proto::PacketIdentifier::max_value(),
         }
     }
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     use std::time::Duration;
 
+    use proptest::collection::{hash_map, hash_set, vec, vec_deque};
+    use proptest::num;
+    use proptest::prelude::*;
     use tokio::sync::mpsc;
     use uuid::Uuid;
 
+    use crate::subscription::tests::arb_subscription;
+    use crate::tests::*;
     use crate::ConnectionHandle;
+
+    fn arb_identifiers_in_use() -> impl Strategy<Value = IdentifiersInUse> {
+        vec(num::usize::ANY, PacketIdentifiers::SIZE).prop_map(|v| {
+            let mut array = [0; PacketIdentifiers::SIZE];
+            let nums = &v[..array.len()];
+            array.copy_from_slice(nums);
+            IdentifiersInUse(Box::new(array))
+        })
+    }
+
+    prop_compose! {
+        fn arb_packet_identifiers()(
+            in_use in arb_identifiers_in_use(),
+            previous in arb_packet_identifier(),
+        ) -> PacketIdentifiers {
+            PacketIdentifiers {
+                in_use,
+                previous,
+            }
+        }
+    }
+
+    prop_compose! {
+        pub fn arb_session_state()(
+            client_id in arb_clientid(),
+            subscriptions in hash_map(arb_topic(), arb_subscription(), 0..10),
+            packet_identifiers in arb_packet_identifiers(),
+            packet_identifiers_qos0 in arb_packet_identifiers(),
+            waiting_to_be_sent in vec_deque(arb_publication(), 0..10),
+            waiting_to_be_released in hash_map(arb_packet_identifier(), arb_proto_publish(), 0..10),
+            waiting_to_be_acked in hash_map(arb_packet_identifier(), arb_publish(), 0..10),
+            waiting_to_be_acked_qos0 in hash_map(arb_packet_identifier(), arb_publish(), 0..10),
+            waiting_to_be_completed in hash_set(arb_packet_identifier(), 0..10),
+        ) -> SessionState {
+            SessionState {
+                client_id,
+                subscriptions,
+                packet_identifiers,
+                packet_identifiers_qos0,
+                waiting_to_be_sent,
+                waiting_to_be_released,
+                waiting_to_be_acked,
+                waiting_to_be_acked_qos0,
+                waiting_to_be_completed,
+            }
+        }
+    }
 
     fn connection_handle() -> ConnectionHandle {
         let id = Uuid::new_v4();
@@ -941,55 +1059,55 @@ mod tests {
 
         let mut packet_identifiers = PacketIdentifiers::default();
         assert_eq!(
-            packet_identifiers.in_use[..],
+            packet_identifiers.in_use.0[..],
             Box::new([0; PacketIdentifiers::SIZE])[..]
         );
 
         assert_eq!(packet_identifiers.reserve().unwrap().get(), 1);
         let mut expected = Box::new([0; PacketIdentifiers::SIZE]);
         expected[0] = 1 << 1;
-        assert_eq!(packet_identifiers.in_use[..], expected[..]);
+        assert_eq!(packet_identifiers.in_use.0[..], expected[..]);
 
         assert_eq!(packet_identifiers.reserve().unwrap().get(), 2);
         let mut expected = Box::new([0; PacketIdentifiers::SIZE]);
         expected[0] = (1 << 1) | (1 << 2);
-        assert_eq!(packet_identifiers.in_use[..], expected[..]);
+        assert_eq!(packet_identifiers.in_use.0[..], expected[..]);
 
         assert_eq!(packet_identifiers.reserve().unwrap().get(), 3);
         let mut expected = Box::new([0; PacketIdentifiers::SIZE]);
         expected[0] = (1 << 1) | (1 << 2) | (1 << 3);
-        assert_eq!(packet_identifiers.in_use[..], expected[..]);
+        assert_eq!(packet_identifiers.in_use.0[..], expected[..]);
 
         packet_identifiers.discard(crate::proto::PacketIdentifier::new(2).unwrap());
         let mut expected = Box::new([0; PacketIdentifiers::SIZE]);
         expected[0] = (1 << 1) | (1 << 3);
-        assert_eq!(packet_identifiers.in_use[..], expected[..]);
+        assert_eq!(packet_identifiers.in_use.0[..], expected[..]);
 
         assert_eq!(packet_identifiers.reserve().unwrap().get(), 4);
         let mut expected = Box::new([0; PacketIdentifiers::SIZE]);
         expected[0] = (1 << 1) | (1 << 3) | (1 << 4);
-        assert_eq!(packet_identifiers.in_use[..], expected[..]);
+        assert_eq!(packet_identifiers.in_use.0[..], expected[..]);
 
         packet_identifiers.discard(crate::proto::PacketIdentifier::new(1).unwrap());
         let mut expected = Box::new([0; PacketIdentifiers::SIZE]);
         expected[0] = (1 << 3) | (1 << 4);
-        assert_eq!(packet_identifiers.in_use[..], expected[..]);
+        assert_eq!(packet_identifiers.in_use.0[..], expected[..]);
 
         packet_identifiers.discard(crate::proto::PacketIdentifier::new(3).unwrap());
         let mut expected = Box::new([0; PacketIdentifiers::SIZE]);
         expected[0] = 1 << 4;
-        assert_eq!(packet_identifiers.in_use[..], expected[..]);
+        assert_eq!(packet_identifiers.in_use.0[..], expected[..]);
 
         packet_identifiers.discard(crate::proto::PacketIdentifier::new(4).unwrap());
         assert_eq!(
-            packet_identifiers.in_use[..],
+            packet_identifiers.in_use.0[..],
             Box::new([0; PacketIdentifiers::SIZE])[..]
         );
 
         assert_eq!(packet_identifiers.reserve().unwrap().get(), 5);
         let mut expected = Box::new([0; PacketIdentifiers::SIZE]);
         expected[0] = 1 << 5;
-        assert_eq!(packet_identifiers.in_use[..], expected[..]);
+        assert_eq!(packet_identifiers.in_use.0[..], expected[..]);
 
         let goes_in_next_block = std::mem::size_of::<usize>() * 8;
         #[allow(clippy::cast_possible_truncation)]
@@ -1002,7 +1120,7 @@ mod tests {
             expected[0] = usize::max_value() - (1 << 0) - (1 << 1) - (1 << 2) - (1 << 3) - (1 << 4);
             expected[1] |= 1 << 0;
         }
-        assert_eq!(packet_identifiers.in_use[..], expected[..]);
+        assert_eq!(packet_identifiers.in_use.0[..], expected[..]);
 
         #[allow(clippy::cast_possible_truncation, clippy::range_minus_one)]
         for i in 5..=(goes_in_next_block - 1) {
@@ -1013,6 +1131,6 @@ mod tests {
         {
             expected[1] |= 1 << 0;
         }
-        assert_eq!(packet_identifiers.in_use[..], expected[..]);
+        assert_eq!(packet_identifiers.in_use.0[..], expected[..]);
     }
 }

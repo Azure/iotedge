@@ -10,9 +10,6 @@ pub struct Error {
 
 #[derive(Debug, Fail, PartialEq)]
 pub enum ErrorKind {
-    #[fail(display = "A general error occurred in the server.")]
-    General,
-
     #[fail(display = "An error occurred trying to connect.")]
     Connect,
 
@@ -61,8 +58,11 @@ pub enum ErrorKind {
     #[fail(display = "All packet identifiers are exhausted.")]
     PacketIdentifiersExhausted,
 
-    #[fail(display = "An error occurred joining the broker task.")]
-    BrokerJoin,
+    #[fail(display = "An error occurred joining a task.")]
+    TaskJoin,
+
+    #[fail(display = "An error occurred persisting state: {}", _0)]
+    Persist(crate::persist::ErrorReason),
 }
 
 impl Fail for Error {
