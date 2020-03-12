@@ -44,7 +44,7 @@ pub struct Config {
 
 impl Config {
     pub fn kind(&self) -> Option<&str> {
-        self.kind.as_ref().map(String::as_str)
+        self.kind.as_deref()
     }
 
     pub fn with_kind(mut self, kind: Option<String>) -> Self {
@@ -53,7 +53,7 @@ impl Config {
     }
 
     pub fn api_version(&self) -> Option<&str> {
-        self.api_version.as_ref().map(String::as_str)
+        self.api_version.as_deref()
     }
 
     pub fn with_api_version(mut self, api_version: String) -> Self {
@@ -162,7 +162,7 @@ impl Cluster {
     }
 
     pub fn certificate_authority(&self) -> Option<&str> {
-        self.certificate_authority.as_ref().map(String::as_str)
+        self.certificate_authority.as_deref()
     }
 
     pub fn with_certificate_authority(mut self, certificate_authority: String) -> Self {
@@ -171,7 +171,7 @@ impl Cluster {
     }
 
     pub fn certificate_authority_data(&self) -> Option<&str> {
-        self.certificate_authority_data.as_ref().map(String::as_str)
+        self.certificate_authority_data.as_deref()
     }
 
     pub fn with_certificate_authority_data(mut self, certificate_authority_data: String) -> Self {
@@ -234,7 +234,7 @@ pub struct AuthInfo {
 
 impl AuthInfo {
     pub fn client_certificate(&self) -> Option<&str> {
-        self.client_certificate.as_ref().map(String::as_str)
+        self.client_certificate.as_deref()
     }
 
     pub fn with_client_certificate(mut self, client_certificate: String) -> Self {
@@ -243,7 +243,7 @@ impl AuthInfo {
     }
 
     pub fn client_key(&self) -> Option<&str> {
-        self.client_key.as_ref().map(String::as_str)
+        self.client_key.as_deref()
     }
 
     pub fn with_client_key(mut self, client_key: String) -> Self {
@@ -252,7 +252,7 @@ impl AuthInfo {
     }
 
     pub fn token(&self) -> Option<&str> {
-        self.token.as_ref().map(String::as_str)
+        self.token.as_deref()
     }
 
     pub fn with_token(mut self, token: String) -> Self {
@@ -261,7 +261,7 @@ impl AuthInfo {
     }
 
     pub fn token_file(&self) -> Option<&str> {
-        self.token_file.as_ref().map(String::as_str)
+        self.token_file.as_deref()
     }
 
     pub fn with_token_file(mut self, token_file: String) -> Self {
@@ -270,7 +270,7 @@ impl AuthInfo {
     }
 
     pub fn impersonate(&self) -> Option<&str> {
-        self.impersonate.as_ref().map(String::as_str)
+        self.impersonate.as_deref()
     }
 
     pub fn with_impersonate(mut self, impersonate: String) -> Self {
@@ -279,7 +279,7 @@ impl AuthInfo {
     }
 
     pub fn username(&self) -> Option<&str> {
-        self.username.as_ref().map(String::as_str)
+        self.username.as_deref()
     }
 
     pub fn with_username(mut self, username: String) -> Self {
@@ -288,7 +288,7 @@ impl AuthInfo {
     }
 
     pub fn password(&self) -> Option<&str> {
-        self.password.as_ref().map(String::as_str)
+        self.password.as_deref()
     }
 
     pub fn with_password(mut self, password: String) -> Self {
@@ -297,7 +297,7 @@ impl AuthInfo {
     }
 
     pub fn client_certificate_data(&self) -> Option<&str> {
-        self.client_certificate_data.as_ref().map(String::as_str)
+        self.client_certificate_data.as_deref()
     }
 
     pub fn with_client_certificate_data(mut self, client_certificate_data: String) -> Self {
@@ -306,7 +306,7 @@ impl AuthInfo {
     }
 
     pub fn client_key_data(&self) -> Option<&str> {
-        self.client_key_data.as_ref().map(String::as_str)
+        self.client_key_data.as_deref()
     }
 
     pub fn with_client_key_data(mut self, client_key_data: String) -> Self {
@@ -398,7 +398,7 @@ impl ExecConfig {
     }
 
     pub fn api_version(&self) -> Option<&str> {
-        self.api_version.as_ref().map(String::as_str)
+        self.api_version.as_deref()
     }
 
     pub fn with_api_version(mut self, api_version: String) -> Self {
@@ -497,7 +497,7 @@ impl Context {
     }
 
     pub fn namespace(&self) -> Option<&str> {
-        self.namespace.as_ref().map(String::as_str)
+        self.namespace.as_deref()
     }
 
     pub fn with_namespace(mut self, namespace: String) -> Self {

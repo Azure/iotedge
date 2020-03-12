@@ -8,21 +8,34 @@ edition = "2018"
 
 [dependencies]
 async-trait = "0.1"
+bincode = "1.2"
+chrono = "0.4"
+fail = "0.3"
 failure = "0.1"
+flate2 = "1.0"
 futures-util = { version = "0.3", features = ["sink"] }
 lazy_static = "1"
-tokio = { version = "0.2", features = ["macros", "rt-threaded", "signal", "stream", "sync", "tcp"] }
+serde = { version = "1.0", features = ["derive", "rc"] }
+tokio = { version = "0.2", features = ["blocking", "stream", "sync", "tcp"] }
 tokio-io-timeout = "0.4"
 tokio-util = { version = "0.2", features = ["codec"] }
 tracing = "0.1"
 tracing-futures = "0.2"
 uuid = { version = "0.8", features = ["v4"] }
 
-mqtt3 = { path = "../mqtt3" }
+mqtt3 = { path = "../mqtt3", features = ["serde1"] }
 
 [dev-dependencies]
 atty = "0.2"
+bytes = "0.5"
+fail = { version = "0.3", features = ["failpoints"] }
 matches = "0.1"
 proptest = "0.9"
+tempfile = "3"
+tokio = { version = "0.2", features = ["dns", "macros"] }
 tracing-subscriber = "0.1"
+
+[[test]]
+name = "persist_failpoints"
+required-features = ["fail/failpoints"]
 
