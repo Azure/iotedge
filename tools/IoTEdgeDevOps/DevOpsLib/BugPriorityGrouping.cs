@@ -5,6 +5,10 @@ namespace DevOpsLib
 
     public class BugPriorityGrouping : IEquatable<BugPriorityGrouping>
     {
+        internal static readonly BugPriorityGrouping Pri1 = new BugPriorityGrouping("Pri-1", "1");
+        internal static readonly BugPriorityGrouping Pri2 = new BugPriorityGrouping("Pri-2", "2");
+        internal static readonly BugPriorityGrouping PriOther = new BugPriorityGrouping("Pri-Other", "Other");
+
         BugPriorityGrouping(string name, string priority)
         {
             ValidationUtil.ThrowIfNullOrWhiteSpace(name, nameof(name));
@@ -16,10 +20,6 @@ namespace DevOpsLib
 
         public string Name { get; }
         public string Priority { get; }
-
-        internal static readonly BugPriorityGrouping Pri1 = new BugPriorityGrouping("Pri-1", "1");
-        internal static readonly BugPriorityGrouping Pri2 = new BugPriorityGrouping("Pri-2", "2");
-        internal static readonly BugPriorityGrouping PriOther = new BugPriorityGrouping("Pri-Other", "Other");
 
         public bool Equals(BugPriorityGrouping bugPriorityGrouping)
         {
