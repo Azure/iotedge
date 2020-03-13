@@ -16,9 +16,9 @@ namespace TestResultCoordinator.Reports
 
         public string Source { get; }
 
-        public TestReportType TestReportType => TestReportType.NetworkControllerReport;
+        public override TestReportType TestReportType => TestReportType.NetworkControllerReport;
 
-        public TestOperationResultType TestOperationResultType => TestOperationResultType.Network;
+        public override TestOperationResultType TestOperationResultType => TestOperationResultType.Network;
 
         public string[] ResultSources => new string[] { this.Source };
 

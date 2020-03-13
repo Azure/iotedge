@@ -20,9 +20,9 @@ namespace TestResultCoordinator.Reports
 
         public string ActualSource { get; }
 
-        public TestReportType TestReportType => TestReportType.DeploymentTestReport;
+        public override TestReportType TestReportType => TestReportType.DeploymentTestReport;
 
-        public TestOperationResultType TestOperationResultType => TestOperationResultType.Deployment;
+        public override TestOperationResultType TestOperationResultType => TestOperationResultType.Deployment;
 
         public string[] ResultSources => new string[] { this.ExpectedSource, this.ActualSource };
 

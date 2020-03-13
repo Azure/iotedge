@@ -29,8 +29,8 @@ namespace TestResultCoordinator.Reports.DirectMethod
         public string[] ResultSources =>
             this.ReceiverSource.HasValue ? new string[] { this.SenderSource, this.ReceiverSource.OrDefault() } : new string[] { this.SenderSource };
 
-        public TestReportType TestReportType => TestReportType.DirectMethodReport;
+        public override TestReportType TestReportType => TestReportType.DirectMethodReport;
 
-        public TestOperationResultType TestOperationResultType => TestOperationResultType.DirectMethod;
+        public override TestOperationResultType TestOperationResultType => TestOperationResultType.DirectMethod;
     }
 }

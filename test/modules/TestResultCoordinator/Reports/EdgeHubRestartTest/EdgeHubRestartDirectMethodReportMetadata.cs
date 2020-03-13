@@ -23,8 +23,8 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
         public string[] ResultSources => new string[] { this.SenderSource, this.ReceiverSource };
 
-        public TestReportType TestReportType => TestReportType.EdgeHubRestartDirectMethodReport;
+        public override TestReportType TestReportType => TestReportType.EdgeHubRestartDirectMethodReport;
 
-        public TestOperationResultType TestOperationResultType => TestOperationResultType.EdgeHubRestartDirectMethod;
+        public override TestOperationResultType TestOperationResultType => TestOperationResultType.EdgeHubRestartDirectMethod;
     }
 }

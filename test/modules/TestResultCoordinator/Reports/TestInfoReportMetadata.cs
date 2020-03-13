@@ -12,9 +12,9 @@ namespace TestResultCoordinator.Reports
 
         public string Source => TestConstants.TestInfo.TestResultSource;
 
-        public TestReportType TestReportType => TestReportType.TestInfoReport;
+        public override TestReportType TestReportType => TestReportType.TestInfoReport;
 
-        public TestOperationResultType TestOperationResultType => TestOperationResultType.TestInfo;
+        public override TestOperationResultType TestOperationResultType => TestOperationResultType.TestInfo;
 
         public string[] ResultSources => new string[] { this.Source };
 
