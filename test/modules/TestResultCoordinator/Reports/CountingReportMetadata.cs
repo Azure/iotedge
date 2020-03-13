@@ -32,7 +32,7 @@ namespace TestResultCoordinator.Reports
 
         public override string ToString()
         {
-            return $"ExpectedSource: {this.ExpectedSource}, ActualSource: {this.ActualSource}, TestDescription: {this.TestDescription}, TestOperationResultType: {this.TestOperationResultType.ToString()}, ReportType: {this.TestReportType.ToString()}";
+            return $"ExpectedSource: {this.ExpectedSource}, ActualSource: {this.ActualSource}, {base.ToString()}";
         }
     }
 }

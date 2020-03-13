@@ -18,7 +18,7 @@ namespace TestResultCoordinator.Reports
 
         public override string ToString()
         {
-            return $"TestDescription: {this.TestDescription}";
+            return $"TestDescription: {this.TestDescription}, TestReportType: {this.TestReportType}, TestOperationResultType: {this.TestOperationResultType}";
         }
     }
 }
