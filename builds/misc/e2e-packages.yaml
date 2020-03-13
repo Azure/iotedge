@@ -84,6 +84,8 @@ jobs:
           target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
     steps:
       # Ensure any changes here are replicated in packages.slow.yaml
+      - checkout: self
+        submodules: true
 
       - bash: |
           BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
@@ -126,6 +128,9 @@ jobs:
     pool:
       vmImage: 'vs2017-win2016'
     steps:
+      - checkout: self
+        submodules: true
+
       - powershell: |
           $base_version = Get-Content -Path "$(Build.SourcesDirectory)\edgelet\version.txt"
           $version = ("{0}{1}" -f $base_version, $(Build.BuildNumber))
@@ -182,6 +187,9 @@ jobs:
     pool:
       vmImage: 'vs2017-win2016'
     steps:
+      - checkout: self
+        submodules: true
+
       - powershell: |
           $base_version = Get-Content -Path "$(Build.SourcesDirectory)\edgelet\version.txt"
           $version = ("{0}{1}" -f $base_version, $(Build.BuildNumber))
