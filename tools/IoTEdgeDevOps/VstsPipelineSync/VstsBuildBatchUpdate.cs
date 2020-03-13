@@ -154,7 +154,7 @@ namespace VstsPipelineSync
 
             cmd.Parameters.Add(new SqlParameter("@Title", bugQuery.Title));
             cmd.Parameters.Add(new SqlParameter("@AreaPath", bugQuery.Area));
-            cmd.Parameters.Add(new SqlParameter("@Priority", bugQuery.BugPriorityGrouping.Priority.ToString()));
+            cmd.Parameters.Add(new SqlParameter("@Priority", bugQuery.BugPriorityGrouping.Priority));
             cmd.Parameters.Add(new SqlParameter("@InProgress", bugQuery.InProgress));
             cmd.Parameters.Add(new SqlParameter("@BugCount", bugCount));
 

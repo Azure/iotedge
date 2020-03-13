@@ -17,13 +17,13 @@ namespace DevOpsLib
         public string Name { get; }
         public string Priority { get; }
 
-        public static readonly BugPriorityGrouping Pri1 = new BugPriorityGrouping("Pri-1", "1");
-        public static readonly BugPriorityGrouping Pri2 = new BugPriorityGrouping("Pri-2", "2");
-        public static readonly BugPriorityGrouping PriOther = new BugPriorityGrouping("Pri-Other", "Other");
+        internal static readonly BugPriorityGrouping Pri1 = new BugPriorityGrouping("Pri-1", "1");
+        internal static readonly BugPriorityGrouping Pri2 = new BugPriorityGrouping("Pri-2", "2");
+        internal static readonly BugPriorityGrouping PriOther = new BugPriorityGrouping("Pri-Other", "Other");
 
         public bool Equals(BugPriorityGrouping bugPriorityGrouping)
         {
-            return this.Name == bugPriorityGrouping.Name && this.Priority == bugPriorityGrouping.Priority;
+            return this.Name.Equals(bugPriorityGrouping.Priority) && this.Priority.Equals(bugPriorityGrouping.Priority);
         }
     }
 }
