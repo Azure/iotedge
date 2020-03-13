@@ -1,13 +1,12 @@
 use failure::ResultExt;
 use futures_util::pin_mut;
+use mqtt_broker::*;
 use native_tls::Identity;
 use std::{env, io};
 use tokio::fs;
-use tokio::time::Duration;
+use tokio::time::{Duration, Instant};
 use tracing::{info, warn, Level};
 use tracing_subscriber::{fmt, EnvFilter};
-
-use mqtt_broker::*;
 
 use mqttd::{shutdown, snapshot};
 
@@ -77,13 +76,13 @@ async fn main() -> Result<(), Error> {
 
     // Stop snapshotting
     shutdown_handle.shutdown().await?;
-    let mut persistor = join_handle.await.context(ErrorKind::BrokerJoin)?;
+    let mut persistor = join_handle.await.context(ErrorKind::TaskJoin)?;
     info!("state snapshotter shutdown.");
 
     info!("persisting state before exiting...");
     persistor.store(state).await?;
     info!("state persisted.");
-    info!("exiting... good bye");
+    info!("exiting... goodbye");
 
     Ok(())
 }
@@ -104,7 +103,8 @@ async fn tick_snapshot(
     snapshot_handle: StateSnapshotHandle,
 ) {
     info!("Persisting state every {:?}", period);
-    let mut interval = tokio::time::interval(period);
+    let start = Instant::now() + period;
+    let mut interval = tokio::time::interval_at(start, period);
     loop {
         interval.tick().await;
         if let Err(e) = broker_handle

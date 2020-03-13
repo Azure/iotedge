@@ -99,7 +99,7 @@ impl Server {
                             warn!(message = "failed to shutdown protocol head", error=%e);
                         }
 
-                        broker_state.context(ErrorKind::BrokerJoin)?
+                        broker_state.context(ErrorKind::TaskJoin)?
                     }
                 }
             }
