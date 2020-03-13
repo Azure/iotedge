@@ -322,3 +322,8 @@ stylecop.json
 *.swp
 *.swo
 *.vi
+
+# fuzz
+in
+out
+
