@@ -1,45 +1,60 @@
 // Copyright (c) Microsoft. All rights reserved.
-using System;
-
 namespace DevOpsLib
 {
+    using System;
+
     public class BugQuery
     {
-        public BugQuery(string title, string area, BugPriority priority, bool inProgress)
+        public BugQuery(string area, BugPriorityGrouping priority, bool inProgress)
         {
-            ValidationUtil.ThrowIfNullOrWhiteSpace(title, nameof(title));
             ValidationUtil.ThrowIfNullOrWhiteSpace(area, nameof(area));
             ValidationUtil.ThrowIfNull(inProgress, nameof(inProgress));
 
-            this.Title = title;
             this.Area = area;
             this.Priority = priority;
             this.InProgress = inProgress;
         }
-        public string Title { get; }
+
         public string Area { get; }
-        public BugPriority Priority { get; }
+        public BugPriorityGrouping Priority { get; }
         public bool InProgress { get; }
+
+        public string Title
+        {
+            get
+            {
+                string titleBase = $"{this.Area}-{BugPriorityExtension.DisplayName(this.Priority)}";
+
+                if (this.InProgress)
+                {
+                    return $"{titleBase}-Started";
+                }
+                else
+                {
+                    return $"{titleBase}-Not-Started";
+                }
+            }
+        }
 
         public string GetWiqlFromConfiguration()
         {
-            string query = "";
+            string query;
 
-            if (this.Priority != BugPriority.Other && !this.InProgress)
+            if (this.Priority != BugPriorityGrouping.Other && !this.InProgress)
             {
-                query = BugWiqlQueries.PrioritizedBugTemplate ;
+                query = BugWiqlQueries.PrioritizedBugTemplate;
             }
-            else if (this.Priority != BugPriority.Other && this.InProgress)
+            else if (this.Priority != BugPriorityGrouping.Other && this.InProgress)
             {
-                query = BugWiqlQueries.PrioritizedStartedBugTemplate ;
+                query = BugWiqlQueries.PrioritizedStartedBugTemplate;
             }
-            else if (this.Priority == BugPriority.Other && !this.InProgress)
+            else if (this.Priority == BugPriorityGrouping.Other && !this.InProgress)
             {
-                query = BugWiqlQueries.UnprioritizedBugTemplate ;
+                query = BugWiqlQueries.UnprioritizedBugTemplate;
             }
-            else if (this.Priority == BugPriority.Other && this.InProgress)
+            else if (this.Priority == BugPriorityGrouping.Other && this.InProgress)
             {
-                query = BugWiqlQueries.UnprioritizedStartedBugTemplate ;
+                query = BugWiqlQueries.UnprioritizedStartedBugTemplate;
             }
             else
             {

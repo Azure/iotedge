@@ -69,7 +69,7 @@ namespace VstsPipelineSync
                 sqlConnection.Open();
                 foreach (BugQuery bugQuery in bugQueries)
                 {
-                    int bugCount = await bugManagement.GetBugsQuery(bugQuery);
+                    int bugCount = await bugManagement.GetBugsCountAsync(bugQuery);
 
                     Console.WriteLine($"Query VSTS bugs for area [{bugQuery.Area}] and priority [{bugQuery.Priority}] and inProgress [{bugQuery.InProgress}]: last update={DateTime.UtcNow} => result count={bugCount}");
                     UpsertVstsBugToDb(sqlConnection, bugQuery, bugCount);

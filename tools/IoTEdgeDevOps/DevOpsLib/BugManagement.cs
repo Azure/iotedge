@@ -20,13 +20,13 @@ namespace DevOpsLib
         }
 
         /// <summary>
-        /// This method is used to execute a Dev Ops work item query and get the number of bugs for a given query. 
+        /// This method is used to execute a Dev Ops work item query and get the number of bugs for a given query.
         /// If result is not found for a query, it will return 0.
         /// Reference: https://docs.microsoft.com/en-us/rest/api/azure/devops/wit/wiql/query%20by%20wiql?view=azure-devops-rest-5.1
         /// </summary>
         /// <param name="bugQuery">Bug query object representing vsts shared queries</param>
         /// <returns>Number of bugs output by query</returns>
-        public async Task<int> GetBugsQuery(BugQuery bugQuery)
+        public async Task<int> GetBugsCountAsync(BugQuery bugQuery)
         {
             // TODO: need to think about how to handle unexpected exception during REST API call
             string requestPath = string.Format(WorkItemPathSegmentFormat, DevOpsAccessSetting.BaseUrl, this.accessSetting.Organization, this.accessSetting.Project, this.accessSetting.Team);
@@ -38,8 +38,8 @@ namespace DevOpsLib
             try
             {
                 IFlurlResponse response = await workItemQueryRequest
-                    .PostJsonAsync(new { query = bugQuery.GetWiqlFromConfiguration()});
-                
+                    .PostJsonAsync(new { query = bugQuery.GetWiqlFromConfiguration() });
+
                 result = await response.GetJsonAsync<JObject>();
             }
             catch (FlurlHttpException e)
@@ -48,17 +48,15 @@ namespace DevOpsLib
                 Console.WriteLine(e.Call.RequestBody);
                 Console.WriteLine(e.Call.Response.StatusCode);
                 Console.WriteLine(e.Call.Response.ResponseMessage);
-                result = JObject.Parse("{}");
+                return 0;
             }
 
             if (!result.ContainsKey("queryType"))
             {
-                return 0; 
+                return 0;
             }
-            else
-            {
-                return result["workItems"].Count();
-            }
+
+            return result["workItems"].Count();
         }
     }
 }

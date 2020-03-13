@@ -46,6 +46,6 @@ namespace DevOpsLib
             return definitionIdToDisplayNameMapping.ContainsKey(buildDefinitionId) ? definitionIdToDisplayNameMapping[buildDefinitionId] : buildDefinitionId.ToString();
         }
 
-        public static string IdString(this BuildDefinitionId buildDefinitionId) => ((int) buildDefinitionId).ToString();
+        public static string IdString(this BuildDefinitionId buildDefinitionId) => ((int)buildDefinitionId).ToString();
     }
 }

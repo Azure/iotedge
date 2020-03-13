@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
-using System.Collections.Generic;
-
 namespace DevOpsLib
 {
+    using System.Collections.Generic;
+
     public static class BugQueryGenerator
     {
         static readonly string[] areas = new string[]
@@ -24,15 +24,10 @@ namespace DevOpsLib
             HashSet<BugQuery> output = new HashSet<BugQuery>();
             foreach (string area in areas)
             {
-                foreach (BugPriority priority in BugPriorityExtension.BugPriorities)
+                foreach (BugPriorityGrouping priority in BugPriorityExtension.BugPriorities)
                 {
-                    string titleBase = $"{area}-{BugPriorityExtension.DisplayName(priority)}";
-
-                    string inProgressTitle = $"{titleBase}-Started";
-                    output.Add(new BugQuery(inProgressTitle, area, priority, true));
-
-                    string notInProgressTitle = $"{titleBase}-Not-Started";
-                    output.Add(new BugQuery(notInProgressTitle, area, priority, false));
+                    output.Add(new BugQuery(area, priority, true));
+                    output.Add(new BugQuery(area, priority, false));
                 }
             }
 

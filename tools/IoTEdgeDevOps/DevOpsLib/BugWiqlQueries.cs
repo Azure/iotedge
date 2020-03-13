@@ -4,7 +4,7 @@ namespace DevOpsLib
 {
     public static class BugWiqlQueries
     {
-        public const string PrioritizedBugTemplate = 
+        public const string PrioritizedBugTemplate =
 @"SELECT
     [System.Id],
     [System.WorkItemType],
@@ -21,8 +21,8 @@ WHERE
     AND NOT [System.State] CONTAINS 'Removed'
     AND [Microsoft.VSTS.Common.Priority] = {PRIORITY}";
 
-        public const string PrioritizedStartedBugTemplate =@"
-SELECT
+        public const string PrioritizedStartedBugTemplate =
+@"SELECT
     [System.Id],
     [System.WorkItemType],
     [System.Title],
@@ -39,7 +39,7 @@ WHERE
     AND [Microsoft.VSTS.Common.Priority] = {PRIORITY}
     AND [System.State] = 'In Progress'";
 
-        public const string UnprioritizedBugTemplate = 
+        public const string UnprioritizedBugTemplate =
 @"SELECT
     [System.Id],
     [System.WorkItemType],
@@ -57,7 +57,7 @@ WHERE
     AND NOT [Microsoft.VSTS.Common.Priority] IN (1)
     AND NOT [Microsoft.VSTS.Common.Priority] IN (2)";
 
-        public const string UnprioritizedStartedBugTemplate = 
+        public const string UnprioritizedStartedBugTemplate =
 @"SELECT
     [System.Id],
     [System.WorkItemType],

@@ -5,35 +5,34 @@ namespace DevOpsLib
 
     public static class BugPriorityExtension
     {
-        public static HashSet<BugPriority> BugPriorities => 
-            new HashSet<BugPriority>()
+        public static HashSet<BugPriorityGrouping> BugPriorities =>
+            new HashSet<BugPriorityGrouping>()
             {
-                BugPriority.One,
-                BugPriority.Two,
-                BugPriority.Other
+                BugPriorityGrouping.One,
+                BugPriorityGrouping.Two,
+                BugPriorityGrouping.Other
             };
-        static Dictionary<BugPriority, string> definitionIdToDisplayNameMapping = new Dictionary<BugPriority, string>
+        static Dictionary<BugPriorityGrouping, string> definitionIdToDisplayNameMapping = new Dictionary<BugPriorityGrouping, string>
         {
-            { BugPriority.One, "Pri-1" },
-            { BugPriority.Two, "Pri-2" },
-            { BugPriority.Other, "Pri-Other" },
+            { BugPriorityGrouping.One, "Pri-1" },
+            { BugPriorityGrouping.Two, "Pri-2" },
+            { BugPriorityGrouping.Other, "Pri-Other" },
         };
 
-        static Dictionary<BugPriority, string> definitionIdToPriorityValue = new Dictionary<BugPriority, string>
+        static Dictionary<BugPriorityGrouping, string> definitionIdToPriorityValue = new Dictionary<BugPriorityGrouping, string>
         {
-            { BugPriority.One, "1" },
-            { BugPriority.Two, "2" },
+            { BugPriorityGrouping.One, "1" },
+            { BugPriorityGrouping.Two, "2" },
         };
 
-        public static string DisplayName(this BugPriority bugPriority)
+        public static string DisplayName(this BugPriorityGrouping bugPriority)
         {
             return definitionIdToDisplayNameMapping.ContainsKey(bugPriority) ? definitionIdToDisplayNameMapping[bugPriority] : bugPriority.ToString();
         }
 
-        public static string PriorityValue(this BugPriority bugPriority)
+        public static string PriorityValue(this BugPriorityGrouping bugPriority)
         {
             return definitionIdToPriorityValue.ContainsKey(bugPriority) ? definitionIdToPriorityValue[bugPriority] : bugPriority.ToString();
         }
     }
 }
-
