@@ -7,7 +7,7 @@ namespace TestResultCoordinator.Reports
 
     class TestSummary
     {
-        internal TestSummary(Dictionary<string, string> testInfo, ITestResultReport[] testResultReports, string blobContainerUri)
+        internal TestSummary(SortedDictionary<string, string> testInfo, ITestResultReport[] testResultReports, string blobContainerUri)
         {
             this.TestInfo = Preconditions.CheckNotNull(testInfo, nameof(testInfo));
             this.TestResultReports = Preconditions.CheckNotNull(testResultReports, nameof(testResultReports));
@@ -15,7 +15,7 @@ namespace TestResultCoordinator.Reports
             this.BlobContainerUri = blobContainerUri ?? string.Empty;
         }
 
-        public Dictionary<string, string> TestInfo { get; }
+        public SortedDictionary<string, string> TestInfo { get; }
 
         public bool IsPassed { get; }
 

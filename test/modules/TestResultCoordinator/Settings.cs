@@ -64,12 +64,7 @@ namespace TestResultCoordinator
             this.StorageAccountConnectionString = Preconditions.CheckNonWhiteSpace(storageAccountConnectionString, nameof(storageAccountConnectionString));
             this.NetworkControllerType = this.GetNetworkControllerType(networkControllerRunProfileName);
 
-            this.TestInfo = testInfo.Split(",", StringSplitOptions.RemoveEmptyEntries)
-                                .Select(x => (KeyAndValue: x, SplitIndex: x.IndexOf('=')))
-                                .Where(x => x.SplitIndex >= 1)
-                                .ToDictionary(
-                                    x => x.KeyAndValue.Substring(0, x.SplitIndex),
-                                    x => x.KeyAndValue.Substring(x.SplitIndex + 1, x.KeyAndValue.Length - x.SplitIndex - 1));
+            this.TestInfo = ModuleUtil.ParseTestInfo(testInfo);
             this.TestInfo.Add("DeviceId", this.DeviceId);
         }
 
@@ -147,7 +142,7 @@ namespace TestResultCoordinator
 
         public string StorageAccountConnectionString { get; }
 
-        public Dictionary<string, string> TestInfo { get; }
+        public SortedDictionary<string, string> TestInfo { get; }
 
         public NetworkControllerType NetworkControllerType { get; }
 

@@ -2,6 +2,8 @@
 namespace Microsoft.Azure.Devices.Edge.ModuleUtil
 {
     using System;
+    using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -119,6 +121,18 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             {
                 logger.Log(logLevel, message);
             }
+        }
+
+        public static SortedDictionary<string, string> ParseTestInfo(string testInfo)
+        {
+            Dictionary<string, string> unsortedParsedTestInfo = testInfo.Split(",", StringSplitOptions.RemoveEmptyEntries)
+                                .Select(x => (KeyAndValue: x, SplitIndex: x.IndexOf('=')))
+                                .Where(x => x.SplitIndex >= 1)
+                                .ToDictionary(
+                                    x => x.KeyAndValue.Substring(0, x.SplitIndex),
+                                    x => x.KeyAndValue.Substring(x.SplitIndex + 1, x.KeyAndValue.Length - x.SplitIndex - 1));
+
+            return new SortedDictionary<string, string>(unsortedParsedTestInfo);
         }
     }
 }
