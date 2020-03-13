@@ -123,6 +123,9 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             }
         }
 
+        // Test info is used in the longhaul, stress, and connectivity tests to provide contextual information when reporting.
+        // This info is passed from the vsts pipeline and needs to be parsed by the test modules.
+        // Includes information such as build numbers, ids, host platform, etc.
         public static SortedDictionary<string, string> ParseTestInfo(string testInfo)
         {
             Dictionary<string, string> unsortedParsedTestInfo = testInfo.Split(",", StringSplitOptions.RemoveEmptyEntries)
