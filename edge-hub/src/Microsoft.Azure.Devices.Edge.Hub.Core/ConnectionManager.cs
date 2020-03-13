@@ -144,7 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             Preconditions.CheckNotNull(credentials, nameof(credentials));
 
-            ConnectedDevice device = this.CreateOrUpdateConnectedDevice(credentials.Identity);
+            ConnectedDevice device = this.GetOrCreateConnectedDevice(credentials.Identity);
             Try<ICloudConnection> newCloudConnection = await device.CreateOrUpdateCloudConnection(c => this.CreateOrUpdateCloudConnection(c, credentials));
             Events.NewCloudConnection(credentials.Identity, newCloudConnection);
             Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(newCloudConnection, credentials.Identity);
@@ -304,16 +304,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return this.devices.GetOrAdd(
                 Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)),
                 id => this.CreateNewConnectedDevice(identity));
-        }
-
-        ConnectedDevice CreateOrUpdateConnectedDevice(IIdentity identity)
-        {
-            string deviceId = Preconditions.CheckNotNull(identity, nameof(identity)).Id;
-            Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            return this.devices.AddOrUpdate(
-                deviceId,
-                id => this.CreateNewConnectedDevice(identity),
-                (id, cd) => new ConnectedDevice(identity, cd.CloudConnection, cd.DeviceConnection));
         }
 
         ConnectedDevice CreateNewConnectedDevice(IIdentity identity)
