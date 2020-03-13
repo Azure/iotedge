@@ -28,6 +28,9 @@ pub enum ErrorKind {
     #[fail(display = "An error occurred getting a connection's peer address.")]
     ConnectionPeerAddress,
 
+    #[fail(display = "An error occurred getting local address.")]
+    ConnectionLocalAddress,
+
     #[fail(display = "An error occurred configuring a connection.")]
     ConnectionConfiguration,
 
@@ -63,6 +66,21 @@ pub enum ErrorKind {
 
     #[fail(display = "An error occurred persisting state: {}", _0)]
     Persist(crate::persist::ErrorReason),
+
+    #[fail(display = "An error occurred joining the broker task.")]
+    BrokerJoin,
+
+    #[fail(display = "An error occurred obtaining service identity.")]
+    IdentityConfiguration,
+
+    #[fail(display = "Error loading identity from file.")]
+    LoadIdentity,
+
+    #[fail(display = "Error decoding identity content.")]
+    DecodeIdentity,
+
+    #[fail(display = "Error starting listener.")]
+    StartListener,
 }
 
 impl Fail for Error {

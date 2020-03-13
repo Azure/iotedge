@@ -25,6 +25,7 @@ mod server;
 mod session;
 mod snapshot;
 mod subscription;
+mod transport;
 
 pub use crate::broker::{Broker, BrokerHandle, BrokerState};
 pub use crate::connection::ConnectionHandle;
