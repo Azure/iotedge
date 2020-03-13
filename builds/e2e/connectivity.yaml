@@ -5,6 +5,13 @@ variables:
   images.artifact.name.linux: 'core-linux'
   vsts.project: $(System.TeamProjectId)
 
+parameters:
+  name: deploymentFileName
+  displayName: deployment file name
+  values:
+  - connectivity_deployment.template.json
+  - edgehub_restart_deployment.template.json
+
 jobs:
 ################################################################################
   - job: linux_amd64_moby
@@ -75,7 +82,7 @@ jobs:
             echo "testrun.network.frequencies=$(testrun.network.frequencies)"
             echo "testrun.network.runProfile=$(testrun.network.runProfile)"
             echo "testrun.duration=$(testrun.duration)"
-            echo "deploymentFileName=$(deploymentFileName)"
+            echo "deploymentFileName=${{parameters.deploymentFileName}}"
       - template: templates/set-run-flag.yaml
       - checkout: none
         condition: and(succeeded(), eq(variables['run.flag'], 1))
@@ -110,7 +117,7 @@ jobs:
           artifactName: $(images.artifact.name.linux)
           itemPattern: |
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-x64.tar.gz
-            $(images.artifact.name.linux)/e2e_deployment_files/$(deploymentFileName)
+            $(images.artifact.name.linux)/e2e_deployment_files/${{parameters.deploymentFileName}}
             $(images.artifact.name.linux)/scripts/connectivityTest.sh
             $(images.artifact.name.linux)/scripts/testHelper.sh
             $(images.artifact.name.linux)/artifactInfo.txt
@@ -128,7 +135,6 @@ jobs:
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
           iotHub.connectionString: '$(EdgeConnectivityTestHubConnString)'
           eventHub.connectionString: '$(EdgeConnectivityEventHubConnString)'
-          deploymentFileName: '$(deploymentFileName)'
           upstream.protocol: '$(upstream.protocol)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           edgeHubRestartTest.restartPeriod: '$(edgeHubRestartTest.restartPeriod)'
@@ -149,6 +155,7 @@ jobs:
           edgeRuntime.buildNumber: '$(edgeRuntime.buildNumber)'
           customEdgeAgent.image: '$(customEdgeAgent.image)'
           customEdgeHub.image: '$(customEdgeHub.image)'
+          deploymentFileName: '${{parameters.deploymentFileName}}'
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -220,7 +227,7 @@ jobs:
             echo "testrun.network.frequencies=$(testrun.network.frequencies)"
             echo "testrun.network.runProfile=$(testrun.network.runProfile)"
             echo "testrun.duration=$(testrun.duration)"
-            echo "deploymentFileName=$(deploymentFileName)"
+            echo "deploymentFileName=${{parameters.deploymentFileName}}"
       - template: templates/set-run-flag.yaml
       - checkout: none
         condition: and(succeeded(), eq(variables['run.flag'], 1))
@@ -255,7 +262,7 @@ jobs:
           artifactName: $(images.artifact.name.linux)
           itemPattern: |
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm.tar.gz
-            $(images.artifact.name.linux)/e2e_deployment_files/$(deploymentFileName)
+            $(images.artifact.name.linux)/e2e_deployment_files/${{parameters.deploymentFileName}}
             $(images.artifact.name.linux)/scripts/connectivityTest.sh
             $(images.artifact.name.linux)/scripts/testHelper.sh
             $(images.artifact.name.linux)/artifactInfo.txt
@@ -273,7 +280,7 @@ jobs:
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
           iotHub.connectionString: '$(EdgeConnectivityTestHubARM32ConnString)'
           eventHub.connectionString: '$(EdgeConnectivityEventHubARM32ConnString)'
-          deploymentFileName: '$(deploymentFileName)'
+          deploymentFileName: '${{parameters.deploymentFileName}}'
           upstream.protocol: '$(upstream.protocol)'
           loadGen.message.frequency: '$(loadGen.message.frequency.arm32)'
           edgeHubRestartTest.restartPeriod: '$(edgeHubRestartTest.restartPeriod)'
