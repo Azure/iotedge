@@ -267,6 +267,9 @@
               },
               "StartAfter": {
                 "value": "<TestStartDelay>"
+              },
+              "TEST_INFO": {
+                "value": "<TestResultCoordinator.TestInfo>"
               }
             },
             "settings": {
