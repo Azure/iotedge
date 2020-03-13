@@ -20,7 +20,7 @@ namespace TestResultCoordinator.Reports
 
         public override string ToString()
         {
-            return $"TestDescription: {this.TestDescription}, Source: {this.Source}, TestOperationResultType: {this.TestOperationResultType.ToString()}, ReportType: {this.TestReportType.ToString()}";
+            return $"{base.ToString()}, Source: {this.Source}";
         }
     }
 }
