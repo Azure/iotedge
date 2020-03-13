@@ -5,6 +5,13 @@ namespace DevOpsLib
 
     public static class BugQueryGenerator
     {
+        static readonly BugPriorityGrouping[] priorities = new BugPriorityGrouping[]
+        {
+            BugPriorityGrouping.Pri1,
+            BugPriorityGrouping.Pri2,
+            BugPriorityGrouping.PriOther
+        };
+
         static readonly string[] areas = new string[]
         {
             "IoTEdge",
@@ -18,13 +25,13 @@ namespace DevOpsLib
             "IoTEdge\\Documentation",
             "IoTEdge\\FieldGateway"
         };
-        
+
         public static HashSet<BugQuery> GenerateBugQueries()
         {
             HashSet<BugQuery> output = new HashSet<BugQuery>();
             foreach (string area in areas)
             {
-                foreach (BugPriorityGrouping priority in BugPriorityExtension.BugPriorities)
+                foreach (BugPriorityGrouping priority in priorities)
                 {
                     output.Add(new BugQuery(area, priority, true));
                     output.Add(new BugQuery(area, priority, false));
@@ -35,4 +42,3 @@ namespace DevOpsLib
         }
     }
 }
-

@@ -71,7 +71,7 @@ namespace VstsPipelineSync
                 {
                     int bugCount = await bugManagement.GetBugsCountAsync(bugQuery);
 
-                    Console.WriteLine($"Query VSTS bugs for area [{bugQuery.Area}] and priority [{bugQuery.Priority}] and inProgress [{bugQuery.InProgress}]: last update={DateTime.UtcNow} => result count={bugCount}");
+                    Console.WriteLine($"Query VSTS bugs for area [{bugQuery.Area}] and priority [{bugQuery.BugPriorityGrouping.Priority}] and inProgress [{bugQuery.InProgress}]: last update={DateTime.UtcNow} => result count={bugCount}");
                     UpsertVstsBugToDb(sqlConnection, bugQuery, bugCount);
                 }
             }
@@ -154,7 +154,7 @@ namespace VstsPipelineSync
 
             cmd.Parameters.Add(new SqlParameter("@Title", bugQuery.Title));
             cmd.Parameters.Add(new SqlParameter("@AreaPath", bugQuery.Area));
-            cmd.Parameters.Add(new SqlParameter("@Priority", bugQuery.Priority.PriorityValue()));
+            cmd.Parameters.Add(new SqlParameter("@Priority", bugQuery.BugPriorityGrouping.Priority.ToString()));
             cmd.Parameters.Add(new SqlParameter("@InProgress", bugQuery.InProgress));
             cmd.Parameters.Add(new SqlParameter("@BugCount", bugCount));
 

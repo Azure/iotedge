@@ -5,25 +5,26 @@ namespace DevOpsLib
 
     public class BugQuery
     {
-        public BugQuery(string area, BugPriorityGrouping priority, bool inProgress)
+        public BugQuery(string area, BugPriorityGrouping bugPriorityGrouping, bool inProgress)
         {
             ValidationUtil.ThrowIfNullOrWhiteSpace(area, nameof(area));
+            ValidationUtil.ThrowIfNull(bugPriorityGrouping, nameof(bugPriorityGrouping));
             ValidationUtil.ThrowIfNull(inProgress, nameof(inProgress));
 
             this.Area = area;
-            this.Priority = priority;
+            this.BugPriorityGrouping = bugPriorityGrouping;
             this.InProgress = inProgress;
         }
 
         public string Area { get; }
-        public BugPriorityGrouping Priority { get; }
+        public BugPriorityGrouping BugPriorityGrouping { get; }
         public bool InProgress { get; }
 
         public string Title
         {
             get
             {
-                string titleBase = $"{this.Area}-{BugPriorityExtension.DisplayName(this.Priority)}";
+                string titleBase = $"{this.Area}-{this.BugPriorityGrouping.Name}";
 
                 if (this.InProgress)
                 {
@@ -39,20 +40,21 @@ namespace DevOpsLib
         public string GetWiqlFromConfiguration()
         {
             string query;
+            string unassignedPriorityPlaceholder = "Other";
 
-            if (this.Priority != BugPriorityGrouping.Other && !this.InProgress)
+            if (this.BugPriorityGrouping.Priority != unassignedPriorityPlaceholder && !this.InProgress)
             {
                 query = BugWiqlQueries.PrioritizedBugTemplate;
             }
-            else if (this.Priority != BugPriorityGrouping.Other && this.InProgress)
+            else if (this.BugPriorityGrouping.Priority != unassignedPriorityPlaceholder && this.InProgress)
             {
                 query = BugWiqlQueries.PrioritizedStartedBugTemplate;
             }
-            else if (this.Priority == BugPriorityGrouping.Other && !this.InProgress)
+            else if (this.BugPriorityGrouping.Priority == unassignedPriorityPlaceholder && !this.InProgress)
             {
                 query = BugWiqlQueries.UnprioritizedBugTemplate;
             }
-            else if (this.Priority == BugPriorityGrouping.Other && this.InProgress)
+            else if (this.BugPriorityGrouping.Priority == unassignedPriorityPlaceholder && this.InProgress)
             {
                 query = BugWiqlQueries.UnprioritizedStartedBugTemplate;
             }
@@ -61,7 +63,7 @@ namespace DevOpsLib
                 throw new NotImplementedException();
             }
 
-            query = query.Replace("{PRIORITY}", this.Priority.PriorityValue());
+            query = query.Replace("{PRIORITY}", this.BugPriorityGrouping.Priority.ToString());
             query = query.Replace("{AREA}", this.Area);
 
             return query;
