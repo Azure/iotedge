@@ -412,7 +412,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
                 else
                 {
                     // Bad test setup
-                    Assert.True(false);
+                    Assert.True(false, "Bad test setup, processed a message with unexpected priority");
                 }
             }
         }
