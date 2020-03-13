@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             try
             {
-                await this.underlyingModuleClient.OpenAsync().TimeoutAfter(TimeSpan.FromMilliseconds(this.underlyingModuleClient.OperationTimeoutInMilliseconds));
+                await this.underlyingModuleClient.OpenAsync().TimeoutAfter(TimeSpan.FromMinutes(2));
             }
             catch (Exception)
             {
