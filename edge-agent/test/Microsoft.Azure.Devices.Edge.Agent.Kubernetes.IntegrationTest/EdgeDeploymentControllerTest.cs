@@ -343,7 +343,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         {
             var exposedPorts = new Dictionary<string, DockerEmptyStruct>
             {
-                ["80/tcp"] = default
+                ["80/tcp"] = default(DockerEmptyStruct)
             };
             var createOptions = CreatePodParameters.Create(exposedPorts: exposedPorts);
             KubernetesConfig config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
@@ -368,7 +368,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             };
             var exposedPorts = new Dictionary<string, DockerEmptyStruct>
             {
-                ["80/tcp"] = default
+                ["80/tcp"] = default(DockerEmptyStruct)
             };
             var createOptions = CreatePodParameters.Create(hostConfig: hostConfig, exposedPorts: exposedPorts);
             KubernetesConfig config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
