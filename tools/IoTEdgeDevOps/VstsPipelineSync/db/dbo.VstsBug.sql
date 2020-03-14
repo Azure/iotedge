@@ -6,14 +6,16 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 CREATE TABLE [dbo].[VstsBug](
-	[QueryName] [varchar](20) NOT NULL,
+	[Title] [varchar](200) NOT NULL,
+	[AreaPath] [varchar](200) NOT NULL,
+	[Priority] [varchar](20) NOT NULL,
+	[InProgress] [bit] NOT NULL,
 	[BugCount] [int] NOT NULL,
 	[InsertedAt] [datetime2](7) NOT NULL,
 	[UpdatedAt] [datetime2](7) NOT NULL,
  CONSTRAINT [PK_QueryName] PRIMARY KEY CLUSTERED 
 (
-	[QueryName] ASC
+	[Title] ASC
 )WITH (STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-
