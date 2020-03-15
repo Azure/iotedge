@@ -86,6 +86,13 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
+      {{- if .Values.iotedged.fsGroup }}
+        fsGroup: {{ .Values.iotedged.fsGroup }}
+      {{ end }}
+{{- if .Values.iotedged.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.iotedged.nodeSelector | indent 8 }}
+{{- end }}
       volumes:
       - name: config
         secret:
