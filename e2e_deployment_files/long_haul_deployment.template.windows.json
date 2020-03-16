@@ -401,7 +401,7 @@
                     "value": "<LogAnalyticsSharedKey>"
                 },
                 "LogAnalyticsLogType": {
-                  "value": "testMetrics"
+                  "value": "testMetricsV2"
                 },
                 "MetricsEndpointsCSV": {
                   "value": "<MetricsCollector.MetricsEndpointsCSV>"
