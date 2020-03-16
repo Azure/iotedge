@@ -517,7 +517,6 @@ Function PrepareTestFromArtifacts
                 (Get-Content $DeploymentWorkingFilePath).replace('<TwinUpdateSize>',$TwinUpdateSize) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<TwinUpdateFrequency>',$TwinUpdateFrequency) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<TwinUpdateFailureThreshold>',$TwinUpdateFailureThreshold) | Set-Content $DeploymentWorkingFilePath
-                $TrackingId = New-Guid
                 (Get-Content $DeploymentWorkingFilePath).replace('<TrackingId>',$TrackingId) | Set-Content $DeploymentWorkingFilePath
             }
             "TempFilter"
@@ -1563,6 +1562,9 @@ $PackagesWorkingFolder = (Join-Path $TestWorkingFolder "packages")
 $IotEdgeQuickstartExeTestPath = (Join-Path $QuickstartWorkingFolder "IotEdgeQuickstart.exe")
 $LeafDeviceExeTestPath = (Join-Path $LeafDeviceWorkingFolder "LeafDevice.exe")
 $DeploymentWorkingFilePath = Join-Path $TestWorkingFolder "deployment.json"
+
+$TrackingId = New-Guid
+$TestInfo=$TestInfo+"TestId,=$TrackingId"
 
 If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCACertRSAFile))
 {

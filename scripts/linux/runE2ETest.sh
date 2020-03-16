@@ -169,7 +169,6 @@ function prepare_test_from_artifacts() {
 
                 local escapedSnitchAlertUrl
                 local escapedBuildId
-                local tracking_id=$(cat /proc/sys/kernel/random/uuid)
 
                 sed -i -e "s@<Analyzer.ConsumerGroupId>@$EVENT_HUB_CONSUMER_GROUP_ID@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
@@ -190,7 +189,7 @@ function prepare_test_from_artifacts() {
                 sed -i -e "s@<Snitch.StorageAccount>@$SNITCH_STORAGE_ACCOUNT@g" "$deployment_working_file"
                 sed -i -e "s@<Snitch.StorageMasterKey>@$SNITCH_STORAGE_MASTER_KEY@g" "$deployment_working_file"
                 sed -i -e "s@<Snitch.TestDurationInSecs>@$SNITCH_TEST_DURATION_IN_SECS@g" "$deployment_working_file"
-                sed -i -e "s@<TrackingId>@$tracking_id@g" "$deployment_working_file"
+                sed -i -e "s@<TrackingId>@$TRACKING_ID@g" "$deployment_working_file"
                 sed -i -e "s@<TwinUpdateSize>@$TWIN_UPDATE_SIZE@g" "$deployment_working_file"
                 sed -i -e "s@<TwinUpdateFrequency>@$TWIN_UPDATE_FREQUENCY@g" "$deployment_working_file"
                 sed -i -e "s@<TwinUpdateFailureThreshold>@$TWIN_UPDATE_FAILURE_THRESHOLD@g" "$deployment_working_file";;
@@ -1062,6 +1061,8 @@ function usage() {
 
 process_args "$@"
 
+TRACKING_ID=$(cat /proc/sys/kernel/random/uuid)
+TEST_INFO="$TEST_INFO,TestId=$TRACKING_ID"
 CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
 INITIALIZE_WITH_AGENT_ARTIFACT="${INITIALIZE_WITH_AGENT_ARTIFACT:-false}"
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
