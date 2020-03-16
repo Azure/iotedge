@@ -2,14 +2,11 @@ use std::{env, io};
 
 use failure::ResultExt;
 use futures_util::pin_mut;
-use tokio::time::Duration;
+use mqtt_broker::*;
+use tokio::time::{Duration, Instant};
 use tracing::{info, warn, Level};
 use tracing_subscriber::{fmt, EnvFilter};
 
-use mqtt_broker::{
-    Broker, BrokerHandle, Error, ErrorKind, Message, NullPersistor, Persist, Server, Snapshotter,
-    StateSnapshotHandle, SystemEvent,
-};
 use mqttd::{shutdown, snapshot};
 
 #[tokio::main]
@@ -31,13 +28,16 @@ async fn main() -> Result<(), Error> {
     pin_mut!(shutdown);
 
     // Setup the snapshotter
-    let mut persistor = NullPersistor;
+    let mut persistor = FilePersistor::new(
+        env::current_dir().expect("can't get cwd").join("state"),
+        BincodeFormat::new(),
+    );
     info!("Loading state...");
-    let state = persistor.load().await.context(ErrorKind::General)?;
+    let state = persistor.load().await?.unwrap_or_else(BrokerState::default);
     let broker = Broker::from_state(state);
     info!("state loaded.");
 
-    let snapshotter = Snapshotter::new(NullPersistor);
+    let snapshotter = Snapshotter::new(persistor);
     let snapshot_handle = snapshotter.snapshot_handle();
     let mut shutdown_handle = snapshotter.shutdown_handle();
     let join_handle = tokio::spawn(snapshotter.run());
@@ -59,13 +59,13 @@ async fn main() -> Result<(), Error> {
 
     // Stop snapshotting
     shutdown_handle.shutdown().await?;
-    let mut persistor = join_handle.await.context(ErrorKind::BrokerJoin)?;
+    let mut persistor = join_handle.await.context(ErrorKind::TaskJoin)?;
     info!("state snapshotter shutdown.");
 
     info!("persisting state before exiting...");
     persistor.store(state).await?;
     info!("state persisted.");
-    info!("exiting... good bye");
+    info!("exiting... goodbye");
 
     Ok(())
 }
@@ -76,7 +76,8 @@ async fn tick_snapshot(
     snapshot_handle: StateSnapshotHandle,
 ) {
     info!("Persisting state every {:?}", period);
-    let mut interval = tokio::time::interval(period);
+    let start = Instant::now() + period;
+    let mut interval = tokio::time::interval_at(start, period);
     loop {
         interval.tick().await;
         if let Err(e) = broker_handle

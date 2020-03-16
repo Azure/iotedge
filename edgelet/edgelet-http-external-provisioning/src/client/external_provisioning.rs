@@ -310,7 +310,7 @@ mod tests {
 
                     Ok::<_, Error>(())
                 }
-                Err(_err) => panic!("Did not expect a failure."),
+                Err(err) => panic!("Did not expect a failure: {}", err),
             }
             .is_ok()
         };
