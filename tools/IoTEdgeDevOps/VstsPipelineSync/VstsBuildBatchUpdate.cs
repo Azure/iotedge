@@ -16,16 +16,19 @@ namespace VstsPipelineSync
         readonly string dbConnectionString;
         readonly Dictionary<string, Dictionary<BuildDefinitionId, DateTime>> buildLastUpdatePerBranchPerDefinition;
         readonly HashSet<string> branches;
+        readonly HashSet<BugQuery> bugQueries;
 
-        public VstsBuildBatchUpdate(DevOpsAccessSetting devOpsAccessSetting, string dbConnectionString, HashSet<string> branches)
+        public VstsBuildBatchUpdate(DevOpsAccessSetting devOpsAccessSetting, string dbConnectionString, HashSet<string> branches, HashSet<BugQuery> bugQueries)
         {
             ValidationUtil.ThrowIfNull(devOpsAccessSetting, nameof(devOpsAccessSetting));
             ValidationUtil.ThrowIfNullOrEmptySet(branches, nameof(branches));
+            ValidationUtil.ThrowIfNullOrEmptySet(bugQueries, nameof(VstsBuildBatchUpdate.bugQueries));
 
             this.devOpsAccessSetting = devOpsAccessSetting;
             this.dbConnectionString = dbConnectionString;
             this.buildLastUpdatePerBranchPerDefinition = new Dictionary<string, Dictionary<BuildDefinitionId, DateTime>>();
             this.branches = branches;
+            this.bugQueries = bugQueries;
         }
 
         public async Task RunAsync(TimeSpan waitPeriodAfterEachUpdate, CancellationToken ct)
@@ -36,7 +39,7 @@ namespace VstsPipelineSync
 
             while (!ct.IsCancellationRequested)
             {
-                await ImportVstsBugDataAsync(bugManagement);
+                await ImportVstsBugDataAsync(bugManagement, bugQueries);
 
                 foreach (string branch in this.branches)
                 {
@@ -55,7 +58,7 @@ namespace VstsPipelineSync
             }
         }
 
-        async Task ImportVstsBugDataAsync(BugManagement bugManagement)
+        async Task ImportVstsBugDataAsync(BugManagement bugManagement, HashSet<BugQuery> bugQueries)
         {
             Console.WriteLine($"Import VSTS bugs started at {DateTime.UtcNow}.");
             SqlConnection sqlConnection = null;
@@ -64,15 +67,12 @@ namespace VstsPipelineSync
             {
                 sqlConnection = new SqlConnection(this.dbConnectionString);
                 sqlConnection.Open();
-
-                foreach (KeyValuePair<string, string> queryNameToId in BugQueryId.QueryNamestoIds)
+                foreach (BugQuery bugQuery in bugQueries)
                 {
-                    string queryName = queryNameToId.Key;
-                    string queryId = queryNameToId.Value;
-                    int bugCount = await bugManagement.GetBugsQuery(queryId);
+                    int bugCount = await bugManagement.GetBugsCountAsync(bugQuery);
 
-                    Console.WriteLine($"Query VSTS bugs for work item query id {queryId}: last update={DateTime.UtcNow} => result count={bugCount}");
-                    UpsertVstsBugToDb(sqlConnection, queryName, bugCount);
+                    Console.WriteLine($"Query VSTS bugs for area [{bugQuery.Area}] and priority [{bugQuery.BugPriorityGrouping.Priority}] and inProgress [{bugQuery.InProgress}]: last update={DateTime.UtcNow} => result count={bugCount}");
+                    UpsertVstsBugToDb(sqlConnection, bugQuery, bugCount);
                 }
             }
             catch (Exception)
@@ -143,7 +143,7 @@ namespace VstsPipelineSync
             }
         }
 
-        void UpsertVstsBugToDb(SqlConnection sqlConnection, string queryName, int bugCount)
+        void UpsertVstsBugToDb(SqlConnection sqlConnection, BugQuery bugQuery, int bugCount)
         {
             var cmd = new SqlCommand
             {
@@ -152,7 +152,10 @@ namespace VstsPipelineSync
                 CommandText = "UpsertVstsBug"
             };
 
-            cmd.Parameters.Add(new SqlParameter("@QueryName", queryName));
+            cmd.Parameters.Add(new SqlParameter("@Title", bugQuery.Title));
+            cmd.Parameters.Add(new SqlParameter("@AreaPath", bugQuery.Area));
+            cmd.Parameters.Add(new SqlParameter("@Priority", bugQuery.BugPriorityGrouping.Priority));
+            cmd.Parameters.Add(new SqlParameter("@InProgress", bugQuery.InProgress));
             cmd.Parameters.Add(new SqlParameter("@BugCount", bugCount));
 
             cmd.ExecuteNonQuery();
