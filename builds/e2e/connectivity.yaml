@@ -6,7 +6,7 @@ variables:
   vsts.project: $(System.TeamProjectId)
 
 parameters:
-  name: deploymentFileName
+- name: deploymentFileName
   displayName: deployment file name
   values:
   - connectivity_deployment.template.json
