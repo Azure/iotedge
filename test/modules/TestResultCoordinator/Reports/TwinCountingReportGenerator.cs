@@ -12,6 +12,7 @@ namespace TestResultCoordinator.Reports
     sealed class TwinCountingReportGenerator : ITestResultReportGenerator
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TwinCountingReportGenerator));
+        readonly string testDescription;
         readonly string trackingId;
         readonly string expectedSource;
         readonly ITestResultCollection<TestOperationResult> expectedTestResults;
@@ -20,8 +21,9 @@ namespace TestResultCoordinator.Reports
         readonly string resultType;
         SimpleTestOperationResultComparer testResultComparer;
 
-        internal TwinCountingReportGenerator(string trackingId, string expectedSource, ITestResultCollection<TestOperationResult> expectedTestResults, string actualSource, ITestResultCollection<TestOperationResult> actualTestResults, string testOperationResultType, SimpleTestOperationResultComparer testResultComparer)
+        internal TwinCountingReportGenerator(string testDescription, string trackingId, string expectedSource, ITestResultCollection<TestOperationResult> expectedTestResults, string actualSource, ITestResultCollection<TestOperationResult> actualTestResults, string testOperationResultType, SimpleTestOperationResultComparer testResultComparer)
         {
+            this.testDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.expectedTestResults = Preconditions.CheckNotNull(expectedTestResults, nameof(expectedTestResults));
             this.expectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
@@ -105,6 +107,7 @@ namespace TestResultCoordinator.Reports
             }
 
             return new TwinCountingReport(
+                this.testDescription,
                 this.trackingId,
                 this.expectedSource,
                 this.actualSource,

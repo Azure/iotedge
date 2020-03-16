@@ -16,12 +16,14 @@ namespace TestResultCoordinator.Reports
         readonly string trackingId;
 
         internal DeploymentTestReportGenerator(
+            string testDescription,
             string trackingId,
             string expectedSource,
             ITestResultCollection<TestOperationResult> expectedTestResults,
             string actualSource,
             ITestResultCollection<TestOperationResult> actualTestResults)
         {
+            this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.ExpectedTestResults = Preconditions.CheckNotNull(expectedTestResults, nameof(expectedTestResults));
             this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
@@ -41,6 +43,8 @@ namespace TestResultCoordinator.Reports
         internal ITestResultCollection<TestOperationResult> ExpectedTestResults { get; }
 
         internal string ResultType { get; }
+
+        internal string TestDescription { get; }
 
         internal ITestResultComparer<TestOperationResult> TestResultComparer { get; }
 
@@ -134,6 +138,7 @@ namespace TestResultCoordinator.Reports
             }
 
             return new DeploymentTestReport(
+                this.TestDescription,
                 this.trackingId,
                 this.ExpectedSource,
                 this.ActualSource,
