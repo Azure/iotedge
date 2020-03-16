@@ -788,93 +788,110 @@
             "TestReportType": "CountingReport",
             "TestOperationResultType": "Messages",
             "ExpectedSource": "loadGen1.send",
-            "ActualSource": "relayer1.receive"
+            "ActualSource": "relayer1.receive",
+            "TestDescription": "messages | local | amqp"
           },
           "reportMetadata2": {
             "TestReportType": "CountingReport",
             "TestOperationResultType": "Messages",
             "ExpectedSource": "relayer1.send",
-            "ActualSource": "relayer1.eventHub"
+            "ActualSource": "relayer1.eventHub",
+            "TestDescription": "messages | upstream | amqp"
           },
           "reportMetadata3": {
             "TestReportType": "CountingReport",
             "TestOperationResultType": "Messages",
             "ExpectedSource": "loadGen2.send",
-            "ActualSource": "relayer2.receive"
+            "ActualSource": "relayer2.receive",
+            "TestDescription": "messages | local | mqtt"
           },
           "reportMetadata4": {
             "TestReportType": "CountingReport",
             "TestOperationResultType": "Messages",
             "ExpectedSource": "relayer2.send",
-            "ActualSource": "relayer2.eventHub"
+            "ActualSource": "relayer2.eventHub",
+            "TestDescription": "messages | upstream | mqtt"
           },
           "reportMetadata5": {
             "TestReportType": "TwinCountingReport",
             "TwinTestPropertyType": "Desired",
             "ExpectedSource": "twinTester1.desiredUpdated",
-            "ActualSource": "twinTester2.desiredReceived"
+            "ActualSource": "twinTester2.desiredReceived",
+            "TestDescription": "twin | desired property | amqp"
           },
           "reportMetadata6": {
             "TestReportType": "TwinCountingReport",
             "TwinTestPropertyType": "Reported",
             "ExpectedSource": "twinTester2.reportedReceived",
-            "ActualSource": "twinTester2.reportedUpdated"
+            "ActualSource": "twinTester2.reportedUpdated",
+            "TestDescription": "twin | reported property | amqp"
           },
           "reportMetadata7": {
             "TestReportType": "TwinCountingReport",
             "TwinTestPropertyType": "Desired",
             "ExpectedSource": "twinTester3.desiredUpdated",
-            "ActualSource": "twinTester4.desiredReceived"
+            "ActualSource": "twinTester4.desiredReceived",
+            "TestDescription": "twin | desired property | mqtt"
           },
           "reportMetadata8": {
             "TestReportType": "TwinCountingReport",
             "TwinTestPropertyType": "Reported",
             "ExpectedSource": "twinTester4.reportedReceived",
-            "ActualSource": "twinTester4.reportedUpdated"
+            "ActualSource": "twinTester4.reportedUpdated",
+            "TestDescription": "twin | reported property | mqtt"
           },
           "reportMetadata9": {
             "TestReportType": "DeploymentTestReport",
             "ExpectedSource": "deploymentTester1.send",
-            "ActualSource": "deploymentTester2.receive"
+            "ActualSource": "deploymentTester2.receive",
+            "TestDescription": "deployment"
           },
           "reportMetadata10": {
             "TestReportType": "DirectMethodReport",
             "SenderSource": "directMethodSender1.send",
             "ReceiverSource": "directMethodReceiver1.receive",
-            "TolerancePeriod": "00:01:00"
+            "TolerancePeriod": "00:01:00",
+            "TestDescription": "direct method | cloud | amqp"
           },
           "reportMetadata11": {
             "TestReportType": "DirectMethodReport",
             "SenderSource": "directMethodSender2.send",
             "ReceiverSource": "directMethodReceiver2.receive",
-            "TolerancePeriod": "00:01:00"
+            "TolerancePeriod": "00:01:00",
+            "TestDescription": "direct method | cloud | mqtt"
           },
           "reportMetadata12": {
             "TestReportType": "DirectMethodReport",
             "SenderSource": "directMethodSender3.send",
-            "TolerancePeriod": "00:01:00"
+            "TolerancePeriod": "00:01:00",
+            "TestDescription": "edge agent ping"
           },
           "reportMetadata13": {
             "TestReportType": "CountingReport",
             "TestOperationResultType": "Messages",
             "ExpectedSource": "cloudToDeviceMessageSender1.send",
-            "ActualSource": "cloudToDeviceMessageReceiver1.receive"
+            "ActualSource": "cloudToDeviceMessageReceiver1.receive",
+            "TestDescription": "C2D | amqp"
           },
           "reportMetadata14": {
             "TestReportType": "CountingReport",
             "TestOperationResultType": "Messages",
             "ExpectedSource": "cloudToDeviceMessageSender2.send",
-            "ActualSource": "cloudToDeviceMessageReceiver2.receive"
+            "ActualSource": "cloudToDeviceMessageReceiver2.receive",
+            "TestDescription": "C2D | mqtt"
           },
           "reportMetadata15": {
             "TestReportType": "NetworkControllerReport",
-            "Source": "networkController"
+            "Source": "networkController",
+            "TestDescription": "network controller"
           },
           "reportMetadata16": {
-            "TestReportType": "ErrorReport"
+            "TestReportType": "ErrorReport",
+            "TestDescription": "test configuration"
           },
           "reportMetadata17": {
-            "TestReportType": "TestInfoReport"
+            "TestReportType": "TestInfoReport",
+            "TestDescription": "test info"
           }
         }
       }

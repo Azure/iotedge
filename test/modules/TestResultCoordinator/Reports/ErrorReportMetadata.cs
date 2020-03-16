@@ -2,12 +2,16 @@
 namespace TestResultCoordinator.Reports
 {
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     class ErrorReportMetadata : ITestReportMetadata
     {
-        public ErrorReportMetadata()
+        public ErrorReportMetadata(string testDescription)
         {
+            this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
         }
+
+        public string TestDescription { get; }
 
         public string Source => TestConstants.Error.TestResultSource;
 
@@ -19,7 +23,7 @@ namespace TestResultCoordinator.Reports
 
         public override string ToString()
         {
-            return $"Source: {this.Source}, TestOperationResultType: {this.TestOperationResultType.ToString()}, ReportType: {this.TestReportType.ToString()}";
+            return $"TestDescription: {this.TestDescription}, Source: {this.Source}, TestOperationResultType: {this.TestOperationResultType.ToString()}, ReportType: {this.TestReportType.ToString()}";
         }
     }
 }
