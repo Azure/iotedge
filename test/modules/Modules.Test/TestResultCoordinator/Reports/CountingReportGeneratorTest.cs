@@ -36,6 +36,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "7" }, 4, 7, 5, 0, 2 },
                 new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "7", "7" }, 4, 7, 5, 1, 2 },
             };
+        static readonly string TestDescription = "dummy description";
 
         [Fact]
         public void TestConstructorSuccess()
@@ -51,6 +52,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
             var actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
 
             var reportGenerator = new CountingReportGenerator(
+                TestDescription,
                 Guid.NewGuid().ToString(),
                 expectedSource,
                 expectedResults,
@@ -59,12 +61,35 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 resultType,
                 new SimpleTestOperationResultComparer());
 
+            Assert.Equal(TestDescription, reportGenerator.TestDescription);
             Assert.Equal(actualSource, reportGenerator.ActualSource);
             Assert.Equal(actualResults, reportGenerator.ActualTestResults);
             Assert.Equal(expectedSource, reportGenerator.ExpectedSource);
             Assert.Equal(expectedResults, reportGenerator.ExpectedTestResults);
             Assert.Equal(resultType, reportGenerator.ResultType);
             Assert.Equal(typeof(SimpleTestOperationResultComparer), reportGenerator.TestResultComparer.GetType());
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        public void TestConstructorThrowsWhenTestDescriptionIsNotProvided(string testDescription)
+        {
+            var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockActualStore = new Mock<ITestResultCollection<TestOperationResult>>();
+
+            ArgumentException ex = Assert.Throws<ArgumentException>(
+                () => new CountingReportGenerator(
+                    testDescription,
+                    Guid.NewGuid().ToString(),
+                    "expectedSource",
+                    mockExpectedResults.Object,
+                    "actualSource",
+                    mockActualStore.Object,
+                    "resultType1",
+                    new SimpleTestOperationResultComparer()));
+
+            Assert.StartsWith("testDescription", ex.Message);
         }
 
         [Theory]
@@ -77,6 +102,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReportGenerator(
+                    TestDescription,
                     trackingId,
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -98,6 +124,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     expectedSource,
                     mockExpectedResults.Object,
@@ -116,6 +143,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new CountingReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     null,
@@ -137,6 +165,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -155,6 +184,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new CountingReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -176,6 +206,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -195,6 +226,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new CountingReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -219,6 +251,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
             var actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
 
             var reportGenerator = new CountingReportGenerator(
+                TestDescription,
                 Guid.NewGuid().ToString(),
                 expectedSource,
                 expectedResults,
@@ -256,6 +289,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
             var actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
 
             var reportGenerator = new CountingReportGenerator(
+                TestDescription,
                 Guid.NewGuid().ToString(),
                 expectedSource,
                 expectedResults,
