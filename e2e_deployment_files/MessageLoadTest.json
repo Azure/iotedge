@@ -382,73 +382,7 @@
               "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
-          "cloudToDeviceMessageSender2": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "C2DMESSAGE_TESTER_MODE": {
-                "value": "Sender"
-              },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "transportType": {
-                "value": "Amqp"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "ReportingEndpointUrl": {
-                "value": "http://localhost:5001"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
-            }
-          },
           "cloudToDeviceMessageSender3": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "C2DMESSAGE_TESTER_MODE": {
-                "value": "Sender"
-              },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "transportType": {
-                "value": "Mqtt"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "ReportingEndpointUrl": {
-                "value": "http://localhost:5001"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
-            }
-          },
-          "cloudToDeviceMessageSender4": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
@@ -505,55 +439,7 @@
               "createOptions": ""
             }
           },
-          "cloudToDeviceMessageReceiver2": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "C2DMESSAGE_TESTER_MODE": {
-                "value": "Receiver"
-              },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "transportType": {
-                "value": "Amqp"
-              },
-              "ReportingEndpointUrl": {
-                "value": "http://testResultCoordinator:5001"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
-            }
-          },
           "cloudToDeviceMessageReceiver3": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "C2DMESSAGE_TESTER_MODE": {
-                "value": "Receiver"
-              },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "transportType": {
-                "value": "Mqtt"
-              },
-              "ReportingEndpointUrl": {
-                "value": "http://testResultCoordinator:5001"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
-            }
-          },
-          "cloudToDeviceMessageReceiver4": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
@@ -737,29 +623,17 @@
           "reportMetadata10": {
             "TestReportType": "CountingReport",
             "TestOperationResultType": "Messages",
-            "ExpectedSource": "cloudToDeviceMessageSender2.send",
-            "ActualSource": "cloudToDeviceMessageReceiver2.receive"
-          },
-          "reportMetadata11": {
-            "TestReportType": "CountingReport",
-            "TestOperationResultType": "Messages",
             "ExpectedSource": "cloudToDeviceMessageSender3.send",
             "ActualSource": "cloudToDeviceMessageReceiver3.receive"
           },
-          "reportMetadata12": {
-            "TestReportType": "CountingReport",
-            "TestOperationResultType": "Messages",
-            "ExpectedSource": "cloudToDeviceMessageSender4.send",
-            "ActualSource": "cloudToDeviceMessageReceiver4.receive"
-          },
-          "reportMetadata15": {
+          "reportMetadata11": {
             "TestReportType": "NetworkControllerReport",
             "Source": "networkController"
           },
-          "reportMetadata16": {
+          "reportMetadata12": {
             "TestReportType": "ErrorReport"
           },
-          "reportMetadata17": {
+          "reportMetadata13": {
             "TestReportType": "TestInfoReport"
           }
         }
