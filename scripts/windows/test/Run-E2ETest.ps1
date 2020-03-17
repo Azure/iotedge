@@ -1563,9 +1563,6 @@ $IotEdgeQuickstartExeTestPath = (Join-Path $QuickstartWorkingFolder "IotEdgeQuic
 $LeafDeviceExeTestPath = (Join-Path $LeafDeviceWorkingFolder "LeafDevice.exe")
 $DeploymentWorkingFilePath = Join-Path $TestWorkingFolder "deployment.json"
 
-$TrackingId = New-Guid
-$TestInfo=$TestInfo+"TestId,=$TrackingId"
-
 If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCACertRSAFile))
 {
     $EdgeE2ERootCACertRSAFile=$DefaultInstalledRSARootCACert
@@ -1619,6 +1616,9 @@ Else
 {
     $BypassInstallationFlag = $null
 }
+
+$TrackingId = New-Guid
+$TestInfo=$TestInfo+"TestId,=$TrackingId"
 
 # Evaluate collection of test results for final pass/fail result
 RunTest | ForEach-Object {$retCode = 0} {$retCode = $retCode -bor $_}
