@@ -97,7 +97,7 @@ mod tests {
             ["z9", "$-._/z9$-._/"],
         ];
 
-        for pair in test_pairs.iter() {
+        for pair in &test_pairs {
             assert_eq!(pair[0], sanitize_label_value(pair[1]))
         }
     }
