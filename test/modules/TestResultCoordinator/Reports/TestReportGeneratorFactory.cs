@@ -40,6 +40,7 @@ namespace TestResultCoordinator.Reports
                         var actualTestResults = this.GetResults(metadata.ActualSource);
 
                         return new CountingReportGenerator(
+                            metadata.TestDescription,
                             trackingId,
                             metadata.ExpectedSource,
                             expectedTestResults,
@@ -56,6 +57,7 @@ namespace TestResultCoordinator.Reports
                         var actualTestResults = this.GetResults(metadata.ActualSource);
 
                         return new TwinCountingReportGenerator(
+                            metadata.TestDescription,
                             trackingId,
                             metadata.ExpectedSource,
                             expectedTestResults,
@@ -72,11 +74,12 @@ namespace TestResultCoordinator.Reports
                         var actualTestResults = this.GetResults(metadata.ActualSource);
 
                         return new DeploymentTestReportGenerator(
-                        trackingId,
-                        metadata.ExpectedSource,
-                        expectedTestResults,
-                        metadata.ActualSource,
-                        actualTestResults);
+                            metadata.TestDescription,
+                            trackingId,
+                            metadata.ExpectedSource,
+                            expectedTestResults,
+                            metadata.ActualSource,
+                            actualTestResults);
                     }
 
                 case TestReportType.DirectMethodReport:
@@ -88,6 +91,7 @@ namespace TestResultCoordinator.Reports
                         var networkStatusTimeline = await this.GetNetworkStatusTimelineAsync(tolerancePeriod);
 
                         return new DirectMethodReportGenerator(
+                            metadata.TestDescription,
                             trackingId,
                             metadata.SenderSource,
                             senderTestResults,
@@ -105,6 +109,7 @@ namespace TestResultCoordinator.Reports
                         var receiverTestResults = this.GetResults(metadata.ReceiverSource);
 
                         return new EdgeHubRestartDirectMethodReportGenerator(
+                            metadata.TestDescription,
                             trackingId,
                             metadata.SenderSource,
                             metadata.ReceiverSource,
@@ -120,6 +125,7 @@ namespace TestResultCoordinator.Reports
                         var receiverTestResults = this.GetResults(metadata.ReceiverSource);
 
                         return new EdgeHubRestartMessageReportGenerator(
+                            metadata.TestDescription,
                             trackingId,
                             metadata.SenderSource,
                             metadata.ReceiverSource,
@@ -134,6 +140,7 @@ namespace TestResultCoordinator.Reports
                         var testResults = this.GetResults(metadata.Source);
 
                         return new SimpleReportGenerator(
+                            metadata.TestDescription,
                             trackingId,
                             metadata.Source,
                             testResults,
@@ -146,6 +153,7 @@ namespace TestResultCoordinator.Reports
                         var testResults = this.GetResults(metadata.Source);
 
                         return new SimpleReportGenerator(
+                            metadata.TestDescription,
                             trackingId,
                             metadata.Source,
                             testResults,
@@ -158,6 +166,7 @@ namespace TestResultCoordinator.Reports
                         var testResults = this.GetResults(metadata.Source);
 
                         return new SimpleReportGenerator(
+                            metadata.TestDescription,
                             trackingId,
                             metadata.Source,
                             testResults,
