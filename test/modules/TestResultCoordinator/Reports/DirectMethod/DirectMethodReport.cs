@@ -10,6 +10,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
     class DirectMethodReport : TestResultReportBase
     {
         public DirectMethodReport(
+            string testDescription,
             string trackingId,
             string senderSource,
             Option<string> receiverSource,
@@ -22,7 +23,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
             ulong networkOffFailure,
             ulong mismatchSuccess,
             ulong mismatchFailure)
-            : base(trackingId, resultType)
+            : base(testDescription, trackingId, resultType)
         {
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
             this.ReceiverSource = receiverSource;

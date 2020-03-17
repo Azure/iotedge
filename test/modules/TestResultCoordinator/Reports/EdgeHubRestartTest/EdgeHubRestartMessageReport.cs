@@ -10,6 +10,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
     class EdgeHubRestartMessageReport : TestResultReportBase
     {
         public EdgeHubRestartMessageReport(
+            string testDescription,
             string trackingId,
             string resultType,
             bool isDiscontinuousSequenceNumber,
@@ -19,7 +20,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             ulong senderCount,
             ulong receiverCount,
             TimeSpan medianPeriod)
-            : base(trackingId, resultType)
+            : base(testDescription, trackingId, resultType)
         {
             this.IsDiscontinuousSequenceNumber = isDiscontinuousSequenceNumber;
             this.PassedCount = passedCount;

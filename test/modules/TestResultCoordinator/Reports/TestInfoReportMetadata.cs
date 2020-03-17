@@ -3,23 +3,24 @@ namespace TestResultCoordinator.Reports
 {
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
 
-    class TestInfoReportMetadata : ITestReportMetadata
+    class TestInfoReportMetadata : TestReportMetadataBase, ITestReportMetadata
     {
-        public TestInfoReportMetadata()
+        public TestInfoReportMetadata(string testDescription)
+        : base(testDescription)
         {
         }
 
         public string Source => TestConstants.TestInfo.TestResultSource;
 
-        public TestReportType TestReportType => TestReportType.TestInfoReport;
+        public override TestReportType TestReportType => TestReportType.TestInfoReport;
 
-        public TestOperationResultType TestOperationResultType => TestOperationResultType.TestInfo;
+        public override TestOperationResultType TestOperationResultType => TestOperationResultType.TestInfo;
 
         public string[] ResultSources => new string[] { this.Source };
 
         public override string ToString()
         {
-            return $"Source: {this.Source}, TestOperationResultType: {this.TestOperationResultType.ToString()}, ReportType: {this.TestReportType.ToString()}";
+            return $"{base.ToString()}, Source: {this.Source}";
         }
     }
 }

@@ -11,6 +11,7 @@ namespace TestResultCoordinator.Reports
     class DeploymentTestReport : TestResultReportBase
     {
         public DeploymentTestReport(
+            string testDescription,
             string trackingId,
             string expectedSource,
             string actualSource,
@@ -20,7 +21,7 @@ namespace TestResultCoordinator.Reports
             ulong totalMatchedDeployments,
             Option<TestOperationResult> lastActualDeploymentTestResult,
             IReadOnlyList<TestOperationResult> unmatchedResults)
-            : base(trackingId, resultType)
+            : base(testDescription, trackingId, resultType)
         {
             this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
             this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
