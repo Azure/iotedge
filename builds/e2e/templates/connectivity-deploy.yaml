@@ -61,6 +61,7 @@ steps:
         testInfo="$testInfo,EdgeletSourceBranch=${{ parameters['edgelet.source.branch'] }}"
         testInfo="$testInfo,ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
         testInfo="$testInfo,HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
+        testInfo="$testInfo,RunProfile=${{ parameters['networkController.runProfile'] }}"
         
         sudo $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/connectivityTest.sh \
           -testDir "$(Agent.HomeDirectory)/.." \
