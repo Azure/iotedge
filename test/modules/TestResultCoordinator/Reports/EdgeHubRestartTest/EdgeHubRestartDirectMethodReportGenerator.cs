@@ -22,6 +22,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         delegate Task<(ulong count, bool hasValue, ulong sequenceNumber)> MoveNextResultAsync(ulong count);
 
         internal EdgeHubRestartDirectMethodReportGenerator(
+            string testDescription,
             string trackingId,
             string senderSource,
             string receiverSource,
@@ -29,6 +30,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             ITestResultCollection<TestOperationResult> senderTestResults,
             ITestResultCollection<TestOperationResult> receiverTestResults)
         {
+            this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
             this.ReceiverSource = Preconditions.CheckNonWhiteSpace(receiverSource, nameof(receiverSource));
@@ -43,6 +45,8 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
         internal string SenderSource { get; }
 
         internal string ReceiverSource { get; }
+
+        internal string TestDescription { get; }
 
         internal TestReportType TestReportType { get; }
 
@@ -135,6 +139,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             Logger.LogInformation(JsonConvert.SerializeObject(edgeHubRestartStatistics));
 
             return new EdgeHubRestartDirectMethodReport(
+                this.TestDescription,
                 this.TrackingId,
                 this.TestReportType.ToString(),
                 passedDirectMethodCount,

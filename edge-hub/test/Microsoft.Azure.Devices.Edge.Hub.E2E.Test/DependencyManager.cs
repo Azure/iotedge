@@ -180,6 +180,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Option.Some(UpstreamProtocol.Amqp),
                     TimeSpan.FromSeconds(5),
                     101,
+                    TimeSpan.FromSeconds(30),
                     TimeSpan.FromSeconds(3600),
                     true,
                     TimeSpan.FromSeconds(20),
