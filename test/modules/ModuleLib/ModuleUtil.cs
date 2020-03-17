@@ -127,9 +127,11 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
         // This info is passed from the vsts pipeline and needs to be parsed by the test modules.
         // Includes information such as build numbers, ids, host platform, etc.
         // Argument should be in the format key=value[,key=value]
-        public static SortedDictionary<string, string> ParseTestInfo(string testInfo)
+        public static SortedDictionary<string, string> ParseKeyValuePairs(string keyValuePairs, ILogger logger)
         {
-            Dictionary<string, string> unsortedParsedTestInfo = testInfo.Split(",", StringSplitOptions.RemoveEmptyEntries)
+            WriteLog(logger, LogLevel.Information, $"Parsing key value pairs: {keyValuePairs}");
+
+            Dictionary<string, string> unsortedParsedTestInfo = keyValuePairs.Split(",", StringSplitOptions.RemoveEmptyEntries)
                                 .Select(x => (KeyAndValue: x, SplitIndex: x.IndexOf('=')))
                                 .Where(x => x.SplitIndex >= 1)
                                 .ToDictionary(

@@ -547,7 +547,7 @@ TEST_INFO="$TEST_INFO,UpstreamProtocol=$UPSTREAM_PROTOCOL"
 TEST_INFO="$TEST_INFO,NetworkControllerOfflineFrequency=${NETWORK_CONTROLLER_FREQUENCIES[0]}"
 TEST_INFO="$TEST_INFO,NetworkControllerOnlineFrequency=${NETWORK_CONTROLLER_FREQUENCIES[1]}"
 TEST_INFO="$TEST_INFO,NetworkControllerRunsCount=${NETWORK_CONTROLLER_FREQUENCIES[2]}"
-TEST_INFO="$TEST_INFO,TestDuration=${TEST_DURATION[2]}"
+TEST_INFO="$TEST_INFO,TestDuration=${TEST_DURATION}"
 
 testRet=0
 run_connectivity_test && testRet=$? || testRet=$?
