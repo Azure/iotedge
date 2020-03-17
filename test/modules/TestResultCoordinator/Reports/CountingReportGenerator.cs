@@ -121,9 +121,10 @@ namespace TestResultCoordinator.Reports
                 // Log message for unexpected case.
                 Logger.LogError($"[{nameof(CountingReportGenerator)}] Actual test result source has unexpected results.");
 
-                hasActualResult = await this.ActualTestResults.MoveNextAsync();
                 // Log actual queue items
                 Logger.LogError($"Unexpected actual test result: {this.ActualTestResults.Current.Source}, {this.ActualTestResults.Current.Type}, {this.ActualTestResults.Current.Result} at {this.ActualTestResults.Current.CreatedAt}");
+
+                hasActualResult = await this.ActualTestResults.MoveNextAsync();
             }
 
             return new CountingReport(
