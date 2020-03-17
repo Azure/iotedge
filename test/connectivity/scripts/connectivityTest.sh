@@ -36,7 +36,6 @@ function prepare_test_from_artifacts() {
     echo "Copy deployment file from $connectivity_deployment_artifact_file"
     cp "$connectivity_deployment_artifact_file" "$deployment_working_file"
     
-    local tracking_id=$(cat /proc/sys/kernel/random/uuid)
     sed -i -e "s@<Architecture>@$image_architecture_label@g" "$deployment_working_file"
     sed -i -e "s/<Build.BuildNumber>/$ARTIFACT_IMAGE_BUILD_NUMBER/g" "$deployment_working_file"
     sed -i -e "s/<EdgeRuntime.BuildNumber>/$EDGE_RUNTIME_BUILD_NUMBER/g" "$deployment_working_file"
@@ -541,6 +540,14 @@ iotedged_artifact_folder="$(get_iotedged_artifact_folder $E2E_TEST_DIR)"
 iotedge_quickstart_artifact_file="$(get_iotedge_quickstart_artifact_file $E2E_TEST_DIR)"
 connectivity_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/$DEPLOYMENT_FILE_NAME"
 deployment_working_file="$working_folder/deployment.json"
+
+tracking_id=$(cat /proc/sys/kernel/random/uuid)
+TEST_INFO="$TEST_INFO,TestId=$tracking_id"
+TEST_INFO="$TEST_INFO,UpstreamProtocol=$UPSTREAM_PROTOCOL"
+TEST_INFO="$TEST_INFO,NetworkControllerOfflineFrequency=${NETWORK_CONTROLLER_FREQUENCIES[0]}"
+TEST_INFO="$TEST_INFO,NetworkControllerOnlineFrequency=${NETWORK_CONTROLLER_FREQUENCIES[1]}"
+TEST_INFO="$TEST_INFO,NetworkControllerRunsCount=${NETWORK_CONTROLLER_FREQUENCIES[2]}"
+TEST_INFO="$TEST_INFO,TestDuration=${TEST_DURATION[2]}"
 
 testRet=0
 run_connectivity_test && testRet=$? || testRet=$?
