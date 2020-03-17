@@ -1,3 +1,9 @@
+# 1.0.9 (2020-03-18)
+## Edge Hub
+### Bug fixes
+* Use parallel processing for subscription processing ([eac1a18](https://github.com/Azure/iotedge/commit/eac1a1862bac70d09880a84df9d429eedacf58fb))
+* Set timeout on edgeHub's side for device and module client's OpenAsync ([1d37dc9](https://github.com/Azure/iotedge/commit/1d37dc941a2fcd6534f331470b4ea32aeae50d07))
+
 # 1.0.9-rc6 (2020-02-29)
 ## Edge Hub
 ### Bug Fixes
