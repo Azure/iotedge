@@ -25,8 +25,8 @@ pub fn sanitize_dns_value(name: &str) -> Result<String> {
 // Valid label values must be 63 characters or less and must be empty or begin and end with an
 // alphanumeric character ([a-z0-9A-Z]) with dashes (-), underscores (_), dots (.), and alphanumerics between.
 const LABEL_MAX_SIZE: usize = 63;
-fn is_allowed_label_chars(c: &char) -> bool {
-    c.is_ascii_alphanumeric() || c == &'_' || c == &'-' || c == &'.'
+fn is_allowed_label_chars(c: char) -> bool {
+    c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.'
 }
 
 pub fn sanitize_label_value(name: &str) -> String {
@@ -34,7 +34,7 @@ pub fn sanitize_label_value(name: &str) -> String {
         .trim_end_matches(|c: char| !c.is_ascii_alphanumeric())
         .to_lowercase()
         .chars()
-        .filter(|c| is_allowed_label_chars(c))
+        .filter(|c| is_allowed_label_chars(*c))
         .take(LABEL_MAX_SIZE)
         .collect::<String>()
 }
