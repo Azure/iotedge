@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 {
-    using System;
-    using System.Linq;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using TestResultCoordinator.Reports;
 
-    class EdgeHubRestartMessageReportMetadata : ITestReportMetadata
+    class EdgeHubRestartMessageReportMetadata : TestReportMetadataBase, ITestReportMetadata
     {
         public EdgeHubRestartMessageReportMetadata(
+            string testDescription,
             string senderSource,
             string receiverSource)
+            : base(testDescription)
         {
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
             this.ReceiverSource = Preconditions.CheckNonWhiteSpace(receiverSource, nameof(receiverSource));
@@ -23,8 +23,8 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
 
         public string[] ResultSources => new string[] { this.SenderSource, this.ReceiverSource };
 
-        public TestReportType TestReportType => TestReportType.EdgeHubRestartMessageReport;
+        public override TestReportType TestReportType => TestReportType.EdgeHubRestartMessageReport;
 
-        public TestOperationResultType TestOperationResultType => TestOperationResultType.EdgeHubRestartMessage;
+        public override TestOperationResultType TestOperationResultType => TestOperationResultType.EdgeHubRestartMessage;
     }
 }

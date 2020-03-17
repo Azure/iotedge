@@ -2,6 +2,7 @@ use std::fmt;
 use std::str::FromStr;
 
 use mqtt3::proto;
+use serde::{Deserialize, Serialize};
 
 use crate::{Error, ErrorKind};
 
@@ -10,7 +11,7 @@ const TOPIC_SEPARATOR: char = '/';
 static MULTILEVEL_WILDCARD: &str = "#";
 static SINGLELEVEL_WILDCARD: &str = "+";
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Subscription {
     filter: TopicFilter,
     max_qos: proto::QoS,
@@ -30,7 +31,7 @@ impl Subscription {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TopicFilter {
     segments: Vec<Segment>,
     multilevel: bool,
@@ -82,7 +83,7 @@ impl TopicFilter {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 enum Segment {
     Level(String),
     SingleLevelWildcard,
@@ -165,13 +166,61 @@ impl FromStr for TopicFilter {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use std::str::FromStr;
 
     use proptest::bool;
     use proptest::collection::vec;
     use proptest::prelude::*;
+
+    fn arb_segment() -> impl Strategy<Value = Segment> {
+        prop_oneof![
+            "[^+#\0/]+".prop_map(Segment::Level),
+            Just(Segment::SingleLevelWildcard),
+            Just(Segment::MultiLevelWildcard),
+        ]
+    }
+
+    prop_compose! {
+        pub fn arb_topic_filter()(
+            segments in vec(arb_segment(), 1..20),
+            multi in bool::ANY,
+        ) -> TopicFilter {
+            let mut filtered = vec![];
+            for segment in segments {
+                if segment != Segment::MultiLevelWildcard {
+                    filtered.push(segment);
+                }
+            }
+
+            if multi || filtered.is_empty() {
+                filtered.push(Segment::MultiLevelWildcard);
+            }
+
+            TopicFilter::new(filtered)
+        }
+    }
+
+    pub fn arb_qos() -> impl Strategy<Value = proto::QoS> {
+        prop_oneof![
+            Just(proto::QoS::AtMostOnce),
+            Just(proto::QoS::AtLeastOnce),
+            Just(proto::QoS::ExactlyOnce),
+        ]
+    }
+
+    prop_compose! {
+        pub fn arb_subscription()(
+            filter in arb_topic_filter(),
+            max_qos in arb_qos(),
+        ) -> Subscription {
+            Subscription {
+                filter,
+                max_qos,
+            }
+        }
+    }
 
     fn filter(segments: Vec<Segment>) -> TopicFilter {
         TopicFilter::new(segments)
@@ -242,34 +291,6 @@ mod tests {
         for case in &cases {
             let result = TopicFilter::from_str(case);
             assert!(result.is_err());
-        }
-    }
-
-    fn segment_strategy() -> impl Strategy<Value = Segment> {
-        prop_oneof![
-            "[^+#\0/]+".prop_map(Segment::Level),
-            Just(Segment::SingleLevelWildcard),
-            Just(Segment::MultiLevelWildcard),
-        ]
-    }
-
-    prop_compose! {
-        pub fn arb_topic_filter()(
-            segments in vec(segment_strategy(), 1..20),
-            multi in bool::ANY,
-        ) -> TopicFilter {
-            let mut filtered = vec![];
-            for segment in segments {
-                if segment != Segment::MultiLevelWildcard {
-                    filtered.push(segment);
-                }
-            }
-
-            if multi || filtered.is_empty() {
-                filtered.push(Segment::MultiLevelWildcard);
-            }
-
-            TopicFilter::new(filtered)
         }
     }
 

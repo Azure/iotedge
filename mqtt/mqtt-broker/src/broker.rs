@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use failure::ResultExt;
 use mqtt3::proto;
+use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tracing::{debug, info, span, warn, Level};
 use tracing_futures::Instrument;
@@ -20,7 +21,7 @@ macro_rules! try_send {
     }};
 }
 
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Deserialize, Serialize)]
 pub struct BrokerState {
     retained: HashMap<String, proto::Publication>,
     sessions: Vec<SessionState>,
@@ -68,7 +69,7 @@ impl Broker {
         while let Some(message) = self.messages.recv().await {
             match message {
                 Message::Client(client_id, event) => {
-                    let span = span!(Level::INFO, "broker", client_id=%client_id);
+                    let span = span!(Level::INFO, "broker", client_id=%client_id, event="client");
                     if let Err(e) = self
                         .process_message(client_id, event)
                         .instrument(span)
@@ -77,21 +78,27 @@ impl Broker {
                         warn!(message = "an error occurred processing a message", error=%e);
                     }
                 }
-                Message::System(SystemEvent::Shutdown) => {
-                    info!("gracefully shutting down the broker...");
-                    debug!("closing sessions...");
-                    if let Err(e) = self.process_shutdown().await {
-                        warn!(message = "an error occurred shutting down the broker", error=%e);
-                    }
-                    break;
-                }
-                Message::System(SystemEvent::StateSnapshot(mut handle)) => {
-                    let state = self.snapshot();
-                    info!("asking snapshotter to persist state...");
-                    if let Err(e) = handle.send(state).await {
-                        warn!(message = "an error occurred communicating with the snapshotter", error=%e);
-                    } else {
-                        info!("sent state to snapshotter.");
+                Message::System(event) => {
+                    let span = span!(Level::INFO, "broker", event = "system");
+                    match event {
+                        SystemEvent::Shutdown => {
+                            info!("gracefully shutting down the broker...");
+                            debug!("closing sessions...");
+                            if let Err(e) = self.process_shutdown().instrument(span).await {
+                                warn!(message = "an error occurred shutting down the broker", error=%e);
+                            }
+                            break;
+                        }
+                        SystemEvent::StateSnapshot(mut handle) => {
+                            let state = self.snapshot();
+                            let _guard = span.enter();
+                            info!("asking snapshotter to persist state...");
+                            if let Err(e) = handle.send(state).await {
+                                warn!(message = "an error occurred communicating with the snapshotter", error=%e);
+                            } else {
+                                info!("sent state to snapshotter.");
+                            }
+                        }
                     }
                 }
             }
@@ -767,16 +774,32 @@ pub enum SessionError {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     use std::time::Duration;
 
     use futures_util::future::FutureExt;
     use matches::assert_matches;
+    use proptest::collection::{hash_map, vec};
+    use proptest::prelude::*;
     use uuid::Uuid;
 
+    use crate::session::tests::*;
+    use crate::tests::*;
     use crate::ConnectionHandle;
+
+    prop_compose! {
+        pub fn arb_broker_state()(
+            retained in hash_map(arb_topic(), arb_publication(), 0..20),
+            sessions in vec(arb_session_state(), 0..10),
+        ) -> BrokerState {
+            BrokerState {
+                retained,
+                sessions,
+            }
+        }
+    }
 
     fn connection_handle() -> ConnectionHandle {
         let id = Uuid::new_v4();
