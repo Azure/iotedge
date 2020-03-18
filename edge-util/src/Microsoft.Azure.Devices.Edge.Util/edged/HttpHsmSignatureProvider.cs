@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
             Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             Preconditions.CheckNonWhiteSpace(generationId, nameof(generationId));
 
-            this.workloadClient = new WorkloadClient(new Uri(providerUri), clientApiVersion, apiVersion, moduleId, generationId);
+            this.workloadClient = new WorkloadClient(new Uri(providerUri), apiVersion, clientApiVersion, moduleId, generationId);
         }
 
         public Task<string> SignAsync(string data)

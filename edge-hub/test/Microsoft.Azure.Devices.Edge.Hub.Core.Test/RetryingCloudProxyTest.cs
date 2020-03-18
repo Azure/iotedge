@@ -370,11 +370,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             public void IncrementOpenAsyncCount() => Interlocked.Increment(ref this.openAsyncCount);
 
-            public void AddReceivedMessage(Message message) => this.receivedMessages.Add(message);
+            public void AddReceivedMessage(Message message)
+            {
+                lock (this.receivedMessages)
+                {
+                    this.receivedMessages.Add(message);
+                }
+            }
 
-            public void AddReceivedMessages(IEnumerable<Message> messages) => this.receivedMessages.AddRange(messages);
+            public void AddReceivedMessages(IEnumerable<Message> messages)
+            {
+                lock (this.receivedMessages)
+                {
+                    this.receivedMessages.AddRange(messages);
+                }
+            }
 
-            public void AddReceivedProductInfo(string productInfo) => this.receivedProductInfos.Add(productInfo);
+            public void AddReceivedProductInfo(string productInfo)
+            {
+                lock (this.receivedProductInfos)
+                {
+                    this.receivedProductInfos.Add(productInfo);
+                }
+            }
         }
 
         class ThrowingClient : IClient

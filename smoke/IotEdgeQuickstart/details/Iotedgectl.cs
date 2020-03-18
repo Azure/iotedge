@@ -40,7 +40,7 @@ namespace IotEdgeQuickstart.Details
 
         public async Task VerifyModuleIsRunning(string name)
         {
-            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10)))
             {
                 string errorMessage = null;
 

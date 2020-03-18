@@ -44,6 +44,9 @@
     .PARAMETER EventHubConnectionString
         Event hub connection string for receive D2C messages
 
+    .PARAMETER EventHubConsumerGroupId
+        Event hub consumer group id used by the Analyzer module to subscribe to events from the Event Hub endpoint.
+
     .PARAMETER ProxyUri
         (Optional) The URI of an HTTPS proxy server; if specified, all communications to IoT Hub will go through this proxy.
 
@@ -205,6 +208,8 @@ Param (
 
     [ValidateNotNullOrEmpty()]
     [string] $EventHubConnectionString = $(Throw "Event hub connection string is required"),
+
+    [string] $EventHubConsumerGroupId = '$Default',
 
     [string] $EdgeE2ERootCACertRSAFile = $null,
 
@@ -431,6 +436,7 @@ Function PrepareTestFromArtifacts
                 }
 
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.EventHubConnectionString>',$EventHubConnectionString) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.ConsumerGroupId>',$EventHubConsumerGroupId) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen.MessageFrequency>',$LoadGenMessageFrequency) | Set-Content $DeploymentWorkingFilePath
                 $escapedBuildId= $ArtifactImageBuildNumber -replace "\.",""
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.AlertUrl>',$SnitchAlertUrl) | Set-Content $DeploymentWorkingFilePath
@@ -1326,11 +1332,17 @@ Function SetEnvironmentVariable
 
 Function SetupMountedStorage
 {
+    $MountedStoragePath = "C:\data\edgehub"
+    If ((Test-Path $MountedStoragePath))
+    {
+        Remove-Item $MountedStoragePath -Recurse -Force -ErrorAction SilentlyContinue | Out-Null
+    }
+
     If (!(Test-Path $MountedStoragePath))
     {
         New-Item -ItemType directory -Path $MountedStoragePath | Out-Null
     }
-    icacls $MountedStoragePath /grant Everyone:F
+    icacls $MountedStoragePath /grant Everyone:F | Out-Null
 }
 
 Function TestSetup

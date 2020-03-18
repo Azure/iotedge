@@ -1,9 +1,35 @@
+# 1.0.8.5 (2020-01-23)
+
+## Edge Hub
+### Bug Fixes
+Hotfix [windows security vulnerability](https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2020-0601) by updating base nanoserver images ([5a88e89](https://github.com/Azure/iotedge/commit/5a88e89e55f589c42c1b391794a1555d853dcef0))
+
+## Edge Agent
+### Bug Fixes
+Hotfix [windows security vulnerability](https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2020-0601) by updating base nanoserver images ([5a88e89](https://github.com/Azure/iotedge/commit/5a88e89e55f589c42c1b391794a1555d853dcef0))
+
+# 1.0.8.4 (2019-11-19)
+## Edge Hub
+### Bug Fixes
+* Fix Twin property 4K length validation ([c4a97a4](https://github.com/Azure/iotedge/commit/c4a97a40e0b1db1ceb1483baa7dab6b17705467b))
+* Updating Twin update limits to match IoTHub ([0ae34d3](https://github.com/Azure/iotedge/commit/0ae34d3a8b6750e9caae8045b71cd21d2e40e119))
+* Fix iotedge version passed instead of client version ([b0e13d8](https://github.com/Azure/iotedge/commit/b0e13d85035181ec3aafa347a7fd12b086608db1))
+* Update dotnetcore to 2.1.13 ([df015b4](https://github.com/Azure/iotedge/commit/df015b4ea7f0322da6386fac6c5d22ec8b2593ae))
+* Changed CloudEndpoint to fail subsequent batches after a transient error ([d2115b6](https://github.com/Azure/iotedge/commit/d2115b6d017c28dec66ca3b43b2f7712f6278766))
+
+# 1.0.8.3 (2019-10-18)
+## Edge Hub
+### Bug Fixes
+* Add ASC support ([466759f](https://github.com/Azure/iotedge/commit/466759fc6a24acec3b124af4f5f05dd98ab0d190))
+* Fix deployment status ([f602329](https://github.com/Azure/iotedge/commit/f602329a5555b7e32dda2326cf0dd6956c20a80f))
+* Fix message loss caused by connectivity exceptions ([e079073](https://github.com/Azure/iotedge/commit/e0790738e1888c1f8a53bf8ab2600edcb6eba304))
+
 # 1.0.8.2 (2019-09-23)
 ## Edge Hub
 ### Bug Fixes
 * Set RocksDB total WAL size to 512M ([07ee35d](https://github.com/Azure/iotedge/commit/07ee35d79a11eb6daab2a883e82ffbd7a1e93682))
 * Fix leaking event handlers in offline scenario ([f3b8a46](https://github.com/Azure/iotedge/commit/f3b8a463372d94163c286bd4c1a81ea9eb811832))
-* Fix error if client does not send product info  ([9267a05](https://github.com/Azure/iotedge/commit/9267a0545ac4394400afbcabdc123737ebcfbc17))
+* Fix error if client does not send product info ([9267a05](https://github.com/Azure/iotedge/commit/9267a0545ac4394400afbcabdc123737ebcfbc17))
 
 # 1.0.8.1 (2019-08-26)
 ## Edge Hub
