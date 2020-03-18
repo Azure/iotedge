@@ -16,11 +16,13 @@ namespace TestResultCoordinator.Reports
         readonly string trackingId;
 
         internal SimpleReportGenerator(
+            string testDescription,
             string trackingId,
             string source,
             ITestResultCollection<TestOperationResult> testResults,
             TestOperationResultType testOperationResultType)
         {
+            this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.Source = Preconditions.CheckNonWhiteSpace(source, nameof(source));
             this.TestResults = Preconditions.CheckNotNull(testResults, nameof(testResults));
@@ -28,6 +30,8 @@ namespace TestResultCoordinator.Reports
         }
 
         internal string Source { get; }
+
+        internal string TestDescription { get; }
 
         internal ITestResultCollection<TestOperationResult> TestResults { get; }
 
@@ -46,6 +50,7 @@ namespace TestResultCoordinator.Reports
             }
 
             return new SimpleTestReport(
+                this.TestDescription,
                 this.trackingId,
                 this.Source,
                 this.ResultType,

@@ -105,10 +105,10 @@ namespace TestResultCoordinator
                             reportMetadataList.Add(JsonConvert.DeserializeObject<NetworkControllerReportMetadata>(((JProperty)metadata).Value.ToString()));
                             break;
                         case TestReportType.ErrorReport:
-                            reportMetadataList.Add(new ErrorReportMetadata());
+                            reportMetadataList.Add(JsonConvert.DeserializeObject<ErrorReportMetadata>(((JProperty)metadata).Value.ToString()));
                             break;
                         case TestReportType.TestInfoReport:
-                            reportMetadataList.Add(new TestInfoReportMetadata());
+                            reportMetadataList.Add(JsonConvert.DeserializeObject<TestInfoReportMetadata>(((JProperty)metadata).Value.ToString()));
                             break;
                         default:
                             throw new NotImplementedException("{testReportType} doesn't implement to construct report metadata from Twin.");

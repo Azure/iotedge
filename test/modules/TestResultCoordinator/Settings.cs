@@ -62,7 +62,7 @@ namespace TestResultCoordinator
             this.DurationBeforeVerification = verificationDelay;
             this.ConsumerGroupName = "$Default";
             this.StorageAccountConnectionString = Preconditions.CheckNonWhiteSpace(storageAccountConnectionString, nameof(storageAccountConnectionString));
-            this.NetworkControllerType = GetNetworkControllerType(networkControllerRunProfileName);
+            this.NetworkControllerType = this.GetNetworkControllerType(networkControllerRunProfileName);
         }
 
         private NetworkControllerType GetNetworkControllerType(string networkControllerRunProfileName)
