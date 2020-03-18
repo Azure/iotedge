@@ -181,7 +181,7 @@ jobs:
       - script: $CARGO test --verbose
         displayName: Test
         workingDirectory: edgelet
-      - script: find ./target -type f ! -name '*.gc' -delete
+      - script: find ./target -type f ! -name '*.gc*' -delete
         displayName: Cleanup build and test artifacts
         workingDirectory: edgelet
       - script: |
