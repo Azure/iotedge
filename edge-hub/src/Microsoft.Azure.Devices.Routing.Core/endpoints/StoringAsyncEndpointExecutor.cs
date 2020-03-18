@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 {
     using System;
+    using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
@@ -23,40 +24,35 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         readonly IMessageStore messageStore;
         readonly Task sendMessageTask;
         readonly AsyncManualResetEvent hasMessagesInQueue = new AsyncManualResetEvent(true);
-        readonly ICheckpointer checkpointer;
-        readonly AtomicReference<IList<uint>> priorities = new AtomicReference<IList<uint>>(new List<uint>());
         readonly AsyncEndpointExecutorOptions options;
-        readonly EndpointExecutorFsm machine;
         readonly CancellationTokenSource cts = new CancellationTokenSource();
+        readonly ICheckpointerFactory checkpointerFactory;
+        readonly EndpointExecutorConfig config;
+        AtomicReference<SortedDictionary<uint, EndpointExecutorFsm>> prioritiesToFsms;
+        EndpointExecutorFsm lastUsedFsm;
 
         public StoringAsyncEndpointExecutor(
             Endpoint endpoint,
-            IList<uint> priorities,
-            ICheckpointer checkpointer,
+            ICheckpointerFactory checkpointerFactory,
             EndpointExecutorConfig config,
             AsyncEndpointExecutorOptions options,
             IMessageStore messageStore)
         {
-            Preconditions.CheckNotNull(endpoint);
-            Preconditions.CheckNotNull(config);
-            Preconditions.CheckNotNull(priorities);
-            Preconditions.CheckArgument(priorities.Count != 0);
-            this.checkpointer = Preconditions.CheckNotNull(checkpointer);
+            this.Endpoint = Preconditions.CheckNotNull(endpoint);
+            this.checkpointerFactory = Preconditions.CheckNotNull(checkpointerFactory);
+            this.config = Preconditions.CheckNotNull(config);
             this.options = Preconditions.CheckNotNull(options);
-            this.machine = new EndpointExecutorFsm(endpoint, checkpointer, config);
             this.messageStore = messageStore;
             this.sendMessageTask = Task.Run(this.SendMessagesPump);
-
-            this.UpdatePriorities(priorities);
+            this.prioritiesToFsms = new AtomicReference<SortedDictionary<uint, EndpointExecutorFsm>>(new SortedDictionary<uint, EndpointExecutorFsm>());
         }
 
-        public Endpoint Endpoint => this.machine.Endpoint;
+        public Endpoint Endpoint { get; }
 
-        public EndpointExecutorStatus Status => this.machine.Status;
+        public EndpointExecutorStatus Status => this.lastUsedFsm.Status;
 
         public async Task Invoke(IMessage message, uint priority, uint timeToLiveSecs)
         {
-            // TODO: 6099894 - Update StoringAsyncEndpointExecutor message enqueue logic to be aware of priorities
             try
             {
                 if (this.closed)
@@ -66,8 +62,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
                 using (MetricsV0.StoreLatency(this.Endpoint.Id))
                 {
-                    IMessage storedMessage = await this.messageStore.Add(this.Endpoint.Id, message);
-                    this.checkpointer.Propose(storedMessage);
+                    // Get the checkpointer corresponding to the queue for this priority
+                    SortedDictionary<uint, EndpointExecutorFsm> snapshot = this.prioritiesToFsms;
+                    ICheckpointer checkpointer = snapshot[priority].Checkpointer;
+
+                    IMessage storedMessage = await this.messageStore.Add(GetMessageQueueId(this.Endpoint.Id, priority), message);
+                    checkpointer.Propose(storedMessage);
                     Events.AddMessageSuccess(this, storedMessage.Offset);
                 }
 
@@ -121,8 +121,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                     throw new InvalidOperationException($"Endpoint executor for endpoint {this.Endpoint} is closed.");
                 }
 
-                this.UpdatePriorities(priorities);
-                await this.machine.RunAsync(Commands.UpdateEndpoint(newEndpoint));
+                await this.UpdatePriorities(priorities, Option.Some<Endpoint>(newEndpoint));
                 Events.SetEndpointSuccess(this);
             }
             catch (Exception ex)
@@ -132,42 +131,137 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             }
         }
 
-        void UpdatePriorities(IList<uint> priorities)
+        public async Task UpdatePriorities(IList<uint> priorities, Option<Endpoint> newEndpoint)
         {
+            Preconditions.CheckArgument(priorities.Count > 0);
+
+            if (this.closed)
+            {
+                throw new InvalidOperationException($"Endpoint executor for endpoint {this.Endpoint} is closed.");
+            }
+
             // Update priorities by merging the new ones with the existing.
             // We don't ever remove stale priorities, otherwise stored messages
             // pending for a removed priority will never get sent.
-            IList<uint> snapshot = this.priorities.Value;
-            this.priorities.Value = priorities
-                .Union(snapshot)
-                .OrderBy(p => p)
-                .ToList();
+            SortedDictionary<uint, EndpointExecutorFsm> snapshot = this.prioritiesToFsms;
+            foreach (uint priority in priorities)
+            {
+                if (!snapshot.ContainsKey(priority))
+                {
+                    string id = GetMessageQueueId(this.Endpoint.Id, priority);
+
+                    // Create a message queue in the store for every priority we have
+                    await this.messageStore.AddEndpoint(id);
+
+                    // Create a checkpointer and a FSM for every message queue
+                    ICheckpointer checkpointer = await this.checkpointerFactory.CreateAsync(id);
+                    EndpointExecutorFsm fsm = new EndpointExecutorFsm(this.Endpoint, checkpointer, this.config);
+
+                    // Add it to our dictionary
+                    snapshot.Add(priority, fsm);
+                }
+                else
+                {
+                    // Update the existing FSM with the new endpoint
+                    EndpointExecutorFsm fsm = snapshot[priority];
+                    await newEndpoint.ForEachAsync(e => fsm.RunAsync(Commands.UpdateEndpoint(e)));
+                }
+            }
+
+            this.prioritiesToFsms.Value = snapshot;
+
+            // Update the lastUsedFsm to be the initial one, we always
+            // have at least one priority->FSM pair at this point.
+            this.lastUsedFsm = snapshot.Values.First();
+        }
+
+        static string GetMessageQueueId(string endpointId, uint priority)
+        {
+            if (priority == RouteFactory.DefaultPriority)
+            {
+                // We need to maintain backwards compatibility
+                // for existing sequential stores that don't
+                // have the "_Pri<x>" suffix. We use the default
+                // priority (2,000,000,000) for this, which means
+                // the store ID is just the endpoint ID.
+                return endpointId;
+            }
+            else
+            {
+                // The actual ID for the underlying store is of string format:
+                //      <endpointId>_Pri<priority>
+                return endpointId + "_Pri" + priority.ToString();
+            }
         }
 
         async Task SendMessagesPump()
         {
-            // TODO: 6099918 - Update StoringAsyncEndpointExecutor message pump to process messages by priority
             try
             {
                 Events.StartSendMessagesPump(this);
-                IMessageIterator iterator = this.messageStore.GetMessageIterator(this.Endpoint.Id, this.checkpointer.Offset + 1);
                 int batchSize = this.options.BatchSize * this.Endpoint.FanOutFactor;
-                var storeMessagesProvider = new StoreMessagesProvider(iterator, batchSize);
+
+                // Keep the stores and prefetchers for each priority loaded
+                // for the duration of the pump
+                var messageProviderPairs = new Dictionary<uint, (IMessageIterator, StoreMessagesProvider)>();
+
+                // Outer loop to maintain the message pump until the executor shuts down
                 while (!this.cts.IsCancellationRequested)
                 {
                     try
                     {
                         await this.hasMessagesInQueue.WaitAsync(this.options.BatchTimeout);
-                        IMessage[] messages = await storeMessagesProvider.GetMessages();
-                        if (messages.Length > 0)
+
+                        SortedDictionary<uint, EndpointExecutorFsm> snapshot = this.prioritiesToFsms;
+                        bool haveMessagesRemaining = false;
+
+                        // Iterate through all the message queues in priority order
+                        foreach (KeyValuePair<uint, EndpointExecutorFsm> entry in snapshot)
                         {
-                            await this.ProcessMessages(messages);
-                            Events.SendMessagesSuccess(this, messages);
-                            MetricsV0.DrainedCountIncrement(this.Endpoint.Id, messages.Length);
+                            // Also check for cancellation in every inner loop,
+                            // since it could take time to send a batch of messages
+                            if (this.cts.IsCancellationRequested)
+                            {
+                                break;
+                            }
+
+                            uint priority = entry.Key;
+                            EndpointExecutorFsm fsm = entry.Value;
+
+                            // Update the lastUsedFsm to be the current FSM
+                            this.lastUsedFsm = fsm;
+
+                            (IMessageIterator, StoreMessagesProvider) pair;
+                            if (!messageProviderPairs.TryGetValue(priority, out pair))
+                            {
+                                // Create and cache a new pair for the message provider
+                                // so we can reuse it every loop
+                                pair.Item1 = this.messageStore.GetMessageIterator(GetMessageQueueId(this.Endpoint.Id, priority), fsm.Checkpointer.Offset + 1);
+                                pair.Item2 = new StoreMessagesProvider(pair.Item1, batchSize);
+                                messageProviderPairs.Add(priority, pair);
+                            }
+
+                            StoreMessagesProvider storeMessagesProvider = pair.Item2;
+                            IMessage[] messages = await storeMessagesProvider.GetMessages();
+                            if (messages.Length > 0)
+                            {
+                                await this.ProcessMessages(messages, fsm);
+                                Events.SendMessagesSuccess(this, messages);
+                                MetricsV0.DrainedCountIncrement(this.Endpoint.Id, messages.Length);
+
+                                // Only move on to the next priority if the queue for the current
+                                // priority is empty. If we processed any messages, break out of
+                                // the inner loop to restart at the beginning of the priorities list
+                                // again. This is so we can catch and process any higher priority
+                                // messages that came in while we were sending the current batch
+                                haveMessagesRemaining = true;
+                                break;
+                            }
                         }
-                        else
+
+                        if (!haveMessagesRemaining)
                         {
-                            // If store has no messages, then reset the hasMessagesInQueue flag.
+                            // All the message queues have been drained, reset the hasMessagesInQueue flag.
                             this.hasMessagesInQueue.Reset();
                         }
                     }
@@ -184,11 +278,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             }
         }
 
-        async Task ProcessMessages(IMessage[] messages)
+        async Task ProcessMessages(IMessage[] messages, EndpointExecutorFsm fsm)
         {
             Events.ProcessingMessages(this, messages);
             SendMessage command = Commands.SendMessage(messages);
-            await this.machine.RunAsync(command);
+            await fsm.RunAsync(command);
             await command.Completion;
         }
 
@@ -197,7 +291,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             if (disposing)
             {
                 this.cts.Dispose();
-                this.machine.Dispose();
+                SortedDictionary<uint, EndpointExecutorFsm> snapshot = this.prioritiesToFsms;
+                this.prioritiesToFsms.Value = null;
+                foreach (KeyValuePair<uint, EndpointExecutorFsm> entry in snapshot)
+                {
+                    var fsm = entry.Value;
+                    fsm.Dispose();
+                }
             }
         }
 
