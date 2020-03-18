@@ -181,6 +181,9 @@ jobs:
       - script: $CARGO test --verbose
         displayName: Test
         workingDirectory: edgelet
+      - script: find ./target -type f ! -name '*.gc' -delete
+        displayName: Cleanup build and test artifacts
+        workingDirectory: edgelet
       - script: |
           zip -1 target/ccov.zip `find ./target \( -name "*.gc*" \) -print`
           ./grcov target/ccov.zip -s . -t lcov --llvm --branch --ignore-not-existing --ignore-dir "/*" --ignore-dir "*docker-rs*" > target/lcov.info
@@ -189,9 +192,6 @@ jobs:
         workingDirectory: edgelet
         env:
           COVERAGE_EXCLUDES: $(coverage.excludes)
-      - script: rm -rf ./target/*
-        displayName: Cleanup build and test artifacts
-        workingDirectory: edgelet
       - task: PublishCodeCoverageResults@1
         displayName: Publish code coverage results
         inputs:
