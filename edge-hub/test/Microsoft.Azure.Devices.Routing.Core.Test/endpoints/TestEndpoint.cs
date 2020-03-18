@@ -23,11 +23,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             : base(id, name, iotHubName)
         {
             this.Processed = new List<IMessage>();
+            this.CanProcess = true;
         }
 
         public int N => this.Processed.Count;
 
         public IList<IMessage> Processed { get; }
+
+        public bool CanProcess { get; set; }
 
         public override string Type => nameof(TestEndpoint);
 
@@ -57,12 +60,23 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
 
             public Task<ISinkResult<IMessage>> ProcessAsync(ICollection<IMessage> messages, CancellationToken token)
             {
-                foreach (IMessage message in messages)
+                ISinkResult<IMessage> result;
+
+                if (this.endpoint.CanProcess)
                 {
-                    this.endpoint.Processed.Add(message);
+                    foreach (IMessage message in messages)
+                    {
+                        this.endpoint.Processed.Add(message);
+                    }
+
+                    result = new SinkResult<IMessage>(messages);
+                }
+                else
+                {
+                    // Simulate connectivity failure and don't process any messages
+                    result = new SinkResult<IMessage>(new IMessage[0], messages, new SendFailureDetails(FailureKind.InternalError, new Exception("endpoint failed")));
                 }
 
-                ISinkResult<IMessage> result = new SinkResult<IMessage>(messages);
                 return Task.FromResult(result);
             }
 
