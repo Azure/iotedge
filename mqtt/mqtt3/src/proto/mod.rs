@@ -10,9 +10,9 @@ use serde::{Deserialize, Serialize};
 
 mod packet;
 pub use packet::{
-    ConnAck, Connect, Disconnect, Packet, PacketCodec, PacketIdentifierDupQoS, PingReq, PingResp,
-    PubAck, PubComp, PubRec, PubRel, Publication, Publish, QoS, SubAck, SubAckQos, Subscribe,
-    SubscribeTo, UnsubAck, Unsubscribe,
+    clear_publication_load, ConnAck, Connect, Disconnect, Packet, PacketCodec,
+    PacketIdentifierDupQoS, PingReq, PingResp, PubAck, PubComp, PubRec, PubRel, Publication,
+    Publish, QoS, SubAck, SubAckQos, Subscribe, SubscribeTo, UnsubAck, Unsubscribe,
 };
 
 pub(crate) use packet::PacketMeta;

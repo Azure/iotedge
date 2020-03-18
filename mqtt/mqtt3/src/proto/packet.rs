@@ -934,7 +934,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::sync::Mutex;
 
-pub struct PublicationDeDuper {
+struct PublicationDeDuper {
     loaded_bytes: HashMap<u64, Bytes>,
 }
 
@@ -965,13 +965,17 @@ impl PublicationDeDuper {
         s.finish()
     }
 
-    // pub fn reset(&mut self) {
-    //     self.loaded_bytes = HashMap::new();
-    // }
+    fn reset(&mut self) {
+        self.loaded_bytes = HashMap::new();
+    }
 }
 
 lazy_static! {
     static ref PUBDEDUPER: Mutex<PublicationDeDuper> = Mutex::new(PublicationDeDuper::new());
+}
+
+pub fn clear_publication_load() {
+    PUBDEDUPER.lock().unwrap().reset();
 }
 
 impl<'de> Deserialize<'de> for Publication {
@@ -1005,7 +1009,10 @@ impl<'de> Deserialize<'de> for Publication {
                     .next_element()?
                     .ok_or_else(|| de::Error::invalid_length(3, &self))?;
 
-                let payload = PUBDEDUPER.lock().map_err(de::Error::custom)?.de_dupe(payload);
+                let payload = PUBDEDUPER
+                    .lock()
+                    .map_err(de::Error::custom)?
+                    .de_dupe(payload);
                 Ok(Publication {
                     topic_name,
                     qos,
