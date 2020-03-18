@@ -1,6 +1,6 @@
 use std::{convert::TryInto, time::Duration};
 
-use bytes::{Buf, BufMut};
+use bytes::{Buf, BufMut, Bytes};
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use tokio_util::codec::Decoder;
@@ -923,26 +923,62 @@ pub struct Publication {
     pub retain: bool,
     #[cfg_attr(feature = "serde1", serde(serialize_with = "serialize_bytes"))]
     #[cfg_attr(feature = "serde1", serde(deserialize_with = "deserialize_bytes"))]
-    pub payload: bytes::Bytes,
+    pub payload: Bytes,
 }
 
+use lazy_static::lazy_static;
 use serde::de::{self, SeqAccess, Visitor};
+use std::collections::hash_map::DefaultHasher;
+use std::collections::HashMap;
 use std::fmt;
+use std::hash::{Hash, Hasher};
+use std::sync::Mutex;
+
+pub struct PublicationDeDuper {
+    loaded_bytes: HashMap<u64, Bytes>,
+}
+
+impl PublicationDeDuper {
+    fn new() -> Self {
+        Self {
+            loaded_bytes: HashMap::new(),
+        }
+    }
+
+    fn de_dupe(&mut self, bytes: Vec<u8>) -> Bytes {
+        let hash = Self::calculate_hash(&bytes);
+        if let Some(payload) = self.loaded_bytes.get(&hash) {
+            if payload == &bytes {
+                return payload.clone();
+            }
+        }
+
+        let payload = Bytes::from(bytes);
+        self.loaded_bytes.insert(hash, payload.clone());
+
+        payload
+    }
+
+    fn calculate_hash<T: Hash>(t: &T) -> u64 {
+        let mut s = DefaultHasher::new();
+        t.hash(&mut s);
+        s.finish()
+    }
+
+    // pub fn reset(&mut self) {
+    //     self.loaded_bytes = HashMap::new();
+    // }
+}
+
+lazy_static! {
+    static ref PUBDEDUPER: Mutex<PublicationDeDuper> = Mutex::new(PublicationDeDuper::new());
+}
 
 impl<'de> Deserialize<'de> for Publication {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        #[derive(Deserialize)]
-        #[serde(field_identifier, rename_all = "snake_case")]
-        enum Field {
-            TopicName,
-            Qos,
-            Retain,
-            Payload,
-        };
-
         struct PublicationVisitor;
 
         impl<'de> Visitor<'de> for PublicationVisitor {
@@ -969,40 +1005,14 @@ impl<'de> Deserialize<'de> for Publication {
                     .next_element()?
                     .ok_or_else(|| de::Error::invalid_length(3, &self))?;
 
+                let payload = PUBDEDUPER.lock().map_err(de::Error::custom)?.de_dupe(payload);
                 Ok(Publication {
                     topic_name,
                     qos,
                     retain,
-                    payload: bytes::Bytes::from(payload),
+                    payload,
                 })
             }
-
-            // fn visit_map<V>(self, mut map: V) -> Result<Publication, V::Error>
-            // where
-            //     V: MapAccess<'de>,
-            // {
-            //     let mut secs = None;
-            //     let mut nanos = None;
-            //     while let Some(key) = map.next_key()? {
-            //         match key {
-            //             Field::Secs => {
-            //                 if secs.is_some() {
-            //                     return Err(de::Error::duplicate_field("secs"));
-            //                 }
-            //                 secs = Some(map.next_value()?);
-            //             }
-            //             Field::Nanos => {
-            //                 if nanos.is_some() {
-            //                     return Err(de::Error::duplicate_field("nanos"));
-            //                 }
-            //                 nanos = Some(map.next_value()?);
-            //             }
-            //         }
-            //     }
-            //     let secs = secs.ok_or_else(|| de::Error::missing_field("secs"))?;
-            //     let nanos = nanos.ok_or_else(|| de::Error::missing_field("nanos"))?;
-            //     Ok(Publication::new(secs, nanos))
-            // }
         }
 
         const FIELDS: &[&str] = &["topic_name", "qos", "retain", "payload"];
