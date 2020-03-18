@@ -62,6 +62,8 @@ steps:
         testInfo="$testInfo,ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
         testInfo="$testInfo,HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
         testInfo="$testInfo,RunProfile=${{ parameters['networkController.runProfile'] }}"
+        testInfo="$testInfo,CustomEdgeAgentImage=${{ parameters['customEdgeAgent.image'] }:-None}"
+        testInfo="$testInfo,CustomEdgeHubImage=${{ parameters['customEdgeHub.image'] }:-None}"
         
         sudo $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/connectivityTest.sh \
           -testDir "$(Agent.HomeDirectory)/.." \
