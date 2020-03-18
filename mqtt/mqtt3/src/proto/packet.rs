@@ -916,7 +916,7 @@ impl From<SubAckQos> for u8 {
 
 /// A message that can be published to the server
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde1", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde1", derive(Serialize))]
 pub struct Publication {
     pub topic_name: String,
     pub qos: crate::proto::QoS,
@@ -924,6 +924,90 @@ pub struct Publication {
     #[cfg_attr(feature = "serde1", serde(serialize_with = "serialize_bytes"))]
     #[cfg_attr(feature = "serde1", serde(deserialize_with = "deserialize_bytes"))]
     pub payload: bytes::Bytes,
+}
+
+use serde::de::{self, SeqAccess, Visitor};
+use std::fmt;
+
+impl<'de> Deserialize<'de> for Publication {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(field_identifier, rename_all = "snake_case")]
+        enum Field {
+            TopicName,
+            Qos,
+            Retain,
+            Payload,
+        };
+
+        struct PublicationVisitor;
+
+        impl<'de> Visitor<'de> for PublicationVisitor {
+            type Value = Publication;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                formatter.write_str("struct Publication")
+            }
+
+            fn visit_seq<V>(self, mut seq: V) -> Result<Publication, V::Error>
+            where
+                V: SeqAccess<'de>,
+            {
+                let topic_name = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                let qos = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(1, &self))?;
+                let retain = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(2, &self))?;
+                let payload: Vec<u8> = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(3, &self))?;
+
+                Ok(Publication {
+                    topic_name,
+                    qos,
+                    retain,
+                    payload: bytes::Bytes::from(payload),
+                })
+            }
+
+            // fn visit_map<V>(self, mut map: V) -> Result<Publication, V::Error>
+            // where
+            //     V: MapAccess<'de>,
+            // {
+            //     let mut secs = None;
+            //     let mut nanos = None;
+            //     while let Some(key) = map.next_key()? {
+            //         match key {
+            //             Field::Secs => {
+            //                 if secs.is_some() {
+            //                     return Err(de::Error::duplicate_field("secs"));
+            //                 }
+            //                 secs = Some(map.next_value()?);
+            //             }
+            //             Field::Nanos => {
+            //                 if nanos.is_some() {
+            //                     return Err(de::Error::duplicate_field("nanos"));
+            //                 }
+            //                 nanos = Some(map.next_value()?);
+            //             }
+            //         }
+            //     }
+            //     let secs = secs.ok_or_else(|| de::Error::missing_field("secs"))?;
+            //     let nanos = nanos.ok_or_else(|| de::Error::missing_field("nanos"))?;
+            //     Ok(Publication::new(secs, nanos))
+            // }
+        }
+
+        const FIELDS: &[&str] = &["topic_name", "qos", "retain", "payload"];
+        deserializer.deserialize_struct("Duration", FIELDS, PublicationVisitor)
+    }
 }
 
 /// A tokio codec that encodes and decodes MQTT packets.
