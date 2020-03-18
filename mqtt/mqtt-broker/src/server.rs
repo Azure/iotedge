@@ -75,7 +75,6 @@ impl Server {
                         let mut results = vec![result];
                         results.extend(future::join_all(unfinished_incoming_tasks).await);
 
-                        // log all errors
                         for e in results.into_iter().filter_map(Result::err) {
                             warn!(message = "failed to shutdown protocol head", error=%e);
                         }
@@ -94,7 +93,6 @@ impl Server {
                         let mut results = vec![result];
                         results.extend(future::join_all(unfinished_incoming_tasks).await);
 
-                        // logs all errors
                         for e in results.into_iter().filter_map(Result::err) {
                             warn!(message = "failed to shutdown protocol head", error=%e);
                         }
@@ -146,7 +144,6 @@ impl Server {
                     let mut results = vec![result];
                     results.extend(future::join_all(unfinished_incoming_tasks).await);
 
-                    // logs all errors
                     for e in results.into_iter().filter_map(Result::err) {
                         warn!(message = "failed to shutdown protocol head", error=%e);
                     }
