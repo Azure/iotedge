@@ -5,8 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Flurl" Version="3.0.0-pre1" />
-    <PackageReference Include="Flurl.Http" Version="2.4.2" />
+    <PackageReference Include="Flurl" Version="3.0.0-pre3" />
+    <PackageReference Include="Flurl.Http" Version="3.0.0-pre3" />
   </ItemGroup>
 
   <ItemGroup>

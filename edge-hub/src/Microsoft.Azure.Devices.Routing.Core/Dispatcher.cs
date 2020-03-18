@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
-    using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Extensions.Logging;
 
@@ -21,19 +20,19 @@ namespace Microsoft.Azure.Devices.Routing.Core
         readonly CancellationTokenSource cts;
         readonly IEndpointExecutorFactory endpointExecutorFactory;
         readonly AtomicReference<ImmutableDictionary<string, IEndpointExecutor>> executors;
-        readonly ICheckpointer checkpointer;
+        readonly MasterCheckpointer masterCheckpointer;
         readonly AsyncLock sync = new AsyncLock();
         readonly string iotHubName;
         static readonly ICollection<IMessage> EmptyMessages = ImmutableList<IMessage>.Empty;
 
-        Dispatcher(string id, string iotHubName, IEnumerable<IEndpointExecutor> execs, IEndpointExecutorFactory endpointExecutorFactory, ICheckpointer checkpointer)
+        Dispatcher(string id, string iotHubName, IEnumerable<IEndpointExecutor> execs, IEndpointExecutorFactory endpointExecutorFactory, MasterCheckpointer masterCheckpointer)
         {
             this.Id = Preconditions.CheckNotNull(id);
             this.iotHubName = Preconditions.CheckNotNull(iotHubName);
             this.endpointExecutorFactory = Preconditions.CheckNotNull(endpointExecutorFactory);
             this.closed = new AtomicBoolean(false);
             this.cts = new CancellationTokenSource();
-            this.checkpointer = Preconditions.CheckNotNull(checkpointer);
+            this.masterCheckpointer = Preconditions.CheckNotNull(masterCheckpointer);
 
             ImmutableDictionary<string, IEndpointExecutor> execsDict = Preconditions.CheckNotNull(execs)
                 .ToImmutableDictionary(key => key.Endpoint.Id, value => value);
@@ -44,7 +43,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         public IEnumerable<Endpoint> Endpoints => this.Executors.Values.Select(ex => ex.Endpoint);
 
-        public Option<long> Offset => this.checkpointer.Offset > Checkpointer.InvalidOffset ? Option.Some(this.checkpointer.Offset) : Option.None<long>();
+        public Option<long> Offset => this.masterCheckpointer.Offset > Checkpointer.InvalidOffset ? Option.Some(this.masterCheckpointer.Offset) : Option.None<long>();
 
         ImmutableDictionary<string, IEndpointExecutor> Executors => this.executors;
 
@@ -54,9 +53,11 @@ namespace Microsoft.Azure.Devices.Routing.Core
             Preconditions.CheckNotNull(endpointsWithPriorities);
             Preconditions.CheckNotNull(factory);
 
+            var masterCheckpointer = await MasterCheckpointer.CreateAsync(id, NullCheckpointStore.Instance);
+
             IEnumerable<Task<IEndpointExecutor>> tasks = endpointsWithPriorities.Select(e => factory.CreateAsync(e.Key, e.Value));
             IEndpointExecutor[] executors = await Task.WhenAll(tasks);
-            return new Dispatcher(id, iotHubName, executors, factory, new NullCheckpointer());
+            return new Dispatcher(id, iotHubName, executors, factory, masterCheckpointer);
         }
 
         public static async Task<Dispatcher> CreateAsync(string id, string iotHubName, IDictionary<Endpoint, IList<uint>> endpointsWithPriorities, IEndpointExecutorFactory factory, ICheckpointStore checkpointStore)
@@ -66,12 +67,11 @@ namespace Microsoft.Azure.Devices.Routing.Core
             Preconditions.CheckNotNull(factory);
             Preconditions.CheckNotNull(checkpointStore);
 
-            MasterCheckpointer masterCheckpointer = await MasterCheckpointer.CreateAsync(id, checkpointStore);
-            var executorFactory = new CheckpointerEndpointExecutorFactory(id, factory, masterCheckpointer);
+            var masterCheckpointer = await MasterCheckpointer.CreateAsync(id, checkpointStore);
 
-            IEnumerable<Task<IEndpointExecutor>> tasks = endpointsWithPriorities.Select(e => executorFactory.CreateAsync(e.Key, e.Value));
+            IEnumerable<Task<IEndpointExecutor>> tasks = endpointsWithPriorities.Select(e => factory.CreateAsync(e.Key, e.Value, masterCheckpointer));
             IEndpointExecutor[] executors = await Task.WhenAll(tasks);
-            return new Dispatcher(id, iotHubName, executors, executorFactory, masterCheckpointer);
+            return new Dispatcher(id, iotHubName, executors, factory, masterCheckpointer);
         }
 
         public Task DispatchAsync(IMessage message, ISet<RouteResult> routeResults)
@@ -96,7 +96,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             else
             {
                 Events.UnmatchedMessage(this.iotHubName, message);
-                return this.checkpointer.CommitAsync(new[] { message }, EmptyMessages, Option.None<DateTime>(), Option.None<DateTime>(), CancellationToken.None);
+                return this.masterCheckpointer.CommitAsync(new[] { message }, EmptyMessages, Option.None<DateTime>(), Option.None<DateTime>(), CancellationToken.None);
             }
         }
 
@@ -178,7 +178,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
                         await exec.CloseAsync();
                     }
 
-                    await this.checkpointer.CloseAsync(token);
+                    await this.masterCheckpointer.CloseAsync(token);
                 }
             }
         }
@@ -197,7 +197,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
                     executor.Dispose();
                 }
 
-                this.checkpointer.Dispose();
+                this.masterCheckpointer.Dispose();
                 this.cts.Dispose();
                 this.sync.Dispose();
             }
@@ -223,7 +223,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             ImmutableDictionary<string, IEndpointExecutor> snapshot = this.executors;
             if (!snapshot.TryGetValue(endpoint.Id, out executor))
             {
-                executor = await this.endpointExecutorFactory.CreateAsync(endpoint, priorities);
+                executor = await this.endpointExecutorFactory.CreateAsync(endpoint, priorities, this.masterCheckpointer);
                 if (!this.executors.CompareAndSet(snapshot, snapshot.Add(endpoint.Id, executor)))
                 {
                     throw new InvalidOperationException($"Invalid set endpoint operation for executor {endpoint.Id}");
@@ -256,38 +256,6 @@ namespace Microsoft.Azure.Devices.Routing.Core
             if (this.closed)
             {
                 throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, "{0} is closed.", this));
-            }
-        }
-
-        class CheckpointerEndpointExecutorFactory : IEndpointExecutorFactory
-        {
-            readonly string idPrefix;
-            readonly IEndpointExecutorFactory executorFactory;
-            readonly ICheckpointerFactory checkpointerFactory;
-
-            public CheckpointerEndpointExecutorFactory(string idPrefix, IEndpointExecutorFactory executorFactory, ICheckpointerFactory checkpointerFactory)
-            {
-                this.idPrefix = Preconditions.CheckNotNull(idPrefix);
-                this.executorFactory = Preconditions.CheckNotNull(executorFactory);
-                this.checkpointerFactory = Preconditions.CheckNotNull(checkpointerFactory);
-            }
-
-            public async Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, IList<uint> priorities)
-            {
-                string id = RoutingIdBuilder.Parse(this.idPrefix).Map(prefixTemplate => new RoutingIdBuilder(prefixTemplate.IotHubName, prefixTemplate.RouterNumber, Option.Some(endpoint.Id)).GetId()).GetOrElse(endpoint.Id);
-                ICheckpointer checkpointer = await this.checkpointerFactory.CreateAsync(id);
-                IEndpointExecutor executor = await this.executorFactory.CreateAsync(endpoint, priorities, checkpointer);
-                return executor;
-            }
-
-            public Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, IList<uint> priorities, ICheckpointer checkpointer)
-            {
-                return this.executorFactory.CreateAsync(endpoint, priorities, checkpointer);
-            }
-
-            public Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, IList<uint> priorities, ICheckpointer checkpointer, EndpointExecutorConfig endpointExecutorConfig)
-            {
-                return this.executorFactory.CreateAsync(endpoint, priorities, checkpointer, endpointExecutorConfig);
             }
         }
 

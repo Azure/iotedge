@@ -33,7 +33,7 @@ Before running the sample, edit the file Properties/launchSettings.json and add 
     ```
 
 * Number of messages to send - Expressed in decimal
-* Path to trusted CA certificate: For the Edge Hub, if the CA is not a public root, a path tp the root CA certificate in PEM format is absolutely required. This is optional if the root certificate is installed in the trusted certificate store of the OS.
+* Path to trusted CA certificate: For the Edge Hub, if the CA is not a public root, a path to the root CA certificate in PEM format is absolutely required. This is optional if the root certificate is installed in the trusted certificate store of the OS.
 
 ### Execute Sample
 
