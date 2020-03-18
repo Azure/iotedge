@@ -26,14 +26,14 @@ impl Server {
         Self { broker }
     }
 
-    pub async fn serve<F, A>(
+    pub async fn serve<A, F>(
         self,
         transports: Vec<TransportBuilder<A>>,
         shutdown_signal: F,
     ) -> Result<BrokerState, Error>
     where
-        F: Future<Output = ()> + Unpin,
         A: ToSocketAddrs,
+        F: Future<Output = ()> + Unpin,
     {
         let Server { broker } = self;
         let mut handle = broker.handle();
@@ -75,7 +75,7 @@ impl Server {
                         let mut results = vec![result];
                         results.extend(future::join_all(unfinished_incoming_tasks).await);
 
-                        // logs all errors
+                        // log all errors
                         for e in results.into_iter().filter_map(Result::err) {
                             warn!(message = "failed to shutdown protocol head", error=%e);
                         }
@@ -117,8 +117,8 @@ impl Server {
                         itx.send(()).unwrap();
                     }
 
-                    let mut results = future::join_all(unfinished_incoming_tasks).await; // todo log all errors occurred when shutdown
-                    results.push(result);
+                    let mut results = vec![result];
+                    results.extend(future::join_all(unfinished_incoming_tasks).await);
 
                     handle.send(Message::System(SystemEvent::Shutdown)).await?;
 
@@ -159,14 +159,14 @@ impl Server {
     }
 }
 
-async fn incoming_task<F, A>(
+async fn incoming_task<A, F>(
     transport: TransportBuilder<A>,
     handle: BrokerHandle,
     mut shutdown_signal: F,
 ) -> Result<(), Error>
 where
-    F: Future<Output = ()> + Unpin,
     A: ToSocketAddrs,
+    F: Future<Output = ()> + Unpin,
 {
     let mut io = transport.build().await?;
     let addr = io.address()?;

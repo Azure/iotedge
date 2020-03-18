@@ -30,7 +30,6 @@ where
     A: ToSocketAddrs,
 {
     pub async fn build(self) -> Result<Transport, Error> {
-        // todo should be an real type for Error
         match self {
             TransportBuilder::Tcp(addr) => Transport::new_tcp(addr).await,
             TransportBuilder::Tls(addr, identity) => Transport::new_tls(addr, identity).await,
