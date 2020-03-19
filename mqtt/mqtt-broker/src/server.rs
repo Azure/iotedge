@@ -26,14 +26,15 @@ impl Server {
         Self { broker }
     }
 
-    pub async fn serve<A, F>(
+    pub async fn serve<A, F, I>(
         self,
-        transports: Vec<TransportBuilder<A>>,
+        transports: I,
         shutdown_signal: F,
     ) -> Result<BrokerState, Error>
     where
         A: ToSocketAddrs,
         F: Future<Output = ()> + Unpin,
+        I: IntoIterator<Item=TransportBuilder<A>>,
     {
         let Server { broker } = self;
         let mut handle = broker.handle();
