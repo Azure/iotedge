@@ -27,16 +27,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             return exec;
         }
 
-        public async Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, IList<uint> priorities, ICheckpointer checkpointer)
+        public async Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, IList<uint> priorities, ICheckpointerFactory checkpointerFactory)
         {
-            IEndpointExecutor exec = await this.underlying.CreateAsync(endpoint, priorities, checkpointer);
+            IEndpointExecutor exec = await this.underlying.CreateAsync(endpoint, priorities, checkpointerFactory);
             await exec.CloseAsync();
             return exec;
         }
 
-        public async Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, IList<uint> priorities, ICheckpointer checkpointer, EndpointExecutorConfig endpointExecutorConfig)
+        public async Task<IEndpointExecutor> CreateAsync(Endpoint endpoint, IList<uint> priorities, ICheckpointerFactory checkpointerFactory, EndpointExecutorConfig endpointExecutorConfig)
         {
-            IEndpointExecutor exec = await this.underlying.CreateAsync(endpoint, priorities, checkpointer, endpointExecutorConfig);
+            IEndpointExecutor exec = await this.underlying.CreateAsync(endpoint, priorities, checkpointerFactory, endpointExecutorConfig);
             await exec.CloseAsync();
             return exec;
         }
