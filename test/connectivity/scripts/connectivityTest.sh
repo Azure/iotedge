@@ -355,7 +355,7 @@ function run_connectivity_test() {
 
     SECONDS=0
 
-    case $(hostname) in
+    case $HOST_PLATFORM in
 
         linux_arm32v7_moby)
             "$quickstart_working_folder/IotEdgeQuickstart" \
