@@ -66,7 +66,9 @@ impl Server {
 
                 debug!("sending stop signal for every protocol head");
                 for itx in incoming_tasks_tx {
-                    itx.send(()).unwrap();
+                    if let Err(()) = itx.send(()) {
+                        warn!(message = "failed to signal protocol head to stop");
+                    }
                 }
 
                 match tasks.await {
@@ -112,7 +114,9 @@ impl Server {
                     debug!("sending stop signal for the rest of protocol heads");
                     incoming_tasks_tx.remove(index);
                     for itx in incoming_tasks_tx {
-                        itx.send(()).unwrap();
+                        if let Err(()) = itx.send(()) {
+                            warn!(message = "failed to signal protocol head to stop");
+                        }
                     }
 
                     let mut results = vec![result];
@@ -134,7 +138,9 @@ impl Server {
 
                     debug!("sending stop signal for the rest of protocol heads");
                     for itx in incoming_tasks_tx {
-                        itx.send(()).unwrap();
+                        if let Err(()) = itx.send(()) {
+                            warn!(message = "failed to signal protocol head to stop");
+                        }
                     }
 
                     // wait until either of incoming_tasks finished
