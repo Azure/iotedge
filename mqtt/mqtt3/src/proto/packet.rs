@@ -916,12 +916,13 @@ impl From<SubAckQos> for u8 {
 
 /// A message that can be published to the server
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde1", derive(Serialize))]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Publication {
     pub topic_name: String,
     pub qos: crate::proto::QoS,
     pub retain: bool,
     #[cfg_attr(feature = "serde1", serde(serialize_with = "serialize_bytes"))]
+    #[cfg_attr(feature = "serde1", serde(deserialize_with = "deserialize_bytes"))]
     pub payload: Bytes,
 }
 

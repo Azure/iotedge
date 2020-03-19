@@ -9,6 +9,7 @@ use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::marker::PhantomData;
 use std::ops::DerefMut;
 use std::sync::Mutex;
 
@@ -48,35 +49,28 @@ impl PublicationDeDuper {
     }
 }
 
-lazy_static! {
-    static ref PUBDEDUPER: Mutex<PublicationDeDuper> = Mutex::new(PublicationDeDuper::new());
+struct DeserializeState {
+    pub payload_de_duper: PublicationDeDuper,
 }
 
-pub fn clear_publication_load() {
-    PUBDEDUPER.lock().unwrap().reset();
-}
+struct DeserializeStateHolder<'a, T>(&'a mut DeserializeState, PhantomData<T>);
+struct DeserializeStateVisitor<'a, T>(&'a mut DeserializeState, PhantomData<T>);
 
-struct PubDeDuperHolder<'a>(&'a mut PublicationDeDuper);
-
-impl<'de, 'a> DeserializeSeed<'de> for PubDeDuperHolder<'a> {
+impl<'de, 'a> DeserializeSeed<'de> for DeserializeStateHolder<'a, Bytes> {
     type Value = Bytes;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
         D: Deserializer<'de>,
     {
-        // Visitor implementation that will walk an inner array of the JSON
-        // input.
-        struct PublicationDeDuperVisitor<'a>(&'a mut PublicationDeDuper);
-
-        impl<'de, 'a> Visitor<'de> for PublicationDeDuperVisitor<'a> {
+        impl<'de, 'a> Visitor<'de> for DeserializeStateVisitor<'a, Bytes> {
             type Value = Bytes;
 
             fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
                 write!(formatter, "an array of integers")
             }
 
-            fn visit_seq<A>(self, mut seq: A) -> Result<Bytes, A::Error>
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
             where
                 A: SeqAccess<'de>,
             {
@@ -84,33 +78,33 @@ impl<'de, 'a> DeserializeSeed<'de> for PubDeDuperHolder<'a> {
                     .next_element()?
                     .ok_or_else(|| de::Error::invalid_length(0, &self))?;
 
-                let payload = self.0.de_dupe(payload);
+                let payload = self.0.payload_de_duper.de_dupe(payload);
 
                 Ok(payload)
             }
         }
 
-        deserializer.deserialize_seq(PublicationDeDuperVisitor(self.0))
+        deserializer.deserialize_seq(DeserializeStateVisitor::<Bytes>(self.0, PhantomData))
     }
 }
 
-impl<'de> Deserialize<'de> for Publication {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+impl<'de, 'a> DeserializeSeed<'de> for DeserializeStateHolder<'a, Publication> {
+    type Value = Publication;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
         D: Deserializer<'de>,
     {
-        struct PublicationVisitor;
-
-        impl<'de> Visitor<'de> for PublicationVisitor {
+        impl<'de, 'a> Visitor<'de> for DeserializeStateVisitor<'a, Publication> {
             type Value = Publication;
 
             fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-                formatter.write_str("struct Publication")
+                write!(formatter, "an array of integers")
             }
 
-            fn visit_seq<V>(self, mut seq: V) -> Result<Publication, V::Error>
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
             where
-                V: SeqAccess<'de>,
+                A: SeqAccess<'de>,
             {
                 let topic_name = seq
                     .next_element()?
@@ -122,9 +116,7 @@ impl<'de> Deserialize<'de> for Publication {
                     .next_element()?
                     .ok_or_else(|| de::Error::invalid_length(2, &self))?;
                 let payload = seq
-                    .next_element_seed(PubDeDuperHolder(
-                        PUBDEDUPER.lock().map_err(de::Error::custom)?.deref_mut(),
-                    ))?
+                    .next_element_seed(DeserializeStateHolder::<Bytes>(self.0, PhantomData))?
                     .ok_or_else(|| de::Error::invalid_length(3, &self))?;
 
                 Ok(Publication {
@@ -136,7 +128,57 @@ impl<'de> Deserialize<'de> for Publication {
             }
         }
 
-        const FIELDS: &[&str] = &["topic_name", "qos", "retain", "payload"];
-        deserializer.deserialize_struct("Publication", FIELDS, PublicationVisitor)
+        deserializer.deserialize_seq(DeserializeStateVisitor::<Publication>(self.0, PhantomData))
     }
 }
+
+// impl<'de, 'a> DeserializeSeed<'de> for DeserializeStateHolder<'a, Publication> {
+//     type Value = Publication;
+
+//     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+//     where
+//         D: Deserializer<'de>,
+//     {
+//         // Visitor implementation that will walk an inner array of the JSON
+//         // input.
+//         struct PublicationVisitor<'a>(&'a mut Self);
+
+//         impl<'de, 'a> Visitor<'de> for PublicationVisitor<'a> {
+//             type Value = Publication;
+
+//             fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+//                 write!(formatter, "an array of integers")
+//             }
+
+//             fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+//             where
+//                 A: SeqAccess<'de>,
+//             {
+//                 let topic_name = seq
+//                     .next_element()?
+//                     .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+//                 let qos = seq
+//                     .next_element()?
+//                     .ok_or_else(|| de::Error::invalid_length(1, &self))?;
+//                 let retain = seq
+//                     .next_element()?
+//                     .ok_or_else(|| de::Error::invalid_length(2, &self))?;
+//                 let payload = seq
+//                     .next_element_seed(DeserializeStateHolder::<Bytes>(
+//                         self.0,
+//                         PhantomData,
+//                     ))?
+//                     .ok_or_else(|| de::Error::invalid_length(3, &self))?;
+
+//                 Ok(Publication {
+//                     topic_name,
+//                     qos,
+//                     retain,
+//                     payload,
+//                 })
+//             }
+//         }
+
+//         deserializer.deserialize_seq(PublicationVisitor(self.0))
+//     }
+// }

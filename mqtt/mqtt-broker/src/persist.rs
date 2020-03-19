@@ -15,8 +15,6 @@ use flate2::write::GzEncoder;
 use flate2::Compression;
 use tracing::{debug, info, span, Level};
 
-use mqtt3::proto::clear_publication_load;
-
 use crate::error::{Error, ErrorKind};
 use crate::BrokerState;
 
@@ -124,7 +122,6 @@ impl FileFormat for BincodeFormat {
         let state = bincode::deserialize_from(decoder)
             .context(ErrorKind::Persist(ErrorReason::Deserialize))?;
 
-        clear_publication_load();
         Ok(state)
     }
 
