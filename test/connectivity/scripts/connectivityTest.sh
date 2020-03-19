@@ -354,20 +354,44 @@ function run_connectivity_test() {
     print_highlighted_message "Run connectivity test with -d '$device_id' started at $test_start_time"
 
     SECONDS=0
-    "$quickstart_working_folder/IotEdgeQuickstart" \
-        -d "$device_id" \
-        -a "$iotedge_package" \
-        -c "$IOT_HUB_CONNECTION_STRING" \
-        -e "$EVENTHUB_CONNECTION_STRING" \
-        -r "$CONTAINER_REGISTRY" \
-        -u "$CONTAINER_REGISTRY_USERNAME" \
-        -p "$CONTAINER_REGISTRY_PASSWORD" \
-        -n "$(hostname)" \
-        -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
-        --leave-running=All \
-        -l "$deployment_working_file" \
-        --runtime-log-level "Debug" \
-        --no-verify && funcRet=$? || funcRet=$?
+
+    case $(hostname) in
+
+        linux_arm32v7_moby)
+            "$quickstart_working_folder/IotEdgeQuickstart" \
+                -d "$device_id" \
+                -a "$iotedge_package" \
+                -c "$IOT_HUB_CONNECTION_STRING" \
+                -e "$EVENTHUB_CONNECTION_STRING" \
+                -r "$CONTAINER_REGISTRY" \
+                -u "$CONTAINER_REGISTRY_USERNAME" \
+                -p "$CONTAINER_REGISTRY_PASSWORD" \
+                -n "$(hostname)" \
+                -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+                --leave-running=All \
+                -l "$deployment_working_file" \
+                --runtime-log-level "Info" \
+                --optimize_for_performance=false
+                --no-verify && funcRet=$? || funcRet=$?
+            ;;
+        
+        *)
+            "$quickstart_working_folder/IotEdgeQuickstart" \
+                -d "$device_id" \
+                -a "$iotedge_package" \
+                -c "$IOT_HUB_CONNECTION_STRING" \
+                -e "$EVENTHUB_CONNECTION_STRING" \
+                -r "$CONTAINER_REGISTRY" \
+                -u "$CONTAINER_REGISTRY_USERNAME" \
+                -p "$CONTAINER_REGISTRY_PASSWORD" \
+                -n "$(hostname)" \
+                -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+                --leave-running=All \
+                -l "$deployment_working_file" \
+                --runtime-log-level "Debug" \
+                --no-verify && funcRet=$? || funcRet=$?
+            ;;
+    esac
 
     local elapsed_time="$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$SECONDS")"
     print_highlighted_message "Deploy connectivity test with -d '$device_id' completed in $elapsed_time"
