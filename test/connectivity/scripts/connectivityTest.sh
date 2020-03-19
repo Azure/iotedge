@@ -259,9 +259,6 @@ function process_args() {
         elif [ $saveNextArg -eq 34 ]; then
             TEST_INFO="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 38 ]; then
-            TEST_INFO="$arg"
-            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
