@@ -234,6 +234,9 @@
               },
               "NetworkControllerRunProfile": {
                 "value": "<NetworkController.RunProfile>"
+              },
+              "TEST_INFO": {
+                "value": "<TestResultCoordinator.TestInfo>"
               }
             },
             "settings": {
