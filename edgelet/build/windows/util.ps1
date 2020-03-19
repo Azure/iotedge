@@ -101,7 +101,7 @@ function InstallWinArmPrivateRustCompiler {
         $link = "https://edgebuild.blob.core.windows.net/iotedge-win-arm32v7-tools/rust-windows-arm-$toolchain.zip"
 
         Write-Host "Downloading $link to $downloadPath"
-        Invoke-WebRequest $link -OutFile $downloadPath -UseBasicParsing
+        Invoke-WebRequest $link -OutFile $downloadPath -UseBasicParsing -TimeoutSec 300
     }
 
     $targetPath = Join-Path -Path (Get-IotEdgeFolder) -ChildPath "rust-windows-arm-$toolchain"
