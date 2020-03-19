@@ -1075,7 +1075,7 @@ METRICS_SCRAPE_FREQUENCY_IN_SECS="${METRICS_SCRAPE_FREQUENCY_IN_SECS:-300}"
 METRICS_UPLOAD_TARGET="${METRICS_UPLOAD_TARGET:-AzureLogAnalytics}"
 
 if [[ "${TEST_NAME,,}" == "longhaul" ]] ||
-   [[ "${TEST_NAME,,}" == "stress"   ]]; then
+   [[ "${TEST_NAME,,}" == "stress"  ]]; then
     tracking_id=$(cat /proc/sys/kernel/random/uuid)
     TEST_INFO="$TEST_INFO,TestId=$tracking_id"
 fi
