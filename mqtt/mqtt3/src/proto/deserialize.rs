@@ -13,21 +13,29 @@ use std::marker::PhantomData;
 use std::ops::DerefMut;
 use std::sync::Mutex;
 
-struct DeserializeState {
-    pub payload_de_duper: PublicationDeDuper,
+pub struct DeserializeState {
+    payload_de_duper: PublicationDeDuper,
 }
 
-struct DeserializeStateHolder<'a, T>(&'a mut DeserializeState, PhantomData<T>);
-struct DeserializeStateVisitor<'a, T>(&'a mut DeserializeState, PhantomData<T>);
+impl DeserializeState {
+    pub fn new() -> Self {
+        Self {
+            payload_de_duper: PublicationDeDuper::new(),
+        }
+    }
+}
 
-impl<'de, 'a> DeserializeSeed<'de> for DeserializeStateHolder<'a, Bytes> {
+pub struct SeededDeserializer<'a, T>(&'a mut DeserializeState, PhantomData<T>);
+pub struct SeededVisitor<'a, T>(&'a mut DeserializeState, PhantomData<T>);
+
+impl<'de, 'a> DeserializeSeed<'de> for SeededDeserializer<'a, Bytes> {
     type Value = Bytes;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
         D: Deserializer<'de>,
     {
-        impl<'de, 'a> Visitor<'de> for DeserializeStateVisitor<'a, Bytes> {
+        impl<'de, 'a> Visitor<'de> for SeededVisitor<'a, Bytes> {
             type Value = Bytes;
 
             fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -48,18 +56,18 @@ impl<'de, 'a> DeserializeSeed<'de> for DeserializeStateHolder<'a, Bytes> {
             }
         }
 
-        deserializer.deserialize_seq(DeserializeStateVisitor::<Self::Value>(self.0, PhantomData))
+        deserializer.deserialize_seq(SeededVisitor::<Self::Value>(self.0, PhantomData))
     }
 }
 
-impl<'de, 'a> DeserializeSeed<'de> for DeserializeStateHolder<'a, Publication> {
+impl<'de, 'a> DeserializeSeed<'de> for SeededDeserializer<'a, Publication> {
     type Value = Publication;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
         D: Deserializer<'de>,
     {
-        impl<'de, 'a> Visitor<'de> for DeserializeStateVisitor<'a, Publication> {
+        impl<'de, 'a> Visitor<'de> for SeededVisitor<'a, Publication> {
             type Value = Publication;
 
             fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -80,7 +88,7 @@ impl<'de, 'a> DeserializeSeed<'de> for DeserializeStateHolder<'a, Publication> {
                     .next_element()?
                     .ok_or_else(|| de::Error::invalid_length(2, &self))?;
                 let payload = seq
-                    .next_element_seed(DeserializeStateHolder::<Bytes>(self.0, PhantomData))?
+                    .next_element_seed(SeededDeserializer::<Bytes>(self.0, PhantomData))?
                     .ok_or_else(|| de::Error::invalid_length(3, &self))?;
 
                 Ok(Publication {
@@ -92,7 +100,7 @@ impl<'de, 'a> DeserializeSeed<'de> for DeserializeStateHolder<'a, Publication> {
             }
         }
 
-        deserializer.deserialize_seq(DeserializeStateVisitor::<Self::Value>(self.0, PhantomData))
+        deserializer.deserialize_seq(SeededVisitor::<Self::Value>(self.0, PhantomData))
     }
 }
 

@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 mod deserialize;
 mod packet;
 
+pub use deserialize::*;
 pub(crate) use packet::PacketMeta;
 pub use packet::{
     ConnAck, Connect, Disconnect, Packet, PacketCodec, PacketIdentifierDupQoS, PingReq, PingResp,

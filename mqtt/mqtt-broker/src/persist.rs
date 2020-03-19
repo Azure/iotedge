@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+#![allow(unused_imports)]
+
 use std::fs::{self, OpenOptions};
 use std::io::{Read, Write};
 #[cfg(unix)]
@@ -120,6 +123,52 @@ impl FileFormat for BincodeFormat {
             Err(Error::from(ErrorKind::Persist(ErrorReason::Deserialize)))
         });
         let state = bincode::deserialize_from(decoder)
+            .context(ErrorKind::Persist(ErrorReason::Deserialize))?;
+
+        Ok(state)
+    }
+
+    fn store<W: Write>(&self, writer: W, state: BrokerState) -> Result<(), Self::Error> {
+        let encoder = GzEncoder::new(writer, Compression::default());
+        fail_point!("bincodeformat.store.serialize_into", |_| {
+            Err(Error::from(ErrorKind::Persist(ErrorReason::Deserialize)))
+        });
+        bincode::serialize_into(encoder, &state)
+            .context(ErrorKind::Persist(ErrorReason::Serialize))?;
+        Ok(())
+    }
+}
+
+use mqtt3::proto::*;
+
+/// A simple format based on Bincode and serde
+#[derive(Clone, Debug, Default)]
+pub struct DeDupeFormat;
+
+impl DeDupeFormat {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl FileFormat for DeDupeFormat {
+    type Error = Error;
+
+    fn load<R: Read>(&self, reader: R) -> Result<BrokerState, Self::Error> {
+        let state = DeserializeState::new();
+
+        let decoder = GzDecoder::new(reader);
+        fail_point!("bincodeformat.load.deserialize_from", |_| {
+            Err(Error::from(ErrorKind::Persist(ErrorReason::Deserialize)))
+        });
+        let state = bincode::config()
+            .deserialize_from_seed(
+                SeededDeserializer::<BrokerState> {
+                    0: &mut state,
+                    1: std::marker::PhantomData,
+                },
+                decoder,
+            )
             .context(ErrorKind::Persist(ErrorReason::Deserialize))?;
 
         Ok(state)
