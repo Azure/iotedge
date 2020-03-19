@@ -8,14 +8,16 @@ use bytes::{Buf, BufMut};
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Serialize};
 
+mod deserialize;
 mod packet;
-pub use packet::{
-    clear_publication_load, ConnAck, Connect, Disconnect, Packet, PacketCodec,
-    PacketIdentifierDupQoS, PingReq, PingResp, PubAck, PubComp, PubRec, PubRel, Publication,
-    Publish, QoS, SubAck, SubAckQos, Subscribe, SubscribeTo, UnsubAck, Unsubscribe,
-};
 
+pub use deserialize::clear_publication_load;
 pub(crate) use packet::PacketMeta;
+pub use packet::{
+    ConnAck, Connect, Disconnect, Packet, PacketCodec, PacketIdentifierDupQoS, PingReq, PingResp,
+    PubAck, PubComp, PubRec, PubRel, Publication, Publish, QoS, SubAck, SubAckQos, Subscribe,
+    SubscribeTo, UnsubAck, Unsubscribe,
+};
 
 /// The client ID
 ///
