@@ -31,12 +31,12 @@ fn is_allowed_label_chars(c: char) -> bool {
 
 pub fn sanitize_label_value(name: &str) -> String {
     name.trim_start_matches(|c: char| !c.is_ascii_alphanumeric())
-        .trim_end_matches(|c: char| !c.is_ascii_alphanumeric())
-        .to_lowercase()
         .chars()
         .filter(|c| is_allowed_label_chars(*c))
         .take(LABEL_MAX_SIZE)
         .collect::<String>()
+        .trim_end_matches(|c: char| !c.is_ascii_alphanumeric())
+        .to_lowercase()
 }
 
 #[cfg(test)]
@@ -75,9 +75,13 @@ mod tests {
 
     #[test]
     fn label_values_are_sanitized() {
-        let test_pairs: [[&str; 2]; 9] = [
+        let test_pairs: [[&str; 2]; 14] = [
+            ["", "()"],
+            ["e", "$e"],
+            ["1", "1"],
             ["edgeagent", "$edgeAgent"],
             ["edgehub", "$edgeHub"],
+            ["edgehub", "edge**Hub()"],
             ["12device", "12device"],
             ["345hub-name.org", "345hub-name.org"],
             // length is <= 63 characters, lowercase
@@ -92,6 +96,10 @@ mod tests {
             [
                 "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijab----------c",
                 "ABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJAB----------C",
+            ],
+            [
+                "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijab",
+                "ABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJAB-------J",
             ],
             ["zz", "$-._/zz$-._/"],
             ["z9", "$-._/z9$-._/"],
