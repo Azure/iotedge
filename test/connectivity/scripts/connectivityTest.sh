@@ -496,13 +496,6 @@ function usage() {
     echo ' -metricsEndpointsCSV                     Csv of exposed endpoints for which to scrape metrics.'
     echo ' -metricsScrapeFrequencyInSecs            Frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
     echo ' -metricsUploadTarget                     Upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
-<<<<<<< HEAD
-=======
-    echo ' -imagesBranchName                        Branch name that built the image artifacts'
-    echo ' -edgeletBranchName                       Branch name that built the edgelet artifacts'
-    echo ' -testBuildNumber                         Unique identifier for the main connectivity test run'
-    echo ' -hostPlatform                            Describes the host OS and cpu architecture.'
->>>>>>> 202049da35112596bbd613eb757e84f8cf75d14a
     echo ' -deploymentFileName                      Deployment file name'
     echo ' -EdgeHubRestartTestRestartPeriod         EdgeHub restart period (must be greater than 1 minutes)'
     echo ' -EdgeHubRestartTestSdkOperationTimeout   SDK retry timeout'
