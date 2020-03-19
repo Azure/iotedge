@@ -3,7 +3,6 @@
 
 use crate::proto::packet::Publication;
 use bytes::Bytes;
-use lazy_static::lazy_static;
 use serde::de::{self, Deserialize, DeserializeSeed, Deserializer, SeqAccess, Visitor};
 use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
@@ -14,51 +13,19 @@ use std::ops::DerefMut;
 use std::sync::Mutex;
 
 pub struct DeserializeState {
-    payload_de_duper: PublicationDeDuper,
+    payload_de_duper: PayloadDeDuper,
 }
 
 impl DeserializeState {
     pub fn new() -> Self {
         Self {
-            payload_de_duper: PublicationDeDuper::new(),
+            payload_de_duper: PayloadDeDuper::new(),
         }
     }
 }
 
 pub struct SeededDeserializer<'a, T>(&'a mut DeserializeState, PhantomData<T>);
 pub struct SeededVisitor<'a, T>(&'a mut DeserializeState, PhantomData<T>);
-
-impl<'de, 'a> DeserializeSeed<'de> for SeededDeserializer<'a, Bytes> {
-    type Value = Bytes;
-
-    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        impl<'de, 'a> Visitor<'de> for SeededVisitor<'a, Bytes> {
-            type Value = Bytes;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-                write!(formatter, "an array of integers")
-            }
-
-            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-            where
-                A: SeqAccess<'de>,
-            {
-                let payload: Vec<u8> = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
-
-                let payload = self.0.payload_de_duper.de_dupe(payload);
-
-                Ok(payload)
-            }
-        }
-
-        deserializer.deserialize_seq(SeededVisitor::<Self::Value>(self.0, PhantomData))
-    }
-}
 
 impl<'de, 'a> DeserializeSeed<'de> for SeededDeserializer<'a, Publication> {
     type Value = Publication;
@@ -104,11 +71,43 @@ impl<'de, 'a> DeserializeSeed<'de> for SeededDeserializer<'a, Publication> {
     }
 }
 
-struct PublicationDeDuper {
+impl<'de, 'a> DeserializeSeed<'de> for SeededDeserializer<'a, Bytes> {
+    type Value = Bytes;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        impl<'de, 'a> Visitor<'de> for SeededVisitor<'a, Bytes> {
+            type Value = Bytes;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                write!(formatter, "an array of integers")
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: SeqAccess<'de>,
+            {
+                let payload: Vec<u8> = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+
+                let payload = self.0.payload_de_duper.de_dupe(payload);
+
+                Ok(payload)
+            }
+        }
+
+        deserializer.deserialize_seq(SeededVisitor::<Self::Value>(self.0, PhantomData))
+    }
+}
+
+struct PayloadDeDuper {
     loaded_bytes: HashMap<u64, Bytes>,
 }
 
-impl PublicationDeDuper {
+impl PayloadDeDuper {
     fn new() -> Self {
         Self {
             loaded_bytes: HashMap::new(),

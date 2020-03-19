@@ -530,7 +530,6 @@ dependencies = [
  "futures-core",
  "futures-sink",
  "futures-util",
- "lazy_static",
  "log",
  "serde",
  "structopt",

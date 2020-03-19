@@ -25,6 +25,7 @@ mod server;
 mod session;
 mod snapshot;
 mod subscription;
+mod deserialize;
 
 pub use crate::broker::{Broker, BrokerHandle, BrokerState};
 pub use crate::connection::ConnectionHandle;
@@ -32,6 +33,7 @@ pub use crate::error::{Error, ErrorKind};
 pub use crate::persist::{BincodeFormat, FileFormat, FilePersistor, NullPersistor, Persist};
 pub use crate::server::Server;
 pub use crate::snapshot::{Snapshotter, StateSnapshotHandle};
+pub use crate::deserialize::*;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ClientId(Arc<String>);
