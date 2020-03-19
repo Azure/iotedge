@@ -603,7 +603,6 @@ version = "0.1.0"
 dependencies = [
  "atty",
  "failure",
- "futures",
  "futures-util",
  "mqtt-broker",
  "native-tls",
