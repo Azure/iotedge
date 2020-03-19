@@ -71,6 +71,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<TestResultCoordinator.OptimizeForPerformance>@$optimize_for_performance@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.LogAnalyticsLogType>@$LOG_ANALYTICS_LOGTYPE@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.StorageAccountConnectionString>@$STORAGE_ACCOUNT_CONNECTION_STRING@g" "$deployment_working_file"
+    sed -i -e "s@<TestResultCoordinator.TestInfo>@$TEST_INFO@g" "$deployment_working_file"
 
     sed -i -e "s@<NetworkController.OfflineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[0]}@g" "$deployment_working_file"
     sed -i -e "s@<NetworkController.OnlineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[1]}@g" "$deployment_working_file"
@@ -272,6 +273,9 @@ function process_args() {
         elif [ $saveNextArg -eq 37 ]; then
             CUSTOM_EDGE_HUB_IMAGE="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 38 ]; then
+            TEST_INFO="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -312,6 +316,7 @@ function process_args() {
                 '-edgeRuntimeBuildNumber' ) saveNextArg=35;;
                 '-customEdgeAgentImage' ) saveNextArg=36;;
                 '-customEdgeHubImage' ) saveNextArg=37;;
+                '-testInfo' ) saveNextArg=38;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
@@ -474,6 +479,11 @@ function validate_test_parameters() {
         fi
     done
 
+    if [[ -z "$TEST_INFO" ]]; then
+        print_error "Required test info."
+        ((error++))
+    fi
+
     if (( error > 0 )); then
         exit 1
     fi
@@ -483,42 +493,43 @@ function usage() {
     echo "$SCRIPT_NAME [options]"
     echo ''
     echo 'options'
-    echo ' -testDir                        Path of E2E test directory which contains artifacts and certs folders; defaul to current directory.'
-    echo ' -releaseLabel                   Release label is used as part of Edge device id to make it unique.'
-    echo ' -artifactImageBuildNumber       Artifact image build number is used to construct path of docker images, pulling from docker registry. E.g. 20190101.1.'
-    echo " -containerRegistry              Host address of container registry."
-    echo " -containerRegistryUsername      Username of container registry."
-    echo ' -containerRegistryPassword      Password of given username for container registory.'
-    echo ' -iotHubConnectionString         IoT hub connection string for creating edge device.'
-    echo ' -eventHubConnectionString       Event hub connection string for receive D2C messages.'
-    echo ' -eventHubConsumerGroupId        Event hub consumer group for receive D2C messages.'
-    echo ' -testDuration                   Connectivity test duration'
-    echo ' -testStartDelay                 Connectivity test start after delay'
-    echo ' -loadGenMessageFrequency        Message frequency sent by load gen' 
-    echo ' -networkControllerFrequency     Frequency for controlling the network with offlineFrequence, onlineFrequence, runsCount. Example "00:05:00 00:05:00 6"' 
-    echo ' -networkControllerRunProfile    Online, Offline, SatelliteGood or Cellular3G'
-    echo ' -logAnalyticsWorkspaceId        Log Analytics Workspace Id'
-    echo ' -logAnalyticsSharedKey          Log Analytics shared key'
-    echo ' -logAnalyticsLogType            Log Analytics log type'
-    echo ' -verificationDelay              Delay before starting the verification after test finished'
-    echo ' -upstreamProtocol               Upstream protocol used to connect to IoT Hub'
-    echo ' -deploymentTestUpdatePeriod     duration of updating deployment of target module in deployment test'
-    echo ' -timeForReportingGeneration     Time reserved for report generation'
-    echo ' -waitForTestComplete            Wait for test to complete if this parameter is provided.  Otherwise it will finish once deployment is done.'
-    echo ' -metricsEndpointsCSV            Csv of exposed endpoints for which to scrape metrics.'
-    echo ' -metricsScrapeFrequencyInSecs   Frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
-    echo ' -metricsUploadTarget            Upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
-    echo ' -imagesBranchName               Branch name that built the image artifacts'
-    echo ' -edgeletBranchName              Branch name that built the edgelet artifacts'
-    echo ' -testBuildNumber                Unique identifier for the main connectivity test run'
-    echo ' -hostPlatform                   Describes the host OS and cpu architecture.'
-    echo ' -deploymentFileName             Deployment file name'
-    echo ' -EdgeHubRestartTestRestartPeriod        EdgeHub restart period (must be greater than 1 minutes)'
-    echo ' -EdgeHubRestartTestSdkOperationTimeout  SDK retry timeout'
-    echo ' -storageAccountConnectionString Azure storage account connection string with privilege to create blob container.'
-    echo ' -edgeRuntimeBuildNumber         Build number for specifying edge runtime (edgeHub and edgeAgent)'
+    echo ' -testDir                                 Path of E2E test directory which contains artifacts and certs folders; defaul to current directory.'
+    echo ' -releaseLabel                            Release label is used as part of Edge device id to make it unique.'
+    echo ' -artifactImageBuildNumber                Artifact image build number is used to construct path of docker images, pulling from docker registry. E.g. 20190101.1.'
+    echo " -containerRegistry                       Host address of container registry."
+    echo " -containerRegistryUsername               Username of container registry."
+    echo ' -containerRegistryPassword               Password of given username for container registory.'
+    echo ' -iotHubConnectionString                  IoT hub connection string for creating edge device.'
+    echo ' -eventHubConnectionString                Event hub connection string for receive D2C messages.'
+    echo ' -eventHubConsumerGroupId                 Event hub consumer group for receive D2C messages.'
+    echo ' -testDuration                            Connectivity test duration'
+    echo ' -testStartDelay                          Connectivity test start after delay'
+    echo ' -loadGenMessageFrequency                 Message frequency sent by load gen'
+    echo ' -networkControllerFrequency              Frequency for controlling the network with offlineFrequence, onlineFrequence, runsCount. Example "00:05:00 00:05:00 6"'
+    echo ' -networkControllerRunProfile             Online, Offline, SatelliteGood or Cellular3G'
+    echo ' -logAnalyticsWorkspaceId                 Log Analytics Workspace Id'
+    echo ' -logAnalyticsSharedKey                   Log Analytics shared key'
+    echo ' -logAnalyticsLogType                     Log Analytics log type'
+    echo ' -verificationDelay                       Delay before starting the verification after test finished'
+    echo ' -upstreamProtocol                        Upstream protocol used to connect to IoT Hub'
+    echo ' -deploymentTestUpdatePeriod              duration of updating deployment of target module in deployment test'
+    echo ' -timeForReportingGeneration              Time reserved for report generation'
+    echo ' -waitForTestComplete                     Wait for test to complete if this parameter is provided.  Otherwise it will finish once deployment is done.'
+    echo ' -metricsEndpointsCSV                     Csv of exposed endpoints for which to scrape metrics.'
+    echo ' -metricsScrapeFrequencyInSecs            Frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
+    echo ' -metricsUploadTarget                     Upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
+    echo ' -imagesBranchName                        Branch name that built the image artifacts'
+    echo ' -edgeletBranchName                       Branch name that built the edgelet artifacts'
+    echo ' -testBuildNumber                         Unique identifier for the main connectivity test run'
+    echo ' -hostPlatform                            Describes the host OS and cpu architecture.'
+    echo ' -deploymentFileName                      Deployment file name'
+    echo ' -EdgeHubRestartTestRestartPeriod         EdgeHub restart period (must be greater than 1 minutes)'
+    echo ' -EdgeHubRestartTestSdkOperationTimeout   SDK retry timeout'
+    echo ' -storageAccountConnectionString          Azure storage account connection string with privilege to create blob container.'
+    echo ' -edgeRuntimeBuildNumber                  Build number for specifying edge runtime (edgeHub and edgeAgent)'
+    echo ' -testInfo                                Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.'
 
-    echo ' -cleanAll                       Do docker prune for containers, logs and volumes.'
+    echo ' -cleanAll                                Do docker prune for containers, logs and volumes.'
     exit 1;
 }
 
