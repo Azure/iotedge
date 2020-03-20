@@ -173,7 +173,7 @@ foreach ($appProjectFileName in $appProjectList) {
 
     Write-Host "Publishing App Project - $appProjectFilePath"
     $ProjectPublishPath = Join-Path $PUBLISH_FOLDER ($appProjectFileName -replace @(".csproj", ""))
-    &$DOTNET_PATH publish -f netcoreapp2.1 -c $Configuration -o $ProjectPublishPath $appProjectFilePath |
+    &$DOTNET_PATH publish -f netcoreapp3.1 -c $Configuration -o $ProjectPublishPath $appProjectFilePath |
         Write-Host
     if ($LASTEXITCODE -ne 0) {
         throw "Failed app publishing $appProjectFilePath."
@@ -239,7 +239,7 @@ $IotEdgeQuickstartPublishBaseFolder = Join-Path $PUBLISH_FOLDER "IotEdgeQuicksta
 
 Write-Host "Publishing - IotEdgeQuickstart x64"
 $ProjectPublishPath = Join-Path $IotEdgeQuickstartPublishBaseFolder "x64"
-&$DOTNET_PATH publish -f netcoreapp2.1 -r "win10-x64" -c $Configuration -o $ProjectPublishPath $IotEdgeQuickstartProjectFolder |
+&$DOTNET_PATH publish -f netcoreapp3.1 -r "win10-x64" -c $Configuration -o $ProjectPublishPath $IotEdgeQuickstartProjectFolder |
     Write-Host
 if ($LASTEXITCODE -ne 0) {
     throw "Failed publishing IotEdgeQuickstart x64."
@@ -247,7 +247,7 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host "Publishing - IotEdgeQuickstart arm32"
 $ProjectPublishPath = Join-Path $IotEdgeQuickstartPublishBaseFolder "arm32v7"
-&$DOTNET_PATH publish -f netcoreapp2.1 -r "win10-arm" -c $Configuration -o $ProjectPublishPath $IotEdgeQuickstartProjectFolder |
+&$DOTNET_PATH publish -f netcoreapp3.1 -r "win10-arm" -c $Configuration -o $ProjectPublishPath $IotEdgeQuickstartProjectFolder |
     Write-Host
 if ($LASTEXITCODE -ne 0) {
     throw "Failed publishing IotEdgeQuickstart arm32."
@@ -261,7 +261,7 @@ $LeafDevicePublishBaseFolder = Join-Path $PUBLISH_FOLDER "LeafDevice"
 
 Write-Host "Publishing - LeafDevice x64"
 $ProjectPublishPath = Join-Path $LeafDevicePublishBaseFolder "x64"
-&$DOTNET_PATH publish -f netcoreapp2.1 -r "win10-x64" -c $Configuration -o $ProjectPublishPath $LeafDeviceProjectFolder |
+&$DOTNET_PATH publish -f netcoreapp3.1 -r "win10-x64" -c $Configuration -o $ProjectPublishPath $LeafDeviceProjectFolder |
     Write-Host
 if ($LASTEXITCODE -ne 0) {
     throw "Failed publishing LeafDevice x64."
@@ -269,7 +269,7 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host "Publishing - LeafDevice arm32"
 $ProjectPublishPath = Join-Path $LeafDevicePublishBaseFolder "arm32v7"
-&$DOTNET_PATH publish -f netcoreapp2.1 -r "win10-arm" -c $Configuration -o $ProjectPublishPath $LeafDeviceProjectFolder |
+&$DOTNET_PATH publish -f netcoreapp3.1 -r "win10-arm" -c $Configuration -o $ProjectPublishPath $LeafDeviceProjectFolder |
     Write-Host
 if ($LASTEXITCODE -ne 0) {
     throw "Failed publishing LeafDevice arm32."
