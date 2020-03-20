@@ -377,7 +377,7 @@
                 "value": "<NetworkController.RunProfile>"
               },
               "TEST_INFO": {
-                "value": "<TestResultCoordinator.TestInfo>"
+                "value": "<TestInfo>"
               }
             },
             "settings": {
@@ -620,7 +620,7 @@
                 "value": "<LogAnalyticsSharedKey>"
               },
               "LogAnalyticsLogType": {
-                "value": "testMetrics"
+                "value": "testMetricsV2"
               },
               "MetricsEndpointsCSV": {
                 "value": "<MetricsCollector.MetricsEndpointsCSV>"
@@ -656,17 +656,7 @@
     },
     "metricsCollector": {
       "properties.desired": {
-        "hostPlatform": "<MetricsCollector.HostPlatform>",
-        "testType": "connectivity",
-        "imagesBranchName": "<MetricsCollector.Images.BranchName>",
-        "edgeletBranchName": "<MetricsCollector.Edgelet.BranchName>",
-        "testId": "<TrackingId>",
-        "testBuildNumber": "<Test.BuildNumber>",
-        "upstreamProtocol": "<UpstreamProtocol>",
-        "networkControllerOfflineFrequency": "<NetworkController.OfflineFrequency0>",
-        "networkControllerOnlineFrequency": "<NetworkController.OnlineFrequency0>",
-        "networkControllerRunsCount": "<NetworkController.RunsCount0>",
-        "testDuration": "<TestDuration>"
+        "additionalTags": "<TestInfo>"
       }
     },
     "testResultCoordinator": {
