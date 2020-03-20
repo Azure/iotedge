@@ -304,7 +304,7 @@ function process_args() {
                 '-cleanAll' ) CLEAN_ALL=1;;
                 
                 * ) 
-                    echo "Failed argument: $arg"
+                    echo "Failed argument: $saveNextArg $arg"
                     usage
                     ;;
             esac
