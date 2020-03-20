@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
     public class KubernetesModule : Module
     {
-        static readonly TimeSpan SystemInfoTimeout = TimeSpan.FromSeconds(3);
+        static readonly TimeSpan SystemInfoTimeout = TimeSpan.FromSeconds(120);
         readonly ResourceName resourceName;
         readonly string edgeDeviceHostName;
         readonly string proxyImage;
