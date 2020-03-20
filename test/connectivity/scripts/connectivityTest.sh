@@ -259,6 +259,9 @@ function process_args() {
         elif [ $saveNextArg -eq 34 ]; then
             TEST_INFO="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 35 ]; then
+            TEST_PLATFORM="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -296,6 +299,7 @@ function process_args() {
                 '-customEdgeAgentImage' ) saveNextArg=32;;
                 '-customEdgeHubImage' ) saveNextArg=33;;
                 '-testInfo' ) saveNextArg=34;;
+                '-testPlatform' ) saveNextArg=35;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
@@ -335,7 +339,7 @@ function run_connectivity_test() {
 
     SECONDS=0
 
-    case $HOST_PLATFORM in
+    case $TEST_PLATFORM in
 
         linux_arm32v7_moby)
             "$quickstart_working_folder/IotEdgeQuickstart" \

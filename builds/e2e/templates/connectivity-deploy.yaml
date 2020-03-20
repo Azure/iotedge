@@ -2,6 +2,7 @@ parameters:
   release.label: ''
   test.buildNumber: ''
   test.buildId: ''
+  test.platform: ''
   build.source.branch: ''
   edgelet.source.branch: ''
   images.source.branch: ''
@@ -61,7 +62,6 @@ steps:
         testInfo="$testInfo,BuildSourceBranch=${{ parameters['build.source.branch'] }}"
         testInfo="$testInfo,EdgeletSourceBranch=${{ parameters['edgelet.source.branch'] }}"
         testInfo="$testInfo,ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
-        testInfo="$testInfo,HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
         testInfo="$testInfo,TestName=$testName"
         testInfo="$testInfo,RunProfile=${{ parameters['networkController.runProfile'] }}"
         testInfo="$testInfo,CustomEdgeAgentImage=${{ parameters['customEdgeAgent.image'] }}"
@@ -99,6 +99,7 @@ steps:
           -customEdgeAgentImage "${{ parameters['customEdgeAgent.image'] }}" \
           -customEdgeHubImage "${{ parameters['customEdgeHub.image'] }}" \
           -testInfo "$testInfo" \
+          -testPlatform "${{ parameters['test.platform'] }}" \
           -waitForTestComplete \
           -cleanAll
         
