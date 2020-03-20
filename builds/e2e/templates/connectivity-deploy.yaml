@@ -10,6 +10,7 @@ parameters:
   container.registry: ''
   container.registry.username: ''
   container.registry.password: ''
+  container.storageSizeByte: ''
   iotHub.connectionString: ''
   eventHub.connectionString: ''
   upstream.protocol: ''
@@ -100,6 +101,7 @@ steps:
           -customEdgeAgentImage "${{ parameters['customEdgeAgent.image'] }}" \
           -customEdgeHubImage "${{ parameters['customEdgeHub.image'] }}" \
           -testInfo "$testInfo" \
+          -containerStorageSize "${{ parameters['container.storageSizeByte'] }}"
           -waitForTestComplete \
           -cleanAll
         

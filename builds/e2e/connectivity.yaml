@@ -169,13 +169,13 @@ jobs:
     timeoutInMinutes: 180
     strategy:
       matrix:
-        Online:
+        Online 2G Storage:
           testrun.config: 1
           testrun.network.description: "Online"
           testrun.network.frequencies: "00:00:00 00:00:00 0"
           testrun.network.runProfile: "Online"
           testrun.duration: "00:30:00"
-          testrun.storageSize: "2g"
+          container.storageSizeByte: "2147483648"
           deploymentFileName: "limited_container_storage.template.json"
     pool:
       name: $(pool.name)
@@ -198,7 +198,7 @@ jobs:
             echo "testrun.network.frequencies=$(testrun.network.frequencies)"
             echo "testrun.network.runProfile=$(testrun.network.runProfile)"
             echo "testrun.duration=$(testrun.duration)"
-            echo "testrun.storageSize=$(testrun.storageSize)"
+            echo "container.storageSizeByte=$(container.storageSizeByte)"
             echo "deploymentFileName=$(deploymentFileName)"
       - template: templates/set-run-flag.yaml
       - checkout: none
@@ -252,6 +252,7 @@ jobs:
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
+          container.storageSizeByte: '$(container.storageSizeByte)'
           iotHub.connectionString: '$(EdgeConnectivityTestHubConnString)'
           eventHub.connectionString: '$(EdgeConnectivityEventHubConnString)'
           deploymentFileName: '$(deploymentFileName)'

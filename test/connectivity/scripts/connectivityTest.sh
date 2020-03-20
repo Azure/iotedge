@@ -42,6 +42,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<Container_Registry>@$CONTAINER_REGISTRY@g" "$deployment_working_file"
     sed -i -e "s@<CR.Username>@$CONTAINER_REGISTRY_USERNAME@g" "$deployment_working_file"
     sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
+    sed -i -e "s@<Container.storageSizeByte>@$CONTAINER_STORAGE_SIZE@g" "$deployment_working_file" #BEARWASHERE -- Use this to create a deployoment
     sed -i -e "s@<IoTHubConnectionString>@$IOT_HUB_CONNECTION_STRING@g" "$deployment_working_file"
     sed -i -e "s@<TestDuration>@$TEST_DURATION@g" "$deployment_working_file"
     sed -i -e "s@<TestStartDelay>@$TEST_START_DELAY@g" "$deployment_working_file"
@@ -259,6 +260,9 @@ function process_args() {
         elif [ $saveNextArg -eq 34 ]; then
             TEST_INFO="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 35 ]; then
+            CONTAINER_STORAGE_SIZE="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -296,6 +300,7 @@ function process_args() {
                 '-customEdgeAgentImage' ) saveNextArg=32;;
                 '-customEdgeHubImage' ) saveNextArg=33;;
                 '-testInfo' ) saveNextArg=34;;
+                '-containerStorageSize' ) saveNextArg=35;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
@@ -317,6 +322,7 @@ function process_args() {
     [[ -z "$METRICS_SCRAPE_FREQUENCY_IN_SECS" ]] && { print_error 'Metrics scrape frequency is required'; exit 1; }
     [[ -z "$METRICS_UPLOAD_TARGET" ]] && { print_error 'Metrics upload target is required'; exit 1; }
     [[ -z "$STORAGE_ACCOUNT_CONNECTION_STRING" ]] && { print_error 'Storage account connection string is required'; exit 1; }
+    [[ -z "$CONTAINER_STORAGE_SIZE" ]] && { CONTAINER_STORAGE_SIZE=0; }
 
     echo 'Required parameters are provided'
 }
@@ -499,7 +505,7 @@ function usage() {
     echo ' -storageAccountConnectionString          Azure storage account connection string with privilege to create blob container.'
     echo ' -edgeRuntimeBuildNumber                  Build number for specifying edge runtime (edgeHub and edgeAgent)'
     echo ' -testInfo                                Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.'
-
+    echo ' -containerStorageSize                    Container upper limited for a storage (unit: byte)'
     echo ' -cleanAll                                Do docker prune for containers, logs and volumes.'
     exit 1;
 }
