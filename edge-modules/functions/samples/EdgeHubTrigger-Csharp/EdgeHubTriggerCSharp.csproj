@@ -1,5 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <Import Project="..\..\..\..\dotnetVersion.props" />
+
   <PropertyGroup>
     <AzureFunctionsVersion></AzureFunctionsVersion>
     <OutputType>Library</OutputType>
