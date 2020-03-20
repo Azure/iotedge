@@ -259,6 +259,9 @@ function process_args() {
         elif [ $saveNextArg -eq 34 ]; then
             TEST_INFO="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 35 ]; then
+            TEST_PLATFORM="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -296,9 +299,14 @@ function process_args() {
                 '-customEdgeAgentImage' ) saveNextArg=32;;
                 '-customEdgeHubImage' ) saveNextArg=33;;
                 '-testInfo' ) saveNextArg=34;;
+                '-testPlatform' ) saveNextArg=35;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
-                * ) usage;;
+                
+                * ) 
+                    echo "Failed argument: $arg"
+                    usage
+                    ;;
             esac
         fi
     done
@@ -334,20 +342,44 @@ function run_connectivity_test() {
     print_highlighted_message "Run connectivity test with -d '$device_id' started at $test_start_time"
 
     SECONDS=0
-    "$quickstart_working_folder/IotEdgeQuickstart" \
-        -d "$device_id" \
-        -a "$iotedge_package" \
-        -c "$IOT_HUB_CONNECTION_STRING" \
-        -e "$EVENTHUB_CONNECTION_STRING" \
-        -r "$CONTAINER_REGISTRY" \
-        -u "$CONTAINER_REGISTRY_USERNAME" \
-        -p "$CONTAINER_REGISTRY_PASSWORD" \
-        -n "$(hostname)" \
-        -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
-        --leave-running=All \
-        -l "$deployment_working_file" \
-        --runtime-log-level "Debug" \
-        --no-verify && funcRet=$? || funcRet=$?
+
+    case $TEST_PLATFORM in
+
+        linux_arm32v7_moby)
+            "$quickstart_working_folder/IotEdgeQuickstart" \
+                -d "$device_id" \
+                -a "$iotedge_package" \
+                -c "$IOT_HUB_CONNECTION_STRING" \
+                -e "$EVENTHUB_CONNECTION_STRING" \
+                -r "$CONTAINER_REGISTRY" \
+                -u "$CONTAINER_REGISTRY_USERNAME" \
+                -p "$CONTAINER_REGISTRY_PASSWORD" \
+                -n "$(hostname)" \
+                -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+                --leave-running=All \
+                -l "$deployment_working_file" \
+                --runtime-log-level "Error" \
+                --optimize_for_performance=false \
+                --no-verify && funcRet=$? || funcRet=$?
+            ;;
+        
+        *)
+            "$quickstart_working_folder/IotEdgeQuickstart" \
+                -d "$device_id" \
+                -a "$iotedge_package" \
+                -c "$IOT_HUB_CONNECTION_STRING" \
+                -e "$EVENTHUB_CONNECTION_STRING" \
+                -r "$CONTAINER_REGISTRY" \
+                -u "$CONTAINER_REGISTRY_USERNAME" \
+                -p "$CONTAINER_REGISTRY_PASSWORD" \
+                -n "$(hostname)" \
+                -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+                --leave-running=All \
+                -l "$deployment_working_file" \
+                --runtime-log-level "Debug" \
+                --no-verify && funcRet=$? || funcRet=$?
+            ;;
+    esac
 
     local elapsed_time="$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$SECONDS")"
     print_highlighted_message "Deploy connectivity test with -d '$device_id' completed in $elapsed_time"
@@ -499,6 +531,7 @@ function usage() {
     echo ' -storageAccountConnectionString          Azure storage account connection string with privilege to create blob container.'
     echo ' -edgeRuntimeBuildNumber                  Build number for specifying edge runtime (edgeHub and edgeAgent)'
     echo ' -testInfo                                Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.'
+    echo ' -testPlatform                            Test agent platform'
 
     echo ' -cleanAll                                Do docker prune for containers, logs and volumes.'
     exit 1;
