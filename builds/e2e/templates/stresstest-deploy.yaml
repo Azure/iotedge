@@ -62,6 +62,7 @@ steps:
         testInfo="$testInfo,ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
         testInfo="$testInfo,HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
         testInfo="$testInfo,TestName=$testName"
+        testInfo="$testInfo,UpstreamProtocol=amqp"
         
         . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
         echo "snitcher duration in mins=$(snitcher.test.duration.in.mins)"
@@ -97,7 +98,6 @@ steps:
           -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
           -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
           -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
-          -hostPlatform "${{ parameters['metricsCollector.hostPlatform'] }}" \
           -testInfo "$testInfo" \
           -cleanAll
         #Remove all pending jobs

@@ -109,6 +109,7 @@ steps:
         $testInfo=$testInfo+",ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
         $testInfo=$testInfo+",HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
         $testInfo=$testInfo+",TestName=${{ parameters['testName'] }}"
+        $testInfo=$testInfo+",UpstreamProtocol=amqp"
         
         $ArtifactInfo=convertfrom-stringdata (get-content C:\Data\e2etests\artifacts\${{ parameters['images.artifact.name'] }}\artifactInfo.txt -raw)
         C:\Data\e2etests\artifacts\${{ parameters['images.artifact.name'] }}\scripts\windows\test\Run-E2ETest.ps1 `
@@ -143,7 +144,6 @@ steps:
           -MetricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" `
           -MetricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" `
           -MetricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" `
-          -HostPlatform "${{ parameters['metricsCollector.hostPlatform'] }}" `
           -TestInfo "$testInfo" `
           -BypassEdgeInstallation
       CommunicationProtocol: Http
