@@ -337,9 +337,6 @@
               "Logging:LogLevel:Microsoft": {
                 "value": "Error"
               },
-              "TEST_BUILD_NUMBER": {
-                "value": "<Test.BuildNumber>"
-              },
               "trackingId": {
                 "value": "<TrackingId>"
               },
@@ -378,6 +375,9 @@
               },
               "NetworkControllerRunProfile": {
                 "value": "<NetworkController.RunProfile>"
+              },
+              "TEST_INFO": {
+                "value": "<TestResultCoordinator.TestInfo>"
               }
             },
             "settings": {
