@@ -750,11 +750,11 @@
             "Source": "networkController",
             "TestDescription": "network controller"
           },
-          "reportMetadata14": {
+          "reportMetadata16": {
             "TestReportType": "ErrorReport",
             "TestDescription": "test configuration"
           },
-          "reportMetadata15": {
+          "reportMetadata17": {
             "TestReportType": "TestInfoReport",
             "TestDescription": "test info"
           }

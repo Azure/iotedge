@@ -302,7 +302,10 @@ function process_args() {
                 '-testPlatform' ) saveNextArg=35;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
-                * ) usage;;
+                * ) 
+                    echo "Failing argument: $arg"
+                    usage
+                    ;;
             esac
         fi
     done
@@ -527,6 +530,7 @@ function usage() {
     echo ' -storageAccountConnectionString          Azure storage account connection string with privilege to create blob container.'
     echo ' -edgeRuntimeBuildNumber                  Build number for specifying edge runtime (edgeHub and edgeAgent)'
     echo ' -testInfo                                Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.'
+    echo ' -testPlatform                            Test Platform'
 
     echo ' -cleanAll                                Do docker prune for containers, logs and volumes.'
     exit 1;
