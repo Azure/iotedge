@@ -8,6 +8,7 @@ namespace TestAnalyzer
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Logging;
 
     class Settings
     {
@@ -17,6 +18,7 @@ namespace TestAnalyzer
         const string DefaultStoragePath = "";
 
         internal static Settings Current = Create();
+        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TestAnalyzer));
 
         Settings(
             string eventHubConnectionString,
@@ -40,7 +42,7 @@ namespace TestAnalyzer
             this.WebhostPort = Preconditions.CheckNonWhiteSpace(webhostPort, nameof(webhostPort));
             this.ToleranceInMilliseconds = Preconditions.CheckRange(tolerance, 0);
             this.StoragePath = storagePath;
-            this.TestInfo = ModuleUtil.ParseTestInfo(testInfo);
+            this.TestInfo = ModuleUtil.ParseKeyValuePairs(testInfo, Logger, true);
             this.OptimizeForPerformance = Preconditions.CheckNotNull(storageOptimizeForPerformance);
             this.LogAnalyticsWorkspaceId = logAnalyticsWorkspaceIdName;
             this.LogAnalyticsSharedKey = logAnalyticsSharedKeyName;

@@ -55,6 +55,7 @@ steps:
         . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
         chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/testHelper.sh
         chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/connectivityTest.sh
+        testName="Connectivity"
 
         testInfo="TestBuildNumber=${{ parameters['test.buildNumber'] }}"
         testInfo="$testInfo,TestBuildId=${{ parameters['test.buildId'] }}"
@@ -63,6 +64,7 @@ steps:
         testInfo="$testInfo,ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
         testInfo="$testInfo,HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
         testInfo="$testInfo,NetworkDescription=${{ parameters['networkController.description'] }}"
+        testInfo="$testInfo,TestName=$testName"
         testInfo="$testInfo,CustomEdgeAgentImage=${{ parameters['customEdgeAgent.image'] }}"
         testInfo="$testInfo,CustomEdgeHubImage=${{ parameters['customEdgeHub.image'] }}"
         
@@ -91,10 +93,6 @@ steps:
           -deploymentFileName "${{ parameters['deploymentFileName'] }}" \
           -EdgeHubRestartTestRestartPeriod "${{ parameters['edgeHubRestartTest.restartPeriod'] }}" \
           -EdgeHubRestartTestSdkOperationTimeout "${{ parameters['edgeHubRestartTest.sdkOperationTimeout'] }}" \
-          -testBuildNumber "${{ parameters['test.buildNumber'] }}" \
-          -imagesBranchName "${{ parameters['images.source.branch'] }}" \
-          -edgeletBranchName "${{ parameters['edgelet.source.branch'] }}" \
-          -hostPlatform "${{ parameters['metricsCollector.hostPlatform'] }}" \
           -storageAccountConnectionString "${{ parameters['testResultCoordinator.storageAccountConnectionString'] }}" \
           -devOpsAccessToken "$(System.AccessToken)" \
           -devOpsBuildId "$(Build.BuildId)" \

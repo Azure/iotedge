@@ -22,6 +22,7 @@ namespace TestResultCoordinator
         const ushort DefaultWebHostPort = 5001;
 
         internal static Settings Current = Create();
+        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TestResultCoordinator));
 
         List<ITestReportMetadata> reportMetadatas = null;
 
@@ -64,7 +65,7 @@ namespace TestResultCoordinator
             this.StorageAccountConnectionString = Preconditions.CheckNonWhiteSpace(storageAccountConnectionString, nameof(storageAccountConnectionString));
             this.NetworkControllerType = this.GetNetworkControllerType(networkControllerRunProfileName);
 
-            this.TestInfo = ModuleUtil.ParseTestInfo(testInfo);
+            this.TestInfo = ModuleUtil.ParseKeyValuePairs(testInfo, Logger, true);
             this.TestInfo.Add("DeviceId", this.DeviceId);
         }
 
