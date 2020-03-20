@@ -1140,6 +1140,7 @@ lazy_static! {
 pub fn clear_publication_load() {
     PUBDEDUPER.lock().unwrap().reset();
 }
+
 struct PublicationDeDuper {
     loaded_bytes: HashMap<u64, Bytes>,
 }
