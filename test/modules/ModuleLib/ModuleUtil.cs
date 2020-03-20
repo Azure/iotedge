@@ -140,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
 
             if (shouldBeNonEmpty)
             {
-                Preconditions.CheckArgument(unsortedParsedTestInfo.Count > 0);
+                Preconditions.CheckArgument(unsortedParsedTestInfo.Count > 0, $"Key value pairs not in correct format: {keyValuePairs}");
             }
 
             return new SortedDictionary<string, string>(unsortedParsedTestInfo);
