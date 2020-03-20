@@ -154,59 +154,63 @@ impl ConsolidatedStateFormat {
     pub fn new() -> Self {
         Self
     }
+}
 
-    fn consolidate_state(state: BrokerState) -> ConsolidatedState {
-        let mut payloads = HashMap::new();
+struct Consolidator {
+    payloads: HashMap<u64, Bytes>,
+}
 
+impl Consolidator {
+    fn new() -> Self {
+        Self {
+            payloads: HashMap::new(),
+        }
+    }
+
+    fn consolidate_state(mut self, state: BrokerState) -> ConsolidatedState {
         let retained = state
             .retained
             .into_iter()
-            .map(|(k, v)| (k, Self::consolidate_publication(&mut payloads, v)));
+            .map(|(k, v)| (k, self.consolidate_publication(v)));
         let retained = HashMap::from_iter(retained);
 
         let sessions = state
             .sessions
             .into_iter()
-            .map(|s| Self::consolidate_session(&mut payloads, s))
+            .map(|s| self.consolidate_session(s))
             .collect();
 
         ConsolidatedState {
-            payloads,
+            payloads: self.payloads,
             retained,
             sessions,
         }
     }
 
-    fn consolidate_publication(
-        payloads: &mut HashMap<u64, Bytes>,
-        publication: Publication,
-    ) -> SimplifiedPublication {
+    fn consolidate_publication(&mut self, publication: Publication) -> SimplifiedPublication {
         SimplifiedPublication {
             topic_name: publication.topic_name,
             retain: publication.retain,
             qos: publication.qos,
-            payload: Self::get_id(payloads, publication.payload),
+            payload: self.get_id(publication.payload),
         }
     }
 
-    fn consolidate_session(
-        payloads: &mut HashMap<u64, Bytes>,
-        session: SessionState,
-    ) -> ConsolidatedSession {
+    fn consolidate_session(&mut self, session: SessionState) -> ConsolidatedSession {
         ConsolidatedSession {
             client_id: session.client_id,
             subscriptions: session.subscriptions,
             waiting_to_be_sent: session
                 .waiting_to_be_sent
                 .into_iter()
-                .map(|p| Self::consolidate_publication(payloads, p))
+                .map(|p| self.consolidate_publication(p))
                 .collect(),
         }
     }
 
-    fn get_id(payloads: &mut HashMap<u64, Bytes>, bytes: Bytes) -> u64 {
+    fn get_id(&mut self, bytes: Bytes) -> u64 {
         let hash = Self::calculate_hash(&bytes);
-        payloads.entry(hash).or_insert(bytes);
+        self.payloads.entry(hash).or_insert(bytes);
 
         hash
     }
