@@ -181,10 +181,13 @@ jobs:
       - script: $CARGO test --verbose
         displayName: Test
         workingDirectory: edgelet
+      - script: find ./target -type f ! -name '*.gc*' -delete
+        displayName: Cleanup build and test artifacts
+        workingDirectory: edgelet
       - script: |
-          zip -0 target/ccov.zip `find ./target \( -name "*.gc*" \) -print`
+          zip -1 target/ccov.zip `find ./target \( -name "*.gc*" \) -print`
           ./grcov target/ccov.zip -s . -t lcov --llvm --branch --ignore-not-existing --ignore-dir "/*" --ignore-dir "*docker-rs*" > target/lcov.info
-          python lcov_cobertura.py target/lcov.info --output target/coverage.xml --demangle --base-dir $(Build.SourcesDirectory)/edgelet -e "${COVERAGE_EXCLUDES}"
+          python lcov_cobertura.py target/lcov.info --output ./coverage.xml --demangle --base-dir $(Build.SourcesDirectory)/edgelet -e "${COVERAGE_EXCLUDES}"
         displayName: Assemble code coverage results
         workingDirectory: edgelet
         env:
@@ -193,7 +196,7 @@ jobs:
         displayName: Publish code coverage results
         inputs:
           codeCoverageTool: cobertura
-          summaryFileLocation: "edgelet/target/coverage.xml"
+          summaryFileLocation: "edgelet/coverage.xml"
       - task: mspremier.BuildQualityChecks.QualityChecks-task.BuildQualityChecks@5
         displayName: "Check build quality"
         inputs:

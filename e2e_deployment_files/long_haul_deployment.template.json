@@ -277,7 +277,7 @@
                 "value": "Error"
               },
               "TestInfo": {
-                "value": "<Analyzer.TestInfo>"
+                "value": "<TestInfo>"
               }
             },
             "settings": {
@@ -398,7 +398,7 @@
                     "value": "<LogAnalyticsSharedKey>"
                 },
                 "LogAnalyticsLogType": {
-                  "value": "testMetrics"
+                  "value": "testMetricsV2"
                 },
                 "MetricsEndpointsCSV": {
                   "value": "<MetricsCollector.MetricsEndpointsCSV>"
@@ -438,10 +438,7 @@
     },
     "metricsCollector": {
       "properties.desired": {
-        "hostPlatform": "<MetricsCollector.HostPlatform>",
-        "testType": "longhaul",
-        "testId": "<TrackingId>",
-        "upstreamProtocol": "amqp"
+        "additionalTags": "<TestInfo>"
       }
     }
   }

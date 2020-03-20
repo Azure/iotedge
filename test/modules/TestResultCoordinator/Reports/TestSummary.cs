@@ -2,23 +2,21 @@
 namespace TestResultCoordinator.Reports
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
 
     class TestSummary
     {
-        internal TestSummary(string testBuildNumber, string deviceId, ITestResultReport[] testResultReports, string blobContainerUri)
+        internal TestSummary(SortedDictionary<string, string> testInfo, ITestResultReport[] testResultReports, string blobContainerUri)
         {
-            this.TestBuildNumber = Preconditions.CheckNonWhiteSpace(testBuildNumber, nameof(testBuildNumber));
-            this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            this.TestInfo = Preconditions.CheckNotNull(testInfo, nameof(testInfo));
             this.TestResultReports = Preconditions.CheckNotNull(testResultReports, nameof(testResultReports));
             this.IsPassed = testResultReports.All(r => r.IsPassed);
             this.BlobContainerUri = blobContainerUri ?? string.Empty;
         }
 
-        public string TestBuildNumber { get; }
-
-        public string DeviceId { get; }
+        public SortedDictionary<string, string> TestInfo { get; }
 
         public bool IsPassed { get; }
 
