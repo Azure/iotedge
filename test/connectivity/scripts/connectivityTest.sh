@@ -375,7 +375,7 @@ function run_connectivity_test() {
                 -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
                 --leave-running=All \
                 -l "$deployment_working_file" \
-                --runtime-log-level "Info" \
+                --runtime-log-level "Error" \
                 --optimize_for_performance=false
                 --no-verify && funcRet=$? || funcRet=$?
             ;;
