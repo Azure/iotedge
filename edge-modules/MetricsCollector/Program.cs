@@ -79,7 +79,7 @@ namespace MetricsCollector
             Dictionary<string, string> deserializedTwin = JsonConvert.DeserializeObject<Dictionary<string, string>>(twin.Properties.Desired.ToJson());
             if (deserializedTwin.ContainsKey(additionalTagsPlaceholder))
             {
-                return Option.Some<SortedDictionary<string, string>>(ModuleUtil.ParseKeyValuePairs(deserializedTwin[additionalTagsPlaceholder], Logger));
+                return Option.Some<SortedDictionary<string, string>>(ModuleUtil.ParseKeyValuePairs(deserializedTwin[additionalTagsPlaceholder], Logger, true));
             }
 
             return Option.None<SortedDictionary<string, string>>();

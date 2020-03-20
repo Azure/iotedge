@@ -42,7 +42,7 @@ namespace TestAnalyzer
             this.WebhostPort = Preconditions.CheckNonWhiteSpace(webhostPort, nameof(webhostPort));
             this.ToleranceInMilliseconds = Preconditions.CheckRange(tolerance, 0);
             this.StoragePath = storagePath;
-            this.TestInfo = ModuleUtil.ParseKeyValuePairs(testInfo, Logger);
+            this.TestInfo = ModuleUtil.ParseKeyValuePairs(testInfo, Logger, true);
             this.OptimizeForPerformance = Preconditions.CheckNotNull(storageOptimizeForPerformance);
             this.LogAnalyticsWorkspaceId = logAnalyticsWorkspaceIdName;
             this.LogAnalyticsSharedKey = logAnalyticsSharedKeyName;

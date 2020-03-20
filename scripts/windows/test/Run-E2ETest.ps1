@@ -1588,6 +1588,12 @@ If ([string]::IsNullOrWhiteSpace($MetricsUploadTarget))
     $MetricsScrapeFrequencyInSecs="AzureLogAnalytics";
 }
 
+If ($TestName -eq "LongHaul" -Or $TestName -eq "Stress")
+{
+    $TrackingId = New-Guid
+    $TestInfo=$TestInfo+",TestId=$TrackingId"
+}
+
 If ($TestName -eq "LongHaul")
 {
     If ([string]::IsNullOrEmpty($DesiredModulesToRestartCSV)) {$DesiredModulesToRestartCSV = ","}
@@ -1616,9 +1622,6 @@ Else
 {
     $BypassInstallationFlag = $null
 }
-
-$TrackingId = New-Guid
-$TestInfo=$TestInfo+"TestId,=$TrackingId"
 
 # Evaluate collection of test results for final pass/fail result
 RunTest | ForEach-Object {$retCode = 0} {$retCode = $retCode -bor $_}

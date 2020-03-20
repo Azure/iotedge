@@ -65,7 +65,7 @@ namespace TestResultCoordinator
             this.StorageAccountConnectionString = Preconditions.CheckNonWhiteSpace(storageAccountConnectionString, nameof(storageAccountConnectionString));
             this.NetworkControllerType = this.GetNetworkControllerType(networkControllerRunProfileName);
 
-            this.TestInfo = ModuleUtil.ParseKeyValuePairs(testInfo, Logger);
+            this.TestInfo = ModuleUtil.ParseKeyValuePairs(testInfo, Logger, true);
             this.TestInfo.Add("DeviceId", this.DeviceId);
         }
 

@@ -1073,6 +1073,12 @@ TRANSPORT_TYPE_4="${TRANSPORT_TYPE_4:-mqtt}"
 TWIN_UPDATE_FAILURE_THRESHOLD="${TWIN_UPDATE_FAILURE_THRESHOLD:-00:01:00}"
 METRICS_SCRAPE_FREQUENCY_IN_SECS="${METRICS_SCRAPE_FREQUENCY_IN_SECS:-300}"
 METRICS_UPLOAD_TARGET="${METRICS_UPLOAD_TARGET:-AzureLogAnalytics}"
+
+if [[ "${TEST_NAME,,}" == "longhaul" ]] ||
+   [[ "${TEST_NAME,,}" == "stress"  ]]; then
+    tracking_id=$(cat /proc/sys/kernel/random/uuid)
+    TEST_INFO="$TEST_INFO,TestId=$tracking_id"
+fi
 if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
     DESIRED_MODULES_TO_RESTART_CSV="${DESIRED_MODULES_TO_RESTART_CSV:-,}"
     LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:01}"
@@ -1116,8 +1122,5 @@ stress_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployme
 deployment_working_file="$working_folder/deployment.json"
 quickstart_working_folder="$working_folder/quickstart"
 leafdevice_working_folder="$working_folder/leafdevice"
-
-tracking_id=$(cat /proc/sys/kernel/random/uuid)
-TEST_INFO="$TEST_INFO,TestId=$tracking_id"
 
 run_test
