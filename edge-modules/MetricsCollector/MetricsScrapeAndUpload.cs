@@ -16,10 +16,10 @@ namespace MetricsCollector
         static readonly ILogger Logger = MetricsUtil.CreateLogger("MetricsCollector");
         readonly IMetricsScraper scraper;
         readonly IMetricsPublisher publisher;
-        readonly Dictionary<string, string> additionalTags;
+        readonly Option<SortedDictionary<string, string>> additionalTags;
         PeriodicTask periodicScrapeAndUpload;
 
-        public MetricsScrapeAndUpload(IMetricsScraper scraper, IMetricsPublisher publisher, Dictionary<string, string> additionalTags)
+        public MetricsScrapeAndUpload(IMetricsScraper scraper, IMetricsPublisher publisher, Option<SortedDictionary<string, string>> additionalTags)
         {
             this.scraper = Preconditions.CheckNotNull(scraper);
             this.publisher = Preconditions.CheckNotNull(publisher);
@@ -41,7 +41,12 @@ namespace MetricsCollector
             try
             {
                 IEnumerable<Metric> metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
-                await this.publisher.PublishAsync(this.GetGuidTaggedMetrics(metrics), cancellationToken);
+                this.additionalTags.ForEach(tags =>
+                {
+                    metrics = this.GetTaggedMetrics(metrics, tags);
+                });
+
+                await this.publisher.PublishAsync(metrics, cancellationToken);
                 Logger.LogInformation("Successfully scraped and uploaded metrics");
             }
             catch (Exception e)
@@ -50,12 +55,12 @@ namespace MetricsCollector
             }
         }
 
-        IEnumerable<Metric> GetGuidTaggedMetrics(IEnumerable<Metric> metrics)
+        IEnumerable<Metric> GetTaggedMetrics(IEnumerable<Metric> metrics, SortedDictionary<string, string> additionalTags)
         {
             foreach (Metric metric in metrics)
             {
                 Dictionary<string, string> metricTags = new Dictionary<string, string>(metric.Tags);
-                foreach (KeyValuePair<string, string> pair in this.additionalTags)
+                foreach (KeyValuePair<string, string> pair in additionalTags)
                 {
                     metricTags[pair.Key] = pair.Value;
                 }

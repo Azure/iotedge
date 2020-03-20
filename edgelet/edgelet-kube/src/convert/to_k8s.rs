@@ -15,7 +15,7 @@ use log::warn;
 
 use crate::constants::env::*;
 use crate::constants::*;
-use crate::convert::{sanitize_dns_domain, sanitize_dns_value};
+use crate::convert::{sanitize_dns_value, sanitize_label_value};
 use crate::error::{ErrorKind, Result};
 use crate::registry::ImagePullSecret;
 use crate::settings::Settings;
@@ -328,12 +328,12 @@ pub fn spec_to_deployment(
     // Set some values...
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value =
-        sanitize_dns_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?)?;
-    let hubname_label = sanitize_dns_domain(
+        sanitize_label_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?);
+    let hubname_label = sanitize_label_value(
         settings
             .iot_hub_hostname()
             .ok_or(ErrorKind::MissingHubName)?,
-    )?;
+    );
     let deployment_name = module_label_value.clone();
     let module_image = spec.config().image().to_string();
 
@@ -400,12 +400,12 @@ pub fn spec_to_service_account(
 ) -> Result<(String, api_core::ServiceAccount)> {
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value =
-        sanitize_dns_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?)?;
-    let hubname_label = sanitize_dns_domain(
+        sanitize_label_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?);
+    let hubname_label = sanitize_label_value(
         settings
             .iot_hub_hostname()
             .ok_or(ErrorKind::MissingHubName)?,
-    )?;
+    );
 
     let service_account_name = module_label_value.clone();
 
@@ -442,12 +442,12 @@ pub fn spec_to_role_binding(
 ) -> Result<(String, api_rbac::RoleBinding)> {
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value =
-        sanitize_dns_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?)?;
-    let hubname_label = sanitize_dns_domain(
+        sanitize_label_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?);
+    let hubname_label = sanitize_label_value(
         settings
             .iot_hub_hostname()
             .ok_or(ErrorKind::MissingHubName)?,
-    )?;
+    );
 
     let role_binding_name = module_label_value.clone();
 
@@ -492,12 +492,12 @@ pub fn trust_bundle_to_config_map(
     cert: &impl Certificate,
 ) -> Result<(String, api_core::ConfigMap)> {
     let device_label_value =
-        sanitize_dns_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?)?;
-    let hubname_label = sanitize_dns_domain(
+        sanitize_label_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?);
+    let hubname_label = sanitize_label_value(
         settings
             .iot_hub_hostname()
             .ok_or(ErrorKind::MissingHubName)?,
-    )?;
+    );
 
     // labels
     let mut labels = BTreeMap::new();
