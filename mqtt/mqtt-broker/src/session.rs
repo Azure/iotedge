@@ -279,12 +279,12 @@ impl DisconnectingSession {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SessionState {
-    client_id: ClientId,
-    subscriptions: HashMap<String, Subscription>,
+    pub client_id: ClientId,
+    pub subscriptions: HashMap<String, Subscription>,
     packet_identifiers: PacketIdentifiers,
     packet_identifiers_qos0: PacketIdentifiers,
 
-    waiting_to_be_sent: VecDeque<proto::Publication>,
+    pub waiting_to_be_sent: VecDeque<proto::Publication>,
 
     // for incoming messages - QoS2
     waiting_to_be_released: HashMap<proto::PacketIdentifier, proto::Publish>,

@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+#![allow(unused_imports)]
+
 use std::fs::{self, OpenOptions};
 use std::io::{Read, Write};
 #[cfg(unix)]
@@ -112,6 +115,129 @@ impl BincodeFormat {
 }
 
 impl FileFormat for BincodeFormat {
+    type Error = Error;
+
+    fn load<R: Read>(&self, reader: R) -> Result<BrokerState, Self::Error> {
+        let decoder = GzDecoder::new(reader);
+        fail_point!("bincodeformat.load.deserialize_from", |_| {
+            Err(Error::from(ErrorKind::Persist(ErrorReason::Deserialize)))
+        });
+        let state = bincode::deserialize_from(decoder)
+            .context(ErrorKind::Persist(ErrorReason::Deserialize))?;
+        Ok(state)
+    }
+
+    fn store<W: Write>(&self, writer: W, state: BrokerState) -> Result<(), Self::Error> {
+        let encoder = GzEncoder::new(writer, Compression::default());
+        fail_point!("bincodeformat.store.serialize_into", |_| {
+            Err(Error::from(ErrorKind::Persist(ErrorReason::Deserialize)))
+        });
+        bincode::serialize_into(encoder, &state)
+            .context(ErrorKind::Persist(ErrorReason::Serialize))?;
+        Ok(())
+    }
+}
+
+use crate::session::SessionState;
+use crate::subscription::Subscription;
+use crate::ClientId;
+use bytes::Bytes;
+use mqtt3::proto::Publication;
+use std::collections::hash_map::DefaultHasher;
+use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
+use std::iter::FromIterator;
+
+pub struct ConsolidatedStateFormat;
+
+impl ConsolidatedStateFormat {
+    pub fn new() -> Self {
+        Self
+    }
+
+    fn consolidate_state(state: BrokerState) -> ConsolidatedState {
+        let mut payloads = HashMap::new();
+
+        let retained = state
+            .retained
+            .into_iter()
+            .map(|(k, v)| (k, Self::consolidate_publication(&mut payloads, v)));
+        let retained = HashMap::from_iter(retained);
+
+        let sessions = state
+            .sessions
+            .into_iter()
+            .map(|s| Self::consolidate_session(&mut payloads, s))
+            .collect();
+
+        ConsolidatedState {
+            payloads,
+            retained,
+            sessions,
+        }
+    }
+
+    fn consolidate_publication(
+        payloads: &mut HashMap<u64, Bytes>,
+        publication: Publication,
+    ) -> SimplifiedPublication {
+        SimplifiedPublication {
+            topic_name: publication.topic_name,
+            retain: publication.retain,
+            qos: publication.qos,
+            payload: Self::get_id(payloads, publication.payload),
+        }
+    }
+
+    fn consolidate_session(
+        payloads: &mut HashMap<u64, Bytes>,
+        session: SessionState,
+    ) -> ConsolidatedSession {
+        ConsolidatedSession {
+            client_id: session.client_id,
+            subscriptions: session.subscriptions,
+            waiting_to_be_sent: session
+                .waiting_to_be_sent
+                .into_iter()
+                .map(|p| Self::consolidate_publication(payloads, p))
+                .collect(),
+        }
+    }
+
+    fn get_id(payloads: &mut HashMap<u64, Bytes>, bytes: Bytes) -> u64 {
+        let hash = Self::calculate_hash(&bytes);
+        payloads.entry(hash).or_insert(bytes);
+
+        hash
+    }
+
+    fn calculate_hash<T: Hash>(t: &T) -> u64 {
+        let mut s = DefaultHasher::new();
+        t.hash(&mut s);
+        s.finish()
+    }
+}
+
+struct ConsolidatedState {
+    payloads: HashMap<u64, Bytes>,
+    retained: HashMap<String, SimplifiedPublication>,
+    sessions: Vec<ConsolidatedSession>,
+}
+
+struct ConsolidatedSession {
+    client_id: ClientId,
+    subscriptions: HashMap<String, Subscription>,
+    waiting_to_be_sent: Vec<SimplifiedPublication>,
+}
+
+struct SimplifiedPublication {
+    topic_name: String,
+    qos: crate::proto::QoS,
+    retain: bool,
+    payload: u64,
+}
+
+impl FileFormat for ConsolidatedStateFormat {
     type Error = Error;
 
     fn load<R: Read>(&self, reader: R) -> Result<BrokerState, Self::Error> {

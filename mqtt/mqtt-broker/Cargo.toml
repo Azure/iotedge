@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 async-trait = "0.1"
 bincode = "1.2"
+bytes = "0.5"
 chrono = "0.4"
 fail = "0.3"
 failure = "0.1"
