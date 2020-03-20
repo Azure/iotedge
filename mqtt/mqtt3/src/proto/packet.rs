@@ -1,6 +1,11 @@
+use std::collections::hash_map::DefaultHasher;
+use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
+use std::sync::Mutex;
 use std::{convert::TryInto, time::Duration};
 
 use bytes::{Buf, BufMut, Bytes};
+use lazy_static::lazy_static;
 #[cfg(feature = "serde1")]
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use tokio_util::codec::Decoder;
@@ -498,7 +503,10 @@ pub struct Publish {
     pub retain: bool,
     pub topic_name: String,
     #[cfg_attr(feature = "serde1", serde(serialize_with = "serialize_bytes"))]
-    #[cfg_attr(feature = "serde1", serde(deserialize_with = "deserialize_bytes"))]
+    #[cfg_attr(
+        feature = "serde1",
+        serde(deserialize_with = "deserialize_bytes_remove_duplicates")
+    )]
     pub payload: bytes::Bytes,
 }
 
@@ -916,115 +924,17 @@ impl From<SubAckQos> for u8 {
 
 /// A message that can be published to the server
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "serde1", derive(Serialize))]
+#[cfg_attr(feature = "serde1", derive(Serialize, Deserialize))]
 pub struct Publication {
     pub topic_name: String,
     pub qos: crate::proto::QoS,
     pub retain: bool,
     #[cfg_attr(feature = "serde1", serde(serialize_with = "serialize_bytes"))]
-    #[cfg_attr(feature = "serde1", serde(deserialize_with = "deserialize_bytes"))]
+    #[cfg_attr(
+        feature = "serde1",
+        serde(deserialize_with = "deserialize_bytes_remove_duplicates")
+    )]
     pub payload: Bytes,
-}
-
-use lazy_static::lazy_static;
-use serde::de::{self, SeqAccess, Visitor};
-use std::collections::hash_map::DefaultHasher;
-use std::collections::HashMap;
-use std::fmt;
-use std::hash::{Hash, Hasher};
-use std::sync::Mutex;
-
-struct PublicationDeDuper {
-    loaded_bytes: HashMap<u64, Bytes>,
-}
-
-impl PublicationDeDuper {
-    fn new() -> Self {
-        Self {
-            loaded_bytes: HashMap::new(),
-        }
-    }
-
-    fn de_dupe(&mut self, bytes: Vec<u8>) -> Bytes {
-        let hash = Self::calculate_hash(&bytes);
-        if let Some(payload) = self.loaded_bytes.get(&hash) {
-            if payload == &bytes {
-                return payload.clone();
-            }
-        }
-
-        let payload = Bytes::from(bytes);
-        self.loaded_bytes.insert(hash, payload.clone());
-
-        payload
-    }
-
-    fn calculate_hash<T: Hash>(t: &T) -> u64 {
-        let mut s = DefaultHasher::new();
-        t.hash(&mut s);
-        s.finish()
-    }
-
-    fn reset(&mut self) {
-        self.loaded_bytes = HashMap::new();
-    }
-}
-
-lazy_static! {
-    static ref PUBDEDUPER: Mutex<PublicationDeDuper> = Mutex::new(PublicationDeDuper::new());
-}
-
-pub fn clear_publication_load() {
-    PUBDEDUPER.lock().unwrap().reset();
-}
-
-impl<'de> Deserialize<'de> for Publication {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct PublicationVisitor;
-
-        impl<'de> Visitor<'de> for PublicationVisitor {
-            type Value = Publication;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-                formatter.write_str("struct Publication")
-            }
-
-            fn visit_seq<V>(self, mut seq: V) -> Result<Publication, V::Error>
-            where
-                V: SeqAccess<'de>,
-            {
-                let topic_name = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
-                let qos = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(1, &self))?;
-                let retain = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(2, &self))?;
-                let payload: Vec<u8> = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(3, &self))?;
-
-                let payload = PUBDEDUPER
-                    .lock()
-                    .map_err(de::Error::custom)?
-                    .de_dupe(payload);
-                Ok(Publication {
-                    topic_name,
-                    qos,
-                    retain,
-                    payload,
-                })
-            }
-        }
-
-        const FIELDS: &[&str] = &["topic_name", "qos", "retain", "payload"];
-        deserializer.deserialize_struct("Duration", FIELDS, PublicationVisitor)
-    }
 }
 
 /// A tokio codec that encodes and decodes MQTT packets.
@@ -1203,9 +1113,59 @@ where
 }
 
 #[cfg(feature = "serde1")]
-fn deserialize_bytes<'de, D>(deserializer: D) -> Result<bytes::Bytes, D::Error>
+fn deserialize_bytes_remove_duplicates<'de, D>(deserializer: D) -> Result<bytes::Bytes, D::Error>
 where
     D: Deserializer<'de>,
 {
-    Vec::<u8>::deserialize(deserializer).map(bytes::Bytes::from)
+    let payload = Vec::<u8>::deserialize(deserializer)?;
+    let payload = PUBDEDUPER
+        .lock()
+        .map_err(serde::de::Error::custom)?
+        .de_dupe(payload);
+
+    Ok(payload)
+}
+
+lazy_static! {
+    static ref PUBDEDUPER: Mutex<PublicationDeDuper> = Mutex::new(PublicationDeDuper::new());
+}
+
+struct PublicationDeDuper {
+    loaded_bytes: HashMap<u64, Bytes>,
+}
+
+impl PublicationDeDuper {
+    fn new() -> Self {
+        Self {
+            loaded_bytes: HashMap::new(),
+        }
+    }
+
+    fn de_dupe(&mut self, bytes: Vec<u8>) -> Bytes {
+        let hash = Self::calculate_hash(&bytes);
+        if let Some(payload) = self.loaded_bytes.get(&hash) {
+            if payload == &bytes {
+                return payload.clone();
+            }
+        }
+
+        let payload = Bytes::from(bytes);
+        self.loaded_bytes.insert(hash, payload.clone());
+
+        payload
+    }
+
+    fn calculate_hash<T: Hash>(t: &T) -> u64 {
+        let mut s = DefaultHasher::new();
+        t.hash(&mut s);
+        s.finish()
+    }
+
+    fn reset(&mut self) {
+        self.loaded_bytes = HashMap::new();
+    }
+}
+
+pub fn clear_publication_load() {
+    PUBDEDUPER.lock().unwrap().reset();
 }
