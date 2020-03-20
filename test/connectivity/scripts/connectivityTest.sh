@@ -358,7 +358,7 @@ function run_connectivity_test() {
                 -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
                 --leave-running=All \
                 -l "$deployment_working_file" \
-                --runtime-log-level "Error" \
+                --runtime-log-level "Info" \
                 --optimize_for_performance=false \
                 --no-verify && funcRet=$? || funcRet=$?
             ;;
@@ -532,7 +532,6 @@ function usage() {
     echo ' -edgeRuntimeBuildNumber                  Build number for specifying edge runtime (edgeHub and edgeAgent)'
     echo ' -testInfo                                Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.'
     echo ' -testPlatform                            Test agent platform'
-
     echo ' -cleanAll                                Do docker prune for containers, logs and volumes.'
     exit 1;
 }
