@@ -405,6 +405,9 @@
               },
               "NetworkControllerRunProfile": {
                 "value": "<NetworkController.RunProfile>"
+              },
+              "TEST_INFO": {
+                "value": "<TestInfo>"
               }
             },
             "settings": {
@@ -668,7 +671,7 @@
                 "value": "<LogAnalyticsSharedKey>"
               },
               "LogAnalyticsLogType": {
-                "value": "testMetrics"
+                "value": "testMetricsV2"
               },
               "MetricsEndpointsCSV": {
                 "value": "<MetricsCollector.MetricsEndpointsCSV>"
