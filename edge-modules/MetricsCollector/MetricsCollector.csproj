@@ -31,6 +31,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
+    <ProjectReference Include="..\..\test\modules\ModuleLib\Microsoft.Azure.Devices.Edge.ModuleUtil.csproj" />
     <ProjectReference Include="..\..\edge-agent\src\Microsoft.Azure.Devices.Edge.Agent.Diagnostics\Microsoft.Azure.Devices.Edge.Agent.Diagnostics.csproj" />
   </ItemGroup>
 
