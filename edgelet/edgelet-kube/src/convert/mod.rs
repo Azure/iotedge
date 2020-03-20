@@ -30,13 +30,20 @@ fn is_allowed_label_chars(c: char) -> bool {
 }
 
 pub fn sanitize_label_value(name: &str) -> String {
-    name.trim_start_matches(|c: char| !c.is_ascii_alphanumeric())
-        .chars()
-        .filter(|c| is_allowed_label_chars(*c))
-        .take(LABEL_MAX_SIZE)
-        .collect::<String>()
-        .trim_end_matches(|c: char| !c.is_ascii_alphanumeric())
-        .to_lowercase()
+    // strip both ends so we begin and end in alphanumeric
+    let mut trimmed = name
+        .trim_matches(|c: char| !c.is_ascii_alphanumeric())
+        .to_lowercase();
+    // Remove invalid characters and truncate to max length.
+    trimmed.retain(is_allowed_label_chars);
+    trimmed.truncate(LABEL_MAX_SIZE);
+    // if the truncate causes the value to end in non-alphnumeric, trim again.
+    if trimmed.ends_with(|c: char| !c.is_ascii_alphanumeric()) {
+        trimmed = trimmed
+            .trim_end_matches(|c: char| !c.is_ascii_alphanumeric())
+            .to_string();
+    }
+    trimmed
 }
 
 #[cfg(test)]
