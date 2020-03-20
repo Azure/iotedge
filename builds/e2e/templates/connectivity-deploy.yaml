@@ -25,7 +25,6 @@ parameters:
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''
-  metricsCollector.hostPlatform: ''
   edgeRuntime.buildNumber: ''
   customEdgeAgent.image: ''
   cusotmEdgeHub.image: ''
