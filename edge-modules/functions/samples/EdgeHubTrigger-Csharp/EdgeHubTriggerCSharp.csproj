@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
     <AzureFunctionsVersion></AzureFunctionsVersion>
     <OutputType>Library</OutputType>
     <ApplicationIcon />
@@ -17,7 +17,7 @@
   </ItemGroup>
   
   <ItemGroup Condition="'$(DotNet_Runtime)' != 'netcoreapp3.0'">
-    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="1.0.26" />
+    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="3.0.5" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
   </ItemGroup>
 
