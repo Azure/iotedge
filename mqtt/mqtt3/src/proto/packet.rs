@@ -1126,10 +1126,20 @@ where
     Ok(payload)
 }
 
+///
+/// A global hashmap is used to de-dupe payloads on load.
+/// The de-duplication must happen during parse,
+/// to ensure that there is only ever 1 duplicate payload in memory at a time.
+///
+/// Unfortunately, this global hashmap must be cleared by the caller of the parsing function.
+/// See persist.rs in the mqtt-broker project.
 lazy_static! {
     static ref PUBDEDUPER: Mutex<PublicationDeDuper> = Mutex::new(PublicationDeDuper::new());
 }
 
+pub fn clear_publication_load() {
+    PUBDEDUPER.lock().unwrap().reset();
+}
 struct PublicationDeDuper {
     loaded_bytes: HashMap<u64, Bytes>,
 }
@@ -1164,8 +1174,4 @@ impl PublicationDeDuper {
     fn reset(&mut self) {
         self.loaded_bytes = HashMap::new();
     }
-}
-
-pub fn clear_publication_load() {
-    PUBDEDUPER.lock().unwrap().reset();
 }

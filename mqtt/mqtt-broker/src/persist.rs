@@ -124,6 +124,9 @@ impl FileFormat for BincodeFormat {
         let state = bincode::deserialize_from(decoder)
             .context(ErrorKind::Persist(ErrorReason::Deserialize))?;
 
+        /* This is needed to clear the map that de-dupes payloads.
+         * If this is not called, loaded payloads will be held in memory indefinitally.
+         */
         clear_publication_load();
         Ok(state)
     }
