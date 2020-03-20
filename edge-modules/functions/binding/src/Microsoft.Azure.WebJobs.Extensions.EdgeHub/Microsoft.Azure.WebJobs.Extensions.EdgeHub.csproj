@@ -1,5 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup Condition="'$(OS)|$(DotNet_Runtime)' == 'Unix|netcoreapp3.0'">
+  <PropertyGroup>
     <CompileBlocked>true</CompileBlocked>
   </PropertyGroup>
 
