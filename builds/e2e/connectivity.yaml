@@ -120,6 +120,7 @@ jobs:
           release.label: 'ct$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
+          test.platform: 'linux_amd64_moby'
           build.source.branch: '$(Build.SourceBranchName)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
