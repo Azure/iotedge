@@ -9,6 +9,7 @@ namespace MetricsCollector
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
@@ -32,7 +33,7 @@ namespace MetricsCollector
             try
             {
                 moduleClient = await ModuleClient.CreateFromEnvironmentAsync(transportSettings);
-                Dictionary<string, string> additionalTags = await GetAdditionalTagsFromTwin(moduleClient);
+                Option<SortedDictionary<string, string>> additionalTags = await GetAdditionalTagsFromTwin(moduleClient);
 
                 MetricsScraper scraper = new MetricsScraper(Settings.Current.Endpoints);
                 IMetricsPublisher publisher;
@@ -68,13 +69,20 @@ namespace MetricsCollector
             return 0;
         }
 
-        static async Task<Dictionary<string, string>> GetAdditionalTagsFromTwin(ModuleClient moduleClient)
+        static async Task<Option<SortedDictionary<string, string>>> GetAdditionalTagsFromTwin(ModuleClient moduleClient)
         {
             Twin twin = await moduleClient.GetTwinAsync();
             TwinCollection desiredProperties = twin.Properties.Desired;
             Logger.LogInformation($"Received {desiredProperties.Count} tags from module twin's desired properties that will be added to scraped metrics");
 
-            return JsonConvert.DeserializeObject<Dictionary<string, string>>(twin.Properties.Desired.ToJson());
+            string additionalTagsPlaceholder = "additionalTags";
+            Dictionary<string, string> deserializedTwin = JsonConvert.DeserializeObject<Dictionary<string, string>>(twin.Properties.Desired.ToJson());
+            if (deserializedTwin.ContainsKey(additionalTagsPlaceholder))
+            {
+                return Option.Some<SortedDictionary<string, string>>(ModuleUtil.ParseKeyValuePairs(deserializedTwin[additionalTagsPlaceholder], Logger, true));
+            }
+
+            return Option.None<SortedDictionary<string, string>>();
         }
     }
 }
