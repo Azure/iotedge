@@ -304,7 +304,7 @@
                 "value": "Error"
               },
               "TestInfo": {
-                "value": "<Analyzer.TestInfo>"
+                "value": "<TestInfo>"
               }
             },
             "settings": {
