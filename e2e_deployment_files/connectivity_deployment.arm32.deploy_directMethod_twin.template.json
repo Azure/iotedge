@@ -61,78 +61,6 @@
           }
         },
         "modules": {
-          "loadGen1": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "Logging:LogLevel:Microsoft": {
-                "value": "Error"
-              },
-              "messageFrequency": {
-                "value": "<LoadGen.MessageFrequency>"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "transportType": {
-                "value": "Amqp"
-              },
-              "outputName": {
-                "value": "output1"
-              },
-              "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
-            }
-          },
-          "loadGen2": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "Logging:LogLevel:Microsoft": {
-                "value": "Error"
-              },
-              "messageFrequency": {
-                "value": "<LoadGen.MessageFrequency>"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "transportType": {
-                "value": "Mqtt"
-              },
-              "outputName": {
-                "value": "output2"
-              },
-              "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
-            }
-          },
           "directMethodSender1": {
             "version": "1.0",
             "type": "docker",
@@ -299,60 +227,6 @@
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
-            }
-          },
-          "relayer1": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "Logging:LogLevel:Microsoft": {
-                "value": "Error"
-              },
-              "transportType": {
-                "value": "Amqp"
-              },
-              "inputName": {
-                "value": "input1"
-              },
-              "outputName": {
-                "value": "output1"
-              },
-              "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
-            }
-          },
-          "relayer2": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "Logging:LogLevel:Microsoft": {
-                "value": "Error"
-              },
-              "transportType": {
-                "value": "Mqtt"
-              },
-              "inputName": {
-                "value": "input2"
-              },
-              "outputName": {
-                "value": "output2"
-              },
-              "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
             }
           },
           "testResultCoordinator": {
@@ -714,34 +588,6 @@
       "properties.desired": {
         "schemaVersion": "1.0",
         "reportMetadataList": {
-          "reportMetadata1": {
-            "TestReportType": "CountingReport",
-            "TestOperationResultType": "Messages",
-            "ExpectedSource": "loadGen1.send",
-            "ActualSource": "relayer1.receive",
-            "TestDescription": "messages | local | amqp"
-          },
-          "reportMetadata2": {
-            "TestReportType": "CountingReport",
-            "TestOperationResultType": "Messages",
-            "ExpectedSource": "relayer1.send",
-            "ActualSource": "relayer1.eventHub",
-            "TestDescription": "messages | upstream | amqp"
-          },
-          "reportMetadata3": {
-            "TestReportType": "CountingReport",
-            "TestOperationResultType": "Messages",
-            "ExpectedSource": "loadGen2.send",
-            "ActualSource": "relayer2.receive",
-            "TestDescription": "messages | local | mqtt"
-          },
-          "reportMetadata4": {
-            "TestReportType": "CountingReport",
-            "TestOperationResultType": "Messages",
-            "ExpectedSource": "relayer2.send",
-            "ActualSource": "relayer2.eventHub",
-            "TestDescription": "messages | upstream | mqtt"
-          },
           "reportMetadata5": {
             "TestReportType": "TwinCountingReport",
             "TwinTestPropertyType": "Desired",
