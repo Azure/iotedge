@@ -63,6 +63,9 @@ pub enum ErrorKind {
 
     #[fail(display = "An error occurred persisting state: {}", _0)]
     Persist(crate::persist::ErrorReason),
+
+    #[fail(display = "Unable to obtain peer leaf certificate")]
+    PeerCertificate,
 }
 
 impl Fail for Error {

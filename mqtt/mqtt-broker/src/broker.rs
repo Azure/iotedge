@@ -7,6 +7,9 @@ use tokio::sync::mpsc::{self, Receiver, Sender};
 use tracing::{debug, info, span, warn, Level};
 use tracing_futures::Instrument;
 
+use crate::auth::{
+    AuthId, Authenticator, Authorizer, Credentials, DefaultAuthenticator, DefaultAuthorizer,
+};
 use crate::session::{ConnectedSession, Session, SessionState};
 use crate::{ClientEvent, ClientId, ConnReq, Error, ErrorKind, Message, SystemEvent};
 
@@ -27,38 +30,76 @@ pub struct BrokerState {
     sessions: Vec<SessionState>,
 }
 
-pub struct Broker {
-    sender: Sender<Message>,
-    messages: Receiver<Message>,
-    sessions: HashMap<ClientId, Session>,
-    retained: HashMap<String, proto::Publication>,
+pub struct BrokerBuilder<N, Z> {
+    state: Option<BrokerState>,
+    authenticator: N,
+    authorizer: Z,
 }
 
-impl Broker {
-    pub fn new() -> Self {
-        let (sender, messages) = mpsc::channel(1024);
+impl<N, Z> BrokerBuilder<N, Z>
+where
+    N: Authenticator,
+    Z: Authorizer,
+{
+    pub fn new(authenticator: N, authorizer: Z) -> Self {
         Self {
-            sender,
-            messages,
-            sessions: HashMap::new(),
-            retained: HashMap::new(),
+            state: Option::default(),
+            authenticator,
+            authorizer,
         }
     }
 
-    pub fn from_state(state: BrokerState) -> Self {
-        let BrokerState { retained, sessions } = state;
-        let sessions = sessions
-            .into_iter()
-            .map(|s| (s.client_id().clone(), Session::new_offline(s)))
-            .collect::<HashMap<ClientId, Session>>();
+    pub fn state(mut self, state: BrokerState) -> Self {
+        self.state = Some(state);
+        self
+    }
+
+    pub fn build(self) -> Broker<N, Z> {
+        let mut state = self.state;
+        let (retained, sessions) = match state.take() {
+            Some(BrokerState { retained, sessions }) => {
+                let sessions = sessions
+                    .into_iter()
+                    .map(|s| (s.client_id().clone(), Session::new_offline(s)))
+                    .collect::<HashMap<ClientId, Session>>();
+                (retained, sessions)
+            }
+            None => (HashMap::default(), HashMap::default()),
+        };
 
         let (sender, messages) = mpsc::channel(1024);
-        Self {
+
+        Broker {
             sender,
             messages,
             sessions,
             retained,
+            authenticator: self.authenticator,
+            authorizer: self.authorizer,
         }
+    }
+}
+
+pub struct Broker<N, Z>
+where
+    N: Authenticator,
+    Z: Authorizer,
+{
+    sender: Sender<Message>,
+    messages: Receiver<Message>,
+    sessions: HashMap<ClientId, Session>,
+    retained: HashMap<String, proto::Publication>,
+    authenticator: N,
+    authorizer: Z,
+}
+
+impl<N, Z> Broker<N, Z>
+where
+    N: Authenticator,
+    Z: Authorizer,
+{
+    pub fn builder(authenticator: N, authorizer: Z) -> BrokerBuilder<N, Z> {
+        BrokerBuilder::new(authenticator, authorizer)
     }
 
     pub fn handle(&self) -> BrokerHandle {
@@ -199,6 +240,24 @@ impl Broker {
     ) -> Result<(), Error> {
         debug!("handling connect...");
 
+        macro_rules! refuse_connection {
+            ($reason:expr) => {
+                let ack = proto::ConnAck {
+                    session_present: false,
+                    return_code: proto::ConnectReturnCode::Refused($reason),
+                };
+
+                debug!("sending connack with: {:?}", ack.return_code);
+                let event = ClientEvent::ConnAck(ack);
+                let message = Message::Client(client_id.clone(), event);
+                try_send!(connreq.handle_mut(), message);
+
+                debug!("dropping connection due to authentication error");
+                let message = Message::Client(client_id, ClientEvent::DropConnection);
+                try_send!(connreq.handle_mut(), message);
+            };
+        };
+
         // [MQTT-3.1.2-1] - If the protocol name is incorrect the Server MAY
         // disconnect the Client, or it MAY continue processing the CONNECT
         // packet in accordance with some other specification.
@@ -226,22 +285,50 @@ impl Broker {
                 "invalid protocol level received from client: {}",
                 connreq.connect().protocol_level
             );
-            let ack = proto::ConnAck {
-                session_present: false,
-                return_code: proto::ConnectReturnCode::Refused(
-                    proto::ConnectionRefusedReason::UnacceptableProtocolVersion,
-                ),
-            };
-
-            debug!("sending connack...");
-            let event = ClientEvent::ConnAck(ack);
-            let message = Message::Client(client_id.clone(), event);
-            try_send!(connreq.handle_mut(), message);
-
-            debug!("dropping connection due to invalid protocol level");
-            let message = Message::Client(client_id, ClientEvent::DropConnection);
-            try_send!(connreq.handle_mut(), message);
+            refuse_connection!(proto::ConnectionRefusedReason::UnacceptableProtocolVersion);
             return Ok(());
+        }
+
+        // [MQTT-3.1.4-3] - The Server MAY check that the contents of the CONNECT
+        // Packet meet any further restrictions and MAY perform authentication
+        // and authorization checks. If any of these checks fail, it SHOULD send an
+        // appropriate CONNACK response with a non-zero return code as described in
+        // section 3.2 and it MUST close the Network Connection.
+        let auth_id = match self.authenticate(&connreq).await {
+            Ok(Some(auth_id)) => {
+                debug!(
+                    "client {} successfully authenticated: {}",
+                    client_id, auth_id
+                );
+                auth_id
+            }
+            Ok(None) => {
+                warn!("unable to authenticate client: {}", client_id);
+                refuse_connection!(proto::ConnectionRefusedReason::BadUserNameOrPassword);
+                return Ok(());
+            }
+            Err(e) => {
+                warn!(message="error authenticating client: {}", error=%e);
+                refuse_connection!(proto::ConnectionRefusedReason::ServerUnavailable);
+                return Err(e);
+            }
+        };
+
+        // Check client permissions to connect
+        match self.authorize(auth_id).await {
+            Ok(true) => {
+                debug!("client {} successfully authorized", client_id);
+            }
+            Ok(false) => {
+                warn!("client {} not allowed to connect", client_id);
+                refuse_connection!(proto::ConnectionRefusedReason::NotAuthorized);
+                return Ok(());
+            }
+            Err(e) => {
+                warn!(message="error authorizing client: {}", error=%e);
+                refuse_connection!(proto::ConnectionRefusedReason::ServerUnavailable);
+                return Err(e);
+            }
         }
 
         // Process the CONNECT packet after it has been validated
@@ -545,6 +632,19 @@ impl Broker {
             .ok_or_else(|| ErrorKind::NoSession.into())
     }
 
+    async fn authenticate(&mut self, connreq: &ConnReq) -> Result<Option<AuthId>, Error> {
+        let credentials = Credentials::new(
+            connreq.connect().username.clone(),
+            connreq.connect().password.clone(),
+            connreq.certificate().cloned(),
+        );
+        self.authenticator.authenticate(credentials)
+    }
+
+    async fn authorize(&mut self, auth_id: AuthId) -> Result<bool, Error> {
+        self.authorizer.authorize(auth_id)
+    }
+
     fn open_session(
         &mut self,
         connreq: ConnReq,
@@ -747,9 +847,9 @@ async fn publish_to(session: &mut Session, publication: &proto::Publication) -> 
     Ok(())
 }
 
-impl Default for Broker {
+impl Default for Broker<DefaultAuthenticator, DefaultAuthorizer> {
     fn default() -> Self {
-        Broker::new()
+        Broker::builder(DefaultAuthenticator, DefaultAuthorizer).build()
     }
 }
 
@@ -862,8 +962,8 @@ pub(crate) mod tests {
         let conn2 = ConnectionHandle::new(id, tx1);
         let client_id = ClientId::from("blah".to_string());
 
-        let req1 = ConnReq::new(client_id.clone(), connect1, conn1);
-        let req2 = ConnReq::new(client_id.clone(), connect2, conn2);
+        let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
+        let req2 = ConnReq::new(client_id.clone(), connect2, None, conn2);
 
         broker_handle
             .send(Message::Client(
@@ -921,8 +1021,8 @@ pub(crate) mod tests {
         let conn2 = ConnectionHandle::from_sender(tx2);
         let client_id = ClientId::from("blah".to_string());
 
-        let req1 = ConnReq::new(client_id.clone(), connect1, conn1);
-        let req2 = ConnReq::new(client_id.clone(), connect2, conn2);
+        let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
+        let req2 = ConnReq::new(client_id.clone(), connect2, None, conn2);
 
         broker_handle
             .send(Message::Client(
@@ -973,7 +1073,7 @@ pub(crate) mod tests {
         let (tx1, mut rx1) = mpsc::channel(128);
         let conn1 = ConnectionHandle::from_sender(tx1);
         let client_id = ClientId::from("blah".to_string());
-        let req1 = ConnReq::new(client_id.clone(), connect1, conn1);
+        let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
 
         broker_handle
             .send(Message::Client(
@@ -1008,7 +1108,7 @@ pub(crate) mod tests {
         let (tx1, mut rx1) = mpsc::channel(128);
         let conn1 = ConnectionHandle::from_sender(tx1);
         let client_id = ClientId::from("blah".to_string());
-        let req1 = ConnReq::new(client_id.clone(), connect1, conn1);
+        let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
 
         broker_handle
             .send(Message::Client(
@@ -1042,7 +1142,7 @@ pub(crate) mod tests {
         let client_id = ClientId::from(id.clone());
         let connect = transient_connect(id);
         let handle = connection_handle();
-        let req = ConnReq::new(client_id.clone(), connect, handle);
+        let req = ConnReq::new(client_id.clone(), connect, None, handle);
 
         broker.open_session(req).unwrap();
 
@@ -1063,7 +1163,7 @@ pub(crate) mod tests {
         let client_id = ClientId::from(id.clone());
         let connect = persistent_connect(id);
         let handle = connection_handle();
-        let req = ConnReq::new(client_id.clone(), connect, handle);
+        let req = ConnReq::new(client_id.clone(), connect, None, handle);
 
         broker.open_session(req).unwrap();
 
@@ -1090,8 +1190,8 @@ pub(crate) mod tests {
         let handle1 = ConnectionHandle::new(id, tx1.clone());
         let handle2 = ConnectionHandle::new(id, tx1);
 
-        let req1 = ConnReq::new(client_id.clone(), connect1, handle1);
-        let req2 = ConnReq::new(client_id, connect2, handle2);
+        let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
+        let req2 = ConnReq::new(client_id, connect2, None, handle2);
 
         broker.open_session(req1).unwrap();
         assert_eq!(1, broker.sessions.len());
@@ -1114,8 +1214,8 @@ pub(crate) mod tests {
         let handle1 = ConnectionHandle::new(id, tx1.clone());
         let handle2 = ConnectionHandle::new(id, tx1);
 
-        let req1 = ConnReq::new(client_id.clone(), connect1, handle1);
-        let req2 = ConnReq::new(client_id, connect2, handle2);
+        let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
+        let req2 = ConnReq::new(client_id, connect2, None, handle2);
 
         broker.open_session(req1).unwrap();
         assert_eq!(1, broker.sessions.len());
@@ -1134,12 +1234,12 @@ pub(crate) mod tests {
         let connect2 = transient_connect(id);
         let handle1 = connection_handle();
         let handle2 = connection_handle();
-        let req1 = ConnReq::new(client_id.clone(), connect1, handle1);
+        let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
 
         broker.open_session(req1).unwrap();
         assert_eq!(1, broker.sessions.len());
 
-        let req2 = ConnReq::new(client_id.clone(), connect2, handle2);
+        let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
         let result = broker.open_session(req2);
         assert_matches!(result, Err(SessionError::DuplicateSession(_, _)));
         assert_matches!(broker.sessions[&client_id], Session::Transient(_));
@@ -1155,12 +1255,12 @@ pub(crate) mod tests {
         let connect2 = persistent_connect(id);
         let handle1 = connection_handle();
         let handle2 = connection_handle();
-        let req1 = ConnReq::new(client_id.clone(), connect1, handle1);
+        let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
 
         broker.open_session(req1).unwrap();
         assert_eq!(1, broker.sessions.len());
 
-        let req2 = ConnReq::new(client_id.clone(), connect2, handle2);
+        let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
         let result = broker.open_session(req2);
         assert_matches!(result, Err(SessionError::DuplicateSession(_, _)));
         assert_matches!(broker.sessions[&client_id], Session::Persistent(_));
@@ -1176,12 +1276,12 @@ pub(crate) mod tests {
         let connect2 = transient_connect(id);
         let handle1 = connection_handle();
         let handle2 = connection_handle();
-        let req1 = ConnReq::new(client_id.clone(), connect1, handle1);
+        let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
 
         broker.open_session(req1).unwrap();
         assert_eq!(1, broker.sessions.len());
 
-        let req2 = ConnReq::new(client_id.clone(), connect2, handle2);
+        let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
         let result = broker.open_session(req2);
         assert_matches!(result, Err(SessionError::DuplicateSession(_, _)));
         assert_matches!(broker.sessions[&client_id], Session::Transient(_));
@@ -1197,8 +1297,8 @@ pub(crate) mod tests {
         let connect2 = persistent_connect(id);
         let handle1 = connection_handle();
         let handle2 = connection_handle();
-        let req1 = ConnReq::new(client_id.clone(), connect1, handle1);
-        let req2 = ConnReq::new(client_id.clone(), connect2, handle2);
+        let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
+        let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
 
         broker.open_session(req1).unwrap();
         assert_eq!(1, broker.sessions.len());
@@ -1218,8 +1318,8 @@ pub(crate) mod tests {
         let connect2 = persistent_connect(id);
         let handle1 = connection_handle();
         let handle2 = connection_handle();
-        let req1 = ConnReq::new(client_id.clone(), connect1, handle1);
-        let req2 = ConnReq::new(client_id.clone(), connect2, handle2);
+        let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
+        let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
 
         broker.open_session(req1).unwrap();
 
@@ -1247,7 +1347,7 @@ pub(crate) mod tests {
         let connect1 = persistent_connect(id.clone());
         let handle1 = connection_handle();
         let handle2 = connection_handle();
-        let req1 = ConnReq::new(client_id.clone(), connect1, handle1);
+        let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
 
         broker.open_session(req1).unwrap();
 
@@ -1262,7 +1362,7 @@ pub(crate) mod tests {
 
         // Reopen session
         let connect2 = transient_connect(id);
-        let req2 = ConnReq::new(client_id.clone(), connect2, handle2);
+        let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
         broker.open_session(req2).unwrap();
 
         assert_eq!(1, broker.sessions.len());

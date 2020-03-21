@@ -34,7 +34,9 @@ async fn main() -> Result<(), Error> {
     );
     info!("Loading state...");
     let state = persistor.load().await?.unwrap_or_else(BrokerState::default);
-    let broker = Broker::from_state(state);
+    let broker = Broker::builder(DefaultAuthenticator, DefaultAuthorizer)
+        .state(state)
+        .build();
     info!("state loaded.");
 
     let snapshotter = Snapshotter::new(persistor);

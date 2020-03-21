@@ -1,7 +1,7 @@
 use std::{env, io};
 
 use futures_util::future::pending;
-use mqtt_broker::{Error, Server};
+use mqtt_broker::{Broker, Error, Server};
 use tracing::Level;
 use tracing_subscriber::{fmt, EnvFilter};
 
@@ -19,6 +19,8 @@ async fn main() -> Result<(), Error> {
         .nth(1)
         .unwrap_or_else(|| "127.0.0.1:1883".to_string());
 
-    let _state = Server::new().serve(addr, pending::<()>()).await;
+    let _state = Server::from_broker(Broker::default())
+        .serve(addr, pending::<()>())
+        .await;
     Ok(())
 }

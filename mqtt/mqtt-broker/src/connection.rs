@@ -80,6 +80,9 @@ pub async fn process<I>(
 where
     I: AsyncRead + AsyncWrite + Unpin,
 {
+    // TODO read certificate from stream when ready
+    let certificate = None;
+
     let mut timeout = TimeoutStream::new(io);
     timeout.set_read_timeout(Some(*DEFAULT_TIMEOUT));
     timeout.set_write_timeout(Some(*DEFAULT_TIMEOUT));
@@ -120,14 +123,13 @@ where
                     codec.get_mut().set_read_timeout(Some(keep_alive));
                 }
 
-                let (outgoing, incoming) = codec.split();
-
-                let req = ConnReq::new(client_id.clone(), connect, connection_handle);
+                let req = ConnReq::new(client_id.clone(), connect, certificate, connection_handle);
                 let event = ClientEvent::ConnReq(req);
                 let message = Message::Client(client_id.clone(), event);
                 broker_handle.send(message).await?;
 
                 // Start up the processing tasks
+                let (outgoing, incoming) = codec.split();
                 let incoming_task =
                     incoming_task(client_id.clone(), incoming, broker_handle.clone());
                 let outgoing_task = outgoing_task(client_id.clone(), events, outgoing, broker_handle.clone());
