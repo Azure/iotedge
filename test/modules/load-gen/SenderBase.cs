@@ -1,16 +1,16 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace LoadGen
 {
+    using System;
+    using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
-    using System;
-    using System.Text;
-    using System.Threading;
-    using System.Threading.Tasks;
 
     public abstract class SenderBase
     {
@@ -34,7 +34,7 @@ namespace LoadGen
 
         public string TrackingId { get; }
 
-        public abstract void StartAsync(CancellationTokenSource cts, DateTime testStartAt);
+        public abstract Task RunAsync(CancellationTokenSource cts, DateTime testStartAt);
 
         protected async Task SendEventAsync(long messageId, string outputName)
         {

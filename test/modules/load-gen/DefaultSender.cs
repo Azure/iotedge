@@ -1,15 +1,16 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace LoadGen
 {
-    using Microsoft.Azure.Devices.Client;
-    using Microsoft.Extensions.Logging;
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
+    using Microsoft.Extensions.Logging;
 
     class DefaultSender : SenderBase
     {
-        public DefaultSender(ILogger logger,
+        public DefaultSender(
+            ILogger logger,
             ModuleClient moduleClient,
             Guid batchId,
             string trackingId)
@@ -17,7 +18,7 @@ namespace LoadGen
         {
         }
 
-        public async override void StartAsync(CancellationTokenSource cts, DateTime testStartAt)
+        public async override Task RunAsync(CancellationTokenSource cts, DateTime testStartAt)
         {
             long messageIdCounter = 1;
             while (!cts.IsCancellationRequested &&

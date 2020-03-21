@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace LoadGen
 {
-    using Microsoft.Azure.Devices.Client;
-    using Microsoft.Extensions.Logging;
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
+    using Microsoft.Extensions.Logging;
 
     class PriorityMessageSender : SenderBase
     {
@@ -15,7 +15,8 @@ namespace LoadGen
 
         readonly Random rng = new Random();
 
-        public PriorityMessageSender(ILogger logger,
+        public PriorityMessageSender(
+            ILogger logger,
             ModuleClient moduleClient,
             Guid batchId,
             string trackingId)
@@ -23,7 +24,7 @@ namespace LoadGen
         {
         }
 
-        public async override void StartAsync(CancellationTokenSource cts, DateTime testStartAt)
+        public async override Task RunAsync(CancellationTokenSource cts, DateTime testStartAt)
         {
             bool firstMessageWhileOffline = true;
             var priorityAndSequenceList = new List<(int, long)>();
@@ -33,8 +34,8 @@ namespace LoadGen
             {
                 try
                 {
-                    int priority = rng.Next(3);
-                    string output = outputs[priority];
+                    int priority = this.rng.Next(3);
+                    string output = this.outputs[priority];
 
                     await this.SendEventAsync(messageIdCounter, output);
 
@@ -71,7 +72,7 @@ namespace LoadGen
                 .Select(t => t.Item1)
                 .ToList();
 
-            foreach(int sequenceNumber in expectedSequenceNumberList)
+            foreach (int sequenceNumber in expectedSequenceNumberList)
             {
                 // Report sending message successfully to Test Result Coordinator
                 await this.ReportResult(sequenceNumber);
