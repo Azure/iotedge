@@ -143,6 +143,8 @@ use crate::subscription::Subscription;
 use crate::ClientId;
 use bytes::Bytes;
 use mqtt3::proto::Publication;
+use serde::ser::SerializeMap;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::hash_map::DefaultHasher;
 use std::collections::{HashMap, VecDeque};
 use std::hash::{Hash, Hasher};
@@ -153,6 +155,34 @@ pub struct ConsolidatedStateFormat;
 impl ConsolidatedStateFormat {
     pub fn new() -> Self {
         Self
+    }
+}
+
+impl FileFormat for ConsolidatedStateFormat {
+    type Error = Error;
+
+    fn load<R: Read>(&self, reader: R) -> Result<BrokerState, Self::Error> {
+        let decoder = GzDecoder::new(reader);
+        fail_point!("bincodeformat.load.deserialize_from", |_| {
+            Err(Error::from(ErrorKind::Persist(ErrorReason::Deserialize)))
+        });
+        let state = bincode::deserialize_from(decoder)
+            .context(ErrorKind::Persist(ErrorReason::Deserialize))?;
+
+        let state = Consolidator::resolve_state(state);
+        Ok(state)
+    }
+
+    fn store<W: Write>(&self, writer: W, state: BrokerState) -> Result<(), Self::Error> {
+        let state = Consolidator::consolidate_state(state);
+
+        let encoder = GzEncoder::new(writer, Compression::default());
+        fail_point!("bincodeformat.store.serialize_into", |_| {
+            Err(Error::from(ErrorKind::Persist(ErrorReason::Deserialize)))
+        });
+        bincode::serialize_into(encoder, &state)
+            .context(ErrorKind::Persist(ErrorReason::Serialize))?;
+        Ok(())
     }
 }
 
@@ -264,18 +294,23 @@ impl Consolidator {
     }
 }
 
+#[derive(Deserialize, Serialize)]
 struct ConsolidatedState {
+    #[serde(serialize_with = "serialize_payloads")]
+    #[serde(deserialize_with = "deserialize_payloads")]
     payloads: HashMap<u64, Bytes>,
     retained: HashMap<String, SimplifiedPublication>,
     sessions: Vec<ConsolidatedSession>,
 }
 
+#[derive(Deserialize, Serialize)]
 struct ConsolidatedSession {
     client_id: ClientId,
     subscriptions: HashMap<String, Subscription>,
     waiting_to_be_sent: Vec<SimplifiedPublication>,
 }
 
+#[derive(Deserialize, Serialize)]
 struct SimplifiedPublication {
     topic_name: String,
     qos: crate::proto::QoS,
@@ -283,28 +318,27 @@ struct SimplifiedPublication {
     payload: u64,
 }
 
-impl FileFormat for ConsolidatedStateFormat {
-    type Error = Error;
-
-    fn load<R: Read>(&self, reader: R) -> Result<BrokerState, Self::Error> {
-        let decoder = GzDecoder::new(reader);
-        fail_point!("bincodeformat.load.deserialize_from", |_| {
-            Err(Error::from(ErrorKind::Persist(ErrorReason::Deserialize)))
-        });
-        let state = bincode::deserialize_from(decoder)
-            .context(ErrorKind::Persist(ErrorReason::Deserialize))?;
-        Ok(state)
+fn serialize_payloads<S>(payloads: &HashMap<u64, Bytes>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let mut map = serializer.serialize_map(Some(payloads.len()))?;
+    for (k, v) in payloads {
+        map.serialize_entry(k, &v[..])?;
     }
 
-    fn store<W: Write>(&self, writer: W, state: BrokerState) -> Result<(), Self::Error> {
-        let encoder = GzEncoder::new(writer, Compression::default());
-        fail_point!("bincodeformat.store.serialize_into", |_| {
-            Err(Error::from(ErrorKind::Persist(ErrorReason::Deserialize)))
-        });
-        bincode::serialize_into(encoder, &state)
-            .context(ErrorKind::Persist(ErrorReason::Serialize))?;
-        Ok(())
-    }
+    map.end()
+}
+
+fn deserialize_payloads<'de, D>(deserializer: D) -> Result<HashMap<u64, Bytes>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let payloads = HashMap::<u64, Vec<u8>>::deserialize(deserializer)?
+        .into_iter()
+        .map(|(k, v)| (k, Bytes::from(v)));
+    let payloads = HashMap::from_iter(payloads);
+    Ok(payloads)
 }
 
 #[async_trait]
