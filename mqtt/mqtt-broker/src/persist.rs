@@ -144,7 +144,7 @@ use crate::ClientId;
 use bytes::Bytes;
 use mqtt3::proto::Publication;
 use std::collections::hash_map::DefaultHasher;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::hash::{Hash, Hasher};
 use std::iter::FromIterator;
 
@@ -161,30 +161,44 @@ struct Consolidator {
 }
 
 impl Consolidator {
-    fn new() -> Self {
-        Self {
+    fn consolidate_state(state: BrokerState) -> ConsolidatedState {
+        let mut this = Self {
             payloads: HashMap::new(),
-        }
-    }
+        };
 
-    fn consolidate_state(mut self, state: BrokerState) -> ConsolidatedState {
         let retained = state
             .retained
             .into_iter()
-            .map(|(k, v)| (k, self.consolidate_publication(v)));
+            .map(|(k, v)| (k, this.consolidate_publication(v)));
         let retained = HashMap::from_iter(retained);
 
         let sessions = state
             .sessions
             .into_iter()
-            .map(|s| self.consolidate_session(s))
+            .map(|s| this.consolidate_session(s))
             .collect();
 
         ConsolidatedState {
-            payloads: self.payloads,
+            payloads: this.payloads,
             retained,
             sessions,
         }
+    }
+
+    fn resolve_state(state: ConsolidatedState) -> BrokerState {
+        let mut this = Self {
+            payloads: state.payloads,
+        };
+
+        let retained = state
+            .retained
+            .into_iter()
+            .map(|(k, v)| (k, this.resolve_publication(v)));
+        let retained = HashMap::from_iter(retained);
+
+        let sessions = Vec::new();
+
+        BrokerState { retained, sessions }
     }
 
     fn consolidate_publication(&mut self, publication: Publication) -> SimplifiedPublication {
@@ -193,6 +207,15 @@ impl Consolidator {
             retain: publication.retain,
             qos: publication.qos,
             payload: self.get_id(publication.payload),
+        }
+    }
+
+    fn resolve_publication(&mut self, publication: SimplifiedPublication) -> Publication {
+        Publication {
+            topic_name: publication.topic_name,
+            retain: publication.retain,
+            qos: publication.qos,
+            payload: self.get_payload(publication.payload),
         }
     }
 
@@ -208,11 +231,30 @@ impl Consolidator {
         }
     }
 
+    fn resolve_session(&mut self, session: ConsolidatedSession) -> SessionState {
+        let mut result = SessionState::new(session.client_id);
+        result.subscriptions = session.subscriptions;
+        result.waiting_to_be_sent = session
+            .waiting_to_be_sent
+            .into_iter()
+            .map(|p| self.resolve_publication(p))
+            .collect();
+
+        result
+    }
+
     fn get_id(&mut self, bytes: Bytes) -> u64 {
         let hash = Self::calculate_hash(&bytes);
         self.payloads.entry(hash).or_insert(bytes);
 
         hash
+    }
+
+    fn get_payload(&mut self, id: u64) -> Bytes {
+        self.payloads
+            .get(&id)
+            .expect("All payloads should be stored.")
+            .clone()
     }
 
     fn calculate_hash<T: Hash>(t: &T) -> u64 {
