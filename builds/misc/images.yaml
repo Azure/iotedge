@@ -18,7 +18,7 @@ jobs:
       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
         displayName: 'Docker Login'
 
-      - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin --os Unix --dotnet_runtime netcoreapp3.0
+      - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin --os Unix --dotnet_runtime netcoreapp3.1
         name: build
         displayName: Build ($(Build.Configuration))
 

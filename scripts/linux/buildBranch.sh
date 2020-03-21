@@ -161,7 +161,7 @@ publish_app()
 publish_lib()
 {
     local name="$1"
-    publish_project library "$name" netstandard2.0 $CONFIGURATION "$PUBLISH_FOLDER/$name"
+    publish_project library "$name" netcoreapp3.1 $CONFIGURATION "$PUBLISH_FOLDER/$name"
 }
 
 publish_quickstart()
