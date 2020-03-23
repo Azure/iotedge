@@ -351,6 +351,8 @@ jobs:
     variables:
       NetCorePackageUri: https://download.visualstudio.microsoft.com/download/pr/ac85ccb0-e761-489f-b5dd-ba5e52735c2b/dd89fcc72092ff6fc7f5f4cb9eea0de4/dotnet-sdk-3.1.200-win-x64.zip
     steps:
+      - template: templates/install-dotnet3.yaml
+
       - powershell: scripts/windows/setup/Install-Prerequisites.ps1 -DotnetSdkUrl $(NetCorePackageUri) -Dotnet -Nuget
         name: install
         displayName: Install
