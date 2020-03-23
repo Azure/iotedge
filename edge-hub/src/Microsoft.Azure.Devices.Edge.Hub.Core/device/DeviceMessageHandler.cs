@@ -473,7 +473,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             static readonly IMetricsTimer MessagesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "message_send_duration_seconds",
                 "Time taken to send a message",
-                new List<string> { "from", "to" });
+                new List<string> { "from", "to", "priority" });
 
             static readonly IMetricsTimer GetTwinTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "gettwin_duration_seconds",
@@ -498,13 +498,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             static readonly IMetricsDuration MessagesProcessLatency = Util.Metrics.Metrics.Instance.CreateDuration(
                 "message_process_duration",
                 "Time taken to process message in EdgeHub",
-                new List<string> { "from", "to" });
+                new List<string> { "from", "to", "priority" });
 
             public static IDisposable TimeMessageSend(IIdentity identity, IMessage message)
             {
                 string from = message.GetSenderId();
                 string to = identity.Id;
-                return MessagesTimer.GetTimer(new[] { from, to });
+                string priority = message.ProcessedPriority.ToString();
+                return MessagesTimer.GetTimer(new[] { from, to, priority });
             }
 
             public static IDisposable TimeGetTwin(string id) => GetTwinTimer.GetTimer(new[] { "edge_hub", id });
@@ -519,6 +520,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             {
                 string from = message.GetSenderId();
                 string to = identity.Id;
+                string priority = message.ProcessedPriority.ToString();
                 if (message.SystemProperties != null
                     && message.SystemProperties.TryGetValue(SystemProperties.EnqueuedTime, out string enqueuedTimeString)
                     && DateTime.TryParse(enqueuedTimeString, out DateTime enqueuedTime))
@@ -526,7 +528,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                     TimeSpan duration = DateTime.UtcNow - enqueuedTime.ToUniversalTime();
                     MessagesProcessLatency.Set(
                         duration.TotalSeconds,
-                        new[] { from, to });
+                        new[] { from, to, priority });
                 }
             }
         }

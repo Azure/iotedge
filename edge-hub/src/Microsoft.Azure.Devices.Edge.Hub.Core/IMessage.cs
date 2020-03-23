@@ -11,5 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         IDictionary<string, string> Properties { get; }
 
         IDictionary<string, string> SystemProperties { get; }
+
+        uint ProcessedPriority { get; }
     }
 }
