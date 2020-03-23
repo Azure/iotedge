@@ -14,6 +14,7 @@ parameters:
   eventHub.connectionString: ''
   upstream.protocol: ''
   loadGen.message.frequency: ''
+  networkController.description: ''
   networkController.frequencies: ''
   networkController.runProfile: ''
   logAnalyticsWorkspaceId: ''
@@ -62,8 +63,8 @@ steps:
         testInfo="$testInfo,EdgeletSourceBranch=${{ parameters['edgelet.source.branch'] }}"
         testInfo="$testInfo,ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
         testInfo="$testInfo,HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
+        testInfo="$testInfo,NetworkDescription=${{ parameters['networkController.description'] }}"
         testInfo="$testInfo,TestName=$testName"
-        testInfo="$testInfo,RunProfile=${{ parameters['networkController.runProfile'] }}"
         testInfo="$testInfo,CustomEdgeAgentImage=${{ parameters['customEdgeAgent.image'] }}"
         testInfo="$testInfo,CustomEdgeHubImage=${{ parameters['customEdgeHub.image'] }}"
         
