@@ -49,6 +49,7 @@ namespace LoadGen
                         sender = new DefaultSender(Logger, moduleClient, batchId, Settings.Current.TrackingId);
                         break;
                 }
+
                 DateTime testStartAt = DateTime.UtcNow;
                 await sender.RunAsync(cts, testStartAt);
 

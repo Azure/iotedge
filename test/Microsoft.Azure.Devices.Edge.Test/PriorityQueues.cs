@@ -55,16 +55,49 @@ namespace Microsoft.Azure.Devices.Edge.Test
             const string trcModuleName = "testResultCoordinator";
             const string loadGenModuleName = "loadGenModule";
             const string relayerModuleName = "relayerModule";
+            const string trcUrl = "http://" + trcModuleName + ":5001";
 
             Action<EdgeConfigBuilder> addInitialConfig = new Action<EdgeConfigBuilder>(
                 builder =>
                 {
                     builder.AddModule(trcModuleName, trcImage)
-                       .WithEnvironment(new[] { ("MessageCount", "1") });
-                    // WithDesiredProperties --> Metadata for Counting report
+                       .WithEnvironment(new[]
+                       {
+                           ("trackingId", Guid.NewGuid().ToString()),
+                           ("eventHubConnectionString", "Unnecessary value for e2e test"),
+                           ("IOT_HUB_CONNECTION_STRING", "HostName=dybronso-iot-hub.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=g8BRuiPbFRLEttMsncI6aHUw21Jjr+AEb/Yf4brYD7Y="),
+                           ("logAnalyticsWorkspaceId", "Unnecessary value for e2e test"),
+                           ("logAnalyticsSharedKey", "Unnecessary value for e2e test"),
+                           ("testStartDelay", "00:00:00"),
+                           ("testDuration", "01:00:00"),
+                           ("verificationDelay", "00:00:10"),
+                           ("STORAGE_ACCOUNT_CONNECTION_STRING", "Unnecessary value for e2e test"),
+                           ("NetworkControllerRunProfile", "unnecessary"),
+                           ("TEST_INFO", "garbage value")
+                       })
+
+                       .WithDesiredProperties(new Dictionary<string, object>
+                       {
+                           ["reportMetadataList"] = new Dictionary<string, object>
+                           {
+                               ["reportMetadata1"] = new Dictionary<string, object>
+                               {
+                                   ["TestReportType"] = "CountingReport",
+                                   ["TestOperationResultType"] = "Messages",
+                                   ["ExpectedSource"] = "loadGenModule.send",
+                                   ["ActualSource"] = "relayerModule.receive",
+                                   ["TestDescription"] = "this field isn't used by TRC for E2E tests"
+                               }
+                           }
+                       });
                     builder.AddModule(loadGenModuleName, loadGenImage)
-                        .WithEnvironment(new[] { ("TemperatureThreshold", "19") });
-                    builder.GetModule(ModuleName.EdgeHub)
+                        .WithEnvironment(new[]
+                        {
+                            ("testResultCoordinatorUrl", trcUrl),
+                            ("senderType", "PriorityMessageSender")
+                        });
+
+            builder.GetModule(ModuleName.EdgeHub)
                         .WithDesiredProperties(new Dictionary<string, object>
                         {
                             ["routes"] = new
@@ -83,13 +116,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder =>
                 {
                     builder.AddModule(relayerModuleName, relayerImage)
-                        .WithEnvironment(new[] { ("", "") });
-                });
+                        .WithEnvironment(new[] { ("receiveOnly", "true") });
+        });
 
             deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token);
 
             HttpClient client = new HttpClient();
-            HttpResponseMessage response = await client.GetAsync(trcModuleName + ":5001/api/report");
+            HttpResponseMessage response = await client.GetAsync(trcUrl + "/api/report");
             ITestResultReport[] reports = await response.Content.ReadAsAsync<ITestResultReport[]>();
             Assert.IsTrue(reports[0].IsPassed);
 
