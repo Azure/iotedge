@@ -157,7 +157,6 @@ function PatchRustForArm {
 iovec = { git = "https://github.com/philipktlin/iovec", branch = "arm" }
 mio = { git = "https://github.com/philipktlin/mio", branch = "arm" }
 miow = { git = "https://github.com/philipktlin/miow", branch = "arm" }
-winapi = { git = "https://github.com/philipktlin/winapi-rs", branch = "arm/v0.3.5" }
 
 [patch."https://github.com/Azure/mio-uds-windows.git"]
 mio-uds-windows = { git = "https://github.com/philipktlin/mio-uds-windows.git", branch = "arm" }
