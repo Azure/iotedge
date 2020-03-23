@@ -14,7 +14,11 @@ namespace VstsPipelineSync
         {
             (HashSet<string> branches, TimeSpan waitPeriodBeforeNextUpdate, string pat, string dbConnectionString) = GetInputsFromArgs(args);
             Console.WriteLine($"Wait period before next update=[{waitPeriodBeforeNextUpdate}]");
-            await new VstsBuildBatchUpdate(new DevOpsAccessSetting(pat), dbConnectionString, branches).RunAsync(waitPeriodBeforeNextUpdate, CancellationToken.None);
+            
+            HashSet<BugQuery> bugQueries = BugQueryGenerator.GenerateBugQueries();
+
+            VstsBuildBatchUpdate vstsBuildBatchUpdate = new VstsBuildBatchUpdate(new DevOpsAccessSetting(pat), dbConnectionString, branches, bugQueries);
+            await vstsBuildBatchUpdate.RunAsync(waitPeriodBeforeNextUpdate, CancellationToken.None);
         }
 
         private static (HashSet<string> branches, TimeSpan waitPeriodBeforeNextUpdate, string pat, string dbConnectionString) GetInputsFromArgs(string[] args)

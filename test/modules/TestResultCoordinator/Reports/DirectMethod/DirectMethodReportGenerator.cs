@@ -20,6 +20,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
         readonly string trackingId;
 
         internal DirectMethodReportGenerator(
+            string testDescription,
             string trackingId,
             string senderSource,
             ITestResultCollection<TestOperationResult> senderTestResults,
@@ -34,6 +35,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
                 throw new ArgumentException("Provide both receiverSource and receiverTestResults or neither.");
             }
 
+            this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
             this.SenderTestResults = Preconditions.CheckNotNull(senderTestResults, nameof(senderTestResults));
@@ -53,6 +55,8 @@ namespace TestResultCoordinator.Reports.DirectMethod
         internal ITestResultCollection<TestOperationResult> SenderTestResults { get; }
 
         internal string ResultType { get; }
+
+        internal string TestDescription { get; }
 
         internal ITestResultComparer<TestOperationResult> TestResultComparer { get; }
 
@@ -118,6 +122,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
 
             Logger.LogInformation($"Successfully finished creating DirectMethodReport for Sources [{this.SenderSource}] and [{this.ReceiverSource}]");
             return new DirectMethodReport(
+                this.TestDescription,
                 this.trackingId,
                 this.SenderSource,
                 this.ReceiverSource,

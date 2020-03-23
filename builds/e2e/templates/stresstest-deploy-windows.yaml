@@ -62,6 +62,7 @@ steps:
         $testInfo=$testInfo+",ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
         $testInfo=$testInfo+",HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
         $testInfo=$testInfo+",TestName=$testName"
+        $testInfo=$testInfo+",UpstreamProtocol=amqp"
         
         $ArtifactInfo=convertfrom-stringdata (get-content $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt -raw)
         $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/windows/test/Run-E2ETest.ps1 `
@@ -94,7 +95,6 @@ steps:
           -MetricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" `
           -MetricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" `
           -MetricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" `
-          -HostPlatform "${{ parameters['metricsCollector.hostPlatform'] }}" `
           -TestInfo "$testInfo"
         # schedule a task to stop iotedge service (terminate the test) in 4:30h
         $ScheduleDatetime = [DateTime]::Now.AddMinutes(270)

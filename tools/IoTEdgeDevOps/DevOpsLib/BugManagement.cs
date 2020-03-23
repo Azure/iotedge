@@ -10,7 +10,7 @@ namespace DevOpsLib
 
     public class BugManagement
     {
-        const string WorkItemPathSegmentFormat = "{0}/{1}/{2}/{3}/_apis/wit/wiql/{4}";
+        const string WorkItemPathSegmentFormat = "{0}/{1}/{2}/{3}/_apis/wit/wiql";
 
         readonly DevOpsAccessSetting accessSetting;
 
@@ -20,33 +20,43 @@ namespace DevOpsLib
         }
 
         /// <summary>
-        /// This method is used to execute a Dev Ops work item query and get the number of bugs for a given query. 
-        /// If result is not found for a query Id, it will return 0.
-        /// Note: there is no validation of work item query ids.
-        /// Reference: https://docs.microsoft.com/en-us/rest/api/azure/devops/wit/wiql/get?view=azure-devops-rest-5.1
+        /// This method is used to execute a Dev Ops work item query and get the number of bugs for a given query.
+        /// If result is not found for a query, it will return 0.
+        /// Reference: https://docs.microsoft.com/en-us/rest/api/azure/devops/wit/wiql/query%20by%20wiql?view=azure-devops-rest-5.1
         /// </summary>
-        /// <param name="bugQueryId">bug query id from azure dev ops shared queries</param>
+        /// <param name="bugQuery">Bug query object representing vsts shared queries</param>
         /// <returns>Number of bugs output by query</returns>
-        public async Task<int> GetBugsQuery(string bugQueryId)
+        public async Task<int> GetBugsCountAsync(BugQuery bugQuery)
         {
-            ValidationUtil.ThrowIfNullOrEmptySet(bugQueryId, nameof(bugQueryId));
-
             // TODO: need to think about how to handle unexpected exception during REST API call
-            string requestPath = string.Format(WorkItemPathSegmentFormat, DevOpsAccessSetting.BaseUrl, this.accessSetting.Organization, this.accessSetting.Project, this.accessSetting.Team, bugQueryId);
+            string requestPath = string.Format(WorkItemPathSegmentFormat, DevOpsAccessSetting.BaseUrl, this.accessSetting.Organization, this.accessSetting.Project, this.accessSetting.Team);
             IFlurlRequest workItemQueryRequest = ((Url)requestPath)
-                .WithBasicAuth(string.Empty, this.accessSetting.PersonalAccessToken);
+                .WithBasicAuth(string.Empty, this.accessSetting.PersonalAccessToken)
+                .SetQueryParam("api-version", "5.1");
 
-            string resultJson = await workItemQueryRequest.GetStringAsync().ConfigureAwait(false);
-            JObject result = JObject.Parse(resultJson);
+            JObject result;
+            try
+            {
+                IFlurlResponse response = await workItemQueryRequest
+                    .PostJsonAsync(new { query = bugQuery.GetWiqlFromConfiguration() });
+
+                result = await response.GetJsonAsync<JObject>();
+            }
+            catch (FlurlHttpException e)
+            {
+                Console.WriteLine($"Failed making call to vsts work item api: {e.Message}");
+                Console.WriteLine(e.Call.RequestBody);
+                Console.WriteLine(e.Call.Response.StatusCode);
+                Console.WriteLine(e.Call.Response.ResponseMessage);
+                return 0;
+            }
 
             if (!result.ContainsKey("queryType"))
             {
-                return 0; 
+                return 0;
             }
-            else
-            {
-                return result["workItems"].Count();
-            }
+
+            return result["workItems"].Count();
         }
     }
 }

@@ -200,9 +200,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         [Unit]
         public async Task TestReplaceRoutes()
         {
-            var message1 = new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } });
-            var message2 = new Message(TelemetryMessageSource.Instance, new byte[] { 2, 3, 1 }, new Dictionary<string, string> { { "key1", "value2" }, { "key2", "value2" } });
-            var message3 = new Message(TelemetryMessageSource.Instance, new byte[] { 3, 1, 2 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } });
+            var message1 = new Message(TelemetryMessageSource.Instance, new byte[] { 1, 1, 1 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, 0L);
+            var message2 = new Message(TelemetryMessageSource.Instance, new byte[] { 2, 2, 2 }, new Dictionary<string, string> { { "key1", "value2" }, { "key2", "value2" } }, 1L);
+            var message3 = new Message(TelemetryMessageSource.Instance, new byte[] { 3, 3, 3 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, 2L);
+            var message4 = new Message(TelemetryMessageSource.Instance, new byte[] { 4, 4, 4 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, 3L);
+            var message5 = new Message(TelemetryMessageSource.Instance, new byte[] { 5, 5, 5 }, new Dictionary<string, string> { { "key1", "value2" }, { "key2", "value2" } }, 4L);
+            var message6 = new Message(TelemetryMessageSource.Instance, new byte[] { 6, 6, 6 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, 5L);
+            var message7 = new Message(TelemetryMessageSource.Instance, new byte[] { 7, 7, 7 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, 6L);
+            var message8 = new Message(TelemetryMessageSource.Instance, new byte[] { 8, 8, 8 }, new Dictionary<string, string> { { "key1", "value2" }, { "key2", "value2" } }, 7L);
+            var message9 = new Message(TelemetryMessageSource.Instance, new byte[] { 9, 9, 9 }, new Dictionary<string, string> { { "key1", "value1" }, { "key2", "value2" } }, 8L);
 
             var endpoint1 = new TestEndpoint("id1");
             var endpoint2 = new TestEndpoint("id2");
@@ -233,17 +239,17 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
                 Assert.Contains(route1, router.Routes);
                 Assert.Equal(3, router.Routes.Count);
 
-                await router.RouteAsync(message1);
-                await router.RouteAsync(message2);
-                await router.RouteAsync(message3);
+                await router.RouteAsync(message4);
+                await router.RouteAsync(message5);
+                await router.RouteAsync(message6);
 
                 await router.ReplaceRoutes(new HashSet<Route> { route2, route3 });
                 Assert.Contains(route2, router.Routes);
                 Assert.Contains(route3, router.Routes);
                 Assert.Equal(2, router.Routes.Count);
-                await router.RouteAsync(message1);
-                await router.RouteAsync(message2);
-                await router.RouteAsync(message3);
+                await router.RouteAsync(message7);
+                await router.RouteAsync(message8);
+                await router.RouteAsync(message9);
 
                 await router.ReplaceRoutes(new HashSet<Route> { route2, route3, route4, route5 });
                 Assert.Contains(route2, router.Routes);
@@ -256,9 +262,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
                 await Assert.ThrowsAsync<InvalidOperationException>(() => router.ReplaceRoutes(new HashSet<Route>()));
             }
 
-            Assert.Equal(new List<IMessage> { message1, message3, message1, message3 }, endpoint1.Processed);
-            Assert.Equal(new List<IMessage> { message2, message2, message2 }, endpoint2.Processed);
-            Assert.Equal(new List<IMessage> { message1, message3, message1, message3 }, endpoint3.Processed);
+            Assert.Equal(new List<IMessage> { message1, message3, message4, message6 }, endpoint1.Processed);
+            Assert.Equal(new List<IMessage> { message2, message5, message8 }, endpoint2.Processed);
+            Assert.Equal(new List<IMessage> { message4, message6, message7, message9 }, endpoint3.Processed);
         }
 
         [Fact]
@@ -298,10 +304,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
         [Unit]
         public async Task TestOffset()
         {
+            var dispatcherId = Guid.NewGuid().ToString();
+            string endpointId1 = "endpoint1";
+            string endpointId2 = "endpoint2";
             var store = new Mock<ICheckpointStore>();
-            store.Setup(s => s.GetCheckpointDataAsync("router.1", It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(22));
-            store.Setup(s => s.GetCheckpointDataAsync("router.1.endpoint1", It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(23));
-            store.Setup(s => s.GetCheckpointDataAsync("router.1.endpoint2", It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(22));
+            store.Setup(s => s.GetCheckpointDataAsync(dispatcherId, It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(22));
+            store.Setup(s => s.GetCheckpointDataAsync(endpointId1, It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(23));
+            store.Setup(s => s.GetCheckpointDataAsync(endpointId2, It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(22));
 
             var endpoint1 = new TestEndpoint("endpoint1");
             var endpoint2 = new TestEndpoint("endpoint2");
@@ -313,25 +322,25 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
                 new Route("route2", "true", "hub", TelemetryMessageSource.Instance, endpoint2, 0, 0)
             };
 
-            Router router1 = await Router.CreateAsync("router.1", "hub", new RouterConfig(allEndpoints, routes, Fallback), SyncExecutorFactory, store.Object);
+            Router router1 = await Router.CreateAsync(dispatcherId, "hub", new RouterConfig(allEndpoints, routes, Fallback), SyncExecutorFactory, store.Object);
             Assert.Equal(Option.Some(22L), router1.Offset);
 
-            store.Verify(s => s.GetCheckpointDataAsync("router.1", It.IsAny<CancellationToken>()), Times.Once);
-            store.Verify(s => s.GetCheckpointDataAsync("router.1.endpoint1", It.IsAny<CancellationToken>()), Times.Once);
-            store.Verify(s => s.GetCheckpointDataAsync("router.1.endpoint2", It.IsAny<CancellationToken>()), Times.Once);
+            store.Verify(s => s.GetCheckpointDataAsync(dispatcherId, It.IsAny<CancellationToken>()), Times.Once);
+            store.Verify(s => s.GetCheckpointDataAsync(endpointId1, It.IsAny<CancellationToken>()), Times.Once);
+            store.Verify(s => s.GetCheckpointDataAsync(endpointId2, It.IsAny<CancellationToken>()), Times.Once);
 
             await router1.RouteAsync(MessageWithOffset(25L));
             Assert.Equal(Option.Some(25L), router1.Offset);
-            store.Verify(s => s.SetCheckpointDataAsync("router.1", It.Is<CheckpointData>(c => c.Offset == 25), It.IsAny<CancellationToken>()), Times.Once);
-            store.Verify(s => s.SetCheckpointDataAsync("router.1.endpoint1", It.Is<CheckpointData>(c => c.Offset == 25), It.IsAny<CancellationToken>()), Times.Once);
-            store.Verify(s => s.SetCheckpointDataAsync("router.1.endpoint2", It.Is<CheckpointData>(c => c.Offset == 25), It.IsAny<CancellationToken>()), Times.Once);
+            store.Verify(s => s.SetCheckpointDataAsync(dispatcherId, It.Is<CheckpointData>(c => c.Offset == 25), It.IsAny<CancellationToken>()), Times.Once);
+            store.Verify(s => s.SetCheckpointDataAsync(endpointId1, It.Is<CheckpointData>(c => c.Offset == 25), It.IsAny<CancellationToken>()), Times.Once);
+            store.Verify(s => s.SetCheckpointDataAsync(endpointId2, It.Is<CheckpointData>(c => c.Offset == 25), It.IsAny<CancellationToken>()), Times.Once);
 
             await router1.RemoveRoute("route1");
             await router1.RouteAsync(MessageWithOffset(26L));
             Assert.Equal(Option.Some(26L), router1.Offset);
-            store.Verify(s => s.SetCheckpointDataAsync("router.1", It.Is<CheckpointData>(c => c.Offset == 26), It.IsAny<CancellationToken>()), Times.Once);
-            store.Verify(s => s.SetCheckpointDataAsync("router.1.endpoint1", It.Is<CheckpointData>(c => c.Offset == 26), It.IsAny<CancellationToken>()), Times.Never);
-            store.Verify(s => s.SetCheckpointDataAsync("router.1.endpoint2", It.Is<CheckpointData>(c => c.Offset == 26), It.IsAny<CancellationToken>()), Times.Once);
+            store.Verify(s => s.SetCheckpointDataAsync(dispatcherId, It.Is<CheckpointData>(c => c.Offset == 26), It.IsAny<CancellationToken>()), Times.Once);
+            store.Verify(s => s.SetCheckpointDataAsync(endpointId1, It.Is<CheckpointData>(c => c.Offset == 26), It.IsAny<CancellationToken>()), Times.Never);
+            store.Verify(s => s.SetCheckpointDataAsync(endpointId2, It.Is<CheckpointData>(c => c.Offset == 26), It.IsAny<CancellationToken>()), Times.Once);
 
             await router1.CloseAsync(CancellationToken.None);
 
