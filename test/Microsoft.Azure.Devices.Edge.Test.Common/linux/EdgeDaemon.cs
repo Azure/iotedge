@@ -58,6 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         default:
                             throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
                     }
+
                     return new[]
                     {
                         $"curl https://packages.microsoft.com/config/{os}/{version}/multiarch/prod.list > /etc/apt/sources.list.d/microsoft-prod.list",
