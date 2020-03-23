@@ -5,57 +5,35 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
+    using Newtonsoft.Json.Linq;
     using NUnit.Framework;
     using System;
     using System.Collections.Generic;
-    using System.Linq;
     using System.Net.Http;
     using System.Threading;
     using System.Threading.Tasks;
-    using TestResultCoordinator.Reports;
 
     [EndToEnd]
     public class PriorityQueues : SasManualProvisioningFixture
     {
-        // Here, put an end to end test for priority queues.
-        // End to end will look something like this:
-        // Start up edge with Sender module (load gen would work well)
-        // Wait a bit while the sender module sends messages
-        // Start up a receiver module
-        // Verify that the receiver module received the messages correctly
-
-        private sealed class TestResultCoordinator
-        {
-            public string Name { get; }
-            public string Image { get; }
-
-            private const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
-            private static int instanceCount = 0;
-
-            private TestResultCoordinator(int number)
-            {
-                this.Name = "tempSensor" + number.ToString();
-                this.Image = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
-            }
-
-            public static TestResultCoordinator GetInstance()
-            {
-                return new TestResultCoordinator(TestResultCoordinator.instanceCount++);
-            }
-        }
-
         [Test]
         public async Task PriorityQueueModuleToModuleMessages()
         {
+            // This test uses the TestResultCoordinator. It was originally designed for connectivity tests, so many of the parameters
+            // are unnecessary for the e2e tests.
+            // TODO: Make TestResultCoordinator more generic, so we don't have to fill out garbage values in the e2e tests.
+
             CancellationToken token = this.TestToken;
             string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
-            string loadGenImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("loadGenImage parameter is required for TempFilter test"));
-            string relayerImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("relayerImage parameter is required for TempFilter test"));
+            string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for TempFilter test"));
+            string relayerImage = Context.Current.RelayerImage.Expect(() => new ArgumentException("relayerImage parameter is required for TempFilter test"));
 
             const string trcModuleName = "testResultCoordinator";
             const string loadGenModuleName = "loadGenModule";
             const string relayerModuleName = "relayerModule";
             const string trcUrl = "http://" + trcModuleName + ":5001";
+
+            string trackingId = Guid.NewGuid().ToString();
 
             Action<EdgeConfigBuilder> addInitialConfig = new Action<EdgeConfigBuilder>(
                 builder =>
@@ -63,18 +41,20 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     builder.AddModule(trcModuleName, trcImage)
                        .WithEnvironment(new[]
                        {
-                           ("trackingId", Guid.NewGuid().ToString()),
-                           ("eventHubConnectionString", "Unnecessary value for e2e test"),
-                           ("IOT_HUB_CONNECTION_STRING", "HostName=dybronso-iot-hub.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=g8BRuiPbFRLEttMsncI6aHUw21Jjr+AEb/Yf4brYD7Y="),
-                           ("logAnalyticsWorkspaceId", "Unnecessary value for e2e test"),
-                           ("logAnalyticsSharedKey", "Unnecessary value for e2e test"),
+                           ("trackingId", trackingId),
+                           ("eventHubConnectionString", "Unnecessary"),
+                           ("IOT_HUB_CONNECTION_STRING", this.iotHub.IoTHubConnectionString),
+                           ("logAnalyticsWorkspaceId", "Unnecessary"),
+                           ("logAnalyticsSharedKey", "Unnecessary"),
+                           ("logAnalyticsLogType", "Unnecessary"),
                            ("testStartDelay", "00:00:00"),
-                           ("testDuration", "01:00:00"),
-                           ("verificationDelay", "00:00:10"),
-                           ("STORAGE_ACCOUNT_CONNECTION_STRING", "Unnecessary value for e2e test"),
-                           ("NetworkControllerRunProfile", "unnecessary"),
-                           ("TEST_INFO", "garbage value")
+                           ("testDuration", "00:20:00"),
+                           ("verificationDelay", "00:00:00"),
+                           ("STORAGE_ACCOUNT_CONNECTION_STRING", "Unnecessary"),
+                           ("NetworkControllerRunProfile", "Online"),
+                           ("TEST_INFO", "key=unnecessary")
                        })
+                       .WithSettings(new[] { ("createOptions", "{\"HostConfig\": {\"PortBindings\": {\"5001/tcp\": [{\"HostPort\": \"5001\"}]}}}") })
 
                        .WithDesiredProperties(new Dictionary<string, object>
                        {
@@ -86,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                    ["TestOperationResultType"] = "Messages",
                                    ["ExpectedSource"] = "loadGenModule.send",
                                    ["ActualSource"] = "relayerModule.receive",
-                                   ["TestDescription"] = "this field isn't used by TRC for E2E tests"
+                                   ["TestDescription"] = "unnecessary"
                                }
                            }
                        });
@@ -94,43 +74,63 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         .WithEnvironment(new[]
                         {
                             ("testResultCoordinatorUrl", trcUrl),
-                            ("senderType", "PriorityMessageSender")
+                            ("senderType", "PriorityMessageSender"),
+                            ("trackingId", "e2eTestTrackingId"),
+                            ("testDuration", "00:00:20"),
+                            ("messageFrequency", "00:00:01")
                         });
 
-            builder.GetModule(ModuleName.EdgeHub)
+                    builder.GetModule(ModuleName.EdgeHub)
                         .WithDesiredProperties(new Dictionary<string, object>
                         {
-                            ["routes"] = new
+                            ["routes"] = new Dictionary<string, object>
                             {
-                                LoadGenToRelayer1 = "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri0 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
-                                LoadGenToRelayer2 = "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri1 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
-                                LoadGenToRelayer3 = "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri2 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
-                                LoadGenToRelayer4 = "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri3 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
+                                ["LoadGenToRelayer1"] = new Dictionary<string, object>
+                                {
+                                    ["route"] = "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri0 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
+                                    ["priority"] = 0
+                                },
+                                ["LoadGenToRelayer2"] = new Dictionary<string, object>
+                                {
+                                    ["route"] = "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri1 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
+                                    ["priority"] = 1
+                                },
+                                ["LoadGenToRelayer3"] = new Dictionary<string, object>
+                                {
+                                    ["route"] = "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri2 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
+                                    ["priority"] = 2
+                                },
+                                ["LoadGenToRelayer4"] = new Dictionary<string, object>
+                                {
+                                    ["route"] = "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri3 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
+                                    ["priority"] = 3
+                                }
                             }
                         });
                 });
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token);
 
+            // Wait for loadGen to send some messages
+            await Task.Delay(TimeSpan.FromSeconds(30));
+
             Action<EdgeConfigBuilder> addRelayerConfig = new Action<EdgeConfigBuilder>(
                 builder =>
                 {
                     builder.AddModule(relayerModuleName, relayerImage)
                         .WithEnvironment(new[] { ("receiveOnly", "true") });
-        });
+                });
 
             deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token);
 
-            HttpClient client = new HttpClient();
-            HttpResponseMessage response = await client.GetAsync(trcUrl + "/api/report");
-            ITestResultReport[] reports = await response.Content.ReadAsAsync<ITestResultReport[]>();
-            Assert.IsTrue(reports[0].IsPassed);
+            // Wait for relayer to spin up, receive messages, and pass along results to TRC
+            await Task.Delay(TimeSpan.FromSeconds(20));
 
-            // Next steps:
-            // fill in trc env vars
-            // fill in other env vars
-            // good to go? - find images of these bad boys and run it
-            // Ask damon - Where are these containers run when you run these locally?
+            HttpClient client = new HttpClient();
+            HttpResponseMessage response = await client.GetAsync("http://localhost:5001/api/report");
+            var jsonstring = await response.Content.ReadAsStringAsync();
+            bool isPassed = (bool)JArray.Parse(jsonstring)[0]["IsPassed"];
+            Assert.IsTrue(isPassed);
         }
     }   
 }

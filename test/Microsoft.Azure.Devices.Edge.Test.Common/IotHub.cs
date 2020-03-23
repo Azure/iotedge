@@ -62,6 +62,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 });
         }
 
+        public string IoTHubConnectionString => this.iotHubConnectionString;
+
         public string Hostname =>
             IotHubConnectionStringBuilder.Create(this.iotHubConnectionString).HostName;
 
