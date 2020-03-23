@@ -50,11 +50,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     {
                         case "Ubuntu":
                             os = "ubuntu";
-                            break;
                         case "Raspbian":
                             os = "debian";
                             version = "stretch";
-                            break;
                         default:
                             throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
                     }
