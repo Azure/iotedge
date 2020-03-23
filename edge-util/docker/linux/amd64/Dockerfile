@@ -1,4 +1,4 @@
-# docker file for azureiotedge/azureiotedge-runtime-base:1.3-linux-amd64
+# docker file for azureiotedge/azureiotedge-runtime-base:1.2-linux-amd64
 FROM alpine:3.10
 
 ARG num_procs=4
