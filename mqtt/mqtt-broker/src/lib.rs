@@ -11,6 +11,9 @@
     clippy::missing_errors_doc
 )]
 
+#[macro_use]
+extern crate lazy_static;
+
 use std::fmt;
 use std::sync::Arc;
 
@@ -18,6 +21,7 @@ use mqtt3::*;
 use serde::{Deserialize, Serialize};
 
 mod broker;
+mod configuration;
 mod connection;
 mod error;
 mod persist;
@@ -27,6 +31,7 @@ mod snapshot;
 mod subscription;
 
 pub use crate::broker::{Broker, BrokerHandle, BrokerState};
+pub use crate::configuration::BrokerSettings;
 pub use crate::connection::ConnectionHandle;
 pub use crate::error::{Error, ErrorKind};
 pub use crate::persist::{BincodeFormat, FileFormat, FilePersistor, NullPersistor, Persist};

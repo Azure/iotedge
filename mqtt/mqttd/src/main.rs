@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::{env, io};
 
 use failure::ResultExt;
@@ -22,6 +23,13 @@ async fn main() -> Result<(), Error> {
     let addr = env::args()
         .nth(1)
         .unwrap_or_else(|| "0.0.0.0:1883".to_string());
+
+    // TODO pass it to broker
+    let config_path = "src/config.json";
+    let config = BrokerSettings::new(Some(Path::new(config_path))).expect("cannot read configuration");
+
+    // TODO pass it to persistence
+    let _persistence = config.persistence();
 
     // Setup the shutdown handle
     let shutdown = shutdown::shutdown();
