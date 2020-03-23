@@ -349,7 +349,7 @@ jobs:
     workspace:
       clean: all
     variables:
-      NetCorePackageUri: https://dotnet.microsoft.com/download/dotnet-core/thank-you/sdk-3.1.200-windows-x64-binaries 
+      NetCorePackageUri: https://download.visualstudio.microsoft.com/download/pr/ac85ccb0-e761-489f-b5dd-ba5e52735c2b/dd89fcc72092ff6fc7f5f4cb9eea0de4/dotnet-sdk-3.1.200-win-x64.zip
     steps:
       - powershell: scripts/windows/setup/Install-Prerequisites.ps1 -DotnetSdkUrl $(NetCorePackageUri) -Dotnet -Nuget
         name: install
