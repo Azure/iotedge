@@ -34,7 +34,7 @@ impl Server {
     where
         A: ToSocketAddrs,
         F: Future<Output = ()> + Unpin,
-        I: IntoIterator<Item=TransportBuilder<A>>,
+        I: IntoIterator<Item = TransportBuilder<A>>,
     {
         let Server { broker } = self;
         let mut handle = broker.handle();

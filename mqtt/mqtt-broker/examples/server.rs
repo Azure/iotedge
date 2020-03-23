@@ -19,6 +19,7 @@ async fn main() -> Result<(), Error> {
         .nth(1)
         .unwrap_or_else(|| "127.0.0.1:1883".to_string());
 
-    let _state = Server::new().serve(addr, pending::<()>()).await;
+    let transports = std::iter::once((addr).into());
+    let _state = Server::new().serve(transports, pending::<()>()).await;
     Ok(())
 }
