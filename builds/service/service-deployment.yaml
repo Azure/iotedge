@@ -44,18 +44,17 @@ steps:
 - pwsh: |
     if ($env:EH_ARG -and $env:IH_ARG)
     {
-      $eh = $env:EH_ARG
-      $ih = $env:IH_ARG
+      $env:E2E_EVENT_HUB_ENDPOINT = $env:EH_ARG
+      $env:E2E_IOT_HUB_CONNECTION_STRING = $env:IH_ARG
     }
     else
     {
-      $eh = $env:EH_KV
-      $ih = $env:IH_KV
+      $env:E2E_EVENT_HUB_ENDPOINT = $env:EH_KV
+      $env:E2E_IOT_HUB_CONNECTION_STRING = $env:IH_KV
     }
 
     $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
-    sudo E2E_EVENT_HUB_ENDPOINT=$eh E2E_IOT_HUB_CONNECTION_STRING=$ih `
-      dotnet vstest $testFile --logger:trx --testcasefilter:Name=TempSensor
+    sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:Name=TempSensor
   displayName: Run tests
   env:
     EH_ARG: $(connstr.eventHub)
