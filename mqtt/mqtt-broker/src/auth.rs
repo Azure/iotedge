@@ -1,7 +1,9 @@
 #![allow(dead_code)] // TODO @dmolokanov remove when implemented
 use std::fmt;
 
-use crate::error::Error;
+use failure::Fail;
+
+use crate::Error;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum AuthId {
@@ -61,8 +63,23 @@ impl Authorizer for DefaultAuthorizer {
 impl fmt::Display for AuthId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            AuthId::Any => write!(f, "any"),
-            AuthId::Value(auth_id) => write!(f, "{}", auth_id),
+            Self::Any => write!(f, "any"),
+            Self::Value(auth_id) => write!(f, "{}", auth_id),
+        }
+    }
+}
+
+#[derive(Debug, Fail, PartialEq)]
+pub enum AuthReason {
+    Authenticate,
+    Authorize,
+}
+
+impl fmt::Display for AuthReason {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Authenticate => write!(f, "Error occurred during authentication"),
+            Self::Authorize => write!(f, "Error occurred during authorization"),
         }
     }
 }

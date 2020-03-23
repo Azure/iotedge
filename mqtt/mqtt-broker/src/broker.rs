@@ -19,7 +19,7 @@ const EXPECTED_PROTOCOL_LEVEL: u8 = mqtt3::PROTOCOL_LEVEL;
 macro_rules! try_send {
     ($session:expr, $msg:expr) => {{
         if let Err(e) = $session.send($msg).await {
-            warn!(message = "error processing message", error=%e);
+            warn!(message = "error processing message", error = %e);
         }
     }};
 }
@@ -55,14 +55,14 @@ where
     }
 
     pub fn build(self) -> Broker<N, Z> {
-        let mut state = self.state;
-        let (retained, sessions) = match state.take() {
-            Some(BrokerState { retained, sessions }) => {
-                let sessions = sessions
+        let (retained, sessions) = match self.state {
+            Some(state) => {
+                let sessions = state
+                    .sessions
                     .into_iter()
                     .map(|s| (s.client_id().clone(), Session::new_offline(s)))
                     .collect::<HashMap<ClientId, Session>>();
-                (retained, sessions)
+                (state.retained, sessions)
             }
             None => (HashMap::default(), HashMap::default()),
         };
@@ -110,13 +110,13 @@ where
         while let Some(message) = self.messages.recv().await {
             match message {
                 Message::Client(client_id, event) => {
-                    let span = span!(Level::INFO, "broker", client_id=%client_id, event="client");
+                    let span = span!(Level::INFO, "broker", client_id = %client_id, event="client");
                     if let Err(e) = self
                         .process_message(client_id, event)
                         .instrument(span)
                         .await
                     {
-                        warn!(message = "an error occurred processing a message", error=%e);
+                        warn!(message = "an error occurred processing a message", error = %e);
                     }
                 }
                 Message::System(event) => {
@@ -126,7 +126,7 @@ where
                             info!("gracefully shutting down the broker...");
                             debug!("closing sessions...");
                             if let Err(e) = self.process_shutdown().instrument(span).await {
-                                warn!(message = "an error occurred shutting down the broker", error=%e);
+                                warn!(message = "an error occurred shutting down the broker", error = %e);
                             }
                             break;
                         }
@@ -135,7 +135,7 @@ where
                             let _guard = span.enter();
                             info!("asking snapshotter to persist state...");
                             if let Err(e) = handle.send(state).await {
-                                warn!(message = "an error occurred communicating with the snapshotter", error=%e);
+                                warn!(message = "an error occurred communicating with the snapshotter", error = %e);
                             } else {
                                 info!("sent state to snapshotter.");
                             }
@@ -227,7 +227,7 @@ where
 
         for mut session in sessions {
             if let Err(e) = session.send(ClientEvent::DropConnection).await {
-                warn!(error=%e, message = "an error occurred closing the session", client_id = %session.client_id());
+                warn!(error = %e, message = "an error occurred closing the session", client_id = %session.client_id());
             }
         }
         Ok(())
@@ -308,7 +308,7 @@ where
                 return Ok(());
             }
             Err(e) => {
-                warn!(message="error authenticating client: {}", error=%e);
+                warn!(message = "error authenticating client: {}", error = %e);
                 refuse_connection!(proto::ConnectionRefusedReason::ServerUnavailable);
                 return Err(e);
             }
@@ -325,7 +325,7 @@ where
                 return Ok(());
             }
             Err(e) => {
-                warn!(message="error authorizing client: {}", error=%e);
+                warn!(message="error authorizing client: {}", error = %e);
                 refuse_connection!(proto::ConnectionRefusedReason::ServerUnavailable);
                 return Err(e);
             }
@@ -832,7 +832,7 @@ where
 
         for session in self.sessions.values_mut() {
             if let Err(e) = publish_to(session, &publication).await {
-                warn!(message = "error processing message", error=%e);
+                warn!(message = "error processing message", error = %e);
             }
         }
 
@@ -886,8 +886,7 @@ pub(crate) mod tests {
     use uuid::Uuid;
 
     use crate::session::tests::*;
-    use crate::tests::*;
-    use crate::ConnectionHandle;
+    use crate::{auth::AuthReason, tests, ConnectionHandle};
 
     prop_compose! {
         pub fn arb_broker_state()(
@@ -981,14 +980,14 @@ pub(crate) mod tests {
             .unwrap();
 
         assert_matches!(
-            rx1.recv().await.unwrap(),
-            Message::Client(_, ClientEvent::ConnAck(_))
+            rx1.recv().await,
+            Some(Message::Client(_, ClientEvent::ConnAck(_)))
         );
         assert_matches!(
-            rx1.recv().await.unwrap(),
-            Message::Client(_, ClientEvent::DropConnection)
+            rx1.recv().await,
+            Some(Message::Client(_, ClientEvent::DropConnection))
         );
-        assert!(rx1.recv().await.is_none());
+        assert_matches!(rx1.recv().await, None)
     }
 
     #[tokio::test]
@@ -1040,18 +1039,18 @@ pub(crate) mod tests {
             .unwrap();
 
         assert_matches!(
-            rx1.recv().await.unwrap(),
-            Message::Client(_, ClientEvent::ConnAck(_))
+            rx1.recv().await,
+            Some(Message::Client(_, ClientEvent::ConnAck(_)))
         );
         assert_matches!(
-            rx1.recv().await.unwrap(),
-            Message::Client(_, ClientEvent::DropConnection)
+            rx1.recv().await,
+            Some(Message::Client(_, ClientEvent::DropConnection))
         );
-        assert!(rx1.recv().await.is_none());
+        assert_matches!(rx1.recv().await, None);
 
         assert_matches!(
-            rx2.recv().await.unwrap(),
-            Message::Client(_, ClientEvent::ConnAck(_))
+            rx2.recv().await,
+            Some(Message::Client(_, ClientEvent::ConnAck(_)))
         );
     }
 
@@ -1084,10 +1083,10 @@ pub(crate) mod tests {
             .unwrap();
 
         assert_matches!(
-            rx1.recv().await.unwrap(),
-            Message::Client(_, ClientEvent::DropConnection)
+            rx1.recv().await,
+            Some(Message::Client(_, ClientEvent::DropConnection))
         );
-        assert!(rx1.recv().await.is_none());
+        assert_matches!(rx1.recv().await, None)
     }
 
     #[tokio::test]
@@ -1119,20 +1118,295 @@ pub(crate) mod tests {
             .unwrap();
 
         assert_matches!(
-            rx1.recv().await.unwrap(),
-            Message::Client(_, ClientEvent::ConnAck(proto::ConnAck {
+            rx1.recv().await,
+            Some(Message::Client(_, ClientEvent::ConnAck(proto::ConnAck {
                 return_code:
                     proto::ConnectReturnCode::Refused(
                         proto::ConnectionRefusedReason::UnacceptableProtocolVersion,
                     ),
                 ..
+            })))
+        );
+        assert_matches!(
+            rx1.recv().await,
+            Some(Message::Client(_, ClientEvent::DropConnection))
+        );
+        assert_matches!(rx1.recv().await, None)
+    }
+
+    #[tokio::test]
+    async fn test_connect_auth_succeeded() {
+        let authenticator = authenticate_fn(|| Ok(Some(AuthId::Any)));
+        let authorizer = authorize_fn(|_| Ok(true));
+        let broker = Broker::builder(authenticator, authorizer).build();
+
+        let mut broker_handle = broker.handle();
+        tokio::spawn(broker.run().map(drop));
+
+        let connect1 = proto::Connect {
+            username: None,
+            password: None,
+            will: None,
+            client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
+            keep_alive: Duration::default(),
+            protocol_name: crate::PROTOCOL_NAME.to_string(),
+            protocol_level: crate::PROTOCOL_LEVEL,
+        };
+
+        let (tx1, mut rx1) = mpsc::channel(128);
+        let conn1 = ConnectionHandle::from_sender(tx1);
+        let client_id = ClientId::from("blah".to_string());
+        let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
+
+        broker_handle
+            .send(Message::Client(
+                client_id.clone(),
+                ClientEvent::ConnReq(req1),
+            ))
+            .await
+            .unwrap();
+
+        assert_matches!(
+            rx1.recv().await,
+            Some(Message::Client(_, ClientEvent::ConnAck(proto::ConnAck {
+                return_code:
+                    proto::ConnectReturnCode::Accepted,
+                ..
+            })))
+        );
+    }
+
+    #[tokio::test]
+    async fn test_connect_unknown_client() {
+        let authenticator = authenticate_fn(|| Ok(None));
+        let authorizer = authorize_fn(|_| Ok(true));
+        let broker = Broker::builder(authenticator, authorizer).build();
+
+        let mut broker_handle = broker.handle();
+        tokio::spawn(broker.run().map(drop));
+
+        let connect1 = proto::Connect {
+            username: None,
+            password: None,
+            will: None,
+            client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
+            keep_alive: Duration::default(),
+            protocol_name: crate::PROTOCOL_NAME.to_string(),
+            protocol_level: crate::PROTOCOL_LEVEL,
+        };
+
+        let (tx1, mut rx1) = mpsc::channel(128);
+        let conn1 = ConnectionHandle::from_sender(tx1);
+        let client_id = ClientId::from("blah".to_string());
+        let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
+
+        broker_handle
+            .send(Message::Client(
+                client_id.clone(),
+                ClientEvent::ConnReq(req1),
+            ))
+            .await
+            .unwrap();
+
+        assert_matches!(
+            rx1.recv().await,
+            Some(Message::Client(_, ClientEvent::ConnAck(proto::ConnAck {
+                return_code:
+                    proto::ConnectReturnCode::Refused(
+                        proto::ConnectionRefusedReason::BadUserNameOrPassword,
+                    ),
+                ..
+            })))
+        );
+        assert_matches!(
+            rx1.recv().await,
+            Some(Message::Client(_, ClientEvent::DropConnection))
+        );
+        assert_matches!(rx1.recv().await, None)
+    }
+
+    #[tokio::test]
+    async fn test_connect_authentication_failed() {
+        let authenticator =
+            authenticate_fn(|| Err(ErrorKind::Auth(AuthReason::Authenticate).into()));
+        let authorizer = authorize_fn(|_| Ok(true));
+        let broker = Broker::builder(authenticator, authorizer).build();
+
+        let mut broker_handle = broker.handle();
+        tokio::spawn(broker.run().map(drop));
+
+        let connect1 = proto::Connect {
+            username: None,
+            password: None,
+            will: None,
+            client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
+            keep_alive: Duration::default(),
+            protocol_name: crate::PROTOCOL_NAME.to_string(),
+            protocol_level: crate::PROTOCOL_LEVEL,
+        };
+
+        let (tx1, mut rx1) = mpsc::channel(128);
+        let conn1 = ConnectionHandle::from_sender(tx1);
+        let client_id = ClientId::from("blah".to_string());
+        let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
+
+        broker_handle
+            .send(Message::Client(
+                client_id.clone(),
+                ClientEvent::ConnReq(req1),
+            ))
+            .await
+            .unwrap();
+
+        assert_matches!(
+            rx1.recv().await,
+            Some(Message::Client(_, ClientEvent::ConnAck(proto::ConnAck {
+                return_code:
+                    proto::ConnectReturnCode::Refused(
+                        proto::ConnectionRefusedReason::ServerUnavailable,
+                    ),
+                ..
+            })))
+        );
+        assert_matches!(
+            rx1.recv().await,
+            Some(Message::Client(_, ClientEvent::DropConnection))
+        );
+        assert_matches!(rx1.recv().await, None)
+    }
+
+    #[tokio::test]
+    async fn test_connect_client_has_no_permissions() {
+        let authenticator = authenticate_fn(|| Ok(Some(AuthId::Value("client-a".into()))));
+        let authorizer = authorize_fn(|_| Ok(false));
+        let broker = Broker::builder(authenticator, authorizer).build();
+
+        let mut broker_handle = broker.handle();
+        tokio::spawn(broker.run().map(drop));
+
+        let connect1 = proto::Connect {
+            username: None,
+            password: None,
+            will: None,
+            client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
+            keep_alive: Duration::default(),
+            protocol_name: crate::PROTOCOL_NAME.to_string(),
+            protocol_level: crate::PROTOCOL_LEVEL,
+        };
+
+        let (tx1, mut rx1) = mpsc::channel(128);
+        let conn1 = ConnectionHandle::from_sender(tx1);
+        let client_id = ClientId::from("blah".to_string());
+        let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
+
+        broker_handle
+            .send(Message::Client(
+                client_id.clone(),
+                ClientEvent::ConnReq(req1),
+            ))
+            .await
+            .unwrap();
+
+        assert_matches!(
+            rx1.recv().await,
+            Some(Message::Client(_, ClientEvent::ConnAck(proto::ConnAck {
+                return_code:
+                    proto::ConnectReturnCode::Refused(
+                        proto::ConnectionRefusedReason::NotAuthorized
+                    ),
+                ..
+            })))
+        );
+        assert_matches!(
+            rx1.recv().await,
+            Some(Message::Client(_, ClientEvent::DropConnection))
+        );
+        assert_matches!(rx1.recv().await, None)
+    }
+
+    #[tokio::test]
+    async fn test_connect_authorization_failed() {
+        let authenticator = authenticate_fn(|| Ok(Some(AuthId::Value("client-a".into()))));
+        let authorizer = authorize_fn(|_| Err(ErrorKind::Auth(AuthReason::Authorize).into()));
+        let broker = Broker::builder(authenticator, authorizer).build();
+
+        let mut broker_handle = broker.handle();
+        tokio::spawn(broker.run().map(drop));
+
+        let connect1 = proto::Connect {
+            username: None,
+            password: None,
+            will: None,
+            client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
+            keep_alive: Duration::default(),
+            protocol_name: crate::PROTOCOL_NAME.to_string(),
+            protocol_level: crate::PROTOCOL_LEVEL,
+        };
+
+        let (tx1, mut rx1) = mpsc::channel(128);
+        let conn1 = ConnectionHandle::from_sender(tx1);
+        let client_id = ClientId::from("blah".to_string());
+        let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
+
+        broker_handle
+            .send(Message::Client(
+                client_id.clone(),
+                ClientEvent::ConnReq(req1),
+            ))
+            .await
+            .unwrap();
+
+        assert_matches!(
+            rx1.recv().await.unwrap(),
+            Message::Client(_, ClientEvent::ConnAck(proto::ConnAck {
+                return_code:
+                    proto::ConnectReturnCode::Refused(
+                        proto::ConnectionRefusedReason::ServerUnavailable,
+                    ),
+                ..
             }))
         );
         assert_matches!(
-            rx1.recv().await.unwrap(),
-            Message::Client(_, ClientEvent::DropConnection)
+            rx1.recv().await,
+            Some(Message::Client(_, ClientEvent::DropConnection))
         );
-        assert!(rx1.recv().await.is_none());
+        assert_matches!(rx1.recv().await, None)
+    }
+
+    fn authorize_fn<F>(f: F) -> impl Authorizer
+    where
+        F: Fn(AuthId) -> Result<bool, Error>,
+    {
+        TestAuthorizer(f)
+    }
+
+    struct TestAuthorizer<F>(F);
+
+    impl<F> Authorizer for TestAuthorizer<F>
+    where
+        F: Fn(AuthId) -> Result<bool, Error>,
+    {
+        fn authorize(&self, auth_id: AuthId) -> Result<bool, Error> {
+            self.0(auth_id)
+        }
+    }
+
+    fn authenticate_fn<F>(f: F) -> impl Authenticator
+    where
+        F: Fn() -> Result<Option<AuthId>, Error>,
+    {
+        TestAuthenticator(f)
+    }
+
+    struct TestAuthenticator<F>(F);
+
+    impl<F> Authenticator for TestAuthenticator<F>
+    where
+        F: Fn() -> Result<Option<AuthId>, Error>,
+    {
+        fn authenticate(&self, _credentials: Credentials) -> Result<Option<AuthId>, Error> {
+            self.0()
+        }
     }
 
     #[test]
