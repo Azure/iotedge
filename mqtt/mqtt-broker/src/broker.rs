@@ -7,9 +7,7 @@ use tokio::sync::mpsc::{self, Receiver, Sender};
 use tracing::{debug, info, span, warn, Level};
 use tracing_futures::Instrument;
 
-use crate::auth::{
-    AuthId, Authenticator, Authorizer, Credentials, DefaultAuthenticator, DefaultAuthorizer,
-};
+use crate::auth::{AuthId, Authenticator, Authorizer, Credentials};
 use crate::session::{ConnectedSession, Session, SessionState};
 use crate::{ClientEvent, ClientId, ConnReq, Error, ErrorKind, Message, SystemEvent};
 
@@ -847,12 +845,6 @@ async fn publish_to(session: &mut Session, publication: &proto::Publication) -> 
     Ok(())
 }
 
-impl Default for Broker<DefaultAuthenticator, DefaultAuthorizer> {
-    fn default() -> Self {
-        Broker::builder(DefaultAuthenticator, DefaultAuthorizer).build()
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct BrokerHandle(Sender<Message>);
 
@@ -886,7 +878,8 @@ pub(crate) mod tests {
     use uuid::Uuid;
 
     use crate::session::tests::*;
-    use crate::{auth::AuthReason, tests, ConnectionHandle};
+    use crate::tests::*;
+    use crate::{auth::AuthReason, ConnectionHandle};
 
     prop_compose! {
         pub fn arb_broker_state()(
@@ -933,7 +926,11 @@ pub(crate) mod tests {
     #[tokio::test]
     #[should_panic]
     async fn test_double_connect_protocol_violation() {
-        let broker = Broker::default();
+        let broker = Broker::builder(
+            authenticate_fn(|| Ok(Some(AuthId::Any))),
+            authorize_fn(|_| Ok(true)),
+        )
+        .build();
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
@@ -992,7 +989,11 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_double_connect_drop_first_transient() {
-        let broker = Broker::default();
+        let broker = Broker::builder(
+            authenticate_fn(|| Ok(Some(AuthId::Any))),
+            authorize_fn(|_| Ok(true)),
+        )
+        .build();
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
@@ -1056,7 +1057,11 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_invalid_protocol_name() {
-        let broker = Broker::default();
+        let broker = Broker::builder(
+            authenticate_fn(|| Ok(Some(AuthId::Any))),
+            authorize_fn(|_| Ok(true)),
+        )
+        .build();
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
@@ -1091,7 +1096,11 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_invalid_protocol_level() {
-        let broker = Broker::default();
+        let broker = Broker::builder(
+            authenticate_fn(|| Ok(Some(AuthId::Any))),
+            authorize_fn(|_| Ok(true)),
+        )
+        .build();
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
@@ -1136,9 +1145,11 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_connect_auth_succeeded() {
-        let authenticator = authenticate_fn(|| Ok(Some(AuthId::Any)));
-        let authorizer = authorize_fn(|_| Ok(true));
-        let broker = Broker::builder(authenticator, authorizer).build();
+        let broker = Broker::builder(
+            authenticate_fn(|| Ok(Some(AuthId::Any))),
+            authorize_fn(|_| Ok(true)),
+        )
+        .build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -1178,9 +1189,8 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_connect_unknown_client() {
-        let authenticator = authenticate_fn(|| Ok(None));
-        let authorizer = authorize_fn(|_| Ok(true));
-        let broker = Broker::builder(authenticator, authorizer).build();
+        let broker =
+            Broker::builder(authenticate_fn(|| Ok(None)), authorize_fn(|_| Ok(true))).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -1227,10 +1237,11 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_connect_authentication_failed() {
-        let authenticator =
-            authenticate_fn(|| Err(ErrorKind::Auth(AuthReason::Authenticate).into()));
-        let authorizer = authorize_fn(|_| Ok(true));
-        let broker = Broker::builder(authenticator, authorizer).build();
+        let broker = Broker::builder(
+            authenticate_fn(|| Err(ErrorKind::Auth(AuthReason::Authenticate).into())),
+            authorize_fn(|_| Ok(true)),
+        )
+        .build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -1277,9 +1288,11 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_connect_client_has_no_permissions() {
-        let authenticator = authenticate_fn(|| Ok(Some(AuthId::Value("client-a".into()))));
-        let authorizer = authorize_fn(|_| Ok(false));
-        let broker = Broker::builder(authenticator, authorizer).build();
+        let broker = Broker::builder(
+            authenticate_fn(|| Ok(Some(AuthId::Value("client-a".into())))),
+            authorize_fn(|_| Ok(false)),
+        )
+        .build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -1326,9 +1339,11 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_connect_authorization_failed() {
-        let authenticator = authenticate_fn(|| Ok(Some(AuthId::Value("client-a".into()))));
-        let authorizer = authorize_fn(|_| Err(ErrorKind::Auth(AuthReason::Authorize).into()));
-        let broker = Broker::builder(authenticator, authorizer).build();
+        let broker = Broker::builder(
+            authenticate_fn(|| Ok(Some(AuthId::Value("client-a".into())))),
+            authorize_fn(|_| Err(ErrorKind::Auth(AuthReason::Authorize).into())),
+        )
+        .build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -1373,7 +1388,7 @@ pub(crate) mod tests {
         assert_matches!(rx1.recv().await, None)
     }
 
-    fn authorize_fn<F>(f: F) -> impl Authorizer
+    fn authorize_fn<F>(f: F) -> TestAuthorizer<F>
     where
         F: Fn(AuthId) -> Result<bool, Error>,
     {
@@ -1391,7 +1406,7 @@ pub(crate) mod tests {
         }
     }
 
-    fn authenticate_fn<F>(f: F) -> impl Authenticator
+    fn authenticate_fn<F>(f: F) -> TestAuthenticator<F>
     where
         F: Fn() -> Result<Option<AuthId>, Error>,
     {
@@ -1411,8 +1426,12 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_empty_transient() {
+        let mut broker = Broker::builder(
+            authenticate_fn(|| Ok(Some(AuthId::Any))),
+            authorize_fn(|_| Ok(true)),
+        )
+        .build();
         let id = "id1".to_string();
-        let mut broker = Broker::default();
         let client_id = ClientId::from(id.clone());
         let connect = transient_connect(id);
         let handle = connection_handle();
@@ -1432,8 +1451,12 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_empty_persistent() {
+        let mut broker = Broker::builder(
+            authenticate_fn(|| Ok(Some(AuthId::Any))),
+            authorize_fn(|_| Ok(true)),
+        )
+        .build();
         let id = "id1".to_string();
-        let mut broker = Broker::default();
         let client_id = ClientId::from(id.clone());
         let connect = persistent_connect(id);
         let handle = connection_handle();
@@ -1454,8 +1477,12 @@ pub(crate) mod tests {
     #[test]
     #[should_panic]
     fn test_add_session_same_connection_transient() {
+        let mut broker = Broker::builder(
+            authenticate_fn(|| Ok(Some(AuthId::Any))),
+            authorize_fn(|_| Ok(true)),
+        )
+        .build();
         let id = "id1".to_string();
-        let mut broker = Broker::default();
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id.clone());
         let connect2 = transient_connect(id);
@@ -1478,8 +1505,12 @@ pub(crate) mod tests {
     #[test]
     #[should_panic]
     fn test_add_session_same_connection_persistent() {
+        let mut broker = Broker::builder(
+            authenticate_fn(|| Ok(Some(AuthId::Any))),
+            authorize_fn(|_| Ok(true)),
+        )
+        .build();
         let id = "id1".to_string();
-        let mut broker = Broker::default();
         let client_id = ClientId::from(id.clone());
         let connect1 = persistent_connect(id.clone());
         let connect2 = persistent_connect(id);
@@ -1501,8 +1532,12 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_different_connection_transient_then_transient() {
+        let mut broker = Broker::builder(
+            authenticate_fn(|| Ok(Some(AuthId::Any))),
+            authorize_fn(|_| Ok(true)),
+        )
+        .build();
         let id = "id1".to_string();
-        let mut broker = Broker::default();
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id.clone());
         let connect2 = transient_connect(id);
@@ -1522,8 +1557,12 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_different_connection_transient_then_persistent() {
+        let mut broker = Broker::builder(
+            authenticate_fn(|| Ok(Some(AuthId::Any))),
+            authorize_fn(|_| Ok(true)),
+        )
+        .build();
         let id = "id1".to_string();
-        let mut broker = Broker::default();
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id.clone());
         let connect2 = persistent_connect(id);
@@ -1543,8 +1582,12 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_different_connection_persistent_then_transient() {
+        let mut broker = Broker::builder(
+            authenticate_fn(|| Ok(Some(AuthId::Any))),
+            authorize_fn(|_| Ok(true)),
+        )
+        .build();
         let id = "id1".to_string();
-        let mut broker = Broker::default();
         let client_id = ClientId::from(id.clone());
         let connect1 = persistent_connect(id.clone());
         let connect2 = transient_connect(id);
@@ -1564,8 +1607,12 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_different_connection_persistent_then_persistent() {
+        let mut broker = Broker::builder(
+            authenticate_fn(|| Ok(Some(AuthId::Any))),
+            authorize_fn(|_| Ok(true)),
+        )
+        .build();
         let id = "id1".to_string();
-        let mut broker = Broker::default();
         let client_id = ClientId::from(id.clone());
         let connect1 = persistent_connect(id.clone());
         let connect2 = persistent_connect(id);
@@ -1585,8 +1632,12 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_offline_persistent() {
+        let mut broker = Broker::builder(
+            authenticate_fn(|| Ok(Some(AuthId::Any))),
+            authorize_fn(|_| Ok(true)),
+        )
+        .build();
         let id = "id1".to_string();
-        let mut broker = Broker::default();
         let client_id = ClientId::from(id.clone());
         let connect1 = persistent_connect(id.clone());
         let connect2 = persistent_connect(id);
@@ -1615,8 +1666,12 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_offline_transient() {
+        let mut broker = Broker::builder(
+            authenticate_fn(|| Ok(Some(AuthId::Any))),
+            authorize_fn(|_| Ok(true)),
+        )
+        .build();
         let id = "id1".to_string();
-        let mut broker = Broker::default();
         let client_id = ClientId::from(id.clone());
         let connect1 = persistent_connect(id.clone());
         let handle1 = connection_handle();
