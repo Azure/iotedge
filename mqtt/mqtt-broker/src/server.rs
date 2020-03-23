@@ -41,10 +41,10 @@ impl Server {
         let broker_task = tokio::spawn(broker.run());
 
         let mut incoming_tasks = Vec::new();
-        let mut incoming_tasks_tx = Vec::new();
+        let mut shutdown_handles = Vec::new();
         for transport in transports {
             let (itx, irx) = oneshot::channel::<()>();
-            incoming_tasks_tx.push(itx);
+            shutdown_handles.push(itx);
 
             let incoming_task = incoming_task(transport, handle.clone(), irx.map(drop));
 
@@ -66,11 +66,7 @@ impl Server {
                 info!("shutting down accept loop...");
 
                 debug!("sending stop signal for every protocol head");
-                for itx in incoming_tasks_tx {
-                    if let Err(()) = itx.send(()) {
-                        warn!(message = "failed to signal protocol head to stop");
-                    }
-                }
+                send_shutdown(shutdown_handles);
 
                 match tasks.await {
                     Either::Right(((result, _index, unfinished_incoming_tasks), broker_task)) => {
@@ -113,12 +109,8 @@ impl Server {
                     }
 
                     debug!("sending stop signal for the rest of protocol heads");
-                    incoming_tasks_tx.remove(index);
-                    for itx in incoming_tasks_tx {
-                        if let Err(()) = itx.send(()) {
-                            warn!(message = "failed to signal protocol head to stop");
-                        }
-                    }
+                    shutdown_handles.remove(index);
+                    send_shutdown(shutdown_handles);
 
                     let mut results = vec![result];
                     results.extend(future::join_all(unfinished_incoming_tasks).await);
@@ -138,11 +130,7 @@ impl Server {
                     warn!("broker exited before accept loop");
 
                     debug!("sending stop signal for the rest of protocol heads");
-                    for itx in incoming_tasks_tx {
-                        if let Err(()) = itx.send(()) {
-                            warn!(message = "failed to signal protocol head to stop");
-                        }
-                    }
+                    send_shutdown(shutdown_handles);
 
                     // wait until either of incoming_tasks finished
                     let (result, _index, unfinished_incoming_tasks) = incoming_tasks.await;
@@ -160,6 +148,17 @@ impl Server {
             },
         };
         Ok(state)
+    }
+}
+
+fn send_shutdown<I>(handles: I)
+where
+    I: IntoIterator<Item = oneshot::Sender<()>>,
+{
+    for itx in handles {
+        if let Err(()) = itx.send(()) {
+            warn!(message = "failed to signal protocol head to stop");
+        }
     }
 }
 
