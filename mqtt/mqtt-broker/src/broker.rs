@@ -879,7 +879,7 @@ pub(crate) mod tests {
 
     use crate::session::tests::*;
     use crate::tests::*;
-    use crate::{auth::AuthReason, ConnectionHandle};
+    use crate::{auth::ErrorReason, ConnectionHandle};
 
     prop_compose! {
         pub fn arb_broker_state()(
@@ -1238,7 +1238,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_connect_authentication_failed() {
         let broker = Broker::builder(
-            authenticate_fn(|| Err(ErrorKind::Auth(AuthReason::Authenticate).into())),
+            authenticate_fn(|| Err(ErrorKind::Auth(ErrorReason::Authenticate).into())),
             authorize_fn(|_| Ok(true)),
         )
         .build();
@@ -1341,7 +1341,7 @@ pub(crate) mod tests {
     async fn test_connect_authorization_failed() {
         let broker = Broker::builder(
             authenticate_fn(|| Ok(Some(AuthId::Value("client-a".into())))),
-            authorize_fn(|_| Err(ErrorKind::Auth(AuthReason::Authorize).into())),
+            authorize_fn(|_| Err(ErrorKind::Auth(ErrorReason::Authorize).into())),
         )
         .build();
 

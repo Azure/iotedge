@@ -62,7 +62,7 @@ impl Authorizer for DefaultAuthorizer {
 }
 
 #[derive(Debug, Display, Fail, PartialEq)]
-pub enum AuthReason {
+pub enum ErrorReason {
     #[display(fmt = "Error occurred during authentication")]
     Authenticate,
 

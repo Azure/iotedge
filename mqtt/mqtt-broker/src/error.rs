@@ -67,7 +67,7 @@ pub enum ErrorKind {
     PeerCertificate,
 
     #[fail(display = "An error occurred checking client permissions: {}.", _0)]
-    Auth(crate::auth::AuthReason),
+    Auth(crate::auth::ErrorReason),
 }
 
 impl Fail for Error {
