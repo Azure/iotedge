@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Net.Http;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
     using Newtonsoft.Json.Linq;
     using NUnit.Framework;
-    using System;
-    using System.Collections.Generic;
-    using System.Net.Http;
-    using System.Threading;
-    using System.Threading.Tasks;
 
     [EndToEnd]
     public class PriorityQueues : SasManualProvisioningFixture
@@ -19,10 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task PriorityQueueModuleToModuleMessages()
         {
-            // This test uses the TestResultCoordinator. It was originally designed for connectivity tests, so many of the parameters
-            // are unnecessary for the e2e tests.
-            // TODO: Make TestResultCoordinator more generic, so we don't have to fill out garbage values in the e2e tests.
-
             CancellationToken token = this.TestToken;
             string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for TempFilter test"));
@@ -38,6 +34,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Action<EdgeConfigBuilder> addInitialConfig = new Action<EdgeConfigBuilder>(
                 builder =>
                 {
+                    // This test uses the TestResultCoordinator. It was originally designed for connectivity tests, so many of the parameters
+                    // are unnecessary for the e2e tests.
+                    // TODO: Make TestResultCoordinator more generic, so we don't have to fill out garbage values in the e2e tests.
                     builder.AddModule(trcModuleName, trcImage)
                        .WithEnvironment(new[]
                        {
@@ -132,5 +131,5 @@ namespace Microsoft.Azure.Devices.Edge.Test
             bool isPassed = (bool)JArray.Parse(jsonstring)[0]["IsPassed"];
             Assert.IsTrue(isPassed);
         }
-    }   
+    }
 }
