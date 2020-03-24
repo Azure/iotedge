@@ -21,7 +21,7 @@ jobs:
           testrun.network.runProfile: "Online"
           testrun.duration: "00:30:00"
           container.storageSizeByte: "2147483648"
-          deploymentFileName: "limited_container_storage.template.json"
+          deploymentFileName: "limited_container_storage_deployment.template.json"
 
         Online 1G Storage:
           testrun.config: 1
@@ -30,7 +30,7 @@ jobs:
           testrun.network.runProfile: "Online"
           testrun.duration: "00:30:00"
           container.storageSizeByte: "1073741824"
-          deploymentFileName: "limited_container_storage.template.json"
+          deploymentFileName: "limited_container_storage_deployment.template.json"
     pool:
       name: $(pool.name)
       demands:
