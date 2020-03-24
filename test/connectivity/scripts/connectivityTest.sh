@@ -259,9 +259,6 @@ function process_args() {
         elif [ $saveNextArg -eq 34 ]; then
             TEST_INFO="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 35 ]; then
-            TEST_PLATFORM="$arg"
-            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -299,7 +296,6 @@ function process_args() {
                 '-customEdgeAgentImage' ) saveNextArg=32;;
                 '-customEdgeHubImage' ) saveNextArg=33;;
                 '-testInfo' ) saveNextArg=34;;
-                '-testPlatform' ) saveNextArg=35;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 
@@ -343,9 +339,9 @@ function run_connectivity_test() {
 
     SECONDS=0
 
-    case $TEST_PLATFORM in
+    case $image_architecture_label in
 
-        linux_arm32v7_moby)
+        arm32v7)
             "$quickstart_working_folder/IotEdgeQuickstart" \
                 -d "$device_id" \
                 -a "$iotedge_package" \
@@ -531,7 +527,6 @@ function usage() {
     echo ' -storageAccountConnectionString          Azure storage account connection string with privilege to create blob container.'
     echo ' -edgeRuntimeBuildNumber                  Build number for specifying edge runtime (edgeHub and edgeAgent)'
     echo ' -testInfo                                Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.'
-    echo ' -testPlatform                            Test agent platform'
     echo ' -cleanAll                                Do docker prune for containers, logs and volumes.'
     exit 1;
 }

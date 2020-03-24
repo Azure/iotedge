@@ -100,7 +100,6 @@ steps:
           -customEdgeAgentImage "${{ parameters['customEdgeAgent.image'] }}" \
           -customEdgeHubImage "${{ parameters['customEdgeHub.image'] }}" \
           -testInfo "$testInfo" \
-          -testPlatform "${{ parameters['metricsCollector.hostPlatform'] }}" \
           -waitForTestComplete \
           -cleanAll
         
