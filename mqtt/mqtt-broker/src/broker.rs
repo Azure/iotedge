@@ -22,62 +22,6 @@ macro_rules! try_send {
     }};
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Deserialize, Serialize)]
-pub struct BrokerState {
-    retained: HashMap<String, proto::Publication>,
-    sessions: Vec<SessionState>,
-}
-
-pub struct BrokerBuilder<N, Z> {
-    state: Option<BrokerState>,
-    authenticator: N,
-    authorizer: Z,
-}
-
-impl<N, Z> BrokerBuilder<N, Z>
-where
-    N: Authenticator,
-    Z: Authorizer,
-{
-    pub fn new(authenticator: N, authorizer: Z) -> Self {
-        Self {
-            state: Option::default(),
-            authenticator,
-            authorizer,
-        }
-    }
-
-    pub fn state(mut self, state: BrokerState) -> Self {
-        self.state = Some(state);
-        self
-    }
-
-    pub fn build(self) -> Broker<N, Z> {
-        let (retained, sessions) = match self.state {
-            Some(state) => {
-                let sessions = state
-                    .sessions
-                    .into_iter()
-                    .map(|s| (s.client_id().clone(), Session::new_offline(s)))
-                    .collect::<HashMap<ClientId, Session>>();
-                (state.retained, sessions)
-            }
-            None => (HashMap::default(), HashMap::default()),
-        };
-
-        let (sender, messages) = mpsc::channel(1024);
-
-        Broker {
-            sender,
-            messages,
-            sessions,
-            retained,
-            authenticator: self.authenticator,
-            authorizer: self.authorizer,
-        }
-    }
-}
-
 pub struct Broker<N, Z>
 where
     N: Authenticator,
@@ -843,6 +787,62 @@ async fn publish_to(session: &mut Session, publication: &proto::Publication) -> 
         session.send(event).await?
     }
     Ok(())
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Deserialize, Serialize)]
+pub struct BrokerState {
+    retained: HashMap<String, proto::Publication>,
+    sessions: Vec<SessionState>,
+}
+
+pub struct BrokerBuilder<N, Z> {
+    state: Option<BrokerState>,
+    authenticator: N,
+    authorizer: Z,
+}
+
+impl<N, Z> BrokerBuilder<N, Z>
+where
+    N: Authenticator,
+    Z: Authorizer,
+{
+    pub fn new(authenticator: N, authorizer: Z) -> Self {
+        Self {
+            state: Option::default(),
+            authenticator,
+            authorizer,
+        }
+    }
+
+    pub fn state(mut self, state: BrokerState) -> Self {
+        self.state = Some(state);
+        self
+    }
+
+    pub fn build(self) -> Broker<N, Z> {
+        let (retained, sessions) = match self.state {
+            Some(state) => {
+                let sessions = state
+                    .sessions
+                    .into_iter()
+                    .map(|s| (s.client_id().clone(), Session::new_offline(s)))
+                    .collect::<HashMap<ClientId, Session>>();
+                (state.retained, sessions)
+            }
+            None => (HashMap::default(), HashMap::default()),
+        };
+
+        let (sender, messages) = mpsc::channel(1024);
+
+        Broker {
+            sender,
+            messages,
+            sessions,
+            retained,
+            authenticator: self.authenticator,
+            authorizer: self.authorizer,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
