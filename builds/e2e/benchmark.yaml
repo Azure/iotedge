@@ -5,6 +5,7 @@ variables:
   images.artifact.name.linux: 'core-linux'
   vsts.project: $(System.TeamProjectId)
 
+jobs:
 ################################################################################
   - job: linux_amd64_moby_limited_storage
 ################################################################################
@@ -22,7 +23,7 @@ variables:
           container.storageSizeByte: "2147483648"
           deploymentFileName: "limited_container_storage.template.json"
 
-        Online 2G Storage:
+        Online 1G Storage:
           testrun.config: 1
           testrun.network.description: "Online"
           testrun.network.frequencies: "00:00:00 00:00:00 0"
@@ -111,8 +112,6 @@ variables:
           deploymentFileName: '$(deploymentFileName)'
           upstream.protocol: '$(upstream.protocol)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
-          edgeHubRestartTest.restartPeriod: '$(edgeHubRestartTest.restartPeriod)'
-          edgeHubRestartTest.sdkOperationTimeout: '$(edgeHubRestartTest.sdkOperationTimeout)'
           testDuration: '$(testrun.duration)'
           testStartDelay: '$(testStartDelay)'
           networkController.frequencies: '$(testrun.network.frequencies)'
