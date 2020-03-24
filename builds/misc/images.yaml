@@ -277,7 +277,7 @@ jobs:
           imageName: azureiotedge-analyzer
           project: TestAnalyzer
           
-      # Functions Sample
+      # Functions Sample - Not supported on arm64
       - template: templates/image-windows.yaml
         parameters:
           name: Functions Sample
