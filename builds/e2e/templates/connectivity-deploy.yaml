@@ -101,7 +101,7 @@ steps:
           -customEdgeAgentImage "${{ parameters['customEdgeAgent.image'] }}" \
           -customEdgeHubImage "${{ parameters['customEdgeHub.image'] }}" \
           -testInfo "$testInfo" \
-          -containerStorageSize "${{ parameters['container.storageSizeByte'] }}"
+          -containerStorageSize "${{ parameters['container.storageSizeByte'] }}" \
           -waitForTestComplete \
           -cleanAll
         
