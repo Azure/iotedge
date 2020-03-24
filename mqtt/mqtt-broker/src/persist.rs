@@ -1,3 +1,4 @@
+use std::cmp;
 use std::fs::{self, OpenOptions};
 use std::io::{Read, Write};
 #[cfg(unix)]
@@ -5,9 +6,9 @@ use std::os::unix::fs::symlink;
 #[cfg(windows)]
 use std::os::windows::fs::symlink_file;
 use std::path::PathBuf;
-use std::{cmp, fmt};
 
 use async_trait::async_trait;
+use derive_more::Display;
 use fail::fail_point;
 use failure::ResultExt;
 use flate2::read::GzDecoder;
@@ -344,49 +345,38 @@ where
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Display, PartialEq)]
 pub enum ErrorReason {
+    #[display(fmt = "failed to open file {}", "_0.display()")]
     FileOpen(PathBuf),
-    FileRename(PathBuf, PathBuf),
-    FileUnlink(PathBuf),
-    CreateDir(PathBuf),
-    ReadDir(PathBuf),
-    Symlink(PathBuf, PathBuf),
-    SymlinkUnlink(PathBuf),
-    Serialize,
-    Deserialize,
-}
 
-impl fmt::Display for ErrorReason {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ErrorReason::FileOpen(pb) => write!(f, "failed to open file {}", pb.display()),
-            ErrorReason::FileRename(from, to) => write!(
-                f,
-                "failed to rename file {} to {}",
-                from.display(),
-                to.display()
-            ),
-            ErrorReason::FileUnlink(pb) => write!(f, "failed to remove file {}", pb.display()),
-            ErrorReason::CreateDir(pb) => {
-                write!(f, "failed to create state directory {}", pb.display())
-            }
-            ErrorReason::ReadDir(pb) => {
-                write!(f, "failed to read contents of directory {}", pb.display())
-            }
-            ErrorReason::Symlink(from, to) => write!(
-                f,
-                "failed to create symlink from {} to {}",
-                from.display(),
-                to.display()
-            ),
-            ErrorReason::SymlinkUnlink(pb) => {
-                write!(f, "failed to remove symlink {}", pb.display())
-            }
-            ErrorReason::Serialize => write!(f, "failed to serialize state"),
-            ErrorReason::Deserialize => write!(f, "failed to deserialize state"),
-        }
-    }
+    #[display(fmt = "failed to rename file {} to {}", "_0.display()", "_1.display()")]
+    FileRename(PathBuf, PathBuf),
+
+    #[display(fmt = "failed to remove file {}", "_0.display()")]
+    FileUnlink(PathBuf),
+
+    #[display(fmt = "failed to create state directory {}", "_0.display()")]
+    CreateDir(PathBuf),
+
+    #[display(fmt = "failed to read contents of directory {}", "_0.display()")]
+    ReadDir(PathBuf),
+
+    #[display(
+        fmt = "failed to create symlink from {} to {}",
+        "_0.display()",
+        "_1.display()"
+    )]
+    Symlink(PathBuf, PathBuf),
+
+    #[display(fmt = "failed to remove symlink {}", "_0.display()")]
+    SymlinkUnlink(PathBuf),
+
+    #[display(fmt = "failed to serialize state")]
+    Serialize,
+
+    #[display(fmt = "failed to deserialize state")]
+    Deserialize,
 }
 
 #[cfg(test)]

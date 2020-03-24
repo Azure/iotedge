@@ -1,13 +1,13 @@
-#![allow(dead_code)] // TODO @dmolokanov remove when implemented
-use std::fmt;
-
+use derive_more::Display;
 use failure::Fail;
 
 use crate::Error;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Display, PartialEq)]
 pub enum AuthId {
+    #[display(fmt = "*")]
     Any,
+
     Value(Identity),
 }
 
@@ -16,6 +16,7 @@ pub type Identity = String;
 #[derive(Clone, Debug)]
 pub struct Certificate(Vec<u8>);
 
+#[allow(dead_code)]
 pub struct Credentials {
     username: Option<String>,
     password: Option<String>,
@@ -60,26 +61,11 @@ impl Authorizer for DefaultAuthorizer {
     }
 }
 
-impl fmt::Display for AuthId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Any => write!(f, "any"),
-            Self::Value(auth_id) => write!(f, "{}", auth_id),
-        }
-    }
-}
-
-#[derive(Debug, Fail, PartialEq)]
+#[derive(Debug, Display, Fail, PartialEq)]
 pub enum AuthReason {
+    #[display(fmt = "Error occurred during authentication")]
     Authenticate,
-    Authorize,
-}
 
-impl fmt::Display for AuthReason {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Authenticate => write!(f, "Error occurred during authentication"),
-            Self::Authorize => write!(f, "Error occurred during authorization"),
-        }
-    }
+    #[display(fmt = "Error occurred during authorization")]
+    Authorize,
 }
