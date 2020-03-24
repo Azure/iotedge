@@ -3,7 +3,6 @@ use futures_util::pin_mut;
 use mqtt_broker::*;
 use native_tls::Identity;
 use std::{env, io};
-use tokio::fs;
 use tokio::time::{Duration, Instant};
 use tracing::{info, warn, Level};
 use tracing_subscriber::{fmt, EnvFilter};
@@ -32,9 +31,7 @@ async fn main() -> Result<(), Error> {
         .nth(3)
         .unwrap_or_else(|| "broker.pfx".to_string());
 
-    let identity = load_identity(cert_path)
-        .await
-        .context(ErrorKind::IdentityConfiguration)?;
+    let identity = load_identity(cert_path).context(ErrorKind::IdentityConfiguration)?;
 
     // Setup the shutdown handle
     let shutdown = shutdown::shutdown();
@@ -87,8 +84,8 @@ async fn main() -> Result<(), Error> {
     Ok(())
 }
 
-async fn load_identity(path: String) -> Result<Identity, Error> {
-    let cert_buffer = fs::read(&path).await.context(ErrorKind::LoadIdentity)?;
+fn load_identity(path: String) -> Result<Identity, Error> {
+    let cert_buffer = std::fs::read(&path).context(ErrorKind::LoadIdentity)?;
 
     let cert_pwd = "";
     let cert = Identity::from_pkcs12(cert_buffer.as_slice(), &cert_pwd)
