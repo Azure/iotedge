@@ -67,9 +67,6 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "Logging:LogLevel:Microsoft": {
-                "value": "Error"
-              },
               "messageFrequency": {
                 "value": "<LoadGen.MessageFrequency>"
               },
@@ -103,9 +100,6 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "Logging:LogLevel:Microsoft": {
-                "value": "Error"
-              },
               "messageFrequency": {
                 "value": "<LoadGen.MessageFrequency>"
               },
@@ -139,9 +133,6 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "Logging:LogLevel:Microsoft": {
-                "value": "Error"
-              },
               "DirectMethodResultType": {
                 "value": "DirectMethodTestResult"
               },
@@ -178,9 +169,6 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "Logging:LogLevel:Microsoft": {
-                "value": "Error"
-              },
               "ClientTransportType": {
                 "value": "Amqp"
               },
@@ -202,9 +190,6 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "Logging:LogLevel:Microsoft": {
-                "value": "Error"
-              },
               "DirectMethodResultType": {
                 "value": "DirectMethodTestResult"
               },
@@ -241,9 +226,6 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "Logging:LogLevel:Microsoft": {
-                "value": "Error"
-              },
               "ClientTransportType": {
                 "value": "Mqtt"
               },
@@ -265,9 +247,6 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "Logging:LogLevel:Microsoft": {
-                "value": "Error"
-              },
               "DirectMethodResultType": {
                 "value": "DirectMethodTestResult"
               },
@@ -307,9 +286,6 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "Logging:LogLevel:Microsoft": {
-                "value": "Error"
-              },
               "transportType": {
                 "value": "Amqp"
               },
@@ -334,9 +310,6 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "Logging:LogLevel:Microsoft": {
-                "value": "Error"
-              },
               "transportType": {
                 "value": "Mqtt"
               },
@@ -424,9 +397,6 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "Logging:LogLevel:Microsoft": {
-                "value": "Error"
-              },
               "trackingId": {
                 "value": "<TrackingId>"
               },
@@ -460,9 +430,6 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "Logging:LogLevel:Microsoft": {
-                "value": "Error"
-              },
               "trackingId": {
                 "value": "<TrackingId>"
               },
@@ -496,9 +463,6 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "Logging:LogLevel:Microsoft": {
-                "value": "Error"
-              },
               "trackingId": {
                 "value": "<TrackingId>"
               },
@@ -532,9 +496,6 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "Logging:LogLevel:Microsoft": {
-                "value": "Error"
-              },
               "trackingId": {
                 "value": "<TrackingId>"
               },
@@ -568,9 +529,6 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "Logging:LogLevel:Microsoft": {
-                "value": "Error"
-              },
               "DEPLOYMENT_TESTER_MODE": {
                 "value": "Sender"
               },
@@ -607,9 +565,6 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "Logging:LogLevel:Microsoft": {
-                "value": "Error"
-              },
               "DEPLOYMENT_TESTER_MODE": {
                 "value": "Receiver"
               },
@@ -625,15 +580,123 @@
               "createOptions": ""
             }
           },
+          "cloudToDeviceMessageSender1": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "C2DMESSAGE_TESTER_MODE": {
+                "value": "Sender"
+              },
+              "IOT_HUB_CONNECTION_STRING": {
+                "value": "<IoTHubConnectionString>"
+              },
+              "trackingId": {
+                "value": "<TrackingId>"
+              },
+              "testDuration": {
+                "value": "<TestDuration>"
+              },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
+              },
+              "ReportingEndpointUrl": {
+                "value": "http://localhost:5001"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+            }
+          },
+          "cloudToDeviceMessageReceiver1": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "C2DMESSAGE_TESTER_MODE": {
+                "value": "Receiver"
+              },
+              "IOT_HUB_CONNECTION_STRING": {
+                "value": "<IoTHubConnectionString>"
+              },
+              "transportType": {
+                "value": "Amqp"
+              },
+              "ReportingEndpointUrl": {
+                "value": "http://testResultCoordinator:5001"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
+          "cloudToDeviceMessageSender2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "C2DMESSAGE_TESTER_MODE": {
+                "value": "Sender"
+              },
+              "IOT_HUB_CONNECTION_STRING": {
+                "value": "<IoTHubConnectionString>"
+              },
+              "trackingId": {
+                "value": "<TrackingId>"
+              },
+              "testDuration": {
+                "value": "<TestDuration>"
+              },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
+              },
+              "transportType": {
+                "value": "Mqtt"
+              },
+              "ReportingEndpointUrl": {
+                "value": "http://localhost:5001"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+            }
+          },
+          "cloudToDeviceMessageReceiver2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "C2DMESSAGE_TESTER_MODE": {
+                "value": "Receiver"
+              },
+              "IOT_HUB_CONNECTION_STRING": {
+                "value": "<IoTHubConnectionString>"
+              },
+              "transportType": {
+                "value": "Mqtt"
+              },
+              "ReportingEndpointUrl": {
+                "value": "http://testResultCoordinator:5001"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
           "networkController": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "Logging:LogLevel:Microsoft": {
-                "value": "Error"
-              },
               "trackingId": {
                 "value": "<TrackingId>"
               },
@@ -800,15 +863,29 @@
             "TestDescription": "edge agent ping"
           },
           "reportMetadata13": {
+            "TestReportType": "CountingReport",
+            "TestOperationResultType": "Messages",
+            "ExpectedSource": "cloudToDeviceMessageSender1.send",
+            "ActualSource": "cloudToDeviceMessageReceiver1.receive",
+            "TestDescription": "C2D | amqp"
+          },
+          "reportMetadata14": {
+            "TestReportType": "CountingReport",
+            "TestOperationResultType": "Messages",
+            "ExpectedSource": "cloudToDeviceMessageSender2.send",
+            "ActualSource": "cloudToDeviceMessageReceiver2.receive",
+            "TestDescription": "C2D | mqtt"
+          },
+          "reportMetadata15": {
             "TestReportType": "NetworkControllerReport",
             "Source": "networkController",
             "TestDescription": "network controller"
           },
-          "reportMetadata14": {
+          "reportMetadata16": {
             "TestReportType": "ErrorReport",
             "TestDescription": "test configuration"
           },
-          "reportMetadata15": {
+          "reportMetadata17": {
             "TestReportType": "TestInfoReport",
             "TestDescription": "test info"
           }
