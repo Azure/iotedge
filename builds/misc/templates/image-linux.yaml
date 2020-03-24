@@ -17,6 +17,7 @@ steps:
       arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i ${{ parameters.imageName }} -n ${{ parameters.namespace }} -P ${{ parameters.project }} --target-arch armv7l
   - task: Bash@3
     displayName: Build Image - ${{ parameters.name }} - arm64 
+    condition: ne('${{ parameters.name }}'', 'Functions Sample')
     inputs:
       filePath: scripts/linux/buildImage.sh
       arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i ${{ parameters.imageName }} -n ${{ parameters.namespace }} -P ${{ parameters.project }} --target-arch aarch64
