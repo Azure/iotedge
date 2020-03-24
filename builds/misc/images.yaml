@@ -18,7 +18,7 @@ jobs:
       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
         displayName: 'Docker Login'
 
-      - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin --os Unix --dotnet_runtime netcoreapp3.0
+      - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin --os Unix --dotnet_runtime netcoreapp3.1
         name: build
         displayName: Build ($(Build.Configuration))
 
@@ -161,7 +161,7 @@ jobs:
     pool:
       vmImage: 'ubuntu-16.04'
     steps:
-      - template: templates/install-dotnet2.yaml
+      - template: templates/install-dotnet3.yaml
 
       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
         displayName: 'Docker Login'
@@ -349,11 +349,13 @@ jobs:
     workspace:
       clean: all
     variables:
-      NetCorePackageUri: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-win-x64.zip
+      NetCorePackageUri: https://download.visualstudio.microsoft.com/download/pr/ac85ccb0-e761-489f-b5dd-ba5e52735c2b/dd89fcc72092ff6fc7f5f4cb9eea0de4/dotnet-sdk-3.1.200-win-x64.zip
     steps:
+      - template: templates/install-dotnet3.yaml
+
       - powershell: scripts/windows/setup/Install-Prerequisites.ps1 -DotnetSdkUrl $(NetCorePackageUri) -Dotnet -Nuget
         name: install
-        displayName: Install
+        displayName: Install Prerequisites
 
       - script: echo $(registry.password)|docker login "edgebuilds.azurecr.io" -u "$(registry.user)" --password-stdin
         displayName: Docker Login

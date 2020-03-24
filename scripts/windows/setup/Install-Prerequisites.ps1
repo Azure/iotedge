@@ -50,29 +50,6 @@ $All = -not $Dotnet -and -not $Python -and -not $Nuget
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 <#
- # Install .NET Core
- #>
-
-if ($Dotnet -or $All) {
-    $DotnetInstallPath = Join-Path $AgentWorkFolder "dotnet"
-    if (Test-Path $DotnetInstallPath) {
-        Remove-Item $DotnetInstallPath -Force -Recurse
-    }
-    New-Item $DotnetInstallPath -ItemType "Directory" -Force
-
-    Write-Host "Downloading .NET Core package."
-    $DotnetZip = Join-Path $Env:TEMP "dotnet.zip"
-    (New-Object System.Net.WebClient).DownloadFile($DotnetSdkUrl, $DotnetZip)
-
-    Write-Host "Extracting .NET Core package to $DotnetInstallPath."
-    Add-Type -A System.IO.Compression.FileSystem
-    [IO.Compression.ZipFile]::ExtractToDirectory($DotnetZip, $DotnetInstallPath)
-
-    Write-Host "Cleaning up .NET Core installation."
-    Remove-Item $DotnetZip
-}
-
-<#
  # Install Nuget 
  #>
 
