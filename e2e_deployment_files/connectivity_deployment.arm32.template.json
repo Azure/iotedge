@@ -337,9 +337,6 @@
               "Logging:LogLevel:Microsoft": {
                 "value": "Error"
               },
-              "TEST_BUILD_NUMBER": {
-                "value": "<Test.BuildNumber>"
-              },
               "trackingId": {
                 "value": "<TrackingId>"
               },
@@ -374,7 +371,7 @@
                 "value": "<IoTHubConnectionString>"
               },
               "logUploadEnabled": {
-                "value": "false"
+                "value": "<TestResultCoordinator.logUploadEnabled>"
               },
               "STORAGE_ACCOUNT_CONNECTION_STRING": {
                 "value": "<TestResultCoordinator.StorageAccountConnectionString>"

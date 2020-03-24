@@ -68,6 +68,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<TestResultCoordinator.VerificationDelay>@$VERIFICATION_DELAY@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.OptimizeForPerformance>@$optimize_for_performance@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.LogAnalyticsLogType>@$LOG_ANALYTICS_LOGTYPE@g" "$deployment_working_file"
+    sed -i -e "s@<TestResultCoordinator.logUploadEnabled>@$TEST_LOG_UPLOAD@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.StorageAccountConnectionString>@$STORAGE_ACCOUNT_CONNECTION_STRING@g" "$deployment_working_file"
     sed -i -e "s@<TestInfo>@$TEST_INFO@g" "$deployment_working_file"
 
@@ -340,42 +341,32 @@ function run_connectivity_test() {
     SECONDS=0
 
     case $image_architecture_label in
-
         arm32v7)
-            "$quickstart_working_folder/IotEdgeQuickstart" \
-                -d "$device_id" \
-                -a "$iotedge_package" \
-                -c "$IOT_HUB_CONNECTION_STRING" \
-                -e "$EVENTHUB_CONNECTION_STRING" \
-                -r "$CONTAINER_REGISTRY" \
-                -u "$CONTAINER_REGISTRY_USERNAME" \
-                -p "$CONTAINER_REGISTRY_PASSWORD" \
-                -n "$(hostname)" \
-                -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
-                --leave-running=All \
-                -l "$deployment_working_file" \
-                --runtime-log-level "Info" \
-                --optimize_for_performance=false \
-                --no-verify && funcRet=$? || funcRet=$?
+            TEST_LOG_UPLOAD=false;
+            OPTIMIZE_FOR_PERFORMANCE=false;
             ;;
-        
+
         *)
-            "$quickstart_working_folder/IotEdgeQuickstart" \
-                -d "$device_id" \
-                -a "$iotedge_package" \
-                -c "$IOT_HUB_CONNECTION_STRING" \
-                -e "$EVENTHUB_CONNECTION_STRING" \
-                -r "$CONTAINER_REGISTRY" \
-                -u "$CONTAINER_REGISTRY_USERNAME" \
-                -p "$CONTAINER_REGISTRY_PASSWORD" \
-                -n "$(hostname)" \
-                -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
-                --leave-running=All \
-                -l "$deployment_working_file" \
-                --runtime-log-level "Debug" \
-                --no-verify && funcRet=$? || funcRet=$?
+            TEST_LOG_UPLOAD=true;
+            OPTIMIZE_FOR_PERFORMANCE=true;
             ;;
     esac
+
+    "$quickstart_working_folder/IotEdgeQuickstart" \
+        -d "$device_id" \
+        -a "$iotedge_package" \
+        -c "$IOT_HUB_CONNECTION_STRING" \
+        -e "$EVENTHUB_CONNECTION_STRING" \
+        -r "$CONTAINER_REGISTRY" \
+        -u "$CONTAINER_REGISTRY_USERNAME" \
+        -p "$CONTAINER_REGISTRY_PASSWORD" \
+        -n "$(hostname)" \
+        -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+        --leave-running=All \
+        -l "$deployment_working_file" \
+        --runtime-log-level "Info" \
+        --optimize_for_performance=$OPTIMIZE_FOR_PERFORMANCE \
+        --no-verify && funcRet=$? || funcRet=$?
 
     local elapsed_time="$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$SECONDS")"
     print_highlighted_message "Deploy connectivity test with -d '$device_id' completed in $elapsed_time"
