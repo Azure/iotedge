@@ -301,7 +301,7 @@ function process_args() {
                 '-cleanAll' ) CLEAN_ALL=1;;
                 
                 * ) 
-                    echo "Unsupported  argument: $saveNextArg $arg"
+                    echo "Unsupported argument: $saveNextArg $arg"
                     usage
                     ;;
             esac
