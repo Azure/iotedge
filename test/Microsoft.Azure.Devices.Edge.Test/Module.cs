@@ -14,15 +14,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
     [EndToEnd]
     public class Module : SasManualProvisioningFixture
     {
-        private sealed class TempSensorModule
+        sealed class TempSensorModule
         {
             public string Name { get; }
             public string Image { get; }
 
-            private const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
-            private static int instanceCount = 0;
+            const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
+            static int instanceCount = 0;
 
-            private TempSensorModule(int number)
+            TempSensorModule(int number)
             {
                 this.Name = "tempSensor" + number.ToString();
                 this.Image = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);

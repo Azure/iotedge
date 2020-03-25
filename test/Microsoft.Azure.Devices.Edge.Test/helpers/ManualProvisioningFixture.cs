@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             await this.WaitForConfiguredStatusAsync(device, startTime, token);
         }
 
-        private async Task WaitForConfiguredStatusAsync(EdgeDevice device, DateTime startTime, CancellationToken token)
+        async Task WaitForConfiguredStatusAsync(EdgeDevice device, DateTime startTime, CancellationToken token)
         {
             try
             {
