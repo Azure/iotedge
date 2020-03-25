@@ -12,6 +12,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public interface IOsPlatform
     {
+        bool IsKubernetes { get; }
+
         Task<string> CollectDaemonLogsAsync(DateTime testStartTime, string filePrefix, CancellationToken token);
 
         IEdgeDaemon CreateEdgeDaemon(Option<string> installerPath);

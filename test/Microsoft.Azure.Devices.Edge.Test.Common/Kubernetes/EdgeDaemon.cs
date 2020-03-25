@@ -1,9 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
+namespace Microsoft.Azure.Devices.Edge.Test.Common.Kubernetes
 {
     using System;
     using System.ComponentModel;
-    using System.IO;
     using System.Linq;
     using System.Net;
     using System.ServiceProcess;
@@ -14,67 +13,31 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
     public class EdgeDaemon : IEdgeDaemon
     {
+        const string OverrideFile = "override.yaml";
+        const string DefaultHelmRepo = " https://edgek8s.blob.core.windows.net/staging";
+
         public async Task InstallAsync(Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
         {
+            // Create kind cluster,
+            // create the device namespace
+            // Helm set up repo location?
+            // Run Helm install for CRD.
+            string kindArgs = "create cluster --wait 10m";
+            string kubectlArgs = $"create ns {Constants.Deployment}";
+            string helmArgs = $"install --repo {DefaultHelmRepo} edge-kubernetes-crd";
+
             var properties = new object[] { Dns.GetHostName() };
-            string message = "Installed edge daemon on '{Device}'";
-            packagesPath.ForEach(
-                p =>
-                {
-                    message += " from packages in '{InstallPackagePath}'";
-                    properties = properties.Append(p).ToArray();
-                });
-
-            string[] commands = await packagesPath.Match(
-                p =>
-                {
-                    string[] packages = Directory.GetFiles(p, "*.deb");
-                    return Task.FromResult(
-                        new[]
-                        {
-                            "set -e",
-                            $"dpkg --force-confnew -i {string.Join(' ', packages)}",
-                            "apt-get install -f"
-                        });
-                },
-                async () =>
-                {
-                    // Based on instructions at:
-                    // https://github.com/MicrosoftDocs/azure-docs/blob/058084949656b7df518b64bfc5728402c730536a/articles/iot-edge/how-to-install-iot-edge-linux.md
-
-                    // TODO: 8/30/2019 support curl behind a proxy
-                    string[] platformInfo = await Process.RunAsync("lsb_release", "-sir", token);
-                    string os = platformInfo[0].Trim();
-                    string version = platformInfo[1].Trim();
-                    switch (os)
-                    {
-                        case "Ubuntu":
-                            os = "ubuntu";
-                            break;
-                        case "Raspbian":
-                            os = "debian";
-                            version = "stretch";
-                            break;
-                        default:
-                            throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
-                    }
-
-                    return new[]
-                    {
-                        $"curl https://packages.microsoft.com/config/{os}/{version}/multiarch/prod.list > /etc/apt/sources.list.d/microsoft-prod.list",
-                        "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg",
-                        "apt-get update",
-                        "apt-get install --yes iotedge"
-                    };
-                });
+            string message = "Installed cluster and namespace on '{Device}'";
 
             await Profiler.Run(
                 async () =>
                 {
-                    string[] output = await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", commands)}\"", token);
+                    string[] output = await Process.RunAsync("kind", kindArgs, token);
                     Log.Verbose(string.Join("\n", output));
-
-                    await this.InternalStopAsync(token);
+                    output = await Process.RunAsync("kubectl", kubectlArgs, token);
+                    Log.Verbose(string.Join("\n", output));
+                    output = await Process.RunAsync("helm", helmArgs, token);
+                    Log.Verbose(string.Join("\n", output));
                 },
                 message,
                 properties);
@@ -82,6 +45,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public Task ConfigureAsync(Func<IDaemonConfiguration, Task<(string, object[])>> config, CancellationToken token, bool restart)
         {
+            // set up charts and launch config.
+            // (Do we want to make Helm charts as artifacts? - eventually, yes)
+            // Using a fixed namespace.
+            // This is where a lot of the translation from config.yaml to
+            // an override.yaml is going to happen.
+            // Where do I save the override.yaml?
+            // Am I "allowed" to have state in this class?
+            //
+            // Removed the internal "stop" and "start" here. should reconsider this.
             var properties = new object[] { };
             var message = "Configured edge daemon";
 
@@ -89,11 +61,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 async () =>
                 {
                     await this.InternalStopAsync(token);
-                    var yaml = new DaemonConfiguration("/etc/iotedge/config.yaml");
+
+                    var yaml = new DaemonConfiguration(OverrideFile);
                     (string msg, object[] props) = await config(yaml);
 
                     message += $" {msg}";
                     properties = properties.Concat(props).ToArray();
+
+                    string[] output;
+                    foreach (var k8sCmd in yaml.GetK8sCommands())
+                    {
+                        output = await Process.RunAsync(k8sCmd.Item1, k8sCmd.Item2, token);
+                        Log.Verbose(string.Join("\n", output));
+                    }
 
                     if (restart)
                     {
@@ -104,24 +84,31 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 properties);
         }
 
+        // Start and stop don't have a lot of meaning for edge on k8s.
+        // Maybe this is where helm install is called?
         public Task StartAsync(CancellationToken token) => Profiler.Run(
             () => this.InternalStartAsync(token),
             "Started edge daemon");
 
         async Task InternalStartAsync(CancellationToken token)
         {
-            string[] output = await Process.RunAsync("systemctl", "start iotedge", token);
+            string helmArgs = $"install -n {Constants.Deployment} --repo {DefaultHelmRepo} edge-kubernetes -f {OverrideFile}";
+
+            string[] output = await Process.RunAsync("helm", helmArgs, token);
             Log.Verbose(string.Join("\n", output));
             await WaitForStatusAsync(ServiceControllerStatus.Running, token);
         }
 
+        // same deal as start - maybe this is where Helm delete is done?
         public Task StopAsync(CancellationToken token) => Profiler.Run(
             () => this.InternalStopAsync(token),
             "Stopped edge daemon");
 
         async Task InternalStopAsync(CancellationToken token)
         {
-            string[] output = await Process.RunAsync("systemctl", "stop iotedge.service iotedge.socket iotedge.mgmt.socket", token);
+            string helmArgs = $"delete -n {Constants.Deployment} {Constants.Deployment}";
+
+            string[] output = await Process.RunAsync("helm", helmArgs, token);
             Log.Verbose(string.Join("\n", output));
             await WaitForStatusAsync(ServiceControllerStatus.Stopped, token);
         }
@@ -142,9 +129,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 await Profiler.Run(
                     async () =>
                     {
-                        string[] output =
-                            await Process.RunAsync("apt-get", "purge --yes libiothsm-std iotedge", token);
+                        // This nukes the whole cluster. I don't think there's anything more to do.
+                        string kindArgs = "delete cluster --wait 10m";
 
+                        string[] output = await Process.RunAsync("kind", kindArgs, token);
                         Log.Verbose(string.Join("\n", output));
                     },
                     "Uninstalled edge daemon");
@@ -168,18 +156,28 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 switch (desired)
                 {
                     case ServiceControllerStatus.Running:
-                        stateMatchesDesired = s => s == "active";
+                        stateMatchesDesired = s => s == "Running";
                         break;
                     case ServiceControllerStatus.Stopped:
-                        stateMatchesDesired = s => s == "inactive" || s == "failed";
+                        stateMatchesDesired = s => s != "Running";
                         break;
                     default:
                         throw new NotImplementedException($"No handler for {desired.ToString()}");
                 }
 
-                string[] output = await Process.RunAsync("systemctl", "-p ActiveState show iotedge", token);
-                Log.Verbose(output.First());
-                if (stateMatchesDesired(output.First().Split("=").Last()))
+                var edgeletPodOption = await KubeUtils.FindPod("iotedged", token);
+                string currentState = await edgeletPodOption.Match(
+                    async podName =>
+                    {
+                        string getPods = $"get pod --namespace {Constants.Deployment} {podName} --template=\"{{println .status.phase}}\"";
+
+                        string[] output = await Process.RunAsync("kubectl", getPods, token);
+                        Log.Verbose(output.First());
+                        return output.First();
+                    },
+                    () => Task.FromResult("NotFound"));
+
+                if (stateMatchesDesired(currentState))
                 {
                     break;
                 }

@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                 properties);
         }
 
-        public async Task ConfigureAsync(Func<DaemonConfiguration, Task<(string, object[])>> config, CancellationToken token, bool restart)
+        public async Task ConfigureAsync(Func<IDaemonConfiguration, Task<(string, object[])>> config, CancellationToken token, bool restart)
         {
             string configYamlPath =
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + @"\iotedge\config.yaml";

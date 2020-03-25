@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
+    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
@@ -14,9 +15,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class OsPlatform
     {
-        public static readonly IOsPlatform Current = IsWindows() ? new Windows.OsPlatform() as IOsPlatform : new Linux.OsPlatform();
+        public static readonly IOsPlatform Current = IsWindows() ? new Windows.OsPlatform() as IOsPlatform : (RunAsKubernetes() ? new Kubernetes.OsPlatform() as IOsPlatform : new Linux.OsPlatform());
 
         public static bool IsWindows() => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+
+        public static bool RunAsKubernetes() => Option.Maybe(Environment.GetEnvironmentVariable("KUBE_RUNTIME")).HasValue;
 
         protected CaCertificates GetEdgeQuickstartCertificates(string basePath) =>
             new CaCertificates(

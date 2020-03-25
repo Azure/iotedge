@@ -14,6 +14,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 
     public class OsPlatform : Common.OsPlatform, IOsPlatform
     {
+        public bool IsKubernetes => false;
+
         public async Task<string> CollectDaemonLogsAsync(DateTime testStartTime, string filePrefix, CancellationToken token)
         {
             string command =
