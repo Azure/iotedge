@@ -51,18 +51,18 @@ pub struct BrokerSettings {
     persistence: Option<SessionPersistence>,
 }
 
-pub fn humansize<'de, D>(d: D) -> Result<Option<u64>, D::Error>
+pub fn humansize<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
 where
     D: Deserializer<'de>,
 {
     lazy_static! {
-        static ref RE: Regex = Regex::new(r"\s*(\d+)\s*([a-zA-Z]+)\s*")
+        static ref SIZE_PATTERN: Regex = Regex::new(r"\s*(\d+)\s*([a-zA-Z]+)\s*")
             .expect("failed to create new Regex from pattern");
     }
 
-    let s = String::deserialize(d)?;
+    let s = String::deserialize(deserializer)?;
 
-    let captures = match RE.captures(&s.as_str()) {
+    let captures = match SIZE_PATTERN.captures(&s.as_str()) {
         Some(s) => s,
         None => return Err(error::<D>(&s.as_str(), &"256kb")),
     };
