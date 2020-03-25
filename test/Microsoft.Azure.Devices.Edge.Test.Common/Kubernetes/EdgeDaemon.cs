@@ -113,12 +113,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Kubernetes
 
         async Task InternalStopAsync(CancellationToken token)
         {
-            string helmArgs = $"delete -n {Constants.Deployment} {Constants.Deployment}";
-            Log.Verbose($"COMMAND: helm {helmArgs}");
+            string listArgs = $"list -n {Constants.Deployment} -q";
+            string[] helmList = await Process.RunAsync("helm", listArgs, token);
 
-            string[] output = await Process.RunAsync("helm", helmArgs, token);
-            Log.Verbose(string.Join("\n", output));
-            await WaitForStatusAsync(ServiceControllerStatus.Stopped, token);
+            if (helmList.FirstOrDefault() == Constants.Deployment)
+            {
+                string helmArgs = $"delete -n {Constants.Deployment} {Constants.Deployment}";
+                Log.Verbose($"COMMAND: helm {helmArgs}");
+
+                string[] output = await Process.RunAsync("helm", helmArgs, token);
+                Log.Verbose(string.Join("\n", output));
+                await WaitForStatusAsync(ServiceControllerStatus.Stopped, token); 
+            }
         }
 
         public async Task UninstallAsync(CancellationToken token)
