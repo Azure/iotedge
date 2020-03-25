@@ -64,11 +64,11 @@ jobs:
     pool:
       vmImage: "vs2017-win2016"
     steps:
-      - task: PowerShell@2
-        displayName: Install
+      - task: UseDotNet@2
+        displayName: Install .NET Core
         inputs:
-          filePath: scripts/windows/setup/Install-Prerequisites.ps1
-          arguments: -DotnetSdkUrl $(NetCorePackageUriWindows) -Dotnet -Nuget
+          packageType: sdk
+          version: $(dotnet.version)
       - task: PowerShell@2
         displayName: Build
         inputs:
