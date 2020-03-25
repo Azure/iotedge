@@ -29,9 +29,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Kubernetes
             var properties = new object[] { Dns.GetHostName() };
             string message = "Installed cluster and namespace on '{Device}'";
 
-            Log.Verbose($"COMMAND: kind {kindArgs}");
-            Log.Verbose($"COMMAND: kubectl {kubectlArgs}");
-            Log.Verbose($"COMMAND: helm {helmArgs}");
+            Console.WriteLine($"COMMAND: kind {kindArgs}");
+            Console.WriteLine($"COMMAND: kubectl {kubectlArgs}");
+            Console.WriteLine($"COMMAND: helm {helmArgs}");
 
             await Profiler.Run(
                 async () =>
@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Kubernetes
                     string[] output;
                     foreach (var k8sCmd in yaml.GetK8sCommands())
                     {
-                        Log.Verbose($"COMMAND: {k8sCmd.Item1} {k8sCmd.Item2}");
+                        Console.WriteLine($"COMMAND: {k8sCmd.Item1} {k8sCmd.Item2}");
 
                         output = await Process.RunAsync(k8sCmd.Item1, k8sCmd.Item2, token);
                         Log.Verbose(string.Join("\n", output));
@@ -99,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Kubernetes
         async Task InternalStartAsync(CancellationToken token)
         {
             string helmArgs = $"install -n {Constants.Deployment} {Constants.Deployment} --repo {DefaultHelmRepo} edge-kubernetes -f {OverrideFile}";
-            Log.Verbose($"COMMAND: helm {helmArgs}");
+            Console.WriteLine($"COMMAND: helm {helmArgs}");
 
             string[] output = await Process.RunAsync("helm", helmArgs, token);
             Log.Verbose(string.Join("\n", output));
@@ -116,14 +116,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Kubernetes
             string listArgs = $"list -n {Constants.Deployment} -q";
             string[] helmList = await Process.RunAsync("helm", listArgs, token);
 
+            Console.WriteLine(string.Join("\n", helmList));
             if (helmList.FirstOrDefault() == Constants.Deployment)
             {
                 string helmArgs = $"delete -n {Constants.Deployment} {Constants.Deployment}";
-                Log.Verbose($"COMMAND: helm {helmArgs}");
+                Console.WriteLine($"COMMAND: helm {helmArgs}");
 
                 string[] output = await Process.RunAsync("helm", helmArgs, token);
-                Log.Verbose(string.Join("\n", output));
-                await WaitForStatusAsync(ServiceControllerStatus.Stopped, token); 
+                Console.WriteLine(string.Join("\n", output));
+                await WaitForStatusAsync(ServiceControllerStatus.Stopped, token);
             }
         }
 
@@ -145,10 +146,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Kubernetes
                     {
                         // This nukes the whole cluster. I don't think there's anything more to do.
                         string kindArgs = "delete cluster";
-                        Log.Verbose($"COMMAND: kind {kindArgs}");
+                        Console.WriteLine($"COMMAND: kind {kindArgs}");
 
                         string[] output = await Process.RunAsync("kind", kindArgs, token);
-                        Log.Verbose(string.Join("\n", output));
+                        Console.WriteLine(string.Join("\n", output));
                     },
                     "Uninstalled edge daemon");
             }
@@ -187,7 +188,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Kubernetes
                         string getPods = $"get pod --namespace {Constants.Deployment} {podName} --template=\"{{println .status.phase}}\"";
 
                         string[] output = await Process.RunAsync("kubectl", getPods, token);
-                        Log.Verbose(output.First());
+                        Console.WriteLine(output.First());
                         return output.First();
                     },
                     () => Task.FromResult("NotFound"));
