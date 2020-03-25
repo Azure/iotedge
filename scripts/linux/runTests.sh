@@ -22,6 +22,7 @@ OUTPUT_FOLDER=$BUILD_BINARIESDIRECTORY
 
 echo 'dotnet version:' 
 dotnet --version
+/opt/hostedtoolcache/dotnet/dotnet --version
 
 if [ ! -f "$DOTNET_ROOT_PATH" ]; then
     dotnet_path=$(command -v dotnet)
