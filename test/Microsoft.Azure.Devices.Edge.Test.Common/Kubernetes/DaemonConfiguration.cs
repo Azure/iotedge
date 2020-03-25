@@ -17,8 +17,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Kubernetes
         public DaemonConfiguration(string configYamlFile)
         {
             this.configYamlFile = configYamlFile;
-            string contents = File.ReadAllText(this.configYamlFile);
-            this.config = new YamlDocument(contents);
+            if (File.Exists(this.configYamlFile))
+            {
+                string contents = File.ReadAllText(this.configYamlFile);
+                this.config = new YamlDocument(contents);
+            }
+            else
+            {
+                this.config = new YamlDocument(string.Empty);
+            }
+
             this.config.ReplaceOrAdd("iotedged.env.IOTEDGE_LOG", "debug");
             this.k8sCommands = new List<(string, string)>();
         }
