@@ -11,9 +11,6 @@
     clippy::missing_errors_doc
 )]
 
-#[macro_use]
-extern crate lazy_static;
-
 use std::fmt;
 use std::sync::Arc;
 

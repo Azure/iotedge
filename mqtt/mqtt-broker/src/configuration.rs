@@ -1,4 +1,5 @@
 use config::{Config, ConfigError, File, FileFormat};
+use lazy_static::lazy_static;
 use regex::Regex;
 use serde::{Deserialize, Deserializer};
 use std::path::Path;
