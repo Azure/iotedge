@@ -62,15 +62,12 @@ where
 
     let s = String::deserialize(deserializer)?;
 
-    let captures = match SIZE_PATTERN.captures(&s.as_str()) {
-        Some(s) => s,
-        None => return Err(error::<D>(&s.as_str(), &"256kb")),
-    };
-
-    let base = match captures[1].parse::<u64>() {
-        Ok(n) => n,
-        Err(_) => return Err(error::<D>(&captures[1], &"256")),
-    };
+    let captures = SIZE_PATTERN
+        .captures(&s.as_str())
+        .ok_or_else(|| error::<D>(&s, &"256kb"))?;
+    let base = captures[1]
+        .parse::<u64>()
+        .or_else(|_| Err(error::<D>(&captures[1], &"256")))?;
 
     let multiplier = captures[2].to_lowercase();
     let multiplier = get_multiplier::<D>(multiplier.as_ref())?;
@@ -118,14 +115,12 @@ impl BrokerSettings {
 }
 
 #[cfg(test)]
-
 mod tests {
     use std::path::Path;
     use std::time::Duration;
 
     use serde::Deserialize;
     use serde_json::json;
-
     use test_case::test_case;
 
     use super::*;
