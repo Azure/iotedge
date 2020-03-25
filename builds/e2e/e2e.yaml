@@ -52,6 +52,24 @@ jobs:
     - template: templates/e2e-run.yaml
 
 ################################################################################	
+- job: linux_amd64_k8s
+################################################################################	
+    displayName: Linux Kubernetes amd64
+
+    pool:
+      vmImage: ubuntu-16.04
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactDir: iotedged-ubuntu16.04-amd64
+      kube_runtime: "True"
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+  
+################################################################################	
   - job: windows_amd64
 ################################################################################	
     displayName: Windows amd64
