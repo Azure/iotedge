@@ -353,7 +353,6 @@ function run_connectivity_test() {
         --leave-running=All \
         -l "$deployment_working_file" \
         --runtime-log-level "Info" \
-        --optimize_for_performance=$optimize_for_performance \
         --no-verify && funcRet=$? || funcRet=$?
 
     local elapsed_time="$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$SECONDS")"
