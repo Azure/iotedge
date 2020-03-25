@@ -68,7 +68,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<TestResultCoordinator.VerificationDelay>@$VERIFICATION_DELAY@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.OptimizeForPerformance>@$optimize_for_performance@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.LogAnalyticsLogType>@$LOG_ANALYTICS_LOGTYPE@g" "$deployment_working_file"
-    sed -i -e "s@<TestResultCoordinator.logUploadEnabled>@$TEST_LOG_UPLOAD@g" "$deployment_working_file"
+    sed -i -e "s@<TestResultCoordinator.logUploadEnabled>@$log_upload_enabled@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.StorageAccountConnectionString>@$STORAGE_ACCOUNT_CONNECTION_STRING@g" "$deployment_working_file"
     sed -i -e "s@<TestInfo>@$TEST_INFO@g" "$deployment_working_file"
 
@@ -340,18 +340,6 @@ function run_connectivity_test() {
 
     SECONDS=0
 
-    case $image_architecture_label in
-        arm32v7)
-            TEST_LOG_UPLOAD=false;
-            OPTIMIZE_FOR_PERFORMANCE=false;
-            ;;
-
-        *)
-            TEST_LOG_UPLOAD=true;
-            OPTIMIZE_FOR_PERFORMANCE=true;
-            ;;
-    esac
-
     "$quickstart_working_folder/IotEdgeQuickstart" \
         -d "$device_id" \
         -a "$iotedge_package" \
@@ -365,7 +353,7 @@ function run_connectivity_test() {
         --leave-running=All \
         -l "$deployment_working_file" \
         --runtime-log-level "Info" \
-        --optimize_for_performance=$OPTIMIZE_FOR_PERFORMANCE \
+        --optimize_for_performance=$optimize_for_performance \
         --no-verify && funcRet=$? || funcRet=$?
 
     local elapsed_time="$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$SECONDS")"
@@ -549,9 +537,11 @@ working_folder="$E2E_TEST_DIR/working"
 quickstart_working_folder="$working_folder/quickstart"
 get_image_architecture_label
 optimize_for_performance=true
+log_upload_enabled=true
 if [ "$image_architecture_label" = 'arm32v7' ] ||
    [ "$image_architecture_label" = 'arm64v8' ]; then
     optimize_for_performance=false
+    log_upload_enabled=false
 fi
 
 iotedged_artifact_folder="$(get_iotedged_artifact_folder $E2E_TEST_DIR)"
