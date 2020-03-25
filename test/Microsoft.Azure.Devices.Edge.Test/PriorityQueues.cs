@@ -21,13 +21,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = this.TestToken;
             string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
-            string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for TempFilter test"));
-            string relayerImage = Context.Current.RelayerImage.Expect(() => new ArgumentException("relayerImage parameter is required for TempFilter test"));
+            string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
+            string relayerImage = Context.Current.RelayerImage.Expect(() => new ArgumentException("relayerImage parameter is required for Priority Queues test"));
 
             const string trcModuleName = "testResultCoordinator";
             const string loadGenModuleName = "loadGenModule";
             const string relayerModuleName = "relayerModule";
             const string trcUrl = "http://" + trcModuleName + ":5001";
+            string routeTemplate = $"FROM /messages/modules/{loadGenModuleName}/outputs/pri{0} INTO BrokeredEndpoint('/modules/{relayerModuleName}/inputs/input1')";
 
             string trackingId = Guid.NewGuid().ToString();
 
@@ -63,8 +64,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                {
                                    ["TestReportType"] = "CountingReport",
                                    ["TestOperationResultType"] = "Messages",
-                                   ["ExpectedSource"] = "loadGenModule.send",
-                                   ["ActualSource"] = "relayerModule.receive",
+                                   ["ExpectedSource"] = $"{loadGenModuleName}.send",
+                                   ["ActualSource"] = $"{relayerModuleName}.receive",
                                    ["TestDescription"] = "unnecessary"
                                }
                            }
@@ -74,11 +75,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         {
                             ("testResultCoordinatorUrl", trcUrl),
                             ("senderType", "PriorityMessageSender"),
-                            ("trackingId", "e2eTestTrackingId"),
+                            ("trackingId", trackingId),
                             ("testDuration", "00:00:20"),
                             ("messageFrequency", "00:00:01")
                         });
 
+                    // LoadGen assumes that outputs pri0, pri1, pri2, pri3 are increasing numerically in priority
+                    // So our priorities don't have to be 0, 1, 2, 3, but they do have to be ascending
                     builder.GetModule(ModuleName.EdgeHub)
                         .WithDesiredProperties(new Dictionary<string, object>
                         {
@@ -86,23 +89,23 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             {
                                 ["LoadGenToRelayer1"] = new Dictionary<string, object>
                                 {
-                                    ["route"] = "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri0 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
+                                    ["route"] = string.Format(routeTemplate, "0"),  // "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri0 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
                                     ["priority"] = 0
                                 },
                                 ["LoadGenToRelayer2"] = new Dictionary<string, object>
                                 {
-                                    ["route"] = "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri1 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
+                                    ["route"] = string.Format(routeTemplate, loadGenModuleName, "1"), // "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri1 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
                                     ["priority"] = 1
                                 },
                                 ["LoadGenToRelayer3"] = new Dictionary<string, object>
                                 {
-                                    ["route"] = "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri2 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
-                                    ["priority"] = 2
+                                    ["route"] = string.Format(routeTemplate, loadGenModuleName, "2"), // "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri2 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
+                                    ["priority"] = 50
                                 },
                                 ["LoadGenToRelayer4"] = new Dictionary<string, object>
                                 {
-                                    ["route"] = "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri3 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
-                                    ["priority"] = 3
+                                    ["route"] = string.Format(routeTemplate, loadGenModuleName, "3"), // "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri3 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
+                                    ["priority"] = 182
                                 }
                             }
                         });
