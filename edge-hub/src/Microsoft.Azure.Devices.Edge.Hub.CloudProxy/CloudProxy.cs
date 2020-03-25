@@ -135,7 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.timer.Reset();
             try
             {
-                using (Metrics.TimeMessageSend(this.clientId, inputMessage.ProcessedPriority))
+                using (Metrics.TimeMessageSend(this.clientId))
                 {
                     Metrics.MessageProcessingLatency(this.clientId, inputMessage);
                     await this.client.SendEventAsync(message);
@@ -155,7 +155,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             IMessageConverter<Message> converter = this.messageConverterProvider.Get<Message>();
             string metricOutputRoute = null;
-            uint priority = uint.MaxValue;
             IList<Message> messages = Preconditions.CheckNotNull(inputMessages, nameof(inputMessages))
                 .Select(inputMessage =>
                 {
@@ -166,18 +165,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 .ToList();
             this.timer.Reset();
 
-            if (messages.Count > 0)
-            {
-                priority = inputMessages.First().ProcessedPriority;
-            }
-
             try
             {
-                using (Metrics.TimeMessageSend(this.clientId, priority))
+                using (Metrics.TimeMessageSend(this.clientId))
                 {
                     await this.client.SendEventBatchAsync(messages);
                     Events.SendMessage(this);
-                    Metrics.AddSentMessages(this.clientId, messages.Count, metricOutputRoute, priority);
+
+                    if (messages.Count > 0)
+                    {
+                        // Priority for messages in any given batch is the same, so we can
+                        // just use the priority from the first message in the collection
+                        Metrics.AddSentMessages(this.clientId, messages.Count, metricOutputRoute, inputMessages.First().ProcessedPriority);
+                    }
                 }
             }
             catch (Exception ex)
@@ -623,7 +623,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             static readonly IMetricsTimer MessagesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "message_send_duration_seconds",
                 "Time taken to send a message",
-                new List<string> { "from", "to", "priority" });
+                new List<string> { "from", "to" });
 
             static readonly IMetricsCounter SentMessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "messages_sent",
@@ -660,7 +660,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 "Time taken to process message in EdgeHub",
                 new List<string> { "from", "to", "priority" });
 
-            public static IDisposable TimeMessageSend(string id, uint priority) => MessagesTimer.GetTimer(new[] { id, "upstream", priority.ToString() });
+            public static IDisposable TimeMessageSend(string id) => MessagesTimer.GetTimer(new[] { id, "upstream" });
 
             public static void AddSentMessages(string id, int count, string fromRoute, uint priority) =>
                 SentMessagesCounter.Increment(count, new[] { id, "upstream", fromRoute, string.Empty, priority.ToString() });

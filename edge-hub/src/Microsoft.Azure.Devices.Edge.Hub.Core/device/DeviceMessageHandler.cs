@@ -473,7 +473,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             static readonly IMetricsTimer MessagesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "message_send_duration_seconds",
                 "Time taken to send a message",
-                new List<string> { "from", "to", "priority" });
+                new List<string> { "from", "to" });
 
             static readonly IMetricsTimer GetTwinTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "gettwin_duration_seconds",
@@ -504,8 +504,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             {
                 string from = message.GetSenderId();
                 string to = identity.Id;
-                string priority = message.ProcessedPriority.ToString();
-                return MessagesTimer.GetTimer(new[] { from, to, priority });
+                return MessagesTimer.GetTimer(new[] { from, to });
             }
 
             public static IDisposable TimeGetTwin(string id) => GetTwinTimer.GetTimer(new[] { "edge_hub", id });
