@@ -70,6 +70,19 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                }
                            }
                        });
+
+                    string priorityString = "182;0;8000;15";
+                    string[] priorities = priorityString.Split(';');
+                    Dictionary<string, object> routes = new Dictionary<string, object>();
+                    foreach(string priority in priorities)
+                    {
+                        routes.Add($"LoadGenToRelayer{priority}", new Dictionary<string, object>
+                        {
+                            ["route"] = string.Format(routeTemplate, priority),
+                            ["priority"] = priority
+                        });
+                    }
+
                     builder.AddModule(loadGenModuleName, loadGenImage)
                         .WithEnvironment(new[]
                         {
@@ -77,38 +90,38 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             ("senderType", "PriorityMessageSender"),
                             ("trackingId", trackingId),
                             ("testDuration", "00:00:20"),
-                            ("messageFrequency", "00:00:01")
+                            ("messageFrequency", "00:00:01"),
+                            ("priorities", priorityString)
                         });
-
-                    // LoadGen assumes that outputs pri0, pri1, pri2, pri3 are increasing numerically in priority
-                    // So our priorities don't have to be 0, 1, 2, 3, but they do have to be ascending
                     builder.GetModule(ModuleName.EdgeHub)
-                        .WithDesiredProperties(new Dictionary<string, object>
-                        {
-                            ["routes"] = new Dictionary<string, object>
-                            {
-                                ["LoadGenToRelayer1"] = new Dictionary<string, object>
-                                {
-                                    ["route"] = string.Format(routeTemplate, "0"),  // "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri0 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
-                                    ["priority"] = 0
-                                },
-                                ["LoadGenToRelayer2"] = new Dictionary<string, object>
-                                {
-                                    ["route"] = string.Format(routeTemplate, loadGenModuleName, "1"), // "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri1 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
-                                    ["priority"] = 1
-                                },
-                                ["LoadGenToRelayer3"] = new Dictionary<string, object>
-                                {
-                                    ["route"] = string.Format(routeTemplate, loadGenModuleName, "2"), // "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri2 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
-                                    ["priority"] = 50
-                                },
-                                ["LoadGenToRelayer4"] = new Dictionary<string, object>
-                                {
-                                    ["route"] = string.Format(routeTemplate, loadGenModuleName, "3"), // "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri3 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
-                                    ["priority"] = 182
-                                }
-                            }
-                        });
+                        .WithDesiredProperties(routes);
+                        //new Dictionary<string, object>
+                        //{
+                            
+                        //    ["routes"] = new Dictionary<string, object>
+                        //    {
+                        //        ["LoadGenToRelayer1"] = new Dictionary<string, object>
+                        //        {
+                        //            ["route"] = string.Format(routeTemplate, "0"),  // "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri0 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
+                        //            ["priority"] = 0
+                        //        },
+                        //        ["LoadGenToRelayer2"] = new Dictionary<string, object>
+                        //        {
+                        //            ["route"] = string.Format(routeTemplate, "1"), // "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri1 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
+                        //            ["priority"] = 1
+                        //        },
+                        //        ["LoadGenToRelayer3"] = new Dictionary<string, object>
+                        //        {
+                        //            ["route"] = string.Format(routeTemplate, "2"), // "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri2 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
+                        //            ["priority"] = 50
+                        //        },
+                        //        ["LoadGenToRelayer4"] = new Dictionary<string, object>
+                        //        {
+                        //            ["route"] = string.Format(routeTemplate, "3"), // "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri3 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
+                        //            ["priority"] = 182
+                        //        }
+                        //    }
+                        //});
                 });
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token);

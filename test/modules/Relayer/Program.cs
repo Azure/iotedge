@@ -9,7 +9,6 @@ namespace Relayer
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
 
     /*
@@ -51,18 +50,6 @@ namespace Relayer
                 moduleClient?.CloseAsync();
                 moduleClient?.Dispose();
             }
-        }
-
-        static Task ExecuteWithRetry(Func<Task> func, Action<RetryingEventArgs> onRetry)
-        {
-            var transientRetryPolicy = RetryPolicy.DefaultExponential;
-            transientRetryPolicy.Retrying += (_, args) => onRetry(args);
-            return transientRetryPolicy.ExecuteAsync(func);
-        }
-
-        static void RetryingReportTestResult(RetryingEventArgs retryingEventArgs)
-        {
-            Logger.LogDebug($"Retrying ReportTestResult {retryingEventArgs.CurrentRetryCount} times because of error - {retryingEventArgs.LastException}");
         }
 
         static async Task<MessageResponse> ProcessAndSendMessageAsync(Message message, object userContext)
@@ -114,10 +101,7 @@ namespace Relayer
                     SequenceNumber = sequenceNumber
                 };
 
-                await ExecuteWithRetry(
-                () => ModuleUtil.ReportTestResultAsync(
-                    testResultReportingClient, Logger, testResultReceived),
-                RetryingReportTestResult);
+                await ModuleUtil.ReportTestResultAsync(testResultReportingClient, Logger, testResultReceived);
 
                 Logger.LogInformation($"Successfully received message: trackingid={trackingId}, batchId={batchId}, sequenceNumber={sequenceNumber}");
 

@@ -11,7 +11,7 @@ namespace LoadGen
 
     class PriorityMessageSender : SenderBase
     {
-        readonly string[] outputs = new string[] { "pri0", "pri1", "pri2", "pri3" };
+        // readonly string[] outputs = new string[] { "pri0", "pri1", "pri2", "pri3" };
 
         readonly Random rng = new Random();
 
@@ -26,6 +26,10 @@ namespace LoadGen
 
         public async override Task RunAsync(CancellationTokenSource cts, DateTime testStartAt)
         {
+            string priorityString = Settings.Current.Priorities.Expect(() =>
+                new ArgumentException("PriorityMessageSender must have 'priorities' environment variable set to a valid list of string delimited by ';'"));
+            string[] outputs = priorityString.Split(';');
+
             bool firstMessageWhileOffline = true;
             var priorityAndSequenceList = new List<(int, long)>();
             long messageIdCounter = 1;
@@ -34,8 +38,8 @@ namespace LoadGen
             {
                 try
                 {
-                    int priority = this.rng.Next(4);
-                    string output = this.outputs[priority];
+                    int choosePri = this.rng.Next(4);
+                    string output = outputs[choosePri];
 
                     await this.SendEventAsync(messageIdCounter, output);
 
@@ -49,7 +53,7 @@ namespace LoadGen
                     }
                     else
                     {
-                        priorityAndSequenceList.Add((priority, messageIdCounter));
+                        priorityAndSequenceList.Add((Int32.Parse(output), messageIdCounter));
                     }
 
                     if (messageIdCounter % 1000 == 0)
@@ -62,7 +66,7 @@ namespace LoadGen
                 }
                 catch (Exception ex)
                 {
-                    this.Logger.LogError(ex, $"[SendEventAsync] Sequence number {messageIdCounter}, BatchId: {this.BatchId.ToString()};");
+                    this.Logger.LogError(ex, $"[SendEventAsync] Sequence number {messageIdCounter}, BatchId: {this.BatchId};");
                 }
             }
 
