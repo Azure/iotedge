@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Installs the pre-reqs (currently only .Net Core) on the Windwos machine.
+# Installs the pre-reqs (currently only .Net Core) on the machine.
 
 if [ -z "${AGENT_WORKFOLDER}" ]; then
 	echo Error: Environment variable AGENT_WORKFOLDER is not defined.

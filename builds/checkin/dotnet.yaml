@@ -4,6 +4,8 @@ pr:
     include:
       - master
       - release/*
+variables:
+  dotnet.version: 3.1.200
 jobs:
 
 ################################################################################
@@ -31,11 +33,11 @@ jobs:
     pool:
       vmImage: "ubuntu-16.04"
     steps:
-      - task: Bash@3
-        displayName: Install
+      - task: UseDotNet@2
+        displayName: Install .NET Core
         inputs:
-          filePath: scripts/linux/installPrereqs.sh
-          arguments: -u $(NetCorePackageUriLinux)
+          packageType: sdk
+          version: $(dotnet.version)
       - task: Bash@3
         displayName: Build
         inputs:
