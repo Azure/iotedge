@@ -4,7 +4,7 @@ use serde::{Deserialize, Deserializer};
 use std::path::Path;
 use std::time::Duration;
 
-pub const DEFAULTS: &str = include_str!("config.json");
+pub const DEFAULTS: &str = include_str!("../config/default.json");
 
 #[derive(Debug, Deserialize)]
 pub struct InflightMessages {
@@ -138,7 +138,7 @@ mod tests {
 
     #[test]
     fn it_overrides_defaults() {
-        let settings = BrokerSettings::new(Some(Path::new("src/config_correct.json")))
+        let settings = BrokerSettings::new(Some(Path::new("test/config_correct.json")))
             .expect("should be able to create instance from configuration file");
 
         assert_eq!(
@@ -151,14 +151,14 @@ mod tests {
     #[should_panic]
     fn it_refuses_persistence_with_no_file_path() {
         let _settings =
-            BrokerSettings::new(Some(Path::new("src/config_no_file_path.json"))).unwrap();
+            BrokerSettings::new(Some(Path::new("test/config_no_file_path.json"))).unwrap();
     }
 
     #[test]
     #[should_panic]
     fn it_type_mismatch_fails() {
         let _settings =
-            BrokerSettings::new(Some(Path::new("src/config_bad_value_type.json"))).unwrap();
+            BrokerSettings::new(Some(Path::new("test/config_bad_value_type.json"))).unwrap();
     }
 
     #[derive(Debug, Deserialize)]
