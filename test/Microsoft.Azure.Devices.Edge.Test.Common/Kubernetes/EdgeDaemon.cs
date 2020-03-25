@@ -24,10 +24,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Kubernetes
             // Run Helm install for CRD.
             string kindArgs = "create cluster --wait 10m";
             string kubectlArgs = $"create ns {Constants.Deployment}";
-            string helmArgs = $"install --repo {DefaultHelmRepo} edge-kubernetes-crd";
+            string helmArgs = $"install {Constants.CrdDeployment} --repo {DefaultHelmRepo} edge-kubernetes-crd";
 
             var properties = new object[] { Dns.GetHostName() };
             string message = "Installed cluster and namespace on '{Device}'";
+
+            Log.Verbose($"COMMAND: kind {kindArgs}");
+            Log.Verbose($"COMMAND: kubectl {kubectlArgs}");
+            Log.Verbose($"COMMAND: helm {helmArgs}");
 
             await Profiler.Run(
                 async () =>
@@ -71,6 +75,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Kubernetes
                     string[] output;
                     foreach (var k8sCmd in yaml.GetK8sCommands())
                     {
+                        Log.Verbose($"COMMAND: {k8sCmd.Item1} {k8sCmd.Item2}");
+
                         output = await Process.RunAsync(k8sCmd.Item1, k8sCmd.Item2, token);
                         Log.Verbose(string.Join("\n", output));
                     }
@@ -92,7 +98,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Kubernetes
 
         async Task InternalStartAsync(CancellationToken token)
         {
-            string helmArgs = $"install -n {Constants.Deployment} --repo {DefaultHelmRepo} edge-kubernetes -f {OverrideFile}";
+            string helmArgs = $"install -n {Constants.Deployment} {Constants.Deployment} --repo {DefaultHelmRepo} edge-kubernetes -f {OverrideFile}";
+            Log.Verbose($"COMMAND: helm {helmArgs}");
 
             string[] output = await Process.RunAsync("helm", helmArgs, token);
             Log.Verbose(string.Join("\n", output));
@@ -107,6 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Kubernetes
         async Task InternalStopAsync(CancellationToken token)
         {
             string helmArgs = $"delete -n {Constants.Deployment} {Constants.Deployment}";
+            Log.Verbose($"COMMAND: helm {helmArgs}");
 
             string[] output = await Process.RunAsync("helm", helmArgs, token);
             Log.Verbose(string.Join("\n", output));
@@ -130,7 +138,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Kubernetes
                     async () =>
                     {
                         // This nukes the whole cluster. I don't think there's anything more to do.
-                        string kindArgs = "delete cluster --wait 10m";
+                        string kindArgs = "delete cluster";
+                        Log.Verbose($"COMMAND: kind {kindArgs}");
 
                         string[] output = await Process.RunAsync("kind", kindArgs, token);
                         Log.Verbose(string.Join("\n", output));
