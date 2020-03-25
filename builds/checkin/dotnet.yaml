@@ -39,6 +39,11 @@ jobs:
           packageType: sdk
           version: $(dotnet.version)
       - task: Bash@3
+        displayName: Install
+        inputs:
+          filePath: scripts/linux/installPrereqs.sh
+          arguments: -u $(NetCorePackageUriLinux)
+      - task: Bash@3
         displayName: Build
         inputs:
           filePath: scripts/linux/buildBranch.sh
