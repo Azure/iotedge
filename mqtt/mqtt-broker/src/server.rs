@@ -25,8 +25,8 @@ where
 
 impl<N, Z> Server<N, Z>
 where
-    N: Authenticator + Send + 'static,
-    Z: Authorizer + Send + 'static,
+    N: Authenticator + Send + Sync + 'static,
+    Z: Authorizer + Send + Sync + 'static,
 {
     pub fn from_broker(broker: Broker<N, Z>) -> Self {
         Self { broker }

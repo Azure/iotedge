@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use derive_more::Display;
 use failure::Fail;
 
@@ -6,7 +7,7 @@ use crate::Error;
 #[derive(Clone, Debug, Display, PartialEq)]
 pub enum AuthId {
     #[display(fmt = "*")]
-    Any,
+    Anonymous,
 
     Value(Identity),
 }
@@ -16,47 +17,55 @@ pub type Identity = String;
 #[derive(Clone, Debug)]
 pub struct Certificate(Vec<u8>);
 
-#[allow(dead_code)]
-pub struct Credentials {
-    username: Option<String>,
-    password: Option<String>,
-    certificate: Option<Certificate>,
+pub enum Credentials {
+    Basic(Option<String>, Option<String>),
+    ClientCertificate(Certificate),
 }
 
-impl Credentials {
-    pub fn new(
-        username: Option<String>,
-        password: Option<String>,
-        certificate: Option<Certificate>,
-    ) -> Self {
-        Self {
-            username,
-            password,
-            certificate,
-        }
-    }
-}
-
+#[async_trait]
 pub trait Authenticator {
-    fn authenticate(&self, credentials: Credentials) -> Result<Option<AuthId>, Error>;
+    async fn authenticate(&self, credentials: Credentials) -> Result<Option<AuthId>, Error>;
 }
 
-pub trait Authorizer {
-    fn authorize(&self, auth_id: AuthId) -> Result<bool, Error>;
+#[async_trait]
+impl<F> Authenticator for F
+where
+    F: Fn(Credentials) -> Result<Option<AuthId>, Error> + Sync,
+{
+    async fn authenticate(&self, credentials: Credentials) -> Result<Option<AuthId>, Error> {
+        self(credentials)
+    }
 }
 
 pub struct DefaultAuthenticator;
 
+#[async_trait]
 impl Authenticator for DefaultAuthenticator {
-    fn authenticate(&self, _credentials: Credentials) -> Result<Option<AuthId>, Error> {
-        Ok(Some(AuthId::Any))
+    async fn authenticate(&self, _: Credentials) -> Result<Option<AuthId>, Error> {
+        Ok(Some(AuthId::Anonymous))
+    }
+}
+
+#[async_trait]
+pub trait Authorizer {
+    async fn authorize(&self, auth_id: AuthId) -> Result<bool, Error>;
+}
+
+#[async_trait]
+impl<F> Authorizer for F
+where
+    F: Fn(AuthId) -> Result<bool, Error> + Sync,
+{
+    async fn authorize(&self, auth_id: AuthId) -> Result<bool, Error> {
+        self(auth_id)
     }
 }
 
 pub struct DefaultAuthorizer;
 
+#[async_trait]
 impl Authorizer for DefaultAuthorizer {
-    fn authorize(&self, _auth_id: AuthId) -> Result<bool, Error> {
+    async fn authorize(&self, _: AuthId) -> Result<bool, Error> {
         Ok(true)
     }
 }

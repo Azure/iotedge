@@ -27,8 +27,8 @@ mod session;
 mod snapshot;
 mod subscription;
 
-pub use crate::auth::{Certificate, DefaultAuthenticator, DefaultAuthorizer};
-pub use crate::broker::{Broker, BrokerHandle, BrokerState};
+pub use crate::auth::{AuthId, Certificate};
+pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle, BrokerState};
 pub use crate::connection::ConnectionHandle;
 pub use crate::error::{Error, ErrorKind};
 pub use crate::persist::{BincodeFormat, FileFormat, FilePersistor, NullPersistor, Persist};
