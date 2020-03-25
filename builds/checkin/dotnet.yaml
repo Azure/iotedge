@@ -5,7 +5,7 @@ pr:
       - master
       - release/*
 variables:
-  dotnet.version: 3.1.200
+  dotnet.version: 3.1.201
 jobs:
 
 ################################################################################
