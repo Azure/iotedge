@@ -119,6 +119,7 @@ mod tests {
     use std::path::Path;
     use std::time::Duration;
 
+    use matches::assert_matches;
     use serde::Deserialize;
     use serde_json::json;
     use test_case::test_case;
@@ -148,17 +149,17 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn it_refuses_persistence_with_no_file_path() {
-        let _settings =
-            BrokerSettings::new(Some(Path::new("test/config_no_file_path.json"))).unwrap();
+        let settings = BrokerSettings::new(Some(Path::new("test/config_no_file_path.json")));
+
+        assert_matches!(settings, Err(_err));
     }
 
     #[test]
-    #[should_panic]
     fn it_type_mismatch_fails() {
-        let _settings =
-            BrokerSettings::new(Some(Path::new("test/config_bad_value_type.json"))).unwrap();
+        let settings = BrokerSettings::new(Some(Path::new("test/config_bad_value_type.json")));
+
+        assert_matches!(settings, Err(_err));
     }
 
     #[derive(Debug, Deserialize)]
@@ -197,10 +198,8 @@ mod tests {
     #[test_case( "12a3 kb" ; "when invalid number")]
     fn it_fails_deserializing_unknown_metric(input: &str) {
         let container_json = json!({ "size": input }).to_string();
+        let result = serde_json::from_str::<Container>(&container_json);
 
-        let _error = match serde_json::from_str::<Container>(&container_json) {
-            Ok(_) => panic!("expected error but it is Ok"),
-            Err(err) => err,
-        };
+        assert_matches!(result, Err(_err));
     }
 }
