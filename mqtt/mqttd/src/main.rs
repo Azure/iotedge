@@ -1,4 +1,3 @@
-use std::path::Path;
 use std::{env, io};
 
 use failure::ResultExt;
@@ -25,9 +24,8 @@ async fn main() -> Result<(), Error> {
         .unwrap_or_else(|| "0.0.0.0:1883".to_string());
 
     // TODO pass it to broker
-    let config_path = "config/default.json";
-    let config =
-        BrokerSettings::new(Some(Path::new(config_path))).expect("cannot read configuration");
+    // TODO make it an argument to override defaul config
+    let config = BrokerConfig::new().context(ErrorKind::LoadConfiguration)?;
 
     // TODO pass it to persistence
     let _persistence = config.persistence();

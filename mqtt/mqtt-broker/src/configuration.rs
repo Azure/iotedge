@@ -45,7 +45,7 @@ pub struct Session {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct BrokerSettings {
+pub struct BrokerConfig {
     inflight_messages: InflightMessages,
     retained_messages: RetainedMessages,
     session: Session,
@@ -98,14 +98,18 @@ where
     serde::de::Error::invalid_value(serde::de::Unexpected::Str(&unexpected), &expected)
 }
 
-impl BrokerSettings {
-    pub fn new(path: Option<&Path>) -> Result<Self, ConfigError> {
+impl BrokerConfig {
+    pub fn new() -> Result<Self, ConfigError> {
         let mut s = Config::new();
         s.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
 
-        if let Some(path) = path {
-            s.merge(File::from(path))?;
-        }
+        s.try_into()
+    }
+
+    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, ConfigError> {
+        let mut s = Config::new();
+        s.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
+        s.merge(File::from(path.as_ref()))?;
 
         s.try_into()
     }
@@ -129,8 +133,7 @@ mod tests {
 
     #[test]
     fn it_loads_defaults() {
-        let settings =
-            BrokerSettings::new(None).expect("should be able to create default instance");
+        let settings = BrokerConfig::new().expect("should be able to create default instance");
 
         assert_eq!(
             settings.retained_messages.expiration,
@@ -140,7 +143,7 @@ mod tests {
 
     #[test]
     fn it_overrides_defaults() {
-        let settings = BrokerSettings::new(Some(Path::new("test/config_correct.json")))
+        let settings = BrokerConfig::from_file(Path::new("test/config_correct.json"))
             .expect("should be able to create instance from configuration file");
 
         assert_eq!(
@@ -151,14 +154,14 @@ mod tests {
 
     #[test]
     fn it_refuses_persistence_with_no_file_path() {
-        let settings = BrokerSettings::new(Some(Path::new("test/config_no_file_path.json")));
+        let settings = BrokerConfig::from_file(Path::new("test/config_no_file_path.json"));
 
         assert_matches!(settings, Err(_err));
     }
 
     #[test]
     fn it_type_mismatch_fails() {
-        let settings = BrokerSettings::new(Some(Path::new("test/config_bad_value_type.json")));
+        let settings = BrokerConfig::from_file(Path::new("test/config_bad_value_type.json"));
 
         assert_matches!(settings, Err(_err));
     }

@@ -63,6 +63,9 @@ pub enum ErrorKind {
 
     #[fail(display = "An error occurred persisting state: {}", _0)]
     Persist(crate::persist::ErrorReason),
+
+    #[fail(display = "An error occurred loading configuration.")]
+    LoadConfiguration,
 }
 
 impl Fail for Error {
