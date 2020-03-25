@@ -38,15 +38,15 @@ namespace LoadGen
                 Logger.LogInformation($"Load gen delay start for {Settings.Current.TestStartDelay}.");
                 await Task.Delay(Settings.Current.TestStartDelay);
 
-                SenderBase sender;
+                LoadGenSenderBase sender;
                 switch (Settings.Current.SenderType)
                 {
-                    case SenderType.PriorityMessageSender:
+                    case LoadGenSenderType.PriorityMessageSender:
                         sender = new PriorityMessageSender(Logger, moduleClient, batchId, Settings.Current.TrackingId);
                         break;
-                    case SenderType.DefaultSender:
+                    case LoadGenSenderType.DefaultSender:
                     default:
-                        sender = new DefaultSender(Logger, moduleClient, batchId, Settings.Current.TrackingId);
+                        sender = new DefaultMessageSender(Logger, moduleClient, batchId, Settings.Current.TrackingId);
                         break;
                 }
 

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace LoadGen
 {
-    public enum SenderType
+    public enum LoadGenSenderType
     {
         DefaultSender,
         PriorityMessageSender

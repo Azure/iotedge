@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                        {
                            ("trackingId", trackingId),
                            ("eventHubConnectionString", "Unnecessary"),
-                           ("IOT_HUB_CONNECTION_STRING", this.iotHub.IoTHubConnectionString),
+                           ("IOT_HUB_CONNECTION_STRING", Context.Current.ConnectionString),
                            ("logAnalyticsWorkspaceId", "Unnecessary"),
                            ("logAnalyticsSharedKey", "Unnecessary"),
                            ("logAnalyticsLogType", "Unnecessary"),
@@ -70,45 +70,21 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                }
                            }
                        });
+
+                    string priorityString = "182;0;8000;15";
                     builder.AddModule(loadGenModuleName, loadGenImage)
                         .WithEnvironment(new[]
                         {
                             ("testResultCoordinatorUrl", trcUrl),
                             ("senderType", "PriorityMessageSender"),
                             ("trackingId", trackingId),
-                            ("testDuration", "00:00:20"),
-                            ("messageFrequency", "00:00:01")
+                            ("testDuration", "00:00:15"),
+                            ("messageFrequency", "00:00:00.5"),
+                            ("priorities", priorityString)
                         });
 
-                    // LoadGen assumes that outputs pri0, pri1, pri2, pri3 are increasing numerically in priority
-                    // So our priorities don't have to be 0, 1, 2, 3, but they do have to be ascending
-                    builder.GetModule(ModuleName.EdgeHub)
-                        .WithDesiredProperties(new Dictionary<string, object>
-                        {
-                            ["routes"] = new Dictionary<string, object>
-                            {
-                                ["LoadGenToRelayer1"] = new Dictionary<string, object>
-                                {
-                                    ["route"] = string.Format(routeTemplate, "0"),  // "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri0 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
-                                    ["priority"] = 0
-                                },
-                                ["LoadGenToRelayer2"] = new Dictionary<string, object>
-                                {
-                                    ["route"] = string.Format(routeTemplate, loadGenModuleName, "1"), // "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri1 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
-                                    ["priority"] = 1
-                                },
-                                ["LoadGenToRelayer3"] = new Dictionary<string, object>
-                                {
-                                    ["route"] = string.Format(routeTemplate, loadGenModuleName, "2"), // "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri2 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
-                                    ["priority"] = 50
-                                },
-                                ["LoadGenToRelayer4"] = new Dictionary<string, object>
-                                {
-                                    ["route"] = string.Format(routeTemplate, loadGenModuleName, "3"), // "FROM /messages/modules/" + loadGenModuleName + "/outputs/pri3 INTO BrokeredEndpoint('/modules/" + relayerModuleName + "/inputs/input1')",
-                                    ["priority"] = 182
-                                }
-                            }
-                        });
+                    Dictionary<string, object> routes = this.BuildRoutes(priorityString.Split(';'), loadGenModuleName, relayerModuleName);
+                    builder.GetModule(ModuleName.EdgeHub).WithDesiredProperties(new Dictionary<string, object> { ["routes"] = routes });
                 });
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token);
@@ -126,13 +102,27 @@ namespace Microsoft.Azure.Devices.Edge.Test
             deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token);
 
             // Wait for relayer to spin up, receive messages, and pass along results to TRC
-            await Task.Delay(TimeSpan.FromSeconds(20));
+            await Task.Delay(TimeSpan.FromSeconds(25));
 
             HttpClient client = new HttpClient();
             HttpResponseMessage response = await client.GetAsync("http://localhost:5001/api/report");
             var jsonstring = await response.Content.ReadAsStringAsync();
             bool isPassed = (bool)JArray.Parse(jsonstring)[0]["IsPassed"];
             Assert.IsTrue(isPassed);
+        }
+
+        private Dictionary<string, object> BuildRoutes(string[] priorities, string sendModule, string receiveModule)
+        {
+            Dictionary<string, object> routes = new Dictionary<string, object>();
+            foreach (string priority in priorities)
+            {
+                routes.Add($"LoadGenToRelayer{priority}", new Dictionary<string, object>
+                {
+                    ["route"] = $"FROM /messages/modules/{sendModule}/outputs/pri{priority} INTO BrokeredEndpoint('/modules/{receiveModule}/inputs/input1')",
+                    ["priority"] = int.Parse(priority)
+                });
+            }
+            return routes;
         }
     }
 }

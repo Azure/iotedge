@@ -23,7 +23,8 @@ namespace LoadGen
             string trackingId,
             Option<string> testResultCoordinatorUrl,
             string moduleId,
-            SenderType senderType)
+            LoadGenSenderType senderType,
+            Option<string> priorities)
         {
             Preconditions.CheckRange(messageFrequency.Ticks, 0);
             Preconditions.CheckRange(testStartDelay.Ticks, 0);
@@ -40,6 +41,7 @@ namespace LoadGen
             this.TestResultCoordinatorUrl = testResultCoordinatorUrl;
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.SenderType = senderType;
+            this.Priorities = priorities;
         }
 
         static Settings Create()
@@ -54,6 +56,10 @@ namespace LoadGen
                 ? null
                 : configuration.GetValue<string>("testResultCoordinatorUrl");
 
+            string priorities = string.IsNullOrWhiteSpace(configuration.GetValue<string>("priorities"))
+                ? null
+                : configuration.GetValue<string>("priorities");
+
             return new Settings(
                 configuration.GetValue("messageFrequency", TimeSpan.FromMilliseconds(20)),
                 configuration.GetValue<ulong>("messageSizeInBytes", 1024),
@@ -64,7 +70,8 @@ namespace LoadGen
                 configuration.GetValue("trackingId", string.Empty),
                 Option.Maybe(testResultCoordinatorUrl),
                 configuration.GetValue<string>("IOTEDGE_MODULEID"),
-                configuration.GetValue("senderType", SenderType.DefaultSender));
+                configuration.GetValue("senderType", LoadGenSenderType.DefaultSender),
+                Option.Maybe(priorities));
         }
 
         public TimeSpan MessageFrequency { get; }
@@ -85,7 +92,9 @@ namespace LoadGen
 
         public Option<string> TestResultCoordinatorUrl { get; }
 
-        public SenderType SenderType { get; }
+        public LoadGenSenderType SenderType { get; }
+
+        public Option<string> Priorities { get; }
 
         public override string ToString()
         {

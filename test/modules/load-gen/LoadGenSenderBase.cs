@@ -12,18 +12,18 @@ namespace LoadGen
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    public abstract class SenderBase
+    public abstract class LoadGenSenderBase
     {
-        public SenderBase(
+        public LoadGenSenderBase(
             ILogger logger,
             ModuleClient moduleClient,
             Guid batchId,
             string trackingId)
         {
-            this.Logger = logger;
+            this.Logger = Preconditions.CheckNotNull(logger, nameof(logger));
             this.Client = Preconditions.CheckNotNull(moduleClient, nameof(moduleClient));
-            this.BatchId = batchId;
-            this.TrackingId = trackingId;
+            this.BatchId = Preconditions.CheckNotNull(batchId, nameof(batchId));
+            this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
         }
 
         public ILogger Logger { get; }
@@ -68,7 +68,7 @@ namespace LoadGen
                     var testResultReportingClient = new TestResultReportingClient { BaseUrl = testResultCoordinatorUrl.AbsoluteUri };
                     var testResult = new MessageTestResult(Settings.Current.ModuleId + ".send", DateTime.UtcNow)
                     {
-                        TrackingId = Settings.Current.TrackingId,
+                        TrackingId = this.TrackingId,
                         BatchId = this.BatchId.ToString(),
                         SequenceNumber = messageIdCounter.ToString()
                     };

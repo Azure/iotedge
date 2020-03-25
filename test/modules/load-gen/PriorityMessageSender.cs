@@ -9,10 +9,9 @@ namespace LoadGen
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Extensions.Logging;
 
-    class PriorityMessageSender : SenderBase
+    class PriorityMessageSender : LoadGenSenderBase
     {
-        readonly string[] outputs = new string[] { "pri0", "pri1", "pri2", "pri3" };
-
+        // readonly string[] outputs = new string[] { "pri0", "pri1", "pri2", "pri3" };
         readonly Random rng = new Random();
 
         public PriorityMessageSender(
@@ -26,16 +25,23 @@ namespace LoadGen
 
         public async override Task RunAsync(CancellationTokenSource cts, DateTime testStartAt)
         {
+            string priorityString = Settings.Current.Priorities.Expect(() =>
+                new ArgumentException("PriorityMessageSender must have 'priorities' environment variable set to a valid list of string delimited by ';'"));
+            string[] outputs = priorityString
+                .Split(';')
+                .Select(x => "pri" + x)
+                .ToArray();
+
             bool firstMessageWhileOffline = true;
-            var priorityAndSequenceList = new List<(int, long)>();
+            var priorityAndSequence = new SortedDictionary<int, List<long>>();
             long messageIdCounter = 1;
             while (!cts.IsCancellationRequested &&
                 (Settings.Current.TestDuration == TimeSpan.Zero || DateTime.UtcNow - testStartAt < Settings.Current.TestDuration))
             {
                 try
                 {
-                    int priority = this.rng.Next(4);
-                    string output = this.outputs[priority];
+                    int choosePri = this.rng.Next(4);
+                    string output = outputs[choosePri];
 
                     await this.SendEventAsync(messageIdCounter, output);
 
@@ -49,7 +55,15 @@ namespace LoadGen
                     }
                     else
                     {
-                        priorityAndSequenceList.Add((priority, messageIdCounter));
+                        int priority = int.Parse(output.Substring(3));
+                        if (!priorityAndSequence.TryGetValue(priority, out List<long> sequenceNums))
+                        {
+                            priorityAndSequence.Add(priority, new List<long> { messageIdCounter });
+                        }
+                        else
+                        {
+                            sequenceNums.Add(messageIdCounter);
+                        }
                     }
 
                     if (messageIdCounter % 1000 == 0)
@@ -62,19 +76,22 @@ namespace LoadGen
                 }
                 catch (Exception ex)
                 {
-                    this.Logger.LogError(ex, $"[SendEventAsync] Sequence number {messageIdCounter}, BatchId: {this.BatchId.ToString()};");
+                    this.Logger.LogError(ex, $"[SendEventAsync] Sequence number {messageIdCounter}, BatchId: {this.BatchId};");
                 }
             }
 
             this.Logger.LogInformation($"Sending finished. Now sending expected results to {Settings.Current.TestResultCoordinatorUrl}");
 
-            // Sort by priority then sequence number. Then, select just the sequence numbers
-            List<long> expectedSequenceNumberList = priorityAndSequenceList
-                .OrderBy(t => t.Item1)
-                .ThenBy(t => t.Item2)
-                .Select(t => t.Item2)
+            // Sort priority by sequence number
+            List<long> expectedSequenceNumberList = priorityAndSequence
+                .SelectMany(t =>
+                {
+                    t.Value.Sort();
+                    return t.Value;
+                })
                 .ToList();
 
+            // See explanation above why we need to send sequence number 1 first
             await this.ReportResult(1);
 
             foreach (int sequenceNumber in expectedSequenceNumberList)

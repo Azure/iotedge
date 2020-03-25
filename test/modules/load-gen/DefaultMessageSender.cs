@@ -7,9 +7,9 @@ namespace LoadGen
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Extensions.Logging;
 
-    class DefaultSender : SenderBase
+    class DefaultMessageSender : LoadGenSenderBase
     {
-        public DefaultSender(
+        public DefaultMessageSender(
             ILogger logger,
             ModuleClient moduleClient,
             Guid batchId,
