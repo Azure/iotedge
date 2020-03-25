@@ -536,6 +536,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
             public long Offset { get; }
 
+            public uint ProcessedPriority { get; set; }
+
             public DateTime EnqueuedTime => this.inner.EnqueuedTime;
 
             public DateTime DequeuedTime => this.inner.DequeuedTime;
