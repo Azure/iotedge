@@ -18,9 +18,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         {
         }
 
-        public X509Thumbprint Thumbprint { get; set; }
-        public EdgeDevice Device { get; set; }
-
         [OneTimeSetUp]
         public async Task X509ProvisionEdgeAsync()
         {
@@ -32,20 +29,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         CancellationToken token = cts.Token;
                         DateTime startTime = DateTime.Now;
 
-                        IdCertificates certs;
-                        (this.Thumbprint, certs) = await this.CreateDeviceIdCertAsync(
+                        (X509Thumbprint thumbprint, IdCertificates certs) = await this.CreateDeviceIdCertAsync(
                             Context.Current.DeviceId + DeviceSuffix, token);
 
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
                             Context.Current.DeviceId + DeviceSuffix,
                             this.iotHub,
                             AuthenticationType.SelfSigned,
-                            this.Thumbprint,
+                            thumbprint,
                             token);
 
                         Context.Current.DeleteList.TryAdd(device.Id, device);
-
-                        this.Device = device;
 
                         await this.ManuallyProvisionEdgeX509Async(
                             device,
