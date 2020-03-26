@@ -226,7 +226,11 @@ impl Consolidator {
             .map(|(k, v)| (k, this.resolve_publication(v)));
         let retained = HashMap::from_iter(retained);
 
-        let sessions = Vec::new();
+        let sessions = state
+            .sessions
+            .into_iter()
+            .map(|s| this.resolve_session(s))
+            .collect();
 
         BrokerState { retained, sessions }
     }
@@ -618,6 +622,45 @@ pub(crate) mod tests {
             let reader = Cursor::new(buffer);
             let state = format.load(reader).unwrap();
             prop_assert_eq!(expected, state);
+        }
+
+        #[test]
+        fn consolidate_simple(state in arb_broker_state()) {
+            let expected = state.clone();
+
+            let consolidated = Consolidator::consolidate_state(state);
+            prop_assert_eq!(expected.retained.len(), consolidated.retained.len());
+            prop_assert_eq!(expected.sessions.len(), consolidated.sessions.len());
+
+            let state = Consolidator::resolve_state(consolidated);
+
+            prop_assert_eq!(expected.retained, state.retained);
+            prop_assert_eq!(expected.sessions.len(), state.sessions.len());
+            for i in 0..expected.sessions.len(){
+                prop_assert_eq!(&expected.sessions[i].client_id, &state.sessions[i].client_id);
+                prop_assert_eq!(&expected.sessions[i].subscriptions, &state.sessions[i].subscriptions);
+                prop_assert_eq!(&expected.sessions[i].waiting_to_be_sent, &state.sessions[i].waiting_to_be_sent);
+            }
+        }
+
+        #[test]
+        fn consolidate_roundtrip(state in arb_broker_state()) {
+            let expected = state.clone();
+            let format = ConsolidatedStateFormat;
+            let mut buffer = vec![0_u8; 10 * 1024 * 1024];
+            let writer = Cursor::new(&mut buffer);
+            format.store(writer, state).unwrap();
+
+            let reader = Cursor::new(buffer);
+            let state = format.load(reader).unwrap();
+
+            prop_assert_eq!(expected.retained, state.retained);
+            prop_assert_eq!(expected.sessions.len(), state.sessions.len());
+            for i in 0..expected.sessions.len(){
+                prop_assert_eq!(&expected.sessions[i].client_id, &state.sessions[i].client_id);
+                prop_assert_eq!(&expected.sessions[i].subscriptions, &state.sessions[i].subscriptions);
+                prop_assert_eq!(&expected.sessions[i].waiting_to_be_sent, &state.sessions[i].waiting_to_be_sent);
+            }
         }
     }
 
