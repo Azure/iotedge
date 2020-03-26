@@ -134,7 +134,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         ["priority"] = int.Parse(priority)
                     });
                 }
-                
             }
 
             return routes;
