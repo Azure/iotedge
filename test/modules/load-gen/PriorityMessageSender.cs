@@ -86,6 +86,11 @@ namespace LoadGen
 
             this.Logger.LogInformation($"Sending finished. Now sending expected results to {Settings.Current.TestResultCoordinatorUrl}");
 
+            if (priorityAndSequence.Keys.Count <= 1)
+            {
+                throw new InvalidOperationException($"Must send more than 1 priority for valid test results. Priorities sent: {priorityAndSequence.Keys.Count}");
+            }
+
             // Sort priority by sequence number
             List<long> expectedSequenceNumberList = priorityAndSequence
                 .SelectMany(t => t.Value)
