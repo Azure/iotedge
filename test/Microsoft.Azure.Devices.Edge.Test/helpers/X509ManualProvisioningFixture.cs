@@ -28,12 +28,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     {
                         CancellationToken token = cts.Token;
                         DateTime startTime = DateTime.Now;
+                        string deviceId = Context.Current.DeviceId + DeviceSuffix;
 
                         (X509Thumbprint thumbprint, IdCertificates certs) = await this.CreateDeviceIdCertAsync(
-                            Context.Current.DeviceId + DeviceSuffix, token);
+                            deviceId, token);
 
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
-                            Context.Current.DeviceId + DeviceSuffix,
+                            deviceId,
                             this.iotHub,
                             AuthenticationType.SelfSigned,
                             thumbprint,
