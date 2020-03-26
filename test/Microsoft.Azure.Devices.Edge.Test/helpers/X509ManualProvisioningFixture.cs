@@ -11,8 +11,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
     public class X509ManualProvisioningFixture : ManualProvisioningFixture
     {
+        const string DeviceSuffix = "-x509";
+
         public X509ManualProvisioningFixture()
-            : base("-x509")
+            : base(DeviceSuffix)
         {
         }
 
@@ -31,10 +33,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         DateTime startTime = DateTime.Now;
 
                         IdCertificates certs;
-                        (this.Thumbprint, certs) = await this.CreateDeviceIdCertAsync(Context.Current.DeviceId + "-x509", token);
+                        (this.Thumbprint, certs) = await this.CreateDeviceIdCertAsync(
+                            Context.Current.DeviceId + DeviceSuffix, token);
 
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
-                            Context.Current.DeviceId + "-x509",
+                            Context.Current.DeviceId + DeviceSuffix,
                             this.iotHub,
                             AuthenticationType.SelfSigned,
                             this.Thumbprint,
@@ -44,7 +47,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
                         this.Device = device;
 
-                        await this.ManuallyProvisionEdgeX509Async(device, certs.CertificatePath, certs.KeyPath, startTime, token);
+                        await this.ManuallyProvisionEdgeX509Async(
+                            device,
+                            certs.CertificatePath,
+                            certs.KeyPath,
+                            startTime,
+                            token);
                     }
                 },
                 "Completed edge manual provisioning with self-signed certificate");
@@ -54,9 +62,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         {
             (string, string, string) rootCa =
             Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing root CA keys"));
-            string caCertScriptPath =
-                        Context.Current.CaCertScriptPath.Expect(() => new InvalidOperationException("Missing CA cert script path"));
-            string idScope = Context.Current.DpsIdScope.Expect(() => new InvalidOperationException("Missing DPS ID scope"));
+            string caCertScriptPath = Context.Current.CaCertScriptPath.Expect(
+                () => new InvalidOperationException("Missing CA cert script path"));
+            string idScope = Context.Current.DpsIdScope.Expect(
+                () => new InvalidOperationException("Missing DPS ID scope"));
 
             CertificateAuthority ca = await CertificateAuthority.CreateAsync(
                 deviceId,
