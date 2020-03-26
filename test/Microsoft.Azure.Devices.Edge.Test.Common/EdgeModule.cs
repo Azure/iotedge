@@ -51,8 +51,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                             .Where(
                                 ln =>
                                 {
-                                    var columns = ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries);
-                                    foreach (var moduleId in moduleIds)
+                                    string[] columns = ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries);
+                                    foreach (string moduleId in moduleIds)
                                     {
                                         // each line is "name status"
                                         if (columns[0] == moduleId &&
@@ -172,8 +172,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     .ToDictionary(v => v.Path.Substring(rootPath.Length).TrimStart('.'));
             }
 
-            var referenceValues = ProcessJson(reference.obj, reference.rootPath);
-            var comparandValues = ProcessJson(comparand.obj, comparand.rootPath);
+            Dictionary<string, JValue> referenceValues = ProcessJson(reference.obj, reference.rootPath);
+            Dictionary<string, JValue> comparandValues = ProcessJson(comparand.obj, comparand.rootPath);
 
             // comparand equals reference if, for each json value in reference:
             // - comparand has a json value with the same path
@@ -183,7 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             if (!match)
             {
-                var missing = referenceValues
+                IEnumerable<string> missing = referenceValues
                     .Where(kvp =>
                         !comparandValues.ContainsKey(kvp.Key) ||
                         !kvp.Value.Equals(comparandValues[kvp.Key]))

@@ -37,8 +37,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
         {
             ModuleConfiguration[] modules = moduleConfigs.ToArray();
 
-            var names = modules.Select(m => m.Name).ToArray();
-            var images = modules.Select(m => m.Image).ToArray();
+            string[] names = modules.Select(m => m.Name).ToArray();
+            string[] images = modules.Select(m => m.Image).ToArray();
             var config = new ConfigurationContent
             {
                 ModulesContent = modules
@@ -55,10 +55,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             config = JsonConvert.DeserializeObject<ConfigurationContent>(JsonConvert.SerializeObject(config));
 
             // Build the object we'll use later to verify the deployment
-            var edgeAgent = modules.Where(m => m.Name == ModuleName.EdgeAgent).FirstOrDefault()
+            ModuleConfiguration edgeAgent = modules.Where(m => m.Name == ModuleName.EdgeAgent).FirstOrDefault()
                 ?? new ModuleConfiguration();
-            var desired = JObject
-                .FromObject(edgeAgent.DesiredProperties);
+            JObject desired = JObject.FromObject(edgeAgent.DesiredProperties);
 
             var reported = new Dictionary<string, object>
             {
@@ -80,22 +79,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                         p => CreateExpectedModuleConfig((JObject)p.Value));
             }
 
-            var expected = new
-            {
-                properties = new
-                {
-                    reported = reported
-                }
-            };
+            var expected = new { properties = new { reported } };
 
             return new EdgeConfiguration(deviceId, names, images, config, expected);
         }
 
         static object CreateExpectedModuleConfig(JObject source)
         {
-            var image = source.SelectToken($"settings.image"); // not optional
-            var createOptions = source.SelectToken($"settings.createOptions") ?? new JObject();
-            var env = source.SelectToken($"env") ?? new JObject();
+            JToken image = source.SelectToken($"settings.image"); // not optional
+            JToken createOptions = source.SelectToken($"settings.createOptions") ?? new JObject();
+            JToken env = source.SelectToken($"env") ?? new JObject();
 
             var module = new
             {
