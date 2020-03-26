@@ -39,7 +39,7 @@ There are four azure resources which support the test dashboard:
 3. A container instance hosting the scheduled ingestion job from Azure Dev Ops to the SQL server. The source code for this can be found by searching for VstsPipelineSync in our repository.
 4. A container registry storing the images used by 1) and 3)
 
-All of these resources will be located under the Azure ressource group TestDashboard.
+All of these resources will be located under the Azure ressource group [TestDashboard](https://ms.portal.azure.com/#@microsoft.onmicrosoft.com/resource/subscriptions/5ed2dcb6-29bb-40de-a855-8c24a8260343/resourceGroups/TestDashboard/overview)
 
 ## Changing the grafana frontend
 If making any changes to the dashboard frontend, you will have to rebuild the test dashboard container and redeploy the app service. In order to do this, follow the steps under Development to save your altered dashboard, then build and push the new image to the container registry. After this is complete you can redeploy the app service with the new image you have pushed. 
