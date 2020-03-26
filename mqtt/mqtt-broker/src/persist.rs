@@ -169,7 +169,7 @@ impl FileFormat for ConsolidatedStateFormat {
         let state = bincode::deserialize_from(decoder)
             .context(ErrorKind::Persist(ErrorReason::Deserialize))?;
 
-        let state = Consolidator::resolve_state(state);
+        let state = Resolver::resolve_state(state);
         Ok(state)
     }
 
@@ -187,13 +187,15 @@ impl FileFormat for ConsolidatedStateFormat {
 }
 
 struct Consolidator {
-    payloads: HashMap<u64, Bytes>,
+    payloads: HashMap<Bytes, u64>,
+    curr_id: u64,
 }
 
 impl Consolidator {
     fn consolidate_state(state: BrokerState) -> ConsolidatedState {
         let mut this = Self {
             payloads: HashMap::new(),
+            curr_id: 0,
         };
 
         let retained = state
@@ -208,13 +210,54 @@ impl Consolidator {
             .map(|s| this.consolidate_session(s))
             .collect();
 
+        let payloads = this.payloads.into_iter().map(|(k, v)| (v, k));
+        let payloads = HashMap::from_iter(payloads);
+
         ConsolidatedState {
-            payloads: this.payloads,
+            payloads,
             retained,
             sessions,
         }
     }
 
+    fn consolidate_publication(&mut self, publication: Publication) -> SimplifiedPublication {
+        SimplifiedPublication {
+            topic_name: publication.topic_name,
+            retain: publication.retain,
+            qos: publication.qos,
+            payload: self.get_id(publication.payload),
+        }
+    }
+
+    fn consolidate_session(&mut self, session: SessionState) -> ConsolidatedSession {
+        ConsolidatedSession {
+            client_id: session.client_id,
+            subscriptions: session.subscriptions,
+            waiting_to_be_sent: session
+                .waiting_to_be_sent
+                .into_iter()
+                .map(|p| self.consolidate_publication(p))
+                .collect(),
+        }
+    }
+
+    fn get_id(&mut self, bytes: Bytes) -> u64 {
+        if let Some(id) = self.payloads.get(&bytes) {
+            *id
+        } else {
+            self.curr_id += 1;
+            let id = self.curr_id;
+            self.payloads.insert(bytes, id);
+            id
+        }
+    }
+}
+
+struct Resolver {
+    payloads: HashMap<u64, Bytes>,
+}
+
+impl Resolver {
     fn resolve_state(state: ConsolidatedState) -> BrokerState {
         let mut this = Self {
             payloads: state.payloads,
@@ -235,33 +278,12 @@ impl Consolidator {
         BrokerState { retained, sessions }
     }
 
-    fn consolidate_publication(&mut self, publication: Publication) -> SimplifiedPublication {
-        SimplifiedPublication {
-            topic_name: publication.topic_name,
-            retain: publication.retain,
-            qos: publication.qos,
-            payload: self.get_id(publication.payload),
-        }
-    }
-
     fn resolve_publication(&mut self, publication: SimplifiedPublication) -> Publication {
         Publication {
             topic_name: publication.topic_name,
             retain: publication.retain,
             qos: publication.qos,
             payload: self.get_payload(publication.payload),
-        }
-    }
-
-    fn consolidate_session(&mut self, session: SessionState) -> ConsolidatedSession {
-        ConsolidatedSession {
-            client_id: session.client_id,
-            subscriptions: session.subscriptions,
-            waiting_to_be_sent: session
-                .waiting_to_be_sent
-                .into_iter()
-                .map(|p| self.consolidate_publication(p))
-                .collect(),
         }
     }
 
@@ -277,24 +299,11 @@ impl Consolidator {
         result
     }
 
-    fn get_id(&mut self, bytes: Bytes) -> u64 {
-        let hash = Self::calculate_hash(&bytes);
-        self.payloads.entry(hash).or_insert(bytes);
-
-        hash
-    }
-
     fn get_payload(&mut self, id: u64) -> Bytes {
         self.payloads
             .get(&id)
             .expect("All payloads should be stored.")
             .clone()
-    }
-
-    fn calculate_hash<T: Hash>(t: &T) -> u64 {
-        let mut s = DefaultHasher::new();
-        t.hash(&mut s);
-        s.finish()
     }
 }
 
@@ -632,7 +641,7 @@ pub(crate) mod tests {
             prop_assert_eq!(expected.retained.len(), consolidated.retained.len());
             prop_assert_eq!(expected.sessions.len(), consolidated.sessions.len());
 
-            let state = Consolidator::resolve_state(consolidated);
+            let state = Resolver::resolve_state(consolidated);
 
             prop_assert_eq!(expected.retained, state.retained);
             prop_assert_eq!(expected.sessions.len(), state.sessions.len());
