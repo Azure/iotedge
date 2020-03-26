@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             const string loadGenModuleName = "loadGenModule";
             const string relayerModuleName = "relayerModule";
             const string trcUrl = "http://" + trcModuleName + ":5001";
-            
+
             string routeTemplate = $"FROM /messages/modules/{loadGenModuleName}/outputs/pri{0} INTO BrokeredEndpoint('/modules/{relayerModuleName}/inputs/input1')";
 
             string trackingId = Guid.NewGuid().ToString();
