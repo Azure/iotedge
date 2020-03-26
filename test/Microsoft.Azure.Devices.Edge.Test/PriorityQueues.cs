@@ -29,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             const string loadGenModuleName = "loadGenModule";
             const string relayerModuleName = "relayerModule";
             const string trcUrl = "http://" + trcModuleName + ":5001";
+            const string loadGenTestDuration = "00:00:20";
 
             string routeTemplate = $"FROM /messages/modules/{loadGenModuleName}/outputs/pri{0} INTO BrokeredEndpoint('/modules/{relayerModuleName}/inputs/input1')";
 
@@ -80,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             ("testResultCoordinatorUrl", trcUrl),
                             ("senderType", "PriorityMessageSender"),
                             ("trackingId", trackingId),
-                            ("testDuration", "00:00:20"),
+                            ("testDuration", loadGenTestDuration),
                             ("messageFrequency", "00:00:00.5"),
                             ("priorities", priorityString)
                         });
@@ -92,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token);
 
             // Wait for loadGen to send some messages
-            await Task.Delay(TimeSpan.FromSeconds(35));
+            await Task.Delay(TimeSpan.Parse(loadGenTestDuration).Add(TimeSpan.FromSeconds(10)));
 
             Action<EdgeConfigBuilder> addRelayerConfig = new Action<EdgeConfigBuilder>(
                 builder =>
