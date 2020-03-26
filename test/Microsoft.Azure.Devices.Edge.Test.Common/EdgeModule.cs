@@ -163,14 +163,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             {
                 // return all json values under root path, with their relative
                 // paths as keys
-                int length = rootPath.Length + (rootPath == string.Empty ? 0 : 1);
                 return JObject
                     .FromObject(obj)
                     .SelectToken(rootPath)
                     .Cast<JContainer>()
                     .DescendantsAndSelf()
                     .OfType<JValue>()
-                    .ToDictionary(v => v.Path.Substring(length));
+                    .ToDictionary(v => v.Path.Substring(rootPath.Length).TrimStart('.'));
             }
 
             var referenceValues = ProcessJson(reference.obj, reference.rootPath);
