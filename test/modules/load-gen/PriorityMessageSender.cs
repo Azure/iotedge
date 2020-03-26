@@ -11,7 +11,6 @@ namespace LoadGen
 
     class PriorityMessageSender : LoadGenSenderBase
     {
-        // readonly string[] outputs = new string[] { "pri0", "pri1", "pri2", "pri3" };
         readonly Random rng = new Random();
 
         public PriorityMessageSender(
@@ -27,10 +26,7 @@ namespace LoadGen
         {
             string priorityString = Settings.Current.Priorities.Expect(() =>
                 new ArgumentException("PriorityMessageSender must have 'priorities' environment variable set to a valid list of string delimited by ';'"));
-            string[] outputs = priorityString
-                .Split(';')
-                .Select(x => "pri" + x)
-                .ToArray();
+            string[] outputs = priorityString.Split(';');
 
             bool firstMessageWhileOffline = true;
             var priorityAndSequence = new SortedDictionary<int, List<long>>();
@@ -40,10 +36,10 @@ namespace LoadGen
             {
                 try
                 {
-                    int choosePri = this.rng.Next(4);
+                    int choosePri = this.rng.Next(outputs.Length);
                     string output = outputs[choosePri];
 
-                    await this.SendEventAsync(messageIdCounter, output);
+                    await this.SendEventAsync(messageIdCounter, "pri" + output);
 
                     // We need to set the first message because of the way priority queue logic works
                     // When edgeHub cannot send a message, it will retry on that message until it sends
@@ -55,7 +51,7 @@ namespace LoadGen
                     }
                     else
                     {
-                        int priority = int.Parse(output.Substring(3));
+                        int priority = int.Parse(output);
                         if (!priorityAndSequence.TryGetValue(priority, out List<long> sequenceNums))
                         {
                             priorityAndSequence.Add(priority, new List<long> { messageIdCounter });
@@ -84,11 +80,7 @@ namespace LoadGen
 
             // Sort priority by sequence number
             List<long> expectedSequenceNumberList = priorityAndSequence
-                .SelectMany(t =>
-                {
-                    t.Value.Sort();
-                    return t.Value;
-                })
+                .SelectMany(t => t.Value)
                 .ToList();
 
             // See explanation above why we need to send sequence number 1 first
