@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         DateTime startTime = DateTime.Now;
                         string deviceId = Context.Current.DeviceId + DeviceSuffix;
 
-                        (X509Thumbprint thumbprint, IdCertificates certs) = await this.CreateDeviceIdCertAsync(
+                        (X509Thumbprint thumbprint, IdCertificates certs) = await this.CreateIdentityCertAsync(
                             deviceId, token);
 
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 "Completed edge manual provisioning with self-signed certificate");
         }
 
-        async Task<(X509Thumbprint, IdCertificates)> CreateDeviceIdCertAsync(string deviceId, CancellationToken token)
+        async Task<(X509Thumbprint, IdCertificates)> CreateIdentityCertAsync(string deviceId, CancellationToken token)
         {
             (string, string, string) rootCa =
             Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing root CA keys"));
