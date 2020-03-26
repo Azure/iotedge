@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             V1ResourceRequirements resources,
             IReadOnlyList<KubernetesModuleVolumeSpec> volumes,
             V1PodSecurityContext securityContext,
-            V1DeploymentStrategy deploymentStrategy)
+            V1DeploymentStrategy strategy)
         {
             this.Env = Option.Maybe(env);
             this.ExposedPorts = Option.Maybe(exposedPorts);
@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.Resources = Option.Maybe(resources);
             this.Volumes = Option.Maybe(volumes);
             this.SecurityContext = Option.Maybe(securityContext);
-            this.DeploymentStrategy = Option.Maybe(deploymentStrategy);
+            this.DeploymentStrategy = Option.Maybe(strategy);
         }
 
         internal static CreatePodParameters Create(

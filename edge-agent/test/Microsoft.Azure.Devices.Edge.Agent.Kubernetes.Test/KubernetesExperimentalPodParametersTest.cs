@@ -332,7 +332,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         {
             var experimental = new Dictionary<string, JToken>
             {
-                ["k8s-experimental"] = JToken.Parse("{ strategy: { type: RollingUpdate,  rollingUpdate: { maxUnavailable: 1 } } }")
+                ["k8s-experimental"] = JToken.Parse(@"{ strategy: { type: ""RollingUpdate"", rollingUpdate: { maxUnavailable: 1 } } }")
             };
 
             var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
