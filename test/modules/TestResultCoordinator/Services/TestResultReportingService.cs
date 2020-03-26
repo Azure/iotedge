@@ -59,7 +59,7 @@ namespace TestResultCoordinator.Services
 
         async void DoWorkAsync(object state)
         {
-            var tesReportGeneratorFactory = new TestReportGeneratorFactory(this.storage);
+            var tesReportGeneratorFactory = new TestReportGeneratorFactory(this.storage, Settings.Current.NetworkControllerType);
             List<ITestReportMetadata> reportMetadataList = await Settings.Current.GetReportMetadataListAsync(this.logger);
             ITestResultReport[] testResultReports = await TestReportUtil.GenerateTestResultReportsAsync(Settings.Current.TrackingId, reportMetadataList, tesReportGeneratorFactory, this.logger);
 
@@ -71,18 +71,21 @@ namespace TestResultCoordinator.Services
 
             string blobContainerUri = string.Empty;
 
-            try
+            if (Settings.Current.LogUploadEnabled)
             {
-                Uri blobContainerWriteUriForLog = await TestReportUtil.GetOrCreateBlobContainerSasUriForLogAsync(Settings.Current.StorageAccountConnectionString);
-                blobContainerUri = $"{blobContainerWriteUriForLog.Scheme}{Uri.SchemeDelimiter}{blobContainerWriteUriForLog.Authority}{blobContainerWriteUriForLog.AbsolutePath}";
-                await TestReportUtil.UploadLogsAsync(Settings.Current.IoTHubConnectionString, blobContainerWriteUriForLog, this.logger);
-            }
-            catch (Exception ex)
-            {
-                this.logger.LogError(ex, "Exception happened when uploading logs");
+                try
+                {
+                    Uri blobContainerWriteUriForLog = await TestReportUtil.GetOrCreateBlobContainerSasUriForLogAsync(Settings.Current.StorageAccountConnectionString);
+                    blobContainerUri = $"{blobContainerWriteUriForLog.Scheme}{Uri.SchemeDelimiter}{blobContainerWriteUriForLog.Authority}{blobContainerWriteUriForLog.AbsolutePath}";
+                    await TestReportUtil.UploadLogsAsync(Settings.Current.IoTHubConnectionString, blobContainerWriteUriForLog, this.logger);
+                }
+                catch (Exception ex)
+                {
+                    this.logger.LogError(ex, "Exception happened when uploading logs");
+                }
             }
 
-            var testSummary = new TestSummary(Settings.Current.TestBuildNumber, Settings.Current.DeviceId, testResultReports, blobContainerUri);
+            var testSummary = new TestSummary(Settings.Current.TestInfo, testResultReports, blobContainerUri);
             string reportsContent = JsonConvert.SerializeObject(testSummary, Formatting.Indented);
             this.logger.LogInformation($"Test summary{Environment.NewLine}{reportsContent}");
 

@@ -19,5 +19,10 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
         {
             public const string TestResultSource = "testinfo";
         }
+
+        public static class NetworkController
+        {
+            public const string RunProfilePropertyName = "NetworkControllerRunProfile";
+        }
     }
 }

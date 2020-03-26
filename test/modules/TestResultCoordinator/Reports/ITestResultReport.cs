@@ -6,6 +6,8 @@ namespace TestResultCoordinator.Reports
     /// </summary>
     public interface ITestResultReport
     {
+        string TestDescription { get; }
+
         string TrackingId { get; }
 
         string Title { get; }

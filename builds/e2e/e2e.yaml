@@ -25,10 +25,12 @@ jobs:
     steps:
     - bash: |
         # We use a self-hosted agent for this job, so we need to handle
-        # cleanup of root-owned files ourselves (anything created during
-        # `sudo dotnet vstest ...`)
-        sudo git clean -ffdx . || true
-      displayName: sudo git clean
+        # clean up root-owned files and docker images ourselves (anything
+        # created during `dotnet vstest ...`)
+        sudo git clean -ffdx || true
+        sudo docker rm -f $(docker ps -a -q) || true
+        sudo docker system prune -a -f --volumes || true
+      displayName: Clean up files and images
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
 

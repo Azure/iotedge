@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
     public class KubernetesModule : Module
     {
-        static readonly TimeSpan SystemInfoTimeout = TimeSpan.FromSeconds(3);
+        static readonly TimeSpan SystemInfoTimeout = TimeSpan.FromSeconds(120);
         readonly ResourceName resourceName;
         readonly string edgeDeviceHostName;
         readonly string proxyImage;
@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Option<string> productInfo;
         readonly PortMapServiceType defaultMapServiceType;
         readonly bool enableServiceCallTracing;
-        readonly string persistentVolumeName;
+        readonly bool useMountSourceForVolumeName;
         readonly string storageClassName;
         readonly Option<uint> persistentVolumeClaimSizeMb;
         readonly Option<IWebProxy> proxy;
@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             Option<string> productInfo,
             PortMapServiceType defaultMapServiceType,
             bool enableServiceCallTracing,
-            string persistentVolumeName,
+            bool useMountSourceForVolumeName,
             string storageClassName,
             Option<uint> persistentVolumeClaimSizeMb,
             Option<IWebProxy> proxy,
@@ -108,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.proxyTrustBundleVolumeName = Preconditions.CheckNonWhiteSpace(proxyTrustBundleVolumeName, nameof(proxyTrustBundleVolumeName));
             this.proxyTrustBundleConfigMapName = Preconditions.CheckNonWhiteSpace(proxyTrustBundleConfigMapName, nameof(proxyTrustBundleConfigMapName));
             this.apiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
-            this.deviceSelector = $"{Constants.K8sEdgeDeviceLabel}={KubeUtils.SanitizeK8sValue(this.resourceName.DeviceId)},{Constants.K8sEdgeHubNameLabel}={KubeUtils.SanitizeK8sValue(this.resourceName.Hostname)}";
+            this.deviceSelector = $"{Constants.K8sEdgeDeviceLabel}={KubeUtils.SanitizeLabelValue(this.resourceName.DeviceId)},{Constants.K8sEdgeHubNameLabel}={KubeUtils.SanitizeLabelValue(this.resourceName.Hostname)}";
             this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace));
             this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
@@ -117,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.productInfo = productInfo;
             this.defaultMapServiceType = defaultMapServiceType;
             this.enableServiceCallTracing = enableServiceCallTracing;
-            this.persistentVolumeName = persistentVolumeName;
+            this.useMountSourceForVolumeName = useMountSourceForVolumeName;
             this.storageClassName = storageClassName;
             this.persistentVolumeClaimSizeMb = persistentVolumeClaimSizeMb;
             this.proxy = proxy;
@@ -256,7 +256,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             this.proxyTrustBundleVolumeName,
                             this.proxyTrustBundleConfigMapName,
                             this.defaultMapServiceType,
-                            this.persistentVolumeName,
+                            this.useMountSourceForVolumeName,
                             this.storageClassName,
                             this.persistentVolumeClaimSizeMb,
                             this.apiVersion,
@@ -272,7 +272,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<IKubernetesServiceMapper>();
 
             // KubernetesPvcMapper
-            builder.Register(c => new KubernetesPvcMapper(this.persistentVolumeName, this.storageClassName, this.persistentVolumeClaimSizeMb.OrDefault()))
+            builder.Register(c => new KubernetesPvcMapper(this.useMountSourceForVolumeName, this.storageClassName, this.persistentVolumeClaimSizeMb.OrDefault()))
                 .As<IKubernetesPvcMapper>();
 
             // KubernetesServiceAccountProvider

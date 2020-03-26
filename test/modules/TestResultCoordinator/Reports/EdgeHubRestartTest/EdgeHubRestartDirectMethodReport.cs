@@ -12,6 +12,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
     class EdgeHubRestartDirectMethodReport : TestResultReportBase
     {
         public EdgeHubRestartDirectMethodReport(
+            string testDescription,
             string trackingId,
             string resultType,
             ulong passedCount,
@@ -20,7 +21,7 @@ namespace TestResultCoordinator.Reports.EdgeHubRestartTest
             ulong senderCount,
             ulong receiverCount,
             TimeSpan medianPeriod)
-            : base(trackingId, resultType)
+            : base(testDescription, trackingId, resultType)
         {
             this.PassedCount = passedCount;
             this.SenderCount = senderCount;

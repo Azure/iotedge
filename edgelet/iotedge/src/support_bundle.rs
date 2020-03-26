@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::env;
-use std::error::Error as StdError;
 use std::ffi::OsString;
 use std::fs::File;
 use std::io::{stdout, Cursor, Seek};
@@ -296,7 +295,7 @@ where
                 ("iotedged_err.txt", result.stderr)
             }
         } else {
-            let err_message = inspect.err().unwrap().description().to_owned();
+            let err_message = inspect.err().unwrap().to_string();
             println!("Could not find system logs for iotedge. Including error in bundle.\nError message: {}", err_message);
             ("iotedged_err.txt", err_message.as_bytes().to_vec())
         };
@@ -308,7 +307,7 @@ where
 
         state
             .zip_writer
-            .write(&output)
+            .write_all(&output)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         state.print_verbose("Got logs for iotedged");
@@ -354,7 +353,7 @@ where
                 ("docker_err.txt", result.stderr)
             }
         } else {
-            let err_message = inspect.err().unwrap().description().to_owned();
+            let err_message = inspect.err().unwrap().to_string();
             println!("Could not find system logs for docker. Including error in bundle.\nError message: {}", err_message);
             ("docker_err.txt", err_message.as_bytes().to_vec())
         };
@@ -366,7 +365,7 @@ where
 
         state
             .zip_writer
-            .write(&output)
+            .write_all(&output)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         state.print_verbose("Got logs for docker");
@@ -377,7 +376,7 @@ where
     where
         W: Write + Seek + Send,
     {
-        let iotedge = env::args().nth(0).unwrap();
+        let iotedge = env::args().next().unwrap();
         state.print_verbose("Calling iotedge check");
 
         let mut check = ShellCommand::new(iotedge);
@@ -397,7 +396,7 @@ where
 
         state
             .zip_writer
-            .write(&check.stdout)
+            .write_all(&check.stdout)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         state.print_verbose("Wrote check output to file");
@@ -433,7 +432,7 @@ where
                 (format!("inspect/{}_err.json", module_name), result.stderr)
             }
         } else {
-            let err_message = inspect.err().unwrap().description().to_owned();
+            let err_message = inspect.err().unwrap().to_string();
             println!(
                 "Could not reach docker. Including error in bundle.\nError message: {}",
                 err_message
@@ -451,7 +450,7 @@ where
 
         state
             .zip_writer
-            .write(&output)
+            .write_all(&output)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         state.print_verbose(&format!("Got docker inspect for {}", module_name));
@@ -523,7 +522,7 @@ where
                 (format!("network/{}_err.json", network_name), result.stderr)
             }
         } else {
-            let err_message = inspect.err().unwrap().description().to_owned();
+            let err_message = inspect.err().unwrap().to_string();
             println!(
                 "Could not reach docker. Including error in bundle.\nError message: {}",
                 err_message
@@ -541,7 +540,7 @@ where
 
         state
             .zip_writer
-            .write(&output)
+            .write_all(&output)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         state.print_verbose(&format!("Got docker network inspect for {}", network_name));

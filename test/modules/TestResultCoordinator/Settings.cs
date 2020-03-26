@@ -7,10 +7,13 @@ namespace TestResultCoordinator
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
     using TestResultCoordinator.Reports;
 
     class Settings
@@ -19,11 +22,11 @@ namespace TestResultCoordinator
         const ushort DefaultWebHostPort = 5001;
 
         internal static Settings Current = Create();
+        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TestResultCoordinator));
 
         List<ITestReportMetadata> reportMetadatas = null;
 
         Settings(
-            string testBuildNumber,
             string trackingId,
             string eventHubConnectionString,
             string iotHubConnectionString,
@@ -38,11 +41,13 @@ namespace TestResultCoordinator
             TimeSpan testStartDelay,
             TimeSpan testDuration,
             TimeSpan verificationDelay,
-            string storageAccountConnectionString)
+            bool logUploadEnabled,
+            string storageAccountConnectionString,
+            string networkControllerRunProfileName,
+            string testInfo)
         {
             Preconditions.CheckRange(testDuration.Ticks, 1);
 
-            this.TestBuildNumber = Preconditions.CheckNonWhiteSpace(testBuildNumber, nameof(testBuildNumber));
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.EventHubConnectionString = Preconditions.CheckNonWhiteSpace(eventHubConnectionString, nameof(eventHubConnectionString));
             this.IoTHubConnectionString = Preconditions.CheckNonWhiteSpace(iotHubConnectionString, nameof(iotHubConnectionString));
@@ -58,7 +63,26 @@ namespace TestResultCoordinator
             this.TestStartDelay = testStartDelay;
             this.DurationBeforeVerification = verificationDelay;
             this.ConsumerGroupName = "$Default";
+            this.LogUploadEnabled = logUploadEnabled;
             this.StorageAccountConnectionString = Preconditions.CheckNonWhiteSpace(storageAccountConnectionString, nameof(storageAccountConnectionString));
+            this.NetworkControllerType = this.GetNetworkControllerType(networkControllerRunProfileName);
+
+            this.TestInfo = ModuleUtil.ParseKeyValuePairs(testInfo, Logger, true);
+            this.TestInfo.Add("DeviceId", this.DeviceId);
+        }
+
+        private NetworkControllerType GetNetworkControllerType(string networkControllerRunProfileName)
+        {
+            // TODO: remove this; network controller should report this information.
+            switch (networkControllerRunProfileName)
+            {
+                case "SatelliteGood":
+                    return NetworkControllerType.Satellite;
+                case "Cellular3G":
+                    return NetworkControllerType.Cellular;
+                default:
+                    return (NetworkControllerType)Enum.Parse(typeof(NetworkControllerType), networkControllerRunProfileName);
+            }
         }
 
         static Settings Create()
@@ -70,7 +94,6 @@ namespace TestResultCoordinator
                 .Build();
 
             return new Settings(
-                configuration.GetValue<string>("TEST_BUILD_NUMBER"),
                 configuration.GetValue<string>("trackingId"),
                 configuration.GetValue<string>("eventHubConnectionString"),
                 configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING"),
@@ -85,7 +108,10 @@ namespace TestResultCoordinator
                 configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
                 configuration.GetValue("testDuration", TimeSpan.FromHours(1)),
                 configuration.GetValue("verificationDelay", TimeSpan.FromMinutes(15)),
-                configuration.GetValue<string>("STORAGE_ACCOUNT_CONNECTION_STRING"));
+                configuration.GetValue<bool>("logUploadEnabled", true),
+                configuration.GetValue<string>("STORAGE_ACCOUNT_CONNECTION_STRING"),
+                configuration.GetValue<string>(TestConstants.NetworkController.RunProfilePropertyName),
+                configuration.GetValue<string>("TEST_INFO"));
         }
 
         public string EventHubConnectionString { get; }
@@ -118,9 +144,13 @@ namespace TestResultCoordinator
 
         public string ConsumerGroupName { get; }
 
+        public bool LogUploadEnabled { get; }
+
         public string StorageAccountConnectionString { get; }
 
-        public string TestBuildNumber { get; }
+        public SortedDictionary<string, string> TestInfo { get; }
+
+        public NetworkControllerType NetworkControllerType { get; }
 
         public override string ToString()
         {
@@ -128,16 +158,17 @@ namespace TestResultCoordinator
             var fields = new Dictionary<string, string>
             {
                 { nameof(this.TrackingId), this.TrackingId },
-                { nameof(this.TestBuildNumber), this.TestBuildNumber },
                 { nameof(this.DeviceId), this.DeviceId },
                 { nameof(this.ModuleId), this.ModuleId },
                 { nameof(this.WebHostPort), this.WebHostPort.ToString() },
                 { nameof(this.StoragePath), this.StoragePath },
                 { nameof(this.OptimizeForPerformance), this.OptimizeForPerformance.ToString() },
-                { nameof(this.TestStartDelay), this.TestDuration.ToString() },
+                { nameof(this.TestStartDelay), this.TestStartDelay.ToString() },
                 { nameof(this.TestDuration), this.TestDuration.ToString() },
                 { nameof(this.DurationBeforeVerification), this.DurationBeforeVerification.ToString() },
                 { nameof(this.ConsumerGroupName), this.ConsumerGroupName },
+                { nameof(this.NetworkControllerType), this.NetworkControllerType.ToString() },
+                { nameof(this.TestInfo), JsonConvert.SerializeObject(this.TestInfo) }
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
