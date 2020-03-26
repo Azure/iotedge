@@ -1,8 +1,7 @@
-#![allow(dead_code)]
-#![allow(unused_imports)]
-
+use std::collections::HashMap;
 use std::fs::{self, OpenOptions};
 use std::io::{Read, Write};
+use std::iter::FromIterator;
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
 #[cfg(windows)]
@@ -11,15 +10,22 @@ use std::path::PathBuf;
 use std::{cmp, fmt};
 
 use async_trait::async_trait;
+use bytes::Bytes;
 use fail::fail_point;
 use failure::ResultExt;
 use flate2::read::GzDecoder;
 use flate2::write::GzEncoder;
 use flate2::Compression;
+use mqtt3::proto::Publication;
+use serde::ser::SerializeMap;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use tracing::{debug, info, span, Level};
 
 use crate::error::{Error, ErrorKind};
+use crate::session::SessionState;
+use crate::subscription::Subscription;
 use crate::BrokerState;
+use crate::ClientId;
 
 /// sets the number of past states to save - 2 means we save the current and the pervious
 const STATE_DEFAULT_PREVIOUS_COUNT: usize = 2;
@@ -138,25 +144,7 @@ impl FileFormat for BincodeFormat {
     }
 }
 
-use crate::session::SessionState;
-use crate::subscription::Subscription;
-use crate::ClientId;
-use bytes::Bytes;
-use mqtt3::proto::Publication;
-use serde::ser::SerializeMap;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::collections::hash_map::DefaultHasher;
-use std::collections::{HashMap, VecDeque};
-use std::hash::{Hash, Hasher};
-use std::iter::FromIterator;
-
 pub struct ConsolidatedStateFormat;
-
-impl ConsolidatedStateFormat {
-    pub fn new() -> Self {
-        Self
-    }
-}
 
 impl FileFormat for ConsolidatedStateFormat {
     type Error = Error;
