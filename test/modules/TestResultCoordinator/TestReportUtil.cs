@@ -147,8 +147,6 @@ namespace TestResultCoordinator
 
             logger.LogInformation("Send upload logs request to edgeAgent.");
 
-            ServiceClient serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
-
             var moduleLogList = new List<string>()
             {
                 "edgeAgent*",
@@ -177,6 +175,8 @@ namespace TestResultCoordinator
                 "networkController*",
                 "metricsCollector*"
             };
+
+            ServiceClient serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
 
             foreach (var eachModuleLog in moduleLogList)
             {

@@ -68,11 +68,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
                     IMessage storedMessage = await this.messageStore.Add(GetMessageQueueId(this.Endpoint.Id, priority), message);
                     checkpointer.Propose(storedMessage);
-                    Events.AddMessageSuccess(this, storedMessage.Offset);
+                    Events.AddMessageSuccess(this, storedMessage.Offset, priority, timeToLiveSecs);
                 }
 
                 this.hasMessagesInQueue.Set();
-                MetricsV0.StoredCountIncrement(this.Endpoint.Id);
+                MetricsV0.StoredCountIncrement(this.Endpoint.Id, priority);
             }
             catch (Exception ex)
             {
@@ -134,6 +134,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         public async Task UpdatePriorities(IList<uint> priorities, Option<Endpoint> newEndpoint)
         {
             Preconditions.CheckArgument(priorities.Count > 0);
+            Events.UpdatePriorities(this, priorities);
 
             if (this.closed)
             {
@@ -169,6 +170,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             }
 
             this.prioritiesToFsms.Value = snapshot;
+            Events.UpdatePrioritiesSuccess(this, snapshot.Keys.ToList());
 
             // Update the lastUsedFsm to be the initial one, we always
             // have at least one priority->FSM pair at this point.
@@ -245,9 +247,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                             IMessage[] messages = await storeMessagesProvider.GetMessages();
                             if (messages.Length > 0)
                             {
+                                // Tag the message with the priority that we're currently
+                                // processing, so it can be used by metrics later
+                                messages.Select(m => m.ProcessedPriority = priority);
+
+                                Events.ProcessingMessages(this, messages, priority);
                                 await this.ProcessMessages(messages, fsm);
-                                Events.SendMessagesSuccess(this, messages);
-                                MetricsV0.DrainedCountIncrement(this.Endpoint.Id, messages.Length);
+                                Events.SendMessagesSuccess(this, messages, priority);
+                                MetricsV0.DrainedCountIncrement(this.Endpoint.Id, messages.Length, priority);
 
                                 // Only move on to the next priority if the queue for the current
                                 // priority is empty. If we processed any messages, break out of
@@ -280,7 +287,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
         async Task ProcessMessages(IMessage[] messages, EndpointExecutorFsm fsm)
         {
-            Events.ProcessingMessages(this, messages);
             SendMessage command = Commands.SendMessage(messages);
             await fsm.RunAsync(command);
             await command.Completion;
@@ -371,15 +377,17 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 SetEndpoint,
                 SetEndpointSuccess,
                 SetEndpointFailure,
+                UpdatePriorities,
+                UpdatePrioritiesSuccess,
                 Close,
                 CloseSuccess,
                 CloseFailure,
                 ErrorInPopulatePump
             }
 
-            public static void AddMessageSuccess(StoringAsyncEndpointExecutor executor, long offset)
+            public static void AddMessageSuccess(StoringAsyncEndpointExecutor executor, long offset, uint priority, uint timeToLiveSecs)
             {
-                Log.LogDebug((int)EventIds.AddMessageSuccess, $"[AddMessageSuccess] Successfully added message to store for EndpointId: {executor.Endpoint.Id}, Message offset: {offset}");
+                Log.LogDebug((int)EventIds.AddMessageSuccess, $"[AddMessageSuccess] Successfully added message to store for EndpointId: {executor.Endpoint.Id}, Message offset: {offset}, Priority: {priority}, TTL: {timeToLiveSecs}");
             }
 
             public static void AddMessageFailure(StoringAsyncEndpointExecutor executor, Exception ex)
@@ -397,19 +405,19 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 Log.LogWarning((int)EventIds.SendMessagesError, ex, $"[SendMessageError] Error sending message batch to endpoint to IPL head for EndpointId: {executor.Endpoint.Id}.");
             }
 
-            public static void SendMessagesSuccess(StoringAsyncEndpointExecutor executor, ICollection<IMessage> messages)
+            public static void SendMessagesSuccess(StoringAsyncEndpointExecutor executor, ICollection<IMessage> messages, uint priority)
             {
                 if (messages.Count > 0)
                 {
-                    Log.LogDebug((int)EventIds.ProcessMessagesSuccess, Invariant($"[ProcessMessagesSuccess] Successfully processed {messages.Count} messages for EndpointId: {executor.Endpoint.Id}."));
+                    Log.LogDebug((int)EventIds.ProcessMessagesSuccess, Invariant($"[ProcessMessagesSuccess] Successfully processed {messages.Count} messages for EndpointId: {executor.Endpoint.Id}, Priority: {priority}."));
                 }
             }
 
-            public static void ProcessingMessages(StoringAsyncEndpointExecutor executor, ICollection<IMessage> messages)
+            public static void ProcessingMessages(StoringAsyncEndpointExecutor executor, ICollection<IMessage> messages, uint priority)
             {
                 if (messages.Count > 0)
                 {
-                    Log.LogDebug((int)EventIds.ProcessingMessages, Invariant($"[ProcessingMessages] Processing {messages.Count} messages for EndpointId: {executor.Endpoint.Id}."));
+                    Log.LogDebug((int)EventIds.ProcessingMessages, Invariant($"[ProcessingMessages] Processing {messages.Count} messages for EndpointId: {executor.Endpoint.Id}, Priority: {priority}"));
                 }
             }
 
@@ -431,6 +439,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             public static void SetEndpointFailure(StoringAsyncEndpointExecutor executor, Exception ex)
             {
                 Log.LogError((int)EventIds.SetEndpointFailure, ex, "[SetEndpointFailure] Set endpoint failed. EndpointId: {0}, EndpointName: {1}", executor.Endpoint.Id, executor.Endpoint.Name);
+            }
+
+            public static void UpdatePriorities(StoringAsyncEndpointExecutor executor, IList<uint> priorities)
+            {
+                Log.LogInformation((int)EventIds.UpdatePriorities, $"[UpdatePriorities] Update priorities begin for EndpointId: {executor.Endpoint.Id}, EndpointName: {executor.Endpoint.Name}, Incoming Priorities: {priorities}");
+            }
+
+            public static void UpdatePrioritiesSuccess(StoringAsyncEndpointExecutor executor, IList<uint> priorities)
+            {
+                Log.LogInformation((int)EventIds.UpdatePrioritiesSuccess, $"[UpdatePrioritiesSuccess] Update priorities succeeded EndpointId: {executor.Endpoint.Id}, EndpointName: {executor.Endpoint.Name}, New Priorities: {priorities}");
             }
 
             public static void Close(StoringAsyncEndpointExecutor executor)
@@ -476,15 +494,20 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 RateUnit = TimeUnit.Seconds
             };
 
-            public static void StoredCountIncrement(string identity) => Edge.Util.Metrics.MetricsV0.CountIncrement(GetTags(identity), EndpointMessageStoredCountOptions, 1);
+            public static void StoredCountIncrement(string identity, uint priority) => Edge.Util.Metrics.MetricsV0.CountIncrement(GetTagsWithPriority(identity, priority), EndpointMessageStoredCountOptions, 1);
 
-            public static void DrainedCountIncrement(string identity, long amount) => Edge.Util.Metrics.MetricsV0.CountIncrement(GetTags(identity), EndpointMessageDrainedCountOptions, amount);
+            public static void DrainedCountIncrement(string identity, long amount, uint priority) => Edge.Util.Metrics.MetricsV0.CountIncrement(GetTagsWithPriority(identity, priority), EndpointMessageDrainedCountOptions, amount);
 
             public static IDisposable StoreLatency(string identity) => Edge.Util.Metrics.MetricsV0.Latency(GetTags(identity), EndpointMessageLatencyOptions);
 
             internal static MetricTags GetTags(string id)
             {
                 return new MetricTags("EndpointId", id);
+            }
+
+            internal static MetricTags GetTagsWithPriority(string id, uint priority)
+            {
+                return new MetricTags(new string[] { "EndpointId", "priority" }, new string[] { id, priority.ToString() });
             }
         }
     }

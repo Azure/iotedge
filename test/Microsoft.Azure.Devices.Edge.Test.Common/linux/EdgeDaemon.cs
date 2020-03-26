@@ -39,6 +39,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 },
                 async () =>
                 {
+                    // Based on instructions at:
+                    // https://github.com/MicrosoftDocs/azure-docs/blob/058084949656b7df518b64bfc5728402c730536a/articles/iot-edge/how-to-install-iot-edge-linux.md
+
                     // TODO: 8/30/2019 support curl behind a proxy
                     string[] platformInfo = await Process.RunAsync("lsb_release", "-sir", token);
                     string os = platformInfo[0].Trim();
@@ -46,25 +49,23 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     switch (os)
                     {
                         case "Ubuntu":
-                            return new[]
-                            {
-                                $"curl https://packages.microsoft.com/config/ubuntu/{version}/prod.list > /etc/apt/sources.list.d/microsoft-prod.list",
-                                "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg",
-                                "apt-get update",
-                                "apt-get install --yes iotedge"
-                            };
+                            os = "ubuntu";
+                            break;
                         case "Raspbian":
-                            return new[]
-                            {
-                                "curl -L https://aka.ms/libiothsm-std-linux-armhf-latest -o libiothsm-std.deb",
-                                "curl -L https://aka.ms/iotedged-linux-armhf-latest -o iotedge.deb",
-                                "dpkg --force-confnew -i libiothsm-std.deb iotedge.deb",
-                                "apt-get install -f",
-                                "rm libiothsm-std.deb iotedge.deb"
-                            };
+                            os = "debian";
+                            version = "stretch";
+                            break;
                         default:
                             throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
                     }
+
+                    return new[]
+                    {
+                        $"curl https://packages.microsoft.com/config/{os}/{version}/multiarch/prod.list > /etc/apt/sources.list.d/microsoft-prod.list",
+                        "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg",
+                        "apt-get update",
+                        "apt-get install --yes iotedge"
+                    };
                 });
 
             await Profiler.Run(

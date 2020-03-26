@@ -370,6 +370,9 @@
               "IOT_HUB_CONNECTION_STRING": {
                 "value": "<IoTHubConnectionString>"
               },
+              "logUploadEnabled": {
+                "value": "<TestResultCoordinator.logUploadEnabled>"
+              },
               "STORAGE_ACCOUNT_CONNECTION_STRING": {
                 "value": "<TestResultCoordinator.StorageAccountConnectionString>"
               },
