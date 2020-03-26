@@ -8,7 +8,8 @@ use tracing::{debug, info, span, warn, Level};
 use tracing_futures::Instrument;
 
 use crate::auth::{
-    AuthId, Authenticator, Authorizer, Credentials, DefaultAuthenticator, DefaultAuthorizer,
+    Activity, Authenticator, Authorizer, Credentials, DefaultAuthenticator, DefaultAuthorizer,
+    Operation,
 };
 use crate::session::{ConnectedSession, Session, SessionState};
 use crate::{ClientEvent, ClientId, ConnReq, Error, ErrorKind, Message, SystemEvent};
@@ -173,6 +174,7 @@ where
         Ok(())
     }
 
+    #[allow(clippy::too_many_lines)]
     async fn process_connect(
         &mut self,
         client_id: ClientId,
@@ -234,7 +236,14 @@ where
         // and authorization checks. If any of these checks fail, it SHOULD send an
         // appropriate CONNACK response with a non-zero return code as described in
         // section 3.2 and it MUST close the Network Connection.
-        let auth_id = match self.authenticate(&connreq).await {
+        let credentials = connreq.certificate().map_or(
+            Credentials::Basic(
+                connreq.connect().username.clone(),
+                connreq.connect().password.clone(),
+            ),
+            |certificate| Credentials::ClientCertificate(certificate.clone()),
+        );
+        let auth_id = match self.authenticator.authenticate(credentials).await {
             Ok(Some(auth_id)) => {
                 debug!(
                     "client {} successfully authenticated: {}",
@@ -255,7 +264,9 @@ where
         };
 
         // Check client permissions to connect
-        match self.authorize(auth_id).await {
+        let operation = Operation::new_connect(connreq.connect().will.clone());
+        let activity = Activity::new(auth_id, client_id.clone(), operation);
+        match self.authorizer.authorize(activity).await {
             Ok(true) => {
                 debug!("client {} successfully authorized", client_id);
             }
@@ -570,22 +581,6 @@ where
         self.sessions
             .get_mut(client_id)
             .ok_or_else(|| ErrorKind::NoSession.into())
-    }
-
-    async fn authenticate(&mut self, connreq: &ConnReq) -> Result<Option<AuthId>, Error> {
-        let credentials = connreq.certificate().map_or(
-            Credentials::Basic(
-                connreq.connect().username.clone(),
-                connreq.connect().password.clone(),
-            ),
-            |certificate| Credentials::ClientCertificate(certificate.clone()),
-        );
-
-        self.authenticator.authenticate(credentials).await
-    }
-
-    async fn authorize(&mut self, auth_id: AuthId) -> Result<bool, Error> {
-        self.authorizer.authorize(auth_id).await
     }
 
     fn open_session(
@@ -904,7 +899,7 @@ pub(crate) mod tests {
 
     use crate::session::tests::*;
     use crate::tests::*;
-    use crate::{auth::ErrorReason, ConnectionHandle};
+    use crate::{auth::ErrorReason, AuthId, ConnectionHandle};
 
     prop_compose! {
         pub fn arb_broker_state()(
@@ -952,7 +947,7 @@ pub(crate) mod tests {
     #[should_panic]
     async fn test_double_connect_protocol_violation() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authenticator(|_| Ok(Some(AuthId::anonymous())))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1015,7 +1010,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_double_connect_drop_first_transient() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authenticator(|_| Ok(Some(AuthId::anonymous())))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1083,7 +1078,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_invalid_protocol_name() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authenticator(|_| Ok(Some(AuthId::anonymous())))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1122,7 +1117,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_invalid_protocol_level() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authenticator(|_| Ok(Some(AuthId::anonymous())))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1171,7 +1166,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_connect_auth_succeeded() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authenticator(|_| Ok(Some(AuthId::anonymous())))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1314,7 +1309,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_connect_client_has_no_permissions() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Value("client-a".into()))))
+            .authenticator(|_| Ok(Some(AuthId::identity("client-a"))))
             .authorizer(|_| Ok(false))
             .build();
 
@@ -1364,7 +1359,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_connect_authorization_failed() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authenticator(|_| Ok(Some(AuthId::anonymous())))
             .authorizer(|_| Err(ErrorKind::Auth(ErrorReason::Authorize).into()))
             .build();
 
@@ -1414,7 +1409,7 @@ pub(crate) mod tests {
     #[test]
     fn test_add_session_empty_transient() {
         let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authenticator(|_| Ok(Some(AuthId::anonymous())))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1439,7 +1434,7 @@ pub(crate) mod tests {
     #[test]
     fn test_add_session_empty_persistent() {
         let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authenticator(|_| Ok(Some(AuthId::anonymous())))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1465,7 +1460,7 @@ pub(crate) mod tests {
     #[should_panic]
     fn test_add_session_same_connection_transient() {
         let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authenticator(|_| Ok(Some(AuthId::anonymous())))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1493,7 +1488,7 @@ pub(crate) mod tests {
     #[should_panic]
     fn test_add_session_same_connection_persistent() {
         let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authenticator(|_| Ok(Some(AuthId::anonymous())))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1520,7 +1515,7 @@ pub(crate) mod tests {
     #[test]
     fn test_add_session_different_connection_transient_then_transient() {
         let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authenticator(|_| Ok(Some(AuthId::anonymous())))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1545,7 +1540,7 @@ pub(crate) mod tests {
     #[test]
     fn test_add_session_different_connection_transient_then_persistent() {
         let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authenticator(|_| Ok(Some(AuthId::anonymous())))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1570,7 +1565,7 @@ pub(crate) mod tests {
     #[test]
     fn test_add_session_different_connection_persistent_then_transient() {
         let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authenticator(|_| Ok(Some(AuthId::anonymous())))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1595,7 +1590,7 @@ pub(crate) mod tests {
     #[test]
     fn test_add_session_different_connection_persistent_then_persistent() {
         let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authenticator(|_| Ok(Some(AuthId::anonymous())))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1620,7 +1615,7 @@ pub(crate) mod tests {
     #[test]
     fn test_add_session_offline_persistent() {
         let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authenticator(|_| Ok(Some(AuthId::anonymous())))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1654,7 +1649,7 @@ pub(crate) mod tests {
     #[test]
     fn test_add_session_offline_transient() {
         let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authenticator(|_| Ok(Some(AuthId::anonymous())))
             .authorizer(|_| Ok(true))
             .build();
 

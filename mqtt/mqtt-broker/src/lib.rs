@@ -44,9 +44,9 @@ impl ClientId {
     }
 }
 
-impl From<String> for ClientId {
-    fn from(s: String) -> ClientId {
-        ClientId(Arc::new(s))
+impl<T: Into<String>> From<T> for ClientId {
+    fn from(s: T) -> ClientId {
+        ClientId(Arc::new(s.into()))
     }
 }
 

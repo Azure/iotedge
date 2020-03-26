@@ -5,7 +5,7 @@ mod authentication;
 mod authorization;
 
 pub use authentication::{Authenticator, Certificate, Credentials, DefaultAuthenticator};
-pub use authorization::{Authorizer, DefaultAuthorizer};
+pub use authorization::{Activity, Authorizer, DefaultAuthorizer, Operation};
 
 /// Authenticated MQTT client identity.
 #[derive(Clone, Debug, Display, PartialEq)]
@@ -14,8 +14,26 @@ pub enum AuthId {
     #[display(fmt = "*")]
     Anonymous,
 
-    /// Identity for non-anonymous client.
-    Value(Identity),
+    /// Identity for identified client.
+    Identity(Identity),
+}
+
+impl AuthId {
+    /// Creates a MQTT identity for known client.
+    pub fn identity<T: Into<Identity>>(identity: T) -> Self {
+        Self::Identity(identity.into())
+    }
+
+    /// Creates an anonymous MQTT client identity.
+    pub fn anonymous() -> Self {
+        AuthId::Anonymous
+    }
+}
+
+impl<T: Into<Identity>> From<T> for AuthId {
+    fn from(identity: T) -> Self {
+        AuthId::identity(identity)
+    }
 }
 
 /// Non-anonymous client identity.
