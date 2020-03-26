@@ -540,7 +540,7 @@ log_upload_enabled=true
 if [ "$image_architecture_label" = 'arm32v7' ] ||
    [ "$image_architecture_label" = 'arm64v8' ]; then
     optimize_for_performance=false
-    log_upload_enabled=false
+    #log_upload_enabled=false
 fi
 
 iotedged_artifact_folder="$(get_iotedged_artifact_folder $E2E_TEST_DIR)"
