@@ -1,8 +1,8 @@
-use std::fmt;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
+use derive_more::Display;
 use failure::{Fail, ResultExt};
 use futures_util::future::{select, Either};
 use futures_util::pin_mut;
@@ -32,7 +32,8 @@ const KEEPALIVE_MULT: f32 = 1.5;
 /// It is important that this struct doesn't implement Clone,
 /// as the lifecycle management depends on there only being
 /// one sender.
-#[derive(Debug)]
+#[derive(Debug, Display)]
+#[display(fmt = "{}", id)]
 pub struct ConnectionHandle {
     id: Uuid,
     sender: Sender<Message>,
@@ -62,12 +63,6 @@ impl PartialEq for ConnectionHandle {
     }
 }
 
-impl fmt::Display for ConnectionHandle {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.id)
-    }
-}
-
 /// Handles packet processing for a single connection.
 ///
 /// Receives a source of packets and a handle to the Broker.
@@ -80,6 +75,9 @@ pub async fn process<I>(
 where
     I: AsyncRead + AsyncWrite + Unpin,
 {
+    // TODO read certificate from stream when ready
+    let certificate = None;
+
     let mut timeout = TimeoutStream::new(io);
     timeout.set_read_timeout(Some(*DEFAULT_TIMEOUT));
     timeout.set_write_timeout(Some(*DEFAULT_TIMEOUT));
@@ -120,14 +118,13 @@ where
                     codec.get_mut().set_read_timeout(Some(keep_alive));
                 }
 
-                let (outgoing, incoming) = codec.split();
-
-                let req = ConnReq::new(client_id.clone(), connect, connection_handle);
+                let req = ConnReq::new(client_id.clone(), connect, certificate, connection_handle);
                 let event = ClientEvent::ConnReq(req);
                 let message = Message::Client(client_id.clone(), event);
                 broker_handle.send(message).await?;
 
                 // Start up the processing tasks
+                let (outgoing, incoming) = codec.split();
                 let incoming_task =
                     incoming_task(client_id.clone(), incoming, broker_handle.clone());
                 let outgoing_task = outgoing_task(client_id.clone(), events, outgoing, broker_handle.clone());

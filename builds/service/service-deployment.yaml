@@ -14,7 +14,8 @@ pool:
   vmImage: ubuntu-16.04
 
 steps:
-- checkout: none
+- checkout: self
+  fetchDepth: 100
 
 - task: AzureKeyVault@1
   displayName: Get secrets
@@ -25,65 +26,67 @@ steps:
       IotHubConnStr2,
       EventHubConnStr2
 
-- task: Docker@1
-  displayName: Docker login
+- pwsh: |
+    $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
+    dotnet build $testDir
+
+    $binDir = Convert-Path "$testDir/bin/Debug/netcoreapp2.1"
+    Write-Output "##vso[task.setvariable variable=binDir]$binDir"
+  displayName: Build tests
+
+- pwsh: |
+    $context = @{
+      logFile = Join-Path '$(binDir)' 'testoutput.log';
+    }
+    $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
+  displayName: Create test arguments file (context.json)
+
+- pwsh: |
+    if ($env:EH_ARG -and $env:IH_ARG)
+    {
+      $env:E2E_EVENT_HUB_ENDPOINT = $env:EH_ARG
+      $env:E2E_IOT_HUB_CONNECTION_STRING = $env:IH_ARG
+    }
+    else
+    {
+      $env:E2E_EVENT_HUB_ENDPOINT = $env:EH_KV
+      $env:E2E_IOT_HUB_CONNECTION_STRING = $env:IH_KV
+    }
+
+    $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
+    sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:Name=TempSensor
+  displayName: Run tests
+  env:
+    EH_ARG: $(connstr.eventHub)
+    EH_KV: $(EventHubConnStr2)
+    IH_ARG: $(connstr.iotHub)
+    IH_KV: $(IotHubConnStr2)
+
+- task: PublishTestResults@2
+  displayName: Publish test results
   inputs:
-    azureSubscriptionEndpoint: $(az.subscription)
-    azureContainerRegistry: $(az.containerRegistry)
-    command: login
+    testResultsFormat: vstest
+    testResultsFiles: '**/*.trx'
+    searchFolder: $(Build.SourcesDirectory)/TestResults
+    testRunTitle: Service deployment build  ($(Build.BuildNumber) linux amd64)
+    buildPlatform: amd64
+  condition: succeededOrFailed()
 
-- task: DownloadBuildArtifacts@0
-  displayName: Download smoke tests
-  inputs:
-    buildType: specific
-    project: one
-    pipeline: $(az.pipeline.artifacts)
-    buildVersionToDownload: latestFromBranch
-    branchName: refs/heads/master
-    downloadType: specific
-    itemPattern: core-linux/IotEdgeQuickstart.linux-x64.tar.gz
-
-- script: |
-    mkdir -p $(System.ArtifactsDirectory)/smoke
-    tar \
-      -C $(System.ArtifactsDirectory)/smoke \
-      -xzf $(System.ArtifactsDirectory)/core-linux/IotEdgeQuickstart.linux-x64.tar.gz
-    rm -r $(System.ArtifactsDirectory)/core-linux
-  displayName: Install smoke tests
-
-- script: |
-    #!/bin/bash
-
-    iothub_connstr="$(connstr.iotHub)"
-    if [ -z $iothub_connstr ]; then
-      iothub_connstr="$(IotHubConnStr2)"
-    fi
-    eventhub_connstr="$(connstr.eventHub)"
-    if [ -z $eventhub_connstr ]; then
-      eventhub_connstr="$(EventHubConnStr2)"
-    fi
-
-    # Run smoke tests
-    sudo $(System.ArtifactsDirectory)/smoke/IotEdgeQuickstart \
-      -c "$iothub_connstr" \
-      -e "$eventhub_connstr"
-    res=$?
-
-    # Collect logs
-    logdir=$(System.ArtifactsDirectory)/logs
-    mkdir -p $logdir
-    echo > "$logdir/$(Build.DefinitionName)-$(Build.BuildNumber)"
-    sudo journalctl > $logdir/iotedged.log
-    docker logs edgeAgent > $logdir/edgeAgent.log
-    docker logs edgeHub > $logdir/edgeHub.log
-    docker logs tempSensor > $logdir/tempSensor.log
-
-    exit $res
-  displayName: Run smoke tests
+- pwsh: |
+    $logDir = '$(Build.ArtifactStagingDirectory)/logs'
+    New-Item $logDir -ItemType Directory -Force | Out-Null
+    Out-File "$logDir/$(Build.DefinitionName)-$(Build.BuildNumber)"
+    Copy-Item "$(Build.SourcesDirectory)/TestResults" "$logDir/" -Recurse
+    # The setup fixture runs outside the scope of any test, so its logs (*-test-*.log) aren't
+    # included in the TRX. Copy them manually here.
+    Copy-Item "$(binDir)/*-test-*.log" "$logDir/"
+    Copy-Item "$(binDir)/testoutput.log" "$logDir/"
+  displayName: Collect Logs
+  condition: succeededOrFailed()
 
 - task: PublishBuildArtifacts@1
   displayName: Publish logs
   inputs:
-    PathtoPublish: $(System.ArtifactsDirectory)/logs
-    ArtifactName: logs
+    PathtoPublish: $(Build.ArtifactStagingDirectory)/logs
+    ArtifactName: logs-service-deployment-$(Build.BuildNumber)-linux-amd64
   condition: succeededOrFailed()

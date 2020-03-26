@@ -41,6 +41,7 @@ namespace TestResultCoordinator
             TimeSpan testStartDelay,
             TimeSpan testDuration,
             TimeSpan verificationDelay,
+            bool logUploadEnabled,
             string storageAccountConnectionString,
             string networkControllerRunProfileName,
             string testInfo)
@@ -62,6 +63,7 @@ namespace TestResultCoordinator
             this.TestStartDelay = testStartDelay;
             this.DurationBeforeVerification = verificationDelay;
             this.ConsumerGroupName = "$Default";
+            this.LogUploadEnabled = logUploadEnabled;
             this.StorageAccountConnectionString = Preconditions.CheckNonWhiteSpace(storageAccountConnectionString, nameof(storageAccountConnectionString));
             this.NetworkControllerType = this.GetNetworkControllerType(networkControllerRunProfileName);
 
@@ -106,6 +108,7 @@ namespace TestResultCoordinator
                 configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
                 configuration.GetValue("testDuration", TimeSpan.FromHours(1)),
                 configuration.GetValue("verificationDelay", TimeSpan.FromMinutes(15)),
+                configuration.GetValue<bool>("logUploadEnabled", true),
                 configuration.GetValue<string>("STORAGE_ACCOUNT_CONNECTION_STRING"),
                 configuration.GetValue<string>(TestConstants.NetworkController.RunProfilePropertyName),
                 configuration.GetValue<string>("TEST_INFO"));
@@ -140,6 +143,8 @@ namespace TestResultCoordinator
         public TimeSpan DurationBeforeVerification { get; }
 
         public string ConsumerGroupName { get; }
+
+        public bool LogUploadEnabled { get; }
 
         public string StorageAccountConnectionString { get; }
 

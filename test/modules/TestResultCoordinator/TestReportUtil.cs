@@ -152,6 +152,7 @@ namespace TestResultCoordinator
             CloudToDeviceMethod uploadLogRequest =
                 new CloudToDeviceMethod("UploadLogs")
                     .SetPayloadJson($"{{ \"schemaVersion\": \"1.0\", \"sasUrl\": \"{blobContainerWriteUri.AbsoluteUri}\", \"items\": [{{ \"id\": \".*\", \"filter\": {{}} }}], \"encoding\": \"gzip\", \"contentType\": \"json\" }}");
+
             CloudToDeviceMethodResult uploadLogResponse = await serviceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", uploadLogRequest);
 
             (string status, string correlationId) = GetUploadLogResponseResult(uploadLogResponse.GetPayloadAsJson());
