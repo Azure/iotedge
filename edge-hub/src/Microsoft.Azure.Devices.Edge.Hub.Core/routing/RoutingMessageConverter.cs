@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 }
             }
 
-            var edgeMessage = new EdgeMessage(routingMessage.Body, properties, systemProperties);
+            var edgeMessage = new EdgeMessage(routingMessage.Body, properties, systemProperties, routingMessage.ProcessedPriority);
             return edgeMessage;
         }
 
