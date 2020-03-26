@@ -54,7 +54,7 @@ namespace LoadGen
                     }
                     else
                     {
-                        int priority = 2000000000; // Default priorityock
+                        int priority = 2000000000; // Default priority
                         if (!output.Contains(TestConstants.PriorityQueues.Default))
                         {
                             priority = int.Parse(output);
