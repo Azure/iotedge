@@ -7,10 +7,10 @@ use tokio::time::{Duration, Instant};
 use tracing::{info, warn, Level};
 use tracing_subscriber::{fmt, EnvFilter};
 
-use mqttd::{shutdown, snapshot};
+use mqttd::{shutdown, snapshot, Terminate};
 
 #[tokio::main]
-async fn main() -> Result<(), Error> {
+async fn main() -> Result<(), Terminate> {
     let subscriber = fmt::Subscriber::builder()
         .with_ansi(atty::is(atty::Stream::Stderr))
         .with_max_level(Level::TRACE)
