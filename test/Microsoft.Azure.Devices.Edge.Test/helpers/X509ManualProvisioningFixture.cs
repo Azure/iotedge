@@ -42,12 +42,23 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
                         Context.Current.DeleteList.TryAdd(device.Id, device);
 
-                        await this.ManuallyProvisionEdgeX509Async(
+                        await this.ConfigureAsync(
+                            config =>
+                            {
+                                config.SetDeviceManualX509(
+                                    device.HubHostname,
+                                    device.Id,
+                                    certs.CertificatePath,
+                                    certs.KeyPath);
+                                config.Update();
+                                return Task.FromResult((
+                                    "with x509 certificate for device '{Identity}'",
+                                    new object[] { device.Id }));
+                            },
                             device,
-                            certs.CertificatePath,
-                            certs.KeyPath,
                             startTime,
-                            token);
+                            token
+                        );
                     }
                 },
                 "Completed edge manual provisioning with self-signed certificate");

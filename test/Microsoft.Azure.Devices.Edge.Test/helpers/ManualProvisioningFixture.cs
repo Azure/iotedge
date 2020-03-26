@@ -34,43 +34,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 this.iotHub);
         }
 
-        public async Task ManuallyProvisionEdgeSasAsync(EdgeDevice device, DateTime startTime, CancellationToken token)
+        protected async Task ConfigureAsync(
+            Func<DaemonConfiguration, Task<(string, object[])>> config,
+            EdgeDevice device,
+            DateTime startTime,
+            CancellationToken token)
         {
-            IotHubConnectionStringBuilder builder =
-                IotHubConnectionStringBuilder.Create(device.ConnectionString);
+            await this.daemon.ConfigureAsync(config, token);
 
-            await this.daemon.ConfigureAsync(
-                config =>
-                {
-                    config.SetDeviceConnectionString(device.ConnectionString);
-                    config.Update();
-                    return Task.FromResult((
-                        "with connection string for device '{Identity}'",
-                        new object[] { builder.DeviceId }));
-                },
-                token);
-
-            await this.WaitForConfiguredStatusAsync(device, startTime, token);
-        }
-
-        public async Task ManuallyProvisionEdgeX509Async(EdgeDevice device, string certPath, string keyPath, DateTime startTime, CancellationToken token)
-        {
-            await this.daemon.ConfigureAsync(
-                config =>
-                {
-                    config.SetDeviceManualX509(device.HubHostname, device.Id, certPath, keyPath);
-                    config.Update();
-                    return Task.FromResult((
-                        "with x509 certificate for device '{Identity}'",
-                        new object[] { device.Id }));
-                },
-                token);
-
-            await this.WaitForConfiguredStatusAsync(device, startTime, token);
-        }
-
-        async Task WaitForConfiguredStatusAsync(EdgeDevice device, DateTime startTime, CancellationToken token)
-        {
             try
             {
                 await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
