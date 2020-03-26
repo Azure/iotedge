@@ -1,3 +1,4 @@
+use std::any::type_name;
 use std::collections::{HashMap, VecDeque};
 use std::iter::FromIterator;
 
@@ -5,23 +6,29 @@ use bytes::Bytes;
 use criterion::*;
 use mqtt3::proto::{Publication, QoS};
 use mqtt_broker::{
-    BincodeFormat, BrokerState, ClientId, ConsolidatedStateFormat, FilePersistor, Persist,
-    SessionState,
+    BincodeFormat, BrokerState, ClientId, ConsolidatedStateFormat, FileFormat, FilePersistor,
+    Persist, SessionState,
 };
-use rand::Rng;
 use tempfile::TempDir;
 use tokio::runtime::Runtime;
 
-fn test_write(
+fn test_write<F>(
     c: &mut Criterion,
     num_clients: u32,
     num_unique_messages: u32,
     num_shared_messages: u32,
     num_retained: u32,
-) {
+    format: F,
+) where
+    F: FileFormat + Clone + Send + 'static,
+{
     let name = format!(
-        "Write {} unique and {} shared messages for {} sessions with {} retained messages",
-        num_unique_messages, num_shared_messages, num_clients, num_retained
+        "{}: Write {} unique and {} shared messages for {} sessions with {} retained messages",
+        type_name::<F>(),
+        num_unique_messages,
+        num_shared_messages,
+        num_clients,
+        num_retained
     );
 
     c.bench_function(&name, |b| {
@@ -36,7 +43,7 @@ fn test_write(
 
                 let tmp_dir = TempDir::new().unwrap();
                 let path = tmp_dir.path().to_owned();
-                let persistor = FilePersistor::new(path, ConsolidatedStateFormat::new());
+                let persistor = FilePersistor::new(path, format.clone());
                 let rt = Runtime::new().unwrap();
 
                 (state, persistor, rt, tmp_dir)
@@ -44,6 +51,52 @@ fn test_write(
             |(state, mut persistor, mut rt, _tmp_dir)| {
                 rt.block_on(async { persistor.store(state).await })
             },
+            BatchSize::SmallInput,
+        );
+    });
+}
+
+fn test_read<F>(
+    c: &mut Criterion,
+    num_clients: u32,
+    num_unique_messages: u32,
+    num_shared_messages: u32,
+    num_retained: u32,
+    format: F,
+) where
+    F: FileFormat + Clone + Send + 'static,
+{
+    let name = format!(
+        "{}: Read {} unique and {} shared messages for {} sessions with {} retained messages",
+        type_name::<F>(),
+        num_unique_messages,
+        num_shared_messages,
+        num_clients,
+        num_retained
+    );
+
+    c.bench_function(&name, |b| {
+        b.iter_batched(
+            || {
+                let state = make_fake_state(
+                    num_clients,
+                    num_unique_messages,
+                    num_shared_messages,
+                    num_retained,
+                );
+
+                let tmp_dir = TempDir::new().unwrap();
+                let path = tmp_dir.path().to_owned();
+                let mut persistor = FilePersistor::new(path, format.clone());
+
+                Runtime::new()
+                    .unwrap()
+                    .block_on(async { persistor.store(state).await })
+                    .unwrap();
+                let rt = Runtime::new().unwrap();
+                (persistor, rt, tmp_dir)
+            },
+            |(mut persistor, mut rt, _tmp_dir)| rt.block_on(async { persistor.load().await }),
             BatchSize::SmallInput,
         );
     });
@@ -95,8 +148,46 @@ fn make_random_payload(size: u32) -> Bytes {
 }
 
 fn write_simple(c: &mut Criterion) {
-    test_write(c, 1, 1, 0, 0)
+    test_write(c, 1, 1, 0, 0, ConsolidatedStateFormat::new());
+    test_write(c, 1, 1, 0, 0, BincodeFormat::new());
 }
 
-criterion_group!(write, write_simple);
-criterion_main!(write);
+fn write_1(c: &mut Criterion) {
+    test_write(c, 10, 10, 10, 10, ConsolidatedStateFormat::new());
+    test_write(c, 10, 10, 10, 10, BincodeFormat::new());
+}
+
+fn write_2(c: &mut Criterion) {
+    test_write(c, 10, 100, 0, 0, ConsolidatedStateFormat::new());
+    test_write(c, 10, 100, 0, 0, BincodeFormat::new());
+}
+
+fn write_3(c: &mut Criterion) {
+    test_write(c, 10, 0, 100, 0, ConsolidatedStateFormat::new());
+    test_write(c, 10, 0, 100, 0, BincodeFormat::new());
+}
+
+fn read_simple(c: &mut Criterion) {
+    test_read(c, 1, 1, 0, 0, ConsolidatedStateFormat::new());
+    test_read(c, 1, 1, 0, 0, BincodeFormat::new());
+}
+
+fn read_1(c: &mut Criterion) {
+    test_read(c, 10, 10, 10, 10, ConsolidatedStateFormat::new());
+    test_read(c, 10, 10, 10, 10, BincodeFormat::new());
+}
+
+fn read_2(c: &mut Criterion) {
+    test_read(c, 10, 100, 0, 0, ConsolidatedStateFormat::new());
+    test_read(c, 10, 100, 0, 0, BincodeFormat::new());
+}
+
+fn read_3(c: &mut Criterion) {
+    test_read(c, 10, 0, 100, 0, ConsolidatedStateFormat::new());
+    test_read(c, 10, 0, 100, 0, BincodeFormat::new());
+}
+
+criterion_group!(write, write_simple, write_1, write_2, write_3,);
+criterion_group!(read, read_simple, read_1, read_2, read_3,);
+
+criterion_main!(write, read);
