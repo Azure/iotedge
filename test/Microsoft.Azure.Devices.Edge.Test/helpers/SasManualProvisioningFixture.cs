@@ -9,10 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
     public class SasManualProvisioningFixture : ManualProvisioningFixture
     {
-        public SasManualProvisioningFixture()
-        {
-        }
-
         [OneTimeSetUp]
         public async Task SasProvisionEdgeAsync()
         {
