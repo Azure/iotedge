@@ -144,7 +144,14 @@ impl FileFormat for BincodeFormat {
     }
 }
 
+#[derive(Clone, Debug, Default)]
 pub struct ConsolidatedStateFormat;
+
+impl ConsolidatedStateFormat {
+    pub fn new() -> Self {
+        Self
+    }
+}
 
 impl FileFormat for ConsolidatedStateFormat {
     type Error = Error;
@@ -665,7 +672,7 @@ pub(crate) mod tests {
     async fn filepersistor_smoketest() {
         let tmp_dir = TempDir::new().unwrap();
         let path = tmp_dir.path().to_owned();
-        let mut persistor = FilePersistor::new(path, BincodeFormat::new());
+        let mut persistor = FilePersistor::new(path, ConsolidatedStateFormat::new());
 
         persistor.store(BrokerState::default()).await.unwrap();
         let state = persistor.load().await.unwrap().unwrap();

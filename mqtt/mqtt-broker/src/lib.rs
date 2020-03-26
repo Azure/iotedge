@@ -29,8 +29,11 @@ mod subscription;
 pub use crate::broker::{Broker, BrokerHandle, BrokerState};
 pub use crate::connection::ConnectionHandle;
 pub use crate::error::{Error, ErrorKind};
-pub use crate::persist::{BincodeFormat, FileFormat, FilePersistor, NullPersistor, Persist};
+pub use crate::persist::{
+    BincodeFormat, ConsolidatedStateFormat, FileFormat, FilePersistor, NullPersistor, Persist,
+};
 pub use crate::server::Server;
+pub use crate::session::SessionState;
 pub use crate::snapshot::{Snapshotter, StateSnapshotHandle};
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
