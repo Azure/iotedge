@@ -628,6 +628,36 @@
               "createOptions": ""
             }
           },
+          "cloudToDeviceMessageSender3": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "C2DMESSAGE_TESTER_MODE": {
+                "value": "Sender"
+              },
+              "IOT_HUB_CONNECTION_STRING": {
+                "value": "<IoTHubConnectionString>"
+              },
+              "trackingId": {
+                "value": "<TrackingId>"
+              },
+              "testDuration": {
+                "value": "<TestDuration>"
+              },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
+              },
+              "ReportingEndpointUrl": {
+                "value": "http://localhost:5001"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+            }
+          },
           "cloudToDeviceMessageSender2": {
             "version": "1.0",
             "type": "docker",
