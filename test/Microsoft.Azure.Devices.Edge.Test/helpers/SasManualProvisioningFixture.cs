@@ -2,6 +2,8 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
+    using System.Linq;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -9,6 +11,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
     public class SasManualProvisioningFixture : ManualProvisioningFixture
     {
+        protected EdgeRuntime runtime;
+
         [OneTimeSetUp]
         public async Task SasProvisionEdgeAsync()
         {
@@ -20,6 +24,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         CancellationToken token = cts.Token;
                         DateTime startTime = DateTime.Now;
 
+                        string deviceId =
+                            $"e2e-{string.Concat(Dns.GetHostName().Take(14)).TrimEnd(new[] { '-' })}-{DateTime.Now:yyMMdd'-'HHmmss'.'fff}";
+
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
                             Context.Current.DeviceId,
                             this.iotHub,
@@ -28,6 +35,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             token);
 
                         Context.Current.DeleteList.TryAdd(device.Id, device);
+
+                        this.runtime = new EdgeRuntime(
+                            device.Id,
+                            Context.Current.EdgeAgentImage,
+                            Context.Current.EdgeHubImage,
+                            Context.Current.Proxy,
+                            Context.Current.Registries,
+                            Context.Current.OptimizeForPerformance,
+                            this.iotHub);
 
                         await this.ConfigureAsync(
                             config =>

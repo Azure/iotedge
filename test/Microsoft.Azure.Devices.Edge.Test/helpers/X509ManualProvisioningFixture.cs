@@ -13,9 +13,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     {
         const string DeviceSuffix = "-x509";
 
+        protected EdgeRuntime runtime;
+
         public X509ManualProvisioningFixture()
-            : base(DeviceSuffix)
         {
+            this.runtime = new EdgeRuntime(
+                Context.Current.DeviceId + DeviceSuffix,
+                Context.Current.EdgeAgentImage,
+                Context.Current.EdgeHubImage,
+                Context.Current.Proxy,
+                Context.Current.Registries,
+                Context.Current.OptimizeForPerformance,
+                this.iotHub);
         }
 
         [OneTimeSetUp]

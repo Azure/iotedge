@@ -15,7 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     {
         protected readonly IEdgeDaemon daemon;
         protected readonly IotHub iotHub;
-        protected EdgeRuntime runtime;
 
         public ManualProvisioningFixture(string deviceIdSuffix = "")
         {
@@ -24,14 +23,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 Context.Current.ConnectionString,
                 Context.Current.EventHubEndpoint,
                 Context.Current.Proxy);
-            this.runtime = new EdgeRuntime(
-                Context.Current.DeviceId + deviceIdSuffix,
-                Context.Current.EdgeAgentImage,
-                Context.Current.EdgeHubImage,
-                Context.Current.Proxy,
-                Context.Current.Registries,
-                Context.Current.OptimizeForPerformance,
-                this.iotHub);
         }
 
         protected async Task ConfigureAsync(
