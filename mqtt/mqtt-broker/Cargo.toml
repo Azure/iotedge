@@ -10,6 +10,7 @@ edition = "2018"
 async-trait = "0.1"
 bincode = "1.2"
 chrono = "0.4"
+derive_more = { version = "0.99", features = ["display"] }
 fail = "0.3"
 failure = "0.1"
 flate2 = "1.0"

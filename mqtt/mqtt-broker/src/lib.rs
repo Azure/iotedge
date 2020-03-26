@@ -11,12 +11,13 @@
     clippy::missing_errors_doc
 )]
 
-use std::fmt;
 use std::sync::Arc;
 
+use derive_more::Display;
 use mqtt3::*;
 use serde::{Deserialize, Serialize};
 
+mod auth;
 mod broker;
 mod connection;
 mod error;
@@ -26,25 +27,20 @@ mod session;
 mod snapshot;
 mod subscription;
 
-pub use crate::broker::{Broker, BrokerHandle, BrokerState};
+pub use crate::auth::{AuthId, Certificate};
+pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle, BrokerState};
 pub use crate::connection::ConnectionHandle;
 pub use crate::error::{Error, ErrorKind};
 pub use crate::persist::{BincodeFormat, FileFormat, FilePersistor, NullPersistor, Persist};
 pub use crate::server::Server;
 pub use crate::snapshot::{Snapshotter, StateSnapshotHandle};
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Display, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ClientId(Arc<String>);
 
 impl ClientId {
     pub fn as_str(&self) -> &str {
         &self.0
-    }
-}
-
-impl fmt::Display for ClientId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.as_str())
     }
 }
 
@@ -58,14 +54,21 @@ impl From<String> for ClientId {
 pub struct ConnReq {
     client_id: ClientId,
     connect: proto::Connect,
+    certificate: Option<Certificate>,
     handle: ConnectionHandle,
 }
 
 impl ConnReq {
-    pub fn new(client_id: ClientId, connect: proto::Connect, handle: ConnectionHandle) -> Self {
+    pub fn new(
+        client_id: ClientId,
+        connect: proto::Connect,
+        certificate: Option<Certificate>,
+        handle: ConnectionHandle,
+    ) -> Self {
         Self {
             client_id,
             connect,
+            certificate,
             handle,
         }
     }
@@ -80,6 +83,10 @@ impl ConnReq {
 
     pub fn handle(&self) -> &ConnectionHandle {
         &self.handle
+    }
+
+    pub fn certificate(&self) -> Option<&Certificate> {
+        self.certificate.as_ref()
     }
 
     pub fn handle_mut(&mut self) -> &mut ConnectionHandle {
