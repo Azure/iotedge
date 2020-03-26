@@ -7,6 +7,7 @@ namespace LoadGen
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Extensions.Logging;
 
     class PriorityMessageSender : LoadGenSenderBase
@@ -51,7 +52,12 @@ namespace LoadGen
                     }
                     else
                     {
-                        int priority = int.Parse(output);
+                        int priority = 2000000000; // Default priority
+                        if (!output.Contains(TestConstants.PriorityQueues.Default))
+                        {
+                            priority = int.Parse(output);
+                        }
+
                         if (!priorityAndSequence.TryGetValue(priority, out List<long> sequenceNums))
                         {
                             priorityAndSequence.Add(priority, new List<long> { messageIdCounter });

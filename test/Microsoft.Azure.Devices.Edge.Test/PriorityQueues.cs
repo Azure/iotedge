@@ -6,10 +6,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Net.Http;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
+    using Microsoft.VisualStudio.TestPlatform.Common;
     using Newtonsoft.Json.Linq;
     using NUnit.Framework;
 
@@ -28,6 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             const string loadGenModuleName = "loadGenModule";
             const string relayerModuleName = "relayerModule";
             const string trcUrl = "http://" + trcModuleName + ":5001";
+            
             string routeTemplate = $"FROM /messages/modules/{loadGenModuleName}/outputs/pri{0} INTO BrokeredEndpoint('/modules/{relayerModuleName}/inputs/input1')";
 
             string trackingId = Guid.NewGuid().ToString();
@@ -71,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                            }
                        });
 
-                    string priorityString = "182;0;8000;15";
+                    string priorityString = "182;0;8000;15;Default";
                     builder.AddModule(loadGenModuleName, loadGenImage)
                         .WithEnvironment(new[]
                         {
@@ -116,11 +119,23 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Dictionary<string, object> routes = new Dictionary<string, object>();
             foreach (string priority in priorities)
             {
-                routes.Add($"LoadGenToRelayer{priority}", new Dictionary<string, object>
+                // If we encounter "Default" in the priority list, don't add a priority - the default priority will automatically get picked up
+                if (priority.Contains(TestConstants.PriorityQueues.Default))
                 {
-                    ["route"] = $"FROM /messages/modules/{sendModule}/outputs/pri{priority} INTO BrokeredEndpoint('/modules/{receiveModule}/inputs/input1')",
-                    ["priority"] = int.Parse(priority)
-                });
+                    routes.Add($"LoadGenToRelayer{priority}", new Dictionary<string, object>
+                    {
+                        ["route"] = $"FROM /messages/modules/{sendModule}/outputs/pri{priority} INTO BrokeredEndpoint('/modules/{receiveModule}/inputs/input1')",
+                    });
+                }
+                else
+                {
+                    routes.Add($"LoadGenToRelayer{priority}", new Dictionary<string, object>
+                    {
+                        ["route"] = $"FROM /messages/modules/{sendModule}/outputs/pri{priority} INTO BrokeredEndpoint('/modules/{receiveModule}/inputs/input1')",
+                        ["priority"] = int.Parse(priority)
+                    });
+                }
+                
             }
 
             return routes;
