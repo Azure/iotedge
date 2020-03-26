@@ -13,7 +13,7 @@ REVISION="${REVISION:-1}"
 DEFAULT_VERSION="$(cat "$PROJECT_ROOT/version.txt")"
 VERSION="${VERSION:-$DEFAULT_VERSION}"
 
-CMAKE_ARGS='-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_VERSION=1 -DCMAKE_BUILD_TYPE=Release'
+CMAKE_ARGS='-DCMAKE_BUILD_TYPE=Release'
 CMAKE_ARGS="$CMAKE_ARGS -DBUILD_SHARED=On -Drun_unittests=Off -Duse_default_uuid=On -Duse_emulator=Off -Duse_http=Off"
 
 DOCKER_VOLUME_MOUNTS=''
@@ -260,6 +260,10 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             echo \'[target.armv7-unknown-linux-gnueabihf]\' > ~/.cargo/config &&
             echo \'linker = "arm-linux-gnueabihf-gcc"\' >> ~/.cargo/config &&
         '
+
+        # Indicate to cmake that we're cross-compiling
+        CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_VERSION=1"
+
         CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_SYSROOT=/toolchain/arm-linux-gnueabihf/libc"
         CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_C_COMPILER=/toolchain/bin/arm-linux-gnueabihf-gcc"
         CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CXX_COMPILER=/toolchain/bin/arm-linux-gnueabihf-g++"
@@ -282,6 +286,10 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             export ARMV7_UNKNOWN_LINUX_GNUEABIHF_OPENSSL_LIB_DIR=/usr/lib/arm-linux-gnueabihf &&
             export ARMV7_UNKNOWN_LINUX_GNUEABIHF_OPENSSL_INCLUDE_DIR=/usr/include &&
         '
+
+        # Indicate to cmake that we're cross-compiling
+        CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_VERSION=1"
+
         CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc"
         CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CXX_COMPILER=arm-linux-gnueabihf-g++"
         ;;
@@ -303,6 +311,10 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_LIB_DIR=/usr/lib/aarch64-linux-gnu &&
             export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_INCLUDE_DIR=/usr/include &&
         '
+
+        # Indicate to cmake that we're cross-compiling
+        CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_VERSION=1"
+
         CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc"
         CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++"
         ;;
@@ -360,6 +372,9 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             export ARMV7_UNKNOWN_LINUX_GNUEABIHF_OPENSSL_INCLUDE_DIR=/usr/include &&
         "
 
+        # Indicate to cmake that we're cross-compiling
+        CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_VERSION=1"
+
         CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc"
         CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CXX_COMPILER=arm-linux-gnueabihf-g++"
         ;;
@@ -405,6 +420,10 @@ case "$PACKAGE_OS.$PACKAGE_ARCH" in
             export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_LIB_DIR=/usr/lib/aarch64-linux-gnu &&
             export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_INCLUDE_DIR=/usr/include &&
         "
+
+        # Indicate to cmake that we're cross-compiling
+        CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_VERSION=1"
+
         CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc"
         CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++"
         ;;
@@ -472,8 +491,6 @@ esac
 
 
 mkdir -p "$LIBIOTHSM_BUILD_DIR"
-
-echo "$DOCKER_VOLUME_MOUNTS"
 
 docker run --rm \
     --user root \

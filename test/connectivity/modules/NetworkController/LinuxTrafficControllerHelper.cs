@@ -2,6 +2,7 @@
 namespace NetworkController
 {
     using System.Net;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
 
     static class LinuxTrafficControllerHelper
     {

@@ -4,9 +4,13 @@ namespace TestResultCoordinator.Reports
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    class DeploymentTestReportMetadata : ITestReportMetadata
+    class DeploymentTestReportMetadata : TestReportMetadataBase, ITestReportMetadata
     {
-        public DeploymentTestReportMetadata(string expectedSource, string actualSource)
+        public DeploymentTestReportMetadata(
+            string testDescription,
+            string expectedSource,
+            string actualSource)
+            : base(testDescription)
         {
             this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
             this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
@@ -16,15 +20,15 @@ namespace TestResultCoordinator.Reports
 
         public string ActualSource { get; }
 
-        public TestReportType TestReportType => TestReportType.DeploymentTestReport;
+        public override TestReportType TestReportType => TestReportType.DeploymentTestReport;
 
-        public TestOperationResultType TestOperationResultType => TestOperationResultType.Deployment;
+        public override TestOperationResultType TestOperationResultType => TestOperationResultType.Deployment;
 
         public string[] ResultSources => new string[] { this.ExpectedSource, this.ActualSource };
 
         public override string ToString()
         {
-            return $"ExpectedSource: {this.ExpectedSource}, ActualSource: {this.ActualSource}, TestOperationResultType: {this.TestOperationResultType.ToString()}, ReportType: {this.TestReportType.ToString()}";
+            return $"{base.ToString()}, ExpectedSource: {this.ExpectedSource}, ActualSource: {this.ActualSource}";
         }
     }
 }

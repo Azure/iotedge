@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
@@ -25,23 +26,26 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             // Arrange
             const int MessagesCount = 10;
             const string EndpointId = "endpoint1";
+            const uint Priority = 100;
             var endpoint = new NullEndpoint(EndpointId);
-            var priorities = new List<uint>() { 0, 1, 2, 100, 101, 102 };
-            var checkpointer = new NullCheckpointer();
+            var priorities = new List<uint>() { Priority };
+            var checkpointerFactory = new NullCheckpointerFactory();
             var endpointExecutorConfig = new EndpointExecutorConfig(TimeSpan.FromHours(1), RetryStrategy.NoRetry, TimeSpan.FromHours(1));
             var asyncEndpointExecutorOptions = new AsyncEndpointExecutorOptions(10);
             var messageStore = new TestMessageStore();
-            var storingAsyncEndpointExecutor = new StoringAsyncEndpointExecutor(endpoint, priorities, checkpointer, endpointExecutorConfig, asyncEndpointExecutorOptions, messageStore);
+            var storingAsyncEndpointExecutor = new StoringAsyncEndpointExecutor(endpoint, checkpointerFactory, endpointExecutorConfig, asyncEndpointExecutorOptions, messageStore);
+            await storingAsyncEndpointExecutor.UpdatePriorities(priorities, Option.None<Endpoint>());
             IEnumerable<IMessage> messages = GetNewMessages(MessagesCount, 0);
+            string messageQueueId = $"{EndpointId}_Pri{Priority}";
 
             // Act - Send messages to invoke
             foreach (IMessage message in messages)
             {
-                await storingAsyncEndpointExecutor.Invoke(message, 0, 3600);
+                await storingAsyncEndpointExecutor.Invoke(message, Priority, 3600);
             }
 
             // Assert - Check that the message store received the messages sent to invoke.
-            List<IMessage> storeMessages = messageStore.GetReceivedMessagesForEndpoint(EndpointId);
+            List<IMessage> storeMessages = messageStore.GetReceivedMessagesForEndpoint(messageQueueId);
             Assert.NotNull(storeMessages);
             Assert.Equal(MessagesCount, storeMessages.Count);
             for (int i = 0; i < MessagesCount; i++)
@@ -52,7 +56,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             }
 
             // Assert - Make sure no additional / duplicate messages were sent.
-            storeMessages = messageStore.GetReceivedMessagesForEndpoint(EndpointId);
+            storeMessages = messageStore.GetReceivedMessagesForEndpoint(messageQueueId);
             Assert.NotNull(storeMessages);
             Assert.Equal(10, storeMessages.Count);
 
@@ -60,11 +64,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             messages = GetNewMessages(MessagesCount, MessagesCount);
             foreach (IMessage message in messages)
             {
-                await storingAsyncEndpointExecutor.Invoke(message, 0, 3600);
+                await storingAsyncEndpointExecutor.Invoke(message, Priority, 3600);
             }
 
             // Assert - Make sure the store now has the old and the new messages.
-            storeMessages = messageStore.GetReceivedMessagesForEndpoint(EndpointId);
+            storeMessages = messageStore.GetReceivedMessagesForEndpoint(messageQueueId);
             Assert.NotNull(storeMessages);
             Assert.Equal(MessagesCount * 2, storeMessages.Count);
             for (int i = 0; i < MessagesCount * 2; i++)
@@ -83,11 +87,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             const string EndpointId = "endpoint1";
             var endpoint = new TestEndpoint(EndpointId);
             var priorities = new List<uint>() { 0, 1, 2, 100, 101, 102 };
-            ICheckpointer checkpointer = await Checkpointer.CreateAsync(EndpointId, new CheckpointStore());
+            var checkpointerFactory = new NullCheckpointerFactory();
             var endpointExecutorConfig = new EndpointExecutorConfig(TimeSpan.FromHours(1), RetryStrategy.NoRetry, TimeSpan.FromHours(1));
             var asyncEndpointExecutorOptions = new AsyncEndpointExecutorOptions(4, TimeSpan.FromSeconds(2));
             var messageStore = new TestMessageStore();
-            var storingAsyncEndpointExecutor = new StoringAsyncEndpointExecutor(endpoint, priorities, checkpointer, endpointExecutorConfig, asyncEndpointExecutorOptions, messageStore);
+            var storingAsyncEndpointExecutor = new StoringAsyncEndpointExecutor(endpoint, checkpointerFactory, endpointExecutorConfig, asyncEndpointExecutorOptions, messageStore);
+            await storingAsyncEndpointExecutor.UpdatePriorities(priorities, Option.None<Endpoint>());
             IEnumerable<IMessage> messages = GetNewMessages(MessagesCount, 0);
 
             // Act - Send messages to invoke
@@ -117,11 +122,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             const int RoutingPumpBatchSize = 10;
             var endpoint = new TestEndpoint(EndpointId);
             var priorities = new List<uint>() { 0, 1, 2, 100, 101, 102 };
-            ICheckpointer checkpointer = await Checkpointer.CreateAsync(EndpointId, new CheckpointStore());
+            var checkpointerFactory = new NullCheckpointerFactory();
             var endpointExecutorConfig = new EndpointExecutorConfig(TimeSpan.FromHours(1), RetryStrategy.NoRetry, TimeSpan.FromHours(1));
             var asyncEndpointExecutorOptions = new AsyncEndpointExecutorOptions(RoutingPumpBatchSize, TimeSpan.FromMilliseconds(1));
             var messageStore = new TestMessageStore();
-            var storingAsyncEndpointExecutor = new StoringAsyncEndpointExecutor(endpoint, priorities, checkpointer, endpointExecutorConfig, asyncEndpointExecutorOptions, messageStore);
+            var storingAsyncEndpointExecutor = new StoringAsyncEndpointExecutor(endpoint, checkpointerFactory, endpointExecutorConfig, asyncEndpointExecutorOptions, messageStore);
+            await storingAsyncEndpointExecutor.UpdatePriorities(priorities, Option.None<Endpoint>());
             IEnumerable<IMessage> messages = GetNewMessages(MessagesCount, 0);
 
             // Act - Send messages to invoke
@@ -149,11 +155,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             var endpoint2 = new NullEndpoint("id");
             var endpoint3 = new TestEndpoint("id1");
             var priorities = new List<uint>() { 100, 101, 102, 0, 1, 2 };
-            ICheckpointer checkpointer = await Checkpointer.CreateAsync("cid", new CheckpointStore());
+            var checkpointerFactory = new NullCheckpointerFactory();
             var endpointExecutorConfig = new EndpointExecutorConfig(TimeSpan.FromHours(1), RetryStrategy.NoRetry, TimeSpan.FromHours(1));
             var asyncEndpointExecutorOptions = new AsyncEndpointExecutorOptions(1, TimeSpan.FromSeconds(1));
             var messageStore = new TestMessageStore();
-            var executor = new StoringAsyncEndpointExecutor(endpoint1, priorities, checkpointer, endpointExecutorConfig, asyncEndpointExecutorOptions, messageStore);
+            var executor = new StoringAsyncEndpointExecutor(endpoint1, checkpointerFactory, endpointExecutorConfig, asyncEndpointExecutorOptions, messageStore);
+            await executor.UpdatePriorities(priorities, Option.None<Endpoint>());
 
             Assert.Equal(endpoint1, executor.Endpoint);
             await Assert.ThrowsAsync<ArgumentNullException>(() => executor.SetEndpoint(null, new List<uint>() { 0 }));
@@ -286,6 +293,128 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
 
             // Assert
             iterator.VerifyAll();
+        }
+
+        [Fact]
+        public async Task MessagePrioritiesTest()
+        {
+            // Arrange
+            const string EndpointId = "endpoint1";
+            const uint HighPri = 0;
+            const uint NormalPri = 5;
+            const uint LowPri = 10;
+            var endpoint = new TestEndpoint(EndpointId);
+            var priorities = new List<uint>() { HighPri, NormalPri, LowPri };
+            var checkpointerFactory = new NullCheckpointerFactory();
+            var endpointExecutorConfig = new EndpointExecutorConfig(TimeSpan.FromHours(1), RetryStrategy.DefaultFixed, TimeSpan.FromHours(1));
+            var asyncEndpointExecutorOptions = new AsyncEndpointExecutorOptions(4, TimeSpan.FromSeconds(2));
+            var messageStore = new TestMessageStore();
+            var storingAsyncEndpointExecutor = new StoringAsyncEndpointExecutor(endpoint, checkpointerFactory, endpointExecutorConfig, asyncEndpointExecutorOptions, messageStore);
+            await storingAsyncEndpointExecutor.UpdatePriorities(priorities, Option.None<Endpoint>());
+
+            var normalPriMsg1 = new Message(TelemetryMessageSource.Instance, new byte[] { 1 }, new Dictionary<string, string> { { "normalPriority", string.Empty } }, 0L);
+            var normalPriMsg2 = new Message(TelemetryMessageSource.Instance, new byte[] { 2 }, new Dictionary<string, string> { { "normalPriority", string.Empty } }, 1L);
+            var normalPriMsg3 = new Message(TelemetryMessageSource.Instance, new byte[] { 3 }, new Dictionary<string, string> { { "normalPriority", string.Empty } }, 2L);
+            var lowPriMsg1 = new Message(TelemetryMessageSource.Instance, new byte[] { 4 }, new Dictionary<string, string> { { "lowPriority", string.Empty } }, 3L);
+            var lowPriMsg2 = new Message(TelemetryMessageSource.Instance, new byte[] { 5 }, new Dictionary<string, string> { { "lowPriority", string.Empty } }, 4L);
+            var highPriMsg1 = new Message(TelemetryMessageSource.Instance, new byte[] { 6 }, new Dictionary<string, string> { { "highPriority", string.Empty } }, 5L);
+            var normalPriMsg4 = new Message(TelemetryMessageSource.Instance, new byte[] { 7 }, new Dictionary<string, string> { { "normalPriority", string.Empty } }, 6L);
+            var highPriMsg2 = new Message(TelemetryMessageSource.Instance, new byte[] { 8 }, new Dictionary<string, string> { { "highPriority", string.Empty } }, 7L);
+            const int HighPriCount = 2;
+            const int NormalPriCount = 4;
+            const int LowPriCount = 2;
+
+            // Disable the endpoint so messages are stuck in queue
+            endpoint.CanProcess = false;
+
+            // Send normal priority messages
+            await storingAsyncEndpointExecutor.Invoke(normalPriMsg1, NormalPri, 3600);
+            await storingAsyncEndpointExecutor.Invoke(normalPriMsg2, NormalPri, 3600);
+            await storingAsyncEndpointExecutor.Invoke(normalPriMsg3, NormalPri, 3600);
+
+            // Send low priority messages
+            await storingAsyncEndpointExecutor.Invoke(lowPriMsg1, LowPri, 3600);
+            await storingAsyncEndpointExecutor.Invoke(lowPriMsg2, LowPri, 3600);
+
+            // Send the remaining messages mixed priority
+            await storingAsyncEndpointExecutor.Invoke(highPriMsg1, HighPri, 3600);
+            await storingAsyncEndpointExecutor.Invoke(normalPriMsg4, NormalPri, 3600);
+            await storingAsyncEndpointExecutor.Invoke(highPriMsg2, HighPri, 3600);
+
+            // Message store should have the messages in the corresponding queues
+            var highPriQueue = messageStore.GetReceivedMessagesForEndpoint($"{endpoint.Id}_Pri{HighPri}");
+            Assert.Equal(2, highPriQueue.Count);
+            Assert.Contains(highPriMsg1, highPriQueue);
+            Assert.Contains(highPriMsg2, highPriQueue);
+
+            var normalPriQueue = messageStore.GetReceivedMessagesForEndpoint($"{endpoint.Id}_Pri{NormalPri}");
+            Assert.Equal(4, normalPriQueue.Count);
+            Assert.Contains(normalPriMsg1, normalPriQueue);
+            Assert.Contains(normalPriMsg2, normalPriQueue);
+            Assert.Contains(normalPriMsg3, normalPriQueue);
+            Assert.Contains(normalPriMsg4, normalPriQueue);
+
+            var lowPriQueue = messageStore.GetReceivedMessagesForEndpoint($"{endpoint.Id}_Pri{LowPri}");
+            Assert.Equal(2, lowPriQueue.Count);
+            Assert.Contains(lowPriMsg1, lowPriQueue);
+            Assert.Contains(lowPriMsg2, lowPriQueue);
+
+            // Re-enable the endpoint and let the queues drain
+            endpoint.CanProcess = true;
+            await Task.Delay(TimeSpan.FromSeconds(10));
+
+            // Assert - Make sure the endpoint received all the messages
+            // in the right priority order:
+            //  - HighPri messages should finish processing before others
+            //  - NormalPri messages should finish processing before LowPri
+            Assert.Equal(8, endpoint.Processed.Count());
+            int highPriMessagesProcessed = 0;
+            int normalPriMessagesProcessed = 0;
+            int lowPriMessagesProcessed = 0;
+            for (int i = 0; i < endpoint.Processed.Count(); i++)
+            {
+                IMessage message = endpoint.Processed[i];
+                if (message.Properties.ContainsKey($"highPriority"))
+                {
+                    if (++highPriMessagesProcessed == HighPriCount)
+                    {
+                        // Found all the high-pri messages,
+                        // normal and low pri at this point
+                        // must not have completed yet
+                        Assert.True(normalPriMessagesProcessed < NormalPriCount);
+                        Assert.True(lowPriMessagesProcessed < LowPriCount);
+                    }
+                }
+                else if (message.Properties.ContainsKey($"normalPriority"))
+                {
+                    if (++normalPriMessagesProcessed == NormalPriCount)
+                    {
+                        // Found all the normal-pri messages,
+                        // low pri messages at this point must
+                        // not have completed yet
+                        Assert.True(lowPriMessagesProcessed < LowPriCount);
+
+                        // High pri messages should have completed
+                        Assert.True(highPriMessagesProcessed == HighPriCount);
+                    }
+                }
+                else if (message.Properties.ContainsKey($"lowPriority"))
+                {
+                    if (++lowPriMessagesProcessed == LowPriCount)
+                    {
+                        // Found all the low-pri messages,
+                        // high-pri and normal-pri should also
+                        // have completed before this
+                        Assert.True(highPriMessagesProcessed == HighPriCount);
+                        Assert.True(normalPriMessagesProcessed == NormalPriCount);
+                    }
+                }
+                else
+                {
+                    // Bad test setup
+                    Assert.True(false, "Bad test setup, processed a message with unexpected priority");
+                }
+            }
         }
 
         static IEnumerable<IMessage> GetNewMessages(int count, int indexStart)

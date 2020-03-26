@@ -6,8 +6,8 @@ namespace TestResultCoordinator.Reports
 
     class TwinCountingReport : TestResultReportBase
     {
-        public TwinCountingReport(string trackingId, string expectedSource, string actualSource, string resultType, ulong totalExpectCount, ulong totalMatchCount, ulong totalPatches, ulong totalDuplicates, ReadOnlyCollection<string> unmatchedResults)
-            : base(trackingId, resultType)
+        public TwinCountingReport(string testDescription, string trackingId, string expectedSource, string actualSource, string resultType, ulong totalExpectCount, ulong totalMatchCount, ulong totalPatches, ulong totalDuplicates, ReadOnlyCollection<string> unmatchedResults)
+            : base(testDescription, trackingId, resultType)
         {
             this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
             this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));

@@ -20,19 +20,22 @@ namespace TestResultCoordinator.Reports.DirectMethod
         readonly string trackingId;
 
         internal DirectMethodReportGenerator(
+            string testDescription,
             string trackingId,
             string senderSource,
             ITestResultCollection<TestOperationResult> senderTestResults,
             Option<string> receiverSource,
             Option<ITestResultCollection<TestOperationResult>> receiverTestResults,
             string resultType,
-            NetworkStatusTimeline networkStatusTimeline)
+            NetworkStatusTimeline networkStatusTimeline,
+            NetworkControllerType networkControllerType)
         {
             if (receiverSource.HasValue ^ receiverTestResults.HasValue)
             {
                 throw new ArgumentException("Provide both receiverSource and receiverTestResults or neither.");
             }
 
+            this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
             this.SenderTestResults = Preconditions.CheckNotNull(senderTestResults, nameof(senderTestResults));
@@ -40,6 +43,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
             this.ReceiverTestResults = receiverTestResults;
             this.ResultType = Preconditions.CheckNonWhiteSpace(resultType, nameof(resultType));
             this.NetworkStatusTimeline = Preconditions.CheckNotNull(networkStatusTimeline, nameof(networkStatusTimeline));
+            this.NetworkControllerType = networkControllerType;
         }
 
         internal Option<string> ReceiverSource { get; }
@@ -52,9 +56,13 @@ namespace TestResultCoordinator.Reports.DirectMethod
 
         internal string ResultType { get; }
 
+        internal string TestDescription { get; }
+
         internal ITestResultComparer<TestOperationResult> TestResultComparer { get; }
 
         internal NetworkStatusTimeline NetworkStatusTimeline { get; }
+
+        internal NetworkControllerType NetworkControllerType { get; }
 
         public async Task<ITestResultReport> CreateReportAsync()
         {
@@ -114,6 +122,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
 
             Logger.LogInformation($"Successfully finished creating DirectMethodReport for Sources [{this.SenderSource}] and [{this.ReceiverSource}]");
             return new DirectMethodReport(
+                this.TestDescription,
                 this.trackingId,
                 this.SenderSource,
                 this.ReceiverSource,
@@ -159,9 +168,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
                 }
                 else if (dmSenderTestResult.SequenceNumber < dmReceiverTestResult.SequenceNumber)
                 {
-                    if (HttpStatusCode.OK.Equals(dmSenderTestResult.HttpStatusCode) &&
-                        (NetworkControllerStatus.Disabled.Equals(networkControllerStatus)
-                        || (NetworkControllerStatus.Enabled.Equals(networkControllerStatus) && isWithinTolerancePeriod)))
+                    if (this.IsMismatchSuccess(dmSenderTestResult, networkControllerStatus, isWithinTolerancePeriod))
                     {
                         mismatchSuccess++;
                         hasSenderResult = await this.SenderTestResults.MoveNextAsync();
@@ -171,6 +178,25 @@ namespace TestResultCoordinator.Reports.DirectMethod
             }
 
             return new DirectMethodReportGeneratorMetadata { HasSenderResult = hasSenderResult, HasReceiverResult = hasReceiverResult };
+        }
+
+        bool IsMismatchSuccess(DirectMethodTestResult dmSenderTestResult, NetworkControllerStatus networkControllerStatus, bool isWithinTolerancePeriod)
+        {
+            if (HttpStatusCode.OK.Equals(dmSenderTestResult.HttpStatusCode))
+            {
+                if (!NetworkControllerType.Offline.Equals(this.NetworkControllerType))
+                {
+                    return true;
+                }
+
+                if (NetworkControllerStatus.Disabled.Equals(networkControllerStatus) ||
+                    (NetworkControllerStatus.Enabled.Equals(networkControllerStatus) && isWithinTolerancePeriod))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         async Task<DirectMethodReportGeneratorMetadata> ProcessMismatchFailureCase()
@@ -205,7 +231,18 @@ namespace TestResultCoordinator.Reports.DirectMethod
             ulong networkOnFailure = 0;
             ulong networkOffFailure = 0;
             HttpStatusCode statusCode = dmSenderTestResult.HttpStatusCode;
-            if (NetworkControllerStatus.Disabled.Equals(networkControllerStatus))
+            if (!NetworkControllerType.Offline.Equals(this.NetworkControllerType))
+            {
+                if (HttpStatusCode.OK.Equals(statusCode))
+                {
+                    networkOnSuccess++;
+                }
+                else
+                {
+                    networkOnFailure++;
+                }
+            }
+            else if (NetworkControllerStatus.Disabled.Equals(networkControllerStatus))
             {
                 if (HttpStatusCode.OK.Equals(statusCode))
                 {
