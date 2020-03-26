@@ -21,13 +21,15 @@ namespace LoadGen
             string trackingId)
             : base(logger, moduleClient, batchId, trackingId)
         {
+            this.PriorityString = Settings.Current.Priorities.Expect(() =>
+                new ArgumentException("PriorityMessageSender must have 'priorities' environment variable set to a valid list of string delimited by ';'"));
         }
+
+        public string PriorityString { get; }
 
         public async override Task RunAsync(CancellationTokenSource cts, DateTime testStartAt)
         {
-            string priorityString = Settings.Current.Priorities.Expect(() =>
-                new ArgumentException("PriorityMessageSender must have 'priorities' environment variable set to a valid list of string delimited by ';'"));
-            string[] outputs = priorityString.Split(';');
+            string[] outputs = this.PriorityString.Split(';');
 
             bool firstMessageWhileOffline = true;
             var priorityAndSequence = new SortedDictionary<int, List<long>>();

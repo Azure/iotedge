@@ -92,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token);
 
             // Wait for loadGen to send some messages
-            await Task.Delay(TimeSpan.FromSeconds(30));
+            await Task.Delay(TimeSpan.FromSeconds(35));
 
             Action<EdgeConfigBuilder> addRelayerConfig = new Action<EdgeConfigBuilder>(
                 builder =>
@@ -104,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token);
 
             // Wait for relayer to spin up, receive messages, and pass along results to TRC
-            await Task.Delay(TimeSpan.FromSeconds(25));
+            await Task.Delay(TimeSpan.FromSeconds(20));
 
             HttpClient client = new HttpClient();
             HttpResponseMessage response = await client.GetAsync("http://localhost:5001/api/report");
