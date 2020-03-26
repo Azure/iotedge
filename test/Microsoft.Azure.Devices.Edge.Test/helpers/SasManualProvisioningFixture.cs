@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     {
         protected EdgeRuntime runtime;
 
-        [OneTimeSetUp]
+        [SetUp]
         public async Task SasProvisionEdgeAsync()
         {
             await Profiler.Run(
@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             $"e2e-{string.Concat(Dns.GetHostName().Take(14)).TrimEnd(new[] { '-' })}-{DateTime.Now:yyMMdd'-'HHmmss'.'fff}";
 
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
-                            Context.Current.DeviceId,
+                            deviceId,
                             this.iotHub,
                             AuthenticationType.Sas,
                             null,
