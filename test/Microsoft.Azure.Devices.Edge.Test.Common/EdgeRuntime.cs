@@ -34,7 +34,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         // DeployConfigurationAsync builds a configuration that includes Edge Agent, Edge Hub, and
         // anything added by addConfig(). It deploys the config and waits for the edge device to
         // receive it and start up all the modules.
-        public async Task<EdgeDeployment> DeployConfigurationAsync(Action<EdgeConfigBuilder> addConfig, CancellationToken token)
+        public async Task<EdgeDeployment> DeployConfigurationAsync(
+            Action<EdgeConfigBuilder> addConfig,
+            CancellationToken token,
+            bool stageSystemModules = true)
         {
             var builder = new EdgeConfigBuilder(this.deviceId);
             builder.AddRegistryCredentials(this.registries);
@@ -49,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             DateTime deployTime = DateTime.Now;
             var finalModules = new EdgeModule[] { };
-            IEnumerable<EdgeConfiguration> configs = builder.BuildConfigurationStages().ToArray();
+            IEnumerable<EdgeConfiguration> configs = builder.Build(stageSystemModules).ToArray();
             foreach (EdgeConfiguration edgeConfiguration in configs)
             {
                 await edgeConfiguration.DeployAsync(this.iotHub, token);
