@@ -1,9 +1,8 @@
-use std::fmt;
-
+use derive_more::Display;
 use failure::{Backtrace, Context, Fail};
 use mqtt3::proto::Packet;
 
-#[derive(Debug)]
+#[derive(Debug, Display)]
 pub struct Error {
     inner: Context<ErrorKind>,
 }
@@ -63,6 +62,12 @@ pub enum ErrorKind {
 
     #[fail(display = "An error occurred persisting state: {}", _0)]
     Persist(crate::persist::ErrorReason),
+
+    #[fail(display = "Unable to obtain peer leaf certificate.")]
+    PeerCertificate,
+
+    #[fail(display = "An error occurred checking client permissions: {}.", _0)]
+    Auth(crate::auth::ErrorReason),
 }
 
 impl Fail for Error {
@@ -72,12 +77,6 @@ impl Fail for Error {
 
     fn backtrace(&self) -> Option<&Backtrace> {
         self.inner.backtrace()
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.inner, f)
     }
 }
 
