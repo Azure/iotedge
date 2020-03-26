@@ -1,4 +1,6 @@
-# High Level Overview
+# Test Dashboard Documentation
+
+## High Level Overview
 Grafana is a tool where you can hook up data sources, query them, then visualize the queries via a GUI editor.
 
 The test dashboard is configured to pull from two data sources:
@@ -7,10 +9,10 @@ SQL Server: Used for imformation about builds / CI / E2E
 
 It then queries both of these to get the data and the visualization logic is built into the frontend.
 
-# Architecture
+## Architecture
 There are two docker containers supporting the backend. The first is what is running the frontend grafana instance, and the second is a scheduled job ingesting data from Azure Dev Ops (one of the data sources) into a SQL server. A container to support the Azure Log Analytics data ingestion (the other data source) is not needed because grafana provides direct integration with this service.
 
-# Usage - Development
+## Usage - Development
 
 This repository will allow you to spin up a local grafana dashboard for viewing and editing the test dashboard. In order to get started, first clone the repo, remove the .tmp extensions from all files, substitute the SQL server credentials in datasources.yaml, then run the following commands:
 ```
@@ -28,7 +30,7 @@ This link is helpful for provisioning instructions:
 
 https://56k.cloud/blog/provisioning-grafana-datasources-and-dashboards-automagically/
 
-# Usage - Deployment
+## Usage - Deployment
 
 The test dashboard should be live at:
 https://iotedgetestdashboard.azurewebsites.net/d/OLjJ46wWz/home
@@ -41,11 +43,11 @@ There are four azure resources which support the test dashboard:
 
 All of these resources will be located under the Azure ressource group [TestDashboard](https://ms.portal.azure.com/#@microsoft.onmicrosoft.com/resource/subscriptions/5ed2dcb6-29bb-40de-a855-8c24a8260343/resourceGroups/TestDashboard/overview)
 
-## Changing the grafana frontend
+### Changing the grafana frontend
 If making any changes to the dashboard frontend, you will have to rebuild the test dashboard container and redeploy the app service. In order to do this, follow the steps under Development to save your altered dashboard, then build and push the new image to the container registry. After this is complete you can redeploy the app service with the new image you have pushed. 
 
 Once redeployed, you will have to manually add the credentials for Azure Monitor, set the home page, and re-register users.
 
-## Changing the Azure Dev Ops data ingestion
+### Changing the Azure Dev Ops data ingestion
 Data is ingested into Azure Dev Ops through the VstsPipelineSync project in our repository. One can make changes to this project then build and push a new image to the test dashboard container registry. After this, delete and recreate a new Azure continaer instance pointing to the new image.
 
