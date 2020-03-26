@@ -104,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token);
 
             // Wait for relayer to spin up, receive messages, and pass along results to TRC
-            await Task.Delay(TimeSpan.FromSeconds(20));
+            await Task.Delay(TimeSpan.FromSeconds(30));
 
             HttpClient client = new HttpClient();
             HttpResponseMessage response = await client.GetAsync("http://localhost:5001/api/report");
