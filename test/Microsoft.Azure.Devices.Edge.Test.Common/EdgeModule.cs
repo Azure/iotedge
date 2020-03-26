@@ -87,60 +87,51 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 desired.ToString().ToLower());
         }
 
-        public Task WaitForStatusAsync(EdgeModuleStatus desired, CancellationToken token)
-        {
-            return WaitForStatusAsync(new[] { this }, desired, token);
-        }
+        public Task WaitForStatusAsync(EdgeModuleStatus desired, CancellationToken token) =>
+            WaitForStatusAsync(new[] { this }, desired, token);
 
-        public Task<string> WaitForEventsReceivedAsync(DateTime seekTime, CancellationToken token, params string[] requiredProperties)
-        {
-            return Profiler.Run(
-                async () =>
-                {
-                    string resultBody = null;
-                    await this.iotHub.ReceiveEventsAsync(
-                        this.deviceId,
-                        seekTime,
-                        data =>
-                        {
-                            data.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
-                            data.SystemProperties.TryGetValue("iothub-connection-module-id", out object modId);
+        public Task<string> WaitForEventsReceivedAsync(
+            DateTime seekTime,
+            CancellationToken token,
+            params string[] requiredProperties) => Profiler.Run(
+            async () =>
+            {
+                string resultBody = null;
+                await this.iotHub.ReceiveEventsAsync(
+                    this.deviceId,
+                    seekTime,
+                    data =>
+                    {
+                        data.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
+                        data.SystemProperties.TryGetValue("iothub-connection-module-id", out object modId);
 
-                            resultBody = Encoding.UTF8.GetString(data.Body);
-                            Log.Verbose($"Received event for '{devId}/{modId}' with body '{resultBody}'");
+                        resultBody = Encoding.UTF8.GetString(data.Body);
+                        Log.Verbose($"Received event for '{devId}/{modId}' with body '{resultBody}'");
 
-                            return devId != null && devId.ToString().Equals(this.deviceId)
-                                                  && modId != null && modId.ToString().Equals(this.Id)
-                                                  && requiredProperties.All(data.Properties.ContainsKey);
-                        },
-                        token);
+                        return devId != null && devId.ToString().Equals(this.deviceId)
+                                                && modId != null && modId.ToString().Equals(this.Id)
+                                                && requiredProperties.All(data.Properties.ContainsKey);
+                    },
+                    token);
 
-                    return resultBody;
-                },
-                "Received events from device '{Device}' on Event Hub '{EventHub}'",
-                this.deviceId,
-                this.iotHub.EntityPath);
-        }
+                return resultBody;
+            },
+            "Received events from device '{Device}' on Event Hub '{EventHub}'",
+            this.deviceId,
+            this.iotHub.EntityPath);
 
-        public Task UpdateDesiredPropertiesAsync(object patch, CancellationToken token)
-        {
-            return Profiler.Run(
-                () => this.iotHub.UpdateTwinAsync(this.deviceId, this.Id, patch, token),
-                "Updated twin for module '{Module}'",
-                this.Id);
-        }
+        public Task UpdateDesiredPropertiesAsync(object patch, CancellationToken token) => Profiler.Run(
+            () => this.iotHub.UpdateTwinAsync(this.deviceId, this.Id, patch, token),
+            "Updated twin for module '{Module}'",
+            this.Id);
 
-        public Task WaitForReportedPropertyUpdatesAsync(object expected, CancellationToken token)
-        {
-            return Profiler.Run(
-                () => this.WaitForReportedPropertyUpdatesInternalAsync(expected, token),
-                "Received expected twin updates for module '{Module}'",
-                this.Id);
-        }
+        public Task WaitForReportedPropertyUpdatesAsync(object expected, CancellationToken token) => Profiler.Run(
+            () => this.WaitForReportedPropertyUpdatesInternalAsync(expected, token),
+            "Received expected twin updates for module '{Module}'",
+            this.Id);
 
-        protected Task WaitForReportedPropertyUpdatesInternalAsync(object expected, CancellationToken token)
-        {
-            return Retry.Do(
+        protected Task WaitForReportedPropertyUpdatesInternalAsync(object expected, CancellationToken token) =>
+            Retry.Do(
                 async () =>
                 {
                     Twin twin = await this.iotHub.GetTwinAsync(this.deviceId, this.Id, token);
@@ -150,7 +141,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 null,
                 TimeSpan.FromSeconds(5),
                 token);
-        }
 
         // reference.rootPath and comparand.rootPath are path strings like those returned from
         // Newtonsoft.Json.Linq.JToken.Path, and compatible with the path argument to

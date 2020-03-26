@@ -21,7 +21,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             this.Name = string.Empty;
         }
 
-        public ModuleConfiguration(string name, string image, IReadOnlyDictionary<string, object> deployment, IReadOnlyDictionary<string, object> properties)
+        public ModuleConfiguration(
+            string name,
+            string image,
+            IReadOnlyDictionary<string, object> deployment,
+            IReadOnlyDictionary<string, object> properties)
         {
             this.Deployment = deployment;
             this.DesiredProperties = properties;
