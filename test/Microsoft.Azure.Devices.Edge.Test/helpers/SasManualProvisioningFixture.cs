@@ -10,7 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     public class SasManualProvisioningFixture : ManualProvisioningFixture
     {
         public SasManualProvisioningFixture()
-            : base(string.Empty)
         {
         }
 
