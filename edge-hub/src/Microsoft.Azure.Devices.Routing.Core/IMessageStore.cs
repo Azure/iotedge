@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core
 {
+    using Microsoft.Azure.Devices.Edge.Util;
     using System;
     using System.Threading.Tasks;
 
@@ -20,7 +21,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
         /// Creates an entry in the message queue for the given endpoint
         /// and returns the offset of that entry.
         /// </summary>
-        Task<IMessage> Add(string endpointId, IMessage message);
+        Task<IMessage> Add(string endpointId, IMessage message, uint timeToLiveSecs);
 
         /// <summary>
         /// Returns an iterator that allows reading messages starting from the given offset.

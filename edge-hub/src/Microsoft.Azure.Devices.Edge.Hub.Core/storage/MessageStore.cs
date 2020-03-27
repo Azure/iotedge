@@ -74,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             }
         }
 
-        public async Task<IMessage> Add(string endpointId, IMessage message)
+        public async Task<IMessage> Add(string endpointId, IMessage message, uint timeToLiveSecs)
         {
             Preconditions.CheckNotNull(message, nameof(message));
             if (!this.endpointSequentialStores.TryGetValue(Preconditions.CheckNonWhiteSpace(endpointId, nameof(endpointId)), out ISequentialStore<MessageRef> sequentialStore))
@@ -86,6 +86,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             {
                 throw new InvalidOperationException("Message does not contain required system property EdgeMessageId");
             }
+
+            TimeSpan timeToLive = timeToLiveSecs == 0 ? this.timeToLive : TimeSpan.FromSeconds(timeToLiveSecs);
 
             // First put the message in the entity store and then put it in the sequentialStore. This is because the pump can go fast enough that it
             // reads the message from the sequential store and tries to find the message in the entity store before the message has been added to the
@@ -110,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             {
                 using (MetricsV0.SequentialStoreLatency(endpointId))
                 {
-                    long offset = await sequentialStore.Append(new MessageRef(edgeMessageId));
+                    long offset = await sequentialStore.Append(new MessageRef(edgeMessageId, timeToLive));
                     Events.MessageAdded(offset, edgeMessageId, endpointId, this.messageCount);
                     return new MessageWithOffset(message, offset);
                 }
@@ -256,7 +258,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                 async Task<bool> DeleteMessageCallback(long offset, MessageRef messageRef)
                                 {
                                     if (checkpointData.Offset < offset &&
-                                        DateTime.UtcNow - messageRef.TimeStamp < this.messageStore.timeToLive)
+                                        DateTime.UtcNow - messageRef.TimeStamp < messageRef.TimeToLive)
                                     {
                                         return false;
                                     }
@@ -463,6 +465,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                     {
                         foreach ((long offset, MessageRef msgRef) item in batch)
                         {
+                            if (DateTime.UtcNow - item.msgRef.TimeStamp >= item.msgRef.TimeToLive)
+                            {
+                                continue;
+                            }
+
                             Option<MessageWrapper> messageWrapper = await this.entityStore.Get(item.msgRef.EdgeMessageId);
                             if (!messageWrapper.HasValue)
                             {
@@ -495,22 +502,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         /// </summary>
         class MessageRef
         {
-            public MessageRef(string edgeMessageId)
-                : this(edgeMessageId, DateTime.UtcNow)
+            public MessageRef(string edgeMessageId, TimeSpan timeToLive)
+                : this(edgeMessageId, DateTime.UtcNow, timeToLive)
             {
             }
 
             [JsonConstructor]
-            public MessageRef(string edgeMessageId, DateTime timeStamp)
+            public MessageRef(string edgeMessageId, DateTime timeStamp, TimeSpan timeToLive)
             {
                 Preconditions.CheckArgument(timeStamp != default(DateTime));
                 this.EdgeMessageId = Preconditions.CheckNonWhiteSpace(edgeMessageId, nameof(edgeMessageId));
                 this.TimeStamp = timeStamp;
+                this.TimeToLive = timeToLive;
             }
 
             public string EdgeMessageId { get; }
 
             public DateTime TimeStamp { get; }
+
+            public TimeSpan TimeToLive { get; }
         }
 
         // Wrapper to allow adding offset to an existing IMessage object
