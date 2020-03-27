@@ -23,7 +23,7 @@ namespace LoadGen
             this.Logger = Preconditions.CheckNotNull(logger, nameof(logger));
             this.Client = Preconditions.CheckNotNull(moduleClient, nameof(moduleClient));
             this.BatchId = Preconditions.CheckNotNull(batchId, nameof(batchId));
-            this.TrackingId = trackingId;
+            this.TrackingId = trackingId ?? string.Empty;
         }
 
         public ILogger Logger { get; }

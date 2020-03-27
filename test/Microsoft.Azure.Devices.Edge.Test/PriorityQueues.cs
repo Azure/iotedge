@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System;
     using System.Collections.Generic;
     using System.Net.Http;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
@@ -74,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                            }
                        });
 
-                    string priorityString = "182;0;8000;15;Default";
+                    string priorityString = this.BuildPriorityString(5);
                     builder.AddModule(loadGenModuleName, loadGenImage)
                         .WithEnvironment(new[]
                         {
@@ -138,6 +139,30 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
 
             return routes;
+        }
+
+        private string BuildPriorityString(int numberOfPriorities)
+        {
+            if (numberOfPriorities > 11)
+            {
+                throw new ArgumentException("Maximum of 11 priorities (10 priorities + the Default priority) is supported at this time.");
+            }
+
+            string priorityString = string.Empty;
+            Random rng = new Random();
+            for (int i = 0; i < numberOfPriorities - 1; i++)
+            {
+                string pri;
+                do
+                {
+                    pri = rng.Next(10).ToString();
+                }
+                while (priorityString.Contains(pri));
+
+                priorityString = priorityString + pri + ";";
+            }
+
+            return priorityString + TestConstants.PriorityQueues.Default;
         }
     }
 }
