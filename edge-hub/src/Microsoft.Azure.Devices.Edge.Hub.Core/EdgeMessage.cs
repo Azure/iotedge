@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System.Collections.Generic;
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Routing.Core;
 
     public class EdgeMessage : IMessage
     {
@@ -13,6 +14,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.Body = Preconditions.CheckNotNull(body, nameof(body));
             this.Properties = Preconditions.CheckNotNull(properties, nameof(properties));
             this.SystemProperties = Preconditions.CheckNotNull(systemProperties, nameof(systemProperties));
+            this.ProcessedPriority = RouteFactory.DefaultPriority;
+        }
+
+        public EdgeMessage(byte[] body, IDictionary<string, string> properties, IDictionary<string, string> systemProperties, uint processedPriority)
+        {
+            this.Body = Preconditions.CheckNotNull(body, nameof(body));
+            this.Properties = Preconditions.CheckNotNull(properties, nameof(properties));
+            this.SystemProperties = Preconditions.CheckNotNull(systemProperties, nameof(systemProperties));
+            this.ProcessedPriority = processedPriority;
         }
 
         public byte[] Body { get; }
@@ -20,6 +30,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public IDictionary<string, string> Properties { get; }
 
         public IDictionary<string, string> SystemProperties { get; }
+
+        public uint ProcessedPriority { get; }
 
         public bool Equals(EdgeMessage other)
         {

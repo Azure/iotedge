@@ -11,20 +11,24 @@ use tokio::sync::oneshot;
 use tracing::{debug, error, info, span, warn, Level};
 use tracing_futures::Instrument;
 
+use crate::auth::{Authenticator, Authorizer};
 use crate::broker::{Broker, BrokerHandle, BrokerState};
 use crate::{connection, Error, ErrorKind, Message, SystemEvent};
 
-#[derive(Default)]
-pub struct Server {
-    broker: Broker,
+pub struct Server<N, Z>
+where
+    N: Authenticator,
+    Z: Authorizer,
+{
+    broker: Broker<N, Z>,
 }
 
-impl Server {
-    pub fn new() -> Self {
-        Self::from_broker(Broker::default())
-    }
-
-    pub fn from_broker(broker: Broker) -> Self {
+impl<N, Z> Server<N, Z>
+where
+    N: Authenticator + Send + Sync + 'static,
+    Z: Authorizer + Send + Sync + 'static,
+{
+    pub fn from_broker(broker: Broker<N, Z>) -> Self {
         Self { broker }
     }
 
