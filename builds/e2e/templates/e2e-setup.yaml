@@ -57,7 +57,7 @@ steps:
     project: $(resources.pipeline.packages.projectID)
     pipeline: $(resources.pipeline.packages.pipelineName)
     buildVersionToDownload: specific
-    buildId: $(resources.pipeline.packages.runID)
+    buildId: $(packageBuildId)
     downloadType: single
     artifactName: $(artifactName)
 
