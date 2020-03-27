@@ -147,47 +147,21 @@ fn make_random_payload(size: u32) -> Bytes {
     Bytes::from_iter((0..size).map(|_| rand::random::<u8>()))
 }
 
-fn write_simple(c: &mut Criterion) {
-    test_write(c, 1, 1, 0, 0, ConsolidatedStateFormat::new());
-    test_write(c, 1, 1, 0, 0, BincodeFormat::new());
+fn bench(c: &mut Criterion) {
+    let tests = vec![
+        (1, 1, 0, 0),
+        (10, 10, 10, 10),
+        (10, 100, 0, 0),
+        (10, 0, 100, 0),
+    ];
+
+    for (clients, unique, shared, retained) in tests {
+        test_write(c, clients, unique, shared, retained, ConsolidatedStateFormat::new());
+        test_write(c, clients, unique, shared, retained, BincodeFormat::new());
+        test_read(c, clients, unique, shared, retained, ConsolidatedStateFormat::new());
+        test_read(c, clients, unique, shared, retained, BincodeFormat::new());
+    }
 }
 
-fn write_1(c: &mut Criterion) {
-    test_write(c, 10, 10, 10, 10, ConsolidatedStateFormat::new());
-    test_write(c, 10, 10, 10, 10, BincodeFormat::new());
-}
-
-fn write_2(c: &mut Criterion) {
-    test_write(c, 10, 100, 0, 0, ConsolidatedStateFormat::new());
-    test_write(c, 10, 100, 0, 0, BincodeFormat::new());
-}
-
-fn write_3(c: &mut Criterion) {
-    test_write(c, 10, 0, 100, 0, ConsolidatedStateFormat::new());
-    test_write(c, 10, 0, 100, 0, BincodeFormat::new());
-}
-
-fn read_simple(c: &mut Criterion) {
-    test_read(c, 1, 1, 0, 0, ConsolidatedStateFormat::new());
-    test_read(c, 1, 1, 0, 0, BincodeFormat::new());
-}
-
-fn read_1(c: &mut Criterion) {
-    test_read(c, 10, 10, 10, 10, ConsolidatedStateFormat::new());
-    test_read(c, 10, 10, 10, 10, BincodeFormat::new());
-}
-
-fn read_2(c: &mut Criterion) {
-    test_read(c, 10, 100, 0, 0, ConsolidatedStateFormat::new());
-    test_read(c, 10, 100, 0, 0, BincodeFormat::new());
-}
-
-fn read_3(c: &mut Criterion) {
-    test_read(c, 10, 0, 100, 0, ConsolidatedStateFormat::new());
-    test_read(c, 10, 0, 100, 0, BincodeFormat::new());
-}
-
-criterion_group!(write, write_simple, write_1, write_2, write_3,);
-criterion_group!(read, read_simple, read_1, read_2, read_3,);
-
-criterion_main!(write, read);
+criterion_group!(basic, bench);
+criterion_main!(basic);
