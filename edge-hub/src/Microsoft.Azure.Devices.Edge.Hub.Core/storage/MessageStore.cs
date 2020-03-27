@@ -292,6 +292,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                     return true;
                                 }
 
+                                // With the addition of PriorityQueues, the CleanupProcessor assumptions change slightly:
+                                // Previously, we could always assume that if a message at the head of the queue should not be deleted,
+                                // then none of the other messages in the queue should be either. Now, because we can have different TTL's
+                                // for messages within the same queue, there can be messages that have expired in the queue after the head.
+                                // This is okay because they will be cleaned up eventually and they will be ignored otherwise.
+                                // TODO: Add optional CleanupProcessor mode that will go through the entire length of the queue each time to remove expired messages.
                                 int cleanupCount = 0;
                                 while (await sequentialStore.RemoveFirst(DeleteMessageCallback))
                                 {
