@@ -125,6 +125,7 @@ mod tests {
     use std::time::Duration;
 
     use matches::assert_matches;
+    use proptest::prelude::*;
     use serde::Deserialize;
     use serde_json::json;
     use test_case::test_case;
@@ -197,13 +198,74 @@ mod tests {
         assert_eq!(container.size, Some(expected));
     }
 
-    #[test_case( "123tb" ; "when using unknown metric")]
-    #[test_case( "123" ; "when missing metric")]
+    #[test_case( "123tb" ; "when using unknown unit")]
+    #[test_case( "123" ; "when missing unit")]
     #[test_case( "12a3 kb" ; "when invalid number")]
-    fn it_fails_deserializing_unknown_metric(input: &str) {
+    fn it_fails_deserializing_unknown_unit(input: &str) {
         let container_json = json!({ "size": input }).to_string();
         let result = serde_json::from_str::<Container>(&container_json);
 
         assert_matches!(result, Err(_err));
+    }
+
+    proptest! {
+        #[test]
+        fn doesnt_crash(s in "\\PC*") {
+            parse_size_anything(&s);
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn it_parses_valid_input(p in (r"\s*",             // leading spaces if any
+                                       any::<u64>(),       // the numeric value
+                                       r"\s*",             // spaces between the number and unit
+                                       r"(k|K|m|M|g|G)?(b|B)", // the unit
+                                       r"\s*")             // trailing spaces if any
+                                    .prop_map(|(lead, num, sep, unit, trail)| get_input_and_expected(&lead, num, &sep, &unit, &trail))) {
+            let (input, expected) = p;
+            parse_size_valid(&input, expected);
+        }
+    }
+
+    // as the number will be multiplied by a unit, there is a maximum
+    // number for every unit that still can fit in u64
+    fn max_num_for_unit(num: u64, unit: &str) -> u64 {
+        match unit.to_lowercase().chars().nth(0) {
+            Some('k') => num % 0x3F_FFFF_FFFF_FFFF,
+            Some('m') => num % 0xFFF_FFFF_FFFF,
+            Some('g') => num % 0x3_FFFF_FFFF,
+            Some('b') => num,
+            _ => panic!("unknown unit generated"),
+        }
+    }
+
+    fn expected_result_for_number_and_unit(num: u64, unit: &str) -> u64 {
+        let num = max_num_for_unit(num, &unit);
+        match unit.to_lowercase().chars().nth(0) {
+            Some('k') => num << 10,
+            Some('m') => num << 20,
+            Some('g') => num << 30,
+            Some('b') => num,
+            _ => panic!("unknown unit generated"),
+        }
+    }
+
+    fn get_input_and_expected(lead: &str, num: u64, sep: &str, unit: &str, trail: &str) -> (String, u64) {
+        
+        ([lead, &max_num_for_unit(num, &unit).to_string(), sep, unit, trail].concat(),
+        expected_result_for_number_and_unit(num, &unit))
+    }
+
+    fn parse_size_anything(input: &str) {
+        let container_json = json!({ "size": input }).to_string();
+        let _result = serde_json::from_str::<Container>(&container_json);
+    }
+
+    fn parse_size_valid(input: &str, expected: u64) {
+        let container_json = json!({ "size": input }).to_string();
+        let result = serde_json::from_str::<Container>(&container_json).unwrap();
+
+        assert_eq!(result.size, Some(expected));
     }
 }

@@ -25,7 +25,8 @@ async fn main() -> Result<(), Error> {
 
     // TODO pass it to broker
     // TODO make it an argument to override defaul config
-    let config = BrokerConfig::new().context(ErrorKind::LoadConfiguration)?;
+    let path: Option<String> = None; 
+    let config = path.map_or(BrokerConfig::new(), BrokerConfig::from_file).context(ErrorKind::LoadConfiguration)?;
 
     // TODO pass it to persistence
     let _persistence = config.persistence();
