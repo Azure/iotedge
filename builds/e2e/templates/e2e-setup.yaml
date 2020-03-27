@@ -18,13 +18,13 @@ steps:
       TestRootCaKey,
       TestRootCaPassword
 
-# - download: images
-#   artifact: '$(az.pipeline.images.artifacts)'
-#   patterns: '$(az.pipeline.images.artifacts)/artifactInfo.txt'
+- download: images
+  # artifact: '$(az.pipeline.images.artifacts)'
+  # patterns: '$(az.pipeline.images.artifacts)/artifactInfo.txt'
 
-# - download: packages
-#   artifact: '$(artifactDir)'
-#   patterns: '$(artifactDir)/*'
+- download: packages
+  # artifact: '$(artifactDir)'
+  # patterns: '$(artifactDir)/*'
 
 # - task: DownloadBuildArtifacts@0
 #   displayName: Download edgelet packages
