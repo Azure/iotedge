@@ -7,7 +7,7 @@ trigger:
 pr: none
 variables:
   build.configuration: Release
-  dotnet.version: 2.1.302
+  dotnet.version: 3.1.201
   test.filter: Category=Integration&Category!=Stress
 jobs:
   - job: linux
