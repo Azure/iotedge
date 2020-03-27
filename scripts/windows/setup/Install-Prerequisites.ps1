@@ -19,7 +19,6 @@ param (
     [ValidateScript( {Test-Path $_ -PathType Container})]
     [String]$BuildRepositoryLocalPath = $Env:BUILD_REPOSITORY_LOCALPATH,
 
-    [Switch]$Dotnet,
     [Switch]$Python,
     [Switch]$Nuget
 )
