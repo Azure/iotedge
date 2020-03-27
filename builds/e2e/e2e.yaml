@@ -1,8 +1,20 @@
-# End-to-end tests should run after new docker images and edgelet packages are
-# built, but 'build completion triggers' are not yet supported in YAML. Set to
-# 'none' here and override in the online editor.
 trigger: none
 pr: none
+
+resources:
+  pipelines:
+  - pipeline: images
+    source: $(az.pipeline.images)
+    trigger:
+      branches:
+      - master
+      - release/*
+  - pipeline: packages
+    source: $(az.pipeline.packages)
+    trigger:
+      branches:
+      - master
+      - release/*
 
 jobs:
 
