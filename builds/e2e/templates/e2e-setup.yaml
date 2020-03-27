@@ -19,11 +19,11 @@ steps:
       TestRootCaPassword
 
 - download: images
-  # artifact: '$(az.pipeline.images.artifacts)'
+  artifact: '$(az.pipeline.images.artifacts)'
   # patterns: '$(az.pipeline.images.artifacts)/artifactInfo.txt'
 
 - download: packages
-  # artifact: '$(artifactDir)'
+  artifact: '$(artifactDir)'
   # patterns: '$(artifactDir)/*'
 
 # - task: DownloadBuildArtifacts@0
