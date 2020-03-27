@@ -251,10 +251,24 @@ mod tests {
         }
     }
 
-    fn get_input_and_expected(lead: &str, num: u64, sep: &str, unit: &str, trail: &str) -> (String, u64) {
-        
-        ([lead, &max_num_for_unit(num, &unit).to_string(), sep, unit, trail].concat(),
-        expected_result_for_number_and_unit(num, &unit))
+    fn get_input_and_expected(
+        lead: &str,
+        num: u64,
+        sep: &str,
+        unit: &str,
+        trail: &str,
+    ) -> (String, u64) {
+        (
+            [
+                lead,
+                &max_num_for_unit(num, &unit).to_string(),
+                sep,
+                unit,
+                trail,
+            ]
+            .concat(),
+            expected_result_for_number_and_unit(num, &unit),
+        )
     }
 
     fn parse_size_anything(input: &str) {
