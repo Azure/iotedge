@@ -30,7 +30,7 @@ jobs:
 #     variables:
 #       os: linux
 #       arch: arm32v7
-#       artifactDir: iotedged-debian9-arm32v7
+#       artifactName: iotedged-debian9-arm32v7
 
 #     timeoutInMinutes: 120
 
@@ -57,7 +57,7 @@ jobs:
     variables:
       os: linux
       arch: amd64
-      artifactDir: iotedged-ubuntu16.04-amd64
+      artifactName: iotedged-ubuntu16.04-amd64
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -74,7 +74,7 @@ jobs:
 #     variables:
 #       os: windows
 #       arch: amd64
-#       artifactDir: iotedged-windows
+#       artifactName: iotedged-windows
 
 #     steps:
 #     - template: templates/e2e-setup.yaml

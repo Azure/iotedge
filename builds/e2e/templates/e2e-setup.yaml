@@ -39,7 +39,7 @@ steps:
     buildVersionToDownload: specific
     buildId: $(resources.pipeline.packages.runID)
     downloadType: single
-    artifactName: $(az.pipeline.images.artifacts)
+    artifactName: $(artifactName)
 
 - pwsh: |
     $certsDir = '$(System.ArtifactsDirectory)/certs'
@@ -82,7 +82,7 @@ steps:
           username = '$(cr.username)';
         }
       );
-      packagePath = Convert-Path '$(System.ArtifactsDirectory)/$(artifactDir)';
+      packagePath = Convert-Path '$(System.ArtifactsDirectory)/$(artifactName)';
       caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates';
       rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
       rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
