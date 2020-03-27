@@ -18,33 +18,33 @@ resources:
 
 jobs:
 
-# ################################################################################	
-#   - job: linux_arm32v7
-# ################################################################################	
-#     displayName: Linux arm32v7
+################################################################################	
+  - job: linux_arm32v7
+################################################################################	
+    displayName: Linux arm32v7
 
-#     pool:
-#       name: $(pool.name)
-#       demands: rpi3-e2e-tests
+    pool:
+      name: $(pool.name)
+      demands: rpi3-e2e-tests
 
-#     variables:
-#       os: linux
-#       arch: arm32v7
-#       artifactName: iotedged-debian9-arm32v7
+    variables:
+      os: linux
+      arch: arm32v7
+      artifactName: iotedged-debian9-arm32v7
 
-#     timeoutInMinutes: 120
+    timeoutInMinutes: 120
 
-#     steps:
-#     - bash: |
-#         # We use a self-hosted agent for this job, so we need to handle
-#         # clean up root-owned files and docker images ourselves (anything
-#         # created during `dotnet vstest ...`)
-#         sudo git clean -ffdx || true
-#         sudo docker rm -f $(docker ps -a -q) || true
-#         sudo docker system prune -a -f --volumes || true
-#       displayName: Clean up files and images
-#     - template: templates/e2e-setup.yaml
-#     - template: templates/e2e-run.yaml
+    steps:
+    - bash: |
+        # We use a self-hosted agent for this job, so we need to handle
+        # clean up root-owned files and docker images ourselves (anything
+        # created during `dotnet vstest ...`)
+        sudo git clean -ffdx || true
+        sudo docker rm -f $(docker ps -a -q) || true
+        sudo docker system prune -a -f --volumes || true
+      displayName: Clean up files and images
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
 
 ################################################################################	
   - job: linux_amd64
@@ -61,41 +61,41 @@ jobs:
 
     steps:
     - template: templates/e2e-setup.yaml
-    # - template: templates/e2e-run.yaml
+    - template: templates/e2e-run.yaml
 
-# ################################################################################	
-#   - job: windows_amd64
-# ################################################################################	
-#     displayName: Windows amd64
+################################################################################	
+  - job: windows_amd64
+################################################################################	
+    displayName: Windows amd64
 
-#     pool:
-#       vmImage: windows-2019
+    pool:
+      vmImage: windows-2019
 
-#     variables:
-#       os: windows
-#       arch: amd64
-#       artifactName: iotedged-windows
+    variables:
+      os: windows
+      arch: amd64
+      artifactName: iotedged-windows
 
-#     steps:
-#     - template: templates/e2e-setup.yaml
+    steps:
+    - template: templates/e2e-setup.yaml
 
-#     - pwsh: |
-#         $certBytes = [system.Text.Encoding]::UTF8.GetBytes($env:PACKAGE_SIGNING_CERT)
-#         $cert = [System.Security.Cryptography.X509Certificates.X509Certificate]::new($certBytes)
-#         $store = New-Object System.Security.Cryptography.X509Certificates.X509Store `
-#           -ArgumentList 'Root', 'LocalMachine'
-#         $store.Open('ReadWrite')
-#         $store.Add($cert)
-#       displayName: Install CAB signing root cert
-#       env:
-#         PACKAGE_SIGNING_CERT: $(TestIotedgedPackageRootSigningCert)
+    - pwsh: |
+        $certBytes = [system.Text.Encoding]::UTF8.GetBytes($env:PACKAGE_SIGNING_CERT)
+        $cert = [System.Security.Cryptography.X509Certificates.X509Certificate]::new($certBytes)
+        $store = New-Object System.Security.Cryptography.X509Certificates.X509Store `
+          -ArgumentList 'Root', 'LocalMachine'
+        $store.Open('ReadWrite')
+        $store.Add($cert)
+      displayName: Install CAB signing root cert
+      env:
+        PACKAGE_SIGNING_CERT: $(TestIotedgedPackageRootSigningCert)
 
-#     - pwsh: |
-#         Write-Output '>>> BEFORE:'
-#         netsh interface ipv6 show prefixpolicies
-#         netsh interface ipv6 set prefixpolicy ::ffff:0:0/96 45 4
-#         Write-Output '>>> AFTER:'
-#         netsh interface ipv6 show prefixpolicies
-#       displayName: Prefer IPv4
+    - pwsh: |
+        Write-Output '>>> BEFORE:'
+        netsh interface ipv6 show prefixpolicies
+        netsh interface ipv6 set prefixpolicy ::ffff:0:0/96 45 4
+        Write-Output '>>> AFTER:'
+        netsh interface ipv6 show prefixpolicies
+      displayName: Prefer IPv4
 
-#     - template: templates/e2e-run.yaml
+    - template: templates/e2e-run.yaml
