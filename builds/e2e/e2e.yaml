@@ -4,13 +4,13 @@ pr: none
 resources:
   pipelines:
   - pipeline: images
-    source: 'Azure-IoT-Edge-Core Build Images'
+    source: '${{ variables.az.pipeline.images }}'
     trigger:
       branches:
       - master
       - release/*
   - pipeline: packages
-    source: 'Azure-IoT-Edge-Core Edgelet Packages'
+    source: '${{ variables.az.pipeline.packages }}'
     trigger:
       branches:
       - master
