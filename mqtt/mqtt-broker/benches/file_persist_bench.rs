@@ -156,9 +156,23 @@ fn bench(c: &mut Criterion) {
     ];
 
     for (clients, unique, shared, retained) in tests {
-        test_write(c, clients, unique, shared, retained, ConsolidatedStateFormat::new());
+        test_write(
+            c,
+            clients,
+            unique,
+            shared,
+            retained,
+            ConsolidatedStateFormat::new(),
+        );
         test_write(c, clients, unique, shared, retained, BincodeFormat::new());
-        test_read(c, clients, unique, shared, retained, ConsolidatedStateFormat::new());
+        test_read(
+            c,
+            clients,
+            unique,
+            shared,
+            retained,
+            ConsolidatedStateFormat::new(),
+        );
         test_read(c, clients, unique, shared, retained, BincodeFormat::new());
     }
 }
