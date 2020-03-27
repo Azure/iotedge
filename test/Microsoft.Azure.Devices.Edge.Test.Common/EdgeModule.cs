@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public static Task WaitForStatusAsync(IEnumerable<EdgeModule> modules, EdgeModuleStatus desired, CancellationToken token)
         {
-            string[] moduleIds = modules.Select(m => m.Id).Distinct().ToArray();
+            string[] moduleIds = modules.Select(m => m.Id.TrimStart('$')).Distinct().ToArray();
 
             string FormatModulesList() => moduleIds.Length == 1 ? "Module '{0}'" : "Modules ({0})";
 
@@ -51,8 +51,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                             .Where(
                                 ln =>
                                 {
-                                    var columns = ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries);
-                                    foreach (var moduleId in moduleIds)
+                                    string[] columns = ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries);
+                                    foreach (string moduleId in moduleIds)
                                     {
                                         // each line is "name status"
                                         if (columns[0] == moduleId &&
@@ -87,74 +87,103 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 desired.ToString().ToLower());
         }
 
-        public Task WaitForStatusAsync(EdgeModuleStatus desired, CancellationToken token)
-        {
-            return WaitForStatusAsync(new[] { this }, desired, token);
-        }
+        public Task WaitForStatusAsync(EdgeModuleStatus desired, CancellationToken token) =>
+            WaitForStatusAsync(new[] { this }, desired, token);
 
-        public Task<string> WaitForEventsReceivedAsync(DateTime seekTime, CancellationToken token, params string[] requiredProperties)
-        {
-            return Profiler.Run(
+        public Task<string> WaitForEventsReceivedAsync(
+            DateTime seekTime,
+            CancellationToken token,
+            params string[] requiredProperties) => Profiler.Run(
+            async () =>
+            {
+                string resultBody = null;
+                await this.iotHub.ReceiveEventsAsync(
+                    this.deviceId,
+                    seekTime,
+                    data =>
+                    {
+                        data.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
+                        data.SystemProperties.TryGetValue("iothub-connection-module-id", out object modId);
+
+                        resultBody = Encoding.UTF8.GetString(data.Body);
+                        Log.Verbose($"Received event for '{devId}/{modId}' with body '{resultBody}'");
+
+                        return devId != null && devId.ToString().Equals(this.deviceId)
+                                                && modId != null && modId.ToString().Equals(this.Id)
+                                                && requiredProperties.All(data.Properties.ContainsKey);
+                    },
+                    token);
+
+                return resultBody;
+            },
+            "Received events from device '{Device}' on Event Hub '{EventHub}'",
+            this.deviceId,
+            this.iotHub.EntityPath);
+
+        public Task UpdateDesiredPropertiesAsync(object patch, CancellationToken token) => Profiler.Run(
+            () => this.iotHub.UpdateTwinAsync(this.deviceId, this.Id, patch, token),
+            "Updated twin for module '{Module}'",
+            this.Id);
+
+        public Task WaitForReportedPropertyUpdatesAsync(object expected, CancellationToken token) => Profiler.Run(
+            () => this.WaitForReportedPropertyUpdatesInternalAsync(expected, token),
+            "Received expected twin updates for module '{Module}'",
+            this.Id);
+
+        protected Task WaitForReportedPropertyUpdatesInternalAsync(object expected, CancellationToken token) =>
+            Retry.Do(
                 async () =>
                 {
-                    string resultBody = null;
-                    await this.iotHub.ReceiveEventsAsync(
-                        this.deviceId,
-                        seekTime,
-                        data =>
-                        {
-                            data.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
-                            data.SystemProperties.TryGetValue("iothub-connection-module-id", out object modId);
-
-                            resultBody = Encoding.UTF8.GetString(data.Body);
-                            Log.Verbose($"Received event for '{devId}/{modId}' with body '{resultBody}'");
-
-                            return devId != null && devId.ToString().Equals(this.deviceId)
-                                                  && modId != null && modId.ToString().Equals(this.Id)
-                                                  && requiredProperties.All(data.Properties.ContainsKey);
-                        },
-                        token);
-
-                    return resultBody;
+                    Twin twin = await this.iotHub.GetTwinAsync(this.deviceId, this.Id, token);
+                    return twin.Properties.Reported;
                 },
-                "Received events from device '{Device}' on Event Hub '{EventHub}'",
-                this.deviceId,
-                this.iotHub.EntityPath);
-        }
+                reported => JsonEquals((expected, "properties.reported"), (reported, string.Empty)),
+                null,
+                TimeSpan.FromSeconds(5),
+                token);
 
-        public Task UpdateDesiredPropertiesAsync(object patch, CancellationToken token)
+        // reference.rootPath and comparand.rootPath are path strings like those returned from
+        // Newtonsoft.Json.Linq.JToken.Path, and compatible with the path argument to
+        // Newtonsoft.Json.Linq.JToken.SelectToken(path)
+        static bool JsonEquals(
+            (object obj, string rootPath) reference,
+            (object obj, string rootPath) comparand)
         {
-            return Profiler.Run(
-                () => this.iotHub.UpdateTwinAsync(this.deviceId, this.Id, patch, token),
-                "Updated twin for module '{Module}'",
-                this.Id);
-        }
+            Dictionary<string, JValue> ProcessJson(object obj, string rootPath)
+            {
+                // return all json values under root path, with their relative
+                // paths as keys
+                return JObject
+                    .FromObject(obj)
+                    .SelectToken(rootPath)
+                    .Cast<JContainer>()
+                    .DescendantsAndSelf()
+                    .OfType<JValue>()
+                    .ToDictionary(v => v.Path.Substring(rootPath.Length).TrimStart('.'));
+            }
 
-        public Task WaitForReportedPropertyUpdatesAsync(object expectedPatch, CancellationToken token)
-        {
-            return Profiler.Run(
-                () =>
-                {
-                    return Retry.Do(
-                        async () =>
-                        {
-                            Twin twin = await this.iotHub.GetTwinAsync(this.deviceId, this.Id, token);
-                            return twin.Properties.Reported;
-                        },
-                        reported =>
-                        {
-                            JObject expected = JObject.FromObject(expectedPatch)
-                                .Value<JObject>("properties")
-                                .Value<JObject>("reported");
-                            return expected.Value<JObject>().All<KeyValuePair<string, JToken>>(
-                                prop => reported.Contains(prop.Key) && reported[prop.Key] == prop.Value);
-                        },
-                        null,
-                        TimeSpan.FromSeconds(5),
-                        token);
-                },
-                "Received expected twin updates for module '{Module}'",
-                this.Id);
+            Dictionary<string, JValue> referenceValues = ProcessJson(reference.obj, reference.rootPath);
+            Dictionary<string, JValue> comparandValues = ProcessJson(comparand.obj, comparand.rootPath);
+
+            // comparand equals reference if, for each json value in reference:
+            // - comparand has a json value with the same path
+            // - the json values match
+            bool match = referenceValues.All(kvp => comparandValues.ContainsKey(kvp.Key) &&
+                kvp.Value.Equals(comparandValues[kvp.Key]));
+
+            if (!match)
+            {
+                IEnumerable<string> missing = referenceValues
+                    .Where(kvp =>
+                        !comparandValues.ContainsKey(kvp.Key) ||
+                        !kvp.Value.Equals(comparandValues[kvp.Key]))
+                    .Select(kvp => kvp.Key);
+                Log.Verbose(
+                    "Expected configuration values missing in agent's reported properties:\n  {MissingValues}",
+                    string.Join("\n  ", missing));
+            }
+
+            return match;
         }
     }
 }

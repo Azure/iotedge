@@ -20,7 +20,7 @@ jobs:
       arch: arm32v7
       artifactDir: iotedged-debian9-arm32v7
 
-    timeoutInMinutes: 90
+    timeoutInMinutes: 120
 
     steps:
     - bash: |
