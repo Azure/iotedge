@@ -24,22 +24,6 @@ macro_rules! try_send {
     }};
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Deserialize, Serialize)]
-pub struct BrokerState {
-    retained: HashMap<String, proto::Publication>,
-    sessions: Vec<SessionState>,
-}
-
-impl BrokerState {
-    pub fn new(retained: HashMap<String, proto::Publication>, sessions: Vec<SessionState>) -> Self {
-        Self { retained, sessions }
-    }
-
-    pub fn into_parts(self) -> (HashMap<String, proto::Publication>, Vec<SessionState>) {
-        (self.retained, self.sessions)
-    }
-}
-
 pub struct Broker<N, Z>
 where
     N: Authenticator,
@@ -810,6 +794,16 @@ async fn publish_to(session: &mut Session, publication: &proto::Publication) -> 
 pub struct BrokerState {
     retained: HashMap<String, proto::Publication>,
     sessions: Vec<SessionState>,
+}
+
+impl BrokerState {
+    pub fn new(retained: HashMap<String, proto::Publication>, sessions: Vec<SessionState>) -> Self {
+        Self { retained, sessions }
+    }
+
+    pub fn into_parts(self) -> (HashMap<String, proto::Publication>, Vec<SessionState>) {
+        (self.retained, self.sessions)
+    }
 }
 
 pub struct BrokerBuilder<N, Z> {
