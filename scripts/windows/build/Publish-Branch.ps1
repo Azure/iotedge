@@ -23,6 +23,8 @@ param (
     [ValidateNotNull()]
     [String] $BuildSourceVersion = $Env:BUILD_SOURCEVERSION,
 
+    [Switch] $PublishWinArm32,
+
     [Switch] $UpdateVersion
 )
 
@@ -259,10 +261,13 @@ if ($LASTEXITCODE -ne 0) {
     throw "Failed publishing LeafDevice x64."
 }
 
-Write-Host "Publishing - LeafDevice arm32"
-$ProjectPublishPath = Join-Path $LeafDevicePublishBaseFolder "arm32v7"
-&$DOTNET_PATH publish -f netcoreapp3.1 -r "win10-arm" -c $Configuration -o $ProjectPublishPath $LeafDeviceProjectFolder |
-    Write-Host
-if ($LASTEXITCODE -ne 0) {
-    throw "Failed publishing LeafDevice arm32."
+if ($PublishWinArm32 -eq 1)
+{
+    Write-Host "Publishing - LeafDevice arm32"
+    $ProjectPublishPath = Join-Path $LeafDevicePublishBaseFolder "arm32v7"
+    &$DOTNET_PATH publish -f netcoreapp3.1 -r "win10-arm" -c $Configuration -o $ProjectPublishPath $LeafDeviceProjectFolder |
+        Write-Host
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed publishing LeafDevice arm32."
+    }
 }
