@@ -633,7 +633,7 @@ pub(crate) mod tests {
             let (expected_retained, expected_sessions) = state.clone().into_parts();
 
             let consolidated = Consolidator::consolidate_state(state);
-            prop_assert_eq!(expected_retained.len(), consolidated.sessions.len());
+            prop_assert_eq!(expected_retained.len(), consolidated.retained.len());
             prop_assert_eq!(expected_sessions.len(), consolidated.sessions.len());
 
             let state = Resolver::resolve_state(consolidated);
