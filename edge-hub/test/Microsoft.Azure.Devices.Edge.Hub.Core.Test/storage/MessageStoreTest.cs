@@ -32,13 +32,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
                     if (i % 2 == 0)
                     {
                         IMessage input = this.GetMessage(i);
-                        IMessage updatedMessage = await messageStore.Add("module1", input);
+                        IMessage updatedMessage = await messageStore.Add("module1", input, 0);
                         CompareUpdatedMessageWithOffset(input, initialCheckpointOffset + 1 + i / 2, updatedMessage);
                     }
                     else
                     {
                         IMessage input = this.GetMessage(i);
-                        IMessage updatedMessage = await messageStore.Add("module2", input);
+                        IMessage updatedMessage = await messageStore.Add("module2", input, 0);
                         CompareUpdatedMessageWithOffset(input, initialCheckpointOffset + 1 + i / 2, updatedMessage);
                     }
                 }
@@ -83,13 +83,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
                     if (i % 2 == 0)
                     {
                         IMessage input = this.GetMessage(i);
-                        IMessage updatedMessage = await messageStore.Add("module1", input);
+                        IMessage updatedMessage = await messageStore.Add("module1", input, 0);
                         CompareUpdatedMessageWithOffset(input, i / 2, updatedMessage);
                     }
                     else
                     {
                         IMessage input = this.GetMessage(i);
-                        IMessage updatedMessage = await messageStore.Add("module2", input);
+                        IMessage updatedMessage = await messageStore.Add("module2", input, 0);
                         CompareUpdatedMessageWithOffset(input, i / 2, updatedMessage);
                     }
                 }
@@ -125,13 +125,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
                     if (i % 2 == 0)
                     {
                         IMessage input = this.GetMessage(i);
-                        IMessage updatedMessage = await messageStore.Add("module1", input);
+                        IMessage updatedMessage = await messageStore.Add("module1", input, 0);
                         CompareUpdatedMessageWithOffset(input, i / 2, updatedMessage);
                     }
                     else
                     {
                         IMessage input = this.GetMessage(i);
-                        IMessage updatedMessage = await messageStore.Add("module2", input);
+                        IMessage updatedMessage = await messageStore.Add("module2", input, 0);
                         CompareUpdatedMessageWithOffset(input, i / 2, updatedMessage);
                     }
                 }
@@ -151,13 +151,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
                     if (i % 2 == 0)
                     {
                         IMessage input = this.GetMessage(i);
-                        IMessage updatedMessage = await messageStore.Add("module1", input);
+                        IMessage updatedMessage = await messageStore.Add("module1", input, 0);
                         CompareUpdatedMessageWithOffset(input, i / 2, updatedMessage);
                     }
                     else
                     {
                         IMessage input = this.GetMessage(i);
-                        IMessage updatedMessage = await messageStore.Add("module2", input);
+                        IMessage updatedMessage = await messageStore.Add("module2", input, 0);
                         CompareUpdatedMessageWithOffset(input, i / 2, updatedMessage);
                     }
                 }
@@ -184,13 +184,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
                     if (i % 2 == 0)
                     {
                         IMessage input = this.GetMessage(i);
-                        IMessage updatedMessage = await messageStore.Add("module1", input);
+                        IMessage updatedMessage = await messageStore.Add("module1", input, 0);
                         CompareUpdatedMessageWithOffset(input, i / 2, updatedMessage);
                     }
                     else
                     {
                         IMessage input = this.GetMessage(i);
-                        IMessage updatedMessage = await messageStore.Add("module2", input);
+                        IMessage updatedMessage = await messageStore.Add("module2", input, 0);
                         CompareUpdatedMessageWithOffset(input, i / 2, updatedMessage);
                     }
                 }
@@ -229,13 +229,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
                     if (i % 2 == 0)
                     {
                         IMessage input = this.GetMessage(i);
-                        IMessage updatedMessage = await messageStore.Add("module1", input);
+                        IMessage updatedMessage = await messageStore.Add("module1", input, 0);
                         CompareUpdatedMessageWithOffset(input, i / 2, updatedMessage);
                     }
                     else
                     {
                         IMessage input = this.GetMessage(i);
-                        IMessage updatedMessage = await messageStore.Add("module2", input);
+                        IMessage updatedMessage = await messageStore.Add("module2", input, 0);
                         CompareUpdatedMessageWithOffset(input, i / 2, updatedMessage);
                     }
                 }
@@ -266,13 +266,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
                     if (i % 2 == 0)
                     {
                         IMessage input = this.GetMessage(i);
-                        IMessage updatedMessage = await messageStore.Add("module1", input);
+                        IMessage updatedMessage = await messageStore.Add("module1", input, 0);
                         CompareUpdatedMessageWithOffset(input, 100 + i / 2, updatedMessage);
                     }
                     else
                     {
                         IMessage input = this.GetMessage(i);
-                        IMessage updatedMessage = await messageStore.Add("module2", input);
+                        IMessage updatedMessage = await messageStore.Add("module2", input, 0);
                         CompareUpdatedMessageWithOffset(input, 100 + i / 2, updatedMessage);
                     }
                 }
@@ -311,7 +311,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
 
             for (int i = 0; i < 10; i++)
             {
-                await messageStore.Add("module1", this.GetMessage(i));
+                await messageStore.Add("module1", this.GetMessage(i), 0);
             }
 
             // Assert
@@ -331,7 +331,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             await messageStore.RemoveEndpoint("module1");
 
             // Assert
-            await Assert.ThrowsAsync<InvalidOperationException>(() => messageStore.Add("module1", this.GetMessage(0)));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => messageStore.Add("module1", this.GetMessage(0), 0));
             Assert.Throws<InvalidOperationException>(() => messageStore.GetMessageIterator("module1"));
 
             // Act
@@ -339,7 +339,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
 
             for (int i = 20; i < 30; i++)
             {
-                await messageStore.Add("module1", this.GetMessage(i));
+                await messageStore.Add("module1", this.GetMessage(i), 0);
             }
 
             // Assert
