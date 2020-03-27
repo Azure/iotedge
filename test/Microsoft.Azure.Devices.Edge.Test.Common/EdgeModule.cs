@@ -32,7 +32,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.iotHub = iotHub;
         }
 
-        public static Task WaitForStatusAsync(IEnumerable<EdgeModule> modules, EdgeModuleStatus desired, CancellationToken token)
+        public static Task WaitForStatusAsync(
+            IEnumerable<EdgeModule> modules,
+            EdgeModuleStatus desired,
+            CancellationToken token)
         {
             string[] moduleIds = modules.Select(m => m.Id.TrimStart('$')).Distinct().ToArray();
 
@@ -89,6 +92,37 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public Task WaitForStatusAsync(EdgeModuleStatus desired, CancellationToken token) =>
             WaitForStatusAsync(new[] { this }, desired, token);
+
+        public async Task<bool> Matches(EdgeModuleStatus desired, string image, CancellationToken token)
+        {
+            string id = this.Id.TrimStart('$');
+
+            try
+            {
+                string[] output = await Process.RunAsync("iotedge", "list", token);
+
+                Log.Verbose(string.Join("\n", output));
+
+                foreach (string line in output)
+                {
+                    string[] columns = line.Split(null as char[], StringSplitOptions.RemoveEmptyEntries);
+                    // each line is "name status description config"
+                    if (columns[0] == id &&
+                        desired == Enum.Parse<EdgeModuleStatus>(columns[1], ignoreCase: true))
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch (Exception e) when (
+                e.ToString().Contains("Could not list modules", StringComparison.OrdinalIgnoreCase) ||
+                e.ToString().Contains("Socket file could not be found", StringComparison.OrdinalIgnoreCase))
+            {
+                // iot edge list failed because iotedged service isn't (fully) running
+            }
+
+            return false;
+        }
 
         public Task<string> WaitForEventsReceivedAsync(
             DateTime seekTime,

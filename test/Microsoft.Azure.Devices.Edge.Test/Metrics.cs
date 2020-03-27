@@ -43,13 +43,17 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         async Task Deploy(CancellationToken token)
         {
-            // First deploy different agent image. This will force agent to update environment variables
-            await this.runtime.DeployConfigurationAsync(
-                builder =>
-                {
-                    builder.GetModule(ConfigModuleName.EdgeAgent).WithSettings(("image", EdgeAgentBaseImage));
-                    builder.RemoveModule(ConfigModuleName.EdgeHub);
-                }, token);
+            // First deploy different agent image (if needed). This will force agent to update environment variables
+            var agent = new EdgeModule(ConfigModuleName.EdgeAgent, Context.Current.DeviceId, this.iotHub);
+            if (!await agent.Matches(EdgeModuleStatus.Running, EdgeAgentBaseImage, token))
+            {
+                await this.runtime.DeployConfigurationAsync(
+                    builder =>
+                    {
+                        builder.GetModule(ConfigModuleName.EdgeAgent).WithSettings(("image", EdgeAgentBaseImage));
+                        builder.RemoveModule(ConfigModuleName.EdgeHub);
+                    }, token);
+            }
 
             // Next deploy everything needed for this test, including a temporary image that will be removed later to bump the "stopped" metric
             string metricsValidatorImage = Context.Current.MetricsValidatorImage.Expect(() => new InvalidOperationException("Missing Metrics Validator image"));
