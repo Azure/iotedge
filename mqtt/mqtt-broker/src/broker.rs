@@ -23,8 +23,18 @@ macro_rules! try_send {
 
 #[derive(Clone, Debug, Default, PartialEq, Deserialize, Serialize)]
 pub struct BrokerState {
-    pub retained: HashMap<String, proto::Publication>,
-    pub sessions: Vec<SessionState>,
+    retained: HashMap<String, proto::Publication>,
+    sessions: Vec<SessionState>,
+}
+
+impl BrokerState {
+    pub fn new(retained: HashMap<String, proto::Publication>, sessions: Vec<SessionState>) -> Self {
+        Self { retained, sessions }
+    }
+    
+    pub fn into_parts(self) -> (HashMap<String, proto::Publication>, Vec<SessionState>) {
+        (self.retained, self.sessions)
+    }
 }
 
 pub struct Broker {

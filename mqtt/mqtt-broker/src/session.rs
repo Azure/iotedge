@@ -279,12 +279,12 @@ impl DisconnectingSession {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SessionState {
-    pub client_id: ClientId,
-    pub subscriptions: HashMap<String, Subscription>,
+    client_id: ClientId,
+    subscriptions: HashMap<String, Subscription>,
     packet_identifiers: PacketIdentifiers,
     packet_identifiers_qos0: PacketIdentifiers,
 
-    pub waiting_to_be_sent: VecDeque<proto::Publication>,
+    waiting_to_be_sent: VecDeque<proto::Publication>,
 
     // for incoming messages - QoS2
     waiting_to_be_released: HashMap<proto::PacketIdentifier, proto::Publish>,
@@ -524,6 +524,35 @@ impl SessionState {
             }
         };
         Ok(event)
+    }
+
+    pub fn into_parts(
+        self,
+    ) -> (
+        ClientId,
+        HashMap<String, Subscription>,
+        VecDeque<proto::Publication>,
+    ) {
+        (self.client_id, self.subscriptions, self.waiting_to_be_sent)
+    }
+
+    pub fn from_parts(
+        client_id: ClientId,
+        subscriptions: HashMap<String, Subscription>,
+        waiting_to_be_sent: VecDeque<proto::Publication>,
+    ) -> Self {
+        Self {
+            client_id,
+            subscriptions,
+            packet_identifiers: PacketIdentifiers::default(),
+            packet_identifiers_qos0: PacketIdentifiers::default(),
+
+            waiting_to_be_sent,
+            waiting_to_be_acked: HashMap::new(),
+            waiting_to_be_acked_qos0: HashMap::new(),
+            waiting_to_be_released: HashMap::new(),
+            waiting_to_be_completed: HashSet::new(),
+        }
     }
 }
 

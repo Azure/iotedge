@@ -193,14 +193,14 @@ impl Consolidator {
             curr_id: 0,
         };
 
-        let retained = state
-            .retained
+        let (retained, sessions) = state.into_parts();
+
+        let retained = retained
             .into_iter()
             .map(|(k, v)| (k, this.consolidate_publication(v)));
         let retained = HashMap::from_iter(retained);
 
-        let sessions = state
-            .sessions
+        let sessions = sessions
             .into_iter()
             .map(|s| this.consolidate_session(s))
             .collect();
@@ -225,14 +225,16 @@ impl Consolidator {
     }
 
     fn consolidate_session(&mut self, session: SessionState) -> ConsolidatedSession {
+        let (client_id, subscriptions, waiting_to_be_sent) = session.into_parts();
+        let waiting_to_be_sent = waiting_to_be_sent
+            .into_iter()
+            .map(|p| self.consolidate_publication(p))
+            .collect();
+
         ConsolidatedSession {
-            client_id: session.client_id,
-            subscriptions: session.subscriptions,
-            waiting_to_be_sent: session
-                .waiting_to_be_sent
-                .into_iter()
-                .map(|p| self.consolidate_publication(p))
-                .collect(),
+            client_id,
+            subscriptions,
+            waiting_to_be_sent,
         }
     }
 
@@ -270,7 +272,7 @@ impl Resolver {
             .map(|s| this.resolve_session(s))
             .collect();
 
-        BrokerState { retained, sessions }
+        BrokerState::new(retained, sessions)
     }
 
     fn resolve_publication(&mut self, publication: SimplifiedPublication) -> Publication {
@@ -283,15 +285,13 @@ impl Resolver {
     }
 
     fn resolve_session(&mut self, session: ConsolidatedSession) -> SessionState {
-        let mut result = SessionState::new(session.client_id);
-        result.subscriptions = session.subscriptions;
-        result.waiting_to_be_sent = session
+        let waiting_to_be_sent = session
             .waiting_to_be_sent
             .into_iter()
             .map(|p| self.resolve_publication(p))
             .collect();
 
-        result
+        SessionState::from_parts(session.client_id, session.subscriptions, waiting_to_be_sent)
     }
 
     fn get_payload(&mut self, id: u64) -> Bytes {
@@ -630,26 +630,25 @@ pub(crate) mod tests {
 
         #[test]
         fn consolidate_simple(state in arb_broker_state()) {
-            let expected = state.clone();
+            let (expected_retained, expected_sessions) = state.clone().into_parts();
 
             let consolidated = Consolidator::consolidate_state(state);
-            prop_assert_eq!(expected.retained.len(), consolidated.retained.len());
-            prop_assert_eq!(expected.sessions.len(), consolidated.sessions.len());
+            prop_assert_eq!(expected_retained.len(), consolidated.sessions.len());
+            prop_assert_eq!(expected_sessions.len(), consolidated.sessions.len());
 
             let state = Resolver::resolve_state(consolidated);
+            let (result_retained, result_sessions) = state.into_parts();
 
-            prop_assert_eq!(expected.retained, state.retained);
-            prop_assert_eq!(expected.sessions.len(), state.sessions.len());
-            for i in 0..expected.sessions.len(){
-                prop_assert_eq!(&expected.sessions[i].client_id, &state.sessions[i].client_id);
-                prop_assert_eq!(&expected.sessions[i].subscriptions, &state.sessions[i].subscriptions);
-                prop_assert_eq!(&expected.sessions[i].waiting_to_be_sent, &state.sessions[i].waiting_to_be_sent);
+            prop_assert_eq!(expected_retained, result_retained);
+            prop_assert_eq!(expected_sessions.len(), result_sessions.len());
+            for i in 0..expected_sessions.len(){
+                prop_assert_eq!(expected_sessions[i].clone().into_parts(), result_sessions[i].clone().into_parts());
             }
         }
 
         #[test]
         fn consolidate_roundtrip(state in arb_broker_state()) {
-            let expected = state.clone();
+            let (expected_retained, expected_sessions) = state.clone().into_parts();
             let format = ConsolidatedStateFormat;
             let mut buffer = vec![0_u8; 10 * 1024 * 1024];
             let writer = Cursor::new(&mut buffer);
@@ -657,13 +656,12 @@ pub(crate) mod tests {
 
             let reader = Cursor::new(buffer);
             let state = format.load(reader).unwrap();
+            let (result_retained, result_sessions) = state.into_parts();
 
-            prop_assert_eq!(expected.retained, state.retained);
-            prop_assert_eq!(expected.sessions.len(), state.sessions.len());
-            for i in 0..expected.sessions.len(){
-                prop_assert_eq!(&expected.sessions[i].client_id, &state.sessions[i].client_id);
-                prop_assert_eq!(&expected.sessions[i].subscriptions, &state.sessions[i].subscriptions);
-                prop_assert_eq!(&expected.sessions[i].waiting_to_be_sent, &state.sessions[i].waiting_to_be_sent);
+            prop_assert_eq!(expected_retained, result_retained);
+            prop_assert_eq!(expected_sessions.len(), result_sessions.len());
+            for i in 0..expected_sessions.len(){
+                prop_assert_eq!(expected_sessions[i].clone().into_parts(), result_sessions[i].clone().into_parts());
             }
         }
     }
