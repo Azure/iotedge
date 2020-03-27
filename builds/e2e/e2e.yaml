@@ -4,13 +4,13 @@ pr: none
 resources:
   pipelines:
   - pipeline: images
-    source: ${{ variables.az.pipeline.images }}
+    source: $[variables.az.pipeline.images]
     trigger:
       branches:
       - master
       - release/*
   - pipeline: packages
-    source: ${{ variables.az.pipeline.packages }}
+    source: $[variables.az.pipeline.packages]
     trigger:
       branches:
       - master
