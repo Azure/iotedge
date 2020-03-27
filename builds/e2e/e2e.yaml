@@ -60,8 +60,37 @@ jobs:
       artifactDir: iotedged-ubuntu16.04-amd64
 
     steps:
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-run.yaml
+    - script: |
+        echo "Build Images pipeline:"
+        echo "projectName: [$(resources.pipeline.images.projectName)]"
+        echo "projectID: [$(resources.pipeline.images.projectID)]"
+        echo "pipelineName: [$(resources.pipeline.images.pipelineName)]"
+        echo "pipelineID: [$(resources.pipeline.images.pipelineID)]"
+        echo "runName: [$(resources.pipeline.images.runName)]"
+        echo "runID: [$(resources.pipeline.images.runID)]"
+        echo "runURI: [$(resources.pipeline.images.runURI)]"
+        echo "sourceBranch: [$(resources.pipeline.images.sourceBranch)]"
+        echo "sourceCommit: [$(resources.pipeline.images.sourceCommit)]"
+        echo "sourceProvider: [$(resources.pipeline.images.sourceProvider)]"
+        echo "requestedFor: [$(resources.pipeline.images.requestedFor)]"
+        echo "requestedForID: [$(resources.pipeline.images.requestedForID)]"
+
+        echo "Edgelet Packages pipeline:"
+        echo "projectName: [$(resources.pipeline.packages.projectName)]"
+        echo "projectID: [$(resources.pipeline.packages.projectID)]"
+        echo "pipelineName: [$(resources.pipeline.packages.pipelineName)]"
+        echo "pipelineID: [$(resources.pipeline.packages.pipelineID)]"
+        echo "runName: [$(resources.pipeline.packages.runName)]"
+        echo "runID: [$(resources.pipeline.packages.runID)]"
+        echo "runURI: [$(resources.pipeline.packages.runURI)]"
+        echo "sourceBranch: [$(resources.pipeline.packages.sourceBranch)]"
+        echo "sourceCommit: [$(resources.pipeline.packages.sourceCommit)]"
+        echo "sourceProvider: [$(resources.pipeline.packages.sourceProvider)]"
+        echo "requestedFor: [$(resources.pipeline.packages.requestedFor)]"
+        echo "requestedForID: [$(resources.pipeline.packages.requestedForID)]"
+      displayName: Print pipeline resource vars
+    # - template: templates/e2e-setup.yaml
+    # - template: templates/e2e-run.yaml
 
 # ################################################################################	
 #   - job: windows_amd64
