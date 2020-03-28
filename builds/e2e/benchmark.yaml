@@ -14,22 +14,61 @@ jobs:
     timeoutInMinutes: 180
     strategy:
       matrix:
-        Online 2G Storage:
+        EdgeHub 128MB Storage AMQP:
           testrun.config: 1
           testrun.network.description: "Online"
           testrun.network.frequencies: "00:00:00 00:00:00 0"
           testrun.network.runProfile: "Online"
-          testrun.duration: "00:30:00"
-          container.storageSizeByte: "2147483648"
+          testrun.duration: "01:00:00"
+          edgeHub.storageSizeByte: "134217728"
+          edgeHub.amqpProtocolHead: "true"
+          edgeHub.mqttProtocolHead: "false"
+          edgeHub.httpProtocolHead: "false"
           deploymentFileName: "limited_container_storage_deployment.template.json"
 
-        Online 1G Storage:
-          testrun.config: 1
+        EdgeHub 128MB Storage MQTT:
+          testrun.config: 2
           testrun.network.description: "Online"
           testrun.network.frequencies: "00:00:00 00:00:00 0"
           testrun.network.runProfile: "Online"
-          testrun.duration: "00:30:00"
-          container.storageSizeByte: "1073741824"
+          testrun.duration: "01:00:00"
+          edgeHub.storageSizeByte: "134217728"
+          edgeHub.amqpProtocolHead: "false"
+          edgeHub.mqttProtocolHead: "true"
+          edgeHub.httpProtocolHead: "false"
+          deploymentFileName: "limited_container_storage_deployment.template.json"
+
+        EdgeHub 128MB Storage AMQP-HTTP:
+          testrun.config: 3
+          testrun.network.description: "Online"
+          testrun.network.frequencies: "00:00:00 00:00:00 0"
+          testrun.network.runProfile: "Online"
+          testrun.duration: "01:00:00"
+          edgeHub.storageSizeByte: "134217728"
+          edgeHub.amqpProtocolHead: "true"
+          edgeHub.mqttProtocolHead: "false"
+          edgeHub.httpProtocolHead: "true"
+          deploymentFileName: "limited_container_storage_deployment.template.json"
+
+        EdgeHub 128MB Storage MQTT-HTTP:
+          testrun.config: 4
+          testrun.network.description: "Online"
+          testrun.network.frequencies: "00:00:00 00:00:00 0"
+          testrun.network.runProfile: "Online"
+          testrun.duration: "01:00:00"
+          edgeHub.storageSizeByte: "134217728"
+          edgeHub.amqpProtocolHead: "false"
+          edgeHub.mqttProtocolHead: "true"
+          edgeHub.httpProtocolHead: "true"
+          deploymentFileName: "limited_container_storage_deployment.template.json"
+
+        EdgeAgent 64MB Storage:
+          testrun.config: 5
+          testrun.network.description: "Online"
+          testrun.network.frequencies: "00:00:00 00:00:00 0"
+          testrun.network.runProfile: "Online"
+          testrun.duration: "01:00:00"
+          edgeAgent.storageSizeByte: "67108864"
           deploymentFileName: "limited_container_storage_deployment.template.json"
     pool:
       name: $(pool.name)
@@ -52,7 +91,7 @@ jobs:
             echo "testrun.network.frequencies=$(testrun.network.frequencies)"
             echo "testrun.network.runProfile=$(testrun.network.runProfile)"
             echo "testrun.duration=$(testrun.duration)"
-            echo "container.storageSizeByte=$(container.storageSizeByte)"
+            echo "edgeHub.storageSizeByte=$(edgeHub.storageSizeByte)"
             echo "deploymentFileName=$(deploymentFileName)"
       - template: templates/set-run-flag.yaml
       - checkout: none
@@ -106,7 +145,7 @@ jobs:
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          container.storageSizeByte: '$(container.storageSizeByte)'
+          edgeHub.storageSizeByte: '$(edgeHub.storageSizeByte)'
           iotHub.connectionString: '$(EdgeConnectivityTestHubConnString)'
           eventHub.connectionString: '$(EdgeConnectivityEventHubConnString)'
           deploymentFileName: '$(deploymentFileName)'

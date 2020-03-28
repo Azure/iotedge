@@ -10,7 +10,11 @@ parameters:
   container.registry: ''
   container.registry.username: ''
   container.registry.password: ''
-  container.storageSizeByte: ''
+  edgeHub.storageSizeByte: ''
+  edgeHub.amqpProtocolHead: ''
+  edgeHub.mqttProtocolHead: ''
+  edgeHub.httpProtocolHead: ''
+  edgeAgent.storageSizeByte: ''
   iotHub.connectionString: ''
   eventHub.connectionString: ''
   upstream.protocol: ''
@@ -101,7 +105,11 @@ steps:
           -customEdgeAgentImage "${{ parameters['customEdgeAgent.image'] }}" \
           -customEdgeHubImage "${{ parameters['customEdgeHub.image'] }}" \
           -testInfo "$testInfo" \
-          -containerStorageSize "${{ parameters['container.storageSizeByte'] }}" \
+          -edgeHubStorageSize "${{ parameters['edgeHub.storageSizeByte'] }}" \
+          -edgeHubAmqpProtocolHead "${{ parameters['edgeHub.amqpProtocolHead'] }}" \
+          -edgeHubMqttProtocolHead "${{ parameters['edgeHub.mqttProtocolHead'] }}" \
+          -edgeHubHttpProtocolHead "${{ parameters['edgeHub.httpProtocolHead'] }}" \
+          -edgeAgentStorageSize "${{ parameters['edgeAgent.storageSizeByte'] }}" \
           -waitForTestComplete \
           -cleanAll
         
