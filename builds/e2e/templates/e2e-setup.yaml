@@ -19,68 +19,47 @@ steps:
       TestRootCaPassword
 
 - pwsh: |
-    # We care about three cases:
-    # 1) 'Edgelet Packages' build triggered this build (use latest 'Build Images' build on master)
-    if ($env:BUILD_TRIGGEREDBY_DEFINITIONNAME -eq '$(az.pipeline.packages)')
-    {
-      Write-Output "Triggered by build '$(az.pipeline.packages)' \#$(Build.TriggeredBy.BuildId)"
-      Write-Output '##vso[task.setvariable variable=whichPackageBuild]specific'
-      Write-Output '##vso[task.setvariable variable=whichImageBuild]latestFromBranch'
-      Write-Output '##vso[task.setvariable variable=packageBuildId]$(Build.TriggeredBy.BuildId)'
-    }
-    # 2) 'Build Images' build triggered this build (use latest 'Edgelet Packages' build on master)
-    elseif ($env:BUILD_TRIGGEREDBY_DEFINITIONNAME -eq '$(az.pipeline.images)')
-    {
-      Write-Output "Triggered by build '$(az.pipeline.images)' \#$(Build.TriggeredBy.BuildId)"
-      Write-Output '##vso[task.setvariable variable=whichPackageBuild]latestFromBranch'
-      Write-Output '##vso[task.setvariable variable=whichImageBuild]specific'
-      Write-Output '##vso[task.setvariable variable=imageBuildId]$(Build.TriggeredBy.BuildId)'
-    }
-    # 3) Manual build (use given args for 'Build Images' build ID and 'Edgelet Packages' build ID)
-    elseif ('$(az.pipeline.packages.buildId)' -and '$(az.pipeline.images.buildId)')
-    {
-      Write-Output '##vso[task.setvariable variable=whichPackageBuild]specific'
-      Write-Output '##vso[task.setvariable variable=whichImageBuild]specific'
-      Write-Output '##vso[task.setvariable variable=packageBuildId]$(az.pipeline.packages.buildId)'
-      Write-Output '##vso[task.setvariable variable=imageBuildId]$(az.pipeline.images.buildId)'
-    }
-    else # Error
-    {
-      if ($env:BUILD_TRIGGEREDBY_DEFINITIONNAME)
-      {
-        Write-Output "Build triggered by unrecognized build '$env:BUILD_TRIGGEREDBY_DEFINITIONNAME'"
-      }
-      else
-      {
-        Write-Output "Missing build parameter 'az.pipeline.packages.buildId' or 'az.pipeline.images.buildId'"
-      }
-      exit 1
-    }
-  displayName: Locate edgelet packages, runtime images
+    $imageBuildId = $(resources.pipeline.images.runID)
+    $packageBuildId = $(resources.pipeline.packages.runID)
 
-- task: DownloadBuildArtifacts@0
-  displayName: Download edgelet packages
-  inputs:
-    buildType: specific
-    project: one
-    pipeline: $(az.pipeline.packages)
-    buildVersionToDownload: $(whichPackageBuild)
-    branchName: refs/heads/master
-    buildId: $(packageBuildId)
-    downloadType: specific
-    itemPattern: $(artifactDir)/*
+    if ('$(az.pipeline.images.buildId)')
+    {
+      Write-Output '>> User supplied az.pipeline.images.buildId=$(az.pipeline.images.buildId)'
+      $imageBuildId = '$(az.pipeline.images.buildId)'
+    }
+
+    if ('$(az.pipeline.packages.buildId)')
+    {
+      Write-Output '>> User supplied az.pipeline.packages.buildId=$(az.pipeline.packages.buildId)'
+      $packageBuildId = '$(az.pipeline.packages.buildId)'
+    }
+
+    Write-Output "##vso[task.setvariable variable=imageBuildId]$imageBuildId"
+    Write-Output "##vso[task.setvariable variable=packageBuildId]$packageBuildId"
+  displayName: Override artifacts with user-supplied args
 
 - task: DownloadBuildArtifacts@0
   displayName: Get Docker image info
   inputs:
     buildType: specific
-    project: one
-    pipeline: $(az.pipeline.images)
-    buildVersionToDownload: $(whichImageBuild)
-    branchName: refs/heads/master
+    project: $(resources.pipeline.images.projectID)
+    pipeline: $(resources.pipeline.images.pipelineName)
+    buildVersionToDownload: specific
     buildId: $(imageBuildId)
-    downloadType: specific
+    downloadType: single
+    artifactName: $(az.pipeline.images.artifacts)
     itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt
+
+- task: DownloadBuildArtifacts@0
+  displayName: Download edgelet packages
+  inputs:
+    buildType: specific
+    project: $(resources.pipeline.packages.projectID)
+    pipeline: $(resources.pipeline.packages.pipelineName)
+    buildVersionToDownload: specific
+    buildId: $(packageBuildId)
+    downloadType: single
+    artifactName: $(artifactName)
 
 - pwsh: |
     $certsDir = '$(System.ArtifactsDirectory)/certs'
@@ -123,7 +102,7 @@ steps:
           username = '$(cr.username)';
         }
       );
-      packagePath = Convert-Path '$(System.ArtifactsDirectory)/$(artifactDir)';
+      packagePath = Convert-Path '$(System.ArtifactsDirectory)/$(artifactName)';
       caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates';
       rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
       rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';

@@ -1,8 +1,20 @@
-# End-to-end tests should run after new docker images and edgelet packages are
-# built, but 'build completion triggers' are not yet supported in YAML. Set to
-# 'none' here and override in the online editor.
 trigger: none
 pr: none
+
+resources:
+  pipelines:
+  - pipeline: images
+    source: 'Azure-IoT-Edge-Core Build Images'
+    trigger:
+      branches:
+      - master
+      - release/*
+  - pipeline: packages
+    source: 'Azure-IoT-Edge-Core Edgelet Packages'
+    trigger:
+      branches:
+      - master
+      - release/*
 
 jobs:
 
@@ -18,7 +30,7 @@ jobs:
     variables:
       os: linux
       arch: arm32v7
-      artifactDir: iotedged-debian9-arm32v7
+      artifactName: iotedged-debian9-arm32v7
 
     timeoutInMinutes: 120
 
@@ -45,7 +57,7 @@ jobs:
     variables:
       os: linux
       arch: amd64
-      artifactDir: iotedged-ubuntu16.04-amd64
+      artifactName: iotedged-ubuntu16.04-amd64
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -62,7 +74,7 @@ jobs:
     variables:
       os: windows
       arch: amd64
-      artifactDir: iotedged-windows
+      artifactName: iotedged-windows
 
     steps:
     - template: templates/e2e-setup.yaml
