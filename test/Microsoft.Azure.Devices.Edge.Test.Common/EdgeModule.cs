@@ -14,8 +14,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public enum EdgeModuleStatus
     {
+        Failed,
         Running,
-        Stopped
+        Stopped,
+        Unknown
     }
 
     public class EdgeModule
