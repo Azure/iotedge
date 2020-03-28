@@ -102,14 +102,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 string[] output = await Process.RunAsync("iotedge", "list", token);
 
                 Log.Verbose(string.Join("\n", output));
-
-                foreach (string line in output)
+				
+                foreach (string line in output.Skip(1))
                 {
                     string[] columns = line.Split(null as char[], StringSplitOptions.RemoveEmptyEntries);
                     // each line is "name status description config"
                     if (columns[0] == id &&
                         desired == Enum.Parse<EdgeModuleStatus>(columns[1], ignoreCase: true) &&
-                        image == columns[3])
+                        image == columns.Last())
                     {
                         return true;
                     }
