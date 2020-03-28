@@ -46,39 +46,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 await Retry.Do(
                     async () =>
                     {
-                        string[] output = await Process.RunAsync("iotedge", "list", token);
-
-                        Log.Verbose(string.Join("\n", output));
-
-                        return output
-                            .Where(
-                                ln =>
-                                {
-                                    string[] columns = ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries);
-                                    foreach (string moduleId in moduleIds)
-                                    {
-                                        // each line is "name status"
-                                        if (columns[0] == moduleId &&
-                                            columns[1].Equals(desired.ToString(), StringComparison.OrdinalIgnoreCase))
-                                        {
-                                            return true;
-                                        }
-                                    }
-
-                                    return false;
-                                }).ToArray();
+                        var localModules = await List(token);
+                        return moduleIds.LongCount(moduleId =>
+                            localModules.ContainsKey(moduleId) && localModules[moduleId].status == desired);
                     },
-                    a => a.Length == moduleIds.Length,
-                    e =>
-                    {
-                        // Retry if iotedged's management endpoint is still starting up,
-                        // and therefore isn't responding to `iotedge list` yet
-                        bool DaemonNotReady(string details) =>
-                            details.Contains("Could not list modules", StringComparison.OrdinalIgnoreCase) ||
-                            details.Contains("Socket file could not be found", StringComparison.OrdinalIgnoreCase);
-
-                        return DaemonNotReady(e.ToString());
-                    },
+                    result => result == moduleIds.LongLength,
+                    e => false,
                     TimeSpan.FromSeconds(5),
                     token);
             }
@@ -93,9 +66,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public Task WaitForStatusAsync(EdgeModuleStatus desired, CancellationToken token) =>
             WaitForStatusAsync(new[] { this }, desired, token);
 
-        public async Task<bool> Matches(EdgeModuleStatus desired, string image, CancellationToken token)
+        public static async Task<IReadOnlyDictionary<string, (EdgeModuleStatus status, string image)>> List(
+            CancellationToken token)
         {
-            string id = this.Id.TrimStart('$');
+            var result = new Dictionary<string, (EdgeModuleStatus, string)>();
 
             try
             {
@@ -107,22 +81,27 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 {
                     string[] columns = line.Split(null as char[], StringSplitOptions.RemoveEmptyEntries);
                     // each line is "name status description config"
-                    if (columns[0] == id &&
-                        desired == Enum.Parse<EdgeModuleStatus>(columns[1], ignoreCase: true) &&
-                        image == columns.Last())
-                    {
-                        return true;
-                    }
+                    result.Add(columns[0], (Enum.Parse<EdgeModuleStatus>(columns[1], ignoreCase: true), columns.Last()));
                 }
             }
             catch (Exception e) when (
                 e.ToString().Contains("Could not list modules", StringComparison.OrdinalIgnoreCase) ||
                 e.ToString().Contains("Socket file could not be found", StringComparison.OrdinalIgnoreCase))
             {
-                // iot edge list failed because iotedged service isn't (fully) running
+                // iot edge list failed because iotedged's management endpoint is still starting up; treat it the same
+                // as running with no modules
             }
 
-            return false;
+            return result;
+        }
+
+        public async Task<bool> Matches(EdgeModuleStatus status, string image, CancellationToken token)
+        {
+            string moduleId = this.Id.TrimStart('$');
+            var modules = await List(token);
+            return modules.TryGetValue(moduleId, out (EdgeModuleStatus status, string image) m) &&
+                status == m.status &&
+                image == m.image;
         }
 
         public Task<string> WaitForEventsReceivedAsync(
