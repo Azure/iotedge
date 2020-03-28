@@ -8,6 +8,18 @@ use std::time::Duration;
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 
 #[derive(Debug, Deserialize)]
+pub enum QueueFullAction {
+    #[serde(rename(deserialize = "drop_new"))]
+    DropNew,
+
+    #[serde(rename(deserialize = "drop_old"))]
+    DropOld,
+
+    #[serde(rename(deserialize = "disconnect"))]
+    Disconnect,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct InflightMessages {
     max_count: u32,
 }
@@ -26,7 +38,7 @@ pub struct SessionMessages {
     max_count: Option<u32>,
     #[serde(deserialize_with = "humansize")]
     max_total_space: Option<u64>,
-    when_full: Option<String>,
+    when_full: Option<QueueFullAction>,
 }
 
 #[derive(Debug, Deserialize)]
