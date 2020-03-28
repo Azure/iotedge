@@ -26,33 +26,38 @@ pub struct InflightMessages {
 
 #[derive(Debug, Deserialize)]
 pub struct RetainedMessages {
-    max_count: Option<u32>,
+    max_count: u32,
+
     #[serde(with = "humantime_serde")]
-    expiration: Option<Duration>,
+    expiration: Duration,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SessionMessages {
     #[serde(deserialize_with = "humansize")]
-    max_message_size: Option<u64>,
-    max_count: Option<u32>,
+    max_message_size: u64,
+
+    max_count: u32,
+
     #[serde(deserialize_with = "humansize")]
-    max_total_space: Option<u64>,
-    when_full: Option<QueueFullAction>,
+    max_total_space: u64,
+
+    when_full: QueueFullAction,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SessionPersistence {
     file_path: String,
+
     #[serde(with = "humantime_serde")]
-    time_interval: Option<Duration>,
-    unsaved_message_count: Option<u32>,
+    time_interval: Duration,
+    unsaved_message_count: u32,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct Session {
     #[serde(with = "humantime_serde")]
-    expiration: Option<Duration>,
+    expiration: Duration,
     messages: SessionMessages,
 }
 
@@ -64,8 +69,9 @@ pub struct BrokerConfig {
     persistence: Option<SessionPersistence>,
 }
 
-pub fn humansize<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
+pub fn humansize<'de, T, D>(deserializer: D) -> Result<T, D::Error>
 where
+    T: std::str::FromStr + std::ops::Mul<Output = T> + std::convert::From<u32>,
     D: Deserializer<'de>,
 {
     lazy_static! {
@@ -79,17 +85,18 @@ where
         .captures(&s.as_str())
         .ok_or_else(|| error::<D>(&s, &"256kb"))?;
     let base = captures[1]
-        .parse::<u64>()
+        .parse::<T>()
         .or_else(|_| Err(error::<D>(&captures[1], &"256")))?;
 
     let multiplier = captures[2].to_lowercase();
-    let multiplier = get_multiplier::<D>(multiplier.as_ref())?;
+    let multiplier = get_multiplier::<T, D>(multiplier.as_ref())?;
 
-    Ok(Some(base * multiplier))
+    Ok(base * multiplier)
 }
 
-fn get_multiplier<'de, D>(str: &str) -> Result<u64, D::Error>
+fn get_multiplier<'de, T, D>(str: &str) -> Result<T, D::Error>
 where
+    T: std::convert::From<u32>,
     D: Deserializer<'de>,
 {
     let result = match str {
@@ -100,7 +107,7 @@ where
         _ => return Err(error::<D>(str, &"'b', 'kb', 'mb' or 'gb'")),
     };
 
-    Ok(result)
+    Ok(result.into())
 }
 
 fn error<'de, D>(unexpected: &str, expected: &str) -> D::Error
@@ -150,7 +157,7 @@ mod tests {
 
         assert_eq!(
             settings.retained_messages.expiration,
-            Some(Duration::from_secs(60 * 24 * 60 * 60))
+            Duration::from_secs(60 * 24 * 60 * 60)
         );
     }
 
@@ -161,7 +168,7 @@ mod tests {
 
         assert_eq!(
             settings.retained_messages.expiration,
-            Some(Duration::from_secs(90 * 24 * 60 * 60))
+            Duration::from_secs(90 * 24 * 60 * 60)
         );
     }
 
@@ -182,7 +189,7 @@ mod tests {
     #[derive(Debug, Deserialize)]
     struct Container {
         #[serde(deserialize_with = "humansize")]
-        size: Option<u64>,
+        size: u64,
     }
 
     #[test_case( "123b",  123 ; "when using bytes")]
@@ -193,7 +200,7 @@ mod tests {
         let container_json = json!({ "size": input }).to_string();
 
         let container: Container = serde_json::from_str(&container_json).unwrap();
-        assert_eq!(container.size, Some(expected));
+        assert_eq!(container.size, expected);
     }
 
     #[test_case( "123kb",  123*1024 ; "when using all lowercase")]
@@ -207,7 +214,7 @@ mod tests {
         let container_json = json!({ "size": input }).to_string();
 
         let container: Container = serde_json::from_str(&container_json).unwrap();
-        assert_eq!(container.size, Some(expected));
+        assert_eq!(container.size, expected);
     }
 
     #[test_case( "123tb" ; "when using unknown unit")]
@@ -292,6 +299,6 @@ mod tests {
         let container_json = json!({ "size": input }).to_string();
         let result = serde_json::from_str::<Container>(&container_json).unwrap();
 
-        assert_eq!(result.size, Some(expected));
+        assert_eq!(result.size, expected);
     }
 }
