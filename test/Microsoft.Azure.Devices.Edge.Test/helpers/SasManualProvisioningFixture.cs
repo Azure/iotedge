@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         protected EdgeRuntime runtime;
 
         [SetUp]
-        public async Task SasProvisionEdgeAsync()
+        public virtual async Task SasProvisionEdgeAsync()
         {
             await Profiler.Run(
                 async () =>
@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             Context.Current.OptimizeForPerformance,
                             this.iotHub);
 
-                        await this.ConfigureAsync(
+                        await this.ConfigureDaemonAsync(
                             config =>
                             {
                                 config.SetDeviceConnectionString(device.ConnectionString);

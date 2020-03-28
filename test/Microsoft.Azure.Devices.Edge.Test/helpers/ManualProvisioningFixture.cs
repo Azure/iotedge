@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 Context.Current.Proxy);
         }
 
-        protected async Task ConfigureAsync(
+        protected async Task ConfigureDaemonAsync(
             Func<DaemonConfiguration, Task<(string, object[])>> config,
             EdgeDevice device,
             DateTime startTime,

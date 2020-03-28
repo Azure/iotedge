@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
                         Context.Current.DeleteList.TryAdd(device.Id, device);
 
-                        await this.ConfigureAsync(
+                        await this.ConfigureDaemonAsync(
                             config =>
                             {
                                 config.SetDeviceManualX509(

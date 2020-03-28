@@ -12,9 +12,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     {
         protected CertificateAuthority ca;
 
+        [SetUp]
+        public override Task SasProvisionEdgeAsync()
+        {
+            // do nothing; everything happens at [OneTimeSetUp] instead
+            return Task.CompletedTask;
+        }
+
         [OneTimeSetUp]
         public async Task SetUpCertificatesAsync()
         {
+            await base.SasProvisionEdgeAsync();
+
             await Profiler.Run(
                 async () =>
                 {
