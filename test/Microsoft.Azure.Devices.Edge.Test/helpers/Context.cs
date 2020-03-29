@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
             this.CaCertScriptPath = Option.Maybe(Get("caCertScriptPath"));
             this.ConnectionString = Get("IOT_HUB_CONNECTION_STRING");
-            this.DeviceId = IdentityLimits.CheckEdgeId(GetOrDefault("deviceId", defaultId));
+            this.DeviceId = IdentityLimits.CheckEdgeId(defaultId);
             this.DpsIdScope = Option.Maybe(Get("dpsIdScope"));
             this.DpsGroupKey = Option.Maybe(Get("DPS_GROUP_KEY"));
             this.EdgeAgentImage = Option.Maybe(Get("edgeAgentImage"));
