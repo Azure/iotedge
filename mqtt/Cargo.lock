@@ -619,7 +619,6 @@ dependencies = [
  "mqtt-broker",
  "native-tls",
  "tokio",
- "tokio-tls",
  "tracing",
  "tracing-subscriber",
 ]
@@ -1278,7 +1277,6 @@ dependencies = [
  "iovec",
  "lazy_static",
  "libc",
- "memchr",
  "mio",
  "mio-uds",
  "num_cpus",

@@ -123,12 +123,11 @@ where
 
                     let broker_state = broker_task.await;
 
-                    // todo refactor to possible gather all errors
-                    if let Some(Err(e)) = results.into_iter().find(Result::is_err) {
-                        return Err(e);
-                    } else {
-                        broker_state.context(ErrorKind::TaskJoin)?
+                    for e in results.into_iter().filter_map(Result::err) {
+                        warn!(message = "failed to shutdown protocol head", error=%e);
                     }
+
+                    broker_state.context(ErrorKind::TaskJoin)?
                 }
                 Either::Left((broker_state, incoming_tasks)) => {
                     warn!("broker exited before accept loop");
