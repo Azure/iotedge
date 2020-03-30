@@ -95,6 +95,9 @@ steps:
       tempSensorImage = "$imagePrefix-simulated-temperature-sensor:$imageTag";
       methodSenderImage = "$imagePrefix-direct-method-sender:$imageTag";
       methodReceiverImage = "$imagePrefix-direct-method-receiver:$imageTag";
+      loadGenImage = "$imagePrefix-load-gen:$imageTag";
+      relayerImage = "$imagePrefix-relayer:$imageTag";
+      testResultCoordinatorImage = "$imagePrefix-test-result-coordinator:$imageTag";
       metricsValidatorImage = "$imagePrefix-metrics-validator:$imageTag";
       registries = @(
         @{

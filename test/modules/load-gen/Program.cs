@@ -38,43 +38,20 @@ namespace LoadGen
                 Logger.LogInformation($"Load gen delay start for {Settings.Current.TestStartDelay}.");
                 await Task.Delay(Settings.Current.TestStartDelay);
 
-                DateTime testStartAt = DateTime.UtcNow;
-                long messageIdCounter = 1;
-                while (!cts.IsCancellationRequested &&
-                    (Settings.Current.TestDuration == TimeSpan.Zero || DateTime.UtcNow - testStartAt < Settings.Current.TestDuration))
+                LoadGenSenderBase sender;
+                switch (Settings.Current.SenderType)
                 {
-                    try
-                    {
-                        await SendEventAsync(moduleClient, batchId, Settings.Current.TrackingId, messageIdCounter);
-
-                        // Report sending message successfully to Test Result Coordinator
-                        await Settings.Current.TestResultCoordinatorUrl.ForEachAsync(
-                            async trcUrl =>
-                            {
-                                var testResultCoordinatorUrl = new Uri(trcUrl, UriKind.Absolute);
-                                var testResultReportingClient = new TestResultReportingClient { BaseUrl = testResultCoordinatorUrl.AbsoluteUri };
-                                var testResult = new MessageTestResult(Settings.Current.ModuleId + ".send", DateTime.UtcNow)
-                                {
-                                    TrackingId = Settings.Current.TrackingId,
-                                    BatchId = batchId.ToString(),
-                                    SequenceNumber = messageIdCounter.ToString()
-                                };
-                                await ModuleUtil.ReportTestResultAsync(testResultReportingClient, Logger, testResult);
-                            });
-
-                        if (messageIdCounter % 1000 == 0)
-                        {
-                            Logger.LogInformation($"Sent {messageIdCounter} messages.");
-                        }
-
-                        await Task.Delay(Settings.Current.MessageFrequency);
-                        messageIdCounter++;
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogError(ex, $"[SendEventAsync] Sequence number {messageIdCounter}, BatchId: {batchId.ToString()};");
-                    }
+                    case LoadGenSenderType.PriorityMessageSender:
+                        sender = new PriorityMessageSender(Logger, moduleClient, batchId, Settings.Current.TrackingId);
+                        break;
+                    case LoadGenSenderType.DefaultSender:
+                    default:
+                        sender = new DefaultMessageSender(Logger, moduleClient, batchId, Settings.Current.TrackingId);
+                        break;
                 }
+
+                DateTime testStartAt = DateTime.UtcNow;
+                await sender.RunAsync(cts, testStartAt);
 
                 Logger.LogInformation("Finish sending messages.");
                 await cts.Token.WhenCanceled();
@@ -93,29 +70,6 @@ namespace LoadGen
             }
 
             Logger.LogInformation("Load Gen complete. Exiting.");
-        }
-
-        static async Task SendEventAsync(ModuleClient client, Guid batchId, string trackingId, long messageId)
-        {
-            var random = new Random();
-            var bufferPool = new BufferPool();
-
-            using (Buffer data = bufferPool.AllocBuffer(Settings.Current.MessageSizeInBytes))
-            {
-                // generate some bytes
-                random.NextBytes(data.Data);
-
-                // build message
-                var messageBody = new { data = data.Data };
-                var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
-                message.Properties.Add(TestConstants.Message.SequenceNumberPropertyName, messageId.ToString());
-                message.Properties.Add(TestConstants.Message.BatchIdPropertyName, batchId.ToString());
-                message.Properties.Add(TestConstants.Message.TrackingIdPropertyName, trackingId);
-
-                // sending the result via edgeHub
-                await client.SendEventAsync(Settings.Current.OutputName, message);
-                Logger.LogInformation($"Sent message successfully: sequenceNumber={messageId}");
-            }
         }
     }
 }
