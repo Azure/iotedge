@@ -1,21 +1,21 @@
+use std::convert::From;
+use std::ops::Mul;
+use std::path::Path;
+use std::str::FromStr;
+use std::time::Duration;
+
 use config::{Config, ConfigError, File, FileFormat};
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde::{Deserialize, Deserializer};
-use std::path::Path;
-use std::time::Duration;
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum QueueFullAction {
-    #[serde(rename(deserialize = "drop_new"))]
     DropNew,
-
-    #[serde(rename(deserialize = "drop_old"))]
     DropOld,
-
-    #[serde(rename(deserialize = "disconnect"))]
     Disconnect,
 }
 
@@ -27,7 +27,6 @@ pub struct InflightMessages {
 #[derive(Debug, Deserialize)]
 pub struct RetainedMessages {
     max_count: u32,
-
     #[serde(with = "humantime_serde")]
     expiration: Duration,
 }
@@ -36,19 +35,15 @@ pub struct RetainedMessages {
 pub struct SessionMessages {
     #[serde(deserialize_with = "humansize")]
     max_message_size: u64,
-
     max_count: u32,
-
     #[serde(deserialize_with = "humansize")]
     max_total_space: u64,
-
     when_full: QueueFullAction,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SessionPersistence {
     file_path: String,
-
     #[serde(with = "humantime_serde")]
     time_interval: Duration,
     unsaved_message_count: u32,
@@ -71,7 +66,7 @@ pub struct BrokerConfig {
 
 pub fn humansize<'de, T, D>(deserializer: D) -> Result<T, D::Error>
 where
-    T: std::str::FromStr + std::ops::Mul<Output = T> + std::convert::From<u32>,
+    T: FromStr + Mul<Output = T> + From<u32>,
     D: Deserializer<'de>,
 {
     lazy_static! {
@@ -96,7 +91,7 @@ where
 
 fn get_multiplier<'de, T, D>(str: &str) -> Result<T, D::Error>
 where
-    T: std::convert::From<u32>,
+    T: From<u32>,
     D: Deserializer<'de>,
 {
     let result = match str {
