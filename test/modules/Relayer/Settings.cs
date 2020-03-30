@@ -77,6 +77,7 @@ namespace Relayer
                 { nameof(this.ModuleId), this.ModuleId },
                 { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) },
                 { nameof(this.TestResultCoordinatorUrl), this.TestResultCoordinatorUrl.ToString() },
+                { nameof(this.ReceiveOnly), this.ReceiveOnly.ToString() }
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";

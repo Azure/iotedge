@@ -110,8 +110,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 });
 
             deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token, false);
-
-            // Wait for relayer to spin up, receive messages, and pass along results to TRC
             await this.PollUntilFinishedAsync(relayerModuleName, token);
 
             HttpClient client = new HttpClient();
