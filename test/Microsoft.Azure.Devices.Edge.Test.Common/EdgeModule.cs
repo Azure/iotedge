@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
+    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using Serilog;
 
@@ -159,6 +160,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     .Cast<JContainer>()
                     .DescendantsAndSelf()
                     .OfType<JValue>()
+                    .Select(
+                        v =>
+                        {
+                            if (v.Path.EndsWith("settings.createOptions"))
+                            {
+                                // normalize JSON inside "createOptions"
+                                v.Value = JObject.Parse((string)v.Value).ToString(Formatting.None);
+                            }
+
+                            return v;
+                        })
                     .ToDictionary(v => v.Path.Substring(rootPath.Length).TrimStart('.'));
             }
 
