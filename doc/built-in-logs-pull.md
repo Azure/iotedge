@@ -142,7 +142,7 @@ The status of upload logs request can be queried using the `correlationId` retur
 ```
 { 
   "schemaVersion": "1.0", 
-  "correlationId": "<GUID>” 
+  "correlationId": "<GUID>" 
 } 
 ```
 
@@ -152,3 +152,9 @@ The status of upload logs request can be queried using the `correlationId` retur
 | correlationId | string   | `correlationId` GUID from the `UploadLogs` direct method response. |
 
 The response is in the same format as `UploadLogs`.
+
+## GetLogs
+
+>Available in release 1.0.9
+
+This method accepts a JSON payload very similar to **UploadLogs** except it doesn't have the "sasUrl" key since the matching logs are returned inline in the response of the direct method. The logs content is truncated to the response size limit of direct methods which is currently 4KB.

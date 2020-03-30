@@ -140,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     Metrics.MessageProcessingLatency(this.clientId, inputMessage);
                     await this.client.SendEventAsync(message);
                     Events.SendMessage(this);
-                    Metrics.AddSentMessages(this.clientId, 1, inputMessage.GetOutput());
+                    Metrics.AddSentMessages(this.clientId, 1, inputMessage.GetOutput(), inputMessage.ProcessedPriority);
                 }
             }
             catch (Exception ex)
@@ -164,13 +164,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 })
                 .ToList();
             this.timer.Reset();
+
             try
             {
                 using (Metrics.TimeMessageSend(this.clientId))
                 {
                     await this.client.SendEventBatchAsync(messages);
                     Events.SendMessage(this);
-                    Metrics.AddSentMessages(this.clientId, messages.Count, metricOutputRoute);
+
+                    if (messages.Count > 0)
+                    {
+                        // Priority for messages in any given batch is the same, so we can
+                        // just use the priority from the first message in the collection
+                        Metrics.AddSentMessages(this.clientId, messages.Count, metricOutputRoute, inputMessages.First().ProcessedPriority);
+                    }
                 }
             }
             catch (Exception ex)
@@ -621,7 +628,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             static readonly IMetricsCounter SentMessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "messages_sent",
                 "Messages sent from edge hub",
-                new List<string> { "from", "to", "from_route_output", "to_route_input" });
+                new List<string> { "from", "to", "from_route_output", "to_route_input", "priority" });
 
             static readonly IMetricsTimer GetTwinTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "gettwin_duration_seconds",
@@ -651,11 +658,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             static readonly IMetricsDuration MessagesProcessLatency = Util.Metrics.Metrics.Instance.CreateDuration(
                 "message_process_duration",
                 "Time taken to process message in EdgeHub",
-                new List<string> { "from", "to" });
+                new List<string> { "from", "to", "priority" });
 
             public static IDisposable TimeMessageSend(string id) => MessagesTimer.GetTimer(new[] { id, "upstream" });
 
-            public static void AddSentMessages(string id, int count, string fromRoute) => SentMessagesCounter.Increment(count, new[] { id, "upstream", fromRoute, string.Empty });
+            public static void AddSentMessages(string id, int count, string fromRoute, uint priority) =>
+                SentMessagesCounter.Increment(count, new[] { id, "upstream", fromRoute, string.Empty, priority.ToString() });
 
             public static IDisposable TimeGetTwin(string id) => GetTwinTimer.GetTimer(new[] { "upstream", id });
 
@@ -674,9 +682,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     && DateTime.TryParse(enqueuedTimeString, out DateTime enqueuedTime))
                 {
                     TimeSpan duration = DateTime.UtcNow - enqueuedTime.ToUniversalTime();
+                    string priority = message.ProcessedPriority.ToString();
                     MessagesProcessLatency.Set(
                         duration.TotalSeconds,
-                        new[] { id, "upstream" });
+                        new[] { id, "upstream", priority });
                 }
             }
         }
