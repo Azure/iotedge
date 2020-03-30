@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common.WorkloadTestServer
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddMvc(options => options.EnableEndpointRouting = false);
+            services.AddRazorPages();
             services.AddSingleton<IController, WorkloadTestImplementation>();
         }
 
@@ -32,7 +32,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common.WorkloadTestServer
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseMvc();
+            app.UseRouting();
+
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+            });
         }
     }
 }
