@@ -307,7 +307,7 @@ where
 
         state
             .zip_writer
-            .write(&output)
+            .write_all(&output)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         state.print_verbose("Got logs for iotedged");
@@ -365,7 +365,7 @@ where
 
         state
             .zip_writer
-            .write(&output)
+            .write_all(&output)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         state.print_verbose("Got logs for docker");
@@ -396,7 +396,7 @@ where
 
         state
             .zip_writer
-            .write(&check.stdout)
+            .write_all(&check.stdout)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         state.print_verbose("Wrote check output to file");
@@ -450,7 +450,7 @@ where
 
         state
             .zip_writer
-            .write(&output)
+            .write_all(&output)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         state.print_verbose(&format!("Got docker inspect for {}", module_name));
@@ -540,7 +540,7 @@ where
 
         state
             .zip_writer
-            .write(&output)
+            .write_all(&output)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         state.print_verbose(&format!("Got docker network inspect for {}", network_name));

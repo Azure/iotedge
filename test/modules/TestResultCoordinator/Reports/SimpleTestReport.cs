@@ -12,11 +12,12 @@ namespace TestResultCoordinator.Reports
     class SimpleTestReport : TestResultReportBase
     {
         public SimpleTestReport(
+            string testDescription,
             string trackingId,
             string source,
             string resultType,
             IReadOnlyList<TestOperationResult> testResults)
-            : base(trackingId, resultType)
+            : base(testDescription, trackingId, resultType)
         {
             this.Source = Preconditions.CheckNonWhiteSpace(source, nameof(source));
             this.Results = Preconditions.CheckNotNull(testResults, nameof(testResults));

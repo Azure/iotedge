@@ -11,10 +11,13 @@ namespace Modules.Test.TestResultCoordinator.Reports
     [Unit]
     public class CountingReportTest
     {
+        static readonly string TestDescription = "dummy description";
+
         [Fact]
         public void TestConstructorSuccess()
         {
             var report = new CountingReport(
+                TestDescription,
                 "trackingId123",
                 "expectedSource",
                 "actualSource",
@@ -28,6 +31,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     new TestOperationResult("expectedSource", "resultType1", "734", new DateTime(2019, 12, 4, 10, 15, 18)),
                 });
 
+            Assert.Equal(TestDescription, report.TestDescription);
             Assert.Equal("trackingId123", report.TrackingId);
             Assert.Equal("actualSource", report.ActualSource);
             Assert.Equal("expectedSource", report.ExpectedSource);
@@ -50,10 +54,35 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [Theory]
         [InlineData(null)]
         [InlineData("")]
+        public void TestConstructorThrowsWhenTestDescriptionIsNotProvided(string testDescription)
+        {
+            ArgumentException ex = Assert.Throws<ArgumentException>(
+                () => new CountingReport(
+                    testDescription,
+                    "trackingId123",
+                    "expectedSource",
+                    "actualSource",
+                    "resultType1",
+                    945,
+                    923,
+                    33,
+                    new List<TestOperationResult>
+                    {
+                        new TestOperationResult("expectedSource", "resultType1", "332", new DateTime(2019, 12, 4, 10, 15, 15)),
+                        new TestOperationResult("expectedSource", "resultType1", "734", new DateTime(2019, 12, 4, 10, 15, 18)),
+                    }));
+
+            Assert.StartsWith("testDescription", ex.Message);
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
         public void TestConstructorThrowsWhenTrackingIdIsNotProvided(string trackingId)
         {
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReport(
+                    TestDescription,
                     trackingId,
                     "expectedSource",
                     "actualSource",
@@ -77,6 +106,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
         {
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReport(
+                    TestDescription,
                     "trackingId-23434",
                     expectedSource,
                     "actualSource",
@@ -100,6 +130,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
         {
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReport(
+                    TestDescription,
                     "trackingId-23434",
                     "expectedSource",
                     actualSource,
@@ -123,6 +154,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
         {
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReport(
+                    TestDescription,
                     "trackingId-23434",
                     "expectedSource",
                     "actualSource",

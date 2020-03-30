@@ -4,9 +4,15 @@ namespace TestResultCoordinator.Reports
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    class CountingReportMetadata : ITestReportMetadata
+    class CountingReportMetadata : TestReportMetadataBase, ITestReportMetadata
     {
-        public CountingReportMetadata(string expectedSource, string actualSource, TestOperationResultType testOperationResultType, TestReportType testReportType)
+        public CountingReportMetadata(
+            string testDescription,
+            string expectedSource,
+            string actualSource,
+            TestOperationResultType testOperationResultType,
+            TestReportType testReportType)
+            : base(testDescription)
         {
             this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
             this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
@@ -18,15 +24,15 @@ namespace TestResultCoordinator.Reports
 
         public string ActualSource { get; }
 
-        public TestOperationResultType TestOperationResultType { get; }
+        public override TestOperationResultType TestOperationResultType { get; }
 
-        public TestReportType TestReportType { get; }
+        public override TestReportType TestReportType { get; }
 
         public string[] ResultSources => new string[] { this.ExpectedSource, this.ActualSource };
 
         public override string ToString()
         {
-            return $"ExpectedSource: {this.ExpectedSource}, ActualSource: {this.ActualSource}, TestOperationResultType: {this.TestOperationResultType.ToString()}, ReportType: {this.TestReportType.ToString()}";
+            return $"{base.ToString()}, ExpectedSource: {this.ExpectedSource}, ActualSource: {this.ActualSource}";
         }
     }
 }

@@ -19,16 +19,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public Option<V1PodSecurityContext> SecurityContext { get; }
 
+        public Option<V1DeploymentStrategy> DeploymentStrategy { get; }
+
         KubernetesExperimentalCreatePodParameters(
             Option<IDictionary<string, string>> nodeSelector,
             Option<V1ResourceRequirements> resources,
             Option<IReadOnlyList<KubernetesModuleVolumeSpec>> volumes,
-            Option<V1PodSecurityContext> securityContext)
+            Option<V1PodSecurityContext> securityContext,
+            Option<V1DeploymentStrategy> deploymentStrategy)
         {
             this.NodeSelector = nodeSelector;
             this.Resources = resources;
             this.Volumes = volumes;
             this.SecurityContext = securityContext;
+            this.DeploymentStrategy = deploymentStrategy;
         }
 
         static class ExperimentalParameterNames
@@ -38,6 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             public const string Resources = "Resources";
             public const string Volumes = "Volumes";
             public const string SecurityContext = "SecurityContext";
+            public const string DeploymentStrategy = "Strategy";
         }
 
         public static Option<KubernetesExperimentalCreatePodParameters> Parse(IDictionary<string, JToken> other)
@@ -69,7 +74,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             var securityContext = options.Get(ExperimentalParameterNames.SecurityContext)
                 .FlatMap(option => Option.Maybe(option.ToObject<V1PodSecurityContext>()));
 
-            return new KubernetesExperimentalCreatePodParameters(nodeSelector, resources, volumes, securityContext);
+            var deploymentStrategy = options.Get(ExperimentalParameterNames.DeploymentStrategy)
+                .FlatMap(option => Option.Maybe(option.ToObject<V1DeploymentStrategy>()));
+
+            return new KubernetesExperimentalCreatePodParameters(nodeSelector, resources, volumes, securityContext, deploymentStrategy);
         }
 
         static Dictionary<string, JToken> PrepareSupportedOptionsStore(JObject experimental)
@@ -94,7 +102,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             ExperimentalParameterNames.NodeSelector,
             ExperimentalParameterNames.Resources,
             ExperimentalParameterNames.Volumes,
-            ExperimentalParameterNames.SecurityContext
+            ExperimentalParameterNames.SecurityContext,
+            ExperimentalParameterNames.DeploymentStrategy
         };
 
         static class Events

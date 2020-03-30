@@ -22,9 +22,6 @@ pub enum ErrorKind {
     #[fail(display = "Invalid module name {:?}", _0)]
     InvalidModuleName(String),
 
-    #[fail(display = "Invalid DNS name {:?}", _0)]
-    InvalidDnsName(String),
-
     #[fail(display = "Device Id was not found")]
     MissingDeviceId,
 

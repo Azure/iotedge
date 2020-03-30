@@ -30,6 +30,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 new object[] { Enumerable.Range(1, 7).Select(v => GetFormattedDeploymentTestResult("expectedSource", v)), new int[] { 1, 2, 3, 5 }.Select(v => GetFormattedDeploymentTestResult("actualSource", v)), 10, 7, 4, 5, 2, GetDeploymentTestResult("actualSource", 5) },
                 new object[] { Enumerable.Range(1, 7).Select(v => GetFormattedDeploymentTestResult("expectedSource", v)), new int[] { 2, 3, 5 }.Select(v => GetFormattedDeploymentTestResult("actualSource", v)), 10, 7, 3, 5, 2, GetDeploymentTestResult("actualSource", 5) },
             };
+        static readonly string TestDescription = "dummy description";
 
         [Fact]
         public void TestConstructorSuccess()
@@ -44,18 +45,40 @@ namespace Modules.Test.TestResultCoordinator.Reports
             var actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
 
             var reportGenerator = new DeploymentTestReportGenerator(
+                TestDescription,
                 Guid.NewGuid().ToString(),
                 expectedSource,
                 expectedResults,
                 actualSource,
                 actualResults);
 
+            Assert.Equal(TestDescription, reportGenerator.TestDescription);
             Assert.Equal(actualSource, reportGenerator.ActualSource);
             Assert.Equal(actualResults, reportGenerator.ActualTestResults);
             Assert.Equal(expectedSource, reportGenerator.ExpectedSource);
             Assert.Equal(expectedResults, reportGenerator.ExpectedTestResults);
             Assert.Equal(TestOperationResultType.Deployment.ToString(), reportGenerator.ResultType);
             Assert.Equal(typeof(DeploymentTestResultComparer), reportGenerator.TestResultComparer.GetType());
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        public void TestConstructorThrowsWhenTestDescriptionIsNotProvided(string testDescription)
+        {
+            var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockActualStore = new Mock<ITestResultCollection<TestOperationResult>>();
+
+            ArgumentException ex = Assert.Throws<ArgumentException>(
+                () => new DeploymentTestReportGenerator(
+                    testDescription,
+                    Guid.NewGuid().ToString(),
+                    "expectedSource",
+                    mockExpectedResults.Object,
+                    "actualSource",
+                    mockActualStore.Object));
+
+            Assert.StartsWith("testDescription", ex.Message);
         }
 
         [Theory]
@@ -68,6 +91,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DeploymentTestReportGenerator(
+                    TestDescription,
                     trackingId,
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -87,6 +111,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DeploymentTestReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     expectedSource,
                     mockExpectedResults.Object,
@@ -103,6 +128,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new DeploymentTestReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     null,
@@ -122,6 +148,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DeploymentTestReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -138,6 +165,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new DeploymentTestReportGenerator(
+                    TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -160,6 +188,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
             var actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
 
             var reportGenerator = new DeploymentTestReportGenerator(
+                TestDescription,
                 Guid.NewGuid().ToString(),
                 expectedSource,
                 expectedResults,
@@ -197,6 +226,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             string trackingId = Guid.NewGuid().ToString();
             var reportGenerator = new DeploymentTestReportGenerator(
+                TestDescription,
                 trackingId,
                 expectedSource,
                 expectedResults,

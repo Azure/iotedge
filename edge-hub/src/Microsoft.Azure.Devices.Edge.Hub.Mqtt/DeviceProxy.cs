@@ -164,7 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             static readonly IMetricsCounter SentMessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "messages_sent",
                 "Messages sent from edge hub",
-                new List<string> { "from", "to", "from_route_output", "to_route_input" });
+                new List<string> { "from", "to", "from_route_output", "to_route_input", "priority" });
 
             public static void AddSentMessage(IIdentity identity, IMessage message)
             {
@@ -173,7 +173,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
                 string fromRouteOutput = message.GetOutput();
                 string toRouteInput = message.GetInput();
-                SentMessagesCounter.Increment(1, new[] { from, to, fromRouteOutput, toRouteInput });
+                string priority = message.ProcessedPriority.ToString();
+                SentMessagesCounter.Increment(1, new[] { from, to, fromRouteOutput, toRouteInput, priority });
             }
         }
     }

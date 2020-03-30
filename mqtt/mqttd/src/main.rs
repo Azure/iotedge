@@ -7,10 +7,10 @@ use tokio::time::{Duration, Instant};
 use tracing::{info, warn, Level};
 use tracing_subscriber::{fmt, EnvFilter};
 
-use mqttd::{shutdown, snapshot};
+use mqttd::{shutdown, snapshot, Terminate};
 
 #[tokio::main]
-async fn main() -> Result<(), Error> {
+async fn main() -> Result<(), Terminate> {
     let subscriber = fmt::Subscriber::builder()
         .with_ansi(atty::is(atty::Stream::Stderr))
         .with_max_level(Level::TRACE)
@@ -44,7 +44,11 @@ async fn main() -> Result<(), Error> {
     );
     info!("Loading state...");
     let state = persistor.load().await?.unwrap_or_else(BrokerState::default);
-    let broker = Broker::from_state(state);
+    let broker = BrokerBuilder::default()
+        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+        .authorizer(|_| Ok(false))
+        .state(state)
+        .build();
     info!("state loaded.");
 
     let snapshotter = Snapshotter::new(persistor);
