@@ -112,8 +112,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
             HttpClient client = new HttpClient();
             HttpResponseMessage response = await client.GetAsync("http://localhost:5001/api/report");
             var jsonstring = await response.Content.ReadAsStringAsync();
-            Log.Verbose("Test Result Coordinator response: {Response}", jsonstring);
             bool isPassed = (bool)JArray.Parse(jsonstring)[0]["IsPassed"];
+            if (!isPassed)
+            {
+                Log.Verbose("Test Result Coordinator response: {Response}", jsonstring);
+            }
+
             Assert.IsTrue(isPassed);
         }
 
