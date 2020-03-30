@@ -19,7 +19,8 @@ namespace Relayer
             string outputName,
             Uri testResultCoordinatorUrl,
             string moduleId,
-            bool receiveOnly)
+            bool receiveOnly,
+            Option<string> uniqueResultsExpected)
         {
             this.InputName = Preconditions.CheckNonWhiteSpace(inputName, nameof(inputName));
             this.OutputName = Preconditions.CheckNonWhiteSpace(outputName, nameof(outputName));
@@ -27,6 +28,7 @@ namespace Relayer
             this.TestResultCoordinatorUrl = Preconditions.CheckNotNull(testResultCoordinatorUrl, nameof(testResultCoordinatorUrl));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.ReceiveOnly = receiveOnly;
+            this.UniqueResultsExpected = uniqueResultsExpected;
         }
 
         static Settings Create()
@@ -37,13 +39,18 @@ namespace Relayer
                 .AddEnvironmentVariables()
                 .Build();
 
+            string uniqueResultsExpected = string.IsNullOrWhiteSpace(configuration.GetValue<string>("uniqueResultsExpected"))
+                ? null
+                : configuration.GetValue<string>("uniqueResultsExpected");
+
             return new Settings(
                 configuration.GetValue("transportType", TransportType.Amqp_Tcp_Only),
                 configuration.GetValue("inputName", "input1"),
                 configuration.GetValue("outputName", "output1"),
                 configuration.GetValue<Uri>("testResultCoordinatorUrl", new Uri("http://testresultcoordinator:5001")),
                 configuration.GetValue<string>("IOTEDGE_MODULEID"),
-                configuration.GetValue<bool>("receiveOnly", false));
+                configuration.GetValue<bool>("receiveOnly", false),
+                Option.Maybe(uniqueResultsExpected));
         }
 
         public TransportType TransportType { get; }
@@ -57,6 +64,8 @@ namespace Relayer
         public string ModuleId { get; }
 
         public bool ReceiveOnly { get; }
+
+        public Option<string> UniqueResultsExpected { get; }
 
         public override string ToString()
         {
