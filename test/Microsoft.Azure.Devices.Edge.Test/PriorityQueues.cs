@@ -14,7 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
     using Newtonsoft.Json.Linq;
     using NUnit.Framework;
-    using Serilog;
 
     [EndToEnd]
     public class PriorityQueues : SasManualProvisioningFixture
@@ -36,7 +35,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string routeTemplate = $"FROM /messages/modules/{loadGenModuleName}/outputs/pri{0} INTO BrokeredEndpoint('/modules/{relayerModuleName}/inputs/input1')";
 
             string trackingId = Guid.NewGuid().ToString();
-            string priorityString = this.BuildPriorityString(5);
 
             Action<EdgeConfigBuilder> addInitialConfig = new Action<EdgeConfigBuilder>(
                 builder =>
@@ -77,6 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                            }
                        });
 
+                    string priorityString = this.BuildPriorityString(5);
                     builder.AddModule(loadGenModuleName, loadGenImage)
                         .WithEnvironment(new[]
                         {
@@ -104,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         .WithEnvironment(new[] { ("receiveOnly", "true") });
                 });
 
-            deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token, stageSystemModules: false);
+            deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token);
 
             // Wait for relayer to spin up, receive messages, and pass along results to TRC
             await Task.Delay(TimeSpan.FromSeconds(30));
@@ -113,11 +112,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             HttpResponseMessage response = await client.GetAsync("http://localhost:5001/api/report");
             var jsonstring = await response.Content.ReadAsStringAsync();
             bool isPassed = (bool)JArray.Parse(jsonstring)[0]["IsPassed"];
-            if (!isPassed)
-            {
-                Log.Verbose("Test Result Coordinator response: {Response}", jsonstring);
-            }
-
             Assert.IsTrue(isPassed);
         }
 
