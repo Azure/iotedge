@@ -53,8 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             },
                             device,
                             startTime,
-                            token
-                        );
+                            token);
                     }
                 },
                 "Completed edge manual provisioning with SAS token");
