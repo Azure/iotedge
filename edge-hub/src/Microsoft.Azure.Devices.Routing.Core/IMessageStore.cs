@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Routing.Core
 {
     using System;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Util;
 
     /// <summary>
     /// Provides functionality to store messages

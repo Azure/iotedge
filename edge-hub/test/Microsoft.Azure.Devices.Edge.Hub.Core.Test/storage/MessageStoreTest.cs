@@ -354,7 +354,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
                     else
                     {
                         IMessage input = this.GetMessage(i);
-                        IMessage updatedMessage = await messageStore.Add("module2", input, 2000);
+                        IMessage updatedMessage = await messageStore.Add("module2", input, 50);
                         CompareUpdatedMessageWithOffset(input, 100 + i / 2, updatedMessage);
                     }
                 }
@@ -375,7 +375,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
 
                 module2Iterator = messageStore.GetMessageIterator("module2", 100);
                 batch = await module2Iterator.GetNext(100);
-                Assert.Equal(100, batch.Count());
+                Assert.Empty(batch);
             }
         }
 
