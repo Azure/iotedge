@@ -562,6 +562,35 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         [Fact]
+        public void LeavesStrategyEmptyWhenNotProvided()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.Some(new AuthConfig("user-registry1")));
+            var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            Assert.Null(deployment.Spec.Strategy);
+        }
+
+        [Fact]
+        public void ApplyDeploymentStrategyWhenProvided()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var deploymentStrategy = new V1DeploymentStrategy { Type = "Recreate" };
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(deploymentStrategy: deploymentStrategy), Option.Some(new AuthConfig("user-registry1")));
+            var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            Assert.Equal("Recreate", deployment.Spec.Strategy.Type);
+        }
+
+        [Fact]
         public void NoCmdOptionsNoContainerArgs()
         {
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
