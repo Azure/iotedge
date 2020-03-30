@@ -165,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         {
                             if (v.Path.EndsWith("settings.createOptions"))
                             {
-                                // normalize JSON inside "createOptions"
+                                // normalize stringized JSON inside "createOptions"
                                 v.Value = JObject.Parse((string)v.Value).ToString(Formatting.None);
                             }
 
