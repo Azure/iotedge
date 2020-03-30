@@ -281,8 +281,8 @@ where
          let inspect = ShellCommand::new("powershell.exe")
             .arg("-NoProfile")
             .arg("-Command")
-            .arg(&format!(r"Get-WinEvent -ea SilentlyContinue -FilterHashtable |
-                                @{{ProviderName='iotedged';LogName='application';StartTime=$([Xml.XmlConvert]::ToDateTime({}))}} |
+            .arg(&format!(r"$start=[Xml.XmlConvert]::ToDateTime('{}');
+                            Get-WinEvent -ea SilentlyContinue -FilterHashtable @{{ProviderName='iotedged';LogName='application';StartTime=$start}} |
                             Select TimeCreated, Message |
                             Sort-Object @{{Expression='TimeCreated';Descending=$false}} |
                             Format-List", since_time.to_rfc3339()))
