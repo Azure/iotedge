@@ -231,37 +231,13 @@ mod tests {
 
     proptest! {
         #[test]
-        fn it_parses_valid_input(p in (r"\s*",             // leading spaces if any
-                                       any::<u64>(),       // the numeric value
-                                       r"\s*",             // spaces between the number and unit
-                                       r"(k|K|m|M|g|G)?(b|B)", // the unit
-                                       r"\s*")             // trailing spaces if any
-                                    .prop_map(|(lead, num, sep, unit, trail)| get_input_and_expected(&lead, num, &sep, &unit, &trail))) {
-            let (input, expected) = p;
+        fn it_parses_valid_input(lead in r"\s*",
+                                 num in any::<u64>(),
+                                 sep in r"\s*",
+                                 unit in r"(k|K|m|M|g|G)?(b|B)",
+                                 trail in r"\s*") {
+            let (input, expected) = get_input_and_expected(&lead, num, &sep, &unit, &trail);
             parse_size_valid(&input, expected);
-        }
-    }
-
-    // as the number will be multiplied by a unit, there is a maximum
-    // number for every unit that still can fit in u64
-    fn max_num_for_unit(num: u64, unit: &str) -> u64 {
-        match unit.to_lowercase().chars().nth(0) {
-            Some('k') => num % 0x3F_FFFF_FFFF_FFFF,
-            Some('m') => num % 0xFFF_FFFF_FFFF,
-            Some('g') => num % 0x3_FFFF_FFFF,
-            Some('b') => num,
-            _ => panic!("unknown unit generated"),
-        }
-    }
-
-    fn expected_result_for_number_and_unit(num: u64, unit: &str) -> u64 {
-        let num = max_num_for_unit(num, &unit);
-        match unit.to_lowercase().chars().nth(0) {
-            Some('k') => num << 10,
-            Some('m') => num << 20,
-            Some('g') => num << 30,
-            Some('b') => num,
-            _ => panic!("unknown unit generated"),
         }
     }
 
@@ -283,6 +259,29 @@ mod tests {
             .concat(),
             expected_result_for_number_and_unit(num, &unit),
         )
+    }
+
+    fn expected_result_for_number_and_unit(num: u64, unit: &str) -> u64 {
+        let num = max_num_for_unit(num, &unit);
+        match unit.to_lowercase().chars().nth(0) {
+            Some('k') => num << 10,
+            Some('m') => num << 20,
+            Some('g') => num << 30,
+            Some('b') => num,
+            _ => panic!("unknown unit generated"),
+        }
+    }
+
+    // as the number will be multiplied by a unit, there is a maximum
+    // number for every unit that still can fit in u64
+    fn max_num_for_unit(num: u64, unit: &str) -> u64 {
+        match unit.to_lowercase().chars().nth(0) {
+            Some('k') => num % 0x3F_FFFF_FFFF_FFFF,
+            Some('m') => num % 0xFFF_FFFF_FFFF,
+            Some('g') => num % 0x3_FFFF_FFFF,
+            Some('b') => num,
+            _ => panic!("unknown unit generated"),
+        }
     }
 
     fn parse_size_anything(input: &str) {
