@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         protected readonly IEdgeDaemon daemon;
         protected readonly IotHub iotHub;
 
-        public ManualProvisioningFixture(string deviceIdSuffix = "")
+        public ManualProvisioningFixture()
         {
             this.daemon = OsPlatform.Current.CreateEdgeDaemon(Context.Current.InstallerPath);
             this.iotHub = new IotHub(
