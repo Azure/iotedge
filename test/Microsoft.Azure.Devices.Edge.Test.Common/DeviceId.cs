@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 throw new InvalidOperationException("Device ID counter exceeded 3 digits.");
             }
 
-            return $"{this.BaseId}-{++this.count:d3}";
+            return $"{this.BaseId}-{this.count:d3}";
         }
     }
 }
