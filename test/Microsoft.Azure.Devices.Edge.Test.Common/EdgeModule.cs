@@ -173,14 +173,27 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             if (!match)
             {
-                IEnumerable<string> missing = referenceValues
-                    .Where(kvp =>
-                        !comparandValues.ContainsKey(kvp.Key) ||
-                        !kvp.Value.Equals(comparandValues[kvp.Key]))
-                    .Select(kvp => kvp.Key);
-                Log.Verbose(
-                    "Expected configuration values missing in agent's reported properties:\n  {MissingValues}",
-                    string.Join("\n  ", missing));
+                string[] missing = referenceValues
+                    .Where(kvp => !comparandValues.ContainsKey(kvp.Key))
+                    .Select(kvp => kvp.Key)
+                    .ToArray();
+                if (missing.Length != 0)
+                {
+                    Log.Verbose(
+                        "Expected configuration values missing in agent's reported properties:\n  {MissingValues}",
+                        string.Join("\n  ", missing));
+                }
+
+                string[] different = referenceValues
+                    .Where(kvp => comparandValues.ContainsKey(kvp.Key) && !kvp.Value.Equals(comparandValues[kvp.Key]))
+                    .Select(kvp => $"{kvp.Key}: '{kvp.Value}' != '{comparandValues[kvp.Key]}'")
+                    .ToArray();
+                if (different.Length != 0)
+                {
+                    Log.Verbose(
+                        "Expected configuration values don't match agent's reported properties:\n  {DifferentValues}",
+                        string.Join("\n  ", missing));
+                }
             }
 
             return match;
