@@ -24,11 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         CancellationToken token = cts.Token;
                         DateTime startTime = DateTime.Now;
 
-                        string deviceId =
-                            $"e2e-{string.Concat(Dns.GetHostName().Take(14)).TrimEnd(new[] { '-' })}-{DateTime.Now:yyMMdd'-'HHmmss'.'fff}";
-
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
-                            deviceId,
+                            DeviceId.Current.Generate(),
                             this.iotHub,
                             AuthenticationType.Sas,
                             null,

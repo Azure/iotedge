@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     {
                         DateTime startTime = DateTime.Now;
                         CancellationToken token = cts.Token;
-                        string deviceId = Context.Current.DeviceId;
+                        string deviceId = this.runtime.DeviceId;
 
                         try
                         {

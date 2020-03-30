@@ -11,21 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
     public class X509ManualProvisioningFixture : ManualProvisioningFixture
     {
-        const string DeviceSuffix = "-x509";
-
         protected EdgeRuntime runtime;
-
-        public X509ManualProvisioningFixture()
-        {
-            this.runtime = new EdgeRuntime(
-                Context.Current.DeviceId + DeviceSuffix,
-                Context.Current.EdgeAgentImage,
-                Context.Current.EdgeHubImage,
-                Context.Current.Proxy,
-                Context.Current.Registries,
-                Context.Current.OptimizeForPerformance,
-                this.iotHub);
-        }
 
         [OneTimeSetUp]
         public async Task X509ProvisionEdgeAsync()
@@ -37,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     {
                         CancellationToken token = cts.Token;
                         DateTime startTime = DateTime.Now;
-                        string deviceId = Context.Current.DeviceId + DeviceSuffix;
+                        string deviceId = DeviceId.Current.Generate();
 
                         (X509Thumbprint thumbprint, IdCertificates certs) = await this.CreateIdentityCertAsync(
                             deviceId, token);
@@ -50,6 +36,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             token);
 
                         Context.Current.DeleteList.TryAdd(device.Id, device);
+
+                        this.runtime = new EdgeRuntime(
+                            device.Id,
+                            Context.Current.EdgeAgentImage,
+                            Context.Current.EdgeHubImage,
+                            Context.Current.Proxy,
+                            Context.Current.Registries,
+                            Context.Current.OptimizeForPerformance,
+                            this.iotHub);
 
                         await this.ConfigureDaemonAsync(
                             config =>
