@@ -36,6 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string routeTemplate = $"FROM /messages/modules/{loadGenModuleName}/outputs/pri{0} INTO BrokeredEndpoint('/modules/{relayerModuleName}/inputs/input1')";
 
             string trackingId = Guid.NewGuid().ToString();
+            string priorityString = this.BuildPriorityString(5);
 
             Action<EdgeConfigBuilder> addInitialConfig = new Action<EdgeConfigBuilder>(
                 builder =>
@@ -76,7 +77,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                            }
                        });
 
-                    string priorityString = this.BuildPriorityString(5);
                     builder.AddModule(loadGenModuleName, loadGenImage)
                         .WithEnvironment(new[]
                         {
