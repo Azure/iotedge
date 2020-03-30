@@ -15,7 +15,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         [SetUp]
         public override Task SasProvisionEdgeAsync()
         {
-            // do nothing; everything happens at [OneTimeSetUp] instead
+            // Do nothing; everything happens at [OneTimeSetUp] instead. We do this to avoid
+            // creating a new device for every permutation of the Transparent Gateway tests.
             return Task.CompletedTask;
         }
 
