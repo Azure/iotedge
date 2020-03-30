@@ -125,12 +125,12 @@ namespace LoadGen
         private async Task SetIsFinishedDirectMethodAsync()
         {
             await this.Client.SetMethodHandlerAsync(
-                "isFinished",
-                async (MethodRequest methodRequest, object _) => await Task.FromResult(this.IsFinished(methodRequest)),
+                "IsFinished",
+                async (MethodRequest methodRequest, object _) => await Task.FromResult(this.IsFinished()),
                 null);
         }
 
-        private MethodResponse IsFinished(MethodRequest methodRequest)
+        private MethodResponse IsFinished()
         {
             string response = JsonConvert.SerializeObject(new PriorityQueueTestStatus(this.isFinished, this.resultsSent));
             return new MethodResponse(Encoding.UTF8.GetBytes(response), (int)HttpStatusCode.OK);

@@ -17,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using NUnit.Framework;
+    using Serilog;
 
     [EndToEnd]
     public class PriorityQueues : SasManualProvisioningFixture
@@ -108,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         });
                 });
 
-            deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token);
+            deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token, false);
 
             // Wait for relayer to spin up, receive messages, and pass along results to TRC
             await this.PollUntilFinishedAsync(relayerModuleName, token);
@@ -117,6 +118,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
             HttpResponseMessage response = await client.GetAsync("http://localhost:5001/api/report");
             var jsonstring = await response.Content.ReadAsStringAsync();
             bool isPassed = (bool)JArray.Parse(jsonstring)[0]["IsPassed"];
+            if (!isPassed)
+            {
+                Log.Verbose("Test Result Coordinator response: {Response}", jsonstring);
+            }
+
             Assert.IsTrue(isPassed);
         }
 

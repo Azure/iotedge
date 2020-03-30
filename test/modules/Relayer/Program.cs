@@ -157,12 +157,12 @@ namespace Relayer
         private static async Task SetIsFinishedDirectMethodAsync(ModuleClient client)
         {
             await client.SetMethodHandlerAsync(
-                "isFinished",
-                async (MethodRequest methodRequest, object _) => await Task.FromResult(IsFinished(methodRequest)),
+                "IsFinished",
+                async (MethodRequest methodRequest, object _) => await Task.FromResult(IsFinished()),
                 null);
         }
 
-        private static MethodResponse IsFinished(MethodRequest methodRequest)
+        private static MethodResponse IsFinished()
         {
             string response = JsonConvert.SerializeObject(new PriorityQueueTestStatus(isFinished, resultsReceived.Count));
             return new MethodResponse(Encoding.UTF8.GetBytes(response), (int)HttpStatusCode.OK);
