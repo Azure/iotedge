@@ -104,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         .WithEnvironment(new[] { ("receiveOnly", "true") });
                 });
 
-            deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token);
+            deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token, stageSystemModules: false);
 
             // Wait for relayer to spin up, receive messages, and pass along results to TRC
             await Task.Delay(TimeSpan.FromSeconds(30));
