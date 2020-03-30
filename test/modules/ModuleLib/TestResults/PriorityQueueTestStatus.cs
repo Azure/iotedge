@@ -2,7 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
 {
     using Microsoft.Azure.Devices.Edge.Util;
-    
+
     public class PriorityQueueTestStatus
     {
         public PriorityQueueTestStatus(bool isFinished, int resultCount)
