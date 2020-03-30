@@ -192,7 +192,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 {
                     Log.Verbose(
                         "Expected configuration values don't match agent's reported properties:\n  {DifferentValues}",
-                        string.Join("\n  ", missing));
+                        string.Join("\n  ", different));
                 }
             }
 
