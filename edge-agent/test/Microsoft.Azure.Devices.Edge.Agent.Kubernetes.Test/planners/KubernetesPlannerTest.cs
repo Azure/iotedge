@@ -330,6 +330,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
             public bool Equals(IModule<string> other) => throw new NotImplementedException();
 
             public string Config { get; }
+
+            public Option<IDictionary<string, string>> ContentTrust { get; }
         }
     }
 }

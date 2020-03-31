@@ -25,7 +25,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             ImagePullPolicy imagePullPolicy,
             uint priority,
             ConfigurationInfo configuration,
-            IDictionary<string, EnvVal> env)
+            IDictionary<string, EnvVal> env,
+            Option<ContentTrust> contentTrust)
             : base(name, version, desiredStatus, restartPolicy, config, imagePullPolicy, priority, configuration, env)
         {
             this.ExitCode = exitCode;

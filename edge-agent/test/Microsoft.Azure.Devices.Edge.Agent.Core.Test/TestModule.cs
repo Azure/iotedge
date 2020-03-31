@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     using System.Collections.Immutable;
     using System.ComponentModel;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
 
     public class TestConfig : IEquatable<TestConfig>
@@ -106,6 +107,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         [JsonProperty("env")]
         public IDictionary<string, EnvVal> Env { get; }
+
+        [JsonProperty("ContentTrust", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonConverter(typeof(OptionConverter<IDictionary<string, string>>))]
+        public Option<IDictionary<string, string>> ContentTrust { get; }
 
         public bool IsOnlyModuleStatusChanged(IModule other) =>
             other is TestModuleBase<TConfig> testModuleBase &&

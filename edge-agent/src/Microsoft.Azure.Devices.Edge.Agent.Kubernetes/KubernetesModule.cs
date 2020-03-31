@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
 
     public class KubernetesModule : IModule<KubernetesConfig>
@@ -93,6 +94,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public virtual bool Equals(IModule other) => this.Equals(other as KubernetesModule);
 
         public bool Equals(IModule<KubernetesConfig> other) => this.Equals(other as KubernetesModule);
+
+        [JsonProperty(PropertyName = "ContentTrust", Required = Required.AllowNull)]
+        Option<ContentTrust> ContentTrust { get; }
 
         public static string PvcName(KubernetesModule module, Mount mount)
         {

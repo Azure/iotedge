@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
     public class UnknownModule : IModule
@@ -32,6 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public bool IsOnlyModuleStatusChanged(IModule other) => other is UnknownModule;
 
         public bool Equals(IModule other) => other != null && ReferenceEquals(this, other);
+
+        public Option<ContentTrust> ContentTrust { get; }
     }
 
     public class UnknownEdgeHubModule : UnknownModule, IEdgeHubModule

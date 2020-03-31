@@ -3,8 +3,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System;
     using System.Collections.Generic;
-    using System.ComponentModel;
     using System.Runtime.Serialization;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
 
@@ -122,6 +123,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         IDictionary<string, EnvVal> Env { get; }
 
         bool IsOnlyModuleStatusChanged(IModule other);
+
+        [JsonProperty(PropertyName = "ContentTrust", Required = Required.AllowNull)]
+        Option<ContentTrust> ContentTrust { get; }
     }
 
     public interface IModule<TConfig> : IModule, IEquatable<IModule<TConfig>>
