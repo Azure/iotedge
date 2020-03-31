@@ -1,5 +1,10 @@
 # Broker Persistance
-The broker's persistance strategy is modeled after mosquitto's. It saves the entire state to one compressed file. File saving is triggered by a configurable timer and on shutdown.
+The broker's persistance strategy is simple. It has 3 triggers: 
+* Configurable Timer
+* Shutdown
+* User triggered event ([SIGUSR1](http://man7.org/linux/man-pages/man7/signal.7.html))
+
+Whenever persistance is triggered, the entire state is saved to a single file as described below.
 
 ## Requirements
 * Minimize space used on disk
@@ -8,7 +13,7 @@ The broker's persistance strategy is modeled after mosquitto's. It saves the ent
 
 ## Stratagy
 ### Persist
-The broker first consolidates all payloads in to a hashmap, replacing the paload with a referance id in the state. This removes duplicate payloads that are created when 2 or more devices are subscribed to the same topic. This new structure is then converted to a binary stream. This stream is passed to the GZip algorythm and the resulting compressed binary is written directly to disk. This file is called a snapshot.
+The broker first consolidates all payloads in to a hashmap, replacing the paload with a referance id in the state. This removes duplicate payloads that are created when two or more devices are subscribed to the same topic. This new structure is then converted to a binary stream. This stream is passed to the GZip algorythm and the resulting compressed binary is written directly to disk. This file is called a snapshot.
 ![InMemory](./images/InMemoryPersistance.png)
 
 ![OnDisk](./images/OnDiskPersistance.png)
