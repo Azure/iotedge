@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var mqttSettingsConfiguration = new Mock<IConfiguration>();
             mqttSettingsConfiguration.Setup(c => c.GetSection(It.IsAny<string>())).Returns(Mock.Of<IConfigurationSection>(s => s.Value == null));
 
-            var experimentalFeatures = new ExperimentalFeatures(true, false, false, true);
+            var experimentalFeatures = new ExperimentalFeatures(true, false, false);
 
             builder.RegisterBuildCallback(
                 c =>
@@ -105,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 });
 
             var versionInfo = new VersionInfo("v1", "b1", "c1");
-            var metricsConfig = new MetricsConfig(true, new MetricsListenerConfig());
+            var metricsConfig = new MetricsConfig(mqttSettingsConfiguration.Object);
             var backupFolder = Option.None<string>();
 
             string storageFolder = string.Empty;
