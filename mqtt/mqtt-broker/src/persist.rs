@@ -162,15 +162,15 @@ impl FileFormat for ConsolidatedStateFormat {
         fail_point!("bincodeformat.load.deserialize_from", |_| {
             Err(Error::from(ErrorKind::Persist(ErrorReason::Deserialize)))
         });
-        let state = bincode::deserialize_from(decoder)
+        let state: ConsolidatedState = bincode::deserialize_from(decoder)
             .context(ErrorKind::Persist(ErrorReason::Deserialize))?;
 
-        let state = Resolver::resolve_state(state);
+        let state: BrokerState = state.into();
         Ok(state)
     }
 
     fn store<W: Write>(&self, writer: W, state: BrokerState) -> Result<(), Self::Error> {
-        let state = Consolidator::consolidate_state(state);
+        let state: ConsolidatedState = state.into();
 
         let encoder = GzEncoder::new(writer, Compression::default());
         fail_point!("bincodeformat.store.serialize_into", |_| {
@@ -182,32 +182,53 @@ impl FileFormat for ConsolidatedStateFormat {
     }
 }
 
-struct Consolidator {
-    payloads: HashMap<Bytes, u64>,
-    curr_id: u64,
-}
-
-impl Consolidator {
-    fn consolidate_state(state: BrokerState) -> ConsolidatedState {
-        let mut this = Self {
-            payloads: HashMap::new(),
-            curr_id: 0,
-        };
-
+impl From<BrokerState> for ConsolidatedState {
+    fn from(state: BrokerState) -> Self {
         let (retained, sessions) = state.into_parts();
+
+        #[allow(clippy::mutable_key_type)]
+        let mut payloads = HashMap::new();
+
+        let mut shrink_payload = |publication: Publication| {
+            let len = payloads.len() as u64;
+
+            let id = *payloads.entry(publication.payload).or_insert(len);
+
+            SimplifiedPublication {
+                topic_name: publication.topic_name,
+                qos: publication.qos,
+                retain: publication.retain,
+                payload: id,
+            }
+        };
 
         let retained = retained
             .into_iter()
-            .map(|(k, v)| (k, this.consolidate_publication(v)));
-        let retained = HashMap::from_iter(retained);
+            .map(|(topic, publication)| (topic, shrink_payload(publication)))
+            .collect();
 
         let sessions = sessions
             .into_iter()
-            .map(|s| this.consolidate_session(s))
+            .map(|session| {
+                let (client_id, subscriptions, waiting_to_be_sent) = session.into_parts();
+
+                let waiting_to_be_sent = waiting_to_be_sent
+                    .into_iter()
+                    .map(|publication| shrink_payload(publication))
+                    .collect();
+
+                ConsolidatedSession {
+                    client_id,
+                    subscriptions,
+                    waiting_to_be_sent,
+                }
+            })
             .collect();
 
-        let payloads = this.payloads.into_iter().map(|(k, v)| (v, k));
-        let payloads = HashMap::from_iter(payloads);
+        let payloads = payloads
+            .drain()
+            .map(|(payload, id)| (id, payload))
+            .collect();
 
         ConsolidatedState {
             payloads,
@@ -215,91 +236,48 @@ impl Consolidator {
             sessions,
         }
     }
+}
 
-    fn consolidate_publication(&mut self, publication: Publication) -> SimplifiedPublication {
-        SimplifiedPublication {
+impl From<ConsolidatedState> for BrokerState {
+    fn from(state: ConsolidatedState) -> Self {
+        let ConsolidatedState {
+            payloads,
+            retained,
+            sessions,
+        } = state;
+
+        let expand_payload = |publication: SimplifiedPublication| Publication {
             topic_name: publication.topic_name,
-            retain: publication.retain,
             qos: publication.qos,
-            payload: self.get_id(publication.payload),
-        }
-    }
-
-    fn consolidate_session(&mut self, session: SessionState) -> ConsolidatedSession {
-        let (client_id, subscriptions, waiting_to_be_sent) = session.into_parts();
-        let waiting_to_be_sent = waiting_to_be_sent
-            .into_iter()
-            .map(|p| self.consolidate_publication(p))
-            .collect();
-
-        ConsolidatedSession {
-            client_id,
-            subscriptions,
-            waiting_to_be_sent,
-        }
-    }
-
-    fn get_id(&mut self, bytes: Bytes) -> u64 {
-        if let Some(id) = self.payloads.get(&bytes) {
-            *id
-        } else {
-            self.curr_id += 1;
-            let id = self.curr_id;
-            self.payloads.insert(bytes, id);
-            id
-        }
-    }
-}
-
-struct Resolver {
-    payloads: HashMap<u64, Bytes>,
-}
-
-impl Resolver {
-    fn resolve_state(state: ConsolidatedState) -> BrokerState {
-        let mut this = Self {
-            payloads: state.payloads,
+            retain: publication.retain,
+            payload: payloads
+                .get(&publication.payload)
+                .expect("corrupted data")
+                .clone(),
         };
 
-        let retained = state
-            .retained
+        let retained = retained
             .into_iter()
-            .map(|(k, v)| (k, this.resolve_publication(v)));
-        let retained = HashMap::from_iter(retained);
+            .map(|(topic, publication)| (topic, expand_payload(publication)))
+            .collect();
 
-        let sessions = state
-            .sessions
+        let sessions = sessions
             .into_iter()
-            .map(|s| this.resolve_session(s))
+            .map(|session| {
+                let waiting_to_be_sent = session
+                    .waiting_to_be_sent
+                    .into_iter()
+                    .map(|publication| expand_payload(publication))
+                    .collect();
+                SessionState::from_parts(
+                    session.client_id,
+                    session.subscriptions,
+                    waiting_to_be_sent,
+                )
+            })
             .collect();
 
         BrokerState::new(retained, sessions)
-    }
-
-    fn resolve_publication(&mut self, publication: SimplifiedPublication) -> Publication {
-        Publication {
-            topic_name: publication.topic_name,
-            retain: publication.retain,
-            qos: publication.qos,
-            payload: self.get_payload(publication.payload),
-        }
-    }
-
-    fn resolve_session(&mut self, session: ConsolidatedSession) -> SessionState {
-        let waiting_to_be_sent = session
-            .waiting_to_be_sent
-            .into_iter()
-            .map(|p| self.resolve_publication(p))
-            .collect();
-
-        SessionState::from_parts(session.client_id, session.subscriptions, waiting_to_be_sent)
-    }
-
-    fn get_payload(&mut self, id: u64) -> Bytes {
-        self.payloads
-            .get(&id)
-            .expect("All payloads should be stored.")
-            .clone()
     }
 }
 
@@ -622,11 +600,11 @@ pub(crate) mod tests {
         fn consolidate_simple(state in arb_broker_state()) {
             let (expected_retained, expected_sessions) = state.clone().into_parts();
 
-            let consolidated = Consolidator::consolidate_state(state);
+            let consolidated: ConsolidatedState = state.into();
             prop_assert_eq!(expected_retained.len(), consolidated.retained.len());
             prop_assert_eq!(expected_sessions.len(), consolidated.sessions.len());
 
-            let state = Resolver::resolve_state(consolidated);
+            let state: BrokerState = consolidated.into();
             let (result_retained, result_sessions) = state.into_parts();
 
             prop_assert_eq!(expected_retained, result_retained);
