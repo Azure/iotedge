@@ -190,6 +190,31 @@ mod tests {
         size: u64,
     }
 
+    #[derive(Debug)]
+    struct HumanUnitSize {
+        lead: String,
+        num: u64,
+        sep: String,
+        unit: String,
+        trail: String,
+    }
+
+    impl ToString for HumanUnitSize {
+        fn to_string(&self) -> String {
+            let max_value = max_num_for_unit(self.num, &self.unit).to_string();
+            format!(
+                "{}{}{}{}{}",
+                &self.lead, &max_value, &self.sep, &self.unit, &self.trail
+            )
+        }
+    }
+
+    impl From<HumanUnitSize> for u64 {
+        fn from(size: HumanUnitSize) -> u64 {
+            expected_result_for_number_and_unit(size.num, &size.unit)
+        }
+    }
+
     #[test_case( "123b",  123 ; "when using bytes")]
     #[test_case( "123kb",  123*1024 ; "when using kilobytes")]
     #[test_case( "123mb",  123*1024*1024 ; "when using megabytes")]
@@ -235,22 +260,20 @@ mod tests {
 
     proptest! {
         #[test]
-        fn it_parses_valid_input((input, expected) in arbitrary_size()) {
-            let container_json = json!({ "size": input }).to_string();
+        fn it_parses_valid_input(size in arbitrary_size()) {
+            let container_json = json!({ "size": size.to_string() }).to_string();
             let result = serde_json::from_str::<Container>(&container_json).unwrap();
+            let expected: u64 = size.into();
 
             assert_eq!(result.size, expected);
         }
     }
 
     prop_compose! {
-        pub fn arbitrary_size()(
+        fn arbitrary_size()(
             lead in WSPACE, num in any::<u64>(), sep in WSPACE, unit in UNIT, trail in WSPACE
-        ) -> (String, u64) {
-            let expected = expected_result_for_number_and_unit(num, &unit);
-            let max_value = max_num_for_unit(num, &unit).to_string();
-
-            ([lead, max_value, sep, unit, trail].concat(), expected)
+        ) -> HumanUnitSize {
+            HumanUnitSize{ lead, num, sep, unit, trail }
         }
     }
 
