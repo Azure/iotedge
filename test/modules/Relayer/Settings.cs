@@ -18,13 +18,15 @@ namespace Relayer
             string inputName,
             string outputName,
             Uri testResultCoordinatorUrl,
-            string moduleId)
+            string moduleId,
+            bool receiveOnly)
         {
             this.InputName = Preconditions.CheckNonWhiteSpace(inputName, nameof(inputName));
             this.OutputName = Preconditions.CheckNonWhiteSpace(outputName, nameof(outputName));
             this.TransportType = transportType;
             this.TestResultCoordinatorUrl = Preconditions.CheckNotNull(testResultCoordinatorUrl, nameof(testResultCoordinatorUrl));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
+            this.ReceiveOnly = receiveOnly;
         }
 
         static Settings Create()
@@ -40,7 +42,8 @@ namespace Relayer
                 configuration.GetValue("inputName", "input1"),
                 configuration.GetValue("outputName", "output1"),
                 configuration.GetValue<Uri>("testResultCoordinatorUrl", new Uri("http://testresultcoordinator:5001")),
-                configuration.GetValue<string>("IOTEDGE_MODULEID"));
+                configuration.GetValue<string>("IOTEDGE_MODULEID"),
+                configuration.GetValue<bool>("receiveOnly", false));
         }
 
         public TransportType TransportType { get; }
@@ -52,6 +55,8 @@ namespace Relayer
         public Uri TestResultCoordinatorUrl { get; }
 
         public string ModuleId { get; }
+
+        public bool ReceiveOnly { get; }
 
         public override string ToString()
         {

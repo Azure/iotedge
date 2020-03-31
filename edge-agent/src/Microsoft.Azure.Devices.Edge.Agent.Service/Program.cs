@@ -269,10 +269,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         throw new InvalidOperationException($"ConfigSource '{configSourceConfig}' not supported.");
                 }
 
-                metricsConfig = new MetricsConfig(experimentalFeatures.EnableMetrics, MetricsListenerConfig.Create(configuration));
+                metricsConfig = new MetricsConfig(configuration);
                 builder.RegisterModule(new MetricsModule(metricsConfig, iothubHostname, deviceId));
 
-                diagnosticConfig = new DiagnosticConfig(experimentalFeatures.EnableMetricsUpload, storagePath, configuration);
+                bool diagnosticsEnabled = configuration.GetValue("SendProductQualityTelemetry", false);
+                diagnosticConfig = new DiagnosticConfig(diagnosticsEnabled, storagePath, configuration);
                 builder.RegisterModule(new DiagnosticsModule(diagnosticConfig));
 
                 container = builder.Build();

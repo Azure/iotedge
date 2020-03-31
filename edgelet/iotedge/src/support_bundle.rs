@@ -268,13 +268,12 @@ where
             NaiveDateTime::from_timestamp(state.log_options.since().into(), 0),
             Utc,
         );
-        let since = since_time.format("%F %T").to_string();
 
         #[cfg(unix)]
         let inspect = ShellCommand::new("journalctl")
             .arg("-a")
             .args(&["-u", "iotedge"])
-            .args(&["-S", &since])
+            .args(&["-S", &since_time.format("%F %T").to_string()])
             .arg("--no-pager")
             .output();
 
@@ -282,10 +281,11 @@ where
          let inspect = ShellCommand::new("powershell.exe")
             .arg("-NoProfile")
             .arg("-Command")
-            .arg(&format!(r"Get-WinEvent -ea SilentlyContinue -FilterHashtable @{{ProviderName='iotedged';LogName='application';StartTime='{}'}} |
+            .arg(&format!(r"$start=[Xml.XmlConvert]::ToDateTime('{}');
+                            Get-WinEvent -ea SilentlyContinue -FilterHashtable @{{ProviderName='iotedged';LogName='application';StartTime=$start}} |
                             Select TimeCreated, Message |
                             Sort-Object @{{Expression='TimeCreated';Descending=$false}} |
-                            Format-List", since))
+                            Format-List", since_time.to_rfc3339()))
             .output();
 
         let (file_name, output) = if let Ok(result) = inspect {
@@ -307,7 +307,7 @@ where
 
         state
             .zip_writer
-            .write(&output)
+            .write_all(&output)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         state.print_verbose("Got logs for iotedged");
@@ -365,7 +365,7 @@ where
 
         state
             .zip_writer
-            .write(&output)
+            .write_all(&output)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         state.print_verbose("Got logs for docker");
@@ -396,7 +396,7 @@ where
 
         state
             .zip_writer
-            .write(&check.stdout)
+            .write_all(&check.stdout)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         state.print_verbose("Wrote check output to file");
@@ -450,7 +450,7 @@ where
 
         state
             .zip_writer
-            .write(&output)
+            .write_all(&output)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         state.print_verbose(&format!("Got docker inspect for {}", module_name));
@@ -540,7 +540,7 @@ where
 
         state
             .zip_writer
-            .write(&output)
+            .write_all(&output)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         state.print_verbose(&format!("Got docker network inspect for {}", network_name));

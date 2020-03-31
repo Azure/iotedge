@@ -908,7 +908,7 @@ pub(crate) mod tests {
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
-        let req1 = ConnReq::new(client_id, connect1, handle1);
+        let req1 = ConnReq::new(client_id, connect1, None, handle1);
         let mut session = Session::new_transient(req1);
 
         let subscribe = proto::Subscribe {
@@ -962,7 +962,7 @@ pub(crate) mod tests {
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
-        let req1 = ConnReq::new(client_id, connect1, handle1);
+        let req1 = ConnReq::new(client_id, connect1, None, handle1);
         let mut session = Session::new_transient(req1);
 
         let subscribe = proto::Subscribe {
