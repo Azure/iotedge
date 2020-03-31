@@ -146,9 +146,6 @@ mod tests {
 
     use super::*;
 
-    const WSPACE: &str = r"\s*";
-    const UNIT: &str = r"(k|K|m|M|g|G)?(b|B)";
-
     #[test]
     fn it_loads_defaults() {
         let settings = BrokerConfig::new().expect("should be able to create default instance");
@@ -190,31 +187,6 @@ mod tests {
         size: u64,
     }
 
-    #[derive(Debug)]
-    struct HumanUnitSize {
-        lead: String,
-        num: u64,
-        sep: String,
-        unit: String,
-        trail: String,
-    }
-
-    impl ToString for HumanUnitSize {
-        fn to_string(&self) -> String {
-            let max_value = max_num_for_unit(self.num, &self.unit).to_string();
-            format!(
-                "{}{}{}{}{}",
-                &self.lead, &max_value, &self.sep, &self.unit, &self.trail
-            )
-        }
-    }
-
-    impl From<HumanUnitSize> for u64 {
-        fn from(size: HumanUnitSize) -> u64 {
-            expected_result_for_number_and_unit(size.num, &size.unit)
-        }
-    }
-
     #[test_case( "123b",  123 ; "when using bytes")]
     #[test_case( "123kb",  123*1024 ; "when using kilobytes")]
     #[test_case( "123mb",  123*1024*1024 ; "when using megabytes")]
@@ -248,6 +220,34 @@ mod tests {
         let result = serde_json::from_str::<Container>(&container_json);
 
         assert_matches!(result, Err(_err));
+    }
+
+    const WSPACE: &str = r"\s*";
+    const UNIT: &str = r"(k|K|m|M|g|G)?(b|B)";
+
+    #[derive(Debug)]
+    struct HumanUnitSize {
+        lead: String,
+        num: u64,
+        sep: String,
+        unit: String,
+        trail: String,
+    }
+
+    impl ToString for HumanUnitSize {
+        fn to_string(&self) -> String {
+            let max_value = max_num_for_unit(self.num, &self.unit).to_string();
+            format!(
+                "{}{}{}{}{}",
+                &self.lead, &max_value, &self.sep, &self.unit, &self.trail
+            )
+        }
+    }
+
+    impl From<HumanUnitSize> for u64 {
+        fn from(size: HumanUnitSize) -> u64 {
+            expected_result_for_number_and_unit(size.num, &size.unit)
+        }
     }
 
     proptest! {
