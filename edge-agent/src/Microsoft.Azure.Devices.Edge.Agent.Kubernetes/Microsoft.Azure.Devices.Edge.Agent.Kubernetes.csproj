@@ -16,6 +16,8 @@
 
   <ItemGroup>
     <PackageReference Include="KubernetesClient" Version="1.6.10" />
+    <PackageReference Include="Microsoft.Azure.Devices" Version="1.20.1" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.25.0" />
   </ItemGroup>
 
   <ItemGroup>

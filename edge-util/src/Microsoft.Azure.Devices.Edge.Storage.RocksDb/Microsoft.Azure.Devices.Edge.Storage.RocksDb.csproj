@@ -15,6 +15,8 @@
       rocksdb binaries) in this library. If specified, you must ensure that rocksdb is
       installed and reachable in your runtime environment.
       -->
+    <PackageReference Include="Microsoft.Azure.Devices" Version="1.20.1" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.25.0" />
     <PackageReference Include="RocksDbNative" Version="5.17.2" Condition="'$(RocksDbAsPackage)' != 'false'" />
     <PackageReference Include="RocksDbSharp" Version="5.17.2" />
   </ItemGroup>

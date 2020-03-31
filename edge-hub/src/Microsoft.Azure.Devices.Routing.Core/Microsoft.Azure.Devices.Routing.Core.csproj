@@ -18,6 +18,8 @@
   <ItemGroup>
     <PackageReference Include="Antlr4" Version="4.6.1-beta002" />
     <PackageReference Include="App.Metrics" Version="3.0.0" />
+    <PackageReference Include="Microsoft.Azure.Devices" Version="1.20.1" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.25.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="2.2.0" />
     <PackageReference Include="System.Collections.Immutable" Version="1.5.0" />
     <PackageReference Include="System.Reflection.Extensions" Version="4.3.0" />
