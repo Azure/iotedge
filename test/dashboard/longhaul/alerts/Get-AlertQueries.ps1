@@ -17,9 +17,9 @@ $LessThanThree = New-AzScheduledQueryRuleTriggerCondition `
 $LessThanFourty = New-AzScheduledQueryRuleTriggerCondition `
    -ThresholdOperator "LessThan" `
    -Threshold "40" 
-$GreaterThanFourty = New-AzScheduledQueryRuleTriggerCondition `
+$GreaterThanFourtyThree = New-AzScheduledQueryRuleTriggerCondition `
    -ThresholdOperator "GreaterThan" `
-   -Threshold "40" 
+   -Threshold "43" 
 
 class Alert{
    [ValidateNotNullOrEmpty()][string]$Name
@@ -120,7 +120,7 @@ $QueueLength = [Alert]@{
 }
 $Alerts.Add($QueueLength)
 
-$EdgeAgentCpuThreshold = .90 
+$EdgeAgentCpuThreshold = .99 
 $EdgeAgentCpuAlertQuery = Get-Content -Path ".\queries\EdgeAgentCpu.kql" 
 $EdgeAgentCpuAlertQuery = $EdgeAgentCpuAlertQuery.Replace("<CPU.THRESHOLD>", $EdgeAgentCpuThreshold)
 $EdgeAgentCpuAlertQuery = $EdgeAgentCpuAlertQuery.Replace("<ALERTING.INTERVAL>", $AlertingInterval)
@@ -132,7 +132,7 @@ $EdgeAgentCpu = [Alert]@{
 }
 $Alerts.Add($EdgeAgentCpu)
 
-$EdgeHubCpuThreshold = .90 
+$EdgeHubCpuThreshold = .99 
 $EdgeHubCpuAlertQuery = Get-Content -Path ".\queries\EdgeHubCpu.kql" 
 $EdgeHubCpuAlertQuery = $EdgeHubCpuAlertQuery.Replace("<CPU.THRESHOLD>", $EdgeHubCpuThreshold)
 $EdgeHubCpuAlertQuery = $EdgeHubCpuAlertQuery.Replace("<ALERTING.INTERVAL>", $AlertingInterval)
@@ -178,13 +178,13 @@ $NumberOfMetricsTooLow = [Alert]@{
    Name = "number-of-metrics-too-low"
    Query = $NumberOfMetricsQuery
    Comparator = $LessThanFourty
-   Threshold = "threshold0: 42"
+   Threshold = "threshold0: 40"
 }
 $NumberOfMetricsTooHigh = [Alert]@{
    Name = "number-of-metrics-too-high"
    Query = $NumberOfMetricsQuery
-   Comparator = $GreaterThanFourty
-   Threshold = "threshold0: 42"
+   Comparator = $GreaterThanFourtyThree
+   Threshold = "threshold0: 43"
 }
 $Alerts.Add($NumberOfMetricsTooLow)
 $Alerts.Add($NumberOfMetricsTooHigh)
