@@ -48,7 +48,7 @@ fn tear_down_failpoints() {
 async fn test_persistor(count: usize, ops: Vec<Op>) {
     let tmp_dir = TempDir::new().unwrap();
     let path = tmp_dir.path().to_owned();
-    let mut persistor = FilePersistor::new(path, BincodeFormat::new()).with_previous_count(count);
+    let mut persistor = FilePersistor::new(path, BincodeFormat::default()).with_previous_count(count);
 
     // Make sure we've stored at least one state
     tear_down_failpoints();
@@ -87,7 +87,7 @@ fn test_failpoints_smoketest() {
 
             let tmp_dir = TempDir::new().unwrap();
             let path = tmp_dir.path().to_owned();
-            let mut persistor = FilePersistor::new(path, BincodeFormat::new());
+            let mut persistor = FilePersistor::new(path, BincodeFormat::default());
 
             let result = persistor.load().await;
             let err = result.unwrap_err();
