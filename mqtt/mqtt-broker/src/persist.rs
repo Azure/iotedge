@@ -213,6 +213,8 @@ impl From<BrokerState> for ConsolidatedState {
             })
             .collect();
 
+        // Note that while payloads are consolidated using a Hashmap<Byte, u64>, they are stored as a Hashmap<u64, Byte>.
+        // This makes consolidation much faster
         let payloads = payloads
             .drain()
             .map(|(payload, id)| (id, payload))
