@@ -121,17 +121,19 @@ fn make_fake_state(
 
     let sessions = (0..num_clients)
         .map(|i| {
-            let mut session = SessionState::new(ClientId::from(format!("Session {}", i)));
             let waiting_to_be_sent = (0..num_unique_messages)
                 .map(|_| make_fake_publish(format!("Topic {}", i)))
                 .chain(shared_messages.clone());
-            session.waiting_to_be_sent = VecDeque::from_iter(waiting_to_be_sent);
 
-            session
+            SessionState::from_parts(
+                ClientId::from(format!("Session {}", i)),
+                HashMap::new(),
+                VecDeque::from_iter(waiting_to_be_sent),
+            )
         })
         .collect();
 
-    BrokerState { retained, sessions }
+    BrokerState::new(retained, sessions)
 }
 
 fn make_fake_publish(topic_name: String) -> Publication {
