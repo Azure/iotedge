@@ -10,7 +10,7 @@ edition = "2018"
 async-trait = "0.1"
 bincode = "1.2"
 chrono = "0.4"
-config = "0.10"
+config = { version = "0.10", default-features = false, features = ["json"] } 
 fail = "0.3"
 failure = "0.1"
 flate2 = "1.0"

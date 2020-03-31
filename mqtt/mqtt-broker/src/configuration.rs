@@ -146,6 +146,9 @@ mod tests {
 
     use super::*;
 
+    const WSPACE: &str = r"\s*";
+    const UNIT: &str = r"(k|K|m|M|g|G)?(b|B)";
+
     #[test]
     fn it_loads_defaults() {
         let settings = BrokerConfig::new().expect("should be able to create default instance");
@@ -224,41 +227,31 @@ mod tests {
 
     proptest! {
         #[test]
-        fn doesnt_crash(s in "\\PC*") {
-            parse_size_anything(&s);
+        fn it_does_not_panic(s in "\\PC*") {
+            let container_json = json!({ "size": s }).to_string();
+            let _result = serde_json::from_str::<Container>(&container_json);
         }
     }
 
     proptest! {
         #[test]
-        fn it_parses_valid_input(lead in r"\s*",
-                                 num in any::<u64>(),
-                                 sep in r"\s*",
-                                 unit in r"(k|K|m|M|g|G)?(b|B)",
-                                 trail in r"\s*") {
-            let (input, expected) = get_input_and_expected(&lead, num, &sep, &unit, &trail);
-            parse_size_valid(&input, expected);
+        fn it_parses_valid_input((input, expected) in arbitrary_size()) {
+            let container_json = json!({ "size": input }).to_string();
+            let result = serde_json::from_str::<Container>(&container_json).unwrap();
+
+            assert_eq!(result.size, expected);
         }
     }
 
-    fn get_input_and_expected(
-        lead: &str,
-        num: u64,
-        sep: &str,
-        unit: &str,
-        trail: &str,
-    ) -> (String, u64) {
-        (
-            [
-                lead,
-                &max_num_for_unit(num, &unit).to_string(),
-                sep,
-                unit,
-                trail,
-            ]
-            .concat(),
-            expected_result_for_number_and_unit(num, &unit),
-        )
+    prop_compose! {
+        pub fn arbitrary_size()(
+            lead in WSPACE, num in any::<u64>(), sep in WSPACE, unit in UNIT, trail in WSPACE
+        ) -> (String, u64) {
+            let expected = expected_result_for_number_and_unit(num, &unit);
+            let max_value = max_num_for_unit(num, &unit).to_string();
+
+            ([lead, max_value, sep, unit, trail].concat(), expected)
+        }
     }
 
     fn expected_result_for_number_and_unit(num: u64, unit: &str) -> u64 {
@@ -282,17 +275,5 @@ mod tests {
             Some('b') => num,
             _ => panic!("unknown unit generated"),
         }
-    }
-
-    fn parse_size_anything(input: &str) {
-        let container_json = json!({ "size": input }).to_string();
-        let _result = serde_json::from_str::<Container>(&container_json);
-    }
-
-    fn parse_size_valid(input: &str, expected: u64) {
-        let container_json = json!({ "size": input }).to_string();
-        let result = serde_json::from_str::<Container>(&container_json).unwrap();
-
-        assert_eq!(result.size, expected);
     }
 }
