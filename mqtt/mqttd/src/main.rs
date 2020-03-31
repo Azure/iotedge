@@ -1,8 +1,8 @@
-use std::{env, io};
-
 use failure::ResultExt;
 use futures_util::pin_mut;
 use mqtt_broker::*;
+use native_tls::Identity;
+use std::{env, io};
 use tokio::time::{Duration, Instant};
 use tracing::{info, warn, Level};
 use tracing_subscriber::{fmt, EnvFilter};
@@ -19,9 +19,19 @@ async fn main() -> Result<(), Terminate> {
         .finish();
     let _ = tracing::subscriber::set_global_default(subscriber);
 
-    let addr = env::args()
+    let addr_tcp = env::args()
         .nth(1)
         .unwrap_or_else(|| "0.0.0.0:1883".to_string());
+
+    let addr_tls = env::args()
+        .nth(2)
+        .unwrap_or_else(|| "0.0.0.0:8883".to_string());
+
+    let cert_path = env::args()
+        .nth(3)
+        .unwrap_or_else(|| "broker.pfx".to_string());
+
+    let identity = load_identity(cert_path).context(ErrorKind::IdentityConfiguration)?;
 
     // Setup the shutdown handle
     let shutdown = shutdown::shutdown();
@@ -58,8 +68,12 @@ async fn main() -> Result<(), Terminate> {
     let snapshot = snapshot::snapshot(broker.handle(), snapshot_handle.clone());
     tokio::spawn(snapshot);
 
+    let transports = vec![(addr_tcp).into(), (addr_tls, identity).into()];
+
     info!("Starting server...");
-    let state = Server::from_broker(broker).serve(addr, shutdown).await?;
+    let state = Server::from_broker(broker)
+        .serve(transports, shutdown)
+        .await?;
 
     // Stop snapshotting
     shutdown_handle.shutdown().await?;
@@ -72,6 +86,16 @@ async fn main() -> Result<(), Terminate> {
     info!("exiting... goodbye");
 
     Ok(())
+}
+
+fn load_identity(path: String) -> Result<Identity, Error> {
+    let cert_buffer = std::fs::read(&path).context(ErrorKind::LoadIdentity)?;
+
+    let cert_pwd = "";
+    let cert = Identity::from_pkcs12(cert_buffer.as_slice(), &cert_pwd)
+        .context(ErrorKind::DecodeIdentity)?;
+
+    Ok(cert)
 }
 
 async fn tick_snapshot(
