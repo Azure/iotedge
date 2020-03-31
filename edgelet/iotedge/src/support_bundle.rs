@@ -281,8 +281,7 @@ where
          let inspect = ShellCommand::new("powershell.exe")
             .arg("-NoProfile")
             .arg("-Command")
-            .arg(&format!(r"$start=[Xml.XmlConvert]::ToDateTime('{}');
-                            Get-WinEvent -ea SilentlyContinue -FilterHashtable @{{ProviderName='iotedged';LogName='application';StartTime=$start}} |
+            .arg(&format!(r"Get-WinEvent -ea SilentlyContinue -FilterHashtable @{{ProviderName='iotedged';LogName='application';StartTime='{}'}} |
                             Select TimeCreated, Message |
                             Sort-Object @{{Expression='TimeCreated';Descending=$false}} |
                             Format-List", since_time.to_rfc3339()))
@@ -323,13 +322,12 @@ where
             NaiveDateTime::from_timestamp(state.log_options.since().into(), 0),
             Utc,
         );
-        let since = since_time.format("%F %T").to_string();
 
         #[cfg(unix)]
         let inspect = ShellCommand::new("journalctl")
             .arg("-a")
             .args(&["-u", "docker"])
-            .args(&["-S", &since])
+            .args(&["-S", &since_time.format("%F %T").to_string()])
             .arg("--no-pager")
             .output();
 
@@ -342,7 +340,7 @@ where
                 r#"Get-EventLog -LogName Application -Source Docker -After "{}" |
                     Sort-Object Time |
                     Format-List"#,
-                since
+                since_time.to_rfc3339()
             ))
             .output();
 
