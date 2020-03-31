@@ -120,7 +120,7 @@ $QueueLength = [Alert]@{
 }
 $Alerts.Add($QueueLength)
 
-$EdgeAgentCpuThreshold = .99 
+$EdgeAgentCpuThreshold = .90 
 $EdgeAgentCpuAlertQuery = Get-Content -Path ".\queries\EdgeAgentCpu.kql" 
 $EdgeAgentCpuAlertQuery = $EdgeAgentCpuAlertQuery.Replace("<CPU.THRESHOLD>", $EdgeAgentCpuThreshold)
 $EdgeAgentCpuAlertQuery = $EdgeAgentCpuAlertQuery.Replace("<ALERTING.INTERVAL>", $AlertingInterval)
@@ -132,7 +132,7 @@ $EdgeAgentCpu = [Alert]@{
 }
 $Alerts.Add($EdgeAgentCpu)
 
-$EdgeHubCpuThreshold = .99 
+$EdgeHubCpuThreshold = .90 
 $EdgeHubCpuAlertQuery = Get-Content -Path ".\queries\EdgeHubCpu.kql" 
 $EdgeHubCpuAlertQuery = $EdgeHubCpuAlertQuery.Replace("<CPU.THRESHOLD>", $EdgeHubCpuThreshold)
 $EdgeHubCpuAlertQuery = $EdgeHubCpuAlertQuery.Replace("<ALERTING.INTERVAL>", $AlertingInterval)
