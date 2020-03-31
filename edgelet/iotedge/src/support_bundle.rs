@@ -268,13 +268,12 @@ where
             NaiveDateTime::from_timestamp(state.log_options.since().into(), 0),
             Utc,
         );
-        let since = since_time.format("%F %T").to_string();
 
         #[cfg(unix)]
         let inspect = ShellCommand::new("journalctl")
             .arg("-a")
             .args(&["-u", "iotedge"])
-            .args(&["-S", &since])
+            .args(&["-S", &since_time.format("%F %T").to_string()])
             .arg("--no-pager")
             .output();
 
@@ -285,7 +284,7 @@ where
             .arg(&format!(r"Get-WinEvent -ea SilentlyContinue -FilterHashtable @{{ProviderName='iotedged';LogName='application';StartTime='{}'}} |
                             Select TimeCreated, Message |
                             Sort-Object @{{Expression='TimeCreated';Descending=$false}} |
-                            Format-List", since))
+                            Format-List", since_time.to_rfc3339()))
             .output();
 
         let (file_name, output) = if let Ok(result) = inspect {
@@ -323,13 +322,12 @@ where
             NaiveDateTime::from_timestamp(state.log_options.since().into(), 0),
             Utc,
         );
-        let since = since_time.format("%F %T").to_string();
 
         #[cfg(unix)]
         let inspect = ShellCommand::new("journalctl")
             .arg("-a")
             .args(&["-u", "docker"])
-            .args(&["-S", &since])
+            .args(&["-S", &since_time.format("%F %T").to_string()])
             .arg("--no-pager")
             .output();
 
@@ -342,7 +340,7 @@ where
                 r#"Get-EventLog -LogName Application -Source Docker -After "{}" |
                     Sort-Object Time |
                     Format-List"#,
-                since
+                since_time.to_rfc3339()
             ))
             .output();
 
