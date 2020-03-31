@@ -39,13 +39,8 @@ namespace TestResultCoordinator.Controllers
 
             return new ContentResult
             {
-                Content = this.AddManualRunReportingHeading(JsonConvert.SerializeObject(testResultReports, Formatting.Indented)) // explicit serialization needed due to the wrapping list
+                Content = JsonConvert.SerializeObject(testResultReports, Formatting.Indented) // explicit serialization needed due to the wrapping list
             };
-        }
-
-        string AddManualRunReportingHeading(string reportContent)
-        {
-            return $"Run manually at {DateTime.UtcNow}{Environment.NewLine}Report result is not complete as testing is still running.{Environment.NewLine}{reportContent}";
         }
     }
 }
