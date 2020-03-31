@@ -30,5 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models
         public IEnumerable<EnvVar> EnvironmentVariables { get; }
 
         public ImagePullPolicy ImagePullPolicy { get; }
+
+        public Option<ContentTrust> ContentTrust { get; }
     }
 }

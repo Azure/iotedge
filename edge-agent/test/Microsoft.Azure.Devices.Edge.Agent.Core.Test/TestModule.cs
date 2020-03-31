@@ -107,11 +107,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
         [JsonProperty("env")]
         public IDictionary<string, EnvVal> Env { get; }
-
-        [JsonProperty("ContentTrust", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        [JsonConverter(typeof(OptionConverter<IDictionary<string, string>>))]
-        public Option<IDictionary<string, string>> ContentTrust { get; }
-
         public bool IsOnlyModuleStatusChanged(IModule other) =>
             other is TestModuleBase<TConfig> testModuleBase &&
             string.Equals(this.Name, other.Name) &&
@@ -122,6 +117,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             this.RestartPolicy == other.RestartPolicy &&
             this.ImagePullPolicy == other.ImagePullPolicy &&
             this.Priority == other.Priority;
+
+        [JsonProperty(PropertyName = "ContentTrust", Required = Required.AllowNull)]
+        public Option<ContentTrust> ContentTrust { get; }
 
         public override bool Equals(object obj) => this.Equals(obj as TestModuleBase<TConfig>);
 

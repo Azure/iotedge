@@ -22,8 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             ImagePullPolicy imagePullPolicy,
             uint priority,
             ConfigurationInfo configurationInfo,
-            IDictionary<string, EnvVal> env,
-            Option<ContentTrust> contentTrust)
+            IDictionary<string, EnvVal> env)
         {
             this.Name = name;
             this.Version = version ?? string.Empty;
@@ -34,7 +33,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.Priority = priority;
             this.ConfigurationInfo = configurationInfo ?? new ConfigurationInfo(string.Empty);
             this.Env = env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
-            this.ContentTrust = contentTrust;
         }
 
         [JsonIgnore]
@@ -72,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         public IDictionary<string, EnvVal> Env { get; }
 
         [JsonProperty(PropertyName = "ContentTrust", Required = Required.AllowNull)]
-        public virtual Option<ContentTrust> ContentTrust { get; }
+        public Option<ContentTrust> ContentTrust { get; }
 
         public override bool Equals(object obj) => this.Equals(obj as DockerModule);
 
