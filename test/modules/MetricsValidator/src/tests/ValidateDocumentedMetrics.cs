@@ -15,11 +15,9 @@ namespace MetricsValidator.Tests
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Test.Common;
-    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
-    using NUnit.Framework.Internal;
 
     public class ValidateDocumentedMetrics : TestBase
     {

@@ -9,20 +9,25 @@ edition = "2018"
 [dependencies]
 async-trait = "0.1"
 bincode = "1.2"
+bytes = "0.5.4"
 chrono = "0.4"
 config = { version = "0.10", default-features = false, features = ["json"] } 
+derive_more = { version = "0.99", features = ["display"] }
 fail = "0.3"
 failure = "0.1"
 flate2 = "1.0"
+futures = "0.3"
 futures-util = { version = "0.3", features = ["sink"] }
 humantime = "2.0"
 humantime-serde = "1.0"
 lazy_static = "1.4"
+native-tls = "0.2"
 regex = "1"
 serde = { version = "1.0", features = ["derive", "rc"] }
 tokio = { version = "0.2", features = ["blocking", "stream", "sync", "tcp"] }
 tokio-io-timeout = "0.4"
 tokio-util = { version = "0.2", features = ["codec"] }
+tokio-tls = "0.3"
 tracing = "0.1"
 tracing-futures = "0.2"
 uuid = { version = "0.8", features = ["v4"] }

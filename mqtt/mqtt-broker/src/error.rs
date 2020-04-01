@@ -1,9 +1,8 @@
-use std::fmt;
-
+use derive_more::Display;
 use failure::{Backtrace, Context, Fail};
 use mqtt3::proto::Packet;
 
-#[derive(Debug)]
+#[derive(Debug, Display)]
 pub struct Error {
     inner: Context<ErrorKind>,
 }
@@ -27,6 +26,9 @@ pub enum ErrorKind {
 
     #[fail(display = "An error occurred getting a connection's peer address.")]
     ConnectionPeerAddress,
+
+    #[fail(display = "An error occurred getting local address.")]
+    ConnectionLocalAddress,
 
     #[fail(display = "An error occurred configuring a connection.")]
     ConnectionConfiguration,
@@ -66,6 +68,27 @@ pub enum ErrorKind {
 
     #[fail(display = "An error occurred loading configuration.")]
     LoadConfiguration,
+
+    #[fail(display = "An error occurred joining the broker task.")]
+    BrokerJoin,
+
+    #[fail(display = "An error occurred obtaining service identity.")]
+    IdentityConfiguration,
+
+    #[fail(display = "Error loading identity from file.")]
+    LoadIdentity,
+
+    #[fail(display = "Error decoding identity content.")]
+    DecodeIdentity,
+
+    #[fail(display = "Error starting listener.")]
+    StartListener,
+
+    #[fail(display = "Unable to obtain peer leaf certificate.")]
+    PeerCertificate,
+
+    #[fail(display = "An error occurred checking client permissions: {}.", _0)]
+    Auth(crate::auth::ErrorReason),
 }
 
 impl Fail for Error {
@@ -75,12 +98,6 @@ impl Fail for Error {
 
     fn backtrace(&self) -> Option<&Backtrace> {
         self.inner.backtrace()
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.inner, f)
     }
 }
 

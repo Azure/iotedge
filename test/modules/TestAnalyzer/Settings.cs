@@ -5,8 +5,10 @@ namespace TestAnalyzer
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Logging;
 
     class Settings
     {
@@ -16,6 +18,7 @@ namespace TestAnalyzer
         const string DefaultStoragePath = "";
 
         internal static Settings Current = Create();
+        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TestAnalyzer));
 
         Settings(
             string eventHubConnectionString,
@@ -39,12 +42,7 @@ namespace TestAnalyzer
             this.WebhostPort = Preconditions.CheckNonWhiteSpace(webhostPort, nameof(webhostPort));
             this.ToleranceInMilliseconds = Preconditions.CheckRange(tolerance, 0);
             this.StoragePath = storagePath;
-            this.TestInfo = testInfo.Split(",", StringSplitOptions.RemoveEmptyEntries)
-                                .Select(x => (KeyAndValue: x, SplitIndex: x.IndexOf('=')))
-                                .Where(x => x.SplitIndex >= 1)
-                                .ToDictionary(
-                                    x => x.KeyAndValue.Substring(0, x.SplitIndex),
-                                    x => x.KeyAndValue.Substring(x.SplitIndex + 1, x.KeyAndValue.Length - x.SplitIndex - 1));
+            this.TestInfo = ModuleUtil.ParseKeyValuePairs(testInfo, Logger, true);
             this.OptimizeForPerformance = Preconditions.CheckNotNull(storageOptimizeForPerformance);
             this.LogAnalyticsWorkspaceId = logAnalyticsWorkspaceIdName;
             this.LogAnalyticsSharedKey = logAnalyticsSharedKeyName;
@@ -88,7 +86,7 @@ namespace TestAnalyzer
 
         public string StoragePath { get; }
 
-        public Dictionary<string, string> TestInfo { get; }
+        public SortedDictionary<string, string> TestInfo { get; }
 
         public bool OptimizeForPerformance { get; }
 
