@@ -41,7 +41,7 @@ namespace TestResultCoordinator.Reports
             ulong totalMatchCount = 0;
             ulong totalPatches = 0;
             ulong totalDuplicates = 0;
-            List<string> unmatchedResults = new List<string>();
+            Queue<string> unmatchedResults = new Queue<string>();
 
             Dictionary<string, DateTime> propertiesUpdated = new Dictionary<string, DateTime>();
             Dictionary<string, DateTime> propertiesReceived = new Dictionary<string, DateTime>();
@@ -93,7 +93,7 @@ namespace TestResultCoordinator.Reports
                 }
                 else
                 {
-                    unmatchedResults.Add($"{this.expectedSource} {desiredPropertyUpdate.Key}");
+                    TestReportUtil.EnqueueAndEnforceFixedSize(unmatchedResults, $"{this.expectedSource} {desiredPropertyUpdate.Key}");
                 }
             }
 
@@ -102,7 +102,7 @@ namespace TestResultCoordinator.Reports
                 if (!propertiesUpdated.ContainsKey(desiredPropertyReceived.Key))
                 {
                     Logger.LogError($"[{nameof(TwinCountingReportGenerator)}] Actual test result source has unexpected results.");
-                    unmatchedResults.Add($"{this.actualSource} {desiredPropertyReceived.Key}");
+                    TestReportUtil.EnqueueAndEnforceFixedSize(unmatchedResults, $"{this.actualSource} {desiredPropertyReceived.Key}");
                 }
             }
 
@@ -116,7 +116,7 @@ namespace TestResultCoordinator.Reports
                 totalMatchCount,
                 totalPatches,
                 totalDuplicates,
-                unmatchedResults.AsReadOnly());
+                new List<string>(unmatchedResults).AsReadOnly());
         }
 
         Option<TwinTestResult> GetTwinTestResult(TestOperationResult current)

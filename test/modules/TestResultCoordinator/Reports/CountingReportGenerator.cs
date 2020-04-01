@@ -67,7 +67,7 @@ namespace TestResultCoordinator.Reports
             ulong totalExpectCount = 0;
             ulong totalMatchCount = 0;
             ulong totalDuplicateResultCount = 0;
-            var unmatchedResults = new List<TestOperationResult>();
+            var unmatchedResults = new Queue<TestOperationResult>();
 
             bool hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
             bool hasActualResult = await this.ActualTestResults.MoveNextAsync();
@@ -96,7 +96,7 @@ namespace TestResultCoordinator.Reports
                 }
                 else
                 {
-                    unmatchedResults.Add(this.ExpectedTestResults.Current);
+                    TestReportUtil.EnqueueAndEnforceFixedSize(unmatchedResults, this.ExpectedTestResults.Current);
                     hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
                 }
             }
@@ -112,7 +112,7 @@ namespace TestResultCoordinator.Reports
             while (hasExpectedResult)
             {
                 totalExpectCount++;
-                unmatchedResults.Add(this.ExpectedTestResults.Current);
+                TestReportUtil.EnqueueAndEnforceFixedSize(unmatchedResults, this.ExpectedTestResults.Current);
                 hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
             }
 
@@ -136,7 +136,7 @@ namespace TestResultCoordinator.Reports
                 totalExpectCount,
                 totalMatchCount,
                 totalDuplicateResultCount,
-                unmatchedResults.AsReadOnly());
+                new List<TestOperationResult>(unmatchedResults).AsReadOnly());
         }
 
         void ValidateResult(TestOperationResult current, string expectedSource)

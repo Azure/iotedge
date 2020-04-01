@@ -63,7 +63,7 @@ namespace TestResultCoordinator.Reports
             ulong totalExpectedDeployments = 0;
             ulong totalActualDeployments = 0;
             ulong totalMatchedDeployments = 0;
-            var unmatchedResults = new List<TestOperationResult>();
+            var unmatchedResults = new Queue<TestOperationResult>();
 
             bool hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
             if (hasExpectedResult)
@@ -106,7 +106,7 @@ namespace TestResultCoordinator.Reports
 
             while (hasExpectedResult)
             {
-                unmatchedResults.Add(this.ExpectedTestResults.Current);
+                TestReportUtil.EnqueueAndEnforceFixedSize(unmatchedResults, this.ExpectedTestResults.Current);
                 hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
                 if (hasExpectedResult)
                 {
@@ -147,7 +147,7 @@ namespace TestResultCoordinator.Reports
                 totalActualDeployments,
                 totalMatchedDeployments,
                 Option.Maybe(lastActualDeploymentTestResult),
-                unmatchedResults.AsReadOnly());
+                new List<TestOperationResult>(unmatchedResults).AsReadOnly());
         }
 
         void ValidateResult(TestOperationResult current, string expectedSource)
