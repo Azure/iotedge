@@ -279,7 +279,7 @@ mod tests {
 
     fn expected_result_for_number_and_unit(num: u64, unit: &str) -> u64 {
         let num = max_num_for_unit(num, &unit);
-        match unit.to_lowercase().chars().nth(0) {
+        match unit.to_lowercase().chars().next() {
             Some('k') => num << 10,
             Some('m') => num << 20,
             Some('g') => num << 30,
@@ -291,7 +291,7 @@ mod tests {
     // as the number will be multiplied by a unit, there is a maximum
     // number for every unit that still can fit in u64
     fn max_num_for_unit(num: u64, unit: &str) -> u64 {
-        match unit.to_lowercase().chars().nth(0) {
+        match unit.to_lowercase().chars().next() {
             Some('k') => num % 0x3F_FFFF_FFFF_FFFF,
             Some('m') => num % 0xFFF_FFFF_FFFF,
             Some('g') => num % 0x3_FFFF_FFFF,
