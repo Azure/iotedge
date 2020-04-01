@@ -9,24 +9,29 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use tracing::{debug, warn};
 
 use crate::subscription::Subscription;
-use crate::{ClientEvent, ClientId, ConnReq, ConnectionHandle, Error, ErrorKind, Message, Publish};
+use crate::{
+    AuthId, ClientEvent, ClientId, ConnReq, ConnectionHandle, Error, ErrorKind, Message, Publish,
+};
 
 const MAX_INFLIGHT_MESSAGES: usize = 16;
 
 #[derive(Debug)]
 pub struct ConnectedSession {
     state: SessionState,
+    auth_id: AuthId,
     will: Option<proto::Publication>,
     handle: ConnectionHandle,
 }
 
 impl ConnectedSession {
     fn new(
+        auth_id: AuthId,
         state: SessionState,
         will: Option<proto::Publication>,
         handle: ConnectionHandle,
     ) -> Self {
         Self {
+            auth_id,
             state,
             will,
             handle,
@@ -35,6 +40,10 @@ impl ConnectedSession {
 
     pub fn client_id(&self) -> &ClientId {
         &self.state.client_id
+    }
+
+    pub fn auth_id(&self) -> &AuthId {
+        &self.auth_id
     }
 
     pub fn handle(&self) -> &ConnectionHandle {
@@ -49,8 +58,15 @@ impl ConnectedSession {
         self.will
     }
 
-    pub fn into_parts(self) -> (SessionState, Option<proto::Publication>, ConnectionHandle) {
-        (self.state, self.will, self.handle)
+    pub fn into_parts(
+        self,
+    ) -> (
+        AuthId,
+        SessionState,
+        Option<proto::Publication>,
+        ConnectionHandle,
+    ) {
+        (self.auth_id, self.state, self.will, self.handle)
     }
 
     pub fn handle_publish(
@@ -241,6 +257,7 @@ impl OfflineSession {
 
 #[derive(Debug)]
 pub struct DisconnectingSession {
+    auth_id: AuthId,
     client_id: ClientId,
     will: Option<proto::Publication>,
     handle: ConnectionHandle,
@@ -248,11 +265,13 @@ pub struct DisconnectingSession {
 
 impl DisconnectingSession {
     fn new(
+        auth_id: AuthId,
         client_id: ClientId,
         will: Option<proto::Publication>,
         handle: ConnectionHandle,
     ) -> Self {
         Self {
+            auth_id,
             client_id,
             will,
             handle,
@@ -261,6 +280,10 @@ impl DisconnectingSession {
 
     pub fn client_id(&self) -> &ClientId {
         &self.client_id
+    }
+
+    pub fn auth_id(&self) -> &AuthId {
+        &self.auth_id
     }
 
     pub fn into_will(self) -> Option<proto::Publication> {
@@ -536,48 +559,58 @@ pub enum Session {
 }
 
 impl Session {
-    pub fn new_transient(connreq: ConnReq) -> Self {
+    pub fn new_transient(auth_id: AuthId, connreq: ConnReq) -> Self {
         let state = SessionState::new(connreq.client_id().clone());
         let (connect, handle) = connreq.into_parts();
-        let connected = ConnectedSession::new(state, connect.will, handle);
-        Session::Transient(connected)
+        let connected = ConnectedSession::new(auth_id, state, connect.will, handle);
+        Self::Transient(connected)
     }
 
-    pub fn new_persistent(connreq: ConnReq, state: SessionState) -> Self {
+    pub fn new_persistent(auth_id: AuthId, connreq: ConnReq, state: SessionState) -> Self {
         let (connect, handle) = connreq.into_parts();
-        let connected = ConnectedSession::new(state, connect.will, handle);
-        Session::Persistent(connected)
+        let connected = ConnectedSession::new(auth_id, state, connect.will, handle);
+        Self::Persistent(connected)
     }
 
     pub fn new_offline(state: SessionState) -> Self {
         let offline = OfflineSession::new(state);
-        Session::Offline(offline)
+        Self::Offline(offline)
     }
 
     pub fn new_disconnecting(
+        auth_id: AuthId,
         client_id: ClientId,
         will: Option<proto::Publication>,
         handle: ConnectionHandle,
     ) -> Self {
-        let disconnecting = DisconnectingSession::new(client_id, will, handle);
-        Session::Disconnecting(disconnecting)
+        let disconnecting = DisconnectingSession::new(auth_id, client_id, will, handle);
+        Self::Disconnecting(disconnecting)
     }
 
     pub fn client_id(&self) -> &ClientId {
         match self {
-            Session::Transient(connected) => connected.client_id(),
-            Session::Persistent(connected) => connected.client_id(),
-            Session::Offline(offline) => offline.client_id(),
-            Session::Disconnecting(disconnecting) => disconnecting.client_id(),
+            Self::Transient(connected) => connected.client_id(),
+            Self::Persistent(connected) => connected.client_id(),
+            Self::Offline(offline) => offline.client_id(),
+            Self::Disconnecting(disconnecting) => disconnecting.client_id(),
+        }
+    }
+
+    pub fn auth_id(&self) -> &AuthId {
+        match self {
+            Self::Transient(connected) => connected.auth_id(),
+            Self::Persistent(connected) => connected.auth_id(),
+            Self::Offline(_offline) => todo!(),
+            Self::Disconnecting(disconnecting) => disconnecting.auth_id(),
         }
     }
 
     pub fn into_will(self) -> Option<proto::Publication> {
         match self {
-            Session::Transient(connected) => connected.into_will(),
-            Session::Persistent(connected) => connected.into_will(),
-            Session::Offline(_offline) => None,
-            Session::Disconnecting(disconnecting) => disconnecting.into_will(),
+            Self::Transient(connected) => connected.into_will(),
+            Self::Persistent(connected) => connected.into_will(),
+            Self::Offline(_offline) => None,
+            Self::Disconnecting(disconnecting) => disconnecting.into_will(),
         }
     }
 
@@ -586,19 +619,19 @@ impl Session {
         publish: proto::Publish,
     ) -> Result<(Option<proto::Publication>, Option<ClientEvent>), Error> {
         match self {
-            Session::Transient(connected) => connected.handle_publish(publish),
-            Session::Persistent(connected) => connected.handle_publish(publish),
-            Session::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
-            Session::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Transient(connected) => connected.handle_publish(publish),
+            Self::Persistent(connected) => connected.handle_publish(publish),
+            Self::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
         }
     }
 
     pub fn handle_puback(&mut self, puback: &proto::PubAck) -> Result<Option<ClientEvent>, Error> {
         match self {
-            Session::Transient(connected) => connected.handle_puback(puback),
-            Session::Persistent(connected) => connected.handle_puback(puback),
-            Session::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
-            Session::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Transient(connected) => connected.handle_puback(puback),
+            Self::Persistent(connected) => connected.handle_puback(puback),
+            Self::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
         }
     }
 
@@ -607,19 +640,19 @@ impl Session {
         id: proto::PacketIdentifier,
     ) -> Result<Option<ClientEvent>, Error> {
         match self {
-            Session::Transient(connected) => connected.handle_puback0(id),
-            Session::Persistent(connected) => connected.handle_puback0(id),
-            Session::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
-            Session::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Transient(connected) => connected.handle_puback0(id),
+            Self::Persistent(connected) => connected.handle_puback0(id),
+            Self::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
         }
     }
 
     pub fn handle_pubrec(&mut self, pubrec: &proto::PubRec) -> Result<Option<ClientEvent>, Error> {
         match self {
-            Session::Transient(connected) => connected.handle_pubrec(pubrec),
-            Session::Persistent(connected) => connected.handle_pubrec(pubrec),
-            Session::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
-            Session::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Transient(connected) => connected.handle_pubrec(pubrec),
+            Self::Persistent(connected) => connected.handle_pubrec(pubrec),
+            Self::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
         }
     }
 
@@ -628,10 +661,10 @@ impl Session {
         pubrel: &proto::PubRel,
     ) -> Result<Option<proto::Publication>, Error> {
         match self {
-            Session::Transient(connected) => connected.handle_pubrel(pubrel),
-            Session::Persistent(connected) => connected.handle_pubrel(pubrel),
-            Session::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
-            Session::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Transient(connected) => connected.handle_pubrel(pubrel),
+            Self::Persistent(connected) => connected.handle_pubrel(pubrel),
+            Self::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
         }
     }
 
@@ -640,10 +673,10 @@ impl Session {
         pubcomp: &proto::PubComp,
     ) -> Result<Option<ClientEvent>, Error> {
         match self {
-            Session::Transient(connected) => connected.handle_pubcomp(pubcomp),
-            Session::Persistent(connected) => connected.handle_pubcomp(pubcomp),
-            Session::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
-            Session::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Transient(connected) => connected.handle_pubcomp(pubcomp),
+            Self::Persistent(connected) => connected.handle_pubcomp(pubcomp),
+            Self::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
         }
     }
 
@@ -652,10 +685,10 @@ impl Session {
         publication: &proto::Publication,
     ) -> Result<Option<ClientEvent>, Error> {
         match self {
-            Session::Transient(connected) => connected.publish_to(publication.to_owned()),
-            Session::Persistent(connected) => connected.publish_to(publication.to_owned()),
-            Session::Offline(offline) => offline.publish_to(publication.to_owned()),
-            Session::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Transient(connected) => connected.publish_to(publication.to_owned()),
+            Self::Persistent(connected) => connected.publish_to(publication.to_owned()),
+            Self::Offline(offline) => offline.publish_to(publication.to_owned()),
+            Self::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
         }
     }
 
@@ -664,10 +697,10 @@ impl Session {
         subscribe: proto::Subscribe,
     ) -> Result<(proto::SubAck, Vec<Subscription>), Error> {
         match self {
-            Session::Transient(connected) => connected.subscribe(subscribe),
-            Session::Persistent(connected) => connected.subscribe(subscribe),
-            Session::Offline(_) => Err(Error::from(ErrorKind::SessionOffline)),
-            Session::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Transient(connected) => connected.subscribe(subscribe),
+            Self::Persistent(connected) => connected.subscribe(subscribe),
+            Self::Offline(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
         }
     }
 
@@ -676,18 +709,18 @@ impl Session {
         unsubscribe: &proto::Unsubscribe,
     ) -> Result<proto::UnsubAck, Error> {
         match self {
-            Session::Transient(connected) => connected.unsubscribe(unsubscribe),
-            Session::Persistent(connected) => connected.unsubscribe(unsubscribe),
-            Session::Offline(_) => Err(Error::from(ErrorKind::SessionOffline)),
-            Session::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Transient(connected) => connected.unsubscribe(unsubscribe),
+            Self::Persistent(connected) => connected.unsubscribe(unsubscribe),
+            Self::Offline(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
         }
     }
 
     pub async fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
         match self {
-            Session::Transient(ref mut connected) => connected.send(event).await,
-            Session::Persistent(ref mut connected) => connected.send(event).await,
-            Session::Disconnecting(ref mut disconnecting) => disconnecting.send(event).await,
+            Self::Transient(ref mut connected) => connected.send(event).await,
+            Self::Persistent(ref mut connected) => connected.send(event).await,
+            Self::Disconnecting(ref mut disconnecting) => disconnecting.send(event).await,
             _ => Err(ErrorKind::SessionOffline.into()),
         }
     }
@@ -835,7 +868,7 @@ pub(crate) mod tests {
 
     use crate::subscription::tests::arb_subscription;
     use crate::tests::*;
-    use crate::ConnectionHandle;
+    use crate::{AuthId, ConnectionHandle};
 
     fn arb_identifiers_in_use() -> impl Strategy<Value = IdentifiersInUse> {
         vec(num::usize::ANY, PacketIdentifiers::SIZE).prop_map(|v| {
@@ -909,7 +942,8 @@ pub(crate) mod tests {
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
         let req1 = ConnReq::new(client_id, connect1, None, handle1);
-        let mut session = Session::new_transient(req1);
+        let auth_id = AuthId::identity("auth-id1");
+        let mut session = Session::new_transient(auth_id, req1);
 
         let subscribe = proto::Subscribe {
             packet_identifier: proto::PacketIdentifier::new(23).unwrap(),
@@ -963,7 +997,8 @@ pub(crate) mod tests {
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
         let req1 = ConnReq::new(client_id, connect1, None, handle1);
-        let mut session = Session::new_transient(req1);
+        let auth_id = AuthId::anonymous();
+        let mut session = Session::new_transient(auth_id, req1);
 
         let subscribe = proto::Subscribe {
             packet_identifier: proto::PacketIdentifier::new(1).unwrap(),

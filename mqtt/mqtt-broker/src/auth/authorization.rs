@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 use async_trait::async_trait;
-use mqtt3::proto::{Publication, QoS};
+use mqtt3::proto;
 
 use crate::{AuthId, ClientId, Error};
 
@@ -51,6 +51,10 @@ impl Activity {
             operation,
         }
     }
+
+    pub fn operation(&self) -> &Operation {
+        &self.operation
+    }
 }
 
 /// Describes a client operation to be authorized.
@@ -62,70 +66,114 @@ pub enum Operation {
 }
 
 impl Operation {
-    pub fn new_connect(will: Option<Publication>) -> Self {
-        let will = will.map(|publication| publication.into());
-        Self::Connect(Connect { will })
+    /// Creates a new operation context for CONNECT request.
+    pub fn new_connect(connect: proto::Connect) -> Self {
+        Self::Connect(connect.into())
+    }
+
+    /// Creates a new operation context for PUBLISH request.
+    pub fn new_publish(publish: proto::Publish) -> Self {
+        Self::Publish(publish.into())
+    }
+
+    /// Creates a new operation context for SUBSCRIBE request.
+    pub fn new_subscribe(subcribe: proto::Subscribe) -> Self {
+        Self::Subscribe(subcribe.into())
     }
 }
 
 /// Represents a client attempt to connect to the broker.
 pub struct Connect {
-    will: Option<WillPublication>,
+    will: Option<Publication>,
 }
 
-/// Represents a will publication description to be used for authorization.
-pub struct WillPublication {
-    pub topic_name: String,
-    pub qos: QoS,
-    pub retain: bool,
-}
-
-impl From<Publication> for WillPublication {
-    fn from(publication: Publication) -> Self {
-        let Publication {
-            topic_name,
-            qos,
-            retain,
-            ..
-        } = publication;
-
+impl From<proto::Connect> for Connect {
+    fn from(connect: proto::Connect) -> Self {
         Self {
-            topic_name,
-            qos,
-            retain,
+            will: connect.will.map(|publication| Publication {
+                topic_name: publication.topic_name,
+                qos: publication.qos,
+                retain: publication.retain,
+            }),
         }
     }
 }
 
+/// Represents a publication description without payload to be used for authorization.
+pub struct Publication {
+    pub topic_name: String,
+    pub qos: proto::QoS,
+    pub retain: bool,
+}
+
 /// Represents a client attempt to publish a new message on a specified MQTT topic.
 pub struct Publish {
-    topic_filter: String,
-    retained: bool,
-    qos: QoS,
+    publication: Publication,
+}
+
+impl From<proto::Publish> for Publish {
+    fn from(publish: proto::Publish) -> Self {
+        Self {
+            publication: Publication {
+                topic_name: publish.topic_name,
+                qos: match publish.packet_identifier_dup_qos {
+                    proto::PacketIdentifierDupQoS::AtMostOnce => proto::QoS::AtMostOnce,
+                    proto::PacketIdentifierDupQoS::AtLeastOnce(_, _) => proto::QoS::AtLeastOnce,
+                    proto::PacketIdentifierDupQoS::ExactlyOnce(_, _) => proto::QoS::ExactlyOnce,
+                },
+                retain: publish.retain,
+            },
+        }
+    }
 }
 
 /// Represents a client attempt to subscribe to a specified MQTT topic in order to received messages.
 pub struct Subscribe {
-    topic_filter: String,
-    qos: QoS,
+    pub subscribe_to: Vec<proto::SubscribeTo>,
+}
+
+impl From<proto::Subscribe> for Subscribe {
+    fn from(subscribe: proto::Subscribe) -> Self {
+        Self {
+            subscribe_to: subscribe.subscribe_to,
+        }
+    }
 }
 
 /// Represents a client to received a message from a specified MQTT topic.
 pub struct Receive {
     topic_filter: String,
-    qos: QoS,
+    qos: proto::QoS,
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::time::Duration;
 
     use matches::assert_matches;
+
+    use super::*;
+
+    fn connect() -> mqtt3::proto::Connect {
+        proto::Connect {
+            username: None,
+            password: None,
+            will: None,
+            client_id: proto::ClientId::ServerGenerated,
+            keep_alive: Duration::from_secs(1),
+            protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
+            protocol_level: mqtt3::PROTOCOL_LEVEL,
+        }
+    }
 
     #[tokio::test]
     async fn default_auth_always_deny_any_action() {
         let auth = DefaultAuthorizer;
-        let activity = Activity::new("client-auth-id", "client-id", Operation::new_connect(None));
+        let activity = Activity::new(
+            "client-auth-id",
+            "client-id",
+            Operation::new_connect(connect()),
+        );
 
         let res = auth.authorize(activity).await;
 
@@ -135,7 +183,11 @@ mod tests {
     #[tokio::test]
     async fn authorizer_wrapper_around_function() {
         let auth = |_| Ok(true);
-        let activity = Activity::new("client-auth-id", "client-id", Operation::new_connect(None));
+        let activity = Activity::new(
+            "client-auth-id",
+            "client-id",
+            Operation::new_connect(connect()),
+        );
 
         let res = auth.authorize(activity).await;
 
