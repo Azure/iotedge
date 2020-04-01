@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
+    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using Serilog;
 
@@ -159,6 +160,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     .Cast<JContainer>()
                     .DescendantsAndSelf()
                     .OfType<JValue>()
+                    .Select(
+                        v =>
+                        {
+                            if (v.Path.EndsWith("settings.createOptions"))
+                            {
+                                // normalize stringized JSON inside "createOptions"
+                                v.Value = JObject.Parse((string)v.Value).ToString(Formatting.None);
+                            }
+
+                            return v;
+                        })
                     .ToDictionary(v => v.Path.Substring(rootPath.Length).TrimStart('.'));
             }
 
@@ -173,14 +185,27 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             if (!match)
             {
-                IEnumerable<string> missing = referenceValues
-                    .Where(kvp =>
-                        !comparandValues.ContainsKey(kvp.Key) ||
-                        !kvp.Value.Equals(comparandValues[kvp.Key]))
-                    .Select(kvp => kvp.Key);
-                Log.Verbose(
-                    "Expected configuration values missing in agent's reported properties:\n  {MissingValues}",
-                    string.Join("\n  ", missing));
+                string[] missing = referenceValues
+                    .Where(kvp => !comparandValues.ContainsKey(kvp.Key))
+                    .Select(kvp => kvp.Key)
+                    .ToArray();
+                if (missing.Length != 0)
+                {
+                    Log.Verbose(
+                        "Expected configuration values missing in agent's reported properties:\n  {MissingValues}",
+                        string.Join("\n  ", missing));
+                }
+
+                string[] different = referenceValues
+                    .Where(kvp => comparandValues.ContainsKey(kvp.Key) && !kvp.Value.Equals(comparandValues[kvp.Key]))
+                    .Select(kvp => $"{kvp.Key}: '{kvp.Value}' != '{comparandValues[kvp.Key]}'")
+                    .ToArray();
+                if (different.Length != 0)
+                {
+                    Log.Verbose(
+                        "Expected configuration values don't match agent's reported properties:\n  {DifferentValues}",
+                        string.Join("\n  ", different));
+                }
             }
 
             return match;

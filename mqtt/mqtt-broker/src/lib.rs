@@ -26,6 +26,7 @@ mod server;
 mod session;
 mod snapshot;
 mod subscription;
+mod transport;
 
 pub use crate::auth::{AuthId, Certificate};
 pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle, BrokerState};

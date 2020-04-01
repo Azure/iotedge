@@ -85,10 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             IConfiguration configuration = this.configuration.GetSection("experimentalFeatures");
             ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration, Logger.Factory.CreateLogger("EdgeHub"));
 
-            MetricsListenerConfig listenerConfig = experimentalFeatures.EnableMetrics
-                ? MetricsListenerConfig.Create(this.configuration.GetSection("metrics:listener"))
-                : new MetricsListenerConfig();
-            MetricsConfig metricsConfig = new MetricsConfig(experimentalFeatures.EnableMetrics, listenerConfig);
+            MetricsConfig metricsConfig = new MetricsConfig(this.configuration.GetSection("metrics:listener"));
 
             this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig);
             this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures);
