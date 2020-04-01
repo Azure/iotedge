@@ -331,7 +331,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
 
             public string Config { get; }
 
-            [JsonProperty(PropertyName = "ContentTrust", Required = Required.AllowNull)]
+            [JsonProperty(PropertyName = "ContentTrust", Required = Required.Default)]
             public Option<ContentTrust> ContentTrust { get; }
         }
     }

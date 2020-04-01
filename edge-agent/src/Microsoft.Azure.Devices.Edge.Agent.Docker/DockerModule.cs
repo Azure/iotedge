@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         [JsonProperty(PropertyName = "env")]
         public IDictionary<string, EnvVal> Env { get; }
 
-        [JsonProperty(PropertyName = "ContentTrust", Required = Required.AllowNull)]
+        [JsonProperty(PropertyName = "ContentTrust", Required = Required.Default)]
         public Option<ContentTrust> ContentTrust { get; }
 
         public override bool Equals(object obj) => this.Equals(obj as DockerModule);

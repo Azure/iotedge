@@ -124,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         bool IsOnlyModuleStatusChanged(IModule other);
 
-        [JsonProperty(PropertyName = "ContentTrust", Required = Required.AllowNull)]
+        [JsonProperty(PropertyName = "ContentTrust", Required = Required.Default)]
         Option<ContentTrust> ContentTrust { get; }
     }
 

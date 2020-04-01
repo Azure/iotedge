@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public bool Equals(IModule<KubernetesConfig> other) => this.Equals(other as KubernetesModule);
 
-        [JsonProperty(PropertyName = "ContentTrust", Required = Required.AllowNull)]
+        [JsonProperty(PropertyName = "ContentTrust", Required = Required.Default)]
         public Option<ContentTrust> ContentTrust { get; }
 
         public static string PvcName(KubernetesModule module, Mount mount)
