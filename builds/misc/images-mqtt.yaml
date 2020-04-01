@@ -26,6 +26,7 @@ jobs:
           repository: $(imageName)
           command: build
           Dockerfile: mqtt/docker/linux/amd64/Dockerfile
+          buildContext: mqtt/.
 
       - bash: 'docker push $(imageName)'
         displayName: 'Docker Push'
