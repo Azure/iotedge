@@ -16,7 +16,7 @@ jobs:
       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
         displayName: 'Docker Login'
 
-      - script: mqtt/build/linux/buildImage.sh amd64
+      - script: mqtt/build/linux/buildImage.sh amd64 $(registry.address)
         name: build
         displayName: Build amd64
 
@@ -33,7 +33,7 @@ jobs:
       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
         displayName: 'Docker Login'
 
-      - script: mqtt/build/linux/buildImage.sh amd64
+      - script: mqtt/build/linux/buildImage.sh amd64 $(registry.address)
         name: build
         displayName: Build armv7
 
