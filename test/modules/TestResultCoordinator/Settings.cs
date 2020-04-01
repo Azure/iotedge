@@ -114,7 +114,7 @@ namespace TestResultCoordinator
                 configuration.GetValue<bool>("logUploadEnabled", true),
                 configuration.GetValue<string>("STORAGE_ACCOUNT_CONNECTION_STRING"),
                 configuration.GetValue<string>(TestConstants.NetworkController.RunProfilePropertyName),
-                configuration.GetValue<ushort>("UNMATCHED_RESULTS_MAX_SIZE", 10),
+                configuration.GetValue<ushort>("UNMATCHED_RESULTS_MAX_SIZE", DefaultUnmatchedResultsMaxSize),
                 configuration.GetValue<string>("TEST_INFO"));
         }
 

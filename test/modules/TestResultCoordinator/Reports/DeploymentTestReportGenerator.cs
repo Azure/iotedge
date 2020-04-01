@@ -106,7 +106,7 @@ namespace TestResultCoordinator.Reports
 
             while (hasExpectedResult)
             {
-                TestReportUtil.EnqueueAndEnforceFixedSize(unmatchedResults, this.ExpectedTestResults.Current);
+                TestReportUtil.EnqueueAndEnforceFixedSize(unmatchedResults, this.ExpectedTestResults.Current, Settings.Current.UnmatchedResultsMaxSize);
                 hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
                 if (hasExpectedResult)
                 {
