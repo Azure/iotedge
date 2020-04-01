@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Collections.Generic;
     using System.Diagnostics.Tracing;
     using System.IO;
+    using System.Runtime.InteropServices;
     using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
     using Autofac;
@@ -84,6 +85,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             IConfiguration configuration = this.configuration.GetSection("experimentalFeatures");
             ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration, Logger.Factory.CreateLogger("EdgeHub"));
+
+            // Temporarly make metrics default to off for windows. This is only until the dotnet 3.1 work is completed
+            // This temp fix is needed to fix all e2e tests since edgehub currently crashes
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                var conf = configuration.GetSection("metrics:listener");
+                configuration.Bind("conf", configuration.GetValue("conf", false));
+            }
 
             MetricsConfig metricsConfig = new MetricsConfig(this.configuration.GetSection("metrics:listener"));
 

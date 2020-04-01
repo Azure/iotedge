@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
     using System.Collections.Generic;
-    using System.Runtime.InteropServices;
     using System.Security.Authentication;
     using System.Threading;
     using System.Threading.Tasks;
@@ -35,13 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 .AddJsonFile(Constants.ConfigFileName)
                 .AddEnvironmentVariables()
                 .Build();
-
-            // Temporarly make metrics default to off for windows. This is only until the dotnet 3.1 work is completed
-            // This temp fix is needed to fix all e2e tests since edgehub currently crashes
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                configuration.Bind("MetricsEnabled", configuration.GetValue("MetricsEnabled", false));
-            }
 
             return MainAsync(configuration).Result;
         }
