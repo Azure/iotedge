@@ -18,7 +18,7 @@ jobs:
 
       - script: scripts/mqtt/build/linux/buildImage.sh amd64 $(registry.address) $(registry.user) $(registry.password)
         name: build
-        displayName: Build ($(Build.Configuration))
+        displayName: Build amd64
 
       - bash: 'docker push $(registry.address)/azureiotedge/mqttd-linux-amd64'
         displayName: 'Docker Push'
@@ -35,7 +35,7 @@ jobs:
 
       - script: scripts/mqtt/build/linux/buildImage.sh armv7 $(registry.address) $(registry.user) $(registry.password)
         name: build
-        displayName: Build ($(Build.Configuration))
+        displayName: Build armv7
 
       - bash: 'docker push $(registry.address)/azureiotedge/mqttd-linux-arm32v7'
         displayName: 'Docker Push'
