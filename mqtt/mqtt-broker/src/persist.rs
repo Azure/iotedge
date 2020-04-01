@@ -172,6 +172,7 @@ impl From<BrokerState> for ConsolidatedState {
             .map(|session| {
                 let (client_id, subscriptions, waiting_to_be_sent) = session.into_parts();
 
+                #[allow(clippy::redundant_closure)] // removing closure leads to borrow error
                 let waiting_to_be_sent = waiting_to_be_sent
                     .into_iter()
                     .map(|publication| shrink_payload(publication))
@@ -223,6 +224,7 @@ impl From<ConsolidatedState> for BrokerState {
             .map(|(topic, publication)| (topic, expand_payload(publication)))
             .collect();
 
+        #[allow(clippy::redundant_closure)] // removing closure leads to borrow error
         let sessions = sessions
             .into_iter()
             .map(|session| {

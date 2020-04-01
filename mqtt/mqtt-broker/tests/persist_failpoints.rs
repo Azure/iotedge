@@ -1,6 +1,6 @@
 use fail::FailScenario;
 
-use mqtt_broker::{ConsolidatedStateFormat, BrokerState, ErrorKind, FilePersistor, Persist};
+use mqtt_broker::{BrokerState, ConsolidatedStateFormat, ErrorKind, FilePersistor, Persist};
 use proptest::collection::vec;
 use proptest::prelude::*;
 use tempfile::TempDir;
@@ -48,7 +48,8 @@ fn tear_down_failpoints() {
 async fn test_persistor(count: usize, ops: Vec<Op>) {
     let tmp_dir = TempDir::new().unwrap();
     let path = tmp_dir.path().to_owned();
-    let mut persistor = FilePersistor::new(path, ConsolidatedStateFormat::default()).with_previous_count(count);
+    let mut persistor =
+        FilePersistor::new(path, ConsolidatedStateFormat::default()).with_previous_count(count);
 
     // Make sure we've stored at least one state
     tear_down_failpoints();
