@@ -31,26 +31,27 @@ jobs:
       - bash: 'docker push $(imageName)'
         displayName: 'Docker Push'
 
-# ################################################################################
-#   - job: linux_arm32
-# ################################################################################
-#     displayName: Linux ARM32
-#     pool:
-#       vmImage: 'ubuntu-16.04'
+################################################################################
+  - job: linux_arm32
+################################################################################
+    displayName: Linux ARM32
+    pool:
+      vmImage: 'ubuntu-16.04'
 
-#     variables:
-#       imageName: $(registry.address)/azureiotedge/mqttd-linux-arm32v7
+    variables:
+      imageName: $(registry.address)/azureiotedge/mqttd-linux-arm32v7
 
-#     steps:
-#       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
-#         displayName: 'Docker Login'
+    steps:
+      - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
+        displayName: 'Docker Login'
 
-#       - task: Docker@2
-#         displayName: Build arm32 image
-#         inputs:
-#           repository: $(imageName)
-#           command: build
-#           Dockerfile: mqtt/docker/linux/arm32v7/Dockerfile
+      - task: Docker@2
+          displayName: Build arm32v7 image
+          inputs:
+            repository: $(imageName)
+            command: build
+            Dockerfile: mqtt/docker/linux/arm32v7/Dockerfile
+            buildContext: mqtt/.
 
-#       - bash: 'docker push $(imageName)'
-#         displayName: 'Docker Push'
+      - bash: 'docker push $(imageName)'
+        displayName: 'Docker Push'
