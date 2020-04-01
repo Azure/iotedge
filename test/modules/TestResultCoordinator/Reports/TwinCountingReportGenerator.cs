@@ -19,9 +19,19 @@ namespace TestResultCoordinator.Reports
         readonly string actualSource;
         readonly ITestResultCollection<TestOperationResult> actualTestResults;
         readonly string resultType;
+        readonly ushort unmatchedResultsMaxSize;
         SimpleTestOperationResultComparer testResultComparer;
 
-        internal TwinCountingReportGenerator(string testDescription, string trackingId, string expectedSource, ITestResultCollection<TestOperationResult> expectedTestResults, string actualSource, ITestResultCollection<TestOperationResult> actualTestResults, string testOperationResultType, SimpleTestOperationResultComparer testResultComparer)
+        internal TwinCountingReportGenerator(
+            string testDescription,
+            string trackingId,
+            string expectedSource,
+            ITestResultCollection<TestOperationResult> expectedTestResults,
+            string actualSource,
+            ITestResultCollection<TestOperationResult> actualTestResults,
+            string testOperationResultType,
+            SimpleTestOperationResultComparer testResultComparer,
+            ushort unmatchedResultsMaxSize)
         {
             this.testDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
@@ -31,6 +41,7 @@ namespace TestResultCoordinator.Reports
             this.actualTestResults = Preconditions.CheckNotNull(actualTestResults, nameof(actualTestResults));
             this.testResultComparer = Preconditions.CheckNotNull(testResultComparer, nameof(testResultComparer));
             this.resultType = Preconditions.CheckNonWhiteSpace(testOperationResultType, nameof(testOperationResultType));
+            this.unmatchedResultsMaxSize = Preconditions.CheckRange<ushort>(unmatchedResultsMaxSize, 1);
         }
 
         public async Task<ITestResultReport> CreateReportAsync()
@@ -93,7 +104,7 @@ namespace TestResultCoordinator.Reports
                 }
                 else
                 {
-                    TestReportUtil.EnqueueAndEnforceFixedSize(unmatchedResults, $"{this.expectedSource} {desiredPropertyUpdate.Key}", Settings.Current.UnmatchedResultsMaxSize);
+                    TestReportUtil.EnqueueAndEnforceFixedSize(unmatchedResults, $"{this.expectedSource} {desiredPropertyUpdate.Key}", this.unmatchedResultsMaxSize);
                 }
             }
 
@@ -102,7 +113,7 @@ namespace TestResultCoordinator.Reports
                 if (!propertiesUpdated.ContainsKey(desiredPropertyReceived.Key))
                 {
                     Logger.LogError($"[{nameof(TwinCountingReportGenerator)}] Actual test result source has unexpected results.");
-                    TestReportUtil.EnqueueAndEnforceFixedSize(unmatchedResults, $"{this.actualSource} {desiredPropertyReceived.Key}", Settings.Current.UnmatchedResultsMaxSize);
+                    TestReportUtil.EnqueueAndEnforceFixedSize(unmatchedResults, $"{this.actualSource} {desiredPropertyReceived.Key}", this.unmatchedResultsMaxSize);
                 }
             }
 

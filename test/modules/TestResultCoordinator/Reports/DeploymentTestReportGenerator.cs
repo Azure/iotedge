@@ -14,6 +14,7 @@ namespace TestResultCoordinator.Reports
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(DeploymentTestReportGenerator));
 
         readonly string trackingId;
+        readonly ushort unmatchedResultsMaxSize;
 
         internal DeploymentTestReportGenerator(
             string testDescription,
@@ -21,7 +22,8 @@ namespace TestResultCoordinator.Reports
             string expectedSource,
             ITestResultCollection<TestOperationResult> expectedTestResults,
             string actualSource,
-            ITestResultCollection<TestOperationResult> actualTestResults)
+            ITestResultCollection<TestOperationResult> actualTestResults,
+            ushort unmatchedResultsMaxSize)
         {
             this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
@@ -29,6 +31,7 @@ namespace TestResultCoordinator.Reports
             this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
             this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
             this.ActualTestResults = Preconditions.CheckNotNull(actualTestResults, nameof(actualTestResults));
+            this.unmatchedResultsMaxSize = Preconditions.CheckRange<ushort>(unmatchedResultsMaxSize, 1);
 
             this.TestResultComparer = new DeploymentTestResultComparer();
             this.ResultType = TestOperationResultType.Deployment.ToString();
@@ -106,7 +109,7 @@ namespace TestResultCoordinator.Reports
 
             while (hasExpectedResult)
             {
-                TestReportUtil.EnqueueAndEnforceFixedSize(unmatchedResults, this.ExpectedTestResults.Current, Settings.Current.UnmatchedResultsMaxSize);
+                TestReportUtil.EnqueueAndEnforceFixedSize(unmatchedResults, this.ExpectedTestResults.Current, this.unmatchedResultsMaxSize);
                 hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
                 if (hasExpectedResult)
                 {
