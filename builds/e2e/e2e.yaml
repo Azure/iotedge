@@ -34,11 +34,11 @@ jobs:
 
     timeoutInMinutes: 120
 
+    steps:
     - pwsh: |
         sudo git clean -ffdx
       displayName: Clean up files (as sudo)
 
-    steps:
     - template: templates/e2e-setup.yaml
 
     - pwsh: |
