@@ -35,15 +35,40 @@ jobs:
     timeoutInMinutes: 120
 
     steps:
-    - bash: |
-        # We use a self-hosted agent for this job, so we need to handle
-        # clean up root-owned files and docker images ourselves (anything
-        # created during `dotnet vstest ...`)
-        sudo git clean -ffdx || true
-        sudo docker rm -f $(docker ps -a -q) || true
-        sudo docker system prune -a -f --volumes || true
-      displayName: Clean up files and images
     - template: templates/e2e-setup.yaml
+
+    - pwsh: |
+        # We use a self-hosted agent for this job, so we need to clean up
+        # old docker images and containers to keep disk usage in check. But
+        # pull any required images for this test run first, to take advantage
+        # of cached layers from the old images (and also so that the pull
+        # operation doesn't count against each test's timeout period).
+
+        # Get images required for this run
+        $images = Get-Content -Encoding UTF8 '$(binDir)/context.json' `
+          | ConvertFrom-Json `
+          | foreach { $_.PSObject.Properties } `
+          | where { $_.Name -match 'Image$' } `
+          | foreach { $_.Value }
+
+        # Pull required images
+        $ACR_PASSWORD | docker login -u '$(cr.username)' --password-stdin '$(cr.address)'
+        $images | foreach { sudo --preserve-env docker pull $_ }
+        Remove-Item $HOME/.docker/config.json
+
+        # Remove old images
+        $remove = sudo docker images --format '{{.Repository}}:{{.Tag}}' `
+          | where { $images -notcontains $_ }
+        $remove | foreach { sudo docker rmi $_ }
+
+        # Prune everything else
+        sudo docker rm -f $(docker ps -a -q)
+        sudo docker network prune -f
+        sudo docker volume prune -f
+      displayName: Cache docker images
+      env:
+        ACR_PASSWORD: $(TestContainerRegistryPassword)
+
     - template: templates/e2e-run.yaml
 
 ################################################################################	
