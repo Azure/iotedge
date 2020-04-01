@@ -19,6 +19,7 @@ use serde::{Deserialize, Serialize};
 
 mod auth;
 mod broker;
+mod configuration;
 mod connection;
 mod error;
 mod persist;
@@ -30,6 +31,7 @@ mod transport;
 
 pub use crate::auth::{AuthId, Certificate};
 pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle, BrokerState};
+pub use crate::configuration::BrokerConfig;
 pub use crate::connection::ConnectionHandle;
 pub use crate::error::{Error, ErrorKind};
 pub use crate::persist::{BincodeFormat, FileFormat, FilePersistor, NullPersistor, Persist};
