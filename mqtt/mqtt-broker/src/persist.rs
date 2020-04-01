@@ -150,9 +150,9 @@ impl From<BrokerState> for ConsolidatedState {
         let mut payloads = HashMap::new();
 
         let mut shrink_payload = |publication: Publication| {
-            let len = payloads.len() as u64;
+            let next_id = payloads.len() as u64;
 
-            let id = *payloads.entry(publication.payload).or_insert(len);
+            let id = *payloads.entry(publication.payload).or_insert(next_id);
 
             SimplifiedPublication {
                 topic_name: publication.topic_name,

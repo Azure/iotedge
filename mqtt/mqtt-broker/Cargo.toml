@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 async-trait = "0.1"
 bincode = "1.2"
-bytes = "0.5.4"
+bytes = "0.5"
 chrono = "0.4"
 config = { version = "0.10", default-features = false, features = ["json"] } 
 derive_more = { version = "0.99", features = ["display"] }
