@@ -1,13 +1,13 @@
 use std::any::type_name;
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::iter::FromIterator;
 
 use bytes::Bytes;
 use criterion::*;
 use mqtt3::proto::{Publication, QoS};
 use mqtt_broker::{
-    BincodeFormat, BrokerState, ClientId, ConsolidatedStateFormat, FileFormat, FilePersistor,
-    Persist, SessionState,
+    BrokerState, ClientId, ConsolidatedStateFormat, FileFormat, FilePersistor, Persist,
+    SessionState,
 };
 use tempfile::TempDir;
 use tokio::runtime::Runtime;
@@ -123,12 +123,13 @@ fn make_fake_state(
         .map(|i| {
             let waiting_to_be_sent = (0..num_unique_messages)
                 .map(|_| make_fake_publish(format!("Topic {}", i)))
-                .chain(shared_messages.clone());
+                .chain(shared_messages.clone())
+                .collect();
 
             SessionState::from_parts(
                 ClientId::from(format!("Session {}", i)),
                 HashMap::new(),
-                VecDeque::from_iter(waiting_to_be_sent),
+                waiting_to_be_sent,
             )
         })
         .collect();
@@ -164,18 +165,16 @@ fn bench(c: &mut Criterion) {
             unique,
             shared,
             retained,
-            ConsolidatedStateFormat::new(),
+            ConsolidatedStateFormat::default(),
         );
-        test_write(c, clients, unique, shared, retained, BincodeFormat::new());
         test_read(
             c,
             clients,
             unique,
             shared,
             retained,
-            ConsolidatedStateFormat::new(),
+            ConsolidatedStateFormat::default(),
         );
-        test_read(c, clients, unique, shared, retained, BincodeFormat::new());
     }
 }
 

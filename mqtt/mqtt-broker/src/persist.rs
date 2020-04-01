@@ -111,34 +111,6 @@ impl<F> FilePersistor<F> {
     }
 }
 
-/// A simple format based on Bincode and serde
-#[derive(Clone, Debug, Default)]
-pub struct BincodeFormat;
-
-impl FileFormat for BincodeFormat {
-    type Error = Error;
-
-    fn load<R: Read>(&self, reader: R) -> Result<BrokerState, Self::Error> {
-        let decoder = GzDecoder::new(reader);
-        fail_point!("bincodeformat.load.deserialize_from", |_| {
-            Err(Error::from(ErrorKind::Persist(ErrorReason::Deserialize)))
-        });
-        let state = bincode::deserialize_from(decoder)
-            .context(ErrorKind::Persist(ErrorReason::Deserialize))?;
-        Ok(state)
-    }
-
-    fn store<W: Write>(&self, writer: W, state: BrokerState) -> Result<(), Self::Error> {
-        let encoder = GzEncoder::new(writer, Compression::default());
-        fail_point!("bincodeformat.store.serialize_into", |_| {
-            Err(Error::from(ErrorKind::Persist(ErrorReason::Deserialize)))
-        });
-        bincode::serialize_into(encoder, &state)
-            .context(ErrorKind::Persist(ErrorReason::Serialize))?;
-        Ok(())
-    }
-}
-
 #[derive(Clone, Debug, Default)]
 pub struct ConsolidatedStateFormat;
 
@@ -573,19 +545,6 @@ pub(crate) mod tests {
     use crate::broker::tests::arb_broker_state;
 
     proptest! {
-        #[test]
-        fn bincode_roundtrip(state in arb_broker_state()) {
-            let expected = state.clone();
-            let format = BincodeFormat;
-            let mut buffer = vec![0_u8; 10 * 1024 * 1024];
-            let writer = Cursor::new(&mut buffer);
-            format.store(writer, state).unwrap();
-
-            let reader = Cursor::new(buffer);
-            let state = format.load(reader).unwrap();
-            prop_assert_eq!(expected, state);
-        }
-
         #[test]
         fn consolidate_simple(state in arb_broker_state()) {
             let (expected_retained, expected_sessions) = state.clone().into_parts();
