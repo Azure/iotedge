@@ -20,9 +20,12 @@ jobs:
       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
         displayName: 'Docker Login'
 
-      - script: mqtt/build/linux/buildImage.sh amd64 $(imageName)
-        name: build
-        displayName: Build amd64
+      - task: Docker@2
+        displayName: Build amd64 image
+        inputs:
+          repository: $(imageName)
+          command: build
+          Dockerfile: mqtt/docker/linux/amd64/Dockerfile
 
       - bash: 'docker push $(imageName)'
         displayName: 'Docker Push'
@@ -41,9 +44,12 @@ jobs:
       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
         displayName: 'Docker Login'
 
-      - script: mqtt/build/linux/buildImage.sh amd64 $(registry.address)
-        name: build
-        displayName: Build armv7
+      - task: Docker@2
+        displayName: Build arm32 image
+        inputs:
+          repository: $(imageName)
+          command: build
+          Dockerfile: mqtt/docker/linux/arm32v7/Dockerfile
 
       - bash: 'docker push $(imageName)'
         displayName: 'Docker Push'
