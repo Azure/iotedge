@@ -46,12 +46,12 @@ jobs:
         displayName: 'Docker Login'
 
       - task: Docker@2
-          displayName: Build arm32v7 image
-          inputs:
-            repository: $(imageName)
-            command: build
-            Dockerfile: mqtt/docker/linux/arm32v7/Dockerfile
-            buildContext: mqtt/.
+        displayName: Build arm32v7 image
+        inputs:
+          repository: $(imageName)
+          command: build
+          Dockerfile: mqtt/docker/linux/arm32v7/Dockerfile
+          buildContext: mqtt/.
 
       - bash: 'docker push $(imageName)'
         displayName: 'Docker Push'
