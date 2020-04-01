@@ -29,7 +29,7 @@ class Alert{
 }
 $Alerts = New-Object System.Collections.Generic.List[Alert]
 
-$LoadGenMessagesPerMinThreshold = 45
+$LoadGenMessagesPerMinThreshold = 1
 $TempFilterMessagesPerMinThreshold = 9 
 $UpstreamMessageRateAlertQuery = Get-Content -Path ".\queries\UpstreamMessageRate.kql" 
 $UpstreamMessageRateAlertQuery = $UpstreamMessageRateAlertQuery.Replace("<LOADGEN.THRESHOLD>", $LoadGenMessagesPerMinThreshold)
@@ -43,7 +43,7 @@ $UpstreamMessageRate = [Alert]@{
 }
 $Alerts.Add($UpstreamMessageRate)
 
-$TempSensorMessagesPerMinThreshold = 9 
+$TempSensorMessagesPerMinThreshold = 1
 $LocalMessageRateAlertQuery = Get-Content -Path ".\queries\LocalMessageRate.kql" 
 $LocalMessageRateAlertQuery = $LocalMessageRateAlertQuery.Replace("<TEMPSENSOR.THRESHOLD>", $TempSensorMessagesPerMinThreshold)
 $LocalMessageRateAlertQuery = $LocalMessageRateAlertQuery.Replace("<ALERTING.INTERVAL>", $AlertingInterval)
@@ -74,7 +74,7 @@ $NoLocalMessages  = [Alert]@{
 }
 $Alerts.Add($NoLocalMessages)
 
-$TwinTesterUpstreamReportedPropertyUpdatesPerMinThreshold = 5 
+$TwinTesterUpstreamReportedPropertyUpdatesPerMinThreshold = 4
 $ReportedPropertyRateAlertQuery = Get-Content -Path ".\queries\ReportedPropertyRate.kql" 
 $ReportedPropertyRateAlertQuery = $ReportedPropertyRateAlertQuery.Replace("<ALERTING.INTERVAL>", $AlertingInterval)
 $ReportedPropertyRateAlertQuery = $ReportedPropertyRateAlertQuery.Replace("<TWINTESTER.THRESHOLD>", $TwinTesterUpstreamReportedPropertyUpdatesPerMinThreshold)
