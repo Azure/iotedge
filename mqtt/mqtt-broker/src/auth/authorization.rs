@@ -80,6 +80,14 @@ impl Operation {
     pub fn new_subscribe(subcribe: proto::Subscribe) -> Self {
         Self::Subscribe(subcribe.into())
     }
+
+    /// Creates a new operation context for RECEIVE request.
+    ///
+    /// RECEIVE request happens when broker decides to publish a message to a certain
+    /// topic client subscribed to.
+    pub fn new_receive(publication: proto::Publication) -> Self {
+        Self::Receive(publication.into())
+    }
 }
 
 /// Represents a client attempt to connect to the broker.
@@ -90,11 +98,7 @@ pub struct Connect {
 impl From<proto::Connect> for Connect {
     fn from(connect: proto::Connect) -> Self {
         Self {
-            will: connect.will.map(|publication| Publication {
-                topic_name: publication.topic_name,
-                qos: publication.qos,
-                retain: publication.retain,
-            }),
+            will: connect.will.map(Into::into),
         }
     }
 }
@@ -104,6 +108,16 @@ pub struct Publication {
     pub topic_name: String,
     pub qos: proto::QoS,
     pub retain: bool,
+}
+
+impl From<proto::Publication> for Publication {
+    fn from(publication: proto::Publication) -> Self {
+        Self {
+            topic_name: publication.topic_name,
+            qos: publication.qos,
+            retain: publication.retain,
+        }
+    }
 }
 
 /// Represents a client attempt to publish a new message on a specified MQTT topic.
@@ -142,8 +156,15 @@ impl From<proto::Subscribe> for Subscribe {
 
 /// Represents a client to received a message from a specified MQTT topic.
 pub struct Receive {
-    topic_filter: String,
-    qos: proto::QoS,
+    publication: Publication,
+}
+
+impl From<proto::Publication> for Receive {
+    fn from(publication: proto::Publication) -> Self {
+        Self {
+            publication: publication.into(),
+        }
+    }
 }
 
 #[cfg(test)]

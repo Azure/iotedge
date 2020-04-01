@@ -391,7 +391,7 @@ where
         subscribe: proto::Subscribe,
     ) -> Result<(), Error> {
         let operation = Operation::new_subscribe(subscribe.clone());
-        if !self.authorize(client_id.clone(), operation).await? {
+        if !self.authorize_client(client_id.clone(), operation).await? {
             return Ok(());
         }
 
@@ -424,7 +424,7 @@ where
             Ok(session) => {
                 for mut publication in publications {
                     publication.retain = true;
-                    publish_to(session, &publication).await?;
+                    self.publish_to(session, &publication).await?;
                 }
                 Ok(())
             }
@@ -454,7 +454,7 @@ where
         }
     }
 
-    async fn authorize(
+    async fn authorize_client(
         &mut self,
         client_id: ClientId,
         operation: Operation,
@@ -484,13 +484,40 @@ where
         }
     }
 
+    async fn authorize_session(
+        &mut self,
+        session: &mut Session,
+        operation: Operation,
+    ) -> Result<bool, Error> {
+        let client_id = session.client_id().clone();
+        let activity = Activity::new(session.auth_id().clone(), client_id.clone(), operation);
+        match self.authorizer.authorize(activity).await {
+            Ok(true) => {
+                debug!("client {} successfully authorized", client_id);
+                Ok(true)
+            }
+            Ok(false) => {
+                warn!("client {} not allowed to connect", client_id);
+                debug!("dropping connection due to failed authorization");
+                self.drop_connection(client_id).await?;
+                Ok(false)
+            }
+            Err(e) => {
+                warn!(message="error authorizing client: {}", error = %e);
+                debug!("dropping connection due to authorization error");
+                self.drop_connection(client_id).await?;
+                Err(e)
+            }
+        }
+    }
+
     async fn process_publish(
         &mut self,
         client_id: ClientId,
         publish: proto::Publish,
     ) -> Result<(), Error> {
         let operation = Operation::new_publish(publish.clone());
-        if !self.authorize(client_id.clone(), operation).await? {
+        if !self.authorize_client(client_id.clone(), operation).await? {
             return Ok(());
         }
 
@@ -827,20 +854,32 @@ where
         publication.retain = false;
 
         for session in self.sessions.values_mut() {
-            if let Err(e) = publish_to(session, &publication).await {
+            if let Err(e) = self.publish_to(session, &publication).await {
                 warn!(message = "error processing message", error = %e);
             }
         }
 
         Ok(())
     }
-}
 
-async fn publish_to(session: &mut Session, publication: &proto::Publication) -> Result<(), Error> {
-    if let Some(event) = session.publish_to(&publication)? {
-        session.send(event).await?
+    async fn publish_to(
+        &self,
+        session: &mut Session,
+        publication: &proto::Publication,
+    ) -> Result<(), Error> {
+        let operation = Operation::new_receive(publication.clone());
+        let client_id = session.client_id().clone();
+        let activity = Activity::new(session.auth_id().clone(), client_id.clone(), operation);
+        if !self.authorizer.authorize(activity).await? {
+            info!("client {} not allowed to receive messages", client_id);
+            return Ok(());
+        }
+
+        if let Some(event) = session.publish_to(&publication)? {
+            session.send(event).await?
+        }
+        Ok(())
     }
-    Ok(())
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Deserialize, Serialize)]
