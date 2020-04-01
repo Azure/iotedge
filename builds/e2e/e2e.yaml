@@ -34,6 +34,10 @@ jobs:
 
     timeoutInMinutes: 120
 
+    - pwsh: |
+        sudo git clean -ffdx
+      displayName: Clean up files (as sudo)
+
     steps:
     - template: templates/e2e-setup.yaml
 
@@ -65,7 +69,6 @@ jobs:
         sudo docker rm -f $(docker ps -a -q)
         sudo docker network prune -f
         sudo docker volume prune -f
-        sudo git clean -ffdx
       displayName: Cache docker images
       env:
         ACR_PASSWORD: $(TestContainerRegistryPassword)
