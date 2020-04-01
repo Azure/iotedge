@@ -12,15 +12,19 @@ jobs:
     displayName: Linux AMD64
     pool:
       vmImage: 'ubuntu-16.04'
+
+    variables:
+      imageName: $(registry.address)/azureiotedge/mqttd-linux-amd64:$(Build.BuildNumber)
+
     steps:
       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
         displayName: 'Docker Login'
 
-      - script: mqtt/build/linux/buildImage.sh amd64 $(registry.address)
+      - script: mqtt/build/linux/buildImage.sh amd64 $(imageName)
         name: build
         displayName: Build amd64
 
-      - bash: 'docker push $(registry.address)/azureiotedge/mqttd-linux-amd64'
+      - bash: 'docker push $(imageName)'
         displayName: 'Docker Push'
 
 ################################################################################
@@ -29,6 +33,10 @@ jobs:
     displayName: Linux ARM32
     pool:
       vmImage: 'ubuntu-16.04'
+
+    variables:
+      imageName: $(registry.address)/azureiotedge/mqttd-linux-arm32v7:$(Build.BuildNumber)
+
     steps:
       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
         displayName: 'Docker Login'
@@ -37,5 +45,5 @@ jobs:
         name: build
         displayName: Build armv7
 
-      - bash: 'docker push $(registry.address)/azureiotedge/mqttd-linux-arm32v7'
+      - bash: 'docker push $(imageName)'
         displayName: 'Docker Push'

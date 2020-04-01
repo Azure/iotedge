@@ -3,8 +3,7 @@
 set -e
 
 ARCH=$1
-DOCKER_REGISTRY=$2
-DOCKER_IMAGEVERSION=${BUILD_BUILDNUMBER:=$3}
+DOCKER_IMAGEFQN=$2
 
 if [[ "$ARCH" == "amd64" ]]; then
     ARCH="amd64"
@@ -27,7 +26,7 @@ echo "DOCKER_IMAGEVERSION:  $DOCKER_IMAGEVERSION"
 
 echo "Building and pushing Docker image $DOCKER_IMAGENAME for $ARCH"
 docker_build_cmd="docker build --no-cache"
-docker_build_cmd+=" -t $DOCKER_REGISTRY/$DOCKER_IMAGENAME:$DOCKER_IMAGEVERSION"
+docker_build_cmd+=" -t $DOCKER_IMAGEFQN"
 docker_build_cmd+=" --file $DOCKERFILE"
 docker_build_cmd+=" mqtt/."
 
