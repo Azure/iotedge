@@ -54,7 +54,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     ""image"": ""edg0eHubImage:latest"",
     ""createOptions"": ""{}""
   },
-  ""env"": {}
+  ""env"": {},
+  ""contentTrust"" : {
+    ""HasValue"": false
+  }
 }
             ");
 
@@ -218,7 +221,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     ""image"": ""edg0eHubImage:latest"",
     ""createOptions"": ""{}""
   },
-  ""env"": {}
+  ""env"": {},
+  ""contentTrust"" : {
+    ""HasValue"": false
+  }
 }
             ");
 

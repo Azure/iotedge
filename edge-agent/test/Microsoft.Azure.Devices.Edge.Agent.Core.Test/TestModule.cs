@@ -118,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             this.ImagePullPolicy == other.ImagePullPolicy &&
             this.Priority == other.Priority;
 
-        [JsonProperty(PropertyName = "ContentTrust", Required = Required.Default)]
+        [JsonProperty(PropertyName = "contentTrust", Required = Required.Default)]
         public Option<ContentTrust> ContentTrust { get; }
 
         public override bool Equals(object obj) => this.Equals(obj as TestModuleBase<TConfig>);
