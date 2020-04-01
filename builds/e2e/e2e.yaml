@@ -61,10 +61,11 @@ jobs:
           | where { $images -notcontains $_ }
         $remove | foreach { sudo docker rmi $_ }
 
-        # Prune everything else
+        # Delete everything else
         sudo docker rm -f $(docker ps -a -q)
         sudo docker network prune -f
         sudo docker volume prune -f
+        sudo git clean -ffdx
       displayName: Cache docker images
       env:
         ACR_PASSWORD: $(TestContainerRegistryPassword)
