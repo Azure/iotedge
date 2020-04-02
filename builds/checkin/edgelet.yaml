@@ -121,8 +121,6 @@ jobs:
         displayName: Test
       - powershell: edgelet/build/windows/clippy.ps1
         displayName: Clippy
-      - powershell: edgelet/build/windows/check-arm32-patch.ps1
-        displayName: Sanity-check that ARM32 build won't break
 
 ################################################################################
   - job: style_check
