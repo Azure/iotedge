@@ -56,7 +56,7 @@ jobs:
           | foreach { $_.Value }
 
         # Pull required images
-        docker login -u $(cr.username) -p $ACR_PASSWORD $(cr.address)
+        docker login -u '$(cr.username)' -p "$env:ACR_PASSWORD" '$(cr.address)'
         $images | foreach { sudo --preserve-env docker pull $_ }
         Remove-Item $HOME/.docker/config.json
 
