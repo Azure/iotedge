@@ -60,7 +60,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ImagePullPolicy imagePullPolicy,
             uint priority,
             ConfigurationInfo configuration,
-            IDictionary<string, EnvVal> env)
+            IDictionary<string, EnvVal> env,
+            Option<ContentTrust> contentTrust)
         {
             this.Name = name;
             this.Version = Preconditions.CheckNotNull(version, nameof(version));
@@ -72,6 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             this.Priority = priority;
             this.ConfigurationInfo = configuration ?? new ConfigurationInfo();
             this.Env = env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
+            this.ContentTrust = Option.None<ContentTrust>();
         }
 
         [JsonIgnore]
@@ -118,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             this.ImagePullPolicy == other.ImagePullPolicy &&
             this.Priority == other.Priority;
 
-        [JsonProperty(PropertyName = "contentTrust", Required = Required.Default)]
+        [JsonProperty(Required = Required.Default, PropertyName = "contentTrust")]
         public Option<ContentTrust> ContentTrust { get; }
 
         public override bool Equals(object obj) => this.Equals(obj as TestModuleBase<TConfig>);
@@ -179,21 +181,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ImagePullPolicy imagePullPolicy,
             uint priority,
             ConfigurationInfo configuration,
-            IDictionary<string, EnvVal> env)
-            : base(name, version, type, desiredStatus, config, restartPolicy, imagePullPolicy, priority, configuration, env)
+            IDictionary<string, EnvVal> env,
+            Option<ContentTrust> contentTrust)
+            : base(name, version, type, desiredStatus, config, restartPolicy, imagePullPolicy, priority, configuration, env, contentTrust)
         {
         }
 
         public TestModule CloneWithImage(string image)
         {
-            return new TestModule(this.Name, this.Version, this.Type, this.DesiredStatus, new TestConfig(image), this.RestartPolicy, this.ImagePullPolicy, this.Priority, this.ConfigurationInfo, this.Env);
+            return new TestModule(this.Name, this.Version, this.Type, this.DesiredStatus, new TestConfig(image), this.RestartPolicy, this.ImagePullPolicy, this.Priority, this.ConfigurationInfo, this.Env, this.ContentTrust);
         }
     }
 
     public class TestAgentModule : TestModule, IEdgeAgentModule
     {
-        public TestAgentModule(string name, string type, TestConfig config, ImagePullPolicy imagePullPolicy, ConfigurationInfo configuration, IDictionary<string, EnvVal> env)
-            : base(name ?? Constants.EdgeAgentModuleName, string.Empty, type, ModuleStatus.Running, config, RestartPolicy.Always, imagePullPolicy, Constants.HighestPriority, configuration, env)
+        public TestAgentModule(string name, string type, TestConfig config, ImagePullPolicy imagePullPolicy, ConfigurationInfo configuration, IDictionary<string, EnvVal> env, Option<ContentTrust> contentTrust)
+            : base(name ?? Constants.EdgeAgentModuleName, string.Empty, type, ModuleStatus.Running, config, RestartPolicy.Always, imagePullPolicy, Constants.HighestPriority, configuration, env, contentTrust)
         {
             this.Version = string.Empty;
             this.RestartPolicy = RestartPolicy.Always;
@@ -217,8 +220,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
     public class TestHubModule : TestModule, IEdgeHubModule
     {
-        public TestHubModule(string name, string type, ModuleStatus desiredStatus, TestConfig config, RestartPolicy restartPolicy, ImagePullPolicy imagePullPolicy, uint priority, ConfigurationInfo configuration, IDictionary<string, EnvVal> env)
-            : base(name ?? Constants.EdgeHubModuleName, string.Empty, type, desiredStatus, config, restartPolicy, imagePullPolicy, priority, configuration, env)
+        public TestHubModule(string name, string type, ModuleStatus desiredStatus, TestConfig config, RestartPolicy restartPolicy, ImagePullPolicy imagePullPolicy, uint priority, ConfigurationInfo configuration, IDictionary<string, EnvVal> env, Option<ContentTrust> contentTrust)
+            : base(name ?? Constants.EdgeHubModuleName, string.Empty, type, desiredStatus, config, restartPolicy, imagePullPolicy, priority, configuration, env, contentTrust)
         {
             this.Version = string.Empty;
         }

@@ -745,7 +745,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             new TestConfig("EdgeAgentImage"),
             ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
-            EnvVars);
+            EnvVars,
+            Option.None<ContentTrust>());
 
         IEdgeHubModule CreateMockEdgeHubModule() => new TestHubModule(
             Constants.EdgeHubModuleName,
@@ -756,6 +757,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             ImagePullPolicy.OnCreate,
             Constants.DefaultPriority,
             new ConfigurationInfo(),
-            EnvVars);
+            EnvVars,
+            Option.None<ContentTrust>());
     }
 }

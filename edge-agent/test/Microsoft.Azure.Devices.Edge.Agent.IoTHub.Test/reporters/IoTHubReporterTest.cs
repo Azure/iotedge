@@ -98,7 +98,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             DateTime.MinValue,
                             0,
                             DateTime.MinValue,
-                            ModuleStatus.Running),
+                            ModuleStatus.Running,
+                            Option.None<ContentTrust>()),
                         new TestRuntimeModule(
                             "extra_mod",
                             "1.0",
@@ -112,7 +113,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             DateTime.MinValue,
                             0,
                             DateTime.MinValue,
-                            ModuleStatus.Backoff)).Modules.ToImmutableDictionary(),
+                            ModuleStatus.Backoff,
+                            Option.None<ContentTrust>())).Modules.ToImmutableDictionary(),
                     string.Empty,
                     versionInfo);
                 edgeAgentConnection
@@ -160,7 +162,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         DateTime.MinValue,
                         0,
                         DateTime.MinValue,
-                        ModuleStatus.Backoff),
+                        ModuleStatus.Backoff,
+                        Option.None<ContentTrust>()),
                     new TestRuntimeModule(
                         "mod2",
                         "1.0",
@@ -174,7 +177,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         DateTime.MinValue,
                         0,
                         DateTime.MinValue,
-                        ModuleStatus.Running));
+                        ModuleStatus.Running,
+                        Option.None<ContentTrust>()));
 
                 // Act
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
@@ -280,7 +284,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             DateTime.MinValue,
                             0,
                             DateTime.MinValue,
-                            ModuleStatus.Running),
+                            ModuleStatus.Running,
+                            Option.None<ContentTrust>()),
                         new TestRuntimeModule(
                             "extra_mod",
                             "1.0",
@@ -294,7 +299,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             DateTime.MinValue,
                             0,
                             DateTime.MinValue,
-                            ModuleStatus.Backoff)).Modules.ToImmutableDictionary(),
+                            ModuleStatus.Backoff,
+                            Option.None<ContentTrust>())).Modules.ToImmutableDictionary(),
                     string.Empty,
                     versionInfo);
                 edgeAgentConnection
@@ -338,7 +344,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         DateTime.MinValue,
                         0,
                         DateTime.MinValue,
-                        ModuleStatus.Backoff),
+                        ModuleStatus.Backoff,
+                        Option.None<ContentTrust>()),
                     new TestRuntimeModule(
                         "mod2",
                         "1.0",
@@ -352,7 +359,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         DateTime.MinValue,
                         0,
                         DateTime.MinValue,
-                        ModuleStatus.Running));
+                        ModuleStatus.Running,
+                        Option.None<ContentTrust>()));
 
                 var agentStateSerde = new Mock<ISerde<AgentState>>();
                 agentStateSerde.Setup(s => s.Deserialize(It.IsAny<string>()))
@@ -459,7 +467,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             DateTime.MinValue,
                             0,
                             DateTime.MinValue,
-                            ModuleStatus.Running),
+                            ModuleStatus.Running,
+                            Option.None<ContentTrust>()),
                         new TestRuntimeModule(
                             "extra_mod",
                             "1.0",
@@ -473,7 +482,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             DateTime.MinValue,
                             0,
                             DateTime.MinValue,
-                            ModuleStatus.Backoff)).Modules.ToImmutableDictionary(),
+                            ModuleStatus.Backoff,
+                            Option.None<ContentTrust>())).Modules.ToImmutableDictionary(),
                     string.Empty,
                     versionInfo);
                 edgeAgentConnection
@@ -517,7 +527,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         DateTime.MinValue,
                         0,
                         DateTime.MinValue,
-                        ModuleStatus.Backoff),
+                        ModuleStatus.Backoff,
+                        Option.None<ContentTrust>()),
                     new TestRuntimeModule(
                         "mod2",
                         "1.0",
@@ -531,7 +542,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         DateTime.MinValue,
                         0,
                         DateTime.MinValue,
-                        ModuleStatus.Running));
+                        ModuleStatus.Running,
+                        Option.None<ContentTrust>()));
 
                 var agentStateSerde = new Mock<ISerde<AgentState>>();
                 agentStateSerde.Setup(s => s.Deserialize(It.IsAny<string>()))
@@ -647,7 +659,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             DateTime.MinValue,
                             0,
                             DateTime.MinValue,
-                            ModuleStatus.Running),
+                            ModuleStatus.Running,
+                            Option.None<ContentTrust>()),
                         new TestRuntimeModule(
                             "extra_mod",
                             "1.0",
@@ -661,7 +674,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             DateTime.MinValue,
                             0,
                             DateTime.MinValue,
-                            ModuleStatus.Backoff)).Modules.ToImmutableDictionary(),
+                            ModuleStatus.Backoff,
+                            Option.None<ContentTrust>())).Modules.ToImmutableDictionary(),
                     string.Empty,
                     versionInfo);
 
@@ -711,7 +725,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         DateTime.MinValue,
                         0,
                         DateTime.MinValue,
-                        ModuleStatus.Backoff),
+                        ModuleStatus.Backoff,
+                        Option.None<ContentTrust>()),
                     new TestRuntimeModule(
                         "mod2",
                         "1.0",
@@ -725,7 +740,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         DateTime.MinValue,
                         0,
                         DateTime.MinValue,
-                        ModuleStatus.Running));
+                        ModuleStatus.Running,
+                        Option.None<ContentTrust>()));
 
                 var agentStateSerde = new Mock<ISerde<AgentState>>();
                 agentStateSerde.Setup(s => s.Deserialize(It.IsAny<string>()))
@@ -831,7 +847,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             DateTime.MinValue,
                             0,
                             DateTime.MinValue,
-                            ModuleStatus.Running),
+                            ModuleStatus.Running,
+                            Option.None<ContentTrust>()),
                         new TestRuntimeModule(
                             "extra_mod",
                             "1.0",
@@ -845,7 +862,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             DateTime.MinValue,
                             0,
                             DateTime.MinValue,
-                            ModuleStatus.Backoff)).Modules.ToImmutableDictionary(),
+                            ModuleStatus.Backoff,
+                            Option.None<ContentTrust>())).Modules.ToImmutableDictionary(),
                     string.Empty,
                     versionInfo);
                 edgeAgentConnection.SetupGet(c => c.ReportedProperties).Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
@@ -887,7 +905,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         DateTime.MinValue,
                         0,
                         DateTime.MinValue,
-                        ModuleStatus.Backoff),
+                        ModuleStatus.Backoff,
+                        Option.None<ContentTrust>()),
                     new TestRuntimeModule(
                         "mod2",
                         "1.0",
@@ -901,7 +920,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         DateTime.MinValue,
                         0,
                         DateTime.MinValue,
-                        ModuleStatus.Running));
+                        ModuleStatus.Running,
+                        Option.None<ContentTrust>()
+                        ));
 
                 var agentStateSerde = new Mock<ISerde<AgentState>>();
                 agentStateSerde.Setup(s => s.Deserialize(It.IsAny<string>()))
@@ -929,7 +950,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         DateTime.MinValue,
                         0,
                         DateTime.MinValue,
-                        ModuleStatus.Failed),
+                        ModuleStatus.Failed,
+                        Option.None<ContentTrust>()),
                     new TestRuntimeModule(
                         "mod2",
                         "1.0",
@@ -943,7 +965,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         DateTime.MinValue,
                         0,
                         DateTime.MinValue,
-                        ModuleStatus.Running));
+                        ModuleStatus.Running,
+                        Option.None<ContentTrust>()));
 
                 await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, DeploymentStatus.Success);
 
@@ -1006,7 +1029,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             DateTime.MinValue,
                             0,
                             DateTime.MinValue,
-                            ModuleStatus.Running),
+                            ModuleStatus.Running,
+                            Option.None<ContentTrust>()),
                         new TestRuntimeModule(
                             "mod2",
                             "1.0",
@@ -1020,7 +1044,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             DateTime.MinValue,
                             0,
                             DateTime.MinValue,
-                            ModuleStatus.Backoff)).Modules.ToImmutableDictionary(),
+                            ModuleStatus.Backoff,
+                            Option.None<ContentTrust>())).Modules.ToImmutableDictionary(),
                     string.Empty,
                     versionInfo);
                 edgeAgentConnection.SetupGet(c => c.ReportedProperties).Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
@@ -1057,7 +1082,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         DateTime.MinValue,
                         0,
                         DateTime.MinValue,
-                        ModuleStatus.Backoff),
+                        ModuleStatus.Backoff,
+                        Option.None<ContentTrust>()),
                     new TestRuntimeModule(
                         "mod2",
                         "1.0",
@@ -1071,7 +1097,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         DateTime.MinValue,
                         0,
                         DateTime.MinValue,
-                        ModuleStatus.Running));
+                        ModuleStatus.Running,
+                        Option.None<ContentTrust>()));
 
                 var agentStateSerde = new Mock<ISerde<AgentState>>();
                 agentStateSerde.Setup(s => s.Deserialize(It.IsAny<string>()))
@@ -1142,7 +1169,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             DateTime.MinValue,
                             0,
                             DateTime.MinValue,
-                            ModuleStatus.Running),
+                            ModuleStatus.Running,
+                            Option.None<ContentTrust>()),
                         new TestRuntimeModule(
                             "mod2",
                             "1.0",
@@ -1156,7 +1184,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             DateTime.MinValue,
                             0,
                             DateTime.MinValue,
-                            ModuleStatus.Backoff)).Modules.ToImmutableDictionary(),
+                            ModuleStatus.Backoff,
+                            Option.None<ContentTrust>())).Modules.ToImmutableDictionary(),
                     "1.0",
                     versionInfo);
                 edgeAgentConnection.SetupGet(c => c.ReportedProperties).Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
@@ -1180,7 +1209,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         DateTime.MinValue,
                         0,
                         DateTime.MinValue,
-                        ModuleStatus.Running),
+                        ModuleStatus.Running,
+                        Option.None<ContentTrust>()),
                     new TestRuntimeModule(
                         "mod2",
                         "1.0",
@@ -1194,7 +1224,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         DateTime.MinValue,
                         0,
                         DateTime.MinValue,
-                        ModuleStatus.Backoff));
+                        ModuleStatus.Backoff,
+                        Option.None<ContentTrust>()));
 
                 var agentStateSerde = new Mock<ISerde<AgentState>>();
                 agentStateSerde.Setup(s => s.Deserialize(It.IsAny<string>()))
@@ -1307,6 +1338,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         0,
                         DateTime.MinValue,
                         ModuleStatus.Backoff,
+                        Option.None<ContentTrust>(),
                         ImagePullPolicy.OnCreate),
                     new TestRuntimeModule(
                         "mod2",
@@ -1322,6 +1354,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         0,
                         DateTime.MinValue,
                         ModuleStatus.Running,
+                        Option.None<ContentTrust>(),
                         ImagePullPolicy.Never,
                         Constants.HighestPriority),
                     edgeHubRuntimeModule);
@@ -1541,7 +1574,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         DateTime.MinValue,
                         0,
                         DateTime.MinValue,
-                        ModuleStatus.Backoff),
+                        ModuleStatus.Backoff,
+                        Option.None<ContentTrust>()),
                     new TestRuntimeModule(
                         "mod2",
                         "1.0",
@@ -1555,7 +1589,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         DateTime.MinValue,
                         0,
                         DateTime.MinValue,
-                        ModuleStatus.Running));
+                        ModuleStatus.Running,
+                        Option.None<ContentTrust>()));
 
                 var agentStateSerde = new Mock<ISerde<AgentState>>();
                 agentStateSerde.Setup(s => s.Deserialize(It.IsAny<string>()))
@@ -1743,7 +1778,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             DateTime.MinValue,
                             0,
                             DateTime.MinValue,
-                            ModuleStatus.Running),
+                            ModuleStatus.Running,
+                            Option.None<ContentTrust>()),
                         new TestRuntimeModule(
                             "extra_mod",
                             "1.0",
@@ -1757,7 +1793,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                             DateTime.MinValue,
                             0,
                             DateTime.MinValue,
-                            ModuleStatus.Backoff)).Modules.ToImmutableDictionary(),
+                            ModuleStatus.Backoff,
+                            Option.None<ContentTrust>())).Modules.ToImmutableDictionary(),
                     string.Empty,
                     versionInfo);
                 edgeAgentConnection
@@ -1807,6 +1844,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         0,
                         DateTime.MinValue,
                         ModuleStatus.Backoff,
+                        Option.None<ContentTrust>(),
                         ImagePullPolicy.Never,
                         Constants.DefaultPriority,
                         null,
@@ -1825,6 +1863,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         0,
                         DateTime.MinValue,
                         ModuleStatus.Running,
+                        Option.None<ContentTrust>(),
                         ImagePullPolicy.OnCreate,
                         Constants.DefaultPriority,
                         null,
@@ -1926,6 +1965,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
             new TestConfig("EdgeAgentImage"),
             ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
-            new Dictionary<string, EnvVal>());
+            new Dictionary<string, EnvVal>(),
+            Option.None<ContentTrust>());
     }
 }

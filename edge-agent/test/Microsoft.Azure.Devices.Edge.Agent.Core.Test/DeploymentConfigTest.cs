@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -16,7 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("microsoft/edgeAgent:1.0"),
             ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
-            new Dictionary<string, EnvVal>());
+            new Dictionary<string, EnvVal>(),
+            Option.None<ContentTrust>());
 
         static readonly IEdgeAgentModule TestEdgeAgent1_1 = new TestAgentModule(
             "edgeAgent",
@@ -24,7 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("microsoft/edgeAgent:1.0"),
             ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
-            new Dictionary<string, EnvVal>());
+            new Dictionary<string, EnvVal>(),
+            Option.None<ContentTrust>());
 
         static readonly IEdgeAgentModule TestEdgeAgent2 = new TestAgentModule(
             "edgeAgent",
@@ -32,7 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("microsoft/edgeAgent:2.0"),
             ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
-            new Dictionary<string, EnvVal>());
+            new Dictionary<string, EnvVal>(),
+            Option.None<ContentTrust>());
 
         static readonly IEdgeAgentModule TestEdgeAgent3 = new TestAgentModule(
             "edgeAgent",
@@ -40,7 +44,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("microsoft/edgeAgent:1.0"),
             ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
-            new Dictionary<string, EnvVal>());
+            new Dictionary<string, EnvVal>(),
+            Option.None<ContentTrust>());
 
         static readonly IEdgeHubModule TestEdgeHub1 = new TestHubModule(
             "edgeHub",
@@ -51,7 +56,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ImagePullPolicy.OnCreate,
             Constants.DefaultPriority,
             new ConfigurationInfo(),
-            new Dictionary<string, EnvVal>());
+            new Dictionary<string, EnvVal>(),
+            Option.None<ContentTrust>());
 
         static readonly IEdgeHubModule TestEdgeHub1_1 = new TestHubModule(
             "edgeHub",
@@ -62,7 +68,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ImagePullPolicy.OnCreate,
             Constants.DefaultPriority,
             new ConfigurationInfo(),
-            new Dictionary<string, EnvVal>());
+            new Dictionary<string, EnvVal>(),
+            Option.None<ContentTrust>());
 
         static readonly IEdgeHubModule TestEdgeHub2 = new TestHubModule(
             "edgeHub",
@@ -73,7 +80,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ImagePullPolicy.OnCreate,
             Constants.DefaultPriority,
             new ConfigurationInfo(),
-            new Dictionary<string, EnvVal>());
+            new Dictionary<string, EnvVal>(),
+            Option.None<ContentTrust>());
 
         static readonly IEdgeHubModule TestEdgeHub3 = new TestHubModule(
             "edgeHub",
@@ -84,7 +92,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ImagePullPolicy.OnCreate,
             Constants.DefaultPriority,
             new ConfigurationInfo(),
-            new Dictionary<string, EnvVal>());
+            new Dictionary<string, EnvVal>(),
+            Option.None<ContentTrust>());
 
         static readonly IModule TestModule1 = new TestModule(
             "mod1",
@@ -96,7 +105,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ImagePullPolicy.OnCreate,
             Constants.DefaultPriority,
             new ConfigurationInfo(),
-            new Dictionary<string, EnvVal>());
+            new Dictionary<string, EnvVal>(),
+            Option.None<ContentTrust>());
 
         static readonly IModule TestModule1_1 = new TestModule(
             "mod1",
@@ -108,7 +118,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ImagePullPolicy.OnCreate,
             Constants.DefaultPriority,
             new ConfigurationInfo(),
-            new Dictionary<string, EnvVal>());
+            new Dictionary<string, EnvVal>(),
+            Option.None<ContentTrust>());
 
         static readonly IModule TestModule1_2 = new TestModule(
             "mod1",
@@ -120,7 +131,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ImagePullPolicy.OnCreate,
             Constants.DefaultPriority,
             new ConfigurationInfo(),
-            new Dictionary<string, EnvVal>());
+            new Dictionary<string, EnvVal>(),
+            Option.None<ContentTrust>());
 
         static readonly IModule TestModule1_3 = new TestModule(
             "mod1",
@@ -132,7 +144,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ImagePullPolicy.OnCreate,
             Constants.DefaultPriority,
             new ConfigurationInfo(),
-            new Dictionary<string, EnvVal>());
+            new Dictionary<string, EnvVal>(),
+            Option.None<ContentTrust>());
 
         static readonly IModule TestModule1_4 = new TestModule(
             "mod1",
@@ -144,7 +157,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ImagePullPolicy.OnCreate,
             Constants.DefaultPriority,
             new ConfigurationInfo(),
-            new Dictionary<string, EnvVal>());
+            new Dictionary<string, EnvVal>(),
+            Option.None<ContentTrust>());
 
         static readonly IModule TestModule1_5 = new TestModule(
             "mod1",
@@ -156,7 +170,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ImagePullPolicy.Never,
             Constants.DefaultPriority,
             new ConfigurationInfo(),
-            new Dictionary<string, EnvVal>());
+            new Dictionary<string, EnvVal>(),
+            Option.None<ContentTrust>());
 
         static readonly IModule TestModule1_6 = new TestModule(
             "mod1",
@@ -168,7 +183,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ImagePullPolicy.OnCreate,
             Constants.HighestPriority,
             new ConfigurationInfo(),
-            new Dictionary<string, EnvVal>());
+            new Dictionary<string, EnvVal>(),
+            Option.None<ContentTrust>());
 
         static readonly IModule TestModule2 = new TestModule(
             "mod2",
@@ -180,7 +196,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ImagePullPolicy.Never,
             Constants.HighestPriority,
             new ConfigurationInfo(),
-            new Dictionary<string, EnvVal>());
+            new Dictionary<string, EnvVal>(),
+            Option.None<ContentTrust>());
 
         static readonly IModule TestModule2_1 = new TestModule(
             "mod2",
@@ -192,7 +209,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ImagePullPolicy.Never,
             Constants.HighestPriority,
             new ConfigurationInfo(),
-            new Dictionary<string, EnvVal>());
+            new Dictionary<string, EnvVal>(),
+            Option.None<ContentTrust>());
 
         static readonly DeploymentConfig Config1 = new DeploymentConfig(
             "1.0",
@@ -397,8 +415,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var edgeHubModule = Mock.Of<IEdgeHubModule>(m => m.Name == "edgeHub");
             var systemModules = new SystemModules(edgeAgentModule, edgeHubModule);
 
-            var mod1 = new TestModule(null, string.Empty, "test", ModuleStatus.Running, new TestConfig("mod1"), RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo(), null);
-            var mod2 = new TestModule(null, string.Empty, "test", ModuleStatus.Running, new TestConfig("mod2"), RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo(), null);
+            var mod1 = new TestModule(null, string.Empty, "test", ModuleStatus.Running, new TestConfig("mod1"), RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo(), null, Option.None<ContentTrust>());
+            var mod2 = new TestModule(null, string.Empty, "test", ModuleStatus.Running, new TestConfig("mod2"), RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo(), null, Option.None<ContentTrust>());
 
             var modules = new Dictionary<string, IModule>
             {

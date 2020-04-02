@@ -3,11 +3,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using System;
     using System.Collections.Generic;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
     public class TestRuntimeModule : TestModule, IRuntimeModule<TestConfig>
     {
-        public TestRuntimeModule(
+        public TestRuntimeModule(            
             string name,
             string version,
             RestartPolicy restartPolicy,
@@ -21,11 +22,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             int restartCount,
             DateTime lastRestartTimeUtc,
             ModuleStatus runtimeStatus,
+            Option<ContentTrust> contentTrust,
             ImagePullPolicy imagePullPolicy = ImagePullPolicy.OnCreate,
             uint priority = Constants.DefaultPriority,
             ConfigurationInfo deploymentInfo = null,
             IDictionary<string, EnvVal> env = null)
-            : base(name, version, type, desiredStatus, config, restartPolicy, imagePullPolicy, priority, deploymentInfo, env)
+            : base(name, version, type, desiredStatus, config, restartPolicy, imagePullPolicy, priority, deploymentInfo, env, contentTrust)
         {
             this.ExitCode = exitCode;
             this.StatusDescription = statusDescription;
@@ -116,6 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             this.RestartCount,
             this.LastRestartTimeUtc,
             newStatus,
+            Option.None<ContentTrust>(),
             this.ImagePullPolicy,
             this.Priority,
             this.ConfigurationInfo);

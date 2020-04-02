@@ -142,6 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                         0,
                         DateTime.MinValue,
                         ModuleStatus.Running,
+                        Option.None<ContentTrust>(),
                         ImagePullPolicy.OnCreate,
                         Constants.DefaultPriority,
                         null,
@@ -156,7 +157,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                         ImagePullPolicy.OnCreate,
                         Constants.DefaultPriority,
                         DefaultConfigurationInfo,
-                        envVars)
+                        envVars,
+                        Option.None<ContentTrust>())
              );
         }
     }

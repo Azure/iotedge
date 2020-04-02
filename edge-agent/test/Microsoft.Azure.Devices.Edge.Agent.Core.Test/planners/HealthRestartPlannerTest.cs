@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
     using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
     using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners;
     using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -61,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         {
             (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
 
-            IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+            IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>());
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { addModule });
             ModuleSet addRunning = ModuleSet.Create(addModule);
             var addExecutionList = new List<TestRecordType>
@@ -82,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         {
             (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
 
-            IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+            IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>());
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { addModule });
             ModuleSet addRunning = ModuleSet.Create(addModule);
             var addExecutionList = new List<TestRecordType>
@@ -115,8 +116,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 DateTime.MinValue,
                 0,
                 DateTime.MinValue,
-                ModuleStatus.Running);
-            IModule desiredModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+                ModuleStatus.Running,
+                Option.None<ContentTrust>()
+                );
+            IModule desiredModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>());
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { desiredModule });
             ModuleSet currentSet = ModuleSet.Create(currentModule);
             ModuleSet desiredSet = ModuleSet.Create(desiredModule);
@@ -152,7 +155,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 DateTime.MinValue,
                 0,
                 DateTime.MinValue,
-                ModuleStatus.Running);
+                ModuleStatus.Running,
+                Option.None<ContentTrust>());
             ModuleSet removeRunning = ModuleSet.Create(removeModule);
             var removeExecutionList = new List<TestRecordType>
             {
@@ -510,7 +514,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - IntensiveCareTime - TimeSpan.FromMinutes(1),  // module exited > IntensiveCareTime min ago
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Running)
+                    ModuleStatus.Running,
+                    Option.None<ContentTrust>())
             };
 
             (TestCommandFactory factory, Mock<IEntityStore<string, ModuleState>> store, _, HealthRestartPlanner planner) = CreatePlanner();
@@ -537,8 +542,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             // Arrange
             (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
 
-            IModule module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
-            IModule edgeAgentModule = new TestModule(Constants.EdgeAgentModuleName, "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+            IModule module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>());
+            IModule edgeAgentModule = new TestModule(Constants.EdgeAgentModuleName, "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>());
             var modules = new List<IModule>
             {
                 module1,
@@ -586,7 +591,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 DateTime.MinValue,
                 0,
                 DateTime.MinValue,
-                ModuleStatus.Running),
+                ModuleStatus.Running,
+                Option.None<ContentTrust>()),
             new TestRuntimeModule(
                 "removeModule2",
                 "version1",
@@ -600,7 +606,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 DateTime.MinValue,
                 0,
                 DateTime.MinValue,
-                ModuleStatus.Backoff),
+                ModuleStatus.Backoff,
+                Option.None<ContentTrust>()),
             new TestRuntimeModule(
                 "removeModule3",
                 "version1",
@@ -614,7 +621,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 DateTime.MinValue,
                 0,
                 DateTime.MinValue,
-                ModuleStatus.Unhealthy),
+                ModuleStatus.Unhealthy,
+                Option.None<ContentTrust>()),
             new TestRuntimeModule(
                 "removeModule4",
                 "version1",
@@ -628,7 +636,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 DateTime.MinValue,
                 0,
                 DateTime.MinValue,
-                ModuleStatus.Stopped),
+                ModuleStatus.Stopped,
+                Option.None<ContentTrust>()),
             new TestRuntimeModule(
                 "removeModule5",
                 "version1",
@@ -642,7 +651,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 DateTime.MinValue,
                 0,
                 DateTime.MinValue,
-                ModuleStatus.Failed),
+                ModuleStatus.Failed,
+                Option.None<ContentTrust>()),
 
             // OnUnhealthy
             new TestRuntimeModule(
@@ -658,7 +668,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 DateTime.MinValue,
                 0,
                 DateTime.MinValue,
-                ModuleStatus.Running),
+                ModuleStatus.Running,
+                Option.None<ContentTrust>()),
             new TestRuntimeModule(
                 "removeModule7",
                 "version1",
@@ -672,7 +683,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 DateTime.MinValue,
                 0,
                 DateTime.MinValue,
-                ModuleStatus.Backoff),
+                ModuleStatus.Backoff,
+                Option.None<ContentTrust>()),
             new TestRuntimeModule(
                 "removeModule8",
                 "version1",
@@ -686,7 +698,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 DateTime.MinValue,
                 0,
                 DateTime.MinValue,
-                ModuleStatus.Unhealthy),
+                ModuleStatus.Unhealthy,
+                Option.None<ContentTrust>()),
             new TestRuntimeModule(
                 "removeModule9",
                 "version1",
@@ -700,7 +713,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 DateTime.MinValue,
                 0,
                 DateTime.MinValue,
-                ModuleStatus.Stopped),
+                ModuleStatus.Stopped,
+                Option.None<ContentTrust>()),
             new TestRuntimeModule(
                 "removeModule10",
                 "version1",
@@ -714,7 +728,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 DateTime.MinValue,
                 0,
                 DateTime.MinValue,
-                ModuleStatus.Failed),
+                ModuleStatus.Failed,
+                Option.None<ContentTrust>()),
 
             // OnFailure
             new TestRuntimeModule(
@@ -730,7 +745,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 DateTime.MinValue,
                 0,
                 DateTime.MinValue,
-                ModuleStatus.Running),
+                ModuleStatus.Running,
+                Option.None<ContentTrust>()),
             new TestRuntimeModule(
                 "removeModule12",
                 "version1",
@@ -744,7 +760,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 DateTime.MinValue,
                 0,
                 DateTime.MinValue,
-                ModuleStatus.Backoff),
+                ModuleStatus.Backoff,
+                Option.None<ContentTrust>()),
             new TestRuntimeModule(
                 "removeModule13",
                 "version1",
@@ -758,7 +775,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 DateTime.MinValue,
                 0,
                 DateTime.MinValue,
-                ModuleStatus.Unhealthy),
+                ModuleStatus.Unhealthy,
+                Option.None<ContentTrust>()),
             new TestRuntimeModule(
                 "removeModule14",
                 "version1",
@@ -772,7 +790,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 DateTime.MinValue,
                 0,
                 DateTime.MinValue,
-                ModuleStatus.Stopped),
+                ModuleStatus.Stopped,
+                Option.None<ContentTrust>()),
             new TestRuntimeModule(
                 "removeModule15",
                 "version1",
@@ -786,7 +805,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 DateTime.MinValue,
                 0,
                 DateTime.MinValue,
-                ModuleStatus.Failed),
+                ModuleStatus.Failed,
+                Option.None<ContentTrust>()),
 
             // Never
             new TestRuntimeModule(
@@ -802,7 +822,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 DateTime.MinValue,
                 0,
                 DateTime.MinValue,
-                ModuleStatus.Running),
+                ModuleStatus.Running,
+                Option.None<ContentTrust>()),
             new TestRuntimeModule(
                 "removeModule17",
                 "version1",
@@ -816,7 +837,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 DateTime.MinValue,
                 0,
                 DateTime.MinValue,
-                ModuleStatus.Backoff),
+                ModuleStatus.Backoff,
+                Option.None<ContentTrust>()),
             new TestRuntimeModule(
                 "removeModule18",
                 "version1",
@@ -830,7 +852,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 DateTime.MinValue,
                 0,
                 DateTime.MinValue,
-                ModuleStatus.Unhealthy),
+                ModuleStatus.Unhealthy,
+                Option.None<ContentTrust>()),
             new TestRuntimeModule(
                 "removeModule19",
                 "version1",
@@ -844,7 +867,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 DateTime.MinValue,
                 0,
                 DateTime.MinValue,
-                ModuleStatus.Stopped),
+                ModuleStatus.Stopped,
+                Option.None<ContentTrust>()),
             new TestRuntimeModule(
                 "removeModule20",
                 "version1",
@@ -858,7 +882,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 DateTime.MinValue,
                 0,
                 DateTime.MinValue,
-                ModuleStatus.Failed)
+                ModuleStatus.Failed,
+                Option.None<ContentTrust>())
         };
 
         static (IRuntimeModule RunningModule, IModule UpdatedModule)[] GetUpdateDeployTestData() => new (IRuntimeModule RunningModule, IModule UpdatedModule)[]
@@ -879,11 +904,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Running,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
-                    EnvVars),
-                new TestModule("updateDeployModule1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                    EnvVars
+                    ),
+                new TestModule("updateDeployModule1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -900,11 +927,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Backoff,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule2", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule2", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -921,11 +949,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Unhealthy,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule3", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule3", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -942,11 +971,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule4", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule4", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -963,11 +993,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Failed,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule5", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule5", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
 
             // OnUnhealthy
@@ -986,11 +1017,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Running,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule6", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule6", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1007,11 +1039,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Backoff,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule7", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule7", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1028,11 +1061,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Unhealthy,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule8", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule8", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1049,11 +1083,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule9", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule9", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1070,11 +1105,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Failed,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule10", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule10", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
 
             // OnFailure
@@ -1093,11 +1129,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Running,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule11", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule11", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1114,11 +1151,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Backoff,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule12", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule12", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1135,11 +1173,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Unhealthy,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule13", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule13", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1156,11 +1195,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule14", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule14", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1177,11 +1217,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Failed,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule15", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule15", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
 
             // Never
@@ -1200,11 +1241,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Running,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule16", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule16", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1221,11 +1263,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Backoff,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule17", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule17", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1242,11 +1285,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Unhealthy,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule18", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule18", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1263,11 +1307,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule19", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule19", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1284,11 +1329,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Failed,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule20", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule20", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
 
             // Always with module priority
@@ -1307,11 +1353,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Running,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.HighestPriority,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule21", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.HighestPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule21", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.HighestPriority, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1328,11 +1375,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Backoff,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.HighestPriority + 1,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule22", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.HighestPriority + 1, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule22", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.HighestPriority + 1, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1349,11 +1397,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Unhealthy,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.HighestPriority + 2,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule23", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.HighestPriority + 2, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule23", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.HighestPriority + 2, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1370,11 +1419,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.HighestPriority + 3,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule24", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.HighestPriority + 3, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule24", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.HighestPriority + 3, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1391,11 +1441,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Failed,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.HighestPriority + 4,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule25", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.HighestPriority + 4, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule25", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.HighestPriority + 4, DefaultConfigurationInfo, EnvVars, Option.None<ContentTrust>())
             ),
         };
 
@@ -1417,6 +1468,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -1431,7 +1483,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
 
             // OnUnhealthy
@@ -1450,6 +1503,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -1464,7 +1518,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
 
             // OnFailure
@@ -1483,6 +1538,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -1497,7 +1553,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
 
             // Never - Never started
@@ -1516,6 +1573,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -1530,7 +1588,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
 
             // Never - started before
@@ -1549,6 +1608,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -1563,7 +1623,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
 
             // Always with Higher Priority
@@ -1582,6 +1643,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.HighestPriority,
                     null,
@@ -1596,7 +1658,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.HighestPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1613,6 +1676,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.HighestPriority + 1,
                     null,
@@ -1627,7 +1691,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.HighestPriority + 1,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
         };
 
@@ -1649,6 +1714,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Running,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -1663,7 +1729,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1680,6 +1747,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Backoff,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -1694,7 +1762,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1711,6 +1780,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -1725,7 +1795,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1742,6 +1813,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -1756,7 +1828,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1773,6 +1846,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Failed,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -1787,7 +1861,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
 
             // OnUnhealthy
@@ -1806,6 +1881,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Running,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -1820,7 +1896,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1837,6 +1914,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Backoff,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -1851,7 +1929,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1868,6 +1947,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Unhealthy,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -1882,7 +1962,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1899,6 +1980,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -1913,7 +1995,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1930,6 +2013,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Failed,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -1944,7 +2028,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
 
             // OnFailure
@@ -1963,6 +2048,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Running,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -1977,7 +2063,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -1994,6 +2081,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Backoff,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -2008,7 +2096,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -2025,6 +2114,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Unhealthy,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -2039,7 +2129,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -2056,6 +2147,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -2070,7 +2162,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -2087,6 +2180,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -2101,7 +2195,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
 
             // Never
@@ -2120,6 +2215,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Running,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -2134,7 +2230,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -2151,6 +2248,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Backoff,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -2165,7 +2263,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -2182,6 +2281,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Unhealthy,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -2196,7 +2296,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -2213,6 +2314,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -2227,7 +2329,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -2244,6 +2347,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Failed,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     null,
@@ -2258,7 +2362,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.DefaultPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
 
             // Always with module priority
@@ -2277,6 +2382,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Running,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.HighestPriority,
                     null,
@@ -2291,7 +2397,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.HighestPriority,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -2308,6 +2415,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Backoff,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.HighestPriority + 1,
                     null,
@@ -2322,7 +2430,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.HighestPriority + 1,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -2339,6 +2448,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.HighestPriority + 2,
                     null,
@@ -2353,7 +2463,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.HighestPriority + 2,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -2370,6 +2481,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.HighestPriority + 3,
                     null,
@@ -2384,7 +2496,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.HighestPriority + 3,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
             (
                 new TestRuntimeModule(
@@ -2400,7 +2513,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.MinValue,
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Failed,
+                    ModuleStatus.Failed,Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.HighestPriority + 4,
                     null,
@@ -2415,7 +2528,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ImagePullPolicy.OnCreate,
                     Constants.HighestPriority + 4,
                     DefaultConfigurationInfo,
-                    EnvVars)
+                    EnvVars,
+                    Option.None<ContentTrust>())
             ),
         };
 
@@ -2440,7 +2554,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - IntensiveCareTime - TimeSpan.FromMinutes(5),
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Running),
+                    ModuleStatus.Running,
+                    Option.None<ContentTrust>()),
                 false
             ),
 
@@ -2459,7 +2574,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.MinValue,
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Backoff),
+                    ModuleStatus.Backoff,
+                    Option.None<ContentTrust>()),
                 true
             ),
             (
@@ -2476,7 +2592,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromHours(1),
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Backoff),
+                    ModuleStatus.Backoff,
+                    Option.None<ContentTrust>()),
                 true
             ),
             (
@@ -2493,7 +2610,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromSeconds(40),
                     3,
                     DateTime.MinValue,
-                    ModuleStatus.Backoff),
+                    ModuleStatus.Backoff,
+                    Option.None<ContentTrust>()),
                 false
             ),
 
@@ -2512,7 +2630,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.MinValue,
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Unhealthy),
+                    ModuleStatus.Unhealthy,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -2529,7 +2648,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromHours(1),
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Unhealthy),
+                    ModuleStatus.Unhealthy,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -2546,7 +2666,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromSeconds(40),
                     3,
                     DateTime.MinValue,
-                    ModuleStatus.Unhealthy),
+                    ModuleStatus.Unhealthy,
+                    Option.None<ContentTrust>()),
                 false
             ),
 
@@ -2565,7 +2686,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.MinValue,
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Stopped),
+                    ModuleStatus.Stopped,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -2582,7 +2704,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromHours(1),
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Stopped),
+                    ModuleStatus.Stopped,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -2599,7 +2722,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromSeconds(40),
                     3,
                     DateTime.MinValue,
-                    ModuleStatus.Stopped),
+                    ModuleStatus.Stopped,
+                    Option.None<ContentTrust>()),
                 false
             ),
 
@@ -2618,7 +2742,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.MinValue,
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Failed),
+                    ModuleStatus.Failed,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -2635,7 +2760,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromHours(1),
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Failed),
+                    ModuleStatus.Failed,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -2652,7 +2778,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromSeconds(40),
                     3,
                     DateTime.MinValue,
-                    ModuleStatus.Failed),
+                    ModuleStatus.Failed,
+                    Option.None<ContentTrust>()),
                 false
             ),
 
@@ -2675,7 +2802,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - IntensiveCareTime - TimeSpan.FromMinutes(5),
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Running),
+                    ModuleStatus.Running,
+                    Option.None<ContentTrust>()),
                 false
             ),
 
@@ -2694,7 +2822,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.MinValue,
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Backoff),
+                    ModuleStatus.Backoff,
+                    Option.None<ContentTrust>()),
                 true
             ),
             (
@@ -2711,7 +2840,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromHours(1),
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Backoff),
+                    ModuleStatus.Backoff,
+                    Option.None<ContentTrust>()),
                 true
             ),
             (
@@ -2728,7 +2858,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromSeconds(40),
                     3,
                     DateTime.MinValue,
-                    ModuleStatus.Backoff),
+                    ModuleStatus.Backoff,
+                    Option.None<ContentTrust>()),
                 false
             ),
 
@@ -2747,7 +2878,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.MinValue,
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Unhealthy),
+                    ModuleStatus.Unhealthy,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -2764,7 +2896,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromHours(1),
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Unhealthy),
+                    ModuleStatus.Unhealthy,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -2781,7 +2914,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromSeconds(40),
                     3,
                     DateTime.MinValue,
-                    ModuleStatus.Unhealthy),
+                    ModuleStatus.Unhealthy,
+                    Option.None<ContentTrust>()),
                 false
             ),
 
@@ -2800,7 +2934,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.MinValue,
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Stopped),
+                    ModuleStatus.Stopped,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -2817,7 +2952,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromHours(1),
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Stopped),
+                    ModuleStatus.Stopped,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -2834,7 +2970,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromSeconds(40),
                     3,
                     DateTime.MinValue,
-                    ModuleStatus.Stopped),
+                    ModuleStatus.Stopped,
+                    Option.None<ContentTrust>()),
                 false
             ),
 
@@ -2853,7 +2990,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.MinValue,
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Failed),
+                    ModuleStatus.Failed,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -2870,7 +3008,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromHours(1),
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Failed),
+                    ModuleStatus.Failed,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -2887,7 +3026,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromSeconds(40),
                     3,
                     DateTime.MinValue,
-                    ModuleStatus.Failed),
+                    ModuleStatus.Failed,
+                    Option.None<ContentTrust>()),
                 false
             ),
 
@@ -2910,7 +3050,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - IntensiveCareTime - TimeSpan.FromMinutes(5),
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Running),
+                    ModuleStatus.Running,
+                    Option.None<ContentTrust>()),
                 false
             ),
 
@@ -2929,7 +3070,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.MinValue,
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Backoff),
+                    ModuleStatus.Backoff,
+                    Option.None<ContentTrust>()),
                 true
             ),
             (
@@ -2946,7 +3088,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromHours(1),
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Backoff),
+                    ModuleStatus.Backoff,
+                    Option.None<ContentTrust>()),
                 true
             ),
             (
@@ -2963,7 +3106,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromSeconds(40),
                     3,
                     DateTime.MinValue,
-                    ModuleStatus.Backoff),
+                    ModuleStatus.Backoff,
+                    Option.None<ContentTrust>()),
                 false
             ),
 
@@ -2982,7 +3126,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.MinValue,
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Unhealthy),
+                    ModuleStatus.Unhealthy,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -2999,7 +3144,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromHours(1),
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Unhealthy),
+                    ModuleStatus.Unhealthy,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -3016,7 +3162,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromSeconds(40),
                     3,
                     DateTime.MinValue,
-                    ModuleStatus.Unhealthy),
+                    ModuleStatus.Unhealthy,
+                    Option.None<ContentTrust>()),
                 false
             ),
 
@@ -3035,7 +3182,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.MinValue,
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Stopped),
+                    ModuleStatus.Stopped,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -3052,7 +3200,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromHours(1),
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Stopped),
+                    ModuleStatus.Stopped,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -3069,7 +3218,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromSeconds(40),
                     3,
                     DateTime.MinValue,
-                    ModuleStatus.Stopped),
+                    ModuleStatus.Stopped,
+                    Option.None<ContentTrust>()),
                 false
             ),
 
@@ -3088,7 +3238,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.MinValue,
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Failed),
+                    ModuleStatus.Failed,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -3105,7 +3256,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromHours(1),
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Failed),
+                    ModuleStatus.Failed,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -3122,7 +3274,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromSeconds(40),
                     3,
                     DateTime.MinValue,
-                    ModuleStatus.Failed),
+                    ModuleStatus.Failed,
+                    Option.None<ContentTrust>()),
                 false
             ),
 
@@ -3145,7 +3298,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - IntensiveCareTime - TimeSpan.FromMinutes(5),
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Running),
+                    ModuleStatus.Running,
+                    Option.None<ContentTrust>()),
                 false
             ),
 
@@ -3164,7 +3318,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.MinValue,
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Backoff),
+                    ModuleStatus.Backoff,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -3181,7 +3336,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromHours(1),
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Backoff),
+                    ModuleStatus.Backoff,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -3198,7 +3354,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromSeconds(40),
                     3,
                     DateTime.MinValue,
-                    ModuleStatus.Backoff),
+                    ModuleStatus.Backoff,
+                    Option.None<ContentTrust>()),
                 false
             ),
 
@@ -3217,7 +3374,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.MinValue,
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Unhealthy),
+                    ModuleStatus.Unhealthy,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -3234,7 +3392,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromHours(1),
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Unhealthy),
+                    ModuleStatus.Unhealthy,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -3251,7 +3410,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromSeconds(40),
                     3,
                     DateTime.MinValue,
-                    ModuleStatus.Unhealthy),
+                    ModuleStatus.Unhealthy,
+                    Option.None<ContentTrust>()),
                 false
             ),
 
@@ -3270,7 +3430,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.MinValue,
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Stopped),
+                    ModuleStatus.Stopped,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -3287,7 +3448,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromHours(1),
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Stopped),
+                    ModuleStatus.Stopped,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -3304,7 +3466,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromSeconds(40),
                     3,
                     DateTime.MinValue,
-                    ModuleStatus.Stopped),
+                    ModuleStatus.Stopped,
+                    Option.None<ContentTrust>()),
                 false
             ),
 
@@ -3323,7 +3486,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.MinValue,
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Failed),
+                    ModuleStatus.Failed,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -3340,7 +3504,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromHours(1),
                     0,
                     DateTime.MinValue,
-                    ModuleStatus.Failed),
+                    ModuleStatus.Failed,
+                    Option.None<ContentTrust>()),
                 false
             ),
             (
@@ -3357,7 +3522,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     DateTime.UtcNow - TimeSpan.FromSeconds(40),
                     3,
                     DateTime.MinValue,
-                    ModuleStatus.Failed),
+                    ModuleStatus.Failed,
+                    Option.None<ContentTrust>()),
                 false
             ),
 
@@ -3381,6 +3547,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Backoff,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.HighestPriority),
                 true
@@ -3400,6 +3567,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Backoff,
+                    Option.None<ContentTrust>(),
                     ImagePullPolicy.OnCreate,
                     Constants.HighestPriority + 1),
                 true
