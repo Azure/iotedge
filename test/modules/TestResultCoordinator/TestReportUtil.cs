@@ -171,7 +171,7 @@ namespace TestResultCoordinator
             logger.LogInformation($"Upload logs was started at {uploadLogStartAt} and completed at {uploadLogFinishAt}; and took {uploadLogFinishAt - uploadLogStartAt}.");
         }
 
-        internal static void EnqueueAndEnforceFixedSize<T>(Queue<T> q, T result, ushort maxSize)
+        internal static void EnqueueAndEnforceMaxSize<T>(Queue<T> q, T result, ushort maxSize)
         {
             q.Enqueue(result);
             if (q.Count > maxSize)
