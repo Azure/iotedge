@@ -1574,7 +1574,7 @@ If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCAKeyRSAFile)) {$EdgeE2ERootCAKeyRS
 If ([string]::IsNullOrWhiteSpace($TwinUpdateFailureThreshold)) {$TwinUpdateFailureThreshold="00:00:01";}
 If ([string]::IsNullOrWhiteSpace($MetricsScrapeFrequencyInSecs)) {$MetricsScrapeFrequencyInSecs=300;}
 If ([string]::IsNullOrWhiteSpace($MetricsUploadTarget)) {$MetricsScrapeFrequencyInSecs="AzureLogAnalytics";}
-If ([string]::IsNullOrWhiteSpace($TestStartDelay)) {$TestStartDelay="00:02:00";}
+If ([string]::IsNullOrWhiteSpace($TestStartDelay)) {$TestStartDelay="00:05:00";}
 
 If ($TestName -eq "LongHaul" -Or $TestName -eq "Stress")
 {
