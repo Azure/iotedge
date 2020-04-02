@@ -2,6 +2,7 @@ parameters:
   release.label: ''
   test.buildNumber: ''
   test.buildId: ''
+  test.startDelay: ''
   build.source.branch: ''
   edgelet.source.branch: ''
   images.source.branch: ''
@@ -87,5 +88,6 @@ steps:
           -MetricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" `
           -MetricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" `
           -MetricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" `
-          -TestInfo "$testInfo"
+          -TestInfo "$testInfo" `
+          -TestStartDelay "${{ parameters['test.startDelay'] }}"
       workingDirectory: "$(Agent.HomeDirectory)/.."

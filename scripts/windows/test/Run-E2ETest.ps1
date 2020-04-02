@@ -128,6 +128,9 @@
     .PARAMETER InitializeWithAgentArtifact
          Boolean specifying if the iotedge installation should initialize edge agent with the official 1.0 image or the desired artifact. If false, the deployment after installation will start the desired agent artifact.
 
+    .PARAMETER TestStartDelay
+         Tests start after delay for applicable modules
+
     .EXAMPLE
         .\Run-E2ETest.ps1
             -E2ETestFolder "C:\Data\e2etests"
@@ -311,6 +314,8 @@ Param (
     [string] $InitializeWithAgentArtifact = "false",
     
     [string] $TestInfo = $null,
+
+    [string] $TestStartDelay = $null,
 
     [switch] $BypassEdgeInstallation
 )
@@ -548,6 +553,7 @@ Function PrepareTestFromArtifacts
         (Get-Content $DeploymentWorkingFilePath).replace('<CR.Password>', $ContainerRegistryPassword) | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('-linux-', '-windows-') | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('<Container_Registry>', $ContainerRegistry) | Set-Content $DeploymentWorkingFilePath
+        (Get-Content $DeploymentWorkingFilePath).replace('<TestStartDelay>', $TestStartDelay) | Set-Content $DeploymentWorkingFilePath
 
         If ($ProxyUri)
         {
@@ -1563,30 +1569,12 @@ $IotEdgeQuickstartExeTestPath = (Join-Path $QuickstartWorkingFolder "IotEdgeQuic
 $LeafDeviceExeTestPath = (Join-Path $LeafDeviceWorkingFolder "LeafDevice.exe")
 $DeploymentWorkingFilePath = Join-Path $TestWorkingFolder "deployment.json"
 
-If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCACertRSAFile))
-{
-    $EdgeE2ERootCACertRSAFile=$DefaultInstalledRSARootCACert
-}
-
-If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCAKeyRSAFile))
-{
-    $EdgeE2ERootCAKeyRSAFile=$DefaultInstalledRSARootCAKey
-}
-
-If ([string]::IsNullOrWhiteSpace($TwinUpdateFailureThreshold))
-{
-    $TwinUpdateFailureThreshold="00:00:01"
-}
-
-If ([string]::IsNullOrWhiteSpace($MetricsScrapeFrequencyInSecs))
-{
-    $MetricsScrapeFrequencyInSecs=300;
-}
-
-If ([string]::IsNullOrWhiteSpace($MetricsUploadTarget))
-{
-    $MetricsScrapeFrequencyInSecs="AzureLogAnalytics";
-}
+If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCACertRSAFile)) {$EdgeE2ERootCACertRSAFile=$DefaultInstalledRSARootCACert;}
+If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCAKeyRSAFile)) {$EdgeE2ERootCAKeyRSAFile=$DefaultInstalledRSARootCAKey;}
+If ([string]::IsNullOrWhiteSpace($TwinUpdateFailureThreshold)) {$TwinUpdateFailureThreshold="00:00:01";}
+If ([string]::IsNullOrWhiteSpace($MetricsScrapeFrequencyInSecs)) {$MetricsScrapeFrequencyInSecs=300;}
+If ([string]::IsNullOrWhiteSpace($MetricsUploadTarget)) {$MetricsScrapeFrequencyInSecs="AzureLogAnalytics";}
+If ([string]::IsNullOrWhiteSpace($TestStartDelay)) {$TestStartDelay="00:02:00";}
 
 If ($TestName -eq "LongHaul" -Or $TestName -eq "Stress")
 {

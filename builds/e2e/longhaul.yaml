@@ -14,6 +14,7 @@ variables:
   #container.registry: ''
   #snitch.storage.account: ''
   # Variables settable at queue time
+  #test.startDelay
   #edgelet.package.branchName
   #images.branchName
   #loadGen.message.frequency.amd64: 'xx:xx:xx.xx'
@@ -86,6 +87,7 @@ jobs:
           release.label: 'lh$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
+          test.startDelay: '$(test.startDelay)'
           build.source.branch: '$(Build.SourceBranchName)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
@@ -168,6 +170,7 @@ jobs:
           release.label: 'lh$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
+          test.startDelay: '$(test.startDelay)'
           build.source.branch: '$(Build.SourceBranchName)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
@@ -250,6 +253,7 @@ jobs:
           release.label: 'lh$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
+          test.startDelay: '$(test.startDelay)'
           build.source.branch: '$(Build.SourceBranchName)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
@@ -334,6 +338,7 @@ jobs:
           release.label: 'winpro-lh$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
+          test.startDelay: '$(test.startDelay)'
           build.source.branch: '$(Build.SourceBranchName)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
@@ -418,6 +423,7 @@ jobs:
           release.label: 'servercore-lh$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
+          test.startDelay: '$(test.startDelay)'
           build.source.branch: '$(Build.SourceBranchName)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
@@ -501,6 +507,7 @@ jobs:
           release.label: 'iotuap-lh$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
+          test.startDelay: '$(test.startDelay)'
           build.source.branch: '$(Build.SourceBranchName)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'

@@ -3,6 +3,7 @@ parameters:
   release.label: ''
   test.buildNumber: ''
   test.buildId: ''
+  test.startDelay: ''
   build.source.branch: ''
   edgelet.source.branch: ''
   images.source.branch: ''
@@ -145,5 +146,6 @@ steps:
           -MetricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" `
           -MetricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" `
           -TestInfo "$testInfo" `
+          -TestStartDelay "${{ parameters['test.startDelay'] }}" `
           -BypassEdgeInstallation
       CommunicationProtocol: Http
