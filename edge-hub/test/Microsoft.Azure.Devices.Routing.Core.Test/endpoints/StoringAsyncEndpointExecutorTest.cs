@@ -463,7 +463,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             {
             }
 
-            public async Task<IMessage> Add(string endpointId, IMessage message)
+            public async Task<IMessage> Add(string endpointId, IMessage message, uint _)
             {
                 TestMessageQueue queue = this.GetQueue(endpointId);
                 long offset = await queue.Add(message);

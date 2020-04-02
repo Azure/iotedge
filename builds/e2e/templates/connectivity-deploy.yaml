@@ -102,7 +102,7 @@ steps:
           -testInfo "$testInfo" \
           -waitForTestComplete \
           -cleanAll
-        
+
         scriptExitCode=$?
         echo "script exit code=$scriptExitCode"
         exit $scriptExitCode

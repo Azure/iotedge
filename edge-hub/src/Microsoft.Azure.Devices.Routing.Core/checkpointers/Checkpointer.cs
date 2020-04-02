@@ -32,9 +32,39 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
             this.UnhealthySince = checkpointData.UnhealthySince;
             this.Proposed = checkpointData.Offset;
             this.closed = new AtomicBoolean(false);
+
+            // The endpoint ID and priority is encoded into the checkpointer ID
+            // using the following format:
+            //   {endpointId}_Pri{priority}
+            // We use "_Pri" as a delimiter to parse the endpoint ID and priority
+            // back out for metrics reporting
+            string[] tokens = id.Split(new string[] { "_Pri" }, System.StringSplitOptions.RemoveEmptyEntries);
+
+            switch (tokens.Length)
+            {
+                case 1:
+                    // There's no priority value, which means this is
+                    // the checkpointer for the default priority
+                    this.EndpointId = tokens[0];
+                    this.Priority = RouteFactory.DefaultPriority.ToString();
+                    break;
+                case 2:
+                    this.EndpointId = tokens[0];
+                    this.Priority = tokens[1];
+                    break;
+                default:
+                    // Bad format (maybe due to testcase or some other such)
+                    this.EndpointId = string.Empty;
+                    this.Priority = string.Empty;
+                    break;
+            }
         }
 
         public string Id { get; }
+
+        public string EndpointId { get; }
+
+        public string Priority { get; }
 
         public long Offset { get; private set; }
 
@@ -193,9 +223,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
             static readonly IMetricsGauge QueueLength = EdgeMetrics.Instance.CreateGauge(
                 "queue_length",
                 "Number of messages pending to be processed for the endpoint",
-                new List<string> { "endpoint" });
+                new List<string> { "endpoint", "priority" });
 
-            public static void SetQueueLength(Checkpointer checkpointer) => QueueLength.Set(checkpointer.Proposed - checkpointer.Offset, new[] { checkpointer.Id });
+            public static void SetQueueLength(Checkpointer checkpointer) => QueueLength.Set(checkpointer.Proposed - checkpointer.Offset, new[] { checkpointer.EndpointId, checkpointer.Priority });
         }
     }
 }

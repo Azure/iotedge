@@ -84,6 +84,8 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         public long Offset { get; }
 
+        public uint ProcessedPriority { get; set; }
+
         public DateTime EnqueuedTime { get; }
 
         public DateTime DequeuedTime { get; }
