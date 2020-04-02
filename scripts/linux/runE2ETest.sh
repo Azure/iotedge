@@ -22,6 +22,7 @@ function clean_up() {
     if [ "$CLEAN_ALL" = '1' ]; then
         echo 'Prune docker system'
         docker system prune -af --volumes || true
+        docker network prune -f || true
     else
         echo 'Remove docker containers'
         docker rm -f $(docker ps -aq) || true
