@@ -420,20 +420,16 @@ where
             .cloned()
             .collect::<Vec<proto::Publication>>();
 
-        match self.get_session_mut(&client_id) {
-            Ok(session) => {
-                for mut publication in publications {
-                    publication.retain = true;
-                    self.publish_to(session, &publication).await?;
-                }
-                Ok(())
+        if let Some(session) = self.sessions.get_mut(&client_id) {
+            for mut publication in publications {
+                publication.retain = true;
+                publish_to(&self.authorizer, session, &publication).await?;
             }
-            Err(e) if *e.kind() == ErrorKind::NoSession => {
-                debug!("no session for {}", client_id);
-                Ok(())
-            }
-            Err(e) => Err(e),
+        } else {
+            debug!("no session for {}", client_id);
         }
+
+        Ok(())
     }
 
     async fn process_unsubscribe(
@@ -481,33 +477,6 @@ where
             }
         } else {
             Err(ErrorKind::NoSession.into())
-        }
-    }
-
-    async fn authorize_session(
-        &mut self,
-        session: &mut Session,
-        operation: Operation,
-    ) -> Result<bool, Error> {
-        let client_id = session.client_id().clone();
-        let activity = Activity::new(session.auth_id().clone(), client_id.clone(), operation);
-        match self.authorizer.authorize(activity).await {
-            Ok(true) => {
-                debug!("client {} successfully authorized", client_id);
-                Ok(true)
-            }
-            Ok(false) => {
-                warn!("client {} not allowed to connect", client_id);
-                debug!("dropping connection due to failed authorization");
-                self.drop_connection(client_id).await?;
-                Ok(false)
-            }
-            Err(e) => {
-                warn!(message="error authorizing client: {}", error = %e);
-                debug!("dropping connection due to authorization error");
-                self.drop_connection(client_id).await?;
-                Err(e)
-            }
         }
     }
 
@@ -854,32 +823,47 @@ where
         publication.retain = false;
 
         for session in self.sessions.values_mut() {
-            if let Err(e) = self.publish_to(session, &publication).await {
+            if let Err(e) = publish_to(&self.authorizer, session, &publication).await {
                 warn!(message = "error processing message", error = %e);
             }
         }
 
         Ok(())
     }
-
-    async fn publish_to(
-        &self,
-        session: &mut Session,
-        publication: &proto::Publication,
-    ) -> Result<(), Error> {
-        let operation = Operation::new_receive(publication.clone());
-        let client_id = session.client_id().clone();
-        let activity = Activity::new(session.auth_id().clone(), client_id.clone(), operation);
-        if !self.authorizer.authorize(activity).await? {
-            info!("client {} not allowed to receive messages", client_id);
-            return Ok(());
-        }
-
+}
+async fn publish_to<Z: Authorizer>(
+    authorizer: &Z,
+    session: &mut Session,
+    publication: &proto::Publication,
+) -> Result<(), Error> {
+    if can_publish_to(authorizer, session, publication).await? {
         if let Some(event) = session.publish_to(&publication)? {
             session.send(event).await?
         }
-        Ok(())
+    } else {
+        info!(
+            "client {} not allowed to receive messages",
+            session.client_id()
+        );
     }
+    Ok(())
+}
+
+async fn can_publish_to<Z: Authorizer>(
+    authorizer: &Z,
+    session: &mut Session,
+    publication: &proto::Publication,
+) -> Result<bool, Error> {
+    let operation = Operation::new_receive(publication.clone());
+    let client_id = session.client_id().clone();
+    let activity = Activity::new(session.auth_id().clone(), client_id.clone(), operation);
+
+    if !authorizer.authorize(activity).await? {
+        info!("client {} not allowed to receive messages", client_id);
+        return Ok(true);
+    }
+
+    Ok(false)
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Deserialize, Serialize)]
