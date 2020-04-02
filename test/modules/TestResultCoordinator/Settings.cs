@@ -68,7 +68,7 @@ namespace TestResultCoordinator
             this.LogUploadEnabled = logUploadEnabled;
             this.StorageAccountConnectionString = Preconditions.CheckNonWhiteSpace(storageAccountConnectionString, nameof(storageAccountConnectionString));
             this.NetworkControllerType = this.GetNetworkControllerType(networkControllerRunProfileName);
-            this.UnmatchedResultsMaxSize = unmatchedResultsMaxSize;
+            this.UnmatchedResultsMaxSize = Preconditions.CheckRange<ushort>(unmatchedResultsMaxSize, 1);
 
             this.TestInfo = ModuleUtil.ParseKeyValuePairs(testInfo, Logger, true);
             this.TestInfo.Add("DeviceId", this.DeviceId);
