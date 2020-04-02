@@ -99,7 +99,7 @@ namespace TestResultCoordinator.Reports
                 }
                 else
                 {
-                    TestReportUtil.EnqueueAndEnforceFixedSize(unmatchedResults, this.ExpectedTestResults.Current, unmatchedResultsMaxSize);
+                    TestReportUtil.EnqueueAndEnforceMaxSize(unmatchedResults, this.ExpectedTestResults.Current, this.unmatchedResultsMaxSize);
                     hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
                 }
             }
@@ -115,7 +115,7 @@ namespace TestResultCoordinator.Reports
             while (hasExpectedResult)
             {
                 totalExpectCount++;
-                TestReportUtil.EnqueueAndEnforceFixedSize(unmatchedResults, this.ExpectedTestResults.Current, unmatchedResultsMaxSize);
+                TestReportUtil.EnqueueAndEnforceMaxSize(unmatchedResults, this.ExpectedTestResults.Current, this.unmatchedResultsMaxSize);
                 hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
             }
 

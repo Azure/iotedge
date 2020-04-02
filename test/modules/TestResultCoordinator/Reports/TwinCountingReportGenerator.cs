@@ -104,7 +104,7 @@ namespace TestResultCoordinator.Reports
                 }
                 else
                 {
-                    TestReportUtil.EnqueueAndEnforceFixedSize(unmatchedResults, $"{this.expectedSource} {desiredPropertyUpdate.Key}", this.unmatchedResultsMaxSize);
+                    TestReportUtil.EnqueueAndEnforceMaxSize(unmatchedResults, $"{this.expectedSource} {desiredPropertyUpdate.Key}", this.unmatchedResultsMaxSize);
                 }
             }
 
@@ -113,7 +113,7 @@ namespace TestResultCoordinator.Reports
                 if (!propertiesUpdated.ContainsKey(desiredPropertyReceived.Key))
                 {
                     Logger.LogError($"[{nameof(TwinCountingReportGenerator)}] Actual test result source has unexpected results.");
-                    TestReportUtil.EnqueueAndEnforceFixedSize(unmatchedResults, $"{this.actualSource} {desiredPropertyReceived.Key}", this.unmatchedResultsMaxSize);
+                    TestReportUtil.EnqueueAndEnforceMaxSize(unmatchedResults, $"{this.actualSource} {desiredPropertyReceived.Key}", this.unmatchedResultsMaxSize);
                 }
             }
 
