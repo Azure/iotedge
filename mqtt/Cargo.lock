@@ -656,7 +656,7 @@ dependencies = [
  "test-case",
  "tokio",
  "tokio-io-timeout",
- "tokio-tls",
+ "tokio-native-tls",
  "tokio-util",
  "tracing",
  "tracing-futures",
@@ -1470,10 +1470,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "tokio-tls"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7bde02a3a5291395f59b06ec6945a3077602fac2b07eeeaf0dee2122f3619828"
+name = "tokio-native-tls"
+version = "0.1.0"
+source = "git+https://github.com/tokio-rs/tls#1c3aeb691e024ddaaee09e03994b1ed36ffc0546"
 dependencies = [
  "native-tls",
  "tokio",
