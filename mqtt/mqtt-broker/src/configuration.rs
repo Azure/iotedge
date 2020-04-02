@@ -12,6 +12,17 @@ use serde::{Deserialize, Deserializer};
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 
 #[derive(Debug, Deserialize)]
+pub struct Transports {
+    tcp: Option<String>,
+    tls: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ServerCertificate {
+    path: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum QueueFullAction {
     DropNew,
@@ -58,10 +69,32 @@ pub struct Session {
 
 #[derive(Debug, Deserialize)]
 pub struct BrokerConfig {
+    transports: Transports,
+    server_certificate: ServerCertificate,
     inflight_messages: InflightMessages,
     retained_messages: RetainedMessages,
     session: Session,
     persistence: Option<SessionPersistence>,
+}
+
+impl BrokerConfig {
+    pub fn transports(&self) -> &Transports {
+        &self.transports
+    }
+
+    pub fn server_cert_path(&self) -> Option<String> {
+        self.server_certificate.path.as_ref().map(ToOwned::to_owned)
+    }
+}
+
+impl Transports {
+    pub fn tls(&self) -> Option<&String> {
+        self.tls.as_ref()
+    }
+
+    pub fn tcp(&self) -> Option<&String> {
+        self.tcp.as_ref()
+    }
 }
 
 pub fn humansize<'de, T, D>(deserializer: D) -> Result<T, D::Error>

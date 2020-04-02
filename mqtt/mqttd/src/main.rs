@@ -1,8 +1,10 @@
+use std::{env, io};
+
+use clap::{App, Arg};
 use failure::ResultExt;
 use futures_util::pin_mut;
 use mqtt_broker::*;
 use native_tls::Identity;
-use std::{env, io};
 use tokio::time::{Duration, Instant};
 use tracing::{info, warn, Level};
 use tracing_subscriber::{fmt, EnvFilter};
@@ -19,29 +21,25 @@ async fn main() -> Result<(), Terminate> {
         .finish();
     let _ = tracing::subscriber::set_global_default(subscriber);
 
-    // TODO pass it to broker
-    // TODO make it an argument to override defaul config
-    let path: Option<String> = None;
-    let config = path
+    let matches = App::new("Edge MQTT Broker")
+        .version("0.1")
+        .arg(
+            Arg::with_name("config")
+                .short("c")
+                .long("config")
+                .value_name("FILE")
+                .help("Sets a custom config file")
+                .takes_value(true),
+        )
+        .get_matches();
+
+    let config_path = matches.value_of("config");
+    let config = config_path
         .map_or(BrokerConfig::new(), BrokerConfig::from_file)
         .context(ErrorKind::LoadConfiguration)?;
 
     // TODO pass it to persistence
     let _persistence = config.persistence();
-
-    let addr_tcp = env::args()
-        .nth(1)
-        .unwrap_or_else(|| "0.0.0.0:1883".to_string());
-
-    let addr_tls = env::args()
-        .nth(2)
-        .unwrap_or_else(|| "0.0.0.0:8883".to_string());
-
-    let cert_path = env::args()
-        .nth(3)
-        .unwrap_or_else(|| "broker.pfx".to_string());
-
-    let identity = load_identity(cert_path).context(ErrorKind::IdentityConfiguration)?;
 
     // Setup the shutdown handle
     let shutdown = shutdown::shutdown();
@@ -78,7 +76,21 @@ async fn main() -> Result<(), Terminate> {
     let snapshot = snapshot::snapshot(broker.handle(), snapshot_handle.clone());
     tokio::spawn(snapshot);
 
-    let transports = vec![(addr_tcp).into(), (addr_tls, identity).into()];
+    // Create configured transports
+    let mut transports = Vec::new();
+
+    if let Some(tcp) = config.transports().tcp() {
+        transports.push((tcp).into());
+    }
+
+    if let Some(tls) = config.transports().tls() {
+        if let Some(path) = config.server_cert_path() {
+            let identity = load_identity(path).context(ErrorKind::IdentityConfiguration)?;
+            transports.push((tls, identity).into());
+        } else {
+            return Err(ErrorKind::InconsistentTlsConfiguration.into());
+        }
+    }
 
     info!("Starting server...");
     let state = Server::from_broker(broker)
