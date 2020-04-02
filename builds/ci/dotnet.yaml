@@ -32,7 +32,7 @@ jobs:
             IotHubConnStr2,
             IotHubMqttHeadCert
       - task: UseDotNet@2
-        displayName: Install .NET Core
+        displayName: Install .NET Core sdk
         inputs:
           packageType: sdk
           version: $(dotnet.version)
@@ -111,7 +111,7 @@ jobs:
             IotHubConnStr2,
             IotHubMqttHeadCert
       - task: UseDotNet@2
-        displayName: Install .NET Core
+        displayName: Install .NET Core sdk
         inputs:
           packageType: sdk
           version: $(dotnet.version)

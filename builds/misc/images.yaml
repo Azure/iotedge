@@ -166,7 +166,7 @@ jobs:
       vmImage: 'ubuntu-16.04'
     steps:
       - task: UseDotNet@2
-        displayName: 'Use .NET Core sdk'
+        displayName: 'Install .NET Core sdk'
         inputs:
           packageType: sdk
           version: 2.1.x
