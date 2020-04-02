@@ -161,7 +161,12 @@ jobs:
     pool:
       vmImage: 'ubuntu-16.04'
     steps:
-      - template: templates/install-dotnet2.yaml
+      - task: UseDotNet@2
+        displayName: 'Use .NET Core sdk'
+        inputs:
+          packageType: sdk
+          version: 2.1.302
+          installationPath: $(Agent.ToolsDirectory)/dotnet
 
       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
         displayName: 'Docker Login'
