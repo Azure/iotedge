@@ -169,7 +169,7 @@ jobs:
         displayName: 'Use .NET Core sdk'
         inputs:
           packageType: sdk
-          version: 2.1.302
+          version: 2.1.x
       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
         displayName: 'Docker Login'
 
