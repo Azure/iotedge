@@ -14,7 +14,8 @@ variables:
   #container.registry: ''
   #snitch.storage.account: ''
   # Variables settable at queue time
-  #test.startDelay
+  #test.startDelay.arm
+  #test.startDelay.amd
   #edgelet.package.branchName
   #images.branchName
   #loadGen.message.frequency.amd64: 'xx:xx:xx.xx'
@@ -87,7 +88,7 @@ jobs:
           release.label: 'lh$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
-          test.startDelay: '$(test.startDelay)'
+          test.startDelay: '$(test.startDelay.amd)'
           build.source.branch: '$(Build.SourceBranchName)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
@@ -170,7 +171,7 @@ jobs:
           release.label: 'lh$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
-          test.startDelay: '$(test.startDelay)'
+          test.startDelay: '$(test.startDelay.arm)'
           build.source.branch: '$(Build.SourceBranchName)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
@@ -253,7 +254,7 @@ jobs:
           release.label: 'lh$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
-          test.startDelay: '$(test.startDelay)'
+          test.startDelay: '$(test.startDelay.arm)'
           build.source.branch: '$(Build.SourceBranchName)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
@@ -338,7 +339,7 @@ jobs:
           release.label: 'winpro-lh$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
-          test.startDelay: '$(test.startDelay)'
+          test.startDelay: '$(test.startDelay.amd)'
           build.source.branch: '$(Build.SourceBranchName)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
