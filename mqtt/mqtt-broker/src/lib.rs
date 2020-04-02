@@ -37,6 +37,7 @@ pub use crate::error::{Error, ErrorKind};
 pub use crate::persist::{BincodeFormat, FileFormat, FilePersistor, NullPersistor, Persist};
 pub use crate::server::Server;
 pub use crate::snapshot::{Snapshotter, StateSnapshotHandle};
+pub use crate::transport::TransportBuilder;
 
 #[derive(Clone, Debug, Display, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ClientId(Arc<String>);

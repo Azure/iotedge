@@ -1,25 +1,57 @@
-use std::convert::From;
+use std::convert::{From, TryFrom};
 use std::ops::Mul;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::Duration;
 
+use crate::{transport::TransportBuilder, Error, ErrorKind};
 use config::{Config, ConfigError, File, FileFormat};
+use failure::ResultExt;
 use lazy_static::lazy_static;
+use native_tls::Identity;
 use regex::Regex;
 use serde::{Deserialize, Deserializer};
+use tracing::info;
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 
-#[derive(Debug, Deserialize)]
-pub struct Transports {
-    tcp: Option<String>,
-    tls: Option<String>,
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Transport {
+    Tcp {
+        address: String,
+    },
+    Tls {
+        address: String,
+        identity_path: PathBuf,
+    },
 }
 
-#[derive(Debug, Deserialize)]
-pub struct ServerCertificate {
-    path: Option<String>,
+impl TryFrom<Transport> for TransportBuilder<String> {
+    type Error = Error;
+
+    fn try_from(transport: Transport) -> Result<Self, Self::Error> {
+        match transport {
+            Transport::Tcp { address } => Ok(Self::Tcp(address)),
+            Transport::Tls {
+                address,
+                identity_path,
+            } => {
+                load_identity(identity_path.as_path()).map(|identity| Self::Tls(address, identity))
+            }
+        }
+    }
+}
+
+fn load_identity(path: &Path) -> Result<Identity, Error> {
+    info!("Loading identity from {:?}", path);
+    let cert_buffer = std::fs::read(&path).context(ErrorKind::LoadIdentity)?;
+
+    let cert_pwd = "";
+    let cert = Identity::from_pkcs12(cert_buffer.as_slice(), &cert_pwd)
+        .context(ErrorKind::DecodeIdentity)?;
+
+    Ok(cert)
 }
 
 #[derive(Debug, Deserialize)]
@@ -69,8 +101,7 @@ pub struct Session {
 
 #[derive(Debug, Deserialize)]
 pub struct BrokerConfig {
-    transports: Transports,
-    server_certificate: ServerCertificate,
+    transports: Vec<Transport>,
     inflight_messages: InflightMessages,
     retained_messages: RetainedMessages,
     session: Session,
@@ -78,22 +109,8 @@ pub struct BrokerConfig {
 }
 
 impl BrokerConfig {
-    pub fn transports(&self) -> &Transports {
+    pub fn transports(&self) -> &Vec<Transport> {
         &self.transports
-    }
-
-    pub fn server_cert_path(&self) -> Option<String> {
-        self.server_certificate.path.as_ref().map(ToOwned::to_owned)
-    }
-}
-
-impl Transports {
-    pub fn tls(&self) -> Option<&String> {
-        self.tls.as_ref()
-    }
-
-    pub fn tcp(&self) -> Option<&String> {
-        self.tcp.as_ref()
     }
 }
 

@@ -37,24 +37,6 @@ where
     }
 }
 
-impl<A> From<A> for TransportBuilder<A>
-where
-    A: ToSocketAddrs,
-{
-    fn from(addr: A) -> Self {
-        Self::Tcp(addr)
-    }
-}
-
-impl<A> From<(A, Identity)> for TransportBuilder<A>
-where
-    A: ToSocketAddrs,
-{
-    fn from((addrs, identity): (A, Identity)) -> Self {
-        Self::Tls(addrs, identity)
-    }
-}
-
 pub enum Transport {
     Tcp(TcpListener),
     Tls(TcpListener, TlsAcceptor),

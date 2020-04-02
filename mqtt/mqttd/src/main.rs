@@ -1,10 +1,9 @@
-use std::{env, io};
+use std::{convert::TryInto, env, io};
 
 use clap::{App, Arg};
 use failure::ResultExt;
 use futures_util::pin_mut;
 use mqtt_broker::*;
-use native_tls::Identity;
 use tokio::time::{Duration, Instant};
 use tracing::{info, warn, Level};
 use tracing_subscriber::{fmt, EnvFilter};
@@ -77,20 +76,11 @@ async fn main() -> Result<(), Terminate> {
     tokio::spawn(snapshot);
 
     // Create configured transports
-    let mut transports = Vec::new();
-
-    if let Some(tcp) = config.transports().tcp() {
-        transports.push((tcp).into());
-    }
-
-    if let Some(tls) = config.transports().tls() {
-        if let Some(path) = config.server_cert_path() {
-            let identity = load_identity(path).context(ErrorKind::IdentityConfiguration)?;
-            transports.push((tls, identity).into());
-        } else {
-            return Err(ErrorKind::InconsistentTlsConfiguration.into());
-        }
-    }
+    let transports = config
+        .transports()
+        .iter()
+        .map(|transport| transport.clone().try_into())
+        .collect::<Result<Vec<_>, _>>()?;
 
     info!("Starting server...");
     let state = Server::from_broker(broker)
@@ -108,16 +98,6 @@ async fn main() -> Result<(), Terminate> {
     info!("exiting... goodbye");
 
     Ok(())
-}
-
-fn load_identity(path: String) -> Result<Identity, Error> {
-    let cert_buffer = std::fs::read(&path).context(ErrorKind::LoadIdentity)?;
-
-    let cert_pwd = "";
-    let cert = Identity::from_pkcs12(cert_buffer.as_slice(), &cert_pwd)
-        .context(ErrorKind::DecodeIdentity)?;
-
-    Ok(cert)
 }
 
 async fn tick_snapshot(

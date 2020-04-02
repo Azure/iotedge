@@ -27,14 +27,6 @@ impl From<Error> for Terminate {
     }
 }
 
-impl From<ErrorKind> for Terminate {
-    fn from(error_kind: ErrorKind) -> Self {
-        Terminate {
-            error: error_kind.into(),
-        }
-    }
-}
-
 impl From<Context<ErrorKind>> for Terminate {
     fn from(context: Context<ErrorKind>) -> Self {
         Terminate {
