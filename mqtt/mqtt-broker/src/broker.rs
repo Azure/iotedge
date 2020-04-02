@@ -1785,29 +1785,7 @@ pub(crate) mod tests {
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
-        let id = "id1".to_string();
-        let connect1 = persistent_connect(id);
-
-        let (tx1, mut rx1) = mpsc::channel(128);
-        let conn1 = ConnectionHandle::from_sender(tx1);
-        let client_id = ClientId::from("blah".to_string());
-        let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
-        broker_handle
-            .send(Message::Client(
-                client_id.clone(),
-                ClientEvent::ConnReq(req1),
-            ))
-            .await
-            .unwrap();
-
-        assert_matches!(
-            rx1.recv().await,
-            Some(Message::Client(_, ClientEvent::ConnAck(proto::ConnAck {
-                return_code:
-                    proto::ConnectReturnCode::Accepted,
-                ..
-            })))
-        );
+        let (client_id, mut rx) = connect_client(&mut broker_handle).await.unwrap();
 
         let publish = proto::Publish {
             packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtLeastOnce(
@@ -1819,19 +1797,14 @@ pub(crate) mod tests {
             payload: Bytes::new(),
         };
 
-        broker_handle
-            .send(Message::Client(
-                client_id.clone(),
-                ClientEvent::PublishFrom(publish),
-            ))
-            .await
-            .unwrap();
+        let message = Message::Client(client_id.clone(), ClientEvent::PublishFrom(publish));
+        broker_handle.send(message).await.unwrap();
 
         assert_matches!(
-            rx1.recv().await,
+            rx.recv().await,
             Some(Message::Client(_, ClientEvent::DropConnection))
         );
-        assert_matches!(rx1.recv().await, None)
+        assert_matches!(rx.recv().await, None)
     }
 
     #[tokio::test]
@@ -1847,23 +1820,99 @@ pub(crate) mod tests {
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
-        let id = "id1".to_string();
-        let connect1 = persistent_connect(id);
+        let (client_id, mut rx1) = connect_client(&mut broker_handle).await.unwrap();
 
-        let (tx1, mut rx1) = mpsc::channel(128);
-        let conn1 = ConnectionHandle::from_sender(tx1);
-        let client_id = ClientId::from("blah".to_string());
-        let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
-        broker_handle
-            .send(Message::Client(
-                client_id.clone(),
-                ClientEvent::ConnReq(req1),
-            ))
-            .await
-            .unwrap();
+        let subscribe = proto::Subscribe {
+            packet_identifier: proto::PacketIdentifier::new(1).unwrap(),
+            subscribe_to: vec![proto::SubscribeTo {
+                topic_filter: "/foo/bar".to_string(),
+                qos: proto::QoS::AtLeastOnce,
+            }],
+        };
+
+        let message = Message::Client(client_id.clone(), ClientEvent::Subscribe(subscribe));
+        broker_handle.send(message).await.unwrap();
 
         assert_matches!(
             rx1.recv().await,
+            Some(Message::Client(_, ClientEvent::DropConnection))
+        );
+        assert_matches!(rx1.recv().await, None)
+    }
+
+    #[tokio::test]
+    async fn test_receive_client_has_no_permissions() {
+        let broker = BrokerBuilder::default()
+            .authenticator(|_| Ok(Some(AuthId::identity("client-a"))))
+            .authorizer(|activity: Activity| match activity.operation() {
+                Operation::Connect(_) => Ok(true),
+                Operation::Publish(_) => Ok(true),
+                _ => Ok(false),
+            })
+            .build();
+
+        let mut broker_handle = broker.handle();
+        tokio::spawn(broker.run().map(drop));
+
+        let (subscriber_id, mut subscriber_rx) = connect_client(&mut broker_handle).await.unwrap();
+
+        let subscribe = proto::Subscribe {
+            packet_identifier: proto::PacketIdentifier::new(1).unwrap(),
+            subscribe_to: vec![proto::SubscribeTo {
+                topic_filter: "/foo/bar".to_string(),
+                qos: proto::QoS::AtLeastOnce,
+            }],
+        };
+
+        let message = Message::Client(subscriber_id.clone(), ClientEvent::Subscribe(subscribe));
+        broker_handle.send(message).await.unwrap();
+
+        let (publisher_id, mut publisher_rx) = connect_client(&mut broker_handle).await.unwrap();
+
+        let publish = proto::Publish {
+            packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtLeastOnce(
+                proto::PacketIdentifier::new(1).unwrap(),
+                false,
+            ),
+            retain: true,
+            topic_name: "/foo/bar".to_string(),
+            payload: Bytes::new(),
+        };
+
+        let message = Message::Client(publisher_id.clone(), ClientEvent::PublishFrom(publish));
+        broker_handle.send(message).await.unwrap();
+
+        assert_matches!(
+            publisher_rx.recv().await,
+            Some(Message::Client(_, ClientEvent::PubAck(_)))
+        );
+
+        assert_matches!(
+            subscriber_rx.recv().await,
+            Some(Message::Client(_, ClientEvent::DropConnection))
+        );
+        assert_matches!(subscriber_rx.recv().await, None)
+    }
+
+    async fn connect_client(
+        broker_handle: &mut BrokerHandle,
+    ) -> Result<(ClientId, Receiver<Message>), Error> {
+        let id = "id1".to_string();
+        let connect = persistent_connect(id);
+
+        let (tx, mut rx) = mpsc::channel(128);
+        let conn = ConnectionHandle::from_sender(tx);
+        let client_id = ClientId::from("blah".to_string());
+        let req = ConnReq::new(client_id.clone(), connect, None, conn);
+        broker_handle
+            .send(Message::Client(
+                client_id.clone(),
+                ClientEvent::ConnReq(req),
+            ))
+            .await?;
+
+        assert_matches!(
+            rx.recv().await,
             Some(Message::Client(_, ClientEvent::ConnAck(proto::ConnAck {
                 return_code:
                     proto::ConnectReturnCode::Accepted,
@@ -1871,26 +1920,6 @@ pub(crate) mod tests {
             })))
         );
 
-        let subscribe = proto::Subscribe {
-            packet_identifier: proto::PacketIdentifier::new(1).unwrap(),
-            subscribe_to: vec![proto::SubscribeTo{
-                topic_filter: "/foo/bar".to_string(),
-                qos: proto::QoS::AtLeastOnce
-            }],
-        };
-
-        broker_handle
-            .send(Message::Client(
-                client_id.clone(),
-                ClientEvent::Subscribe(subscribe),
-            ))
-            .await
-            .unwrap();
-
-        assert_matches!(
-            rx1.recv().await,
-            Some(Message::Client(_, ClientEvent::DropConnection))
-        );
-        assert_matches!(rx1.recv().await, None)
+        Ok((client_id, rx))
     }
 }
