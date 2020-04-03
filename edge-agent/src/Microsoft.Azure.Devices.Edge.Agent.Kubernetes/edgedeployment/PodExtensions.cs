@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 moduleName = name;
             }
 
-            var reportedConfig = new AgentDocker.DockerReportedConfig(runtimeData.ImageName, string.Empty, string.Empty);
+            var reportedConfig = new AgentDocker.DockerReportedConfig(runtimeData.ImageName, string.Empty, string.Empty, Option.None<AgentDocker.NotaryContentTrust>());
             return new ModuleRuntimeInfo<AgentDocker.DockerReportedConfig>(
                 moduleName,
                 "docker",

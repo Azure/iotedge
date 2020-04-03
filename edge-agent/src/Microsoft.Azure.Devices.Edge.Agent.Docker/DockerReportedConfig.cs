@@ -13,17 +13,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     [JsonConverter(typeof(DockerReportedConfigJsonConverter))]
     public class DockerReportedConfig : DockerConfig, IEquatable<DockerReportedConfig>
     {
-        public static DockerReportedConfig Unknown = new DockerReportedConfig(CoreConstants.Unknown, string.Empty, string.Empty);
+        public static DockerReportedConfig Unknown = new DockerReportedConfig(CoreConstants.Unknown, string.Empty, string.Empty, Option.None<NotaryContentTrust>());
 
         [JsonConstructor]
-        public DockerReportedConfig(string image, string createOptions, string imageHash)
-            : base(image, createOptions)
+        public DockerReportedConfig(string image, string createOptions, string imageHash, Option<NotaryContentTrust> notaryContentTrust)
+            : base(image, createOptions, notaryContentTrust)
         {
             this.ImageHash = imageHash ?? string.Empty;
         }
 
-        public DockerReportedConfig(string image, CreateContainerParameters createOptions, string imageHash)
-            : base(image, createOptions)
+        public DockerReportedConfig(string image, CreateContainerParameters createOptions, string imageHash, Option<NotaryContentTrust> notaryContentTrust)
+            : base(image, createOptions, notaryContentTrust)
         {
             this.ImageHash = imageHash ?? string.Empty;
         }
@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 return true;
             }
 
-            return base.Equals(other) && string.Equals(this.ImageHash, other.ImageHash);
+            return base.Equals(other) && string.Equals(this.ImageHash, other.ImageHash) && Equals(this.NotaryContentTrust, other.NotaryContentTrust);
         }
 
         public override int GetHashCode()
@@ -83,6 +83,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     writer.WriteValue(chunk);
                 }
 
+                dockerReportedConfig.NotaryContentTrust.ForEach(ct =>
+                {
+                    writer.WritePropertyName("notaryContentTrust");
+                    serializer.Serialize(writer, ct);
+                });
                 writer.WriteEndObject();
             }
 
@@ -99,7 +104,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     .Select(token => token?.ToString() ?? string.Empty)
                     .Join();
 
-                return new DockerReportedConfig(jTokenImage?.ToString(), options, jTokenImageHash?.ToString());
+                if (obj.TryGetValue("notaryContentTrust", StringComparison.OrdinalIgnoreCase, out JToken jTokenNotaryContentTrust))
+                {
+                    return new DockerReportedConfig(jTokenImage?.ToString(), options, jTokenImageHash?.ToString(), Option.Maybe(jTokenNotaryContentTrust.ToObject<NotaryContentTrust>()));
+                }
+                else
+                {
+                    return new DockerReportedConfig(jTokenImage?.ToString(), options, jTokenImageHash?.ToString(), Option.None<NotaryContentTrust>());
+                }
             }
 
             public override bool CanConvert(Type objectType) => objectType == typeof(DockerReportedConfig);
