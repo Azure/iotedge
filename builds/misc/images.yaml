@@ -13,7 +13,11 @@ jobs:
     pool:
       vmImage: 'ubuntu-16.04'
     steps:
-      - template: templates/install-dotnet3.yaml
+      - task: UseDotNet@2
+        displayName: Install .NET Core sdk
+        inputs:
+          packageType: sdk
+          version: 3.0.x
 
       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
         displayName: 'Docker Login'
@@ -161,8 +165,11 @@ jobs:
     pool:
       vmImage: 'ubuntu-16.04'
     steps:
-      - template: templates/install-dotnet2.yaml
-
+      - task: UseDotNet@2
+        displayName: 'Install .NET Core sdk'
+        inputs:
+          packageType: sdk
+          version: 2.1.x
       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
         displayName: 'Docker Login'
 
