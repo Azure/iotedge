@@ -89,6 +89,8 @@ jobs:
         displayName: Set env variables
       - bash: mqtt/build/linux/install.sh
         displayName: Install Rust
+      - bash: mqtt/build/linux/build.sh -r 1
+        displayName: Build
       - bash: mqtt/build/linux/compliance.sh
         displayName: Test
 
