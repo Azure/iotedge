@@ -60,6 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Option<IWebProxy> proxy;
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
+        readonly TimeSpan performanceMetricsUpdateFrequency;
         readonly bool useServerHeartbeat;
         readonly KubernetesExperimentalFeatures experimentalFeatures;
         readonly KubernetesModuleOwner moduleOwner;
@@ -92,6 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             Option<IWebProxy> proxy,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
+            TimeSpan performanceMetricsUpdateFrequency,
             bool useServerHeartbeat,
             KubernetesExperimentalFeatures experimentalFeatures,
             KubernetesModuleOwner moduleOwner,
@@ -123,6 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.proxy = proxy;
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
+            this.performanceMetricsUpdateFrequency = performanceMetricsUpdateFrequency;
             this.useServerHeartbeat = useServerHeartbeat;
             this.experimentalFeatures = experimentalFeatures;
             this.moduleOwner = moduleOwner;
@@ -339,6 +342,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         return kubernetesEnvironmentProvider;
                     })
                 .As<Task<IEnvironmentProvider>>()
+                .SingleInstance();
+
+            // SystemResourcesMetrics
+            builder.Register(c => new Edgelet.Docker.SystemResourcesMetrics(c.Resolve<IMetricsProvider>(), c.Resolve<IModuleManager>().GetSystemResourcesAsync, this.apiVersion, this.performanceMetricsUpdateFrequency))
                 .SingleInstance();
         }
     }
