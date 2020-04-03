@@ -796,6 +796,16 @@ pub struct BrokerState {
     sessions: Vec<SessionState>,
 }
 
+impl BrokerState {
+    pub fn new(retained: HashMap<String, proto::Publication>, sessions: Vec<SessionState>) -> Self {
+        Self { retained, sessions }
+    }
+
+    pub fn into_parts(self) -> (HashMap<String, proto::Publication>, Vec<SessionState>) {
+        (self.retained, self.sessions)
+    }
+}
+
 pub struct BrokerBuilder<N, Z> {
     state: Option<BrokerState>,
     authenticator: N,
