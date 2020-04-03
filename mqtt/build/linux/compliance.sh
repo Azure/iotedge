@@ -18,7 +18,23 @@ SCRIPT_NAME=$(basename "$0")
 CARGO="${CARGO_HOME:-"$HOME/.cargo"}/bin/cargo"
 RELEASE="true"
 
-$DIR/build.sh -r
+###############################################################################
+# Build and download tests
+###############################################################################
+$DIR/build.sh -r 1
 $DIR/certgen.sh
+git clone https://github.com/eclipse/paho.mqtt.testing.git
 
-$PROJECT_ROOT/target/release/mqttd
+###############################################################################
+# Start broker and run tests
+###############################################################################
+set +e
+
+$PROJECT_ROOT/target/release/mqttd &
+broker=$!
+
+python3 paho.mqtt.testing/interoperability/client_test.py
+result=$?
+
+kill -KILL $broker
+exit $result
