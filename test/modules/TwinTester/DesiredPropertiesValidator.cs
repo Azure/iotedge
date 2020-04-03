@@ -27,6 +27,12 @@ namespace TwinTester
             this.storage = storage;
             this.resultHandler = resultHandler;
             this.twinState = twinState;
+
+            moduleClient.SetConnectionStatusChangesHandler((status, reason) =>
+            {
+                Logger.LogWarning($"Applying failure threshold to desired property callback validation{Environment.NewLine}Detected change in connection status:{Environment.NewLine}Changed Status: {status} Reason: {reason}");
+                this.twinState.LastTimeOfEdgeRestart = DateTime.UtcNow;
+            });
         }
 
         public async Task ValidateAsync()
@@ -58,7 +64,7 @@ namespace TwinTester
                 bool hasTwinUpdate = propertyUpdatesFromTwin.Contains(desiredPropertyUpdate.Key);
                 bool hasModuleReceivedCallback = desiredPropertiesReceived.ContainsKey(desiredPropertyUpdate.Key);
                 string status;
-                if (hasTwinUpdate && hasModuleReceivedCallback)
+                if ((hasTwinUpdate && hasModuleReceivedCallback) || (hasTwinUpdate && this.ShouldExpectDesiredPropertyCallback(this.twinState, desiredPropertyUpdate.Value)))
                 {
                     status = $"{(int)StatusCode.ValidationSuccess}: Successfully validated desired property update";
                     Logger.LogInformation(status + $" {desiredPropertyUpdate.Key}");
@@ -126,6 +132,11 @@ namespace TwinTester
         {
             DateTime comparisonPoint = twinUpdateTime > twinState.LastTimeOffline ? twinUpdateTime : twinState.LastTimeOffline;
             return DateTime.UtcNow - comparisonPoint > Settings.Current.TwinUpdateFailureThreshold;
+        }
+
+        bool ShouldExpectDesiredPropertyCallback(TwinState twinState, DateTime twinUpdateTime)
+        {
+            return (twinUpdateTime - twinState.LastTimeOfEdgeRestart).Duration() > Settings.Current.DesiredPropertyCallbackFailureThreshold;
         }
 
         async Task HandleReportStatusAsync(string status)
