@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 async-trait = "0.1"
 bincode = "1.2"
-bytes = "0.5.4"
+bytes = "0.5"
 chrono = "0.4"
 config = { version = "0.10", default-features = false, features = ["json"] } 
 derive_more = { version = "0.99", features = ["display"] }
@@ -37,9 +37,11 @@ mqtt3 = { path = "../mqtt3", features = ["serde1"] }
 [dev-dependencies]
 atty = "0.2"
 bytes = "0.5"
+criterion = "0.3"
 fail = { version = "0.3", features = ["failpoints"] }
 matches = "0.1"
 proptest = "0.9"
+rand = "0.3"
 serde_json = "1.0"
 tempfile = "3"
 test-case = "1.0"
@@ -50,3 +52,6 @@ tracing-subscriber = "0.1"
 name = "persist_failpoints"
 required-features = ["fail/failpoints"]
 
+[[bench]]
+name = "file_persist_bench"
+harness = false
