@@ -76,7 +76,6 @@ pub async fn process<I>(
 where
     I: AsyncRead + AsyncWrite + GetPeerCertificate<Certificate = Certificate> + Unpin,
 {
-    // TODO read certificate from stream when ready
     let certificate = io.peer_certificate()?;
 
     let mut timeout = TimeoutStream::new(io);
