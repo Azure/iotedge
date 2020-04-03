@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Collections.Generic;
     using System.Diagnostics.Tracing;
     using System.IO;
+    using System.Runtime.InteropServices;
     using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
     using Autofac;
@@ -85,7 +86,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             IConfiguration configuration = this.configuration.GetSection("experimentalFeatures");
             ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration, Logger.Factory.CreateLogger("EdgeHub"));
 
-            MetricsConfig metricsConfig = new MetricsConfig(this.configuration.GetSection("metrics:listener"));
+            // Temporarly make metrics default to off for windows. This is only until the dotnet 3.1 work is completed
+            // This temp fix is needed to fix all e2e tests since edgehub currently crashes
+            MetricsConfig metricsConfig = new MetricsConfig(this.configuration.GetSection("metrics:listener"), !RuntimeInformation.IsOSPlatform(OSPlatform.Windows));
 
             this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig);
             this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures);
@@ -249,7 +252,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             string storagePath = GetOrCreateDirectoryPath(this.configuration.GetValue<string>("StorageFolder"), Constants.EdgeHubStorageFolder);
             bool storeAndForwardEnabled = this.configuration.GetValue<bool>("storeAndForwardEnabled");
             Option<ulong> storageMaxTotalWalSize = this.GetConfigIfExists<ulong>(Constants.ConfigKey.StorageMaxTotalWalSize, this.configuration);
-            Option<StorageLogLevel> storageLogLevel = this.GetConfigIfExists<StorageLogLevel>(Constants.ConfigKey.StorageLogLevel,  this.configuration);
+            Option<StorageLogLevel> storageLogLevel = this.GetConfigIfExists<StorageLogLevel>(Constants.ConfigKey.StorageLogLevel, this.configuration);
 
             if (storeAndForwardEnabled)
             {
