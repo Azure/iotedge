@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using App.Metrics;
     using App.Metrics.Counter;
     using App.Metrics.Timer;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -67,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         public Task ProcessDeviceMessageBatch(IIdentity identity, IEnumerable<IMessage> messages)
         {
             IList<IMessage> messagesList = messages as IList<IMessage>
-                                           ?? Preconditions.CheckNotNull(messages, nameof(messages)).ToList();
+                ?? Preconditions.CheckNotNull(messages, nameof(messages)).ToList();
             Events.MessagesReceived(identity, messagesList);
             MetricsV0.MessageCount(identity, messagesList.Count);
 
@@ -111,13 +112,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
             Preconditions.CheckNotNull(message, nameof(message));
 
-            Option<IDeviceProxy> deviceProxy = this.connectionManager.GetDeviceConnection(id);
-            if (!deviceProxy.HasValue)
+            if (!message.SystemProperties.TryGetValue(SystemProperties.LockToken, out string lockToken))
             {
-                Events.UnableToSendC2DMessageNoDeviceConnection(id);
+                Events.ErrorC2DNoMessageId(id);
+                return Task.CompletedTask;
             }
 
-            return deviceProxy.ForEachAsync(d => d.SendC2DMessageAsync(message));
+            Option<IDeviceProxy> deviceProxy = this.connectionManager.GetDeviceConnection(id);
+            return deviceProxy.ForEachAsync(
+                dp => dp.SendC2DMessageAsync(message),
+                async () =>
+                {
+                    Events.UnableToSendC2DMessageNoDeviceConnection(id, lockToken);
+                    Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
+                    await cloudProxy.ForEachAsync(
+                        cp =>
+                        {
+                            Events.SendingC2DAbandonFeedback(id, lockToken);
+                            return cp.SendFeedbackMessageAsync(lockToken, FeedbackStatus.Abandon);
+                        },
+                        () =>
+                        {
+                            Events.CannotSendC2DAbandonFeedback(id, lockToken);
+                            return Task.CompletedTask;
+                        });
+                });
         }
 
         public Task<IMessage> GetTwinAsync(string id)
@@ -201,7 +220,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 MessageReceived = 1501,
                 ReportedPropertiesUpdateReceived = 1502,
                 DesiredPropertiesUpdateReceived = 1503,
-                DeviceConnectionNotFound
+                DeviceConnectionNotFound,
+                ErrorC2DNoMessageId,
+                SendingC2DAbandonFeedback,
+                CannotSendC2DAbandonFeedback
             }
 
             public static void MethodCallReceived(string fromId, string toId, string correlationId)
@@ -209,7 +231,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 Log.LogDebug((int)EventIds.MethodReceived, Invariant($"Received method invoke call from {fromId} for {toId} with correlation ID {correlationId}"));
             }
 
-            public static void UnableToSendC2DMessageNoDeviceConnection(string id)
+            public static void UnableToSendC2DMessageNoDeviceConnection(string id, string messageId)
             {
                 Log.LogWarning((int)EventIds.DeviceConnectionNotFound, Invariant($"Unable to send C2D message to device {id} as an active device connection was not found."));
             }
@@ -259,6 +281,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             internal static void UpdateDesiredPropertiesCallReceived(string id)
             {
                 Log.LogDebug((int)EventIds.DesiredPropertiesUpdateReceived, Invariant($"Desired properties update message received for {id ?? string.Empty}"));
+            }
+
+            internal static void ErrorC2DNoMessageId(string id)
+            {
+                Log.LogWarning((int)EventIds.ErrorC2DNoMessageId, $"Received C2D message for {id} with no identifier");
+            }
+
+            internal static void SendingC2DAbandonFeedback(string id, string messageId)
+            {
+                Log.LogWarning((int)EventIds.SendingC2DAbandonFeedback, $"Received C2D message with id {messageId} for {id} but client is not connected, sending abandon feedback");
+            }
+
+            internal static void CannotSendC2DAbandonFeedback(string id, string messageId)
+            {
+                Log.LogWarning((int)EventIds.CannotSendC2DAbandonFeedback, $"Received C2D message with id {messageId} for {id} but client is not connected, but cannot send abandon feedback");
             }
         }
 
