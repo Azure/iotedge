@@ -113,6 +113,9 @@
                 },
                 "TwinUpdateFailureThreshold": {
                     "value": "<TwinUpdateFailureThreshold>"
+                },
+                "DesiredPropertyCallbackFailureThreshold": {
+                    "value": "<TwinUpdateFailureThreshold>"
                 }
             },
             "status": "running",
@@ -139,6 +142,9 @@
                     "value": "<TwinUpdateFrequency>"
                 },
                 "TwinUpdateFailureThreshold": {
+                    "value": "<TwinUpdateFailureThreshold>"
+                },
+                "DesiredPropertyCallbackFailureThreshold": {
                     "value": "<TwinUpdateFailureThreshold>"
                 }
             },

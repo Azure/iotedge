@@ -32,6 +32,7 @@ parameters:
   twinTester.twinUpdateSize: ''
   twinTester.twinUpdateFrequency: ''
   twinTester.twinUpdateFailureThreshold: ''
+  twinTester.desiredPropertyCallbackFailureThreshold: ''
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''
@@ -141,6 +142,7 @@ steps:
           -TwinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" `
           -TwinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" `
           -TwinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" `
+          -DesiredPropertyCallbackFailureThreshold "${{ parameters['twinTester.desiredPropertyCallbackFailureThreshold'] }}" `
           -MetricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" `
           -MetricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" `
           -MetricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" `
