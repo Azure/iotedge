@@ -118,6 +118,8 @@ jobs:
           testRunner: VSTest
           testResultsFiles: '$(Agent.TempDirectory)/TestResults/*.trx'
         condition: succeededOrFailed()
+      - script: bash <(curl -s https://codecov.io/bash) -t $(codecov.token) -n "dotnet checkin" -f "$(Agent.TempDirectory)/TestResults/*.trx"
+        displayName: Upload code coverage to codecov
       - task: mspremier.BuildQualityChecks.QualityChecks-task.BuildQualityChecks@5
         displayName: 'Check build quality'
         inputs:
