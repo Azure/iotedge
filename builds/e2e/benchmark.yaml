@@ -24,6 +24,7 @@ jobs:
           edgeHub.amqpProtocolHead: "true"
           edgeHub.mqttProtocolHead: "false"
           edgeHub.httpProtocolHead: "false"
+          benchmark.transportType: "Amqp"
           deploymentFileName: "limited_container_storage_deployment.amqp.template.json"
 
         EdgeHub 128MB Storage MQTT:
@@ -36,6 +37,7 @@ jobs:
           edgeHub.amqpProtocolHead: "false"
           edgeHub.mqttProtocolHead: "true"
           edgeHub.httpProtocolHead: "false"
+          benchmark.transportType: "Mqtt"
           deploymentFileName: "limited_container_storage_deployment.mqtt.template.json"
 
         EdgeHub 128MB Storage AMQP-HTTP:
@@ -48,6 +50,7 @@ jobs:
           edgeHub.amqpProtocolHead: "true"
           edgeHub.mqttProtocolHead: "false"
           edgeHub.httpProtocolHead: "true"
+          benchmark.transportType: "Amqp"
           deploymentFileName: "limited_container_storage_deployment.amqp.template.json"
 
         EdgeHub 128MB Storage MQTT-HTTP:
@@ -60,6 +63,7 @@ jobs:
           edgeHub.amqpProtocolHead: "false"
           edgeHub.mqttProtocolHead: "true"
           edgeHub.httpProtocolHead: "true"
+          benchmark.transportType: "Mqtt"
           deploymentFileName: "limited_container_storage_deployment.mqtt.template.json"
 
         EdgeHub 192MB Storage AMQP:
@@ -72,6 +76,7 @@ jobs:
           edgeHub.amqpProtocolHead: "true"
           edgeHub.mqttProtocolHead: "false"
           edgeHub.httpProtocolHead: "false"
+          benchmark.transportType: "Amqp"
           deploymentFileName: "limited_container_storage_deployment.amqp.template.json"
 
         EdgeHub 192MB Storage MQTT:
@@ -84,6 +89,7 @@ jobs:
           edgeHub.amqpProtocolHead: "false"
           edgeHub.mqttProtocolHead: "true"
           edgeHub.httpProtocolHead: "false"
+          benchmark.transportType: "Mqtt"
           deploymentFileName: "limited_container_storage_deployment.mqtt.template.json"
 
         EdgeHub 192MB Storage AMQP-HTTP:
@@ -96,6 +102,7 @@ jobs:
           edgeHub.amqpProtocolHead: "true"
           edgeHub.mqttProtocolHead: "false"
           edgeHub.httpProtocolHead: "true"
+          benchmark.transportType: "Amqp"
           deploymentFileName: "limited_container_storage_deployment.amqp.template.json"
 
         EdgeHub 192MB Storage MQTT-HTTP:
@@ -108,6 +115,7 @@ jobs:
           edgeHub.amqpProtocolHead: "false"
           edgeHub.mqttProtocolHead: "true"
           edgeHub.httpProtocolHead: "true"
+          benchmark.transportType: "Mqtt"
           deploymentFileName: "limited_container_storage_deployment.mqtt.template.json"
 
         EdgeAgent 64MB Storage:
@@ -208,6 +216,7 @@ jobs:
           edgeHub.mqttProtocolHead: '$(edgeHub.mqttProtocolHead)'
           edgeHub.httpProtocolHead: '$(edgeHub.httpProtocolHead)'
           edgeAgent.storageSizeByte: '$(edgeAgent.storageSizeByte)'
+          benchmark.transportType: '$(benchmark.transportType)'
           iotHub.connectionString: '$(EdgeConnectivityTestHubConnString)'
           eventHub.connectionString: '$(EdgeConnectivityEventHubConnString)'
           deploymentFileName: '$(deploymentFileName)'

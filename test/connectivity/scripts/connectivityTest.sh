@@ -47,6 +47,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<MqttProtocolHeadEnabled>@$EDGEHUB_MQTT_PROTOCOL_HEAD@g" "$deployment_working_file"
     sed -i -e "s@<HttpProtocolHeadEnabled>@$EDGEHUB_HTTP_PROTOCOL_HEAD@g" "$deployment_working_file"
     sed -i -e "s@<EdgeAgent.storageSizeByte>@$EDGEAGENT_STORAGE_SIZE@g" "$deployment_working_file"
+    sed -i -e "s@<TransportType>@$TRANSPORT_TYPE@g" "$deployment_working_file"
     sed -i -e "s@<IoTHubConnectionString>@$IOT_HUB_CONNECTION_STRING@g" "$deployment_working_file"
     sed -i -e "s@<TestDuration>@$TEST_DURATION@g" "$deployment_working_file"
     sed -i -e "s@<TestStartDelay>@$TEST_START_DELAY@g" "$deployment_working_file"
@@ -140,6 +141,9 @@ function print_test_run_logs() {
 
     print_highlighted_message 'directMethodReceiver2 LOGS'
     docker logs directMethodReceiver2 || true
+
+    print_highlighted_message 'directMethodSender3 LOGS'
+    docker logs directMethodSender3 || true
 
     print_highlighted_message 'twinTester1 LOGS'
     docker logs twinTester1 || true
@@ -279,6 +283,9 @@ function process_args() {
         elif [ $saveNextArg -eq 39 ]; then
             EDGEAGENT_STORAGE_SIZE="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 40 ]; then
+            TRANSPORT_TYPE="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -321,6 +328,7 @@ function process_args() {
                 '-edgeHubMqttProtocolHead' ) saveNextArg=37;;
                 '-edgeHubHttpProtocolHead' ) saveNextArg=38;;
                 '-edgeAgentStorageSize' ) saveNextArg=39;;
+                '-transportType' ) saveNextArg=40;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
@@ -342,11 +350,6 @@ function process_args() {
     [[ -z "$METRICS_SCRAPE_FREQUENCY_IN_SECS" ]] && { print_error 'Metrics scrape frequency is required'; exit 1; }
     [[ -z "$METRICS_UPLOAD_TARGET" ]] && { print_error 'Metrics upload target is required'; exit 1; }
     [[ -z "$STORAGE_ACCOUNT_CONNECTION_STRING" ]] && { print_error 'Storage account connection string is required'; exit 1; }
-    [[ -z "$EDGEHUB_STORAGE_SIZE" ]] && { EDGEHUB_STORAGE_SIZE=0; }
-    [[ -z "$EDGEHUB_AMQP_PROTOCOL_HEAD" ]] && { EDGEHUB_AMQP_PROTOCOL_HEAD=true; }
-    [[ -z "$EDGEHUB_MQTT_PROTOCOL_HEAD" ]] && { EDGEHUB_MQTT_PROTOCOL_HEAD=true; }
-    [[ -z "$EDGEHUB_HTTP_PROTOCOL_HEAD" ]] && { EDGEHUB_HTTP_PROTOCOL_HEAD=true; }
-    [[ -z "$EDGEAGENT_STORAGE_SIZE" ]] && { EDGEAGENT_STORAGE_SIZE=0; }
 
     echo 'Required parameters are provided'
 }
@@ -534,6 +537,7 @@ function usage() {
     echo ' -edgeHubMqttProtocolHead                 EdgeHub MQTT protocol head enabled (true/false)'
     echo ' -edgeHubHttpProtocolHead                 EdgeHub HTTP protocol head enabled (true/false)'
     echo ' -edgeAgentStorageSize                    EdgeAgent Container upper limited for a storage (unit: byte) '
+    echo ' -transportType                           Transport type for test modules (for benchmark tests)'
     echo ' -cleanAll                                Do docker prune for containers, logs and volumes.'
     exit 1;
 }
@@ -560,6 +564,12 @@ LOG_ANALYTICS_LOGTYPE="${LOG_ANALYTICS_LOGTYPE:-connectivity}"
 VERIFICATION_DELAY="${VERIFICATION_DELAY:-00:15:00}"
 UPSTREAM_PROTOCOL="${UPSTREAM_PROTOCOL:-Amqp}"
 TIME_FOR_REPORT_GENERATION="${TIME_FOR_REPORT_GENERATION:-00:10:00}"
+EDGEHUB_STORAGE_SIZE="${EDGEHUB_STORAGE_SIZE:-0}"
+EDGEHUB_AMQP_PROTOCOL_HEAD="${EDGEHUB_AMQP_PROTOCOL_HEAD:-true}"
+EDGEHUB_MQTT_PROTOCOL_HEAD="${EDGEHUB_MQTT_PROTOCOL_HEAD:-true}"
+EDGEHUB_HTTP_PROTOCOL_HEAD="${EDGEHUB_HTTP_PROTOCOL_HEAD:-true}"
+EDGEAGENT_STORAGE_SIZE="${EDGEAGENT_STORAGE_SIZE:-0}"
+TRANSPORT_TYPE="${TRANSPORT_TYPE:-Amqp}"
 
 working_folder="$E2E_TEST_DIR/working"
 quickstart_working_folder="$working_folder/quickstart"

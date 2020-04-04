@@ -110,6 +110,7 @@ steps:
           -edgeHubMqttProtocolHead "${{ parameters['edgeHub.mqttProtocolHead'] }}" \
           -edgeHubHttpProtocolHead "${{ parameters['edgeHub.httpProtocolHead'] }}" \
           -edgeAgentStorageSize "${{ parameters['edgeAgent.storageSizeByte'] }}" \
+          -transportType "${{ parameters['benchmark.transportType'] }}" \
           -waitForTestComplete \
           -cleanAll
         
