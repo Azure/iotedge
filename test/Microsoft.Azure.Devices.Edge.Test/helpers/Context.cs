@@ -101,6 +101,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.TempFilterImage = Option.Maybe(Get("tempFilterImage"));
             this.TempSensorImage = Option.Maybe(Get("tempSensorImage"));
             this.MetricsValidatorImage = Option.Maybe(Get("metricsValidatorImage"));
+            this.TestResultCoordinatorImage = Option.Maybe(Get("testResultCoordinatorImage"));
+            this.LoadGenImage = Option.Maybe(Get("loadGenImage"));
+            this.RelayerImage = Option.Maybe(Get("relayerImage"));
             this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5));
             this.Verbose = context.GetValue<bool>("verbose");
         }
@@ -156,6 +159,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public Option<string> TempSensorImage { get; }
 
         public Option<string> MetricsValidatorImage { get; }
+
+        public Option<string> TestResultCoordinatorImage { get; }
+
+        public Option<string> LoadGenImage { get; }
+
+        public Option<string> RelayerImage { get; }
 
         public TimeSpan TestTimeout { get; }
 

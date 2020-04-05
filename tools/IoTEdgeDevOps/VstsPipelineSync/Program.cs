@@ -14,7 +14,11 @@ namespace VstsPipelineSync
         {
             (HashSet<string> branches, TimeSpan waitPeriodBeforeNextUpdate, string pat, string dbConnectionString) = GetInputsFromArgs(args);
             Console.WriteLine($"Wait period before next update=[{waitPeriodBeforeNextUpdate}]");
-            await new VstsBuildBatchUpdate(new DevOpsAccessSetting(pat), dbConnectionString, branches).RunAsync(waitPeriodBeforeNextUpdate, CancellationToken.None);
+            
+            HashSet<BugQuery> bugQueries = BugQueryGenerator.GenerateBugQueries();
+
+            VstsBuildBatchUpdate vstsBuildBatchUpdate = new VstsBuildBatchUpdate(new DevOpsAccessSetting(pat), dbConnectionString, branches, bugQueries);
+            await vstsBuildBatchUpdate.RunAsync(waitPeriodBeforeNextUpdate, CancellationToken.None);
         }
 
         private static (HashSet<string> branches, TimeSpan waitPeriodBeforeNextUpdate, string pat, string dbConnectionString) GetInputsFromArgs(string[] args)
@@ -28,7 +32,7 @@ namespace VstsPipelineSync
                 Console.WriteLine(" branches: comma deliminated name of branches");
                 Console.WriteLine(" wait-period: time between db updates (e.g. 00:01:00)");
                 Console.WriteLine(" vsts-pat: personal access token to vsts");
-                Console.WriteLine(" db-connection-string: connection string found in the azure portal");
+                Console.WriteLine(" db-connection-string: sql server connection string found in the azure portal");
                 Environment.Exit(1);
             }
 

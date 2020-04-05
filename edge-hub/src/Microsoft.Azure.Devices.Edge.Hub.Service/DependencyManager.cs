@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Collections.Generic;
     using System.Diagnostics.Tracing;
     using System.IO;
+    using System.Runtime.InteropServices;
     using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
     using Autofac;
@@ -85,10 +86,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             IConfiguration configuration = this.configuration.GetSection("experimentalFeatures");
             ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration, Logger.Factory.CreateLogger("EdgeHub"));
 
-            MetricsListenerConfig listenerConfig = experimentalFeatures.EnableMetrics
-                ? MetricsListenerConfig.Create(this.configuration.GetSection("metrics:listener"))
-                : new MetricsListenerConfig();
-            MetricsConfig metricsConfig = new MetricsConfig(experimentalFeatures.EnableMetrics, listenerConfig);
+            // Temporarly make metrics default to off for windows. This is only until the dotnet 3.1 work is completed
+            // This temp fix is needed to fix all e2e tests since edgehub currently crashes
+            MetricsConfig metricsConfig = new MetricsConfig(this.configuration.GetSection("metrics:listener"), !RuntimeInformation.IsOSPlatform(OSPlatform.Windows));
 
             this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig);
             this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures);
@@ -135,6 +135,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             TimeSpan connectivityCheckFrequency = connectivityCheckFrequencySecs < 0 ? TimeSpan.MaxValue : TimeSpan.FromSeconds(connectivityCheckFrequencySecs);
             // n Clients + 1 Edgehub
             int maxConnectedClients = this.configuration.GetValue("MaxConnectedClients", 100) + 1;
+            int messageAckTimeoutSecs = this.configuration.GetValue("MessageAckTimeoutSecs", 30);
+            TimeSpan messageAckTimeout = TimeSpan.FromSeconds(messageAckTimeoutSecs);
             int cloudConnectionIdleTimeoutSecs = this.configuration.GetValue("CloudConnectionIdleTimeoutSecs", 3600);
             TimeSpan cloudConnectionIdleTimeout = TimeSpan.FromSeconds(cloudConnectionIdleTimeoutSecs);
             bool closeCloudConnectionOnIdleTimeout = this.configuration.GetValue("CloseCloudConnectionOnIdleTimeout", true);
@@ -169,6 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     upstreamProtocolOption,
                     connectivityCheckFrequency,
                     maxConnectedClients,
+                    messageAckTimeout,
                     cloudConnectionIdleTimeout,
                     closeCloudConnectionOnIdleTimeout,
                     cloudOperationTimeout,
@@ -249,7 +252,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             string storagePath = GetOrCreateDirectoryPath(this.configuration.GetValue<string>("StorageFolder"), Constants.EdgeHubStorageFolder);
             bool storeAndForwardEnabled = this.configuration.GetValue<bool>("storeAndForwardEnabled");
             Option<ulong> storageMaxTotalWalSize = this.GetConfigIfExists<ulong>(Constants.ConfigKey.StorageMaxTotalWalSize, this.configuration);
-            Option<StorageLogLevel> storageLogLevel = this.GetConfigIfExists<StorageLogLevel>(Constants.ConfigKey.StorageLogLevel,  this.configuration);
+            Option<StorageLogLevel> storageLogLevel = this.GetConfigIfExists<StorageLogLevel>(Constants.ConfigKey.StorageLogLevel, this.configuration);
 
             if (storeAndForwardEnabled)
             {

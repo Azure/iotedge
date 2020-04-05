@@ -16,57 +16,72 @@ namespace VstsPipelineSync
         readonly string dbConnectionString;
         readonly Dictionary<string, Dictionary<BuildDefinitionId, DateTime>> buildLastUpdatePerBranchPerDefinition;
         readonly HashSet<string> branches;
+        readonly HashSet<BugQuery> bugQueries;
 
-        public VstsBuildBatchUpdate(DevOpsAccessSetting devOpsAccessSetting, string dbConnectionString, HashSet<string> branches)
+        public VstsBuildBatchUpdate(DevOpsAccessSetting devOpsAccessSetting, string dbConnectionString, HashSet<string> branches, HashSet<BugQuery> bugQueries)
         {
             ValidationUtil.ThrowIfNull(devOpsAccessSetting, nameof(devOpsAccessSetting));
             ValidationUtil.ThrowIfNullOrEmptySet(branches, nameof(branches));
+            ValidationUtil.ThrowIfNullOrEmptySet(bugQueries, nameof(VstsBuildBatchUpdate.bugQueries));
 
             this.devOpsAccessSetting = devOpsAccessSetting;
             this.dbConnectionString = dbConnectionString;
             this.buildLastUpdatePerBranchPerDefinition = new Dictionary<string, Dictionary<BuildDefinitionId, DateTime>>();
             this.branches = branches;
+            this.bugQueries = bugQueries;
         }
 
         public async Task RunAsync(TimeSpan waitPeriodAfterEachUpdate, CancellationToken ct)
         {
             var buildManagement = new BuildManagement(devOpsAccessSetting);
             var releaseManagement = new ReleaseManagement(devOpsAccessSetting);
+            var bugManagement = new BugManagement(devOpsAccessSetting);
 
             while (!ct.IsCancellationRequested)
             {
-                try
-                {
-                    Console.WriteLine($"Import Vsts Builds data started at {DateTime.UtcNow}");
+                await ImportVstsBugDataAsync(bugManagement, bugQueries);
 
-                    foreach (string branch in this.branches)
-                    {
-                        buildLastUpdatePerBranchPerDefinition.Upsert(
-                            branch,
-                            await ImportVstsBuildsDataAsync(buildManagement, branch, BuildExtension.BuildDefinitions));
-                    }
-                }
-                catch (Exception ex)
+                foreach (string branch in this.branches)
                 {
-                    Console.WriteLine($"Unexcepted Exception: {ex}");
+                    buildLastUpdatePerBranchPerDefinition.Upsert(
+                        branch,
+                        await ImportVstsBuildsDataAsync(buildManagement, branch, BuildExtension.BuildDefinitions));
                 }
 
-                try
+                foreach (string branch in this.branches)
                 {
-                    Console.WriteLine($"Import Vsts Releases data started at {DateTime.UtcNow}");
-
-                    foreach (string branch in this.branches)
-                    {
-                        await ImportVstsReleasesDataAsync(releaseManagement, branch, ReleaseDefinitionId.E2ETest);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Unexcepted Exception: {ex}");
+                    await ImportVstsReleasesDataAsync(releaseManagement, branch, ReleaseDefinitionId.E2ETest);
                 }
 
-                Console.WriteLine($"Import Vsts Builds data finished at {DateTime.UtcNow}; wait {waitPeriodAfterEachUpdate} for next update.");
+                Console.WriteLine($"Import Vsts data finished at {DateTime.UtcNow}; wait {waitPeriodAfterEachUpdate} for next update.");
                 await Task.Delay((int)waitPeriodAfterEachUpdate.TotalMilliseconds);
+            }
+        }
+
+        async Task ImportVstsBugDataAsync(BugManagement bugManagement, HashSet<BugQuery> bugQueries)
+        {
+            Console.WriteLine($"Import VSTS bugs started at {DateTime.UtcNow}.");
+            SqlConnection sqlConnection = null;
+
+            try
+            {
+                sqlConnection = new SqlConnection(this.dbConnectionString);
+                sqlConnection.Open();
+                foreach (BugQuery bugQuery in bugQueries)
+                {
+                    int bugCount = await bugManagement.GetBugsCountAsync(bugQuery);
+
+                    Console.WriteLine($"Query VSTS bugs for area [{bugQuery.Area}] and priority [{bugQuery.BugPriorityGrouping.Priority}] and inProgress [{bugQuery.InProgress}]: last update={DateTime.UtcNow} => result count={bugCount}");
+                    UpsertVstsBugToDb(sqlConnection, bugQuery, bugCount);
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            finally
+            {
+                sqlConnection?.Close();
             }
         }
 
@@ -103,7 +118,7 @@ namespace VstsPipelineSync
                 sqlConnection.Open();
 
                 IList<VstsBuild> buildResults = await buildManagement.GetBuildsAsync(new HashSet<BuildDefinitionId> { buildDefinitionId }, branch, lastUpdate);
-                Console.WriteLine($"Query VSTS for branch [{branch}] and build definition [{buildDefinitionId.ToString()}]: last update={lastUpdate} => result count={buildResults.Count}");
+                Console.WriteLine($"Query VSTS builds for branch [{branch}] and build definition [{buildDefinitionId.ToString()}]: last update={lastUpdate} => result count={buildResults.Count}");
                 DateTime maxLastChange = lastUpdate;
 
                 foreach (VstsBuild build in buildResults.Where(r => r.HasResult()))
@@ -126,6 +141,24 @@ namespace VstsPipelineSync
             {
                 sqlConnection?.Close();
             }
+        }
+
+        void UpsertVstsBugToDb(SqlConnection sqlConnection, BugQuery bugQuery, int bugCount)
+        {
+            var cmd = new SqlCommand
+            {
+                Connection = sqlConnection,
+                CommandType = CommandType.StoredProcedure,
+                CommandText = "UpsertVstsBug"
+            };
+
+            cmd.Parameters.Add(new SqlParameter("@Title", bugQuery.Title));
+            cmd.Parameters.Add(new SqlParameter("@AreaPath", bugQuery.Area));
+            cmd.Parameters.Add(new SqlParameter("@Priority", bugQuery.BugPriorityGrouping.Priority));
+            cmd.Parameters.Add(new SqlParameter("@InProgress", bugQuery.InProgress));
+            cmd.Parameters.Add(new SqlParameter("@BugCount", bugCount));
+
+            cmd.ExecuteNonQuery();
         }
 
         void UpsertVstsBuildToDb(SqlConnection sqlConnection, VstsBuild build)
@@ -154,6 +187,8 @@ namespace VstsPipelineSync
 
         async Task ImportVstsReleasesDataAsync(ReleaseManagement releaseManagement, string branch, ReleaseDefinitionId releaseDefinitionId)
         {
+            Console.WriteLine($"Import VSTS releases from branch [{branch}] started at {DateTime.UtcNow}.");
+
             SqlConnection sqlConnection = null;
 
             try
@@ -162,7 +197,7 @@ namespace VstsPipelineSync
                 sqlConnection.Open();
 
                 List<IoTEdgeRelease> releaseResults = await releaseManagement.GetReleasesAsync(releaseDefinitionId, branch, 200);
-                Console.WriteLine($"Query VSTS for branch [{branch}] and release definition [{releaseDefinitionId.ToString()}]: result count={releaseResults.Count} at {DateTime.UtcNow}.");
+                Console.WriteLine($"Query VSTS releases for branch [{branch}] and release definition [{releaseDefinitionId.ToString()}]: result count={releaseResults.Count} at {DateTime.UtcNow}.");
 
                 int releaseCount = 0;
 
@@ -196,7 +231,7 @@ namespace VstsPipelineSync
 
                     if (releaseCount % 10 ==0)
                     {
-                        Console.WriteLine($"Query VSTS for branch [{branch}] and release definition [{releaseDefinitionId.ToString()}]: release count={releaseCount} at {DateTime.UtcNow}.");
+                        Console.WriteLine($"Query VSTS releases for branch [{branch}] and release definition [{releaseDefinitionId.ToString()}]: release count={releaseCount} at {DateTime.UtcNow}.");
                     }
                 }
             }
