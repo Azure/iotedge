@@ -19,12 +19,12 @@ function clean_up() {
     rm -rf /var/run/iotedge/
     rm -rf /etc/iotedge/config.yaml
 
+    echo 'Remove docker containers'
+    docker rm -f $(docker ps -aq) || true
+
     if [ "$CLEAN_ALL" = '1' ]; then
         echo 'Prune docker system'
         docker system prune -af --volumes || true
-    else
-        echo 'Remove docker containers'
-        docker rm -f $(docker ps -aq) || true
     fi
 }
 

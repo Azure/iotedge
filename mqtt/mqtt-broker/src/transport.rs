@@ -7,7 +7,7 @@ use std::{
 
 use bytes::{Buf, BufMut};
 use core::mem::MaybeUninit;
-use failure::ResultExt;
+use failure::{Fail, ResultExt};
 use futures::stream::FuturesUnordered;
 use native_tls::Identity;
 use tokio::{
@@ -15,10 +15,10 @@ use tokio::{
     net::{TcpListener, TcpStream, ToSocketAddrs},
     stream::Stream,
 };
-use tokio_tls::{TlsAcceptor, TlsStream};
+use tokio_native_tls::{TlsAcceptor, TlsStream};
 use tracing::{debug, error, warn};
 
-use crate::{Error, ErrorKind};
+use crate::{Certificate, Error, ErrorKind};
 
 pub enum TransportBuilder<A> {
     Tcp(A),
@@ -93,7 +93,7 @@ impl Transport {
         }
     }
 
-    pub fn address(&self) -> Result<SocketAddr, Error> {
+    pub fn local_addr(&self) -> Result<SocketAddr, Error> {
         let addr = match self {
             Self::Tcp(listener) => listener.local_addr(),
             Self::Tls(listener, _) => listener.local_addr(),
@@ -112,7 +112,7 @@ pub enum Incoming<'a> {
 }
 
 impl Stream for Incoming<'_> {
-    type Item = Result<StreamSelector, std::io::Error>;
+    type Item = std::io::Result<StreamSelector>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         match self.get_mut() {
@@ -133,7 +133,7 @@ impl<'a> IncomingTcp<'a> {
 }
 
 impl Stream for IncomingTcp<'_> {
-    type Item = Result<StreamSelector, std::io::Error>;
+    type Item = std::io::Result<StreamSelector>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         match self.listener.poll_accept(cx) {
@@ -179,7 +179,7 @@ impl<'a> IncomingTls<'a> {
 }
 
 impl Stream for IncomingTls<'_> {
-    type Item = Result<StreamSelector, std::io::Error>;
+    type Item = std::io::Result<StreamSelector>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         loop {
@@ -239,7 +239,31 @@ impl StreamSelector {
     pub fn peer_addr(&self) -> std::io::Result<SocketAddr> {
         match self {
             StreamSelector::Tcp(stream) => stream.peer_addr(),
-            StreamSelector::Tls(stream) => stream.get_ref().peer_addr(),
+            StreamSelector::Tls(stream) => stream.get_ref().get_ref().get_ref().peer_addr(),
+        }
+    }
+}
+
+pub trait GetPeerCertificate {
+    type Certificate;
+
+    fn peer_certificate(&self) -> Result<Option<Self::Certificate>, Error>;
+}
+
+impl GetPeerCertificate for StreamSelector {
+    type Certificate = Certificate;
+
+    fn peer_certificate(&self) -> Result<Option<Self::Certificate>, Error> {
+        match self {
+            StreamSelector::Tcp(_) => Ok(None),
+            StreamSelector::Tls(stream) => stream
+                .get_ref()
+                .peer_certificate()
+                .and_then(|cert| {
+                    cert.map(|cert| cert.to_der().map(Certificate::from))
+                        .transpose()
+                })
+                .map_err(|e| e.context(ErrorKind::PeerCertificate).into()),
         }
     }
 }
@@ -269,7 +293,7 @@ impl AsyncRead for StreamSelector {
         self: std::pin::Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &mut [u8],
-    ) -> Poll<std::result::Result<usize, std::io::Error>> {
+    ) -> Poll<std::io::Result<usize>> {
         match self.get_mut() {
             StreamSelector::Tcp(stream) => Pin::new(stream).poll_read(cx, buf),
             StreamSelector::Tls(stream) => Pin::new(stream).poll_read(cx, buf),

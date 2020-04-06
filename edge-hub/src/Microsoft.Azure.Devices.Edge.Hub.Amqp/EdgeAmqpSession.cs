@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
     /// <summary>
     /// This class wraps an AmqpSession, and provides similar functionality.
-    /// This allows unit testing the components that use it
+    /// This allows unit testing the components that use it.
     /// </summary>
     public class EdgeAmqpSession : IAmqpSession
     {
