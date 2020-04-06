@@ -1,8 +1,4 @@
-trigger:
-  batch: true
-  branches:
-    include:
-      - master
+trigger: none
 pr: none
 
 jobs:
