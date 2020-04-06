@@ -23,7 +23,7 @@ RELEASE="true"
 ###############################################################################
 
 $DIR/certgen.sh
-git clone https://github.com/eclipse/paho.mqtt.testing.git
+git clone https://github.com/lfitchett/paho.mqtt.testing.git
 
 ###############################################################################
 # Start broker and run tests
