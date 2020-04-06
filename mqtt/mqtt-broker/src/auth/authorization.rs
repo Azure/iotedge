@@ -77,8 +77,8 @@ impl Operation {
     }
 
     /// Creates a new operation context for SUBSCRIBE request.
-    pub fn new_subscribe(subcribe_to: proto::SubscribeTo) -> Self {
-        Self::Subscribe(subcribe_to.into())
+    pub fn new_subscribe(subscribe_to: proto::SubscribeTo) -> Self {
+        Self::Subscribe(subscribe_to.into())
     }
 
     /// Creates a new operation context for RECEIVE request.
@@ -105,9 +105,9 @@ impl From<proto::Connect> for Connect {
 
 /// Represents a publication description without payload to be used for authorization.
 pub struct Publication {
-    pub topic_name: String,
-    pub qos: proto::QoS,
-    pub retain: bool,
+    topic_name: String,
+    qos: proto::QoS,
+    retain: bool,
 }
 
 impl From<proto::Publication> for Publication {
@@ -145,6 +145,12 @@ impl From<proto::Publish> for Publish {
 pub struct Subscribe {
     topic_filter: String,
     qos: proto::QoS,
+}
+
+impl Subscribe {
+    pub fn topic_filter(&self) -> &str {
+        &self.topic_filter
+    }
 }
 
 impl From<proto::SubscribeTo> for Subscribe {

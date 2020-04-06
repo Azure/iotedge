@@ -915,10 +915,10 @@ async fn can_publish_to<Z: Authorizer>(
 
     if !authorizer.authorize(activity).await? {
         info!("client {} not allowed to receive messages", client_id);
-        return Ok(true);
+        return Ok(false);
     }
 
-    Ok(false)
+    Ok(true)
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Deserialize, Serialize)]
@@ -1032,6 +1032,7 @@ pub(crate) mod tests {
     use matches::assert_matches;
     use proptest::collection::{hash_map, vec};
     use proptest::prelude::*;
+    use tokio::sync::mpsc::error::TryRecvError;
     use uuid::Uuid;
 
     use crate::session::tests::*;
@@ -1840,7 +1841,7 @@ pub(crate) mod tests {
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
-        let (client_id, mut rx) = connect_client(&mut broker_handle).await.unwrap();
+        let (client_id, mut rx) = connect_client("pub", &mut broker_handle).await.unwrap();
 
         let publish = proto::Publish {
             packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtLeastOnce(
@@ -1868,6 +1869,10 @@ pub(crate) mod tests {
             .authenticator(|_| Ok(Some("client-a".into())))
             .authorizer(|activity: Activity| match activity.operation() {
                 Operation::Connect(_) => Ok(true),
+                Operation::Subscribe(subscribe) => match subscribe.topic_filter() {
+                    "/topic/denied" => Ok(false),
+                    _ => Ok(true),
+                },
                 _ => Ok(false),
             })
             .build();
@@ -1875,24 +1880,38 @@ pub(crate) mod tests {
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
-        let (client_id, mut rx1) = connect_client(&mut broker_handle).await.unwrap();
+        let (client_id, mut rx1) = connect_client("sub", &mut broker_handle).await.unwrap();
 
         let subscribe = proto::Subscribe {
             packet_identifier: proto::PacketIdentifier::new(1).unwrap(),
-            subscribe_to: vec![proto::SubscribeTo {
-                topic_filter: "/foo/bar".to_string(),
-                qos: proto::QoS::AtLeastOnce,
-            }],
+            subscribe_to: vec![
+                proto::SubscribeTo {
+                    topic_filter: "/topic/allowed".to_string(),
+                    qos: proto::QoS::AtLeastOnce,
+                },
+                proto::SubscribeTo {
+                    topic_filter: "/topic/denied".to_string(),
+                    qos: proto::QoS::AtMostOnce,
+                },
+                proto::SubscribeTo {
+                    topic_filter: "/topic/in#va/#lid".to_string(),
+                    qos: proto::QoS::ExactlyOnce,
+                },
+            ],
         };
 
         let message = Message::Client(client_id.clone(), ClientEvent::Subscribe(subscribe));
         broker_handle.send(message).await.unwrap();
 
+        let expected_qos = vec![
+            proto::SubAckQos::Success(proto::QoS::AtLeastOnce),
+            proto::SubAckQos::Failure,
+            proto::SubAckQos::Failure,
+        ];
         assert_matches!(
             rx1.recv().await,
-            Some(Message::Client(_, ClientEvent::DropConnection))
+            Some(Message::Client(_, ClientEvent::SubAck(suback))) if suback.qos == expected_qos
         );
-        assert_matches!(rx1.recv().await, None)
     }
 
     #[tokio::test]
@@ -1902,6 +1921,7 @@ pub(crate) mod tests {
             .authorizer(|activity: Activity| match activity.operation() {
                 Operation::Connect(_) => Ok(true),
                 Operation::Publish(_) => Ok(true),
+                Operation::Subscribe(_) => Ok(true),
                 _ => Ok(false),
             })
             .build();
@@ -1909,7 +1929,7 @@ pub(crate) mod tests {
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
 
-        let (subscriber_id, mut subscriber_rx) = connect_client(&mut broker_handle).await.unwrap();
+        let (sub_id, mut sub_rx) = connect_client("sub", &mut broker_handle).await.unwrap();
 
         let subscribe = proto::Subscribe {
             packet_identifier: proto::PacketIdentifier::new(1).unwrap(),
@@ -1919,10 +1939,10 @@ pub(crate) mod tests {
             }],
         };
 
-        let message = Message::Client(subscriber_id.clone(), ClientEvent::Subscribe(subscribe));
+        let message = Message::Client(sub_id.clone(), ClientEvent::Subscribe(subscribe));
         broker_handle.send(message).await.unwrap();
 
-        let (publisher_id, mut publisher_rx) = connect_client(&mut broker_handle).await.unwrap();
+        let (pub_id, mut pub_rx) = connect_client("pub", &mut broker_handle).await.unwrap();
 
         let publish = proto::Publish {
             packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtLeastOnce(
@@ -1934,30 +1954,30 @@ pub(crate) mod tests {
             payload: Bytes::new(),
         };
 
-        let message = Message::Client(publisher_id.clone(), ClientEvent::PublishFrom(publish));
+        let message = Message::Client(pub_id.clone(), ClientEvent::PublishFrom(publish));
         broker_handle.send(message).await.unwrap();
 
         assert_matches!(
-            publisher_rx.recv().await,
+            pub_rx.recv().await,
             Some(Message::Client(_, ClientEvent::PubAck(_)))
         );
 
         assert_matches!(
-            subscriber_rx.recv().await,
-            Some(Message::Client(_, ClientEvent::DropConnection))
+            sub_rx.recv().await,
+            Some(Message::Client(_, ClientEvent::SubAck(_)))
         );
-        assert_matches!(subscriber_rx.recv().await, None)
+        assert_matches!(sub_rx.try_recv(), Err(TryRecvError::Empty))
     }
 
     async fn connect_client(
+        client_id: &str,
         broker_handle: &mut BrokerHandle,
     ) -> Result<(ClientId, Receiver<Message>), Error> {
-        let id = "id1".to_string();
-        let connect = persistent_connect(id);
+        let connect = persistent_connect(client_id.into());
 
         let (tx, mut rx) = mpsc::channel(128);
         let conn = ConnectionHandle::from_sender(tx);
-        let client_id = ClientId::from("blah".to_string());
+        let client_id = ClientId::from(client_id);
         let req = ConnReq::new(client_id.clone(), connect, None, conn);
         broker_handle
             .send(Message::Client(

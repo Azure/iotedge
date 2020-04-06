@@ -881,6 +881,7 @@ pub(crate) mod tests {
 
     use std::time::Duration;
 
+    use matches::assert_matches;
     use proptest::collection::{hash_map, hash_set, vec, vec_deque};
     use proptest::num;
     use proptest::prelude::*;
@@ -889,7 +890,7 @@ pub(crate) mod tests {
 
     use crate::subscription::tests::arb_subscription;
     use crate::tests::*;
-    use crate::{AuthId, ConnectionHandle};
+    use crate::ConnectionHandle;
 
     fn arb_identifiers_in_use() -> impl Strategy<Value = IdentifiersInUse> {
         vec(num::usize::ANY, PacketIdentifiers::SIZE).prop_map(|v| {
@@ -957,7 +958,7 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn test_subscribe() {
+    fn test_subscribe_to() {
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id);
@@ -965,19 +966,15 @@ pub(crate) mod tests {
         let req1 = ConnReq::new(client_id, connect1, None, handle1);
         let auth_id = "auth-id1".into();
         let mut session = Session::new_transient(auth_id, req1);
-
-        let subscribe = proto::Subscribe {
-            packet_identifier: proto::PacketIdentifier::new(23).unwrap(),
-            subscribe_to: vec![proto::SubscribeTo {
-                topic_filter: "topic/new".to_string(),
-                qos: proto::QoS::AtMostOnce,
-            }],
+        let subscribe_to = proto::SubscribeTo {
+            topic_filter: "topic/new".to_string(),
+            qos: proto::QoS::AtMostOnce,
         };
-        let (suback, subscriptions) = session.subscribe(subscribe).unwrap();
-        assert_eq!(
-            proto::PacketIdentifier::new(23).unwrap(),
-            suback.packet_identifier
-        );
+
+        let (ack, subscription) = session.subscribe_to(subscribe_to).unwrap();
+
+        assert_eq!(ack, proto::SubAckQos::Success(proto::QoS::AtMostOnce));
+        assert_matches!(subscription, Some(_));
         match session {
             Session::Transient(ref connected) => {
                 assert_eq!(1, connected.state.subscriptions.len());
@@ -988,17 +985,16 @@ pub(crate) mod tests {
             }
             _ => panic!("not transient"),
         }
-        assert_eq!(1, subscriptions.len());
 
-        let subscribe = proto::Subscribe {
-            packet_identifier: proto::PacketIdentifier::new(1).unwrap(),
-            subscribe_to: vec![proto::SubscribeTo {
-                topic_filter: "topic/new".to_string(),
-                qos: proto::QoS::AtLeastOnce,
-            }],
+        let subscribe_to = proto::SubscribeTo {
+            topic_filter: "topic/new".to_string(),
+            qos: proto::QoS::AtLeastOnce,
         };
-        session.subscribe(subscribe).unwrap();
 
+        let (ack, subscription) = session.subscribe_to(subscribe_to).unwrap();
+
+        assert_eq!(ack, proto::SubAckQos::Success(proto::QoS::AtLeastOnce));
+        assert_matches!(subscription, Some(_));
         match session {
             Session::Transient(ref connected) => {
                 assert_eq!(1, connected.state.subscriptions.len());
@@ -1012,6 +1008,26 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn test_subscribe_to_with_invalid_topic() {
+        let id = "id1".to_string();
+        let client_id = ClientId::from(id.clone());
+        let connect1 = transient_connect(id);
+        let handle1 = connection_handle();
+        let req1 = ConnReq::new(client_id, connect1, None, handle1);
+        let auth_id = "auth-id1".into();
+        let mut session = Session::new_transient(auth_id, req1);
+        let subscribe_to = proto::SubscribeTo {
+            topic_filter: "topic/#/#".to_string(),
+            qos: proto::QoS::AtMostOnce,
+        };
+
+        let (ack, subscription) = session.subscribe_to(subscribe_to).unwrap();
+
+        assert_eq!(ack, proto::SubAckQos::Failure);
+        assert_eq!(subscription, None);
+    }
+
+    #[test]
     fn test_unsubscribe() {
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1021,24 +1037,14 @@ pub(crate) mod tests {
         let auth_id = AuthId::anonymous();
         let mut session = Session::new_transient(auth_id, req1);
 
-        let subscribe = proto::Subscribe {
-            packet_identifier: proto::PacketIdentifier::new(1).unwrap(),
-            subscribe_to: vec![proto::SubscribeTo {
-                topic_filter: "topic/new".to_string(),
-                qos: proto::QoS::AtMostOnce,
-            }],
+        let subscribe_to = proto::SubscribeTo {
+            topic_filter: "topic/new".to_string(),
+            qos: proto::QoS::AtMostOnce,
         };
-        session.subscribe(subscribe).unwrap();
-        match session {
-            Session::Transient(ref connected) => {
-                assert_eq!(1, connected.state.subscriptions.len());
-                assert_eq!(
-                    proto::QoS::AtMostOnce,
-                    *connected.state.subscriptions["topic/new"].max_qos()
-                );
-            }
-            _ => panic!("not transient"),
-        }
+
+        let (ack, subscription) = session.subscribe_to(subscribe_to).unwrap();
+        assert_eq!(ack, proto::SubAckQos::Success(proto::QoS::AtMostOnce));
+        assert_matches!(subscription, Some(_));
 
         let unsubscribe = proto::Unsubscribe {
             packet_identifier: proto::PacketIdentifier::new(1).unwrap(),
@@ -1076,19 +1082,16 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn test_offline_subscribe() {
+    fn test_offline_subscribe_to() {
         let id = "id1".to_string();
         let client_id = ClientId::from(id);
         let mut session = Session::new_offline(SessionState::new(client_id));
 
-        let subscribe = proto::Subscribe {
-            packet_identifier: proto::PacketIdentifier::new(1).unwrap(),
-            subscribe_to: vec![proto::SubscribeTo {
-                topic_filter: "topic/new".to_string(),
-                qos: proto::QoS::AtMostOnce,
-            }],
+        let subscribe_to = proto::SubscribeTo {
+            topic_filter: "topic/new".to_string(),
+            qos: proto::QoS::AtMostOnce,
         };
-        let err = session.subscribe(subscribe).unwrap_err();
+        let err = session.subscribe_to(subscribe_to).unwrap_err();
         assert_eq!(ErrorKind::SessionOffline, *err.kind());
     }
 
