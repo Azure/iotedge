@@ -122,7 +122,7 @@ jobs:
         inputs:
           targetType: 'inline'
           script: |
-            (New-Object System.Net.WebClient).DownloadFile("<url>", (Join-Path $pwd "Codecov.zip"))
+            (New-Object System.Net.WebClient).DownloadFile("https://github.com/codecov/codecov-exe/releases/download/1.10.0/codecov-windows-x64.exe", (Join-Path $pwd "Codecov.zip"))
             Expand-Archive .\Codecov.zip -DestinationPath
             .\Codecov\codecov.exe -t $(codecov.token) -n "dotnet checkin" -f "$(Agent.TempDirectory)/TestResults/*.trx"
       - task: mspremier.BuildQualityChecks.QualityChecks-task.BuildQualityChecks@5
