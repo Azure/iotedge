@@ -1571,15 +1571,14 @@ $DeploymentWorkingFilePath = Join-Path $TestWorkingFolder "deployment.json"
 
 If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCACertRSAFile)) {$EdgeE2ERootCACertRSAFile=$DefaultInstalledRSARootCACert;}
 If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCAKeyRSAFile)) {$EdgeE2ERootCAKeyRSAFile=$DefaultInstalledRSARootCAKey;}
-If ([string]::IsNullOrWhiteSpace($TwinUpdateFailureThreshold)) {$TwinUpdateFailureThreshold="00:00:01";}
-If ([string]::IsNullOrWhiteSpace($MetricsScrapeFrequencyInSecs)) {$MetricsScrapeFrequencyInSecs=300;}
-If ([string]::IsNullOrWhiteSpace($MetricsUploadTarget)) {$MetricsScrapeFrequencyInSecs="AzureLogAnalytics";}
-If ([string]::IsNullOrWhiteSpace($TestStartDelay)) {$TestStartDelay="00:05:00";}
 
 If ($TestName -eq "LongHaul" -Or $TestName -eq "Stress")
 {
     $TrackingId = New-Guid
     $TestInfo=$TestInfo+",TestId=$TrackingId"
+    If ([string]::IsNullOrWhiteSpace($TwinUpdateFailureThreshold)) {$TwinUpdateFailureThreshold="00:00:01";}
+    If ([string]::IsNullOrWhiteSpace($MetricsScrapeFrequencyInSecs)) {$MetricsScrapeFrequencyInSecs=300;}
+    If ([string]::IsNullOrWhiteSpace($MetricsUploadTarget)) {$MetricsUploadTarget="AzureLogAnalytics";}
 }
 
 If ($TestName -eq "LongHaul")
@@ -1591,6 +1590,7 @@ If ($TestName -eq "LongHaul")
     If ([string]::IsNullOrEmpty($SnitchTestDurationInSecs)) {$SnitchTestDurationInSecs = "604800"}
     If ([string]::IsNullOrEmpty($TwinUpdateFrequency)) {$TwinUpdateSize = "00:00:15"}
     If ([string]::IsNullOrEmpty($TwinUpdateSize)) {$TwinUpdateSize = "1"}
+    If ([string]::IsNullOrWhiteSpace($TestStartDelay)) {$TestStartDelay="00:00:00";}
 }
 
 If ($TestName -eq "Stress")
