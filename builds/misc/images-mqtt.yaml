@@ -17,8 +17,11 @@ jobs:
       imageName: $(registry.address)/azureiotedge/mqttd-linux-amd64
 
     steps:
-      - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
-        displayName: 'Docker Login'
+      - task: Docker@2
+        displayName: Docker Login
+        inputs:
+          command: login
+          containerRegistry: iotedge-edgebuilds-acr
 
       - task: Docker@2
         displayName: Build amd64 image
@@ -28,8 +31,12 @@ jobs:
           Dockerfile: mqtt/docker/linux/amd64/Dockerfile
           buildContext: mqtt/.
 
-      - bash: 'docker push $(imageName)'
-        displayName: 'Docker Push'
+      - task: Docker@2
+          displayName: Docker Push
+          inputs:
+            containerRegistry: iotedge-edgebuilds-acr
+            repository: $(imageName)
+            command: push
 
 ################################################################################
   - job: linux_arm32
@@ -42,8 +49,11 @@ jobs:
       imageName: $(registry.address)/azureiotedge/mqttd-linux-arm32v7
 
     steps:
-      - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
-        displayName: 'Docker Login'
+      - task: Docker@2
+        displayName: Docker Login
+        inputs:
+          command: login
+          containerRegistry: iotedge-edgebuilds-acr
 
       - task: Docker@2
         displayName: Build arm32v7 image
@@ -53,5 +63,9 @@ jobs:
           Dockerfile: mqtt/docker/linux/arm32v7/Dockerfile
           buildContext: mqtt/.
 
-      - bash: 'docker push $(imageName)'
-        displayName: 'Docker Push'
+      - task: Docker@2
+        displayName: Docker Push
+        inputs:
+          containerRegistry: iotedge-edgebuilds-acr
+          repository: $(imageName)
+          command: push
