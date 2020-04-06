@@ -1,0 +1,92 @@
+# Template to set up test host (pull and start 'mqttd' container)
+# as well as publisher node and subscriber node (mqtt-benchmark tool writen in go).
+
+jobs:
+- job: setup_host
+  pool:
+    name: Default
+    demands: mqtt-perf-tests-pub
+  displayName: Setup Host
+  steps:
+    - checkout: none
+    - task: SSH@0
+      displayName: Cleanup running containers
+      inputs:
+        sshEndpoint: mqttd-host-ssh
+        runOptions: commands        
+        commands: |
+          docker kill $(docker ps -q) 2>/dev/null
+      # ignore cleanup errors if no containers running
+      continueOnError: true 
+
+    - task: SSH@0
+      displayName: Install and Run docker image
+      inputs:
+        sshEndpoint: mqttd-host-ssh
+        runOptions: commands
+        commands: |
+          echo "$(registry.password)" | docker login $(registry.address) --username $(registry.user) --password-stdin 2>/dev/null
+          docker pull $(brokerImageName)
+          docker run -d -p 1883:1883 $(brokerImageName)
+          docker logout
+
+- job: setup_pub
+  pool:
+    name: Default
+    demands: mqtt-perf-tests-pub
+  displayName: Setup Publisher
+  dependsOn: setup_host
+  steps:
+    - checkout: mqttbenchmark
+    - task: GoTool@0
+      displayName: Ensure Go Version
+      inputs:
+        version: '1.14.1'
+    - task: Go@0
+      displayName: Build Benchmark Tool
+      inputs:
+        command: 'build'
+        workingDirectory: '$(System.DefaultWorkingDirectory)'
+    - task: CopyFiles@2
+      displayName: Copying benchmark tool
+      inputs:
+        contents: mqtt-benchmark
+        targetFolder: '$(benchmarkToolPath)'
+        overwrite: true
+
+- job: setup_sub
+  pool:
+    name: Default
+    demands: mqtt-perf-tests-sub
+  displayName: Setup Subscriber
+  dependsOn: setup_host
+  steps:
+    - checkout: mqttbenchmark
+    - task: GoTool@0
+      displayName: Ensure Go Version
+      inputs:
+        version: '1.14.1'
+    - task: Go@0
+      displayName: Build Benchmark Tool
+      inputs:
+        command: 'build'
+        workingDirectory: '$(System.DefaultWorkingDirectory)'
+    - task: CopyFiles@2
+      displayName: Copying benchmark tool
+      inputs:
+        contents: mqtt-benchmark
+        targetFolder: '$(benchmarkToolPath)'
+        overwrite: true
+
+# We need this job to indicate that setup has completed and 
+# test cases jobs can start.
+- job: setup_completed
+  pool:
+    name: Default
+  displayName: Setup Completed
+  dependsOn: 
+  - setup_host
+  - setup_pub
+  - setup_sub
+  steps:
+    - checkout: none
