@@ -23,7 +23,7 @@ pub enum Transport {
     },
     Tls {
         address: String,
-        identity_path: PathBuf,
+        srv_cert_path: PathBuf,
     },
 }
 
@@ -35,9 +35,9 @@ impl TryFrom<Transport> for TransportBuilder<String> {
             Transport::Tcp { address } => Ok(Self::Tcp(address)),
             Transport::Tls {
                 address,
-                identity_path,
+                srv_cert_path,
             } => {
-                load_identity(identity_path.as_path()).map(|identity| Self::Tls(address, identity))
+                load_identity(srv_cert_path.as_path()).map(|identity| Self::Tls(address, identity))
             }
         }
     }
