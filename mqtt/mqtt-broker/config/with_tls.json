@@ -8,7 +8,7 @@
         { 
             "tls": { 
                 "address": "0.0.0.0:8883", 
-                "srv_cert_path": "identity.pfx" 
+                "certificate": "identity.pfx" 
             } 
         }
     ]

@@ -69,9 +69,6 @@ pub enum ErrorKind {
     #[fail(display = "An error occurred loading configuration.")]
     LoadConfiguration,
 
-    #[fail(display = "Configured TLS without specified identity path.")]
-    InconsistentTlsConfiguration,
-
     #[fail(display = "An error occurred joining the broker task.")]
     BrokerJoin,
 

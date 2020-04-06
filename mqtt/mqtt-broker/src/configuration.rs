@@ -23,7 +23,7 @@ pub enum Transport {
     },
     Tls {
         address: String,
-        srv_cert_path: PathBuf,
+        certificate: PathBuf,
     },
 }
 
@@ -35,10 +35,8 @@ impl TryFrom<Transport> for TransportBuilder<String> {
             Transport::Tcp { address } => Ok(Self::Tcp(address)),
             Transport::Tls {
                 address,
-                srv_cert_path,
-            } => {
-                load_identity(srv_cert_path.as_path()).map(|identity| Self::Tls(address, identity))
-            }
+                certificate,
+            } => load_identity(certificate.as_path()).map(|identity| Self::Tls(address, identity)),
         }
     }
 }
@@ -46,10 +44,8 @@ impl TryFrom<Transport> for TransportBuilder<String> {
 fn load_identity(path: &Path) -> Result<Identity, Error> {
     info!("Loading identity from {:?}", path);
     let cert_buffer = std::fs::read(&path).context(ErrorKind::LoadIdentity)?;
-
-    let cert_pwd = "";
-    let cert = Identity::from_pkcs12(cert_buffer.as_slice(), &cert_pwd)
-        .context(ErrorKind::DecodeIdentity)?;
+    let cert =
+        Identity::from_pkcs12(cert_buffer.as_slice(), "").context(ErrorKind::DecodeIdentity)?;
 
     Ok(cert)
 }

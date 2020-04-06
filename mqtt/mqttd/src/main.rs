@@ -1,6 +1,6 @@
 use std::{convert::TryInto, env, io};
 
-use clap::{App, Arg};
+use clap::{crate_authors, crate_description, crate_name, crate_version, App, Arg};
 use failure::ResultExt;
 use futures_util::pin_mut;
 use mqtt_broker::*;
@@ -20,20 +20,9 @@ async fn main() -> Result<(), Terminate> {
         .finish();
     let _ = tracing::subscriber::set_global_default(subscriber);
 
-    let matches = App::new("Edge MQTT Broker")
-        .version("0.1")
-        .arg(
-            Arg::with_name("config")
-                .short("c")
-                .long("config")
-                .value_name("FILE")
-                .help("Sets a custom config file")
-                .takes_value(true),
-        )
-        .get_matches();
-
-    let config_path = matches.value_of("config");
-    let config = config_path
+    let config = create_app()
+        .get_matches()
+        .value_of("config")
         .map_or(BrokerConfig::new(), BrokerConfig::from_file)
         .context(ErrorKind::LoadConfiguration)?;
 
@@ -119,4 +108,20 @@ async fn tick_snapshot(
             warn!(message = "failed to tick the snapshotter", error=%e);
         }
     }
+}
+
+#[allow(deprecated)]
+fn create_app() -> App<'static, 'static> {
+    App::new(crate_name!())
+        .author(crate_authors!("\n"))
+        .version(crate_version!())
+        .about(crate_description!())
+        .arg(
+            Arg::with_name("config")
+                .short("c")
+                .long("config")
+                .value_name("FILE")
+                .help("Sets a custom config file")
+                .takes_value(true),
+        )
 }
