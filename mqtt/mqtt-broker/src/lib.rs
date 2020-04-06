@@ -34,8 +34,11 @@ pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle, BrokerState};
 pub use crate::configuration::BrokerConfig;
 pub use crate::connection::ConnectionHandle;
 pub use crate::error::{Error, ErrorKind};
-pub use crate::persist::{BincodeFormat, FileFormat, FilePersistor, NullPersistor, Persist};
+pub use crate::persist::{
+    ConsolidatedStateFormat, FileFormat, FilePersistor, NullPersistor, Persist,
+};
 pub use crate::server::Server;
+pub use crate::session::SessionState;
 pub use crate::snapshot::{Snapshotter, StateSnapshotHandle};
 
 #[derive(Clone, Debug, Display, Eq, Hash, PartialEq, Serialize, Deserialize)]
