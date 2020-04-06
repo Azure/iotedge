@@ -25,16 +25,10 @@ jobs:
         displayName: Build amd64 image
         inputs:
           repository: $(imageName)
-          command: build
+          command: buildAndPush
+          containerRegistry: iotedge-edgebuilds-acr
           Dockerfile: mqtt/docker/linux/amd64/Dockerfile
           buildContext: mqtt/.
-
-      - task: Docker@2
-        displayName: Docker Push
-        inputs:
-          containerRegistry: iotedge-edgebuilds-acr
-          repository: $(imageName)
-          command: push
           tags: |
             latest
             $(Build.BuildId)-$(os)-$(arch)
@@ -59,19 +53,13 @@ jobs:
           containerRegistry: iotedge-edgebuilds-acr
 
       - task: Docker@2
-        displayName: Build arm32v7 image
+        displayName: Build amd64 image
         inputs:
           repository: $(imageName)
-          command: build
-          Dockerfile: mqtt/docker/linux/arm32v7/Dockerfile
-          buildContext: mqtt/.
-
-      - task: Docker@2
-        displayName: Docker Push
-        inputs:
+          command: buildAndPush
           containerRegistry: iotedge-edgebuilds-acr
-          repository: $(imageName)
-          command: push
+          Dockerfile: mqtt/docker/linux/amd64/Dockerfile
+          buildContext: mqtt/.
           tags: |
             latest
             $(Build.BuildId)-$(os)-$(arch)
