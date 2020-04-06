@@ -100,23 +100,27 @@ namespace Relayer
                     BatchId = batchId,
                     SequenceNumber = sequenceNumber
                 };
+
                 await ModuleUtil.ReportTestResultAsync(testResultReportingClient, Logger, testResultReceived);
+
                 Logger.LogInformation($"Successfully received message: trackingid={trackingId}, batchId={batchId}, sequenceNumber={sequenceNumber}");
 
-                byte[] messageBytes = message.GetBytes();
-                var messageCopy = new Message(messageBytes);
-                messageProperties.ForEach(kvp => messageCopy.Properties.Add(kvp));
-                await moduleClient.SendEventAsync(Settings.Current.OutputName, messageCopy);
-
-                // Report sending message successfully to Test Result Coordinator
-                var testResultSent = new MessageTestResult(Settings.Current.ModuleId + ".send", DateTime.UtcNow)
+                if (!Settings.Current.ReceiveOnly)
                 {
-                    TrackingId = trackingId,
-                    BatchId = batchId,
-                    SequenceNumber = sequenceNumber
-                };
-                await ModuleUtil.ReportTestResultAsync(testResultReportingClient, Logger, testResultSent);
-                Logger.LogInformation($"Successfully sent message: trackingid={trackingId}, batchId={batchId}, sequenceNumber={sequenceNumber}");
+                    byte[] messageBytes = message.GetBytes();
+                    var messageCopy = new Message(messageBytes);
+                    messageProperties.ForEach(kvp => messageCopy.Properties.Add(kvp));
+                    await moduleClient.SendEventAsync(Settings.Current.OutputName, messageCopy);
+                    // Report sending message successfully to Test Result Coordinator
+                    var testResultSent = new MessageTestResult(Settings.Current.ModuleId + ".send", DateTime.UtcNow)
+                    {
+                        TrackingId = trackingId,
+                        BatchId = batchId,
+                        SequenceNumber = sequenceNumber
+                    };
+                    await ModuleUtil.ReportTestResultAsync(testResultReportingClient, Logger, testResultSent);
+                    Logger.LogInformation($"Successfully sent message: trackingid={trackingId}, batchId={batchId}, sequenceNumber={sequenceNumber}");
+                }
             }
             catch (Exception ex)
             {

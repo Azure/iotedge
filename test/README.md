@@ -39,6 +39,9 @@ The end-to-end tests take several parameters, which they expect to find in a fil
 | `rootCaPrivateKeyPath` | * | Full path to a file containing the private key associated with `rootCaCertificatePath`. Required when running the test 'TransparentGateway', ignored otherwise. |
 | `setupTimeoutMinutes` || The maximum amount of time, in minutes, test setup should take. This includes setup for all tests, for the tests in a fixture, or for a single test. If this time is exceeded, the associated test(s) will fail with a timeout error. If not given, the default value is `5`. |
 | `teardownTimeoutMinutes` || The maximum amount of time, in minutes, test teardown should take. This includes teardown for all tests, for the tests in a fixture, or for a single test. If this time is exceeded, the associated test(s) will fail with a timeout error. If not given, the default value is `2`. |
+| `testResultCoordinatorImage` | * | TestResultCoordinator image to be used. Required when running PriorityQueue tests, ignored otherwise.|
+| `loadGenImage` | * | LoadGen image to be used. Required when running PriorityQueue tests, ignored otherwise.|
+| `relayerImage` | * | Relayer image to be used. Required when running PriorityQueue tests, ignored otherwise.|
 | `tempFilterFuncImage` | * | Azure temperature filter function to be used. Required when running the test 'TempFilterFunc', ignored otherwise.|
 | `tempFilterImage` | * | Docker image to pull/use for the temperature filter module. Required when running the test 'TempFilter', ignored otherwise.|
 | `tempSensorImage` || Docker image to pull/use for the temperature sensor module (see the test 'TempSensor'). If not given, `mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0` is used.|

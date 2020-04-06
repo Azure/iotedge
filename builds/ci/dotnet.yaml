@@ -7,7 +7,7 @@ trigger:
 pr: none
 variables:
   build.configuration: Release
-  dotnet.version: 2.1.302
+  dotnet.version: 2.1.x
   test.filter: Category=Integration&Category!=Stress
 jobs:
   - job: linux
@@ -32,7 +32,7 @@ jobs:
             IotHubConnStr2,
             IotHubMqttHeadCert
       - task: UseDotNet@2
-        displayName: Install .NET Core
+        displayName: Install .NET Core sdk
         inputs:
           packageType: sdk
           version: $(dotnet.version)
@@ -111,7 +111,7 @@ jobs:
             IotHubConnStr2,
             IotHubMqttHeadCert
       - task: UseDotNet@2
-        displayName: Install .NET Core
+        displayName: Install .NET Core sdk
         inputs:
           packageType: sdk
           version: $(dotnet.version)

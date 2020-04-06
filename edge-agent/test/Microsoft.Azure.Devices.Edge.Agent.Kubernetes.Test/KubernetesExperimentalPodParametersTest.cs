@@ -68,6 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.False(parameters.NodeSelector.HasValue);
             Assert.False(parameters.Resources.HasValue);
             Assert.False(parameters.SecurityContext.HasValue);
+            Assert.False(parameters.DeploymentStrategy.HasValue);
         }
 
         [Fact]
@@ -309,6 +310,37 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             parameters.SecurityContext.ForEach(securityContext => Assert.Null(securityContext.FsGroup));
             parameters.SecurityContext.ForEach(securityContext => Assert.Null(securityContext.SeLinuxOptions));
             parameters.SecurityContext.ForEach(securityContext => Assert.Null(securityContext.SupplementalGroups));
+        }
+
+        [Fact]
+        public void ParsesEmptyDeploymentStrategyExperimentalOptions()
+        {
+            var experimental = new Dictionary<string, JToken>
+            {
+                ["k8s-experimental"] = JToken.Parse("{ strategy: {  } }")
+            };
+
+            var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
+
+            Assert.True(parameters.DeploymentStrategy.HasValue);
+            parameters.DeploymentStrategy.ForEach(strategy => Assert.Null(strategy.Type));
+            parameters.DeploymentStrategy.ForEach(strategy => Assert.Null(strategy.RollingUpdate));
+        }
+
+        [Fact]
+        public void ParsesSomeDeploymentStrategyExperimentalOptions()
+        {
+            var experimental = new Dictionary<string, JToken>
+            {
+                ["k8s-experimental"] = JToken.Parse(@"{ strategy: { type: ""RollingUpdate"", rollingUpdate: { maxUnavailable: 1 } } }")
+            };
+
+            var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
+
+            Assert.True(parameters.DeploymentStrategy.HasValue);
+            var deploymentStrategy = parameters.DeploymentStrategy.OrDefault();
+            Assert.Equal("RollingUpdate", deploymentStrategy.Type);
+            Assert.Equal("1", deploymentStrategy.RollingUpdate.MaxUnavailable);
         }
     }
 }
