@@ -19,11 +19,11 @@ CARGO="${CARGO_HOME:-"$HOME/.cargo"}/bin/cargo"
 RELEASE="true"
 
 ###############################################################################
-# Build and download tests
+# Download tests and make certificate
 ###############################################################################
-$DIR/build.sh -r 1
+
 $DIR/certgen.sh
-git clone https://github.com/eclipse/paho.mqtt.testing.git
+git clone https://github.com/lfitchett/paho.mqtt.testing.git
 
 ###############################################################################
 # Start broker and run tests
