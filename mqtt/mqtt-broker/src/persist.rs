@@ -1,6 +1,8 @@
 use std::cmp;
+use std::collections::HashMap;
 use std::fs::{self, OpenOptions};
 use std::io::{Read, Write};
+use std::iter::FromIterator;
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
 #[cfg(windows)]
@@ -8,16 +10,23 @@ use std::os::windows::fs::symlink_file;
 use std::path::PathBuf;
 
 use async_trait::async_trait;
+use bytes::Bytes;
 use derive_more::Display;
 use fail::fail_point;
 use failure::ResultExt;
 use flate2::read::GzDecoder;
 use flate2::write::GzEncoder;
 use flate2::Compression;
+use mqtt3::proto::Publication;
+use serde::ser::SerializeMap;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use tracing::{debug, info, span, Level};
 
 use crate::error::{Error, ErrorKind};
+use crate::session::SessionState;
+use crate::subscription::Subscription;
 use crate::BrokerState;
+use crate::ClientId;
 
 /// sets the number of past states to save - 2 means we save the current and the pervious
 const STATE_DEFAULT_PREVIOUS_COUNT: usize = 2;
@@ -102,17 +111,10 @@ impl<F> FilePersistor<F> {
     }
 }
 
-/// A simple format based on Bincode and serde
 #[derive(Clone, Debug, Default)]
-pub struct BincodeFormat;
+pub struct ConsolidatedStateFormat;
 
-impl BincodeFormat {
-    pub fn new() -> Self {
-        Self
-    }
-}
-
-impl FileFormat for BincodeFormat {
+impl FileFormat for ConsolidatedStateFormat {
     type Error = Error;
 
     fn load<R: Read>(&self, reader: R) -> Result<BrokerState, Self::Error> {
@@ -120,12 +122,16 @@ impl FileFormat for BincodeFormat {
         fail_point!("bincodeformat.load.deserialize_from", |_| {
             Err(Error::from(ErrorKind::Persist(ErrorReason::Deserialize)))
         });
-        let state = bincode::deserialize_from(decoder)
+        let state: ConsolidatedState = bincode::deserialize_from(decoder)
             .context(ErrorKind::Persist(ErrorReason::Deserialize))?;
+
+        let state: BrokerState = state.into();
         Ok(state)
     }
 
     fn store<W: Write>(&self, writer: W, state: BrokerState) -> Result<(), Self::Error> {
+        let state: ConsolidatedState = state.into();
+
         let encoder = GzEncoder::new(writer, Compression::default());
         fail_point!("bincodeformat.store.serialize_into", |_| {
             Err(Error::from(ErrorKind::Persist(ErrorReason::Deserialize)))
@@ -134,6 +140,156 @@ impl FileFormat for BincodeFormat {
             .context(ErrorKind::Persist(ErrorReason::Serialize))?;
         Ok(())
     }
+}
+
+impl From<BrokerState> for ConsolidatedState {
+    fn from(state: BrokerState) -> Self {
+        let (retained, sessions) = state.into_parts();
+
+        #[allow(clippy::mutable_key_type)]
+        let mut payloads = HashMap::new();
+
+        let mut shrink_payload = |publication: Publication| {
+            let next_id = payloads.len() as u64;
+
+            let id = *payloads.entry(publication.payload).or_insert(next_id);
+
+            SimplifiedPublication {
+                topic_name: publication.topic_name,
+                qos: publication.qos,
+                retain: publication.retain,
+                payload: id,
+            }
+        };
+
+        let retained = retained
+            .into_iter()
+            .map(|(topic, publication)| (topic, shrink_payload(publication)))
+            .collect();
+
+        let sessions = sessions
+            .into_iter()
+            .map(|session| {
+                let (client_id, subscriptions, waiting_to_be_sent) = session.into_parts();
+
+                #[allow(clippy::redundant_closure)] // removing closure leads to borrow error
+                let waiting_to_be_sent = waiting_to_be_sent
+                    .into_iter()
+                    .map(|publication| shrink_payload(publication))
+                    .collect();
+
+                ConsolidatedSession {
+                    client_id,
+                    subscriptions,
+                    waiting_to_be_sent,
+                }
+            })
+            .collect();
+
+        // Note that while payloads are consolidated using a Hashmap<Byte, u64>, they are stored as a Hashmap<u64, Byte>.
+        // This makes consolidation much faster
+        let payloads = payloads
+            .drain()
+            .map(|(payload, id)| (id, payload))
+            .collect();
+
+        ConsolidatedState {
+            payloads,
+            retained,
+            sessions,
+        }
+    }
+}
+
+impl From<ConsolidatedState> for BrokerState {
+    fn from(state: ConsolidatedState) -> Self {
+        let ConsolidatedState {
+            payloads,
+            retained,
+            sessions,
+        } = state;
+
+        let expand_payload = |publication: SimplifiedPublication| Publication {
+            topic_name: publication.topic_name,
+            qos: publication.qos,
+            retain: publication.retain,
+            payload: payloads
+                .get(&publication.payload)
+                .expect("corrupted data")
+                .clone(),
+        };
+
+        let retained = retained
+            .into_iter()
+            .map(|(topic, publication)| (topic, expand_payload(publication)))
+            .collect();
+
+        #[allow(clippy::redundant_closure)] // removing closure leads to borrow error
+        let sessions = sessions
+            .into_iter()
+            .map(|session| {
+                let waiting_to_be_sent = session
+                    .waiting_to_be_sent
+                    .into_iter()
+                    .map(|publication| expand_payload(publication))
+                    .collect();
+                SessionState::from_parts(
+                    session.client_id,
+                    session.subscriptions,
+                    waiting_to_be_sent,
+                )
+            })
+            .collect();
+
+        BrokerState::new(retained, sessions)
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+struct ConsolidatedState {
+    #[serde(serialize_with = "serialize_payloads")]
+    #[serde(deserialize_with = "deserialize_payloads")]
+    payloads: HashMap<u64, Bytes>,
+    retained: HashMap<String, SimplifiedPublication>,
+    sessions: Vec<ConsolidatedSession>,
+}
+
+#[derive(Deserialize, Serialize)]
+struct ConsolidatedSession {
+    client_id: ClientId,
+    subscriptions: HashMap<String, Subscription>,
+    waiting_to_be_sent: Vec<SimplifiedPublication>,
+}
+
+#[derive(Deserialize, Serialize)]
+struct SimplifiedPublication {
+    topic_name: String,
+    qos: crate::proto::QoS,
+    retain: bool,
+    payload: u64,
+}
+
+fn serialize_payloads<S>(payloads: &HashMap<u64, Bytes>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let mut map = serializer.serialize_map(Some(payloads.len()))?;
+    for (k, v) in payloads {
+        map.serialize_entry(k, &v[..])?;
+    }
+
+    map.end()
+}
+
+fn deserialize_payloads<'de, D>(deserializer: D) -> Result<HashMap<u64, Bytes>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let payloads = HashMap::<u64, Vec<u8>>::deserialize(deserializer)?
+        .into_iter()
+        .map(|(k, v)| (k, Bytes::from(v)));
+    let payloads = HashMap::from_iter(payloads);
+    Ok(payloads)
 }
 
 #[async_trait]
@@ -392,16 +548,40 @@ pub(crate) mod tests {
 
     proptest! {
         #[test]
-        fn bincode_roundtrip(state in arb_broker_state()) {
-            let expected = state.clone();
-            let format = BincodeFormat;
+        fn consolidate_simple(state in arb_broker_state()) {
+            let (expected_retained, expected_sessions) = state.clone().into_parts();
+
+            let consolidated: ConsolidatedState = state.into();
+            prop_assert_eq!(expected_retained.len(), consolidated.retained.len());
+            prop_assert_eq!(expected_sessions.len(), consolidated.sessions.len());
+
+            let state: BrokerState = consolidated.into();
+            let (result_retained, result_sessions) = state.into_parts();
+
+            prop_assert_eq!(expected_retained, result_retained);
+            prop_assert_eq!(expected_sessions.len(), result_sessions.len());
+            for i in 0..expected_sessions.len(){
+                prop_assert_eq!(expected_sessions[i].clone().into_parts(), result_sessions[i].clone().into_parts());
+            }
+        }
+
+        #[test]
+        fn consolidate_roundtrip(state in arb_broker_state()) {
+            let (expected_retained, expected_sessions) = state.clone().into_parts();
+            let format = ConsolidatedStateFormat;
             let mut buffer = vec![0_u8; 10 * 1024 * 1024];
             let writer = Cursor::new(&mut buffer);
             format.store(writer, state).unwrap();
 
             let reader = Cursor::new(buffer);
             let state = format.load(reader).unwrap();
-            prop_assert_eq!(expected, state);
+            let (result_retained, result_sessions) = state.into_parts();
+
+            prop_assert_eq!(expected_retained, result_retained);
+            prop_assert_eq!(expected_sessions.len(), result_sessions.len());
+            for i in 0..expected_sessions.len(){
+                prop_assert_eq!(expected_sessions[i].clone().into_parts(), result_sessions[i].clone().into_parts());
+            }
         }
     }
 
@@ -409,7 +589,7 @@ pub(crate) mod tests {
     async fn filepersistor_smoketest() {
         let tmp_dir = TempDir::new().unwrap();
         let path = tmp_dir.path().to_owned();
-        let mut persistor = FilePersistor::new(path, BincodeFormat::new());
+        let mut persistor = FilePersistor::new(path, ConsolidatedStateFormat::default());
 
         persistor.store(BrokerState::default()).await.unwrap();
         let state = persistor.load().await.unwrap().unwrap();
