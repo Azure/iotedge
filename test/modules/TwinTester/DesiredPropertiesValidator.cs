@@ -30,7 +30,7 @@ namespace TwinTester
 
             moduleClient.SetConnectionStatusChangesHandler((status, reason) =>
             {
-                Logger.LogWarning($"Applying failure threshold to desired property callback validation{Environment.NewLine}Detected change in connection status:{Environment.NewLine}Changed Status: {status} Reason: {reason}");
+                Logger.LogInformation($"Applying failure threshold to desired property callback validation{Environment.NewLine}Detected change in connection status:{Environment.NewLine}Changed Status: {status} Reason: {reason}");
                 this.twinState.LastTimeOfEdgeRestart = DateTime.UtcNow;
             });
         }
