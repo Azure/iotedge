@@ -29,9 +29,7 @@ jobs:
           containerRegistry: iotedge-edgebuilds-acr
           Dockerfile: mqtt/docker/linux/amd64/Dockerfile
           buildContext: mqtt/.
-          tags: |
-            latest
-            $(Build.BuildId)-$(os)-$(arch)
+          tags: $(Build.BuildId)-$(os)-$(arch)
 
 ################################################################################
   - job: linux_arm32
@@ -60,6 +58,4 @@ jobs:
           containerRegistry: iotedge-edgebuilds-acr
           Dockerfile: mqtt/docker/linux/amd64/Dockerfile
           buildContext: mqtt/.
-          tags: |
-            latest
-            $(Build.BuildId)-$(os)-$(arch)
+          tags: $(Build.BuildId)-$(os)-$(arch)
