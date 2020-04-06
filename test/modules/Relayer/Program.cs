@@ -133,8 +133,7 @@ namespace Relayer
                 }
                 else
                 {
-                    int uniqueResultsExpected = int.Parse(
-                        Settings.Current.UniqueResultsExpected.Expect<ArgumentException>(() => throw new ArgumentException("Must supply this value if in ReceiveOnly mode")));
+                    int uniqueResultsExpected = Settings.Current.UniqueResultsExpected.Expect<ArgumentException>(() => throw new ArgumentException("Must supply this value if in ReceiveOnly mode"));
                     if (!resultsReceived.Contains(sequenceNumber))
                     {
                         resultsReceived.Add(sequenceNumber);
@@ -158,7 +157,7 @@ namespace Relayer
         {
             await client.SetMethodHandlerAsync(
                 "IsFinished",
-                async (MethodRequest methodRequest, object _) => await Task.FromResult(IsFinished()),
+                (MethodRequest methodRequest, object _) => Task.FromResult(IsFinished()),
                 null);
         }
 

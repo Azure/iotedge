@@ -20,7 +20,7 @@ namespace Relayer
             Uri testResultCoordinatorUrl,
             string moduleId,
             bool receiveOnly,
-            Option<string> uniqueResultsExpected)
+            Option<int> uniqueResultsExpected)
         {
             this.InputName = Preconditions.CheckNonWhiteSpace(inputName, nameof(inputName));
             this.OutputName = Preconditions.CheckNonWhiteSpace(outputName, nameof(outputName));
@@ -39,9 +39,8 @@ namespace Relayer
                 .AddEnvironmentVariables()
                 .Build();
 
-            string uniqueResultsExpected = string.IsNullOrWhiteSpace(configuration.GetValue<string>("uniqueResultsExpected"))
-                ? null
-                : configuration.GetValue<string>("uniqueResultsExpected");
+            int uniqueResultsNum = configuration.GetValue<int>("uniqueResultsExpected", -1);
+            Option<int> uniqueResultsExpected = uniqueResultsNum > 0 ? Option.Some(uniqueResultsNum) : Option.None<int>();
 
             return new Settings(
                 configuration.GetValue("transportType", TransportType.Amqp_Tcp_Only),
@@ -50,7 +49,7 @@ namespace Relayer
                 configuration.GetValue<Uri>("testResultCoordinatorUrl", new Uri("http://testresultcoordinator:5001")),
                 configuration.GetValue<string>("IOTEDGE_MODULEID"),
                 configuration.GetValue<bool>("receiveOnly", false),
-                Option.Maybe(uniqueResultsExpected));
+                uniqueResultsExpected);
         }
 
         public TransportType TransportType { get; }
@@ -65,7 +64,7 @@ namespace Relayer
 
         public bool ReceiveOnly { get; }
 
-        public Option<string> UniqueResultsExpected { get; }
+        public Option<int> UniqueResultsExpected { get; }
 
         public override string ToString()
         {

@@ -7,8 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
     {
         public PriorityQueueTestStatus(bool isFinished, int resultCount)
         {
-            this.IsFinished = Preconditions.CheckNotNull(isFinished, nameof(isFinished));
-            this.ResultCount = Preconditions.CheckNotNull(resultCount, nameof(resultCount));
+            this.IsFinished = isFinished;
+            this.ResultCount = resultCount;
         }
 
         public bool IsFinished { get; }
