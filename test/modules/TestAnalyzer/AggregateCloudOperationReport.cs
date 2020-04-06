@@ -33,7 +33,9 @@ namespace TestAnalyzer
 
         public IDictionary<string, string> TestInfo { get; }
 
-        public bool IsPassed => this.StatusCodes.All(x => x.StatusCode.StartsWith("200") || x.StatusCode.Equals("OK"));
+        public bool IsPassed => this.StatusCodes.All(x => x.StatusCode.StartsWith("200")
+                                                        || x.StatusCode.Equals("OK")
+                                                        || x.StatusCode.StartsWith("404"));
 
         public override string ToString()
         {

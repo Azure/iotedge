@@ -262,7 +262,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
             }
             else if (NetworkControllerStatus.Enabled.Equals(networkControllerStatus))
             {
-                if (HttpStatusCode.InternalServerError.Equals(statusCode))
+                if (HttpStatusCode.NotFound.Equals(statusCode))
                 {
                     networkOffSuccess++;
                 }
