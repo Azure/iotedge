@@ -10,7 +10,9 @@ jobs:
       vmImage: 'ubuntu-latest'
 
     variables:
-      imageName: azureiotedge/mqttd-linux-amd64
+      os: linux
+      arch: amd64
+      imageName: azureiotedge/iotedge-mqtt-broker
 
     steps:
       - task: Docker@2
@@ -33,6 +35,9 @@ jobs:
           containerRegistry: iotedge-edgebuilds-acr
           repository: $(imageName)
           command: push
+          tags: |
+            latest
+            $(Build.BuildId)-$(os)-$(arch)
 
 ################################################################################
   - job: linux_arm32
@@ -42,7 +47,9 @@ jobs:
       vmImage: 'ubuntu-latest'
 
     variables:
-      imageName: azureiotedge/mqttd-linux-arm32v7
+      os: linux
+      arch: arm32v7
+      imageName: azureiotedge/iotedge-mqtt-broker
 
     steps:
       - task: Docker@2
@@ -65,3 +72,6 @@ jobs:
           containerRegistry: iotedge-edgebuilds-acr
           repository: $(imageName)
           command: push
+          tags: |
+            latest
+            $(Build.BuildId)-$(os)-$(arch)
