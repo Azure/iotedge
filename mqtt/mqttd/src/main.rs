@@ -19,6 +19,16 @@ async fn main() -> Result<(), Terminate> {
         .finish();
     let _ = tracing::subscriber::set_global_default(subscriber);
 
+    // TODO pass it to broker
+    // TODO make it an argument to override defaul config
+    let path: Option<String> = None;
+    let config = path
+        .map_or(BrokerConfig::new(), BrokerConfig::from_file)
+        .context(ErrorKind::LoadConfiguration)?;
+
+    // TODO pass it to persistence
+    let _persistence = config.persistence();
+
     let addr_tcp = env::args()
         .nth(1)
         .unwrap_or_else(|| "0.0.0.0:1883".to_string());
@@ -40,7 +50,7 @@ async fn main() -> Result<(), Terminate> {
     // Setup the snapshotter
     let mut persistor = FilePersistor::new(
         env::current_dir().expect("can't get cwd").join("state"),
-        BincodeFormat::new(),
+        ConsolidatedStateFormat::default(),
     );
     info!("Loading state...");
     let state = persistor.load().await?.unwrap_or_else(BrokerState::default);
