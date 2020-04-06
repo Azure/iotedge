@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use failure::ResultExt;
+use futures_util::future;
 use mqtt3::proto;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{self, Receiver, Sender};
@@ -12,7 +13,10 @@ use crate::auth::{
     Operation,
 };
 use crate::session::{ConnectedSession, Session, SessionState};
-use crate::{AuthId, ClientEvent, ClientId, ConnReq, Error, ErrorKind, Message, SystemEvent};
+use crate::{
+    subscription::Subscription, AuthId, ClientEvent, ClientId, ConnReq, Error, ErrorKind, Message,
+    SystemEvent,
+};
 
 static EXPECTED_PROTOCOL_NAME: &str = mqtt3::PROTOCOL_NAME;
 const EXPECTED_PROTOCOL_LEVEL: u8 = mqtt3::PROTOCOL_LEVEL;
@@ -333,13 +337,11 @@ where
     }
 
     async fn process_drop_connection(&mut self, client_id: ClientId) -> Result<(), Error> {
-        debug!("handling drop connection...");
-        self.drop_connection(client_id).await?;
-        debug!("drop connection handled.");
-        Ok(())
+        self.drop_connection(client_id).await
     }
 
     async fn drop_connection(&mut self, client_id: ClientId) -> Result<(), Error> {
+        debug!("handling drop connection...");
         if let Some(mut session) = self.close_session(&client_id) {
             session.send(ClientEvent::DropConnection).await?;
 
@@ -350,6 +352,7 @@ where
         } else {
             debug!("no session for {}", client_id);
         }
+        debug!("drop connection handled.");
         Ok(())
     }
 
@@ -388,24 +391,15 @@ where
     async fn process_subscribe(
         &mut self,
         client_id: ClientId,
-        subscribe: proto::Subscribe,
+        sub: proto::Subscribe,
     ) -> Result<(), Error> {
-        let operation = Operation::new_subscribe(subscribe.clone());
-        if !self.authorize_client(client_id.clone(), operation).await? {
+        let subscriptions = if let Some(session) = self.sessions.get_mut(&client_id) {
+            let (suback, subscriptions) = subscribe(&self.authorizer, session, sub.clone()).await?;
+            session.send(ClientEvent::SubAck(suback)).await?;
+            subscriptions
+        } else {
+            debug!("no session for {}", client_id);
             return Ok(());
-        }
-
-        let subscriptions = match self.get_session_mut(&client_id) {
-            Ok(session) => {
-                let (suback, subscriptions) = session.subscribe(subscribe)?;
-                session.send(ClientEvent::SubAck(suback)).await?;
-                subscriptions
-            }
-            Err(e) if *e.kind() == ErrorKind::NoSession => {
-                debug!("no session for {}", client_id);
-                return Ok(());
-            }
-            Err(e) => return Err(e),
         };
 
         // Handle retained messages
@@ -450,43 +444,13 @@ where
         }
     }
 
-    async fn authorize_client(
-        &mut self,
-        client_id: ClientId,
-        operation: Operation,
-    ) -> Result<bool, Error> {
-        if let Some(session) = self.sessions.get_mut(&client_id) {
-            let activity = Activity::new(session.auth_id().clone(), client_id.clone(), operation);
-            match self.authorizer.authorize(activity).await {
-                Ok(true) => {
-                    debug!("client {} successfully authorized", client_id);
-                    Ok(true)
-                }
-                Ok(false) => {
-                    warn!("client {} not allowed to connect", client_id);
-                    debug!("dropping connection due to failed authorization");
-                    self.drop_connection(client_id).await?;
-                    Ok(false)
-                }
-                Err(e) => {
-                    warn!(message="error authorizing client: {}", error = %e);
-                    debug!("dropping connection due to authorization error");
-                    self.drop_connection(client_id).await?;
-                    Err(e)
-                }
-            }
-        } else {
-            Err(ErrorKind::NoSession.into())
-        }
-    }
-
     async fn process_publish(
         &mut self,
         client_id: ClientId,
         publish: proto::Publish,
     ) -> Result<(), Error> {
         let operation = Operation::new_publish(publish.clone());
-        if !self.authorize_client(client_id.clone(), operation).await? {
+        if !self.can_publish(client_id.clone(), operation).await? {
             return Ok(());
         }
 
@@ -510,6 +474,35 @@ where
         }
 
         Ok(())
+    }
+
+    async fn can_publish(
+        &mut self,
+        client_id: ClientId,
+        operation: Operation,
+    ) -> Result<bool, Error> {
+        if let Some(session) = self.sessions.get_mut(&client_id) {
+            let activity = Activity::new(session.auth_id()?.clone(), client_id.clone(), operation);
+            match self.authorizer.authorize(activity).await {
+                Ok(true) => {
+                    debug!("client {} successfully authorized", client_id);
+                    Ok(true)
+                }
+                Ok(false) => {
+                    warn!("client {} not allowed to publish", client_id);
+                    self.drop_connection(client_id).await?;
+                    Ok(false)
+                }
+                Err(e) => {
+                    warn!(message="error authorizing client: {}", error = %e);
+                    self.drop_connection(client_id).await?;
+                    Err(e)
+                }
+            }
+        } else {
+            debug!("no session for {}", client_id);
+            Err(ErrorKind::NoSession.into())
+        }
     }
 
     async fn process_puback(
@@ -831,6 +824,67 @@ where
         Ok(())
     }
 }
+
+async fn subscribe<Z: Authorizer>(
+    authorizer: &Z,
+    session: &mut Session,
+    subscribe: proto::Subscribe,
+) -> Result<(proto::SubAck, Vec<Subscription>), Error> {
+    let auth_id = session.auth_id()?.clone();
+    let client_id = session.client_id().clone();
+
+    let mut subscriptions = Vec::with_capacity(subscribe.subscribe_to.len());
+    let mut acks = Vec::with_capacity(subscribe.subscribe_to.len());
+
+    let auth_results = subscribe
+        .subscribe_to
+        .into_iter()
+        .map(|subscribe_to| async {
+            let operation = Operation::new_subscribe(subscribe_to.clone());
+            let activity = Activity::new(auth_id.clone(), client_id.clone(), operation);
+            let auth = authorizer.authorize(activity).await;
+            auth.map(|auth| (auth, subscribe_to))
+        });
+
+    for auth in future::join_all(auth_results).await {
+        let ack_qos = match auth {
+            Ok((true, subscribe_to)) => match session.subscribe_to(subscribe_to) {
+                Ok((qos, subscription)) => {
+                    if let Some(subscription) = subscription {
+                        subscriptions.push(subscription);
+                    }
+                    qos
+                }
+                Err(e) => {
+                    warn!(message="error subscribing to a topic: {}", error = %e);
+                    proto::SubAckQos::Failure
+                }
+            },
+            Ok((false, subscribe_to)) => {
+                debug!(
+                    "client {} not allowed to subscribe to topic {} qos {}",
+                    client_id,
+                    subscribe_to.topic_filter,
+                    u8::from(subscribe_to.qos)
+                );
+                proto::SubAckQos::Failure
+            }
+            Err(e) => {
+                warn!(message="error authorizing client subscription: {}", error = %e);
+                proto::SubAckQos::Failure
+            }
+        };
+        acks.push(ack_qos);
+    }
+
+    let suback = proto::SubAck {
+        packet_identifier: subscribe.packet_identifier,
+        qos: acks,
+    };
+
+    Ok((suback, subscriptions))
+}
+
 async fn publish_to<Z: Authorizer>(
     authorizer: &Z,
     session: &mut Session,
@@ -856,7 +910,8 @@ async fn can_publish_to<Z: Authorizer>(
 ) -> Result<bool, Error> {
     let operation = Operation::new_receive(publication.clone());
     let client_id = session.client_id().clone();
-    let activity = Activity::new(session.auth_id().clone(), client_id.clone(), operation);
+    let auth_id = session.auth_id()?;
+    let activity = Activity::new(auth_id.clone(), client_id.clone(), operation);
 
     if !authorizer.authorize(activity).await? {
         info!("client {} not allowed to receive messages", client_id);
@@ -1391,7 +1446,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_connect_client_has_no_permissions() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::identity("client-a"))))
+            .authenticator(|_| Ok(Some("client-a".into())))
             .authorizer(|_| Ok(false))
             .build();
 
@@ -1775,7 +1830,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_publish_client_has_no_permissions() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::identity("client-a"))))
+            .authenticator(|_| Ok(Some("client-a".into())))
             .authorizer(|activity: Activity| match activity.operation() {
                 Operation::Connect(_) => Ok(true),
                 _ => Ok(false),
@@ -1810,7 +1865,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_subscribe_client_has_no_permissions() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::identity("client-a"))))
+            .authenticator(|_| Ok(Some("client-a".into())))
             .authorizer(|activity: Activity| match activity.operation() {
                 Operation::Connect(_) => Ok(true),
                 _ => Ok(false),
@@ -1843,7 +1898,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_receive_client_has_no_permissions() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::identity("client-a"))))
+            .authenticator(|_| Ok(Some("client-a".into())))
             .authorizer(|activity: Activity| match activity.operation() {
                 Operation::Connect(_) => Ok(true),
                 Operation::Publish(_) => Ok(true),

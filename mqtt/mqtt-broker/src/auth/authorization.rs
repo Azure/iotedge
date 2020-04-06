@@ -77,8 +77,8 @@ impl Operation {
     }
 
     /// Creates a new operation context for SUBSCRIBE request.
-    pub fn new_subscribe(subcribe: proto::Subscribe) -> Self {
-        Self::Subscribe(subcribe.into())
+    pub fn new_subscribe(subcribe_to: proto::SubscribeTo) -> Self {
+        Self::Subscribe(subcribe_to.into())
     }
 
     /// Creates a new operation context for RECEIVE request.
@@ -143,13 +143,15 @@ impl From<proto::Publish> for Publish {
 
 /// Represents a client attempt to subscribe to a specified MQTT topic in order to received messages.
 pub struct Subscribe {
-    pub subscribe_to: Vec<proto::SubscribeTo>,
+    topic_filter: String,
+    qos: proto::QoS,
 }
 
-impl From<proto::Subscribe> for Subscribe {
-    fn from(subscribe: proto::Subscribe) -> Self {
+impl From<proto::SubscribeTo> for Subscribe {
+    fn from(subscribe_to: proto::SubscribeTo) -> Self {
         Self {
-            subscribe_to: subscribe.subscribe_to,
+            topic_filter: subscribe_to.topic_filter,
+            qos: subscribe_to.qos,
         }
     }
 }

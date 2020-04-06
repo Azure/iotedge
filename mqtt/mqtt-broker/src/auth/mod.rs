@@ -20,7 +20,7 @@ pub enum AuthId {
 
 impl AuthId {
     /// Creates a MQTT identity for known client.
-    pub fn identity<T: Into<Identity>>(identity: T) -> Self {
+    pub fn from_identity<T: Into<Identity>>(identity: T) -> Self {
         Self::Identity(identity.into())
     }
 
@@ -32,7 +32,7 @@ impl AuthId {
 
 impl<T: Into<Identity>> From<T> for AuthId {
     fn from(identity: T) -> Self {
-        AuthId::identity(identity)
+        AuthId::from_identity(identity)
     }
 }
 

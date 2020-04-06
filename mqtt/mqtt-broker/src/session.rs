@@ -112,6 +112,7 @@ impl ConnectedSession {
         self.state.publish_to(publication)
     }
 
+    #[allow(dead_code)]
     pub fn subscribe(
         &mut self,
         subscribe: proto::Subscribe,
@@ -143,6 +144,26 @@ impl ConnectedSession {
             qos: acks,
         };
         Ok((suback, subscriptions))
+    }
+
+    pub fn subscribe_to(
+        &mut self,
+        subscribe_to: proto::SubscribeTo,
+    ) -> Result<(proto::SubAckQos, Option<Subscription>), Error> {
+        match subscribe_to.topic_filter.parse() {
+            Ok(filter) => {
+                let proto::SubscribeTo { topic_filter, qos } = subscribe_to;
+
+                let subscription = Subscription::new(filter, qos);
+                self.state
+                    .update_subscription(topic_filter, subscription.clone());
+                Ok((proto::SubAckQos::Success(qos), Some(subscription)))
+            }
+            Err(e) => {
+                warn!("invalid topic filter {}: {}", subscribe_to.topic_filter, e);
+                Ok((proto::SubAckQos::Failure, None))
+            }
+        }
     }
 
     pub fn unsubscribe(
@@ -596,12 +617,12 @@ impl Session {
         }
     }
 
-    pub fn auth_id(&self) -> &AuthId {
+    pub fn auth_id(&self) -> Result<&AuthId, Error> {
         match self {
-            Self::Transient(connected) => connected.auth_id(),
-            Self::Persistent(connected) => connected.auth_id(),
-            Self::Offline(_offline) => todo!(),
-            Self::Disconnecting(disconnecting) => disconnecting.auth_id(),
+            Self::Transient(connected) => Ok(connected.auth_id()),
+            Self::Persistent(connected) => Ok(connected.auth_id()),
+            Self::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Disconnecting(disconnecting) => Ok(disconnecting.auth_id()),
         }
     }
 
@@ -692,13 +713,13 @@ impl Session {
         }
     }
 
-    pub fn subscribe(
+    pub fn subscribe_to(
         &mut self,
-        subscribe: proto::Subscribe,
-    ) -> Result<(proto::SubAck, Vec<Subscription>), Error> {
+        subscribe_to: proto::SubscribeTo,
+    ) -> Result<(proto::SubAckQos, Option<Subscription>), Error> {
         match self {
-            Self::Transient(connected) => connected.subscribe(subscribe),
-            Self::Persistent(connected) => connected.subscribe(subscribe),
+            Self::Transient(connected) => connected.subscribe_to(subscribe_to),
+            Self::Persistent(connected) => connected.subscribe_to(subscribe_to),
             Self::Offline(_) => Err(Error::from(ErrorKind::SessionOffline)),
             Self::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
         }
@@ -942,7 +963,7 @@ pub(crate) mod tests {
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
         let req1 = ConnReq::new(client_id, connect1, None, handle1);
-        let auth_id = AuthId::identity("auth-id1");
+        let auth_id = "auth-id1".into();
         let mut session = Session::new_transient(auth_id, req1);
 
         let subscribe = proto::Subscribe {
