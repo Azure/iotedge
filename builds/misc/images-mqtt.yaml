@@ -32,11 +32,11 @@ jobs:
           buildContext: mqtt/.
 
       - task: Docker@2
-          displayName: Docker Push
-          inputs:
-            containerRegistry: iotedge-edgebuilds-acr
-            repository: $(imageName)
-            command: push
+        displayName: Docker Push
+        inputs:
+          containerRegistry: iotedge-edgebuilds-acr
+          repository: $(imageName)
+          command: push
 
 ################################################################################
   - job: linux_arm32
