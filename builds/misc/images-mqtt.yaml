@@ -14,7 +14,7 @@ jobs:
       vmImage: 'ubuntu-latest'
 
     variables:
-      imageName: $(registry.address)/azureiotedge/mqttd-linux-amd64
+      imageName: azureiotedge/mqttd-linux-amd64
 
     steps:
       - task: Docker@2
@@ -46,7 +46,7 @@ jobs:
       vmImage: 'ubuntu-latest'
 
     variables:
-      imageName: $(registry.address)/azureiotedge/mqttd-linux-arm32v7
+      imageName: azureiotedge/mqttd-linux-arm32v7
 
     steps:
       - task: Docker@2
