@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use derive_more::Display;
+use derive_more::{Display, From};
 use failure::Fail;
 
 use crate::Error;
@@ -28,7 +28,7 @@ pub enum Credentials {
 }
 
 /// Represents a client certificate.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, From)]
 pub struct Certificate(Vec<u8>);
 
 /// A trait to authenticate a MQTT client with given credentials.
