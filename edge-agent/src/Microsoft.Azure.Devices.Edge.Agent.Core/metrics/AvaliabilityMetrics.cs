@@ -153,6 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
         Task UpdateCheckpointFile()
         {
+            // BEARWASHERE -- Checkpoint Availability -- Maybe add I/O Motinitor here?
             File.WriteAllText(this.checkpointFile, this.systemTime.UtcNow.Ticks.ToString());
             return Task.CompletedTask;
         }

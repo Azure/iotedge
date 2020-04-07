@@ -31,7 +31,10 @@
                 "value": "true"
               },
               "ExperimentalFeatures__EnableUploadLogs": {
-                  "value": "true"
+                "value": "true"
+              },
+              "RuntimeLogLevel": {
+                "value": "debug"
               }
             },
             "settings": {

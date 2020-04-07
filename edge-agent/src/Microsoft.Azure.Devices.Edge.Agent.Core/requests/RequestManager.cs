@@ -107,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
                     (int)EventIds.HandlingRequest,
                     string.IsNullOrWhiteSpace(payloadJson)
                         ? $"Received request {request}"
-                        : $"Received request {request} with payload");
+                        : $"Received request {request} with payload : {payloadJson}");
             }
 
             public static void HandledRequest(string request)

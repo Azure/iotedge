@@ -213,8 +213,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             // timeout value *before* we open a connection to the hub
             moduleClient.SetOperationTimeoutInMilliseconds(ModuleClientTimeoutMilliseconds);
             moduleClient.SetConnectionStatusChangesHandler(statusChangedHandler);
-            // BEARWASHERE -- Hmmm... Looks very tempting to add the .TimeoutAfter(TimeSpan.FromMinutes(2)) here
-            await moduleClient.OpenAsync().TimeoutAfter(TimeSpan.FromMinutes(2));
+            await moduleClient.OpenAsync();
 
             Events.ConnectedWithTransport(settings.GetTransportType());
             return moduleClient;
