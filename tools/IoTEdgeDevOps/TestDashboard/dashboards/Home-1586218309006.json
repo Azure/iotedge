@@ -15,7 +15,8 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1585703889150,
+  "id": 2,
+  "iteration": 1586217152678,
   "links": [],
   "panels": [
     {
@@ -1838,7 +1839,7 @@
           "alias": "",
           "format": "table",
           "hide": false,
-          "rawSql": "WITH Release_CTE\nAS\n(\n    SELECT r.id releaseId, r.SourceBranch, e.Id envId, e.DefinitionName, e.Status, d.Id deploymentId, d.Attempt \n    FROM VstsRelease r\n    INNER JOIN VstsReleaseEnvironment e\n    ON r.Id = e.ReleaseId\n    INNER JOIN VstsReleaseDeployment d\n    ON e.Id = d.ReleaseEnvironmentId\n)\n, Most_Recent_Release\nAS\n(\n    SELECT MAX(releaseId) AS mostRecentCompletedReleaseId FROM\n    (\n        SELECT releaseId FROM Release_CTE WHERE SourceBranch = '$BranchName' AND Status != 'InProgress'\n        EXCEPT\n        SELECT releaseId FROM Release_CTE WHERE SourceBranch = '$BranchName' AND Status = 'InProgress'\n    ) CompletedReleases\n)\nSELECT * FROM\n(\n    SELECT DefinitionName, t.Name taskName, taskStatus = CASE t.Status WHEN 'succeeded' THEN 1 WHEN 'partiallySucceeded' THEN 0 WHEN 'failed' THEN 0 END\n    FROM Release_CTE x\n    INNER JOIN\n    (\n        SELECT releaseId, envId, MAX(Attempt) Attempt \n        FROM Release_CTE \n        WHERE releaseId IN (SELECT mostRecentCompletedReleaseId FROM Most_Recent_Release)\n        GROUP BY releaseId, envId\n    ) LatestDeployment\n    ON x.releaseId = LatestDeployment.releaseId\n    AND x.envId = LatestDeployment.envId\n    AND x.Attempt = LatestDeployment.Attempt\n    INNER JOIN VstsReleaseTask t\n    ON x.deploymentId = t.ReleaseDeploymentId\n    WHERE x.releaseId IN (SELECT mostRecentCompletedReleaseId FROM Most_Recent_Release)\n) t1\nPIVOT (\n    AVG(taskStatus) \n    FOR DefinitionName IN (\n        [Linux AMD64 Docker],\n        [Linux AMD64 Moby],\n        [RBPi ARM32 Moby],\n        [RBPi ARM64 Docker],\n        [VM Proxy],\n        [WinIoT-ARM32],\n        [WinPro-x64],\n        [WinSvr-x64]\n    )) AS pivot_t",
+          "rawSql": "WITH Release_CTE\nAS\n(\n    SELECT r.id releaseId, r.SourceBranch, e.Id envId, e.DefinitionName, e.Status, d.Id deploymentId, d.Attempt \n    FROM VstsRelease r\n    INNER JOIN VstsReleaseEnvironment e\n    ON r.Id = e.ReleaseId\n    INNER JOIN VstsReleaseDeployment d\n    ON e.Id = d.ReleaseEnvironmentId\n)\n, Most_Recent_Release\nAS\n(\n    SELECT MAX(releaseId) AS mostRecentCompletedReleaseId FROM\n    (\n        SELECT releaseId FROM Release_CTE WHERE SourceBranch = '$BranchName' AND Status != 'InProgress'\n        EXCEPT\n        SELECT releaseId FROM Release_CTE WHERE SourceBranch = '$BranchName' AND Status = 'InProgress'\n    ) CompletedReleases\n)\nSELECT * FROM\n(\n    SELECT DefinitionName, t.Name taskName, taskStatus = CASE t.Status WHEN 'succeeded' THEN 1 WHEN 'partiallySucceeded' THEN 0 WHEN 'failed' THEN 0 END\n    FROM Release_CTE x\n    INNER JOIN\n    (\n        SELECT releaseId, envId, MAX(Attempt) Attempt \n        FROM Release_CTE \n        WHERE releaseId IN (SELECT mostRecentCompletedReleaseId FROM Most_Recent_Release)\n        GROUP BY releaseId, envId\n    ) LatestDeployment\n    ON x.releaseId = LatestDeployment.releaseId\n    AND x.envId = LatestDeployment.envId\n    AND x.Attempt = LatestDeployment.Attempt\n    INNER JOIN VstsReleaseTask t\n    ON x.deploymentId = t.ReleaseDeploymentId\n    WHERE x.releaseId IN (SELECT mostRecentCompletedReleaseId FROM Most_Recent_Release)\n) t1\nPIVOT (\n    AVG(taskStatus) \n    FOR DefinitionName IN (\n        [Linux AMD64 Docker],\n        [Linux AMD64 Moby],\n        [RBPi ARM32 Moby],\n        [RBPi ARM64 Docker],\n        [VM Proxy],\n        [WinPro-x64],\n        [WinSvr-x64],\n        [WinIoT-x64]\n    )) AS pivot_t",
           "refId": "C"
         }
       ],
@@ -1885,9 +1886,9 @@
     {
       "columns": [],
       "datasource": "Azure Monitor",
-      "fontSize": "100%",
+      "fontSize": "90%",
       "gridPos": {
-        "h": 16,
+        "h": 21,
         "w": 24,
         "x": 0,
         "y": 47
@@ -1982,7 +1983,7 @@
         "h": 3,
         "w": 24,
         "x": 0,
-        "y": 63
+        "y": 68
       },
       "id": 36,
       "links": [
@@ -2017,7 +2018,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 66
+        "y": 71
       },
       "id": 24,
       "links": [],
@@ -2372,7 +2373,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 74
+        "y": 79
       },
       "id": 40,
       "options": {},
@@ -2388,7 +2389,7 @@
           "colorMode": "cell",
           "colors": [
             "rgb(0, 0, 0)",
-            "#56A64B",
+            "rgba(50, 172, 45, 0.97)",
             "rgba(245, 54, 54, 0.9)"
           ],
           "dateFormat": "YYYY-MM-DD HH:mm:ss",
@@ -2433,7 +2434,7 @@
             "valueColumn": ""
           },
           "azureLogAnalytics": {
-            "query": "\nlet mostRecentTestBuildNumber = toscalar(sanitizedTestMetrics\n| where testType == 'LongHaul' and imagesBranchName == \"$BranchName\"\n| summarize arg_max(TimeGenerated, testBuildNumber)\n| project testBuildNumber);\nlet filtered = sanitizedTestMetrics\n| where testBuildNumber == mostRecentTestBuildNumber and testType == \"LongHaul\";\nlet filteredWithMinTime = filtered\n| summarize minTimeGenerated = min(TimeGenerated);\nlet filteredWithMaxTime = filtered\n| summarize maxTimeGenerated = max(TimeGenerated);\nlet minTimeGenerated = toscalar(filteredWithMinTime);\nlet maxTimeGenerated = toscalar(filteredWithMaxTime);\nlet environmentPrefix = toscalar(filtered\n| where device contains \"Linux\"\n| extend device = substring(device, 0, 3)\n| project device);\nlet alerts = Alert\n| where TimeGenerated > minTimeGenerated + 15m and TimeGenerated < maxTimeGenerated and AlertName contains environmentPrefix\n| extend device = extract(\".*longhaul\", 0, AlertName)\n| order by TimeGenerated;\nlet descriptions = datatable(description: string)\n[\"Reported Metrics\",\n \"Queue Length\",\n \"Upstream Message Rate\",\n \"Local Message Rate\",\n \"Reported Property Rate\",\n \"Queue Length\",\n \"Edge Agent CPU\",\n \"Edge Hub CPU\",\n \"Edge Agent Memory\",\n \"Edge Hub Memory\",\n \"Failed Module Starts\",\n \"Disk Space\"\n ];\n let getConsecutiveFailures = (T1:(AlertName: string, TimeGenerated: datetime)) {\n    T1\n    | order by AlertName, TimeGenerated asc\n    | extend nextAlertName = next(AlertName, 1)\n    | extend nextTime = next(TimeGenerated, 1)\n    | extend next2Time = next(TimeGenerated, 2)\n    | project-reorder AlertName, TimeGenerated\n    | extend isError = iff(nextTime - TimeGenerated < 20m and next2Time - nextTime < 20m and AlertName == nextAlertName, 1, 0)\n    | where isError == 1\n};\nlet devices = filtered\n| summarize count() by device\n| extend device = tolower(device)\n| project device;\nlet deviceDescriptions = devices \n| extend dummy=1 | join kind = inner (descriptions | extend dummy=1) on dummy // dummy cross join from AzureDiagnostics\n| project device, description\n| extend violations = 0; \nlet numberOfMetrics = getConsecutiveFailures(alerts)\n| where AlertDescription contains \"number-of-metrics-too-low\" or AlertDescription contains \"number-of-metrics-too-high\"\n| summarize violations = count() by device\n| extend description = \"Reported Metrics\";\nlet upstreamMessageRate = getConsecutiveFailures(alerts)\n| where AlertDescription contains \"upstream-message-rate\" or AlertDescription contains \"no-upstream-messages\"\n| summarize violations = count() by device\n| extend description = \"Upstream Message Rate\";\nlet localMessageRate = getConsecutiveFailures(alerts)\n| where AlertDescription contains \"local-message-rate\" or AlertDescription contains \"no-local-messages\"\n| summarize violations = count() by device\n| extend description = \"Local Message Rate\";\nlet reportedPropertyRate = getConsecutiveFailures(alerts)\n| where AlertDescription contains \"reported-property-rate\" or AlertDescription contains \"no-reported-properties\"\n| summarize violations = count() by device\n| extend description = \"Reported Property Rate\";\nlet queueLength = getConsecutiveFailures(alerts)\n| where AlertDescription contains \"queue-length\"\n| summarize violations = count() by device\n| extend description = \"Queue Length\";\nlet edgeAgentCPU = getConsecutiveFailures(alerts)\n| where AlertDescription contains \"edge-agent-cpu\"\n| summarize violations = count() by device\n| extend description = \"Edge Agent CPU\";\nlet edgeHubCPU = getConsecutiveFailures(alerts)\n| where AlertDescription contains \"edge-hub-cpu\"\n| summarize violations = count() by device\n| extend description = \"Edge Hub CPU\";\nlet edgeAgentMemory = getConsecutiveFailures(alerts)\n| where AlertDescription contains \"edge-agent-memory\"\n| summarize violations = count() by device\n| extend description = \"Edge Agent Memory\";\nlet edgeHubMemory = getConsecutiveFailures(alerts)\n| where AlertDescription contains \"edge-hub-memory\"\n| summarize violations = count() by device\n| extend description = \"Edge Hub Memory\";\nlet moduleStarts = getConsecutiveFailures(alerts)\n| where AlertDescription contains \"failed-module-starts\"\n| summarize violations = count() by device\n| extend description = \"Failed Module Starts\";\nlet diskSpace = getConsecutiveFailures(alerts)\n| where AlertDescription contains \"disk-space\"\n| summarize violations = count() by device\n| extend description = \"Disk Space\";\nlet mergeViolations = (T1:(device: string, description: string, violations: long), T2:(device: string, description: string, violations: long)) {\nT1\n  | join kind = leftouter (T2 | extend device = tolower(device)) on device, description\n  | project-away device1, description1\n  | extend violations = iff(isnull(violations1) == false, violations1, violations)\n  | project-away violations1\n  | extend violations = iff(device contains \"winpro\" and (description contains \"Memory\" or description contains \"Disk\" or description contains \"cpu\"), -1, violations)\n};\nlet tmp0 = mergeViolations(deviceDescriptions, numberOfMetrics);\nlet tmp1 = mergeViolations(tmp0, upstreamMessageRate);\nlet tmp2 = mergeViolations(tmp1, localMessageRate);\nlet tmp3 = mergeViolations(tmp2, reportedPropertyRate);\nlet tmp4 = mergeViolations(tmp3, queueLength);\nlet tmp5 = mergeViolations(tmp4, edgeAgentCPU);\nlet tmp6 = mergeViolations(tmp5, edgeHubCPU);\nlet tmp7 = mergeViolations(tmp6, edgeAgentMemory);\nlet tmp8 = mergeViolations(tmp7, edgeHubMemory);\nlet tmp9 = mergeViolations(tmp8, moduleStarts);\nlet tmp10 = mergeViolations(tmp9, diskSpace);\ntmp10\n| evaluate pivot(description, avg(violations))\n| project-reorder * asc\n",
+            "query": "\nlet mostRecentTestBuildNumber = toscalar(sanitizedTestMetrics\n| where testType == 'LongHaul' and imagesBranchName == \"$BranchName\"\n| summarize arg_max(TimeGenerated, testBuildNumber)\n| project testBuildNumber);\nlet filtered = sanitizedTestMetrics\n| where testBuildNumber == mostRecentTestBuildNumber and testType == \"LongHaul\";\nlet filteredWithMinTime = filtered\n| summarize minTimeGenerated = min(TimeGenerated);\nlet filteredWithMaxTime = filtered\n| summarize maxTimeGenerated = max(TimeGenerated);\nlet minTimeGenerated = toscalar(filteredWithMinTime);\nlet maxTimeGenerated = toscalar(filteredWithMaxTime);\nlet environmentPrefix = toscalar(filtered\n| where device contains \"Linux\"\n| extend device = substring(device, 0, 3)\n| project device);\nlet alerts = Alert\n| where TimeGenerated > minTimeGenerated + 15m and TimeGenerated < maxTimeGenerated and AlertName contains environmentPrefix\n| extend device = extract(\".*longhaul\", 0, AlertName)\n| order by TimeGenerated;\nlet descriptions = datatable(description: string)\n[\"Reported Metrics\",\n \"Queue Length\",\n \"Upstream Message Rate\",\n \"Local Message Rate\",\n \"Reported Property Rate\",\n \"Queue Length\",\n \"Edge Agent CPU\",\n \"Edge Hub CPU\",\n \"Edge Agent Memory\",\n \"Edge Hub Memory\",\n \"Failed Module Starts\",\n \"Disk Space\"\n ];\n let getConsecutiveFailures = (T1:(AlertName: string, TimeGenerated: datetime)) {\n    T1\n    | order by AlertName, TimeGenerated asc\n    | extend nextAlertName = next(AlertName, 1)\n    | extend nextTime = next(TimeGenerated, 1)\n    | extend next2Time = next(TimeGenerated, 2)\n    | project-reorder AlertName, TimeGenerated\n    | extend isError = iff(nextTime - TimeGenerated < 20m and next2Time - nextTime < 20m and AlertName == nextAlertName, 1, 0)\n    | where isError == 1\n};\nlet devices = filtered\n| summarize count() by device\n| extend device = tolower(device)\n| project device;\nlet deviceDescriptions = devices \n| extend dummy=1 | join kind = inner (descriptions | extend dummy=1) on dummy // dummy cross join from AzureDiagnostics\n| project device, description\n| extend violations = 0; \nlet numberOfMetrics = alerts\n| where AlertDescription contains \"number-of-metrics-too-low\" or AlertDescription contains \"number-of-metrics-too-high\"\n| summarize violations = count() by device\n| extend description = \"Reported Metrics\";\nlet upstreamMessageRate = getConsecutiveFailures(alerts)\n| where AlertDescription contains \"upstream-message-rate\" or AlertDescription contains \"no-upstream-messages\"\n| summarize violations = count() by device\n| extend description = \"Upstream Message Rate\";\nlet localMessageRate = alerts\n| where AlertDescription contains \"local-message-rate\" or AlertDescription contains \"no-local-messages\"\n| summarize violations = count() by device\n| extend description = \"Local Message Rate\";\nlet reportedPropertyRate = getConsecutiveFailures(alerts)\n| where AlertDescription contains \"reported-property-rate\" or AlertDescription contains \"no-reported-properties\"\n| summarize violations = count() by device\n| extend description = \"Reported Property Rate\";\nlet queueLength = getConsecutiveFailures(alerts)\n| where AlertDescription contains \"queue-length\"\n| summarize violations = count() by device\n| extend description = \"Queue Length\";\nlet edgeAgentCPU = getConsecutiveFailures(alerts)\n| where AlertDescription contains \"edge-agent-cpu\"\n| summarize violations = count() by device\n| extend description = \"Edge Agent CPU\";\nlet edgeHubCPU = getConsecutiveFailures(alerts)\n| where AlertDescription contains \"edge-hub-cpu\"\n| summarize violations = count() by device\n| extend description = \"Edge Hub CPU\";\nlet edgeAgentMemory = getConsecutiveFailures(alerts)\n| where AlertDescription contains \"edge-agent-memory\"\n| summarize violations = count() by device\n| extend description = \"Edge Agent Memory\";\nlet edgeHubMemory = getConsecutiveFailures(alerts)\n| where AlertDescription contains \"edge-hub-memory\"\n| summarize violations = count() by device\n| extend description = \"Edge Hub Memory\";\nlet moduleStarts = alerts\n| where AlertDescription contains \"failed-module-starts\"\n| summarize violations = count() by device\n| extend description = \"Failed Module Starts\";\nlet diskSpace = getConsecutiveFailures(alerts)\n| where AlertDescription contains \"disk-space\"\n| summarize violations = count() by device\n| extend description = \"Disk Space\";\nlet mergeViolations = (T1:(device: string, description: string, violations: long), T2:(device: string, description: string, violations: long)) {\nT1\n  | join kind = leftouter (T2 | extend device = tolower(device)) on device, description\n  | project-away device1, description1\n  | extend violations = iff(isnull(violations1) == false, violations1, violations)\n  | project-away violations1\n  | extend violations = iff(device contains \"winpro\" and (description contains \"Memory\" or description contains \"Disk\" or description contains \"cpu\"), -1, violations)\n};\nlet tmp0 = mergeViolations(deviceDescriptions, numberOfMetrics);\nlet tmp1 = mergeViolations(tmp0, upstreamMessageRate);\nlet tmp2 = mergeViolations(tmp1, localMessageRate);\nlet tmp3 = mergeViolations(tmp2, reportedPropertyRate);\nlet tmp4 = mergeViolations(tmp3, queueLength);\nlet tmp5 = mergeViolations(tmp4, edgeAgentCPU);\nlet tmp6 = mergeViolations(tmp5, edgeHubCPU);\nlet tmp7 = mergeViolations(tmp6, edgeAgentMemory);\nlet tmp8 = mergeViolations(tmp7, edgeHubMemory);\nlet tmp9 = mergeViolations(tmp8, moduleStarts);\nlet tmp10 = mergeViolations(tmp9, diskSpace);\ntmp10\n| evaluate pivot(description, avg(violations))\n| project-reorder * asc\n",
             "resultFormat": "table",
             "workspace": "fdf47b96-87f3-4b86-90b9-d83e2deae8a0"
           },
@@ -2468,7 +2469,7 @@
         "h": 2,
         "w": 24,
         "x": 0,
-        "y": 82
+        "y": 87
       },
       "id": 27,
       "links": [
@@ -2494,7 +2495,7 @@
         "h": 7,
         "w": 24,
         "x": 0,
-        "y": 84
+        "y": 89
       },
       "id": 29,
       "options": {},
@@ -2815,7 +2816,7 @@
         "h": 3,
         "w": 24,
         "x": 0,
-        "y": 91
+        "y": 96
       },
       "id": 41,
       "links": [],
@@ -2835,7 +2836,7 @@
         "h": 12,
         "w": 24,
         "x": 0,
-        "y": 94
+        "y": 99
       },
       "id": 26,
       "options": {},
@@ -2957,5 +2958,5 @@
   "timezone": "",
   "title": "Home",
   "uid": "OLjJ46wWz",
-  "version": 1
+  "version": 5
 }
