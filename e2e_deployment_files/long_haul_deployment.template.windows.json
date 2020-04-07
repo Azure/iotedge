@@ -113,6 +113,9 @@
                 },
                 "TwinUpdateFailureThreshold": {
                     "value": "<TwinUpdateFailureThreshold>"
+                },
+                "testStartDelay": {
+                  "value": "<TestStartDelay>"
                 }
             },
             "status": "running",
@@ -140,6 +143,9 @@
                 },
                 "TwinUpdateFailureThreshold": {
                     "value": "<TwinUpdateFailureThreshold>"
+                },
+                "testStartDelay": {
+                  "value": "<TestStartDelay>"
                 }
             },
             "status": "running",
