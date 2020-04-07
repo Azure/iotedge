@@ -57,6 +57,9 @@
               },
               "experimentalfeatures__enableMetrics": {
                 "value": "true"
+              },
+              "RuntimeLogLevel": {
+                "value": "verbose"
               }
             },
             "status": "running",
