@@ -182,6 +182,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     (protocol == UpstreamProtocol.Amqp || protocol == UpstreamProtocol.AmqpWs)) ||
                     reason == ConnectionStatusChangeReason.Bad_Credential)
                 {
+                    // BEARWASHERE - Adding log in case of reprovisioning
+                    Events.ReprovisionDeviceLog();
                     await this.deviceManager.ReprovisionDeviceAsync();
                 }
 
@@ -362,6 +364,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 SendEvent,
                 SendEventClientEmpty,
                 ErrorSendingEvent,
+                ReprovisionDeviceLog,
             }
 
             public static void DesiredPropertiesPatchFailed(Exception exception)
@@ -491,6 +494,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             public static void ErrorSendingEvent(Exception ex)
             {
                 Log.LogDebug((int)EventIds.ErrorSendingEvent, ex, "Error sending event");
+            }
+
+            public static void ReprovisionDeviceLog()
+            {
+                Log.LogDebug((int)EventIds.ReprovisionDeviceLog, $"Edge agent's reprovision device routine is triggered'");
             }
         }
     }
