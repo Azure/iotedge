@@ -21,8 +21,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
     using Xunit;
     using DockerEmptyStruct = global::Docker.DotNet.Models.EmptyStruct;
 
-    [Integration]
-    [Kubernetes]
+    // [Integration]
+    // [Kubernetes]
     public class EdgeDeploymentControllerTest : IClassFixture<KubernetesClusterFixture>, IAsyncLifetime
     {
         readonly KubernetesClient client;
