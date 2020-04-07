@@ -34,7 +34,7 @@
                 "value": "true"
               },
               "RuntimeLogLevel": {
-                "value": "debug"
+                "value": "verbose"
               }
             },
             "settings": {
