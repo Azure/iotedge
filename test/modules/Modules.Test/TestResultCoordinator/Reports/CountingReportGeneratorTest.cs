@@ -37,6 +37,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "7", "7" }, 4, 7, 5, 1, 2 },
             };
         static readonly string TestDescription = "dummy description";
+        static readonly ushort UnmatchedResultsMaxSize = 10;
 
         [Fact]
         public void TestConstructorSuccess()
@@ -59,7 +60,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 actualSource,
                 actualResults,
                 resultType,
-                new SimpleTestOperationResultComparer());
+                new SimpleTestOperationResultComparer(),
+                UnmatchedResultsMaxSize);
 
             Assert.Equal(TestDescription, reportGenerator.TestDescription);
             Assert.Equal(actualSource, reportGenerator.ActualSource);
@@ -87,7 +89,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     "actualSource",
                     mockActualStore.Object,
                     "resultType1",
-                    new SimpleTestOperationResultComparer()));
+                    new SimpleTestOperationResultComparer(),
+                    UnmatchedResultsMaxSize));
 
             Assert.StartsWith("testDescription", ex.Message);
         }
@@ -109,7 +112,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     "actualSource",
                     mockActualStore.Object,
                     "resultType1",
-                    new SimpleTestOperationResultComparer()));
+                    new SimpleTestOperationResultComparer(),
+                    UnmatchedResultsMaxSize));
 
             Assert.StartsWith("trackingId", ex.Message);
         }
@@ -131,7 +135,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     "actualSource",
                     mockActualStore.Object,
                     "resultType1",
-                    new SimpleTestOperationResultComparer()));
+                    new SimpleTestOperationResultComparer(),
+                    UnmatchedResultsMaxSize));
 
             Assert.StartsWith("expectedSource", ex.Message);
         }
@@ -150,7 +155,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     "actualSource",
                     mockActualStore.Object,
                     "resultType1",
-                    new SimpleTestOperationResultComparer()));
+                    new SimpleTestOperationResultComparer(),
+                    UnmatchedResultsMaxSize));
 
             Assert.Equal("expectedTestResults", ex.ParamName);
         }
@@ -172,7 +178,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     actualSource,
                     mockActualStore.Object,
                     "resultType1",
-                    new SimpleTestOperationResultComparer()));
+                    new SimpleTestOperationResultComparer(),
+                    UnmatchedResultsMaxSize));
 
             Assert.StartsWith("actualSource", ex.Message);
         }
@@ -191,7 +198,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     "actualSource",
                     null,
                     "resultType1",
-                    new SimpleTestOperationResultComparer()));
+                    new SimpleTestOperationResultComparer(),
+                    UnmatchedResultsMaxSize));
 
             Assert.Equal("actualTestResults", ex.ParamName);
         }
@@ -213,7 +221,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     "actualSource",
                     mockActualStore.Object,
                     resultType,
-                    new SimpleTestOperationResultComparer()));
+                    new SimpleTestOperationResultComparer(),
+                    UnmatchedResultsMaxSize));
 
             Assert.StartsWith("resultType", ex.Message);
         }
@@ -233,9 +242,30 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     "actualSource",
                     mockActualStore.Object,
                     "resultType1",
-                    null));
+                    null,
+                    UnmatchedResultsMaxSize));
 
             Assert.Equal("testResultComparer", ex.ParamName);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        public void TestConstructorThrowsWhenUnmatchedResultsMaxSizeIsNonPositive(ushort unmatchedResultsMaxSize)
+        {
+            var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockActualStore = new Mock<ITestResultCollection<TestOperationResult>>();
+
+            ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(
+                () => new CountingReportGenerator(
+                    TestDescription,
+                    Guid.NewGuid().ToString(),
+                    "expectedSource",
+                    mockExpectedResults.Object,
+                    "actualSource",
+                    mockActualStore.Object,
+                    "resultType1",
+                    new SimpleTestOperationResultComparer(),
+                    unmatchedResultsMaxSize));
         }
 
         [Fact]
@@ -258,7 +288,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 actualSource,
                 actualResults,
                 "resultType1",
-                new SimpleTestOperationResultComparer());
+                new SimpleTestOperationResultComparer(),
+                UnmatchedResultsMaxSize);
 
             var report = (CountingReport)await reportGenerator.CreateReportAsync();
 
@@ -296,7 +327,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 actualSource,
                 actualResults,
                 resultType,
-                new SimpleTestOperationResultComparer());
+                new SimpleTestOperationResultComparer(),
+                UnmatchedResultsMaxSize);
 
             var expectedStoreData = GetStoreData(expectedSource, resultType, expectedStoreValues);
             for (int i = 0; i < expectedStoreData.Count; i += batchSize)
