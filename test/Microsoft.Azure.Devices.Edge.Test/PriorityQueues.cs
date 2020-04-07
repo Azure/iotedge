@@ -124,11 +124,121 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Assert.IsTrue(isPassed);
         }
 
-        private Dictionary<string, object> BuildRoutes(string[] priorities, string sendModule, string receiveModule)
+        [Test]
+
+        public async Task PriorityQueueTimeToLive()
+        {
+            CancellationToken token = this.TestToken;
+            string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
+            string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
+            string relayerImage = Context.Current.RelayerImage.Expect(() => new ArgumentException("relayerImage parameter is required for Priority Queues test"));
+
+            const string trcModuleName = "testResultCoordinator";
+            const string loadGenModuleName = "loadGenModule";
+            const string relayerModuleName = "relayerModule";
+            const string trcUrl = "http://" + trcModuleName + ":5001";
+            const string loadGenTestDuration = "00:00:20";
+
+            string routeTemplate = $"FROM /messages/modules/{loadGenModuleName}/outputs/pri{0} INTO BrokeredEndpoint('/modules/{relayerModuleName}/inputs/input1')";
+
+            string trackingId = Guid.NewGuid().ToString();
+            string priorityString = this.BuildPriorityString(5);
+            string ttlString = this.BuildTTLString(5);
+
+            Action<EdgeConfigBuilder> addInitialConfig = new Action<EdgeConfigBuilder>(
+                builder =>
+                {
+                    // This test uses the TestResultCoordinator. It was originally designed for connectivity tests, so many of the parameters
+                    // are unnecessary for the e2e tests.
+                    // TODO: Make TestResultCoordinator more generic, so we don't have to fill out garbage values in the e2e tests.
+                    builder.AddModule(trcModuleName, trcImage)
+                       .WithEnvironment(new[]
+                       {
+                           ("trackingId", trackingId),
+                           ("eventHubConnectionString", "Unnecessary"),
+                           ("IOT_HUB_CONNECTION_STRING", Context.Current.ConnectionString),
+                           ("logAnalyticsWorkspaceId", "Unnecessary"),
+                           ("logAnalyticsSharedKey", "Unnecessary"),
+                           ("logAnalyticsLogType", "Unnecessary"),
+                           ("testStartDelay", "00:00:00"),
+                           ("testDuration", "00:20:00"),
+                           ("verificationDelay", "00:00:00"),
+                           ("STORAGE_ACCOUNT_CONNECTION_STRING", "Unnecessary"),
+                           ("NetworkControllerRunProfile", "Online"),
+                           ("TEST_INFO", "key=unnecessary")
+                       })
+                       .WithSettings(new[] { ("createOptions", "{\"HostConfig\": {\"PortBindings\": {\"5001/tcp\": [{\"HostPort\": \"5001\"}]}}}") })
+
+                       .WithDesiredProperties(new Dictionary<string, object>
+                       {
+                           ["reportMetadataList"] = new Dictionary<string, object>
+                           {
+                               ["reportMetadata1"] = new Dictionary<string, object>
+                               {
+                                   ["TestReportType"] = "CountingReport",
+                                   ["TestOperationResultType"] = "Messages",
+                                   ["ExpectedSource"] = $"{loadGenModuleName}.send",
+                                   ["ActualSource"] = $"{relayerModuleName}.receive",
+                                   ["TestDescription"] = "unnecessary"
+                               }
+                           }
+                       });
+
+                    builder.AddModule(loadGenModuleName, loadGenImage)
+                        .WithEnvironment(new[]
+                        {
+                            ("testResultCoordinatorUrl", trcUrl),
+                            ("senderType", "PriorityMessageSender"),
+                            ("trackingId", trackingId),
+                            ("testDuration", loadGenTestDuration),
+                            ("messageFrequency", "00:00:00.5"),
+                            ("priorities", priorityString),
+                            ("ttls", ttlString)
+                        });
+
+                    Dictionary<string, object> routes = this.BuildRoutes(priorityString.Split(';'), ttlString.Split(";"), loadGenModuleName, relayerModuleName);
+                    builder.GetModule(ModuleName.EdgeHub).WithDesiredProperties(new Dictionary<string, object> { ["routes"] = routes });
+                });
+
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token);
+            PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(loadGenModuleName, token);
+
+            // Wait long enough for TTL to expire for some of the messages
+            await Task.Delay(15);
+
+            Action<EdgeConfigBuilder> addRelayerConfig = new Action<EdgeConfigBuilder>(
+                builder =>
+                {
+                    builder.AddModule(relayerModuleName, relayerImage)
+                        .WithEnvironment(new[]
+                        {
+                            ("receiveOnly", "true"),
+                            ("uniqueResultsExpected", loadGenTestStatus.ResultCount.ToString())
+                        });
+                });
+
+            deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token, false);
+            await this.PollUntilFinishedAsync(relayerModuleName, token);
+
+            HttpClient client = new HttpClient();
+            HttpResponseMessage response = await client.GetAsync("http://localhost:5001/api/report");
+            var jsonstring = await response.Content.ReadAsStringAsync();
+            bool isPassed = (bool)JArray.Parse(jsonstring)[0]["IsPassed"];
+            if (!isPassed)
+            {
+                Log.Verbose("Test Result Coordinator response: {Response}", jsonstring);
+            }
+
+            Assert.IsTrue(isPassed);
+        }
+
+        private Dictionary<string, object> BuildRoutes(string[] priorities, string[] ttls, string sendModule, string receiveModule)
         {
             Dictionary<string, object> routes = new Dictionary<string, object>();
-            foreach (string priority in priorities)
+            for(int i = 0; i < priorities.Length; i++)
             {
+                string priority = priorities[i];
+                string ttl = ttlString[i];
                 // If we encounter "Default" in the priority list, don't add a priority - the default priority will automatically get picked up
                 if (priority.Contains(TestConstants.PriorityQueues.Default))
                 {
@@ -148,6 +258,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
 
             return routes;
+        }
+
+        private string BuildTTLString(int numberOfTTLs)
+        {
+            return "0;0;5;10;1600";
         }
 
         private string BuildPriorityString(int numberOfPriorities)
