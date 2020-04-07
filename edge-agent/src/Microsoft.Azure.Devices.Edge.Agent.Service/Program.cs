@@ -393,7 +393,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
         static ILogger SetupLogger(IConfiguration configuration)
         {
-            string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
+            string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "debug");
             Logger.SetLogLevel(logLevel);
             ILogger logger = Logger.Factory.CreateLogger<Program>();
             return logger;

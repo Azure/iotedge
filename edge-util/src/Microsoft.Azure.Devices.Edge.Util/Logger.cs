@@ -25,17 +25,20 @@ namespace Microsoft.Azure.Devices.Edge.Util
         };
 
         static readonly Lazy<ILoggerFactory> LoggerLazy = new Lazy<ILoggerFactory>(GetLoggerFactory, true);
-        static LogEventLevel logLevel = LogEventLevel.Information;
+        // BEARWASHERE -- Debug
+        static LogEventLevel logLevel = LogEventLevel.Debug;
 
         public static ILoggerFactory Factory => LoggerLazy.Value;
 
         public static void SetLogLevel(string level)
         {
+            // BEARWASHERE -- Debug
             Preconditions.CheckNonWhiteSpace(level, nameof(level));
-            logLevel = LogLevelDictionary.GetOrElse(level.ToLower(), LogEventLevel.Information);
+            logLevel = LogLevelDictionary.GetOrElse(level.ToLower(), LogEventLevel.Debug);
         }
 
-        public static LogEventLevel GetLogLevel() => logLevel;
+        // BEARWASHERE -- Enable debug log
+        public static LogEventLevel GetLogLevel() => LogEventLevel.Debug;
 
         static ILoggerFactory GetLoggerFactory()
         {
