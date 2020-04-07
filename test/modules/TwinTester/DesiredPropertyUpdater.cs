@@ -42,6 +42,7 @@ namespace TwinTester
             }
             catch (Exception e)
             {
+                this.twinState.LastTimeOffline = DateTime.UtcNow;
                 Logger.LogError(e, "Failed call to desired property update.");
             }
         }
