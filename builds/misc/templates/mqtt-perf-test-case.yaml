@@ -13,19 +13,13 @@ parameters:
 - name: label # test run label; required
   type: string
   default: false
-- name: publishers # number of publisher clientss; required
+- name: publishers # number of publisher clients; required
   type: number
   default: false
 - name: subscribers # number of subscriber clients; required
   type: number
   default: false
 - name: topics # number of unique topics to use for the test case; required
-  type: number
-  default: false
-- name: pubMessages # number of messages to publish per client; required
-  type: number
-  default: false
-- name: subMessages # number of expected messages to receive per subscriber; required
   type: number
   default: false
 - name: payload # a message payload size in bytes; required
@@ -46,7 +40,7 @@ jobs:
   steps:
   - checkout: none
   - script: |
-      $(benchmarkToolPath)/mqtt-benchmark -pub -broker $(brokerAddress) -runId $(Build.BuildId) -clients ${{ parameters['publishers'] }} -count ${{ parameters['pubMessages'] }} -size ${{ parameters['payload'] }} -topics ${{ parameters['topics'] }} -qos ${{ parameters['qos'] }} -dop $(clientDop) -waitFor $(subscriber.readyEndpoint) -quiet -panic
+      $(benchmarkToolPath)/mqtt-benchmark -pub -broker $(brokerAddress) -runId $(Build.BuildId) -clients ${{ parameters['publishers'] }} -duration $(test.duration) -size ${{ parameters['payload'] }} -topics ${{ parameters['topics'] }} -qos ${{ parameters['qos'] }} -dop $(clientDop) -waitFor $(subscriber.readyEndpoint) -quiet -panic
     displayName: 'Running test case'
     env:
       LOGANALYTICS_CUSTOMER_ID: $(logs.workspaceid)
@@ -64,15 +58,7 @@ jobs:
   steps:
   - checkout: none
   - script: |
-      echo WID $LOGANALYTICS_CUSTOMER_ID
-      echo SK $LOGANALYTICS_SHARED_KEY
-      echo LN $LOGANALYTICS_LOG_NAME
-    env:
-      LOGANALYTICS_CUSTOMER_ID: $(logs.workspaceid)
-      LOGANALYTICS_SHARED_KEY: $(logs.sharedkey)
-      LOGANALYTICS_LOG_NAME: $(logs.logname)
-  - script: |
-      $(benchmarkToolPath)/mqtt-benchmark -sub -broker $(brokerAddress) -runId $(Build.BuildId) -clients ${{ parameters['subscribers'] }} -count ${{ parameters['subMessages'] }} -qos ${{ parameters['qos'] }} -dop $(clientDop) -quiet -panic
+      $(benchmarkToolPath)/mqtt-benchmark -sub -broker $(brokerAddress) -runId $(Build.BuildId) -clients ${{ parameters['subscribers'] }} -duration $(test.duration) -qos ${{ parameters['qos'] }} -dop $(clientDop) -quiet -panic
     displayName: 'Running test case'
     env:
       LOGANALYTICS_CUSTOMER_ID: $(logs.workspaceid)

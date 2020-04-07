@@ -1,241 +1,206 @@
 jobs:
 
-################################################################################	
-# Fan-in Test cases (many publishers/few subscribers)
-################################################################################	
-
-### QoS 0
-
-- template: mqtt-perf-test-case.yaml
-  parameters: 
-    parentJob: setup_completed
-    id: 1
-    publishers: 10
-    subscribers: 2
-    topics: 1
-    pubMessages: 200000
-    subMessages: 2000000
-    payload: 32
-    qos: 0
-
-- template: mqtt-perf-test-case.yaml
-  parameters: 
-    parentJob: run_completed_1
-    id: 2
-    publishers: 10
-    subscribers: 2
-    topics: 1
-    pubMessages: 200000
-    subMessages: 2000000
-    payload: 1024
-    qos: 0
-
-- template: mqtt-perf-test-case.yaml
-  parameters: 
-    parentJob: run_completed_2
-    id: 3
-    publishers: 10
-    subscribers: 2
-    topics: 1
-    pubMessages: 200000
-    subMessages: 2000000
-    payload: 131072 # 128kb
-    qos: 0
-
-### QoS 1
-
-- template: mqtt-perf-test-case.yaml
-  parameters: 
-    parentJob: run_completed_3
-    id: 50
-    publishers: 10
-    subscribers: 2
-    topics: 1
-    pubMessages: 200000
-    subMessages: 2000000
-    payload: 32
-    qos: 1
-
-- template: mqtt-perf-test-case.yaml
-  parameters: 
-    parentJob: run_completed_50
-    id: 51
-    publishers: 10
-    subscribers: 2
-    topics: 1
-    pubMessages: 200000
-    subMessages: 2000000
-    payload: 1024
-    qos: 1
-
-- template: mqtt-perf-test-case.yaml
-  parameters: 
-    parentJob: run_completed_51
-    id: 52
-    publishers: 10
-    subscribers: 2
-    topics: 1
-    pubMessages: 20000
-    subMessages: 200000
-    payload: 131072 # 128kb
-    qos: 1
-
-################################################################################	
-# 1-to-1 Test cases
-################################################################################	
-
-### QoS 0
-
-- template: mqtt-perf-test-case.yaml
-  parameters: 
-    parentJob: run_completed_52
-    id: 100
-    publishers: 10
-    subscribers: 10
-    topics: 1
-    pubMessages: 200000
-    subMessages: 2000000
-    payload: 32
-    qos: 0
-
-- template: mqtt-perf-test-case.yaml
-  parameters: 
-    parentJob: run_completed_100
-    id: 101
-    publishers: 10
-    subscribers: 10
-    topics: 1
-    pubMessages: 200000
-    subMessages: 2000000
-    payload: 1024
-    qos: 0
-
-- template: mqtt-perf-test-case.yaml
-  parameters: 
-    parentJob: run_completed_101
-    id: 102
-    publishers: 10
-    subscribers: 10
-    topics: 1
-    pubMessages: 200000
-    subMessages: 2000000
-    payload: 131072 # 128kb
-    qos: 0
-
-### QoS 1
-
-- template: mqtt-perf-test-case.yaml
-  parameters: 
-    parentJob: run_completed_102
-    id: 150
-    publishers: 10
-    subscribers: 10
-    topics: 1
-    pubMessages: 200000
-    subMessages: 2000000
-    payload: 32
-    qos: 1
-
-- template: mqtt-perf-test-case.yaml
-  parameters: 
-    parentJob: run_completed_150
-    id: 151
-    publishers: 10
-    subscribers: 10
-    topics: 1
-    pubMessages: 200000
-    subMessages: 2000000
-    payload: 1024
-    qos: 1
-
-- template: mqtt-perf-test-case.yaml
-  parameters: 
-    parentJob: run_completed_151
-    id: 152
-    publishers: 10
-    subscribers: 10
-    topics: 1
-    pubMessages: 200000
-    subMessages: 2000000
-    payload: 131072 # 128kb
-    qos: 1
-
-################################################################################	
-# Fan-out Test cases (few publishers/many subscribers)
-################################################################################	
-
-### QoS 0
-
-- template: mqtt-perf-test-case.yaml
-  parameters: 
-    parentJob: run_completed_152
-    id: 200
-    publishers: 2
-    subscribers: 10
-    topics: 1
-    pubMessages: 200000
-    subMessages: 2000000
-    payload: 32
-    qos: 0
-
-- template: mqtt-perf-test-case.yaml
-  parameters: 
-    parentJob: run_completed_200
-    id: 201
-    publishers: 2
-    subscribers: 10
-    topics: 1
-    pubMessages: 200000
-    subMessages: 2000000
-    payload: 1024
-    qos: 0
-
-- template: mqtt-perf-test-case.yaml
-  parameters: 
-    parentJob: run_completed_201
-    id: 202
-    publishers: 2
-    subscribers: 10
-    topics: 1
-    pubMessages: 200000
-    subMessages: 2000000
-    payload: 131072 # 128kb
-    qos: 0
-
-### QoS 1
-
-- template: mqtt-perf-test-case.yaml
-  parameters: 
-    parentJob: run_completed_202
-    id: 250
-    publishers: 2
-    subscribers: 10
-    topics: 1
-    pubMessages: 200000
-    subMessages: 2000000
-    payload: 32
-    qos: 1
-
-- template: mqtt-perf-test-case.yaml
-  parameters: 
-    parentJob: run_completed_250
-    id: 251
-    publishers: 2
-    subscribers: 10
-    topics: 1
-    pubMessages: 200000
-    subMessages: 2000000
-    payload: 1024
-    qos: 1
-
-- template: mqtt-perf-test-case.yaml
-  parameters: 
-    parentJob: run_completed_251
-    id: 252
-    publishers: 2
-    subscribers: 10
-    topics: 1
-    pubMessages: 200000
-    subMessages: 2000000
-    payload: 131072 # 128kb
-    qos: 1
+  ################################################################################	
+  # Fan-in Test cases (many publishers/few subscribers)
+  ################################################################################	
+  
+  ### QoS 0
+  
+  - template: mqtt-perf-test-case.yaml
+    parameters: 
+      parentJob: setup_completed
+      id: 1
+      publishers: 10
+      subscribers: 2
+      topics: 1
+      payload: 32
+      qos: 0
+  
+  - template: mqtt-perf-test-case.yaml
+    parameters: 
+      parentJob: run_completed_1
+      id: 2
+      publishers: 10
+      subscribers: 2
+      topics: 1
+      payload: 1024
+      qos: 0
+  
+  - template: mqtt-perf-test-case.yaml
+    parameters: 
+      parentJob: run_completed_2
+      id: 3
+      publishers: 10
+      subscribers: 2
+      topics: 1
+      payload: 131072 # 128kb
+      qos: 0
+  
+  ### QoS 1
+  
+  - template: mqtt-perf-test-case.yaml
+    parameters: 
+      parentJob: run_completed_3
+      id: 50
+      publishers: 10
+      subscribers: 2
+      topics: 1
+      payload: 32
+      qos: 1
+  
+  - template: mqtt-perf-test-case.yaml
+    parameters: 
+      parentJob: run_completed_50
+      id: 51
+      publishers: 10
+      subscribers: 2
+      topics: 1
+      payload: 1024
+      qos: 1
+  
+  - template: mqtt-perf-test-case.yaml
+    parameters: 
+      parentJob: run_completed_51
+      id: 52
+      publishers: 10
+      subscribers: 2
+      topics: 1
+      payload: 131072 # 128kb
+      qos: 1
+  
+  ################################################################################	
+  # 1-to-1 Test cases
+  ################################################################################	
+  
+  ### QoS 0
+  
+  - template: mqtt-perf-test-case.yaml
+    parameters: 
+      parentJob: run_completed_52
+      id: 100
+      publishers: 10
+      subscribers: 10
+      topics: 1
+      payload: 32
+      qos: 0
+  
+  - template: mqtt-perf-test-case.yaml
+    parameters: 
+      parentJob: run_completed_100
+      id: 101
+      publishers: 10
+      subscribers: 10
+      topics: 1
+      payload: 1024
+      qos: 0
+  
+  - template: mqtt-perf-test-case.yaml
+    parameters: 
+      parentJob: run_completed_101
+      id: 102
+      publishers: 10
+      subscribers: 10
+      topics: 1
+      payload: 131072 # 128kb
+      qos: 0
+  
+  ### QoS 1
+  
+  - template: mqtt-perf-test-case.yaml
+    parameters: 
+      parentJob: run_completed_102
+      id: 150
+      publishers: 10
+      subscribers: 10
+      topics: 1
+      payload: 32
+      qos: 1
+  
+  - template: mqtt-perf-test-case.yaml
+    parameters: 
+      parentJob: run_completed_150
+      id: 151
+      publishers: 10
+      subscribers: 10
+      topics: 1
+      payload: 1024
+      qos: 1
+  
+  - template: mqtt-perf-test-case.yaml
+    parameters: 
+      parentJob: run_completed_151
+      id: 152
+      publishers: 10
+      subscribers: 10
+      topics: 1
+      payload: 131072 # 128kb
+      qos: 1
+  
+  ################################################################################	
+  # Fan-out Test cases (few publishers/many subscribers)
+  ################################################################################	
+  
+  ### QoS 0
+  
+  - template: mqtt-perf-test-case.yaml
+    parameters: 
+      parentJob: run_completed_152
+      id: 200
+      publishers: 2
+      subscribers: 10
+      topics: 1
+      payload: 32
+      qos: 0
+  
+  - template: mqtt-perf-test-case.yaml
+    parameters: 
+      parentJob: run_completed_200
+      id: 201
+      publishers: 2
+      subscribers: 10
+      topics: 1
+      payload: 1024
+      qos: 0
+  
+  - template: mqtt-perf-test-case.yaml
+    parameters: 
+      parentJob: run_completed_201
+      id: 202
+      publishers: 2
+      subscribers: 10
+      topics: 1
+      payload: 131072 # 128kb
+      qos: 0
+  
+  ### QoS 1
+  
+  - template: mqtt-perf-test-case.yaml
+    parameters: 
+      parentJob: run_completed_202
+      id: 250
+      publishers: 2
+      subscribers: 10
+      topics: 1
+      payload: 32
+      qos: 1
+  
+  - template: mqtt-perf-test-case.yaml
+    parameters: 
+      parentJob: run_completed_250
+      id: 251
+      publishers: 2
+      subscribers: 10
+      topics: 1
+      payload: 1024
+      qos: 1
+  
+  - template: mqtt-perf-test-case.yaml
+    parameters: 
+      parentJob: run_completed_251
+      id: 252
+      publishers: 2
+      subscribers: 10
+      topics: 1
+      payload: 131072 # 128kb
+      qos: 1
+  
