@@ -3,17 +3,21 @@ namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Net;
     using System.Net.Http;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
+    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using NUnit.Framework;
+    using Serilog;
 
     [EndToEnd]
     public class PriorityQueues : SasManualProvisioningFixture
@@ -35,6 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string routeTemplate = $"FROM /messages/modules/{loadGenModuleName}/outputs/pri{0} INTO BrokeredEndpoint('/modules/{relayerModuleName}/inputs/input1')";
 
             string trackingId = Guid.NewGuid().ToString();
+            string priorityString = this.BuildPriorityString(5);
 
             Action<EdgeConfigBuilder> addInitialConfig = new Action<EdgeConfigBuilder>(
                 builder =>
@@ -75,7 +80,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                            }
                        });
 
-                    string priorityString = this.BuildPriorityString(5);
                     builder.AddModule(loadGenModuleName, loadGenImage)
                         .WithEnvironment(new[]
                         {
@@ -92,26 +96,31 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 });
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token);
-
-            // Wait for loadGen to send some messages
-            await Task.Delay(TimeSpan.Parse(loadGenTestDuration).Add(TimeSpan.FromSeconds(10)));
+            PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(loadGenModuleName, token);
 
             Action<EdgeConfigBuilder> addRelayerConfig = new Action<EdgeConfigBuilder>(
                 builder =>
                 {
                     builder.AddModule(relayerModuleName, relayerImage)
-                        .WithEnvironment(new[] { ("receiveOnly", "true") });
+                        .WithEnvironment(new[]
+                        {
+                            ("receiveOnly", "true"),
+                            ("uniqueResultsExpected", loadGenTestStatus.ResultCount.ToString())
+                        });
                 });
 
-            deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token);
-
-            // Wait for relayer to spin up, receive messages, and pass along results to TRC
-            await Task.Delay(TimeSpan.FromSeconds(30));
+            deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token, false);
+            await this.PollUntilFinishedAsync(relayerModuleName, token);
 
             HttpClient client = new HttpClient();
             HttpResponseMessage response = await client.GetAsync("http://localhost:5001/api/report");
             var jsonstring = await response.Content.ReadAsStringAsync();
             bool isPassed = (bool)JArray.Parse(jsonstring)[0]["IsPassed"];
+            if (!isPassed)
+            {
+                Log.Verbose("Test Result Coordinator response: {Response}", jsonstring);
+            }
+
             Assert.IsTrue(isPassed);
         }
 
@@ -163,6 +172,20 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
 
             return priorityString + TestConstants.PriorityQueues.Default;
+        }
+
+        private async Task<PriorityQueueTestStatus> PollUntilFinishedAsync(string moduleName, CancellationToken token)
+        {
+            PriorityQueueTestStatus testStatus;
+            do
+            {
+                await Task.Delay(TimeSpan.FromSeconds(5));
+                var result = await this.iotHub.InvokeMethodAsync(Context.Current.DeviceId, moduleName, new CloudToDeviceMethod("IsFinished", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token);
+                Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
+                testStatus = JsonConvert.DeserializeObject<PriorityQueueTestStatus>(result.GetPayloadAsJson());
+            }
+            while (!testStatus.IsFinished);
+            return testStatus;
         }
     }
 }
