@@ -112,40 +112,6 @@ impl ConnectedSession {
         self.state.publish_to(publication)
     }
 
-    #[allow(dead_code)]
-    pub fn subscribe(
-        &mut self,
-        subscribe: proto::Subscribe,
-    ) -> Result<(proto::SubAck, Vec<Subscription>), Error> {
-        let mut subscriptions = Vec::with_capacity(subscribe.subscribe_to.len());
-        let mut acks = Vec::with_capacity(subscribe.subscribe_to.len());
-        let packet_identifier = subscribe.packet_identifier;
-
-        for subscribe_to in subscribe.subscribe_to {
-            let ack_qos = match subscribe_to.topic_filter.parse() {
-                Ok(filter) => {
-                    let proto::SubscribeTo { topic_filter, qos } = subscribe_to;
-
-                    let subscription = Subscription::new(filter, qos);
-                    subscriptions.push(subscription.clone());
-                    self.state.update_subscription(topic_filter, subscription);
-                    proto::SubAckQos::Success(qos)
-                }
-                Err(e) => {
-                    warn!("invalid topic filter {}: {}", subscribe_to.topic_filter, e);
-                    proto::SubAckQos::Failure
-                }
-            };
-            acks.push(ack_qos);
-        }
-
-        let suback = proto::SubAck {
-            packet_identifier,
-            qos: acks,
-        };
-        Ok((suback, subscriptions))
-    }
-
     pub fn subscribe_to(
         &mut self,
         subscribe_to: proto::SubscribeTo,

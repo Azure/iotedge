@@ -450,48 +450,30 @@ where
         publish: proto::Publish,
     ) -> Result<(), Error> {
         let operation = Operation::new_publish(publish.clone());
-        if !self.can_publish(client_id.clone(), operation).await? {
-            return Ok(());
-        }
-
-        let maybe_publication = match self.get_session_mut(&client_id) {
-            Ok(session) => {
-                let (maybe_publication, maybe_event) = session.handle_publish(publish)?;
-                if let Some(event) = maybe_event {
-                    session.send(event).await?;
-                }
-                maybe_publication
-            }
-            Err(e) if *e.kind() == ErrorKind::NoSession => {
-                debug!("no session for {}", client_id);
-                return Ok(());
-            }
-            Err(e) => return Err(e),
-        };
-
-        if let Some(publication) = maybe_publication {
-            self.publish_all(publication).await?
-        }
-
-        Ok(())
-    }
-
-    async fn can_publish(
-        &mut self,
-        client_id: ClientId,
-        operation: Operation,
-    ) -> Result<bool, Error> {
         if let Some(session) = self.sessions.get_mut(&client_id) {
             let activity = Activity::new(session.auth_id()?.clone(), client_id.clone(), operation);
             match self.authorizer.authorize(activity).await {
                 Ok(true) => {
                     debug!("client {} successfully authorized", client_id);
-                    Ok(true)
+                    let (maybe_publication, maybe_event) = session.handle_publish(publish)?;
+
+                    if let Some(event) = maybe_event {
+                        session.send(event).await?;
+                    }
+
+                    if let Some(publication) = maybe_publication {
+                        self.publish_all(publication).await?
+                    }
+
+                    Ok(())
                 }
                 Ok(false) => {
-                    warn!("client {} not allowed to publish", client_id);
+                    warn!(
+                        "client {} not allowed to publish to topic {}",
+                        client_id, publish.topic_name,
+                    );
                     self.drop_connection(client_id).await?;
-                    Ok(false)
+                    Ok(())
                 }
                 Err(e) => {
                     warn!(message="error authorizing client: {}", error = %e);
@@ -501,7 +483,7 @@ where
             }
         } else {
             debug!("no session for {}", client_id);
-            Err(ErrorKind::NoSession.into())
+            Ok(())
         }
     }
 
@@ -895,7 +877,7 @@ async fn publish_to<Z: Authorizer>(
             session.send(event).await?
         }
     } else {
-        info!(
+        debug!(
             "client {} not allowed to receive messages",
             session.client_id()
         );
