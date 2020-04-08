@@ -9,27 +9,55 @@ jobs:
   displayName: Setup Host
   steps:
     - checkout: none
+    # AMD64 setup
     - task: SSH@0
       displayName: Cleanup running containers
       inputs:
-        sshEndpoint: variables['brokerSsh']
+        sshEndpoint: iotedge-mqtt-perf-amd64-conn
         runOptions: commands        
         commands: |
           docker kill $(docker ps -q) 2>/dev/null
       # ignore cleanup errors if no containers running
       continueOnError: true 
+      condition: eq(variables['arch'], 'amd64')
 
     - task: SSH@0
       displayName: Install and Run docker image
       inputs:
-        sshEndpoint: variables['brokerSsh']
+        sshEndpoint: iotedge-mqtt-perf-amd64-conn
         runOptions: commands
         commands: |
           echo "$(registry.password)" | docker login $(registry.address) --username $(registry.user) --password-stdin 2>/dev/null
           docker pull $(brokerImageName)
           docker run -d -p 1883:1883 $(brokerImageName)
           docker logout
+      condition: eq(variables['arch'], 'amd64')
 
+    # ARM32 setup
+    - task: SSH@0
+      displayName: Cleanup running containers
+      inputs:
+        sshEndpoint: iotedge-mqtt-perf-arm32v7-conn
+        runOptions: commands        
+        commands: |
+          docker kill $(docker ps -q) 2>/dev/null
+      # ignore cleanup errors if no containers running
+      continueOnError: true 
+      condition: eq(variables['arch'], 'arm32v7')
+
+    - task: SSH@0
+      displayName: Install and Run docker image
+      inputs:
+        sshEndpoint: iotedge-mqtt-perf-arm32v7-conn
+        runOptions: commands
+        commands: |
+          echo "$(registry.password)" | docker login $(registry.address) --username $(registry.user) --password-stdin 2>/dev/null
+          docker pull $(brokerImageName)
+          docker run -d -p 1883:1883 $(brokerImageName)
+          docker logout
+      condition: eq(variables['arch'], 'arm32v7')
+
+      
 - job: setup_pub
   pool:
     name: $(pool.name)

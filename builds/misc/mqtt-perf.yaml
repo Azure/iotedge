@@ -33,6 +33,7 @@ stages:
 - stage: linux_arm32v7
 ################################################################################	
   variables:
+    arch: arm32v7
     runId: arm32v7-$(Build.BuildId)
     brokerImageName: $(broker.image.arm32v7)
     brokerAddress: $(broker.address.arm32v7)
@@ -48,6 +49,7 @@ stages:
 - stage: linux_amd64
 ################################################################################	
   variables:
+    arch: amd64
     runId: amd64-$(Build.BuildId)
     brokerImageName: $(broker.image.amd64)
     brokerAddress: $(broker.address.amd64)
@@ -63,6 +65,7 @@ stages:
 - stage: eclipse_mosquitto
 ################################################################################	
   variables:
+    arch: amd64
     runId: mosquitto-$(Build.BuildId)
     brokerImageName: $(broker.image.mosquitto)
     brokerAddress: $(broker.address.amd64)
