@@ -11,7 +11,7 @@ jobs:
     - checkout: none
     # AMD64 setup
     - task: SSH@0
-      displayName: Cleanup running containers
+      displayName: Cleanup running containers AMD64
       inputs:
         sshEndpoint: iotedge-mqtt-perf-amd64-conn
         runOptions: commands        
@@ -22,7 +22,7 @@ jobs:
       condition: eq(variables['arch'], 'amd64')
 
     - task: SSH@0
-      displayName: Install and Run docker image
+      displayName: Install and Run docker image AMD64
       inputs:
         sshEndpoint: iotedge-mqtt-perf-amd64-conn
         runOptions: commands
@@ -35,7 +35,7 @@ jobs:
 
     # ARM32 setup
     - task: SSH@0
-      displayName: Cleanup running containers
+      displayName: Cleanup running containers ARM32
       inputs:
         sshEndpoint: iotedge-mqtt-perf-arm32v7-conn
         runOptions: commands        
@@ -46,7 +46,7 @@ jobs:
       condition: eq(variables['arch'], 'arm32v7')
 
     - task: SSH@0
-      displayName: Install and Run docker image
+      displayName: Install and Run docker image ARM32
       inputs:
         sshEndpoint: iotedge-mqtt-perf-arm32v7-conn
         runOptions: commands
