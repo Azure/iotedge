@@ -27,9 +27,24 @@ variables:
 
 stages:
 ################################################################################	
+- stage: linux_arm32v7
+################################################################################	
+  variables:
+    runId: arm32v7-$(Build.BuildId)
+    brokerImageName: $(broker.image.arm32v7)
+    brokerAddress: $(broker.address.arm32v7)
+    clientDop: 4 # the number of max threads that can execute mqtt-benchmark tool code simultaneously
+
+  pool: $(pool.name)
+  jobs:
+    - template: templates/mqtt-perf-setup.yaml
+    - template: templates/mqtt-perf-run.yaml
+
+  ################################################################################	
 - stage: linux_amd64
 ################################################################################	
   variables:
+    runId: amd64-$(Build.BuildId)
     brokerImageName: $(broker.image.amd64)
     brokerAddress: $(broker.address.amd64)
     clientDop: 4 # the number of max threads that can execute mqtt-benchmark tool code simultaneously
@@ -43,8 +58,9 @@ stages:
 - stage: eclipse_mosquitto
 ################################################################################	
   variables:
+    runId: mosquitto-$(Build.BuildId)
     brokerImageName: $(broker.image.mosquitto)
-    brokerAddress: $(broker.address.arm32v7)
+    brokerAddress: $(broker.address.amd64)
     clientDop: 4 # the number of max threads that can execute mqtt-benchmark tool code simultaneously
 
   pool: $(pool.name)
