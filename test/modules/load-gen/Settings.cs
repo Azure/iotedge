@@ -26,7 +26,7 @@ namespace LoadGen
             LoadGenSenderType senderType,
             Option<string> priorities,
             Option<string> ttls,
-            Option<int> ttlThreshold)
+            Option<int> ttlThresholdSecs)
         {
             Preconditions.CheckRange(messageFrequency.Ticks, 0);
             Preconditions.CheckRange(testStartDelay.Ticks, 0);
@@ -45,7 +45,7 @@ namespace LoadGen
             this.SenderType = senderType;
             this.Priorities = priorities;
             this.Ttls = ttls;
-            this.TtlThreshold = ttlThreshold;
+            this.TtlThresholdSecs = ttlThresholdSecs;
         }
 
         static Settings Create()
@@ -68,8 +68,8 @@ namespace LoadGen
                 ? null
                 : configuration.GetValue<string>("ttls");
 
-            int ttlThresholdValue = configuration.GetValue<int>("ttlThreshold");
-            Option<int> ttlThreshold = ttlThresholdValue > 0 ? Option.Some(ttlThresholdValue) : Option.None<int>();
+            int ttlThresholdValue = configuration.GetValue<int>("ttlThresholdSecs");
+            Option<int> ttlThresholdSecs = ttlThresholdValue > 0 ? Option.Some(ttlThresholdValue) : Option.None<int>();
 
             return new Settings(
                 configuration.GetValue("messageFrequency", TimeSpan.FromMilliseconds(20)),
@@ -84,7 +84,7 @@ namespace LoadGen
                 configuration.GetValue("senderType", LoadGenSenderType.DefaultSender),
                 Option.Maybe(priorities),
                 Option.Maybe(ttls),
-                ttlThreshold);
+                ttlThresholdSecs);
         }
 
         public TimeSpan MessageFrequency { get; }
@@ -111,7 +111,7 @@ namespace LoadGen
 
         public Option<string> Ttls { get; }
 
-        public Option<int> TtlThreshold { get; }
+        public Option<int> TtlThresholdSecs { get; }
 
         public override string ToString()
         {

@@ -31,8 +31,8 @@ namespace LoadGen
                 new ArgumentException("PriorityMessageSender must have 'priorities' environment variable set to a valid list of strings delimited by ';'"));
             this.TtlString = Settings.Current.Ttls.Expect(() =>
                 new ArgumentException("PriorityMessageSender must have 'ttls' environment variable set to a valid list of strings delimited by ';'"));
-            this.TtlThreshold = Settings.Current.TtlThreshold.Expect(() =>
-                new ArgumentException("PriorityMessageSender must have 'ttlThreshold' environment variable set to a valid int"));
+            this.TtlThresholdSecs = Settings.Current.TtlThresholdSecs.Expect(() =>
+                new ArgumentException("PriorityMessageSender must have 'ttlThresholdSecs' environment variable set to a valid int"));
             this.isFinished = false;
             this.resultsSent = 0;
         }
@@ -41,7 +41,7 @@ namespace LoadGen
 
         public string TtlString { get; }
 
-        public int TtlThreshold { get; }
+        public int TtlThresholdSecs { get; }
 
         public async override Task RunAsync(CancellationTokenSource cts, DateTime testStartAt)
         {
@@ -74,7 +74,7 @@ namespace LoadGen
                     {
                         firstMessageWhileOffline = false;
                     }
-                    else if (ttlForMessage == 0 || ttlForMessage > this.TtlThreshold)
+                    else if (ttlForMessage == 0 || ttlForMessage > this.TtlThresholdSecs)
                     {
                         int priority = output.Contains(TestConstants.PriorityQueues.Default) ? 2000000000 : int.Parse(output);
 
