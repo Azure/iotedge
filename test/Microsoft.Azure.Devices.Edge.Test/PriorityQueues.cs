@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Net;
     using System.Net.Http;
     using System.Text;
@@ -246,23 +247,18 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 string ttl = ttls[i];
                 string priority = priorities[i];
                 // If we encounter "Default" in the priority list, don't add a priority - the default priority will automatically get picked up
-                if (priority.Contains(TestConstants.PriorityQueues.Default))
+                var routeInfo = new Dictionary<string, object>();
+                routeInfo["route"] = $"FROM /messages/modules/{sendModule}/outputs/pri{priority} INTO BrokeredEndpoint('/modules/{receiveModule}/inputs/input1')";
+                routeInfo["timeToLiveSecs"] = int.Parse(ttl);
+                if (!priority.Contains(TestConstants.PriorityQueues.Default))
                 {
-                    routes.Add($"LoadGenToRelayer{priority}", new Dictionary<string, object>
-                    {
-                        ["route"] = $"FROM /messages/modules/{sendModule}/outputs/pri{priority} INTO BrokeredEndpoint('/modules/{receiveModule}/inputs/input1')",
-                        ["timeToLiveSecs"] = int.Parse(ttl)
-                    });
+                    routeInfo["priority"] = int.Parse(priority);
                 }
-                else
+                if (int.Parse(ttl) != -1)
                 {
-                    routes.Add($"LoadGenToRelayer{priority}", new Dictionary<string, object>
-                    {
-                        ["route"] = $"FROM /messages/modules/{sendModule}/outputs/pri{priority} INTO BrokeredEndpoint('/modules/{receiveModule}/inputs/input1')",
-                        ["priority"] = int.Parse(priority),
-                        ["timeToLiveSecs"] = int.Parse(ttl)
-                    });
+                    routeInfo["timeToLiveSecs"] = int.Parse(ttl);
                 }
+                routes.Add($"LoadGenToRelayer{priority}", routeInfo);
             }
 
             return routes;
@@ -270,7 +266,23 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         private string BuildTTLString(int numberOfTTLs)
         {
-            return "5;10;0;1600;1600";
+            Random rng = new Random();
+            // Choose from a set of 2 TTLs below the threshold, 2 above, default TTL of 0, and no TTL denoted by -1
+            var ttlSet = new string[] { "5", "10", "400", "1600", "0", "-1" };
+
+            // Make sure default is always in the string. We always want to test that default TTL works.
+            string ttlString = "0;";
+            for (int i = 0; i < numberOfTTLs-1; i++)
+            {
+                ttlString = ttlString + ttlSet[rng.Next(ttlSet.Length)];
+            }
+
+            // Return a string with two TTL's above the threshold, two TTL's below the threshold, and one that is default in a random order
+            return  string.Join(
+                ";",
+                new string[] { "5", "10", "400", "1600", "0" }
+                    .OrderBy(x => rng.Next())
+                    .ToArray());
         }
 
         private string BuildPriorityString(int numberOfPriorities)
