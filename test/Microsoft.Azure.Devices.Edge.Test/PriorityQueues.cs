@@ -92,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             ("messageFrequency", "00:00:00.5"),
                             ("priorities", priorityString),
                             ("ttls", ttlString),
-                            ("ttlThreshold", "100")
+                            ("ttlThresholdSecs", "100")
                         });
 
                     Dictionary<string, object> routes = this.BuildRoutes(priorityString.Split(';'), ttlString.Split(";"), loadGenModuleName, relayerModuleName);
@@ -199,7 +199,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             ("messageFrequency", "00:00:00.5"),
                             ("priorities", priorityString),
                             ("ttls", ttlString),
-                            ("ttlThreshold", ttlThresholdSecs.ToString())
+                            ("ttlThresholdSecs", ttlThresholdSecs.ToString())
                         });
 
                     Dictionary<string, object> routes = this.BuildRoutes(priorityString.Split(';'), ttlString.Split(";"), loadGenModuleName, relayerModuleName);
@@ -254,10 +254,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 {
                     routeInfo["priority"] = int.Parse(priority);
                 }
+
                 if (int.Parse(ttl) != -1)
                 {
                     routeInfo["timeToLiveSecs"] = int.Parse(ttl);
                 }
+
                 routes.Add($"LoadGenToRelayer{priority}", routeInfo);
             }
 
@@ -272,17 +274,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             // Make sure default is always in the string. We always want to test that default TTL works.
             string ttlString = "0;";
-            for (int i = 0; i < numberOfTTLs-1; i++)
+            for (int i = 0; i < numberOfTTLs - 1; i++)
             {
                 ttlString = ttlString + ttlSet[rng.Next(ttlSet.Length)];
             }
 
-            // Return a string with two TTL's above the threshold, two TTL's below the threshold, and one that is default in a random order
-            return  string.Join(
-                ";",
-                new string[] { "5", "10", "400", "1600", "0" }
-                    .OrderBy(x => rng.Next())
-                    .ToArray());
+            return ttlString;
         }
 
         private string BuildPriorityString(int numberOfPriorities)
