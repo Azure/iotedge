@@ -4,12 +4,9 @@ namespace TestResultCoordinator
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Text;
-    using System.Threading;
     using System.Threading.Tasks;
     using Azure.Storage.Blobs;
     using Microsoft.Azure.Devices;
-    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Microsoft.WindowsAzure.Storage;
@@ -172,6 +169,15 @@ namespace TestResultCoordinator
             // Complete upload log to Azure blob
             DateTime uploadLogFinishAt = DateTime.UtcNow;
             logger.LogInformation($"Upload logs was started at {uploadLogStartAt} and completed at {uploadLogFinishAt}; and took {uploadLogFinishAt - uploadLogStartAt}.");
+        }
+
+        internal static void EnqueueAndEnforceMaxSize<T>(Queue<T> q, T result, ushort maxSize)
+        {
+            q.Enqueue(result);
+            if (q.Count > maxSize)
+            {
+                q.Dequeue();
+            }
         }
 
         static TEnum GetEnumValueFromReportMetadata<TEnum>(JToken metadata, string key)

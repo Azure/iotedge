@@ -18,7 +18,7 @@ use tokio::{
 use tokio_native_tls::{TlsAcceptor, TlsStream};
 use tracing::{debug, error, warn};
 
-use crate::{Certificate, Error, ErrorKind};
+use crate::{Certificate, Error, ErrorKind, InitializeBrokerReason};
 
 pub enum TransportBuilder<A> {
     Tcp(A),
@@ -67,7 +67,9 @@ impl Transport {
     {
         let tcp = TcpListener::bind(addr)
             .await
-            .context(ErrorKind::BindServer)?;
+            .context(ErrorKind::InitializeBroker(
+                InitializeBrokerReason::BindServer,
+            ))?;
         Ok(Transport::Tcp(tcp))
     }
 
@@ -78,11 +80,13 @@ impl Transport {
         let acceptor = TlsAcceptor::from(
             native_tls::TlsAcceptor::builder(identity)
                 .build()
-                .context(ErrorKind::DecodeIdentity)?,
+                .context(ErrorKind::InitializeBroker(InitializeBrokerReason::Tls))?,
         );
         let tcp = TcpListener::bind(addr)
             .await
-            .context(ErrorKind::BindServer)?;
+            .context(ErrorKind::InitializeBroker(
+                InitializeBrokerReason::BindServer,
+            ))?;
         Ok(Transport::Tls(tcp, acceptor))
     }
 
@@ -98,7 +102,9 @@ impl Transport {
             Self::Tcp(listener) => listener.local_addr(),
             Self::Tls(listener, _) => listener.local_addr(),
         };
-        let addr = addr.context(ErrorKind::ConnectionLocalAddress)?;
+        let addr = addr.context(ErrorKind::InitializeBroker(
+            InitializeBrokerReason::ConnectionLocalAddress,
+        ))?;
         Ok(addr)
     }
 }
