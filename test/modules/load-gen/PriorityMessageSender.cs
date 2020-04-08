@@ -64,6 +64,7 @@ namespace LoadGen
                     int ttlForMessage = int.Parse(ttls[choosePri]);
 
                     await this.SendEventAsync(messageIdCounter, "pri" + output);
+                    this.Logger.LogInformation($"Sent message {messageIdCounter} with pri {output} and ttl {ttlForMessage}");
 
                     // We need to set the first message because of the way priority queue logic works
                     // When edgeHub cannot send a message, it will retry on that message until it sends

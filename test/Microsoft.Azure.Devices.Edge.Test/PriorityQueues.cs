@@ -89,7 +89,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             ("trackingId", trackingId),
                             ("testDuration", loadGenTestDuration),
                             ("messageFrequency", "00:00:00.5"),
-                            ("priorities", priorityString)
+                            ("priorities", priorityString),
+                            ("ttls", ttlString),
+                            ("ttlThreshold", "100")
                         });
 
                     Dictionary<string, object> routes = this.BuildRoutes(priorityString.Split(';'), ttlString.Split(";"), loadGenModuleName, relayerModuleName);
