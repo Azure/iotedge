@@ -43,9 +43,12 @@ impl TryFrom<Transport> for TransportBuilder<String> {
 
 fn load_identity(path: &Path) -> Result<Identity, Error> {
     info!("Loading identity from {:?}", path);
-    let cert_buffer = std::fs::read(&path).context(ErrorKind::InitializeBroker(InitializeBrokerReason::LoadIdentity))?;
-    let cert =
-        Identity::from_pkcs12(cert_buffer.as_slice(), "").context(ErrorKind::InitializeBroker(InitializeBrokerReason::DecodeIdentity))?;
+    let cert_buffer = std::fs::read(&path).context(ErrorKind::InitializeBroker(
+        InitializeBrokerReason::LoadIdentity(path.to_path_buf()),
+    ))?;
+    let cert = Identity::from_pkcs12(cert_buffer.as_slice(), "").context(
+        ErrorKind::InitializeBroker(InitializeBrokerReason::DecodeIdentity),
+    )?;
 
     Ok(cert)
 }

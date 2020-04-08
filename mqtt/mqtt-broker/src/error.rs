@@ -1,3 +1,5 @@
+use std::path;
+
 use derive_more::Display;
 use failure::{Backtrace, Context, Fail};
 use mqtt3::proto::Packet;
@@ -117,7 +119,7 @@ pub enum InitializeBrokerReason {
     IdentityConfiguration,
 
     #[display(fmt = "An error occurred  loading identity from file.")]
-    LoadIdentity,
+    LoadIdentity(path::PathBuf),
 
     #[display(fmt = "An error occurred  decoding identity content.")]
     DecodeIdentity,

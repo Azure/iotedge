@@ -1,6 +1,6 @@
 use std::{convert::TryInto, env, io};
 
-use clap::{crate_authors, crate_description, crate_name, crate_version, App, Arg};
+use clap::{crate_description, crate_name, crate_version, App, Arg};
 use failure::ResultExt;
 use futures_util::pin_mut;
 use mqtt_broker::*;
@@ -109,10 +109,8 @@ async fn tick_snapshot(
     }
 }
 
-#[allow(deprecated)]
 fn create_app() -> App<'static, 'static> {
     App::new(crate_name!())
-        .author(crate_authors!("\n"))
         .version(crate_version!())
         .about(crate_description!())
         .arg(
