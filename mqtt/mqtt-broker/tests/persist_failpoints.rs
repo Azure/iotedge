@@ -1,13 +1,13 @@
 use fail::FailScenario;
 
-use mqtt_broker::{BincodeFormat, BrokerState, ErrorKind, FilePersistor, Persist};
+use mqtt_broker::{BrokerState, ConsolidatedStateFormat, ErrorKind, FilePersistor, Persist};
 use proptest::collection::vec;
 use proptest::prelude::*;
 use tempfile::TempDir;
 
 const FAILPOINTS: &[&str] = &[
-    "bincodeformat.load.deserialize_from",
-    "bincodeformat.store.serialize_into",
+    "consolidatestate.load.deserialize_from",
+    "consolidatestate.store.serialize_into",
     "filepersistor.load.fileopen",
     "filepersistor.load.format",
     "filepersistor.load.spawn_blocking",
@@ -48,7 +48,8 @@ fn tear_down_failpoints() {
 async fn test_persistor(count: usize, ops: Vec<Op>) {
     let tmp_dir = TempDir::new().unwrap();
     let path = tmp_dir.path().to_owned();
-    let mut persistor = FilePersistor::new(path, BincodeFormat::new()).with_previous_count(count);
+    let mut persistor =
+        FilePersistor::new(path, ConsolidatedStateFormat::default()).with_previous_count(count);
 
     // Make sure we've stored at least one state
     tear_down_failpoints();
@@ -87,7 +88,7 @@ fn test_failpoints_smoketest() {
 
             let tmp_dir = TempDir::new().unwrap();
             let path = tmp_dir.path().to_owned();
-            let mut persistor = FilePersistor::new(path, BincodeFormat::new());
+            let mut persistor = FilePersistor::new(path, ConsolidatedStateFormat::default());
 
             let result = persistor.load().await;
             let err = result.unwrap_err();

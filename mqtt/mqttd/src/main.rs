@@ -24,10 +24,9 @@ async fn main() -> Result<(), Terminate> {
         .get_matches()
         .value_of("config")
         .map_or(BrokerConfig::new(), BrokerConfig::from_file)
-        .context(ErrorKind::LoadConfiguration)?;
-
-    // TODO pass it to persistence
-    let _persistence = config.persistence();
+        .context(ErrorKind::InitializeBroker(
+            InitializeBrokerReason::LoadConfiguration,
+        ))?;
 
     // Setup the shutdown handle
     let shutdown = shutdown::shutdown();
@@ -36,7 +35,7 @@ async fn main() -> Result<(), Terminate> {
     // Setup the snapshotter
     let mut persistor = FilePersistor::new(
         env::current_dir().expect("can't get cwd").join("state"),
-        BincodeFormat::new(),
+        ConsolidatedStateFormat::default(),
     );
     info!("Loading state...");
     let state = persistor.load().await?.unwrap_or_else(BrokerState::default);

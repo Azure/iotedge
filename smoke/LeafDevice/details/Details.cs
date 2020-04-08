@@ -301,45 +301,64 @@ namespace LeafDeviceTest
             // Call a direct method
             TimeSpan testDuration = TimeSpan.FromSeconds(300);
             DateTime endTime = DateTime.UtcNow + testDuration;
-            using (var cts = new CancellationTokenSource(testDuration))
-            {
-                CloudToDeviceMethod cloudToDeviceMethod = new CloudToDeviceMethod("DirectMethod").SetPayloadJson("{\"TestKey\" : \"TestValue\"}");
 
-                CloudToDeviceMethodResult result = null;
-                bool isRetrying = true;
-                while (isRetrying)
+            CloudToDeviceMethod cloudToDeviceMethod = new CloudToDeviceMethod("DirectMethod").SetPayloadJson("{\"TestKey\" : \"TestValue\"}");
+
+            CloudToDeviceMethodResult result = null;
+            // To reduce log size and make troubleshooting easier, log last exception only.
+            Exception lastException = null;
+            bool isRetrying = true;
+
+            Console.WriteLine("Starting Direct method test.");
+            while (isRetrying && DateTime.UtcNow <= endTime)
+            {
+                try
                 {
-                    try
+                    using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
                     {
                         result = await serviceClient.InvokeDeviceMethodAsync(
                             this.context.Device.Id,
                             cloudToDeviceMethod,
                             cts.Token);
-                    }
-                    catch (Exception ex)
-                    {
-                        if (DateTime.UtcNow >= endTime)
+
+                        if (result?.Status == 200)
                         {
-                            Console.WriteLine($"Failed to send direct method from device '{this.context.Device.Id}' with payload '{cloudToDeviceMethod}: {ex}'");
                             isRetrying = false;
                         }
-                        else
-                        {
-                            Console.WriteLine($"Failed to send direct method from device '{this.context.Device.Id}' with payload '{cloudToDeviceMethod}: {ex.Message}'");
-                        }
+
+                        // Don't retry too fast
+                        await Task.Delay(1000, cts.Token);
                     }
                 }
-
-                if (result?.Status != 200)
+                catch (OperationCanceledException ex)
                 {
-                    throw new Exception($"Could not invoke Direct Method on Device with result status {result?.Status}.");
+                    if (lastException == null)
+                    {
+                        lastException = ex;
+                    }
                 }
-
-                if (!result.GetPayloadAsJson().Equals("{\"TestKey\":\"TestValue\"}", StringComparison.Ordinal))
+                catch (Exception ex)
                 {
-                    throw new Exception($"Payload doesn't match with Sent Payload. Received payload: {result.GetPayloadAsJson()}. Expected: {{\"TestKey\":\"TestValue\"}}");
+                    lastException = ex;
                 }
             }
+
+            if (result?.Status != 200)
+            {
+                if (lastException != null)
+                {
+                    Console.WriteLine($"Failed to send direct method from device '{this.context.Device.Id}' with payload '{cloudToDeviceMethod}: {lastException}'");
+                }
+
+                throw new Exception($"Could not invoke Direct Method on Device with result status {result?.Status}.");
+            }
+
+            if (!result.GetPayloadAsJson().Equals("{\"TestKey\":\"TestValue\"}", StringComparison.Ordinal))
+            {
+                throw new Exception($"Payload doesn't match with Sent Payload. Received payload: {result.GetPayloadAsJson()}. Expected: {{\"TestKey\":\"TestValue\"}}");
+            }
+
+            Console.WriteLine("Direct method test passed.");
         }
 
         protected void KeepDeviceIdentity()

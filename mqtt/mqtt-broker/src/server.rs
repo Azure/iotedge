@@ -11,7 +11,7 @@ use tracing_futures::Instrument;
 use crate::auth::{Authenticator, Authorizer};
 use crate::broker::{Broker, BrokerHandle, BrokerState};
 use crate::transport::TransportBuilder;
-use crate::{connection, Error, ErrorKind, Message, SystemEvent};
+use crate::{connection, Error, ErrorKind, InitializeBrokerReason, Message, SystemEvent};
 
 pub struct Server<N, Z>
 where
@@ -175,7 +175,7 @@ where
     F: Future<Output = ()> + Unpin,
 {
     let mut io = transport.build().await?;
-    let addr = io.address()?;
+    let addr = io.local_addr()?;
     let span = span!(Level::INFO, "server", listener=%addr);
     let _enter = span.enter();
 
@@ -186,9 +186,9 @@ where
     loop {
         match future::select(&mut shutdown_signal, incoming.next()).await {
             Either::Right((Some(Ok(stream)), _)) => {
-                let peer = stream
-                    .peer_addr()
-                    .context(ErrorKind::ConnectionPeerAddress)?;
+                let peer = stream.peer_addr().context(ErrorKind::InitializeBroker(
+                    InitializeBrokerReason::ConnectionPeerAddress,
+                ))?;
 
                 let broker_handle = handle.clone();
                 let span = span.clone();
