@@ -33,7 +33,6 @@ jobs:
 
 - job: "run_pub_${{ parameters['id'] }}"
   pool:
-    name: Default
     demands: mqtt-perf-tests-pub
   displayName: Test Case Pub ${{ parameters['publishers'] }}p / ${{ parameters['subscribers'] }}s / ${{ parameters['topics'] }}t / ${{ parameters['payload'] }}b / QoS${{ parameters['qos'] }}
   dependsOn: ${{ parameters['parentJob'] }}
@@ -51,7 +50,6 @@ jobs:
 
 - job: "run_sub_${{ parameters['id'] }}"
   pool:
-    name: Default
     demands: mqtt-perf-tests-sub
   displayName: Test Case Sub ${{ parameters['publishers'] }}p / ${{ parameters['subscribers'] }}s / ${{ parameters['topics'] }}t / ${{ parameters['payload'] }}b / QoS${{ parameters['qos'] }}
   dependsOn: ${{ parameters['parentJob'] }}
