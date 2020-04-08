@@ -12,7 +12,7 @@ jobs:
     - task: SSH@0
       displayName: Cleanup running containers
       inputs:
-        sshEndpoint: iotedge-mqtt-perf-conn
+        sshEndpoint: $(brokerSsh)
         runOptions: commands        
         commands: |
           docker kill $(docker ps -q) 2>/dev/null
@@ -22,7 +22,7 @@ jobs:
     - task: SSH@0
       displayName: Install and Run docker image
       inputs:
-        sshEndpoint: iotedge-mqtt-perf-conn
+        sshEndpoint: $(brokerSsh)
         runOptions: commands
         commands: |
           echo "$(registry.password)" | docker login $(registry.address) --username $(registry.user) --password-stdin 2>/dev/null
