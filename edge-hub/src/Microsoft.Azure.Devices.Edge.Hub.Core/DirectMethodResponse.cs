@@ -20,7 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             this.Exception = Option.Some(Preconditions.CheckNotNull(exception, nameof(exception)));
             this.HttpStatusCode = code;
-            this.Status = (int)code;
         }
 
         public Option<Exception> Exception { get; }
