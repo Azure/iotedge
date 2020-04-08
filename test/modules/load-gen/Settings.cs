@@ -24,7 +24,9 @@ namespace LoadGen
             Option<string> testResultCoordinatorUrl,
             string moduleId,
             LoadGenSenderType senderType,
-            Option<string> priorities)
+            Option<string> priorities,
+            Option<string> ttls,
+            Option<int> ttlThreshold)
         {
             Preconditions.CheckRange(messageFrequency.Ticks, 0);
             Preconditions.CheckRange(testStartDelay.Ticks, 0);
@@ -42,6 +44,8 @@ namespace LoadGen
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.SenderType = senderType;
             this.Priorities = priorities;
+            this.Ttls = ttls;
+            this.TtlThreshold = ttlThreshold;
         }
 
         static Settings Create()
@@ -60,6 +64,13 @@ namespace LoadGen
                 ? null
                 : configuration.GetValue<string>("priorities");
 
+            string ttls = string.IsNullOrWhiteSpace(configuration.GetValue<string>("ttls"))
+                ? null
+                : configuration.GetValue<string>("ttls");
+
+            int ttlThresholdValue = configuration.GetValue<int>("ttlThreshold");
+            Option<int> ttlThreshold = ttlThresholdValue > 0 ? Option.Some(ttlThresholdValue) : Option.None<int>();
+
             return new Settings(
                 configuration.GetValue("messageFrequency", TimeSpan.FromMilliseconds(20)),
                 configuration.GetValue<ulong>("messageSizeInBytes", 1024),
@@ -71,7 +82,9 @@ namespace LoadGen
                 Option.Maybe(testResultCoordinatorUrl),
                 configuration.GetValue<string>("IOTEDGE_MODULEID"),
                 configuration.GetValue("senderType", LoadGenSenderType.DefaultSender),
-                Option.Maybe(priorities));
+                Option.Maybe(priorities),
+                Option.Maybe(ttls),
+                ttlThreshold);
         }
 
         public TimeSpan MessageFrequency { get; }
@@ -95,6 +108,10 @@ namespace LoadGen
         public LoadGenSenderType SenderType { get; }
 
         public Option<string> Priorities { get; }
+
+        public Option<string> Ttls { get; }
+
+        public Option<int> TtlThreshold { get; }
 
         public override string ToString()
         {

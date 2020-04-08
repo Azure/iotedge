@@ -28,16 +28,25 @@ namespace LoadGen
             : base(logger, moduleClient, batchId, trackingId)
         {
             this.PriorityString = Settings.Current.Priorities.Expect(() =>
-                new ArgumentException("PriorityMessageSender must have 'priorities' environment variable set to a valid list of string delimited by ';'"));
+                new ArgumentException("PriorityMessageSender must have 'priorities' environment variable set to a valid list of strings delimited by ';'"));
+            this.TtlString = Settings.Current.Ttls.Expect(() =>
+                new ArgumentException("PriorityMessageSender must have 'ttls' environment variable set to a valid list of strings delimited by ';'"));
+            this.TtlThreshold = Settings.Current.TtlThreshold.Expect(() =>
+                new ArgumentException("PriorityMessageSender must have 'ttlThreshold' environment variable set to a valid int"));
             this.isFinished = false;
             this.resultsSent = 0;
         }
 
         public string PriorityString { get; }
 
+        public string TtlString { get; }
+
+        public int TtlThreshold { get; }
+
         public async override Task RunAsync(CancellationTokenSource cts, DateTime testStartAt)
         {
             string[] outputs = this.PriorityString.Split(';');
+            string[] ttls = this.TtlString.Split(';');
 
             bool firstMessageWhileOffline = true;
             var priorityAndSequence = new SortedDictionary<int, List<long>>();
@@ -52,6 +61,7 @@ namespace LoadGen
                 {
                     int choosePri = this.rng.Next(outputs.Length);
                     string output = outputs[choosePri];
+                    int ttlForMessage = int.Parse(ttls[choosePri]);
 
                     await this.SendEventAsync(messageIdCounter, "pri" + output);
 
@@ -63,13 +73,10 @@ namespace LoadGen
                     {
                         firstMessageWhileOffline = false;
                     }
-                    else
+
+                    else if (ttlForMessage == 0 || ttlForMessage > this.TtlThreshold)
                     {
-                        int priority = 2000000000; // Default priority
-                        if (!output.Contains(TestConstants.PriorityQueues.Default))
-                        {
-                            priority = int.Parse(output);
-                        }
+                        int priority = output.Contains(TestConstants.PriorityQueues.Default) ? 2000000000 : int.Parse(output);
 
                         if (!priorityAndSequence.TryGetValue(priority, out List<long> sequenceNums))
                         {
