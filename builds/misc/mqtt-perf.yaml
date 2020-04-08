@@ -8,7 +8,7 @@
 # Pipeline requires custom agent pool with at least two physical agents:
 # - with 'mqtt-perf-tests-pub' demand - for publisher node
 # - with 'mqtt-perf-tests-sub' demand - for subscriber node
-# And a SSH service connection `mqttd-host-ssh` for the test host machine 
+# And a SSH service connection `iotedge-mqtt-perf-conn` for the test host machine 
 # to manage and run 'mqttd' docker container there.
 
 trigger: none
