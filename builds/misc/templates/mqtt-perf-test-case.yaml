@@ -67,6 +67,9 @@ jobs:
     continueOnError: true 
 
 - job: "run_completed_${{ parameters['id'] }}"
+  pool:
+    name: $(pool.name)
+    demands: mqtt-perf-tests-sub
   displayName: Cleanup
   dependsOn:   
   - "run_sub_${{ parameters['id'] }}"
