@@ -40,6 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             string trackingId = Guid.NewGuid().ToString();
             string priorityString = this.BuildPriorityString(5);
+            string ttlString = "0;0;0;0;0";
 
             Action<EdgeConfigBuilder> addInitialConfig = new Action<EdgeConfigBuilder>(
                 builder =>
@@ -91,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             ("priorities", priorityString)
                         });
 
-                    Dictionary<string, object> routes = this.BuildRoutes(priorityString.Split(';'), loadGenModuleName, relayerModuleName);
+                    Dictionary<string, object> routes = this.BuildRoutes(priorityString.Split(';'), ttlString.Split(";"), loadGenModuleName, relayerModuleName);
                     builder.GetModule(ModuleName.EdgeHub).WithDesiredProperties(new Dictionary<string, object> { ["routes"] = routes });
                 });
 
@@ -144,6 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string trackingId = Guid.NewGuid().ToString();
             string priorityString = this.BuildPriorityString(5);
             string ttlString = this.BuildTTLString(5);
+            int ttlThresholdSecs = 15;
 
             Action<EdgeConfigBuilder> addInitialConfig = new Action<EdgeConfigBuilder>(
                 builder =>
@@ -193,7 +195,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             ("testDuration", loadGenTestDuration),
                             ("messageFrequency", "00:00:00.5"),
                             ("priorities", priorityString),
-                            ("ttls", ttlString)
+                            ("ttls", ttlString),
+                            ("ttlThreshold", ttlThresholdSecs.ToString())
                         });
 
                     Dictionary<string, object> routes = this.BuildRoutes(priorityString.Split(';'), ttlString.Split(";"), loadGenModuleName, relayerModuleName);
@@ -235,16 +238,17 @@ namespace Microsoft.Azure.Devices.Edge.Test
         private Dictionary<string, object> BuildRoutes(string[] priorities, string[] ttls, string sendModule, string receiveModule)
         {
             Dictionary<string, object> routes = new Dictionary<string, object>();
-            for(int i = 0; i < priorities.Length; i++)
+            for (int i = 0; i < priorities.Length; i++)
             {
+                string ttl = ttls[i];
                 string priority = priorities[i];
-                string ttl = ttlString[i];
                 // If we encounter "Default" in the priority list, don't add a priority - the default priority will automatically get picked up
                 if (priority.Contains(TestConstants.PriorityQueues.Default))
                 {
                     routes.Add($"LoadGenToRelayer{priority}", new Dictionary<string, object>
                     {
                         ["route"] = $"FROM /messages/modules/{sendModule}/outputs/pri{priority} INTO BrokeredEndpoint('/modules/{receiveModule}/inputs/input1')",
+                        ["timeToLiveSecs"] = int.Parse(ttl)
                     });
                 }
                 else
@@ -252,7 +256,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     routes.Add($"LoadGenToRelayer{priority}", new Dictionary<string, object>
                     {
                         ["route"] = $"FROM /messages/modules/{sendModule}/outputs/pri{priority} INTO BrokeredEndpoint('/modules/{receiveModule}/inputs/input1')",
-                        ["priority"] = int.Parse(priority)
+                        ["priority"] = int.Parse(priority),
+                        ["timeToLiveSecs"] = int.Parse(ttl)
                     });
                 }
             }
