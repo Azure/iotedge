@@ -29,6 +29,9 @@ namespace TestAnalyzer
         {
             if (events != null)
             {
+                int count = 0;
+                Guid guid = Guid.NewGuid();
+                Logger.LogInformation($"Starting eventhub read events for batch {guid.ToString()}");
                 foreach (EventData eventData in events)
                 {
                     eventData.SystemProperties.TryGetValue(DeviceIdPropertyName, out object devId);
@@ -57,7 +60,11 @@ namespace TestAnalyzer
                             Logger.LogDebug($"Message for module [{modId}] and device [{this.deviceId}] doesn't contain batch id and sequence number.");
                         }
                     }
+
+                    count += 1;
                 }
+
+                Logger.LogInformation($"Read {count} events from eventhub for batch {guid}");
             }
         }
 
