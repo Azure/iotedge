@@ -73,7 +73,6 @@ namespace LoadGen
                     {
                         firstMessageWhileOffline = false;
                     }
-
                     else if (ttlForMessage == 0 || ttlForMessage > this.TtlThreshold)
                     {
                         int priority = output.Contains(TestConstants.PriorityQueues.Default) ? 2000000000 : int.Parse(output);
