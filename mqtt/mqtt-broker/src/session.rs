@@ -608,8 +608,8 @@ impl Session {
         match self {
             Session::Transient(connected) => connected.handle_publish(publish),
             Session::Persistent(connected) => connected.handle_publish(publish),
-            Session::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
-            Session::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Session::Offline(_offline) => Err(Error::SessionOffline),
+            Session::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -617,8 +617,8 @@ impl Session {
         match self {
             Session::Transient(connected) => connected.handle_puback(puback),
             Session::Persistent(connected) => connected.handle_puback(puback),
-            Session::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
-            Session::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Session::Offline(_offline) => Err(Error::SessionOffline),
+            Session::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -629,8 +629,8 @@ impl Session {
         match self {
             Session::Transient(connected) => connected.handle_puback0(id),
             Session::Persistent(connected) => connected.handle_puback0(id),
-            Session::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
-            Session::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Session::Offline(_offline) => Err(Error::SessionOffline),
+            Session::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -638,8 +638,8 @@ impl Session {
         match self {
             Session::Transient(connected) => connected.handle_pubrec(pubrec),
             Session::Persistent(connected) => connected.handle_pubrec(pubrec),
-            Session::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
-            Session::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Session::Offline(_offline) => Err(Error::SessionOffline),
+            Session::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -650,8 +650,8 @@ impl Session {
         match self {
             Session::Transient(connected) => connected.handle_pubrel(pubrel),
             Session::Persistent(connected) => connected.handle_pubrel(pubrel),
-            Session::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
-            Session::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Session::Offline(_offline) => Err(Error::SessionOffline),
+            Session::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -662,8 +662,8 @@ impl Session {
         match self {
             Session::Transient(connected) => connected.handle_pubcomp(pubcomp),
             Session::Persistent(connected) => connected.handle_pubcomp(pubcomp),
-            Session::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
-            Session::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Session::Offline(_offline) => Err(Error::SessionOffline),
+            Session::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -675,7 +675,7 @@ impl Session {
             Session::Transient(connected) => connected.publish_to(publication.to_owned()),
             Session::Persistent(connected) => connected.publish_to(publication.to_owned()),
             Session::Offline(offline) => offline.publish_to(publication.to_owned()),
-            Session::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Session::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -686,8 +686,8 @@ impl Session {
         match self {
             Session::Transient(connected) => connected.subscribe(subscribe),
             Session::Persistent(connected) => connected.subscribe(subscribe),
-            Session::Offline(_) => Err(Error::from(ErrorKind::SessionOffline)),
-            Session::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Session::Offline(_) => Err(Error::SessionOffline),
+            Session::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -698,8 +698,8 @@ impl Session {
         match self {
             Session::Transient(connected) => connected.unsubscribe(unsubscribe),
             Session::Persistent(connected) => connected.unsubscribe(unsubscribe),
-            Session::Offline(_) => Err(Error::from(ErrorKind::SessionOffline)),
-            Session::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Session::Offline(_) => Err(Error::SessionOffline),
+            Session::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -708,7 +708,7 @@ impl Session {
             Session::Transient(ref mut connected) => connected.send(event).await,
             Session::Persistent(ref mut connected) => connected.send(event).await,
             Session::Disconnecting(ref mut disconnecting) => disconnecting.send(event).await,
-            _ => Err(ErrorKind::SessionOffline.into()),
+            _ => Err(Error::SessionOffline.into()),
         }
     }
 }
@@ -801,7 +801,7 @@ impl PacketIdentifiers {
 
         let (block, mask) = self.entry(current);
         if (*block & mask) != 0 {
-            return Err(Error::from(ErrorKind::PacketIdentifiersExhausted));
+            return Err(Error::PacketIdentifiersExhausted);
         }
 
         *block |= mask;
@@ -856,6 +856,7 @@ pub(crate) mod tests {
     use crate::subscription::tests::arb_subscription;
     use crate::tests::*;
     use crate::ConnectionHandle;
+    use matches::assert_matches;
 
     fn arb_identifiers_in_use() -> impl Strategy<Value = IdentifiersInUse> {
         vec(num::usize::ANY, PacketIdentifiers::SIZE).prop_map(|v| {
@@ -1052,8 +1053,8 @@ pub(crate) mod tests {
                 qos: proto::QoS::AtMostOnce,
             }],
         };
-        let err = session.subscribe(subscribe).unwrap_err();
-        assert_eq!(ErrorKind::SessionOffline, *err.kind());
+        let result = session.subscribe(subscribe);
+        assert_matches!(result, Err(Error::SessionOffline));
     }
 
     #[test]
@@ -1066,8 +1067,8 @@ pub(crate) mod tests {
             packet_identifier: proto::PacketIdentifier::new(24).unwrap(),
             unsubscribe_from: vec!["topic/new".to_string()],
         };
-        let err = session.unsubscribe(&unsubscribe).unwrap_err();
-        assert_eq!(ErrorKind::SessionOffline, *err.kind());
+        let result = session.unsubscribe(&unsubscribe);
+        assert_matches!(result, Err(Error::SessionOffline));
     }
 
     #[test]

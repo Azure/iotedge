@@ -2,7 +2,7 @@ use crate::Message;
 use mqtt3::proto::Packet;
 use thiserror::Error;
 
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error)]
 pub enum Error {
     #[error("An error occurred sending a message to the broker.")]
     SendBrokerMessage(#[source] tokio::sync::mpsc::error::SendError<Message>),
@@ -25,8 +25,8 @@ pub enum Error {
     #[error("Connection closed before any packets received.")]
     NoPackets,
 
-    #[error("No session.")]
-    NoSession,
+    #[error(transparent)]
+    NoSession(#[from] crate::broker::NoSessionError),
 
     #[error("Session is offline.")]
     SessionOffline,
@@ -53,11 +53,11 @@ pub enum Error {
     InitializeBroker(#[from] InitializeBrokerError),
 
     #[error("An error occurred checking client permissions.")]
-    Auth(#[from] crate::auth::Error),
+    Auth(#[from] crate::auth::AuthError),
 }
 
 /// Represents errors occurred while bootstrapping broker.
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error)]
 pub enum InitializeBrokerError {
     #[error("An error occurred binding the server's listening socket.")]
     BindServer(#[source] std::io::Error),
@@ -72,11 +72,11 @@ pub enum InitializeBrokerError {
     LoadConfiguration(#[source] config::ConfigError),
 
     #[error("An error occurred loading identity from file.")]
-    LoadIdentity(#[source] native_tls::Error),
+    LoadIdentity(#[source] std::io::Error),
 
     #[error("An error occurred  decoding identity content.")]
     DecodeIdentity(#[source] native_tls::Error),
 
     #[error("An error occurred  bootstrapping TLS")]
-    Tls(native_tls::Error),
+    Tls(#[source] native_tls::Error),
 }

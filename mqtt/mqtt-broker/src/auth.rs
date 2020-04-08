@@ -38,15 +38,15 @@ pub trait Authenticator {
     /// * `Ok(Some(auth_id))` - authenticator is able to identify a client with given credentials.
     /// * `Ok(None)` - authenticator is not able to identify a client with given credentials.
     /// * `Err(e)` - an error occurred when authenticating a client.
-    async fn authenticate(&self, credentials: Credentials) -> Result<Option<AuthId>, Error>;
+    async fn authenticate(&self, credentials: Credentials) -> Result<Option<AuthId>, AuthError>;
 }
 
 #[async_trait]
 impl<F> Authenticator for F
 where
-    F: Fn(Credentials) -> Result<Option<AuthId>, Error> + Sync,
+    F: Fn(Credentials) -> Result<Option<AuthId>, AuthError> + Sync,
 {
-    async fn authenticate(&self, credentials: Credentials) -> Result<Option<AuthId>, Error> {
+    async fn authenticate(&self, credentials: Credentials) -> Result<Option<AuthId>, AuthError> {
         self(credentials)
     }
 }
@@ -57,7 +57,7 @@ pub struct DefaultAuthenticator;
 
 #[async_trait]
 impl Authenticator for DefaultAuthenticator {
-    async fn authenticate(&self, _: Credentials) -> Result<Option<AuthId>, Error> {
+    async fn authenticate(&self, _: Credentials) -> Result<Option<AuthId>, AuthError> {
         Ok(None)
     }
 }
@@ -66,15 +66,15 @@ impl Authenticator for DefaultAuthenticator {
 #[async_trait]
 pub trait Authorizer {
     /// Authorizes a MQTT client to perform some action.
-    async fn authorize(&self, auth_id: AuthId) -> Result<bool, Error>;
+    async fn authorize(&self, auth_id: AuthId) -> Result<bool, AuthError>;
 }
 
 #[async_trait]
 impl<F> Authorizer for F
 where
-    F: Fn(AuthId) -> Result<bool, Error> + Sync,
+    F: Fn(AuthId) -> Result<bool, AuthError> + Sync,
 {
-    async fn authorize(&self, auth_id: AuthId) -> Result<bool, Error> {
+    async fn authorize(&self, auth_id: AuthId) -> Result<bool, AuthError> {
         self(auth_id)
     }
 }
@@ -85,14 +85,14 @@ pub struct DefaultAuthorizer;
 
 #[async_trait]
 impl Authorizer for DefaultAuthorizer {
-    async fn authorize(&self, _: AuthId) -> Result<bool, Error> {
+    async fn authorize(&self, _: AuthId) -> Result<bool, AuthError> {
         Ok(false)
     }
 }
 
 /// Represents failed auth operations.
 #[derive(Debug, Error, PartialEq)]
-pub enum Error {
+pub enum AuthError {
     #[error("Error occurred during authentication.")]
     Authenticate,
 

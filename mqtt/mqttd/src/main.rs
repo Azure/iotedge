@@ -1,4 +1,3 @@
-use failure::ResultExt;
 use futures_util::pin_mut;
 use mqtt_broker::*;
 use native_tls::Identity;
@@ -19,6 +18,11 @@ async fn main() -> Result<(), Terminate> {
         .finish();
     let _ = tracing::subscriber::set_global_default(subscriber);
 
+    run().await?;
+    Ok(())
+}
+
+async fn run() -> Result<(), Error> {
     // TODO pass it to broker
     // TODO make it an argument to override defaul config
     let path: Option<String> = None;
@@ -87,7 +91,7 @@ async fn main() -> Result<(), Terminate> {
 
     // Stop snapshotting
     shutdown_handle.shutdown().await?;
-    let mut persistor = join_handle.await.context(ErrorKind::TaskJoin)?;
+    let mut persistor = join_handle.await?;
     info!("state snapshotter shutdown.");
 
     info!("persisting state before exiting...");

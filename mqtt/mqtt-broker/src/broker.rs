@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use failure::ResultExt;
 use mqtt3::proto;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{self, Receiver, Sender};
@@ -11,7 +10,7 @@ use crate::auth::{
     AuthId, Authenticator, Authorizer, Credentials, DefaultAuthenticator, DefaultAuthorizer,
 };
 use crate::session::{ConnectedSession, Session, SessionState};
-use crate::{ClientEvent, ClientId, ConnReq, Error, ErrorKind, Message, SystemEvent};
+use crate::{ClientEvent, ClientId, ConnReq, Error, Message, SystemEvent};
 
 static EXPECTED_PROTOCOL_NAME: &str = mqtt3::PROTOCOL_NAME;
 const EXPECTED_PROTOCOL_LEVEL: u8 = mqtt3::PROTOCOL_LEVEL;
@@ -361,11 +360,10 @@ where
         debug!("handling ping request...");
         match self.get_session_mut(&client_id) {
             Ok(session) => session.send(ClientEvent::PingResp(proto::PingResp)).await,
-            Err(e) if *e.kind() == ErrorKind::NoSession => {
+            Err(NoSessionError) => {
                 debug!("no session for {}", client_id);
                 Ok(())
             }
-            Err(e) => Err(e),
         }
     }
 
@@ -380,11 +378,10 @@ where
                 session.send(ClientEvent::SubAck(suback)).await?;
                 subscriptions
             }
-            Err(e) if *e.kind() == ErrorKind::NoSession => {
+            Err(NoSessionError) => {
                 debug!("no session for {}", client_id);
                 return Ok(());
             }
-            Err(e) => return Err(e),
         };
 
         // Handle retained messages
@@ -407,11 +404,10 @@ where
                 }
                 Ok(())
             }
-            Err(e) if *e.kind() == ErrorKind::NoSession => {
+            Err(NoSessionError) => {
                 debug!("no session for {}", client_id);
                 Ok(())
             }
-            Err(e) => Err(e),
         }
     }
 
@@ -425,11 +421,10 @@ where
                 let unsuback = session.unsubscribe(&unsubscribe)?;
                 session.send(ClientEvent::UnsubAck(unsuback)).await
             }
-            Err(e) if *e.kind() == ErrorKind::NoSession => {
+            Err(NoSessionError) => {
                 debug!("no session for {}", client_id);
                 Ok(())
             }
-            Err(e) => Err(e),
         }
     }
 
@@ -446,11 +441,10 @@ where
                 }
                 maybe_publication
             }
-            Err(e) if *e.kind() == ErrorKind::NoSession => {
+            Err(NoSessionError) => {
                 debug!("no session for {}", client_id);
                 return Ok(());
             }
-            Err(e) => return Err(e),
         };
 
         if let Some(publication) = maybe_publication {
@@ -471,11 +465,10 @@ where
                 }
                 Ok(())
             }
-            Err(e) if *e.kind() == ErrorKind::NoSession => {
+            Err(NoSessionError) => {
                 debug!("no session for {}", client_id);
                 Ok(())
             }
-            Err(e) => Err(e),
         }
     }
 
@@ -491,11 +484,10 @@ where
                 }
                 Ok(())
             }
-            Err(e) if *e.kind() == ErrorKind::NoSession => {
+            Err(NoSessionError) => {
                 debug!("no session for {}", client_id);
                 Ok(())
             }
-            Err(e) => Err(e),
         }
     }
 
@@ -511,11 +503,10 @@ where
                 }
                 Ok(())
             }
-            Err(e) if *e.kind() == ErrorKind::NoSession => {
+            Err(NoSessionError) => {
                 debug!("no session for {}", client_id);
                 Ok(())
             }
-            Err(e) => Err(e),
         }
     }
 
@@ -533,11 +524,10 @@ where
                 session.send(ClientEvent::PubComp(pubcomp)).await?;
                 maybe_publication
             }
-            Err(e) if *e.kind() == ErrorKind::NoSession => {
+            Err(NoSessionError) => {
                 debug!("no session for {}", client_id);
                 return Ok(());
             }
-            Err(e) => return Err(e),
         };
 
         if let Some(publication) = maybe_publication {
@@ -558,18 +548,17 @@ where
                 }
                 Ok(())
             }
-            Err(e) if *e.kind() == ErrorKind::NoSession => {
+            Err(NoSessionError) => {
                 debug!("no session for {}", client_id);
                 Ok(())
             }
-            Err(e) => Err(e),
         }
     }
 
-    fn get_session_mut(&mut self, client_id: &ClientId) -> Result<&mut Session, Error> {
+    fn get_session_mut(&mut self, client_id: &ClientId) -> Result<&mut Session, NoSessionError> {
         self.sessions
             .get_mut(client_id)
-            .ok_or_else(|| ErrorKind::NoSession.into())
+            .ok_or_else(|| NoSessionError)
     }
 
     async fn authenticate(&mut self, connreq: &ConnReq) -> Result<Option<AuthId>, Error> {
@@ -581,11 +570,13 @@ where
             |certificate| Credentials::ClientCertificate(certificate.clone()),
         );
 
-        self.authenticator.authenticate(credentials).await
+        let auth_id = self.authenticator.authenticate(credentials).await?;
+        Ok(auth_id)
     }
 
     async fn authorize(&mut self, auth_id: AuthId) -> Result<bool, Error> {
-        self.authorizer.authorize(auth_id).await
+        let authorized = self.authorizer.authorize(auth_id).await?;
+        Ok(authorized)
     }
 
     fn open_session(
@@ -888,8 +879,7 @@ impl BrokerHandle {
         self.0
             .send(message)
             .await
-            .context(ErrorKind::SendBrokerMessage)?;
-        Ok(())
+            .map_err(|e| Error::SendBrokerMessage(e))
     }
 }
 
@@ -899,6 +889,10 @@ pub enum SessionError {
     ProtocolViolation(Session),
     DuplicateSession(Session, proto::ConnAck),
 }
+
+#[derive(Debug, thiserror::Error)]
+#[error("No session.")]
+pub struct NoSessionError;
 
 #[cfg(test)]
 pub(crate) mod tests {
@@ -912,9 +906,10 @@ pub(crate) mod tests {
     use proptest::prelude::*;
     use uuid::Uuid;
 
+    use crate::auth::AuthError;
     use crate::session::tests::*;
     use crate::tests::*;
-    use crate::{auth::ErrorReason, ConnectionHandle};
+    use crate::ConnectionHandle;
 
     prop_compose! {
         pub fn arb_broker_state()(
@@ -1274,7 +1269,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_connect_authentication_failed() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Err(ErrorKind::Auth(ErrorReason::Authenticate).into()))
+            .authenticator(|_| Err(AuthError::Authenticate))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1375,7 +1370,7 @@ pub(crate) mod tests {
     async fn test_connect_authorization_failed() {
         let broker = BrokerBuilder::default()
             .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-            .authorizer(|_| Err(ErrorKind::Auth(ErrorReason::Authorize).into()))
+            .authorizer(|_| Err(AuthError::Authorize))
             .build();
 
         let mut broker_handle = broker.handle();
