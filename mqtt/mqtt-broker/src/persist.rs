@@ -407,8 +407,8 @@ where
                     })?;
 
                     #[cfg(windows)]
-                    symlink(&path, &temp_link_path).map_err(|e| {
-                        PersistErrorKind::Symlink(temp_link_path.clone(), path.clone(), Some(e))
+                    symlink_file(&path, &temp_link_path).map_err(|e| {
+                        PersistError::Symlink(temp_link_path.clone(), path.clone(), Some(e))
                     })?;
 
                     // Commit the updated link by renaming the temp link.
