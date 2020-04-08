@@ -209,7 +209,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(loadGenModuleName, token);
 
             // Wait long enough for TTL to expire for some of the messages
-            Log.Information("Waiting for 45 seconds for TTL's to expire");
+            Log.Information("Waiting for 20 seconds for TTL's to expire");
             await Task.Delay(20000);
 
             Action<EdgeConfigBuilder> addRelayerConfig = new Action<EdgeConfigBuilder>(
@@ -270,7 +270,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         private string BuildTTLString(int numberOfTTLs)
         {
-            return "5;10;1600;1600;1600";
+            return "5;10;0;1600;1600";
         }
 
         private string BuildPriorityString(int numberOfPriorities)

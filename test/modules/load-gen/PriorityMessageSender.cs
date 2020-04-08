@@ -114,7 +114,7 @@ namespace LoadGen
                 .SelectMany(t => t.Value)
                 .ToList();
 
-            this.resultsSent = expectedSequenceNumberList.Count;
+            this.resultsSent = expectedSequenceNumberList.Count + 1;
 
             // See explanation above why we need to send sequence number 1 first
             await this.ReportResult(1);
