@@ -1,16 +1,23 @@
 use async_trait::async_trait;
-use derive_more::{Display, From};
 use thiserror::Error;
 
 /// Authenticated MQTT client identity.
-#[derive(Clone, Debug, Display, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum AuthId {
     /// Identity for anonymous client.
-    #[display("*")]
     Anonymous,
 
     /// Identity for non-anonymous client.
     Value(Identity),
+}
+
+impl std::fmt::Display for AuthId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Anonymous => write!(f, "*"),
+            Self::Value(identity) => write!(f, "{}", identity),
+        }
+    }
 }
 
 /// Non-anonymous client identity.
@@ -26,8 +33,14 @@ pub enum Credentials {
 }
 
 /// Represents a client certificate.
-#[derive(Clone, Debug, From)]
+#[derive(Clone, Debug)]
 pub struct Certificate(Vec<u8>);
+
+impl From<Vec<u8>> for Certificate {
+    fn from(certificate: Vec<u8>) -> Self {
+        Self(certificate)
+    }
+}
 
 /// A trait to authenticate a MQTT client with given credentials.
 #[async_trait]

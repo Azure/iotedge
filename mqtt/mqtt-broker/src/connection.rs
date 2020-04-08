@@ -2,7 +2,6 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use derive_more::Display;
 use futures_util::future::{select, Either};
 use futures_util::pin_mut;
 use futures_util::sink::{Sink, SinkExt};
@@ -32,8 +31,7 @@ const KEEPALIVE_MULT: f32 = 1.5;
 /// It is important that this struct doesn't implement Clone,
 /// as the lifecycle management depends on there only being
 /// one sender.
-#[derive(Debug, Display)]
-#[display(fmt = "{}", id)]
+#[derive(Debug)]
 pub struct ConnectionHandle {
     id: Uuid,
     sender: Sender<Message>,
@@ -53,6 +51,12 @@ impl ConnectionHandle {
             .send(message)
             .await
             .map_err(|e| Error::SendConnectionMessage(e))
+    }
+}
+
+impl std::fmt::Display for ConnectionHandle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.id)
     }
 }
 

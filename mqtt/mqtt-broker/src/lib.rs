@@ -13,7 +13,6 @@
 
 use std::sync::Arc;
 
-use derive_more::Display;
 use mqtt3::*;
 use serde::{Deserialize, Serialize};
 
@@ -41,7 +40,7 @@ pub use crate::server::Server;
 pub use crate::session::SessionState;
 pub use crate::snapshot::{Snapshotter, StateSnapshotHandle};
 
-#[derive(Clone, Debug, Display, Eq, Hash, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ClientId(Arc<String>);
 
 impl ClientId {
@@ -56,6 +55,11 @@ impl From<String> for ClientId {
     }
 }
 
+impl std::fmt::Display for ClientId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
 #[derive(Debug)]
 pub struct ConnReq {
     client_id: ClientId,
