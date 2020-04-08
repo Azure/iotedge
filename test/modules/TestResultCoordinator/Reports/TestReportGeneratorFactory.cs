@@ -47,7 +47,8 @@ namespace TestResultCoordinator.Reports
                             metadata.ActualSource,
                             actualTestResults,
                             testReportMetadata.TestOperationResultType.ToString(),
-                            new SimpleTestOperationResultComparer());
+                            new SimpleTestOperationResultComparer(),
+                            Settings.Current.UnmatchedResultsMaxSize);
                     }
 
                 case TestReportType.TwinCountingReport:
@@ -64,7 +65,8 @@ namespace TestResultCoordinator.Reports
                             metadata.ActualSource,
                             actualTestResults,
                             testReportMetadata.TestOperationResultType.ToString(),
-                            new SimpleTestOperationResultComparer());
+                            new SimpleTestOperationResultComparer(),
+                            Settings.Current.UnmatchedResultsMaxSize);
                     }
 
                 case TestReportType.DeploymentTestReport:
@@ -79,7 +81,8 @@ namespace TestResultCoordinator.Reports
                             metadata.ExpectedSource,
                             expectedTestResults,
                             metadata.ActualSource,
-                            actualTestResults);
+                            actualTestResults,
+                            Settings.Current.UnmatchedResultsMaxSize);
                     }
 
                 case TestReportType.DirectMethodReport:
