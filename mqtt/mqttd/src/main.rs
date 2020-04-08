@@ -24,7 +24,9 @@ async fn main() -> Result<(), Terminate> {
     let path: Option<String> = None;
     let config = path
         .map_or(BrokerConfig::new(), BrokerConfig::from_file)
-        .context(ErrorKind::LoadConfiguration)?;
+        .context(ErrorKind::InitializeBroker(
+            InitializeBrokerReason::LoadConfiguration,
+        ))?;
 
     // TODO pass it to persistence
     let _persistence = config.persistence();
@@ -41,7 +43,9 @@ async fn main() -> Result<(), Terminate> {
         .nth(3)
         .unwrap_or_else(|| "broker.pfx".to_string());
 
-    let identity = load_identity(cert_path).context(ErrorKind::IdentityConfiguration)?;
+    let identity = load_identity(cert_path).context(ErrorKind::InitializeBroker(
+        InitializeBrokerReason::IdentityConfiguration,
+    ))?;
 
     // Setup the shutdown handle
     let shutdown = shutdown::shutdown();
@@ -99,11 +103,14 @@ async fn main() -> Result<(), Terminate> {
 }
 
 fn load_identity(path: String) -> Result<Identity, Error> {
-    let cert_buffer = std::fs::read(&path).context(ErrorKind::LoadIdentity)?;
+    let cert_buffer = std::fs::read(&path).context(ErrorKind::InitializeBroker(
+        InitializeBrokerReason::LoadIdentity,
+    ))?;
 
     let cert_pwd = "";
-    let cert = Identity::from_pkcs12(cert_buffer.as_slice(), &cert_pwd)
-        .context(ErrorKind::DecodeIdentity)?;
+    let cert = Identity::from_pkcs12(cert_buffer.as_slice(), &cert_pwd).context(
+        ErrorKind::InitializeBroker(InitializeBrokerReason::DecodeIdentity),
+    )?;
 
     Ok(cert)
 }
