@@ -266,7 +266,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
                 {
                     networkOffSuccess++;
                 }
-                else if (HttpStatusCode.OK.Equals(dmSenderTestResult.HttpStatusCode))
+                else if (HttpStatusCode.OK.Equals(statusCode))
                 {
                     if (isWithinTolerancePeriod)
                     {
@@ -276,6 +276,10 @@ namespace TestResultCoordinator.Reports.DirectMethod
                     {
                         networkOffFailure++;
                     }
+                }
+                else if (HttpStatusCode.InternalServerError.Equals(statusCode))
+                {
+                    networkOffFailure++;
                 }
                 else
                 {
