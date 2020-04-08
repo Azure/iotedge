@@ -19,7 +19,7 @@ resources:
   repositories:
   - repository: mqttbenchmark
     type: github
-    endpoint: github.com_mqtt-benchmark
+    endpoint: Azure/iotedge
     name: vadim-kovalyov/mqtt-benchmark
 
 variables:
