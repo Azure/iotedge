@@ -276,7 +276,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string ttlString = "0;";
             for (int i = 0; i < numberOfTTLs - 1; i++)
             {
-                ttlString = ttlString + ttlSet[rng.Next(ttlSet.Length)];
+                ttlString = ttlString + ttlSet[rng.Next(ttlSet.Length)] + ";";
             }
 
             return ttlString;
