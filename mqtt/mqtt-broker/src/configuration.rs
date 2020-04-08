@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::Duration;
 
-use crate::{transport::TransportBuilder, Error, ErrorKind};
+use crate::{transport::TransportBuilder, Error, ErrorKind, InitializeBrokerReason};
 use config::{Config, ConfigError, File, FileFormat};
 use failure::ResultExt;
 use lazy_static::lazy_static;
@@ -43,9 +43,9 @@ impl TryFrom<Transport> for TransportBuilder<String> {
 
 fn load_identity(path: &Path) -> Result<Identity, Error> {
     info!("Loading identity from {:?}", path);
-    let cert_buffer = std::fs::read(&path).context(ErrorKind::LoadIdentity)?;
+    let cert_buffer = std::fs::read(&path).context(ErrorKind::InitializeBroker(InitializeBrokerReason::LoadIdentity))?;
     let cert =
-        Identity::from_pkcs12(cert_buffer.as_slice(), "").context(ErrorKind::DecodeIdentity)?;
+        Identity::from_pkcs12(cert_buffer.as_slice(), "").context(ErrorKind::InitializeBroker(InitializeBrokerReason::DecodeIdentity))?;
 
     Ok(cert)
 }
