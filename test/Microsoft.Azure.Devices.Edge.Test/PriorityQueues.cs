@@ -249,7 +249,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 // If we encounter "Default" in the priority list, don't add a priority - the default priority will automatically get picked up
                 var routeInfo = new Dictionary<string, object>();
                 routeInfo["route"] = $"FROM /messages/modules/{sendModule}/outputs/pri{priority} INTO BrokeredEndpoint('/modules/{receiveModule}/inputs/input1')";
-                routeInfo["timeToLiveSecs"] = int.Parse(ttl);
                 if (!priority.Contains(TestConstants.PriorityQueues.Default))
                 {
                     routeInfo["priority"] = int.Parse(priority);
