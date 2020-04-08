@@ -313,7 +313,7 @@ where
                         path.clone(),
                     ))))
                 });
-                let file = OpenOptions::new()
+                let mut file = OpenOptions::new()
                     .read(true)
                     .open(&path)
                     .context(ErrorKind::Persist(ErrorReason::FileOpen(path)))?;
@@ -321,6 +321,12 @@ where
                 fail_point!("filepersistor.load.format", |_| {
                     Err(Error::from(ErrorKind::Persist(ErrorReason::Serialize)))
                 });
+
+                let mut version = [0; 100];
+                debug!("reading version");
+                file.read_exact(&mut version)
+                    .map_err(|_| Error::from(ErrorKind::Persist(ErrorReason::ReadVersion)))?;
+
                 let state = format.load(file).map_err(Into::into)?;
                 Ok(Some(state))
             } else {
@@ -378,12 +384,17 @@ where
                     path.clone(),
                 ))))
             });
-            let file = OpenOptions::new()
+            let mut file = OpenOptions::new()
                 .create(true)
                 .write(true)
                 .open(&path)
                 .context(ErrorKind::Persist(ErrorReason::FileOpen(path.clone())))?;
             debug!("{} opened.", path.display());
+
+            let version: [u8; 100] = [0; 100];
+            debug!("writing version to {}...", path.display());
+            file.write_all(&version)
+                .map_err(|_| Error::from(ErrorKind::Persist(ErrorReason::WriteVersion)))?;
 
             debug!("persisting state to {}...", path.display());
             match format.store(file, state).map_err(Into::into) {
@@ -533,6 +544,12 @@ pub enum ErrorReason {
 
     #[display(fmt = "failed to deserialize state")]
     Deserialize,
+
+    #[display(fmt = "failed to write version")]
+    WriteVersion,
+
+    #[display(fmt = "failed to read version")]
+    ReadVersion,
 }
 
 #[cfg(test)]
