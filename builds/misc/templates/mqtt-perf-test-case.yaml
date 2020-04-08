@@ -74,7 +74,7 @@ jobs:
   - task: SSH@0
     displayName: Stop broker
     inputs:
-      sshEndpoint: mqttd-host-ssh
+      sshEndpoint: iotedge-mqtt-perf-conn
       runOptions: commands
       commands: |
         docker kill $(docker ps -q) 2>/dev/null
@@ -82,7 +82,7 @@ jobs:
   - task: SSH@0
     displayName: Restart broker
     inputs:
-      sshEndpoint: mqttd-host-ssh
+      sshEndpoint: iotedge-mqtt-perf-conn
       runOptions: commands
       commands: |
         docker run -d -p 1883:1883 $(brokerImageName)
