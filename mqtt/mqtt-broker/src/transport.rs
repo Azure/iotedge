@@ -7,7 +7,6 @@ use std::{
 
 use bytes::{Buf, BufMut};
 use core::mem::MaybeUninit;
-use failure::{Fail, ResultExt};
 use futures::stream::FuturesUnordered;
 use native_tls::Identity;
 use tokio::{
@@ -18,7 +17,7 @@ use tokio::{
 use tokio_native_tls::{TlsAcceptor, TlsStream};
 use tracing::{debug, error, warn};
 
-use crate::{Certificate, Error, ErrorKind, InitializeBrokerReason};
+use crate::{Certificate, Error, InitializeBrokerError};
 
 pub enum TransportBuilder<A> {
     Tcp(A),
@@ -29,7 +28,7 @@ impl<A> TransportBuilder<A>
 where
     A: ToSocketAddrs,
 {
-    pub async fn build(self) -> Result<Transport, Error> {
+    pub async fn build(self) -> Result<Transport, InitializeBrokerError> {
         match self {
             TransportBuilder::Tcp(addr) => Transport::new_tcp(addr).await,
             TransportBuilder::Tls(addr, identity) => Transport::new_tls(addr, identity).await,
@@ -61,32 +60,30 @@ pub enum Transport {
 }
 
 impl Transport {
-    pub async fn new_tcp<A>(addr: A) -> Result<Self, Error>
+    async fn new_tcp<A>(addr: A) -> Result<Self, InitializeBrokerError>
     where
         A: ToSocketAddrs,
     {
         let tcp = TcpListener::bind(addr)
             .await
-            .context(ErrorKind::InitializeBroker(
-                InitializeBrokerReason::BindServer,
-            ))?;
+            .map_err(|e| InitializeBrokerError::BindServer(e))?;
+
         Ok(Transport::Tcp(tcp))
     }
 
-    pub async fn new_tls<A>(addr: A, identity: Identity) -> Result<Self, Error>
+    async fn new_tls<A>(addr: A, identity: Identity) -> Result<Self, InitializeBrokerError>
     where
         A: ToSocketAddrs,
     {
         let acceptor = TlsAcceptor::from(
             native_tls::TlsAcceptor::builder(identity)
                 .build()
-                .context(ErrorKind::InitializeBroker(InitializeBrokerReason::Tls))?,
+                .map_err(|e| InitializeBrokerError::Tls(e))?,
         );
         let tcp = TcpListener::bind(addr)
             .await
-            .context(ErrorKind::InitializeBroker(
-                InitializeBrokerReason::BindServer,
-            ))?;
+            .map_err(|e| InitializeBrokerError::BindServer(e))?;
+
         Ok(Transport::Tls(tcp, acceptor))
     }
 
@@ -97,15 +94,12 @@ impl Transport {
         }
     }
 
-    pub fn local_addr(&self) -> Result<SocketAddr, Error> {
+    pub fn local_addr(&self) -> Result<SocketAddr, InitializeBrokerError> {
         let addr = match self {
             Self::Tcp(listener) => listener.local_addr(),
             Self::Tls(listener, _) => listener.local_addr(),
         };
-        let addr = addr.context(ErrorKind::InitializeBroker(
-            InitializeBrokerReason::ConnectionLocalAddress,
-        ))?;
-        Ok(addr)
+        addr.map_err(|e| InitializeBrokerError::ConnectionLocalAddress(e))
     }
 }
 
@@ -269,7 +263,7 @@ impl GetPeerCertificate for StreamSelector {
                     cert.map(|cert| cert.to_der().map(Certificate::from))
                         .transpose()
                 })
-                .map_err(|e| e.context(ErrorKind::PeerCertificate).into()),
+                .map_err(|e| Error::PeerCertificate(e)),
         }
     }
 }

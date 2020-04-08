@@ -11,7 +11,7 @@ use tracing_futures::Instrument;
 use crate::auth::{Authenticator, Authorizer};
 use crate::broker::{Broker, BrokerHandle, BrokerState};
 use crate::transport::TransportBuilder;
-use crate::{connection, Error, ErrorKind, InitializeBrokerReason, Message, SystemEvent};
+use crate::{connection, Error, ErrorKind, InitializeBrokerError, Message, SystemEvent};
 
 pub struct Server<N, Z>
 where
@@ -187,7 +187,7 @@ where
         match future::select(&mut shutdown_signal, incoming.next()).await {
             Either::Right((Some(Ok(stream)), _)) => {
                 let peer = stream.peer_addr().context(ErrorKind::InitializeBroker(
-                    InitializeBrokerReason::ConnectionPeerAddress,
+                    InitializeBrokerError::ConnectionPeerAddress,
                 ))?;
 
                 let broker_handle = handle.clone();

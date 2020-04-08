@@ -1,7 +1,6 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::{cmp, fmt, mem};
 
-use failure::ResultExt;
 use mqtt3::proto;
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeTuple;
@@ -9,7 +8,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use tracing::{debug, warn};
 
 use crate::subscription::Subscription;
-use crate::{ClientEvent, ClientId, ConnReq, ConnectionHandle, Error, ErrorKind, Message, Publish};
+use crate::{ClientEvent, ClientId, ConnReq, ConnectionHandle, Error, Message, Publish};
 
 const MAX_INFLIGHT_MESSAGES: usize = 16;
 
@@ -145,11 +144,7 @@ impl ConnectedSession {
 
     async fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
         let message = Message::Client(self.state.client_id.clone(), event);
-        self.handle
-            .send(message)
-            .await
-            .context(ErrorKind::SendConnectionMessage)?;
-        Ok(())
+        self.handle.send(message).await
     }
 }
 
@@ -269,11 +264,7 @@ impl DisconnectingSession {
 
     async fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
         let message = Message::Client(self.client_id.clone(), event);
-        self.handle
-            .send(message)
-            .await
-            .context(ErrorKind::SendConnectionMessage)?;
-        Ok(())
+        self.handle.send(message).await
     }
 }
 

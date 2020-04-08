@@ -803,7 +803,6 @@ dependencies = [
  "criterion",
  "derive_more",
  "fail",
- "failure",
  "flate2",
  "futures",
  "futures-util",
@@ -820,6 +819,7 @@ dependencies = [
  "serde_json",
  "tempfile",
  "test-case",
+ "thiserror",
  "tokio",
  "tokio-io-timeout",
  "tokio-native-tls",
@@ -1650,6 +1650,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d326610f408c7a4eb6f51c37c330e496b08506c9457c9d34287ecc38809fb060"
 dependencies = [
  "unicode-width",
+]
+
+[[package]]
+name = "thiserror"
+version = "1.0.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0570dc61221295909abdb95c739f2e74325e14293b2026b0a7e195091ec54ae"
+dependencies = [
+ "thiserror-impl",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "1.0.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "227362df41d566be41a28f64401e07a043157c21c14b9785a0d8e256f940a8fd"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

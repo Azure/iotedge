@@ -1,14 +1,12 @@
 use async_trait::async_trait;
 use derive_more::{Display, From};
-use failure::Fail;
-
-use crate::Error;
+use thiserror::Error;
 
 /// Authenticated MQTT client identity.
 #[derive(Clone, Debug, Display, PartialEq)]
 pub enum AuthId {
     /// Identity for anonymous client.
-    #[display(fmt = "*")]
+    #[display("*")]
     Anonymous,
 
     /// Identity for non-anonymous client.
@@ -92,12 +90,12 @@ impl Authorizer for DefaultAuthorizer {
     }
 }
 
-/// Represents reason for failed auth operations.
-#[derive(Debug, Display, Fail, PartialEq)]
-pub enum ErrorReason {
-    #[display(fmt = "Error occurred during authentication")]
+/// Represents failed auth operations.
+#[derive(Debug, Error, PartialEq)]
+pub enum Error {
+    #[error("Error occurred during authentication.")]
     Authenticate,
 
-    #[display(fmt = "Error occurred during authorization")]
+    #[error("Error occurred during authorization.")]
     Authorize,
 }
