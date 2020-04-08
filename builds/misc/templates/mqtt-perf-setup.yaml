@@ -4,7 +4,6 @@
 jobs:
 - job: setup_host
   pool:
-    name: Default
     demands: mqtt-perf-tests-pub
   displayName: Setup Host
   steps:
@@ -32,7 +31,6 @@ jobs:
 
 - job: setup_pub
   pool:
-    name: Default
     demands: mqtt-perf-tests-pub
   displayName: Setup Publisher
   dependsOn: setup_host
@@ -56,7 +54,6 @@ jobs:
 
 - job: setup_sub
   pool:
-    name: Default
     demands: mqtt-perf-tests-sub
   displayName: Setup Subscriber
   dependsOn: setup_host
@@ -81,8 +78,6 @@ jobs:
 # We need this job to indicate that setup has completed and 
 # test cases jobs can start.
 - job: setup_completed
-  pool:
-    name: Default
   displayName: Setup Completed
   dependsOn: 
   - setup_host
