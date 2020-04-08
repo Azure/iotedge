@@ -269,12 +269,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
         private string BuildTTLString(int numberOfTTLs)
         {
             Random rng = new Random();
-            // Choose from a set of 2 TTLs below the threshold, 2 above, default TTL of 0, and no TTL denoted by -1
-            var ttlSet = new string[] { "5", "10", "400", "1600", "0", "-1" };
+            // Choose from a set of 2 TTLs below the threshold, 2 above
+            var ttlSet = new string[] { "5", "10", "400", "1600" };
 
             // Make sure default is always in the string. We always want to test that default TTL works.
-            string ttlString = "0;";
-            for (int i = 0; i < numberOfTTLs - 1; i++)
+            string ttlString = "0;-1;";
+            for (int i = 0; i < numberOfTTLs - 2; i++)
             {
                 ttlString = ttlString + ttlSet[rng.Next(ttlSet.Length)] + ";";
             }
