@@ -34,7 +34,7 @@ stages:
     brokerAddress: $(broker.address.amd64)
     clientDop: 4 # the number of max threads that can execute mqtt-benchmark tool code simultaneously
 
-  pool: Default
+  pool: Azure-IoT-Edge-Core
   jobs:
     - template: templates/mqtt-perf-setup.yaml
     - template: templates/mqtt-perf-run.yaml
@@ -47,7 +47,7 @@ stages:
     brokerAddress: $(broker.address.arm32v7)
     clientDop: 4 # the number of max threads that can execute mqtt-benchmark tool code simultaneously
 
-  pool: Default
+  pool: Azure-IoT-Edge-Core
   jobs:
     - template: templates/mqtt-perf-setup.yaml
     - template: templates/mqtt-perf-run.yaml
