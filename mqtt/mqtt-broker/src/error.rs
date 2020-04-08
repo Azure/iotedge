@@ -118,7 +118,10 @@ pub enum InitializeBrokerReason {
     #[display(fmt = "An error occurred  obtaining service identity.")]
     IdentityConfiguration,
 
-    #[display(fmt = "An error occurred  loading identity from file.")]
+    #[display(
+        fmt = "An error occurred  loading identity from file {}",
+        "_0.display()"
+    )]
     LoadIdentity(path::PathBuf),
 
     #[display(fmt = "An error occurred  decoding identity content.")]
