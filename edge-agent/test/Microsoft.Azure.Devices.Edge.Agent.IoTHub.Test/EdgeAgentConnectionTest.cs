@@ -1041,7 +1041,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         }
 
         [Integration]
-        [Fact(Skip = "Temporarily disabled due to https://dev.azure.com/msazure/One/_workitems/edit/6488387")]
+        [Fact(Skip = "Investigating. Temporarily disabled to unblock CI pipeline.")]
         public async Task EdgeAgentConnectionStatusTest()
         {
             // Arrange
