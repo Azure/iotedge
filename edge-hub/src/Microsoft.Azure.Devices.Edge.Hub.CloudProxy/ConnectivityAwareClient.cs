@@ -132,8 +132,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 this.deviceConnectivityManager.CallTimedOut();
                 this.HandleDeviceDisconnectedEvent();
             }
-
-            this.connectionStatusChangedHandler?.Invoke(status, reason);
         }
 
         async Task<T> InvokeFunc<T>(Func<Task<T>> func, string operation, bool useForConnectivityCheck = false)

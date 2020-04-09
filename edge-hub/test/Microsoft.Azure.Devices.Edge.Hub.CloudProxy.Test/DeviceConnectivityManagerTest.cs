@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Moq;
     using Xunit;
 
-    [Unit]
+    // [Unit]
     public class DeviceConnectivityManagerTest
     {
         [Fact]
