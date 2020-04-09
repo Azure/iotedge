@@ -28,7 +28,7 @@ namespace DirectMethodSender
             {
                 Guid batchId = Guid.NewGuid();
                 Logger.LogInformation($"Batch Id={batchId}");
-                Logger.LogInformation($"Load gen delay start for {Settings.Current.TestStartDelay}.");
+                Logger.LogInformation($"DirectMethodSender delay start for {Settings.Current.TestStartDelay}.");
                 await Task.Delay(Settings.Current.TestStartDelay, cts.Token);
 
                 DateTime testStartAt = DateTime.UtcNow;
