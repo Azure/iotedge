@@ -1594,8 +1594,8 @@ If ($TestName -eq "LongHaul" -Or $TestName -eq "Stress")
     $TrackingId = New-Guid
     $TestInfo=$TestInfo+",TestId=$TrackingId"
 
-    If ([string]::IsNullOrWhiteSpace($TwinUpdateFailureThreshold)) {$TwinUpdateFailureThreshold="00:00:01"}
-    If ([string]::IsNullOrWhiteSpace($DesiredPropertyCallbackFailureThreshold)) {$DesiredPropertyCallbackFailureThreshold="00:00:01"}
+    If ([string]::IsNullOrWhiteSpace($TwinUpdateFailureThreshold)) {$TwinUpdateFailureThreshold="00:01:00"}
+    If ([string]::IsNullOrWhiteSpace($DesiredPropertyCallbackFailureThreshold)) {$DesiredPropertyCallbackFailureThreshold="00:01:00"}
 }
 
 If ($TestName -eq "LongHaul")
