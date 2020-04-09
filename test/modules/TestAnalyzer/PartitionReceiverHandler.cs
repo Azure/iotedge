@@ -16,6 +16,7 @@ namespace TestAnalyzer
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(PartitionReceiveHandler));
         readonly string deviceId;
         readonly IList<string> excludedModulesIds;
+        int total = 0;
 
         public PartitionReceiveHandler(string deviceId, IList<string> excludedModulesIds)
         {
@@ -62,9 +63,13 @@ namespace TestAnalyzer
                     }
 
                     count += 1;
+                    this.total += 1;
                 }
 
-                Logger.LogInformation($"Read {count} events from eventhub for batch {guid}");
+                if (this.total % 1000 == 0)
+                {
+                    Logger.LogInformation($"Read {count} events from eventhub for batch {guid}. Read {this.total} messages in total.");
+                }
             }
         }
 
