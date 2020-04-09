@@ -295,13 +295,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             {
                 new V1PodCondition
                 {
-                    LastProbeTime = new DateTime(2020, 02, 05, 10, 10, 10),
+                    LastTransitionTime = new DateTime(2020, 02, 05, 10, 10, 10),
                     Message = "Ready",
                     Reason = "Scheduling",
                 },
                 new V1PodCondition
                 {
-                    LastProbeTime = new DateTime(2020, 02, 05, 10, 10, 15),
+                    LastTransitionTime = new DateTime(2020, 02, 05, 10, 10, 15),
                     Message = "persistentvolumeclaim module-a-pvc not found",
                     Reason = "Unschedulable",
                 }
