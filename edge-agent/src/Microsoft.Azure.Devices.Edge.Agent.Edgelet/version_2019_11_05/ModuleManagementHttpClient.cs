@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_11_05
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
+    using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using Disk = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.Disk;
@@ -153,7 +154,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_11_05
                 ModuleList moduleList = await this.Execute(
                     () => edgeletHttpClient.ListModulesAsync(this.Version.Name, cancellationToken),
                     $"List modules");
-                return moduleList.Modules.Select(m => this.GetModuleRuntimeInfo<T>(m));
+                var result = moduleList.Modules.Select(m => this.GetModuleRuntimeInfo<T>(m)).ToArray();
+
+                // ILogger log = Logger.Factory.CreateLogger<ModuleManagementHttpClient>();
+                // log.LogInformation(
+                //      "\n=================================" +
+                //      "\nCURRENT ModuleDetails[]:" +
+                //     $"\n{JsonConvert.SerializeObject(moduleList.Modules, Formatting.Indented)}" +
+                //      "\n=================================" +
+                //      "\nCURRENT ModuleRuntimeInfo<T>[]:" +
+                //     $"\n{JsonConvert.SerializeObject(result, Formatting.Indented)}" +
+                //      "\n=================================");
+                return result;
             }
         }
 

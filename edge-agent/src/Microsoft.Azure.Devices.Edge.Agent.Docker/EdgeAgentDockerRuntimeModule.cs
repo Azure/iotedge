@@ -19,7 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             ImagePullPolicy imagePullPolicy,
             ConfigurationInfo configuration,
             IDictionary<string, EnvVal> env,
-            string version = "")
+            string version = "",
+            bool configIsEmpty = false)
             : base(
                 Core.Constants.EdgeAgentModuleName,
                 version,
@@ -49,6 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.RestartCount = 0;
             this.LastRestartTimeUtc = DateTime.MinValue;
             this.Version = version ?? string.Empty;
+
+            this.ConfigIsEmpty = configIsEmpty;
         }
 
         [JsonIgnore]
@@ -65,6 +68,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         [JsonIgnore]
         public override DateTime LastRestartTimeUtc { get; }
+
+        [JsonIgnore]
+        public bool ConfigIsEmpty { get; }
 
         public override IModule WithRuntimeStatus(ModuleStatus newStatus) => new EdgeAgentDockerRuntimeModule(
             (DockerReportedConfig)this.Config,

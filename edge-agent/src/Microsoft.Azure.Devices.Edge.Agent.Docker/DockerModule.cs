@@ -6,11 +6,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using System.ComponentModel;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
     public class DockerModule : IModule<DockerConfig>
     {
         static readonly DictionaryComparer<string, EnvVal> EnvDictionaryComparer = new DictionaryComparer<string, EnvVal>();
+
+        string json;
+        string name;
 
         public DockerModule(
             string name,
@@ -23,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             ConfigurationInfo configurationInfo,
             IDictionary<string, EnvVal> env)
         {
-            this.Name = name;
+            this.name = name;
             this.Version = version ?? string.Empty;
             this.DesiredStatus = Preconditions.CheckIsDefined(desiredStatus);
             this.Config = Preconditions.CheckNotNull(config, nameof(config));
@@ -32,10 +36,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.Priority = priority;
             this.ConfigurationInfo = configurationInfo ?? new ConfigurationInfo(string.Empty);
             this.Env = env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
+            this.json = JsonConvert.SerializeObject(this, Formatting.Indented);
         }
 
         [JsonIgnore]
-        public string Name { get; set; }
+        public string Name
+        {
+            get => this.name;
+            set
+            {
+                this.name = value;
+                this.json = JsonConvert.SerializeObject(this, Formatting.Indented);
+            }
+        }
 
         [JsonProperty(PropertyName = "version")]
         public virtual string Version { get; }
@@ -79,12 +92,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 return false;
             }
 
+            // void LogResult(string equalResult)
+            // {
+            //     ILogger log = Logger.Factory.CreateLogger<DockerModule>();
+            //     log.LogInformation(
+            //          "\n=================================" +
+            //         $"\nDockerModule.Equals => {equalResult}" +
+            //         $"\nTHIS:\n{this.json}" +
+            //         $"\nOTHER:\n{JsonConvert.SerializeObject(other, Formatting.Indented)}" +
+            //          "\n=================================");
+            // }
             if (ReferenceEquals(this, other))
             {
+                // LogResult("REFERENCE EQUALS");
                 return true;
             }
 
-            return string.Equals(this.Name, other.Name) &&
+            var result = string.Equals(this.Name, other.Name) &&
                 string.Equals(this.Version, other.Version) &&
                 string.Equals(this.Type, other.Type) &&
                 this.DesiredStatus == other.DesiredStatus &&
@@ -93,6 +117,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 this.ImagePullPolicy == other.ImagePullPolicy &&
                 this.Priority == other.Priority &&
                 EnvDictionaryComparer.Equals(this.Env, other.Env);
+
+            // LogResult(result ? "EQUALS" : "NOT EQUALS");
+            return result;
         }
 
         public virtual bool IsOnlyModuleStatusChanged(IModule other)

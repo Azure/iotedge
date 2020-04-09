@@ -97,6 +97,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                         break;
 
                     case Core.Constants.EdgeAgentModuleName:
+                        bool configIsEmpty = false;
+                        if (this.deploymentConfig == DeploymentConfig.Empty)
+                        {
+                            ILogger log = Logger.Factory.CreateLogger<DockerModule>();
+                            log.LogInformation($">>> Detected first-start scenario right before EdgeAgentDockerRuntimeModule creation!");
+                            configIsEmpty = true;
+                        }
+
                         module = new EdgeAgentDockerRuntimeModule(
                             dockerReportedConfig,
                             moduleRuntimeStatus,
@@ -106,7 +114,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                             lastExitTime,
                             dockerModule.ImagePullPolicy,
                             dockerModule.ConfigurationInfo,
-                            dockerModule.Env);
+                            dockerModule.Env,
+                            string.Empty,
+                            configIsEmpty);
                         break;
 
                     default:

@@ -4,26 +4,57 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
     public class EdgeAgentDockerModule : DockerModule, IEdgeAgentModule
     {
+        readonly string json;
+
         [JsonConstructor]
         public EdgeAgentDockerModule(string type, DockerConfig settings, ImagePullPolicy imagePullPolicy, ConfigurationInfo configuration, IDictionary<string, EnvVal> env, string version = "")
             : base(Core.Constants.EdgeAgentModuleName, version, ModuleStatus.Running, RestartPolicy.Always, settings, imagePullPolicy, Core.Constants.HighestPriority, configuration, env)
         {
             Preconditions.CheckArgument(type?.Equals("docker") ?? false);
+            this.json = JsonConvert.SerializeObject(this, Formatting.Indented);
         }
 
         public override bool Equals(IModule<DockerConfig> other)
         {
             if (ReferenceEquals(null, other))
                 return false;
+
+            void LogResult(string equalResult)
+            {
+                ILogger log = Logger.Factory.CreateLogger<EdgeAgentDockerModule>();
+                log.LogInformation(
+                     "\n=================================" +
+                    $"\nEdgeAgentDockerModule.Equals => {equalResult}" +
+                    $"\nTHIS:\n{this.json}" +
+                    $"\nOTHER:\n{JsonConvert.SerializeObject(other, Formatting.Indented)}" +
+                     "\n================================="); // +
+                    // $"\n{System.Environment.StackTrace}");
+            }
+
             if (ReferenceEquals(this, other))
+            {
+                LogResult("REFERENCE EQUALS");
                 return true;
-            return string.Equals(this.Name, other.Name) &&
+            }
+
+            bool result = string.Equals(this.Name, other.Name) &&
                 string.Equals(this.Type, other.Type) &&
                 string.Equals(this.Config.Image, other.Config.Image);
+
+            // Perform a full equality test in all cases except when a new Edge Agent container
+            // starts up and hasn't cached it's config yet
+            if (result && !(other is EdgeAgentDockerRuntimeModule otherRuntime && otherRuntime.ConfigIsEmpty))
+            {
+                result = base.Equals(other);
+            }
+
+            LogResult(result ? "EQUALS" : "NOT EQUALS");
+            return result;
         }
 
         public override int GetHashCode()
