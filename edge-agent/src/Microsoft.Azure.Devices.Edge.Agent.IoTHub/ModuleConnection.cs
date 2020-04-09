@@ -70,6 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     .GetOrElse(
                         async () =>
                         {
+                            // BEARWASHERE -- Here is the SDK
                             IModuleClient mc = await this.moduleClientProvider.Create(this.connectionStatusChangesHandler);
                             mc.Closed += this.OnModuleClientClosed;
                             if (this.enableSubscriptions)

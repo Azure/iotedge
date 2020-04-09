@@ -162,6 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
+        // BEARWASHERE -- SDK creation
         Task<(ISdkModuleClient sdkModuleClient, UpstreamProtocol upstreamProtocol)> CreateSdkModuleClient(ConnectionStatusChangesHandler statusChangedHandler)
             => this.upstreamProtocol
                 .Map(async u =>
