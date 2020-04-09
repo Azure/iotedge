@@ -32,7 +32,6 @@ namespace TestAnalyzer
             {
                 int count = 0;
                 Guid guid = Guid.NewGuid();
-                Logger.LogInformation($"Starting eventhub read events for batch {guid.ToString()}");
                 foreach (EventData eventData in events)
                 {
                     eventData.SystemProperties.TryGetValue(DeviceIdPropertyName, out object devId);
