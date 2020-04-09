@@ -34,8 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     public class DeviceConnectivityManager : IDeviceConnectivityManager
     {
         readonly StateMachine<State, Trigger> machine;
-        readonly Timer connectedTimer;
-        readonly Timer disconnectedTimer;
         readonly IIdentity testClientIdentity;
         readonly AsyncLock machineLock = new AsyncLock();
 
@@ -48,16 +46,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             IIdentity testClientIdentity)
         {
             this.testClientIdentity = Preconditions.CheckNotNull(testClientIdentity, nameof(testClientIdentity));
-            this.connectedTimer = new Timer(minConnectivityCheckFrequency.TotalMilliseconds);
-            this.disconnectedTimer = new Timer(disconnectedCheckFrequency.TotalMilliseconds);
             this.machine = new StateMachine<State, Trigger>(() => this.state, s => this.state = s);
-
-            this.connectedTimer.Elapsed += (_, __) => this.CheckConnectivity();
-            this.disconnectedTimer.Elapsed += (_, __) => this.CheckConnectivity();
 
             this.machine.Configure(State.Connected)
                 .Permit(Trigger.CallTimedOut, State.Trying)
-                .InternalTransition(Trigger.CallSucceeded, this.ResetConnectedTimer)
                 .OnEntry(this.OnConnected)
                 .OnExit(this.OnConnectedExit);
 
@@ -68,13 +60,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             this.machine.Configure(State.Disconnected)
                 .Permit(Trigger.CallSucceeded, State.Connected)
-                .InternalTransition(Trigger.CallTimedOut, this.ResetDisconnectedTimer)
                 .OnEntry(this.OnDisconnected)
                 .OnExit(this.OnDisconnectedExit);
 
             this.state = State.Disconnected;
 
-            Events.Created(minConnectivityCheckFrequency, disconnectedCheckFrequency);
+            Events.Created();
         }
 
         public event EventHandler DeviceConnected;
@@ -97,7 +88,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public void SetConnectionManager(IConnectionManager connectionManager)
         {
             this.connectivityChecker = new ConnectivityChecker(connectionManager, this.testClientIdentity);
-            this.connectedTimer.Start();
             Events.SetConnectionManager();
         }
 
@@ -119,28 +109,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        void ResetDisconnectedTimer()
-        {
-            this.disconnectedTimer.Stop();
-            this.disconnectedTimer.Start();
-        }
-
-        void ResetConnectedTimer()
-        {
-            this.connectedTimer.Stop();
-            this.connectedTimer.Start();
-        }
-
         void OnConnected()
         {
             Events.OnConnected();
-            this.connectedTimer.Start();
         }
 
         void OnConnectedExit()
         {
             Events.OnConnectedExit();
-            this.connectedTimer.Stop();
         }
 
         void OnUnreachable()
@@ -153,14 +129,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             Events.OnDisconnected();
             this.DeviceDisconnected?.Invoke(this, EventArgs.Empty);
-            this.disconnectedTimer.Start();
         }
 
         void OnDisconnectedExit()
         {
             Events.OnDisconnectedExit();
             this.DeviceConnected?.Invoke(this, EventArgs.Empty);
-            this.disconnectedTimer.Stop();
         }
 
         async void CheckConnectivity()
@@ -280,9 +254,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogDebug((int)EventIds.SetConnectionManager, Invariant($"ConnectionManager provided"));
             }
 
-            internal static void Created(TimeSpan connectedCheckFrequency, TimeSpan disconnectedCheckFrequency)
+            internal static void Created()
             {
-                Log.LogInformation((int)EventIds.Created, Invariant($"Created DeviceConnectivityManager with connected check frequency {connectedCheckFrequency} and disconnected check frequency {disconnectedCheckFrequency}"));
+                Log.LogInformation((int)EventIds.Created, Invariant($"Created DeviceConnectivityManager"));
             }
         }
     }
