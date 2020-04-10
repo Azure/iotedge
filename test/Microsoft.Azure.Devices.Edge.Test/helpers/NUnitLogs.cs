@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         {
             try
             {
-                string prefix = $"{Context.Current.DeviceId}-{TestContext.CurrentContext.Test.NormalizedName()}";
+                string prefix = $"{DeviceId.Current.BaseId}-{TestContext.CurrentContext.Test.NormalizedName()}";
                 IEnumerable<string> paths = await EdgeLogs.CollectAsync(testStartTime, prefix, token);
                 foreach (string path in paths)
                 {
