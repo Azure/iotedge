@@ -15,7 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
-    using Newtonsoft.Json;
 
     public class Agent
     {
@@ -87,20 +86,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     {
                         string decryptedJson = await encryptionProvider.DecryptAsync(json);
                         deploymentConfigInfo = Option.Some(deploymentConfigInfoSerde.Deserialize(decryptedJson));
-                    });
-                deploymentConfigInfo.Match(
-                    dci =>
-                    {
-                        ILogger log = Logger.Factory.CreateLogger<Agent>();
-                        string json = JsonConvert.SerializeObject(dci, Formatting.Indented);
-                        log.LogInformation($">>> CACHED CONFIG:\n{json}\n");
-                        return true;
-                    },
-                    () =>
-                    {
-                        ILogger log = Logger.Factory.CreateLogger<Agent>();
-                        log.LogInformation($">>> CACHED CONFIG: <empty>\n");
-                        return true;
                     });
             }
             catch (Exception ex) when (!ex.IsFatal())

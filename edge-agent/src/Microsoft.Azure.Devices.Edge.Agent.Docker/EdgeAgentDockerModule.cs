@@ -4,19 +4,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
     public class EdgeAgentDockerModule : DockerModule, IEdgeAgentModule
     {
-        readonly string json;
-
         [JsonConstructor]
         public EdgeAgentDockerModule(string type, DockerConfig settings, ImagePullPolicy imagePullPolicy, ConfigurationInfo configuration, IDictionary<string, EnvVal> env, string version = "")
             : base(Core.Constants.EdgeAgentModuleName, version, ModuleStatus.Running, RestartPolicy.Always, settings, imagePullPolicy, Core.Constants.HighestPriority, configuration, env)
         {
             Preconditions.CheckArgument(type?.Equals("docker") ?? false);
-            this.json = JsonConvert.SerializeObject(this, Formatting.Indented);
         }
 
         public override bool Equals(IModule<DockerConfig> other)
@@ -24,23 +20,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             if (ReferenceEquals(null, other))
                 return false;
 
-            void LogResult(string equalResult)
-            {
-                ILogger log = Logger.Factory.CreateLogger<EdgeAgentDockerModule>();
-                log.LogInformation(
-                     "\n=================================" +
-                    $"\nEdgeAgentDockerModule.Equals => {equalResult}" +
-                    $"\nTHIS:\n{this.json}" +
-                    $"\nOTHER:\n{JsonConvert.SerializeObject(other, Formatting.Indented)}" +
-                     "\n================================="); // +
-                    // $"\n{System.Environment.StackTrace}");
-            }
-
             if (ReferenceEquals(this, other))
-            {
-                LogResult("REFERENCE EQUALS");
                 return true;
-            }
 
             bool result = string.Equals(this.Name, other.Name) &&
                 string.Equals(this.Type, other.Type) &&
@@ -53,7 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 result = base.Equals(other);
             }
 
-            LogResult(result ? "EQUALS" : "NOT EQUALS");
             return result;
         }
 

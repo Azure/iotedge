@@ -117,32 +117,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities)
         {
             // extract list of modules that need attention
-            (
-                IList<IModule> added,
-                IList<IModule> updateDeployed,
-                IList<IModule> desiredStatusChanged,
-                IList<IRuntimeModule> updateStateChanged,
-                IList<IRuntimeModule> removed,
-                IList<IRuntimeModule> runningGreat
-            ) = this.ProcessDiff(desired, current);
+            (IList<IModule> added, IList<IModule> updateDeployed, IList<IModule> desiredStatusChanged, IList<IRuntimeModule> updateStateChanged, IList<IRuntimeModule> removed, IList<IRuntimeModule> runningGreat) = this.ProcessDiff(desired, current);
 
-            // string addedStr = string.Join(", ", added.Select(m => m.Name));
-            // string updateDeployedStr = string.Join(", ", updateDeployed.Select(m => m.Name));
-            // string desiredStatusChangedStr = string.Join(", ", desiredStatusChanged.Select(m => m.Name));
-            // string updateStateChangedStr = string.Join(", ", updateStateChanged.Select(m => m.Name));
-            // string removedStr = string.Join(", ", removed.Select(m => m.Name));
-            // string runningGreatStr = string.Join(", ", runningGreat.Select(m => m.Name));
-            //
-            // ILogger log = Logger.Factory.CreateLogger<HealthRestartPlanner>();
-            // log.LogInformation(
-            //      "\n=================================" +
-            //     $"\n ADDED: {addedStr}" +
-            //     $"\n UPDATE DEPLOYED: {updateDeployedStr}" +
-            //     $"\n DESIRED STATUS CHANGED: {desiredStatusChangedStr}" +
-            //     $"\n UPDATE STATE CHANGED: {updateStateChangedStr}" +
-            //     $"\n REMOVED: {removedStr}" +
-            //     $"\n RUNNING GREAT: {runningGreatStr}" +
-            //      "\n=================================");
             List<ICommand> updateRuntimeCommands = await this.GetUpdateRuntimeCommands(updateDeployed, moduleIdentities, runtimeInfo);
 
             // create "stop" commands for modules that have been removed

@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using System.Collections.Immutable;
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
     public class ModuleSet : IEquatable<ModuleSet>
@@ -74,28 +73,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 .Where(key => !this.Modules[key].Equals(other.Modules[key]))
                 .Select(key => this.Modules[key]);
 
-            // var des = new List<string>(this.Modules.Keys);
-            // var cur = new List<string>(other.Modules.Keys);
-            // var @int = new List<string>(this.Modules.Keys.Intersect(other.Modules.Keys));
-            // var dsc = new List<string>(@int.Except(desiredStatusChanged.Select(m => m.Name)));
-            // var dif = new List<string>(dsc.Where(key => !this.Modules[key].Equals(other.Modules[key])));
-
-            // ILogger log = Logger.Factory.CreateLogger<ModuleSet>();
-            // log.LogInformation(
-            //      "\n=================================" +
-            //     $"\n DESIRED: {string.Join(", ", des)}" +
-            //     $"\n CURRENT: {string.Join(", ", cur)}" +
-            //     $"\n INTERSECTION: {string.Join(", ", @int)}" +
-            //     $"\n WITHOUT DESIRED STATUS CHANGES: {string.Join(", ", dsc)}" +
-            //     $"\n DIFFERENT: {string.Join(", ", dif)}" +
-            //     $"\n RESULT: {string.Join(", ", updated.ToList())}" +
-            //      "\n=================================");
-
-            // if (dif.Count != 0)
-            // {
-            //     log.LogInformation($"\nDESIRED IModule[]:\n{JsonConvert.SerializeObject(this.Modules, Formatting.Indented)}");
-            //     log.LogInformation($"\nCURRENT IModule[]:\n{JsonConvert.SerializeObject(other.Modules, Formatting.Indented)}");
-            // }
             return new Diff(created.ToList(), updated.ToList(), desiredStatusChanged, removed.ToList());
         }
 

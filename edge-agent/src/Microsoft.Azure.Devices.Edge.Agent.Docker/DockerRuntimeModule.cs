@@ -5,13 +5,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
     public class DockerRuntimeModule : DockerModule, IRuntimeModule<DockerConfig>
     {
-        readonly string json;
-
         public DockerRuntimeModule(
             string name,
             string version,
@@ -38,7 +35,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.RestartCount = Preconditions.CheckRange(restartCount, 0, nameof(restartCount));
             this.LastRestartTimeUtc = lastRestartTime;
             this.RuntimeStatus = Preconditions.CheckIsDefined(runtimeStatus);
-            this.json = JsonConvert.SerializeObject(this, Formatting.Indented);
         }
 
         [JsonConstructor]
@@ -110,45 +106,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         {
             if (ReferenceEquals(null, other))
                 return false;
-
-            // void LogResult(string equalResult)
-            // {
-            //     ILogger log = Logger.Factory.CreateLogger<DockerRuntimeModule>();
-            //     log.LogInformation(
-            //          "\n=================================" +
-            //         $"\nDockerRuntimeModule.Equals => {equalResult}" +
-            //         $"\nTHIS:\n{this.json}" +
-            //         $"\nOTHER:\n{JsonConvert.SerializeObject(other, Formatting.Indented)}" +
-            //          "\n=================================");
-            // }
             if (ReferenceEquals(this, other))
-            {
-                // LogResult("REFERENCE EQUALS");
                 return true;
-            }
-
             // Compare as IModule, then Compare as IRuntimeModule, if applicable
             if (!base.Equals(other))
             {
-                // LogResult("BASE NOT EQUALS");
                 return false;
             }
             else
             {
                 if (other is IRuntimeModule reportedOther)
                 {
-                    var result = this.ExitCode == reportedOther.ExitCode &&
+                    return this.ExitCode == reportedOther.ExitCode &&
                            string.Equals(this.StatusDescription, reportedOther.StatusDescription) &&
                            this.LastStartTimeUtc == reportedOther.LastStartTimeUtc &&
                            this.LastExitTimeUtc == reportedOther.LastExitTimeUtc &&
                            this.RestartCount == reportedOther.RestartCount &&
                            this.LastRestartTimeUtc == reportedOther.LastRestartTimeUtc &&
                            this.RuntimeStatus == reportedOther.RuntimeStatus;
-                    // LogResult(result ? "EQUALS" : "NOT EQUALS");
-                    return result;
                 }
 
-                // LogResult("BASE EQUALS");
                 return true;
             }
         }
