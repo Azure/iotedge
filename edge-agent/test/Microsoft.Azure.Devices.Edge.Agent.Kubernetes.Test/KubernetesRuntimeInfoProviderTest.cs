@@ -315,6 +315,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.Equal(expectedDescription, info.Description);
         }
 
+        [Fact]
+        public async Task ReturnModuleStatusWithPodConditionsIsEmpty()
+        {
+            var client = new Mock<IKubernetes>(MockBehavior.Strict);
+            var moduleManager = new Mock<IModuleManager>(MockBehavior.Strict);
+            var runtimeInfo = new KubernetesRuntimeInfoProvider(Namespace, client.Object, moduleManager.Object);
+            V1Pod pod = CreatePodWithPodParametersOnly("Pending", string.Empty, string.Empty);
+            pod.Status.Conditions = null;
+            runtimeInfo.CreateOrUpdateAddPodInfo(pod);
+            string expectedDescription = "Module Failed with Unknown pod status";
+
+            ModuleRuntimeInfo info = (await runtimeInfo.GetModules(CancellationToken.None)).Single();
+
+            Assert.Equal(ModuleStatus.Failed, info.ModuleStatus);
+            Assert.Equal(expectedDescription, info.Description);
+        }
+
         [Theory]
         [MemberData(nameof(GetListOfPodsInRunningPhase))]
         public async Task ReturnModuleStatusWhenPodIsRunning(V1Pod pod, string description, ModuleStatus status)
