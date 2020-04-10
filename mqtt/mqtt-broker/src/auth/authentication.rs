@@ -1,22 +1,7 @@
 use async_trait::async_trait;
-use derive_more::{Display, From};
-use failure::Fail;
+use derive_more::From;
 
-use crate::Error;
-
-/// Authenticated MQTT client identity.
-#[derive(Clone, Debug, Display, PartialEq)]
-pub enum AuthId {
-    /// Identity for anonymous client.
-    #[display(fmt = "*")]
-    Anonymous,
-
-    /// Identity for non-anonymous client.
-    Value(Identity),
-}
-
-/// Non-anonymous client identity.
-pub type Identity = String;
+use crate::{AuthId, Error};
 
 /// Describes a MQTT client credentials.
 pub enum Credentials {
@@ -64,40 +49,29 @@ impl Authenticator for DefaultAuthenticator {
     }
 }
 
-/// A trait to check a MQTT client permissions to perform some actions.
-#[async_trait]
-pub trait Authorizer {
-    /// Authorizes a MQTT client to perform some action.
-    async fn authorize(&self, auth_id: AuthId) -> Result<bool, Error>;
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[async_trait]
-impl<F> Authorizer for F
-where
-    F: Fn(AuthId) -> Result<bool, Error> + Sync,
-{
-    async fn authorize(&self, auth_id: AuthId) -> Result<bool, Error> {
-        self(auth_id)
+    use matches::assert_matches;
+
+    #[tokio::test]
+    async fn default_auth_always_return_unknown_client_identity() {
+        let authenticator = DefaultAuthenticator;
+        let credentials = Credentials::Basic(Some("username".into()), Some("password".into()));
+
+        let auth_id = authenticator.authenticate(credentials).await;
+
+        assert_matches!(auth_id, Ok(None));
     }
-}
 
-/// Default implementation that always denies any operation a client intends to perform.
-/// This implementation will be used if custom authorization mechanism was not provided.
-pub struct DefaultAuthorizer;
+    #[tokio::test]
+    async fn authenticator_wrapper_around_function() {
+        let authenticator = |_| Ok(Some(AuthId::Anonymous));
+        let credentials = Credentials::Basic(Some("username".into()), Some("password".into()));
 
-#[async_trait]
-impl Authorizer for DefaultAuthorizer {
-    async fn authorize(&self, _: AuthId) -> Result<bool, Error> {
-        Ok(false)
+        let auth_id = authenticator.authenticate(credentials).await;
+
+        assert_matches!(auth_id, Ok(Some(AuthId::Anonymous)));
     }
-}
-
-/// Represents reason for failed auth operations.
-#[derive(Debug, Display, Fail, PartialEq)]
-pub enum ErrorReason {
-    #[display(fmt = "Error occurred during authentication")]
-    Authenticate,
-
-    #[display(fmt = "Error occurred during authorization")]
-    Authorize,
 }
