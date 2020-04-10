@@ -726,7 +726,7 @@ impl Session {
             Self::Transient(ref mut connected) => connected.send(event).await,
             Self::Persistent(ref mut connected) => connected.send(event).await,
             Self::Disconnecting(ref mut disconnecting) => disconnecting.send(event).await,
-            _ => Err(Error::SessionOffline.into()),
+            _ => Err(Error::SessionOffline),
         }
     }
 }

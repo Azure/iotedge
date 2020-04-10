@@ -48,7 +48,7 @@ impl Transport {
     {
         let tcp = TcpListener::bind(addr)
             .await
-            .map_err(|e| InitializeBrokerError::BindServer(e))?;
+            .map_err(InitializeBrokerError::BindServer)?;
 
         Ok(Transport::Tcp(tcp))
     }
@@ -60,11 +60,11 @@ impl Transport {
         let acceptor = TlsAcceptor::from(
             native_tls::TlsAcceptor::builder(identity)
                 .build()
-                .map_err(|e| InitializeBrokerError::Tls(e))?,
+                .map_err(InitializeBrokerError::Tls)?,
         );
         let tcp = TcpListener::bind(addr)
             .await
-            .map_err(|e| InitializeBrokerError::BindServer(e))?;
+            .map_err(InitializeBrokerError::BindServer)?;
 
         Ok(Transport::Tls(tcp, acceptor))
     }
@@ -81,7 +81,7 @@ impl Transport {
             Self::Tcp(listener) => listener.local_addr(),
             Self::Tls(listener, _) => listener.local_addr(),
         };
-        addr.map_err(|e| InitializeBrokerError::ConnectionLocalAddress(e))
+        addr.map_err(InitializeBrokerError::ConnectionLocalAddress)
     }
 }
 
@@ -245,7 +245,7 @@ impl GetPeerCertificate for StreamSelector {
                     cert.map(|cert| cert.to_der().map(Certificate::from))
                         .transpose()
                 })
-                .map_err(|e| Error::PeerCertificate(e)),
+                .map_err(Error::PeerCertificate),
         }
     }
 }
