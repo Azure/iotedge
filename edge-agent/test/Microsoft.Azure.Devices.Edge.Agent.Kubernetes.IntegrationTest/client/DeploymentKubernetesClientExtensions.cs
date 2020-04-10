@@ -2,9 +2,12 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
 {
     using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
     using k8s;
     using k8s.Models;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using System.Linq;
 
     public static class DeploymentKubernetesClientExtensions
     {
@@ -59,6 +62,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
 
             await client.Kubernetes.ReplaceNamespacedDeploymentAsync(deployment, name, client.DeviceNamespace);
         }
+
+        public static async Task<Option<V1DeploymentList>> WaitUntilAnyDeploymentAsync(this KubernetesClient client, CancellationToken token) =>
+           await KubernetesClient.WaitUntilAsync(
+               () => client.Kubernetes.ListNamespacedDeploymentAsync(client.DeviceNamespace, cancellationToken: token),
+               p => p.Items.Any(),
+               token);
 
         public static async Task DeleteModuleDeploymentAsync(this KubernetesClient client, string name) => await client.Kubernetes.DeleteNamespacedDeploymentAsync(name, client.DeviceNamespace);
 
