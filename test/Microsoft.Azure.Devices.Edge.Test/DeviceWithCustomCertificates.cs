@@ -21,12 +21,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = this.TestToken;
 
-            string leafDeviceId = IdentityLimits.CheckLeafId(
-                $"{Context.Current.DeviceId}-{protocol}-{testAuth}");
+            string leafDeviceId = DeviceId.Current.Generate();
 
             Option<string> parentId = testAuth == TestAuthenticationType.SasOutOfScope
                 ? Option.None<string>()
-                : Option.Some(Context.Current.DeviceId.ToString());
+                : Option.Some(this.runtime.DeviceId);
 
             var leaf = await LeafDevice.CreateAsync(
                 leafDeviceId,

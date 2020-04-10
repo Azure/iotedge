@@ -4,12 +4,9 @@ namespace NetworkController
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
-    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -45,7 +42,6 @@ namespace NetworkController
 
                         Log.LogInformation($"Delay {durationBeforeTestStart} before starting network controller.");
                         await Task.Delay(durationBeforeTestStart, cts.Token);
-                        await ReportTestInfoAsync();
 
                         switch (Settings.Current.NetworkRunProfile.ProfileType)
                         {
@@ -79,31 +75,6 @@ namespace NetworkController
             await cts.Token.WhenCanceled();
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
-        }
-
-        static async Task ReportTestInfoAsync()
-        {
-            var testInfoResults = new string[]
-            {
-                $"Network Run Profile Type={Settings.Current.NetworkRunProfile.ProfileType}",
-                $"Network Run Profile Settings={Settings.Current.NetworkRunProfile.ProfileSetting.ToString()}",
-                $"Network Network Id={Settings.Current.NetworkId}",
-                $"Network Frequencies={string.Join(",", Settings.Current.Frequencies.Select(f => $"[Enable Network Control:{f.OfflineFrequency},Disable Network Control:{f.OnlineFrequency},Runs:{f.RunsCount}]"))}"
-            };
-
-            var testResultReportingClient = new TestResultReportingClient() { BaseUrl = Settings.Current.TestResultCoordinatorEndpoint.AbsoluteUri };
-
-            foreach (string testInfo in testInfoResults)
-            {
-                await ModuleUtil.ReportTestResultAsync(
-                    testResultReportingClient,
-                    Log,
-                    new TestInfoResult(
-                        Settings.Current.TrackingId,
-                        Settings.Current.ModuleId,
-                        testInfo,
-                        DateTime.UtcNow));
-            }
         }
 
         static async Task StartAsync(INetworkController controller, CancellationToken cancellationToken)

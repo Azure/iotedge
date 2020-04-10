@@ -1,19 +1,17 @@
-use std::{env, io};
+use std::{convert::TryInto, env, io};
 
+use clap::{crate_description, crate_name, crate_version, App, Arg};
 use failure::ResultExt;
 use futures_util::pin_mut;
-use tokio::time::Duration;
+use mqtt_broker::*;
+use tokio::time::{Duration, Instant};
 use tracing::{info, warn, Level};
 use tracing_subscriber::{fmt, EnvFilter};
 
-use mqtt_broker::{
-    Broker, BrokerHandle, Error, ErrorKind, Message, NullPersistor, Persist, Server, Snapshotter,
-    StateSnapshotHandle, SystemEvent,
-};
-use mqttd::{shutdown, snapshot};
+use mqttd::{shutdown, snapshot, Terminate};
 
 #[tokio::main]
-async fn main() -> Result<(), Error> {
+async fn main() -> Result<(), Terminate> {
     let subscriber = fmt::Subscriber::builder()
         .with_ansi(atty::is(atty::Stream::Stderr))
         .with_max_level(Level::TRACE)
@@ -22,22 +20,33 @@ async fn main() -> Result<(), Error> {
         .finish();
     let _ = tracing::subscriber::set_global_default(subscriber);
 
-    let addr = env::args()
-        .nth(1)
-        .unwrap_or_else(|| "0.0.0.0:1883".to_string());
+    let config = create_app()
+        .get_matches()
+        .value_of("config")
+        .map_or(BrokerConfig::new(), BrokerConfig::from_file)
+        .context(ErrorKind::InitializeBroker(
+            InitializeBrokerReason::LoadConfiguration,
+        ))?;
 
     // Setup the shutdown handle
     let shutdown = shutdown::shutdown();
     pin_mut!(shutdown);
 
     // Setup the snapshotter
-    let mut persistor = NullPersistor;
+    let mut persistor = FilePersistor::new(
+        env::current_dir().expect("can't get cwd").join("state"),
+        ConsolidatedStateFormat::default(),
+    );
     info!("Loading state...");
-    let state = persistor.load().await.context(ErrorKind::General)?;
-    let broker = Broker::from_state(state);
+    let state = persistor.load().await?.unwrap_or_else(BrokerState::default);
+    let broker = BrokerBuilder::default()
+        .authenticator(|_| Ok(Some(AuthId::anonymous())))
+        .authorizer(|_| Ok(false))
+        .state(state)
+        .build();
     info!("state loaded.");
 
-    let snapshotter = Snapshotter::new(NullPersistor);
+    let snapshotter = Snapshotter::new(persistor);
     let snapshot_handle = snapshotter.snapshot_handle();
     let mut shutdown_handle = snapshotter.shutdown_handle();
     let join_handle = tokio::spawn(snapshotter.run());
@@ -54,18 +63,27 @@ async fn main() -> Result<(), Error> {
     let snapshot = snapshot::snapshot(broker.handle(), snapshot_handle.clone());
     tokio::spawn(snapshot);
 
+    // Create configured transports
+    let transports = config
+        .transports()
+        .iter()
+        .map(|transport| transport.clone().try_into())
+        .collect::<Result<Vec<_>, _>>()?;
+
     info!("Starting server...");
-    let state = Server::from_broker(broker).serve(addr, shutdown).await?;
+    let state = Server::from_broker(broker)
+        .serve(transports, shutdown)
+        .await?;
 
     // Stop snapshotting
     shutdown_handle.shutdown().await?;
-    let mut persistor = join_handle.await.context(ErrorKind::BrokerJoin)?;
+    let mut persistor = join_handle.await.context(ErrorKind::TaskJoin)?;
     info!("state snapshotter shutdown.");
 
     info!("persisting state before exiting...");
     persistor.store(state).await?;
     info!("state persisted.");
-    info!("exiting... good bye");
+    info!("exiting... goodbye");
 
     Ok(())
 }
@@ -76,7 +94,8 @@ async fn tick_snapshot(
     snapshot_handle: StateSnapshotHandle,
 ) {
     info!("Persisting state every {:?}", period);
-    let mut interval = tokio::time::interval(period);
+    let start = Instant::now() + period;
+    let mut interval = tokio::time::interval_at(start, period);
     loop {
         interval.tick().await;
         if let Err(e) = broker_handle
@@ -88,4 +107,18 @@ async fn tick_snapshot(
             warn!(message = "failed to tick the snapshotter", error=%e);
         }
     }
+}
+
+fn create_app() -> App<'static, 'static> {
+    App::new(crate_name!())
+        .version(crate_version!())
+        .about(crate_description!())
+        .arg(
+            Arg::with_name("config")
+                .short("c")
+                .long("config")
+                .value_name("FILE")
+                .help("Sets a custom config file")
+                .takes_value(true),
+        )
 }

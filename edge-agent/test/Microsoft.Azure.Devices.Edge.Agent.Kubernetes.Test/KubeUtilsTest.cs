@@ -99,6 +99,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Theory]
         [InlineData("edgeagent", "$edgeAgent")]
         [InlineData("edgehub", "$edgeHub")]
+        [InlineData("12device", "12device")]
+        [InlineData("345hub-name.org", "345hub-name.org")]
         // length is <= 63 characters, lowercase
         [InlineData("abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabc", "ABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABC")]
         // must be all alphanumeric characters or ['-','.','_']

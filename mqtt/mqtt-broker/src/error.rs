@@ -1,21 +1,16 @@
-use std::fmt;
+use std::path;
 
+use derive_more::Display;
 use failure::{Backtrace, Context, Fail};
 use mqtt3::proto::Packet;
 
-#[derive(Debug)]
+#[derive(Debug, Display)]
 pub struct Error {
     inner: Context<ErrorKind>,
 }
 
 #[derive(Debug, Fail, PartialEq)]
 pub enum ErrorKind {
-    #[fail(display = "A general error occurred in the server.")]
-    General,
-
-    #[fail(display = "An error occurred trying to connect.")]
-    Connect,
-
     #[fail(display = "An error occurred sending a message to the broker.")]
     SendBrokerMessage,
 
@@ -24,15 +19,6 @@ pub enum ErrorKind {
 
     #[fail(display = "An error occurred sending a message to a snapshotter.")]
     SendSnapshotMessage,
-
-    #[fail(display = "An error occurred binding the server's listening socket.")]
-    BindServer,
-
-    #[fail(display = "An error occurred getting a connection's peer address.")]
-    ConnectionPeerAddress,
-
-    #[fail(display = "An error occurred configuring a connection.")]
-    ConnectionConfiguration,
 
     #[fail(display = "An error occurred decoding a packet.")]
     DecodePacket,
@@ -61,8 +47,20 @@ pub enum ErrorKind {
     #[fail(display = "All packet identifiers are exhausted.")]
     PacketIdentifiersExhausted,
 
-    #[fail(display = "An error occurred joining the broker task.")]
-    BrokerJoin,
+    #[fail(display = "An error occurred joining a task.")]
+    TaskJoin,
+
+    #[fail(display = "An error occurred persisting state: {}", _0)]
+    Persist(crate::persist::ErrorReason),
+
+    #[fail(display = "Unable to obtain peer leaf certificate.")]
+    PeerCertificate,
+
+    #[fail(display = "Unable to start broker: {}", _0)]
+    InitializeBroker(InitializeBrokerReason),
+
+    #[fail(display = "An error occurred checking client permissions: {}.", _0)]
+    Auth(crate::auth::ErrorReason),
 }
 
 impl Fail for Error {
@@ -72,12 +70,6 @@ impl Fail for Error {
 
     fn backtrace(&self) -> Option<&Backtrace> {
         self.inner.backtrace()
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.inner, f)
     }
 }
 
@@ -103,4 +95,41 @@ impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
+}
+
+/// Represents reason for errors occurred while bootstrapping broker.
+#[derive(Debug, Display, PartialEq)]
+pub enum InitializeBrokerReason {
+    #[display(fmt = "An error occurred binding the server's listening socket.")]
+    BindServer,
+
+    #[display(fmt = "An error occurred getting a connection's peer address.")]
+    ConnectionPeerAddress,
+
+    #[display(fmt = "An error occurred getting local address.")]
+    ConnectionLocalAddress,
+
+    #[display(fmt = "An error occurred configuring a connection.")]
+    ConnectionConfiguration,
+
+    #[display(fmt = "An error occurred loading configuration.")]
+    LoadConfiguration,
+
+    #[display(fmt = "An error occurred  obtaining service identity.")]
+    IdentityConfiguration,
+
+    #[display(
+        fmt = "An error occurred  loading identity from file {}",
+        "_0.display()"
+    )]
+    LoadIdentity(path::PathBuf),
+
+    #[display(fmt = "An error occurred  decoding identity content.")]
+    DecodeIdentity,
+
+    #[display(fmt = "An error occurred  starting listener.")]
+    StartListener,
+
+    #[display(fmt = "An error occurred  bootstrapping TLS")]
+    Tls,
 }

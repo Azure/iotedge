@@ -201,12 +201,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string edgeHostname,
             CancellationToken token)
         {
-            IdCertificates primary = await ca.GenerateIdentityCertificatesAsync(
-                IdentityLimits.CheckCommonName($"{leafDeviceId}-1"),
-                token);
-            IdCertificates secondary = await ca.GenerateIdentityCertificatesAsync(
-                IdentityLimits.CheckCommonName($"{leafDeviceId}-2"),
-                token);
+            IdCertificates primary = await ca.GenerateIdentityCertificatesAsync($"{leafDeviceId}-1", token);
+            IdCertificates secondary = await ca.GenerateIdentityCertificatesAsync($"{leafDeviceId}-2", token);
 
             string[] streams = await Task.WhenAll(
                 new[]

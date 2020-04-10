@@ -12,16 +12,28 @@ namespace TestResultCoordinator.Reports
     sealed class TwinCountingReportGenerator : ITestResultReportGenerator
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TwinCountingReportGenerator));
+        readonly string testDescription;
         readonly string trackingId;
         readonly string expectedSource;
         readonly ITestResultCollection<TestOperationResult> expectedTestResults;
         readonly string actualSource;
         readonly ITestResultCollection<TestOperationResult> actualTestResults;
         readonly string resultType;
+        readonly ushort unmatchedResultsMaxSize;
         SimpleTestOperationResultComparer testResultComparer;
 
-        internal TwinCountingReportGenerator(string trackingId, string expectedSource, ITestResultCollection<TestOperationResult> expectedTestResults, string actualSource, ITestResultCollection<TestOperationResult> actualTestResults, string testOperationResultType, SimpleTestOperationResultComparer testResultComparer)
+        internal TwinCountingReportGenerator(
+            string testDescription,
+            string trackingId,
+            string expectedSource,
+            ITestResultCollection<TestOperationResult> expectedTestResults,
+            string actualSource,
+            ITestResultCollection<TestOperationResult> actualTestResults,
+            string testOperationResultType,
+            SimpleTestOperationResultComparer testResultComparer,
+            ushort unmatchedResultsMaxSize)
         {
+            this.testDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.expectedTestResults = Preconditions.CheckNotNull(expectedTestResults, nameof(expectedTestResults));
             this.expectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
@@ -29,6 +41,7 @@ namespace TestResultCoordinator.Reports
             this.actualTestResults = Preconditions.CheckNotNull(actualTestResults, nameof(actualTestResults));
             this.testResultComparer = Preconditions.CheckNotNull(testResultComparer, nameof(testResultComparer));
             this.resultType = Preconditions.CheckNonWhiteSpace(testOperationResultType, nameof(testOperationResultType));
+            this.unmatchedResultsMaxSize = Preconditions.CheckRange<ushort>(unmatchedResultsMaxSize, 1);
         }
 
         public async Task<ITestResultReport> CreateReportAsync()
@@ -39,7 +52,7 @@ namespace TestResultCoordinator.Reports
             ulong totalMatchCount = 0;
             ulong totalPatches = 0;
             ulong totalDuplicates = 0;
-            List<string> unmatchedResults = new List<string>();
+            Queue<string> unmatchedResults = new Queue<string>();
 
             Dictionary<string, DateTime> propertiesUpdated = new Dictionary<string, DateTime>();
             Dictionary<string, DateTime> propertiesReceived = new Dictionary<string, DateTime>();
@@ -91,7 +104,7 @@ namespace TestResultCoordinator.Reports
                 }
                 else
                 {
-                    unmatchedResults.Add($"{this.expectedSource} {desiredPropertyUpdate.Key}");
+                    TestReportUtil.EnqueueAndEnforceMaxSize(unmatchedResults, $"{this.expectedSource} {desiredPropertyUpdate.Key}", this.unmatchedResultsMaxSize);
                 }
             }
 
@@ -100,11 +113,12 @@ namespace TestResultCoordinator.Reports
                 if (!propertiesUpdated.ContainsKey(desiredPropertyReceived.Key))
                 {
                     Logger.LogError($"[{nameof(TwinCountingReportGenerator)}] Actual test result source has unexpected results.");
-                    unmatchedResults.Add($"{this.actualSource} {desiredPropertyReceived.Key}");
+                    TestReportUtil.EnqueueAndEnforceMaxSize(unmatchedResults, $"{this.actualSource} {desiredPropertyReceived.Key}", this.unmatchedResultsMaxSize);
                 }
             }
 
             return new TwinCountingReport(
+                this.testDescription,
                 this.trackingId,
                 this.expectedSource,
                 this.actualSource,
@@ -113,7 +127,7 @@ namespace TestResultCoordinator.Reports
                 totalMatchCount,
                 totalPatches,
                 totalDuplicates,
-                unmatchedResults.AsReadOnly());
+                new List<string>(unmatchedResults).AsReadOnly());
         }
 
         Option<TwinTestResult> GetTwinTestResult(TestOperationResult current)

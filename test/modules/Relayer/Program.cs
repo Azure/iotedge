@@ -2,7 +2,12 @@
 namespace Relayer
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Linq;
+    using System.Net;
+    using System.Runtime.CompilerServices;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -10,6 +15,7 @@ namespace Relayer
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
 
     /*
      * Module for relaying messages. It receives a message and passes it on.
@@ -17,6 +23,8 @@ namespace Relayer
     class Program
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("Relayer");
+        static volatile bool isFinished = false;
+        static ConcurrentBag<string> resultsReceived = new ConcurrentBag<string>();
 
         static async Task Main(string[] args)
         {
@@ -32,6 +40,8 @@ namespace Relayer
                     Logger);
 
                 (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
+
+                await SetIsFinishedDirectMethodAsync(moduleClient);
 
                 // Receive a message and call ProcessAndSendMessageAsync to send it on its way
                 await moduleClient.SetInputMessageHandlerAsync(Settings.Current.InputName, ProcessAndSendMessageAsync, moduleClient);
@@ -100,23 +110,40 @@ namespace Relayer
                     BatchId = batchId,
                     SequenceNumber = sequenceNumber
                 };
+
                 await ModuleUtil.ReportTestResultAsync(testResultReportingClient, Logger, testResultReceived);
+
                 Logger.LogInformation($"Successfully received message: trackingid={trackingId}, batchId={batchId}, sequenceNumber={sequenceNumber}");
 
-                byte[] messageBytes = message.GetBytes();
-                var messageCopy = new Message(messageBytes);
-                messageProperties.ForEach(kvp => messageCopy.Properties.Add(kvp));
-                await moduleClient.SendEventAsync(Settings.Current.OutputName, messageCopy);
-
-                // Report sending message successfully to Test Result Coordinator
-                var testResultSent = new MessageTestResult(Settings.Current.ModuleId + ".send", DateTime.UtcNow)
+                if (!Settings.Current.ReceiveOnly)
                 {
-                    TrackingId = trackingId,
-                    BatchId = batchId,
-                    SequenceNumber = sequenceNumber
-                };
-                await ModuleUtil.ReportTestResultAsync(testResultReportingClient, Logger, testResultSent);
-                Logger.LogInformation($"Successfully sent message: trackingid={trackingId}, batchId={batchId}, sequenceNumber={sequenceNumber}");
+                    byte[] messageBytes = message.GetBytes();
+                    var messageCopy = new Message(messageBytes);
+                    messageProperties.ForEach(kvp => messageCopy.Properties.Add(kvp));
+                    await moduleClient.SendEventAsync(Settings.Current.OutputName, messageCopy);
+                    // Report sending message successfully to Test Result Coordinator
+                    var testResultSent = new MessageTestResult(Settings.Current.ModuleId + ".send", DateTime.UtcNow)
+                    {
+                        TrackingId = trackingId,
+                        BatchId = batchId,
+                        SequenceNumber = sequenceNumber
+                    };
+                    await ModuleUtil.ReportTestResultAsync(testResultReportingClient, Logger, testResultSent);
+                    Logger.LogInformation($"Successfully sent message: trackingid={trackingId}, batchId={batchId}, sequenceNumber={sequenceNumber}");
+                }
+                else
+                {
+                    int uniqueResultsExpected = Settings.Current.UniqueResultsExpected.Expect<ArgumentException>(() => throw new ArgumentException("Must supply this value if in ReceiveOnly mode"));
+                    if (!resultsReceived.Contains(sequenceNumber))
+                    {
+                        resultsReceived.Add(sequenceNumber);
+                    }
+
+                    if (resultsReceived.Count == uniqueResultsExpected)
+                    {
+                        isFinished = true;
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -124,6 +151,20 @@ namespace Relayer
             }
 
             return MessageResponse.Completed;
+        }
+
+        private static async Task SetIsFinishedDirectMethodAsync(ModuleClient client)
+        {
+            await client.SetMethodHandlerAsync(
+                "IsFinished",
+                (MethodRequest methodRequest, object _) => Task.FromResult(IsFinished()),
+                null);
+        }
+
+        private static MethodResponse IsFinished()
+        {
+            string response = JsonConvert.SerializeObject(new PriorityQueueTestStatus(isFinished, resultsReceived.Count));
+            return new MethodResponse(Encoding.UTF8.GetBytes(response), (int)HttpStatusCode.OK);
         }
     }
 }

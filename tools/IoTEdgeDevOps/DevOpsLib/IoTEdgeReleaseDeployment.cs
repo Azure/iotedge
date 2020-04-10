@@ -16,7 +16,7 @@ namespace DevOpsLib
 
         public IoTEdgeReleaseDeployment(int id, int attempt, VstsDeploymentStatus status, DateTime lastModifiedOn, HashSet<IoTEdgePipelineTask> tasks)
         {
-            ValidationUtil.ThrowIfNonPositive(id, nameof(id));
+            ValidationUtil.ThrowIfNegative(id, nameof(id));
             ValidationUtil.ThrowIfNonPositive(attempt, nameof(attempt));
             ValidationUtil.ThrowIfNull(tasks, nameof(tasks));
 
