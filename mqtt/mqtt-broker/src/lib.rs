@@ -33,13 +33,14 @@ pub use crate::auth::{AuthId, Certificate};
 pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle, BrokerState};
 pub use crate::configuration::BrokerConfig;
 pub use crate::connection::ConnectionHandle;
-pub use crate::error::{Error, ErrorKind};
+pub use crate::error::{Error, ErrorKind, InitializeBrokerReason};
 pub use crate::persist::{
     ConsolidatedStateFormat, FileFormat, FilePersistor, NullPersistor, Persist,
 };
 pub use crate::server::Server;
 pub use crate::session::SessionState;
 pub use crate::snapshot::{Snapshotter, StateSnapshotHandle};
+pub use crate::transport::TransportBuilder;
 
 #[derive(Clone, Debug, Display, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ClientId(Arc<String>);
@@ -50,9 +51,9 @@ impl ClientId {
     }
 }
 
-impl From<String> for ClientId {
-    fn from(s: String) -> ClientId {
-        ClientId(Arc::new(s))
+impl<T: Into<String>> From<T> for ClientId {
+    fn from(s: T) -> ClientId {
+        ClientId(Arc::new(s.into()))
     }
 }
 
