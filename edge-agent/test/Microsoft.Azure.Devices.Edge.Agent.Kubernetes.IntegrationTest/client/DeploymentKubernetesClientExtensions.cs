@@ -2,12 +2,12 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
 {
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using k8s;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Util;
-    using System.Linq;
 
     public static class DeploymentKubernetesClientExtensions
     {

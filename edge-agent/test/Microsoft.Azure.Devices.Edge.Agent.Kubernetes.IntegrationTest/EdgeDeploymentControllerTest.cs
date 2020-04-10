@@ -260,7 +260,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             moduleLifeCycleManager.SetModules(moduleName);
             var tokenSource = new CancellationTokenSource(DefaultTimeout * 3);
 
-
             await this.client.AddModuleDeploymentAsync(moduleName, labels, null);
             await this.client.WaitUntilAnyDeploymentAsync(tokenSource.Token);
             await this.client.ReplaceModuleImageAsync(moduleName, newImage);
