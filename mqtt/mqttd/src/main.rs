@@ -28,7 +28,7 @@ async fn run() -> Result<(), Error> {
         .get_matches()
         .value_of("config")
         .map_or(BrokerConfig::new(), BrokerConfig::from_file)
-        .map_err(|e| InitializeBrokerError::LoadConfiguration(e))?;
+        .map_err(InitializeBrokerError::LoadConfiguration)?;
 
     // Setup the shutdown handle
     let shutdown = shutdown::shutdown();

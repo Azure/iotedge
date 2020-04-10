@@ -384,7 +384,7 @@ where
                     //   - link the new file
                     if temp_link_path.exists() {
                         fail_point!("filepersistor.store.symlink_unlink", |_| {
-                            Err(PersistError::SymlinkUnlink(temp_link_path.clone(), None).into())
+                            Err(PersistError::SymlinkUnlink(temp_link_path.clone(), None))
                         });
                         fs::remove_file(&temp_link_path).map_err(|e| {
                             PersistError::SymlinkUnlink(temp_link_path.clone(), Some(e))
@@ -458,7 +458,7 @@ where
                             Err(PersistError::FileUnlink(entry.path(), None))
                         });
                         fs::remove_file(&entry.path())
-                            .map_err(|e| PersistError::FileUnlink(entry.path().clone(), Some(e)))?;
+                            .map_err(|e| PersistError::FileUnlink(entry.path(), Some(e)))?;
                         debug!("{} pruned.", entry.file_name().to_string_lossy());
                     }
                 }

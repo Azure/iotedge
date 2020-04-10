@@ -50,7 +50,7 @@ impl ConnectionHandle {
         self.sender
             .send(message)
             .await
-            .map_err(|e| Error::SendConnectionMessage(e))
+            .map_err(Error::SendConnectionMessage)
     }
 }
 

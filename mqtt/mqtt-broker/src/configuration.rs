@@ -42,7 +42,7 @@ impl TryFrom<Transport> for TransportBuilder<String> {
                 })?;
 
                 let cert = Identity::from_pkcs12(cert_buffer.as_slice(), "")
-                    .map_err(|e| InitializeBrokerError::DecodeIdentity(e))?;
+                    .map_err(InitializeBrokerError::DecodeIdentity)?;
 
                 Ok(Self::Tls(address, cert))
             }

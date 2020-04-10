@@ -605,7 +605,7 @@ impl Session {
         match self {
             Self::Transient(connected) => Ok(connected.auth_id()),
             Self::Persistent(connected) => Ok(connected.auth_id()),
-            Self::Offline(_offline) => Err(Error::from(Error::SessionOffline)),
+            Self::Offline(_offline) => Err(Error::SessionOffline),
             Self::Disconnecting(disconnecting) => Ok(disconnecting.auth_id()),
         }
     }
@@ -626,8 +626,8 @@ impl Session {
         match self {
             Self::Transient(connected) => connected.handle_publish(publish),
             Self::Persistent(connected) => connected.handle_publish(publish),
-            Self::Offline(_offline) => Err(Error::from(Error::SessionOffline)),
-            Self::Disconnecting(_) => Err(Error::from(Error::SessionOffline)),
+            Self::Offline(_offline) => Err(Error::SessionOffline),
+            Self::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -635,8 +635,8 @@ impl Session {
         match self {
             Self::Transient(connected) => connected.handle_puback(puback),
             Self::Persistent(connected) => connected.handle_puback(puback),
-            Self::Offline(_offline) => Err(Error::from(Error::SessionOffline)),
-            Self::Disconnecting(_) => Err(Error::from(Error::SessionOffline)),
+            Self::Offline(_offline) => Err(Error::SessionOffline),
+            Self::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -647,8 +647,8 @@ impl Session {
         match self {
             Self::Transient(connected) => connected.handle_puback0(id),
             Self::Persistent(connected) => connected.handle_puback0(id),
-            Self::Offline(_offline) => Err(Error::from(Error::SessionOffline)),
-            Self::Disconnecting(_) => Err(Error::from(Error::SessionOffline)),
+            Self::Offline(_offline) => Err(Error::SessionOffline),
+            Self::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -656,8 +656,8 @@ impl Session {
         match self {
             Self::Transient(connected) => connected.handle_pubrec(pubrec),
             Self::Persistent(connected) => connected.handle_pubrec(pubrec),
-            Self::Offline(_offline) => Err(Error::from(Error::SessionOffline)),
-            Self::Disconnecting(_) => Err(Error::from(Error::SessionOffline)),
+            Self::Offline(_offline) => Err(Error::SessionOffline),
+            Self::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -668,8 +668,8 @@ impl Session {
         match self {
             Self::Transient(connected) => connected.handle_pubrel(pubrel),
             Self::Persistent(connected) => connected.handle_pubrel(pubrel),
-            Self::Offline(_offline) => Err(Error::from(Error::SessionOffline)),
-            Self::Disconnecting(_) => Err(Error::from(Error::SessionOffline)),
+            Self::Offline(_offline) => Err(Error::SessionOffline),
+            Self::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -680,8 +680,8 @@ impl Session {
         match self {
             Self::Transient(connected) => connected.handle_pubcomp(pubcomp),
             Self::Persistent(connected) => connected.handle_pubcomp(pubcomp),
-            Self::Offline(_offline) => Err(Error::from(Error::SessionOffline)),
-            Self::Disconnecting(_) => Err(Error::from(Error::SessionOffline)),
+            Self::Offline(_offline) => Err(Error::SessionOffline),
+            Self::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -693,7 +693,7 @@ impl Session {
             Self::Transient(connected) => connected.publish_to(publication.to_owned()),
             Self::Persistent(connected) => connected.publish_to(publication.to_owned()),
             Self::Offline(offline) => offline.publish_to(publication.to_owned()),
-            Self::Disconnecting(_) => Err(Error::from(Error::SessionOffline)),
+            Self::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -704,8 +704,8 @@ impl Session {
         match self {
             Self::Transient(connected) => connected.subscribe_to(subscribe_to),
             Self::Persistent(connected) => connected.subscribe_to(subscribe_to),
-            Self::Offline(_) => Err(Error::from(Error::SessionOffline)),
-            Self::Disconnecting(_) => Err(Error::from(Error::SessionOffline)),
+            Self::Offline(_) => Err(Error::SessionOffline),
+            Self::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -716,8 +716,8 @@ impl Session {
         match self {
             Self::Transient(connected) => connected.unsubscribe(unsubscribe),
             Self::Persistent(connected) => connected.unsubscribe(unsubscribe),
-            Self::Offline(_) => Err(Error::from(Error::SessionOffline)),
-            Self::Disconnecting(_) => Err(Error::from(Error::SessionOffline)),
+            Self::Offline(_) => Err(Error::SessionOffline),
+            Self::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 

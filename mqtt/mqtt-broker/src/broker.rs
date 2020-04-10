@@ -880,7 +880,7 @@ where
     let auth_id = session.auth_id()?;
     let activity = Activity::new(auth_id.clone(), client_id.clone(), operation);
 
-    if authorizer.authorize(activity).await.map_err(|e| e.into())? {
+    if authorizer.authorize(activity).await.map_err(Into::into)? {
         if let Some(event) = session.publish_to(&publication)? {
             session.send(event).await?
         }
@@ -990,10 +990,7 @@ pub struct BrokerHandle(Sender<Message>);
 
 impl BrokerHandle {
     pub async fn send(&mut self, message: Message) -> Result<(), Error> {
-        self.0
-            .send(message)
-            .await
-            .map_err(|e| Error::SendBrokerMessage(e))
+        self.0.send(message).await.map_err(Error::SendBrokerMessage)
     }
 }
 

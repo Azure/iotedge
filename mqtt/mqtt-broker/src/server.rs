@@ -191,7 +191,7 @@ where
             Either::Right((Some(Ok(stream)), _)) => {
                 let peer = stream
                     .peer_addr()
-                    .map_err(|e| InitializeBrokerError::ConnectionPeerAddress(e))?;
+                    .map_err(InitializeBrokerError::ConnectionPeerAddress)?;
 
                 let broker_handle = handle.clone();
                 let span = span.clone();
