@@ -1,6 +1,7 @@
-use crate::Message;
 use mqtt3::proto::Packet;
 use thiserror::Error;
+
+use crate::Message;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -49,11 +50,14 @@ pub enum Error {
     #[error("Unable to obtain peer certificate.")]
     PeerCertificate(#[source] native_tls::Error),
 
-    #[error("Unable to start broker")]
+    #[error("Unable to start broker.")]
     InitializeBroker(#[from] InitializeBrokerError),
 
-    #[error("An error occurred checking client permissions.")]
-    Auth(#[from] crate::auth::AuthError),
+    #[error(transparent)]
+    Authenticate(#[from] crate::auth::AuthenticateError),
+
+    #[error(transparent)]
+    Authorize(#[from] crate::auth::AuthorizeError),
 }
 
 /// Represents errors occurred while bootstrapping broker.

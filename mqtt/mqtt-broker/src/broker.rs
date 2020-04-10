@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 use mqtt3::proto;
 use serde::{Deserialize, Serialize};
@@ -7,10 +7,10 @@ use tracing::{debug, info, span, warn, Level};
 use tracing_futures::Instrument;
 
 use crate::auth::{
-    AuthId, Authenticator, Authorizer, Credentials, DefaultAuthenticator, DefaultAuthorizer,
+    Authenticator, Authorizer, Credentials, DefaultAuthenticator, DefaultAuthorizer,
 };
 use crate::session::{ConnectedSession, Session, SessionState};
-use crate::{ClientEvent, ClientId, ConnReq, Error, Message, SystemEvent};
+use crate::{AuthId, ClientEvent, ClientId, ConnReq, Error, Message, SystemEvent};
 
 static EXPECTED_PROTOCOL_NAME: &str = mqtt3::PROTOCOL_NAME;
 const EXPECTED_PROTOCOL_LEVEL: u8 = mqtt3::PROTOCOL_LEVEL;
@@ -26,7 +26,9 @@ macro_rules! try_send {
 pub struct Broker<N, Z>
 where
     N: Authenticator,
+    N::Error: Display + Into<Error>,
     Z: Authorizer,
+    Z::Error: Display + Into<Error>,
 {
     sender: Sender<Message>,
     messages: Receiver<Message>,
@@ -39,7 +41,9 @@ where
 impl<N, Z> Broker<N, Z>
 where
     N: Authenticator,
+    N::Error: Display + Into<Error>,
     Z: Authorizer,
+    Z::Error: Display + Into<Error>,
 {
     pub fn handle(&self) -> BrokerHandle {
         BrokerHandle(self.sender.clone())
@@ -249,7 +253,7 @@ where
             Err(e) => {
                 warn!(message = "error authenticating client: {}", error = %e);
                 refuse_connection!(proto::ConnectionRefusedReason::ServerUnavailable);
-                return Err(e);
+                return Err(e.into());
             }
         };
 
@@ -266,7 +270,7 @@ where
             Err(e) => {
                 warn!(message="error authorizing client: {}", error = %e);
                 refuse_connection!(proto::ConnectionRefusedReason::ServerUnavailable);
-                return Err(e);
+                return Err(e.into());
             }
         }
 
@@ -561,7 +565,7 @@ where
             .ok_or_else(|| NoSessionError)
     }
 
-    async fn authenticate(&mut self, connreq: &ConnReq) -> Result<Option<AuthId>, Error> {
+    async fn authenticate(&mut self, connreq: &ConnReq) -> Result<Option<AuthId>, N::Error> {
         let credentials = connreq.certificate().map_or(
             Credentials::Basic(
                 connreq.connect().username.clone(),
@@ -574,8 +578,8 @@ where
         Ok(auth_id)
     }
 
-    async fn authorize(&mut self, auth_id: AuthId) -> Result<bool, Error> {
-        let authorized = self.authorizer.authorize(auth_id).await?;
+    async fn authorize(&mut self, auth_id: AuthId) -> Result<bool, Z::Error> {
+        let authorized = self.authorizer.authorize(auth_id.into()).await?;
         Ok(authorized)
     }
 
@@ -816,7 +820,9 @@ impl Default for BrokerBuilder<DefaultAuthenticator, DefaultAuthorizer> {
 impl<N, Z> BrokerBuilder<N, Z>
 where
     N: Authenticator,
+    N::Error: Display + Into<Error> + Send,
     Z: Authorizer,
+    Z::Error: Display + Into<Error> + Send,
 {
     pub fn authenticator<N1>(self, authenticator: N1) -> BrokerBuilder<N1, Z>
     where
@@ -906,10 +912,12 @@ pub(crate) mod tests {
     use proptest::prelude::*;
     use uuid::Uuid;
 
-    use crate::auth::AuthError;
     use crate::session::tests::*;
     use crate::tests::*;
-    use crate::ConnectionHandle;
+    use crate::{
+        auth::{AuthenticateError, AuthorizeError},
+        ConnectionHandle,
+    };
 
     prop_compose! {
         pub fn arb_broker_state()(
@@ -1269,7 +1277,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_connect_authentication_failed() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Err(AuthError::Authenticate))
+            .authenticator(|_| Err(AuthenticateError))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1370,7 +1378,7 @@ pub(crate) mod tests {
     async fn test_connect_authorization_failed() {
         let broker = BrokerBuilder::default()
             .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-            .authorizer(|_| Err(AuthError::Authorize))
+            .authorizer(|_| Err(AuthorizeError))
             .build();
 
         let mut broker_handle = broker.handle();

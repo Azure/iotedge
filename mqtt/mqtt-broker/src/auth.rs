@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use thiserror::Error;
 
 /// Authenticated MQTT client identity.
 #[derive(Clone, Debug, PartialEq)]
@@ -45,24 +44,34 @@ impl From<Vec<u8>> for Certificate {
 /// A trait to authenticate a MQTT client with given credentials.
 #[async_trait]
 pub trait Authenticator {
+    /// Authentication error.
+    type Error;
+
     /// Authenticates a MQTT client with given credentials.
     ///
     /// ## Returns
     /// * `Ok(Some(auth_id))` - authenticator is able to identify a client with given credentials.
     /// * `Ok(None)` - authenticator is not able to identify a client with given credentials.
     /// * `Err(e)` - an error occurred when authenticating a client.
-    async fn authenticate(&self, credentials: Credentials) -> Result<Option<AuthId>, AuthError>;
+    async fn authenticate(&self, credentials: Credentials) -> Result<Option<AuthId>, Self::Error>;
 }
 
 #[async_trait]
 impl<F> Authenticator for F
 where
-    F: Fn(Credentials) -> Result<Option<AuthId>, AuthError> + Sync,
+    F: Fn(Credentials) -> Result<Option<AuthId>, AuthenticateError> + Sync,
 {
-    async fn authenticate(&self, credentials: Credentials) -> Result<Option<AuthId>, AuthError> {
+    type Error = AuthenticateError;
+
+    async fn authenticate(&self, credentials: Credentials) -> Result<Option<AuthId>, Self::Error> {
         self(credentials)
     }
 }
+
+/// Authentication error type placeholder.
+#[derive(Debug, thiserror::Error)]
+#[error("An error occurred authenticating client.")]
+pub struct AuthenticateError;
 
 /// Default implementation that always unable to authenticate a MQTT client and return `Ok(None)`.
 /// This implementation will be used if custom authentication mechanism was not provided.
@@ -70,7 +79,9 @@ pub struct DefaultAuthenticator;
 
 #[async_trait]
 impl Authenticator for DefaultAuthenticator {
-    async fn authenticate(&self, _: Credentials) -> Result<Option<AuthId>, AuthError> {
+    type Error = AuthenticateError;
+
+    async fn authenticate(&self, _: Credentials) -> Result<Option<AuthId>, Self::Error> {
         Ok(None)
     }
 }
@@ -78,19 +89,29 @@ impl Authenticator for DefaultAuthenticator {
 /// A trait to check a MQTT client permissions to perform some actions.
 #[async_trait]
 pub trait Authorizer {
+    /// Authentication error.
+    type Error;
+
     /// Authorizes a MQTT client to perform some action.
-    async fn authorize(&self, auth_id: AuthId) -> Result<bool, AuthError>;
+    async fn authorize(&self, auth_id: AuthId) -> Result<bool, Self::Error>;
 }
 
 #[async_trait]
 impl<F> Authorizer for F
 where
-    F: Fn(AuthId) -> Result<bool, AuthError> + Sync,
+    F: Fn(AuthId) -> Result<bool, AuthorizeError> + Sync,
 {
-    async fn authorize(&self, auth_id: AuthId) -> Result<bool, AuthError> {
+    type Error = AuthorizeError;
+
+    async fn authorize(&self, auth_id: AuthId) -> Result<bool, Self::Error> {
         self(auth_id)
     }
 }
+
+/// Authorization error type placeholder.
+#[derive(Debug, thiserror::Error)]
+#[error("An error occurred checking client permissions.")]
+pub struct AuthorizeError;
 
 /// Default implementation that always denies any operation a client intends to perform.
 /// This implementation will be used if custom authorization mechanism was not provided.
@@ -98,17 +119,9 @@ pub struct DefaultAuthorizer;
 
 #[async_trait]
 impl Authorizer for DefaultAuthorizer {
-    async fn authorize(&self, _: AuthId) -> Result<bool, AuthError> {
+    type Error = AuthorizeError;
+
+    async fn authorize(&self, _: AuthId) -> Result<bool, Self::Error> {
         Ok(false)
     }
-}
-
-/// Represents failed auth operations.
-#[derive(Debug, Error, PartialEq)]
-pub enum AuthError {
-    #[error("Error occurred during authentication.")]
-    Authenticate,
-
-    #[error("Error occurred during authorization.")]
-    Authorize,
 }
