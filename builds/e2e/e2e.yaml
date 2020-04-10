@@ -41,6 +41,12 @@ jobs:
 
     - template: templates/e2e-setup.yaml
 
+    - task: Docker@2
+      displayName: Docker login
+      inputs:
+        command: login
+        containerRegistry: iotedge-edgebuilds-acr
+
     - pwsh: |
         # We use a self-hosted agent for this job, so we need to clean up
         # old docker images and containers to keep disk usage in check. But
@@ -56,9 +62,7 @@ jobs:
           | foreach { $_.Value }
 
         # Pull required images
-        docker login -u '$(cr.username)' -p "$env:ACR_PASSWORD" '$(cr.address)'
         $images | foreach { sudo --preserve-env docker pull $_ }
-        Remove-Item $HOME/.docker/config.json
 
         # Remove old images
         $remove = sudo docker images --format '{{.Repository}}:{{.Tag}}' `
@@ -70,8 +74,6 @@ jobs:
         sudo docker network prune -f
         sudo docker volume prune -f
       displayName: Cache docker images
-      env:
-        ACR_PASSWORD: $(TestContainerRegistryPassword)
 
     - template: templates/e2e-run.yaml
 
