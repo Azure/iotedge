@@ -33,10 +33,7 @@ namespace TestAnalyzer
 
         public IDictionary<string, string> TestInfo { get; }
 
-        public bool IsPassed => this.StatusCodes.All(
-            x => x.StatusCode.StartsWith("200") ||
-            x.StatusCode.Equals("OK") ||
-            (x.StatusCode.Equals("0") && this.ModuleId.Contains("DirectMethod")));
+        public bool IsPassed => this.IsPassedHelper();
 
         public override string ToString()
         {
@@ -51,6 +48,20 @@ namespace TestAnalyzer
             public int Count { get; set; }
 
             public DateTime LastReceivedAt { get; set; }
+        }
+
+        bool IsPassedHelper()
+        {
+            bool noUnexpectedStatus = this.StatusCodes.All(
+                x => x.StatusCode.StartsWith("200") ||
+                x.StatusCode.Equals("OK") ||
+                (x.StatusCode.Equals("0") && this.ModuleId.Contains("DirectMethod")));
+
+            // The SDK does not allow edgehub to de-register from iothub subscriptions, which results in DirectMethod clients sometimes receiving status code 0.
+            // We expect to get this status sometimes, but if we receive too many we should fail the tests.
+            bool statusCodeZeroBelowThreshold = this.StatusCodes.Where(s => s.StatusCode.Equals("0")).Count() < (this.StatusCodes.Count / 100);
+
+            return noUnexpectedStatus && statusCodeZeroBelowThreshold;
         }
     }
 }
