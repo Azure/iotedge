@@ -1,5 +1,6 @@
-use std::{env, io};
+use std::{convert::TryInto, env, io};
 
+use clap::{crate_description, crate_name, crate_version, App, Arg};
 use failure::ResultExt;
 use futures_util::pin_mut;
 use mqtt_broker::*;
@@ -19,9 +20,13 @@ async fn main() -> Result<(), Terminate> {
         .finish();
     let _ = tracing::subscriber::set_global_default(subscriber);
 
-    let addr = env::args()
-        .nth(1)
-        .unwrap_or_else(|| "0.0.0.0:1883".to_string());
+    let config = create_app()
+        .get_matches()
+        .value_of("config")
+        .map_or(BrokerConfig::new(), BrokerConfig::from_file)
+        .context(ErrorKind::InitializeBroker(
+            InitializeBrokerReason::LoadConfiguration,
+        ))?;
 
     // Setup the shutdown handle
     let shutdown = shutdown::shutdown();
@@ -30,12 +35,12 @@ async fn main() -> Result<(), Terminate> {
     // Setup the snapshotter
     let mut persistor = FilePersistor::new(
         env::current_dir().expect("can't get cwd").join("state"),
-        BincodeFormat::new(),
+        ConsolidatedStateFormat::default(),
     );
     info!("Loading state...");
     let state = persistor.load().await?.unwrap_or_else(BrokerState::default);
     let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+        .authenticator(|_| Ok(Some(AuthId::anonymous())))
         .authorizer(|_| Ok(false))
         .state(state)
         .build();
@@ -58,8 +63,17 @@ async fn main() -> Result<(), Terminate> {
     let snapshot = snapshot::snapshot(broker.handle(), snapshot_handle.clone());
     tokio::spawn(snapshot);
 
+    // Create configured transports
+    let transports = config
+        .transports()
+        .iter()
+        .map(|transport| transport.clone().try_into())
+        .collect::<Result<Vec<_>, _>>()?;
+
     info!("Starting server...");
-    let state = Server::from_broker(broker).serve(addr, shutdown).await?;
+    let state = Server::from_broker(broker)
+        .serve(transports, shutdown)
+        .await?;
 
     // Stop snapshotting
     shutdown_handle.shutdown().await?;
@@ -93,4 +107,18 @@ async fn tick_snapshot(
             warn!(message = "failed to tick the snapshotter", error=%e);
         }
     }
+}
+
+fn create_app() -> App<'static, 'static> {
+    App::new(crate_name!())
+        .version(crate_version!())
+        .about(crate_description!())
+        .arg(
+            Arg::with_name("config")
+                .short("c")
+                .long("config")
+                .value_name("FILE")
+                .help("Sets a custom config file")
+                .takes_value(true),
+        )
 }
