@@ -139,7 +139,7 @@ namespace TwinTester
 
         bool ShouldExpectDesiredPropertyCallback(TwinState twinState, DateTime twinUpdateTime)
         {
-            return (twinUpdateTime - twinState.LastTimeOfEdgeRestart).Duration() > Settings.Current.DesiredPropertyCallbackFailureThreshold;
+            return (twinUpdateTime - twinState.LastTimeOfEdgeRestart).Duration() > Settings.Current.EdgeHubRestartFailureTolerance;
         }
 
         async Task HandleReportStatusAsync(string status)

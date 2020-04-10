@@ -193,7 +193,7 @@ function prepare_test_from_artifacts() {
                 sed -i -e "s@<TwinUpdateSize>@$TWIN_UPDATE_SIZE@g" "$deployment_working_file"
                 sed -i -e "s@<TwinUpdateFrequency>@$TWIN_UPDATE_FREQUENCY@g" "$deployment_working_file"
                 sed -i -e "s@<TwinUpdateFailureThreshold>@$TWIN_UPDATE_FAILURE_THRESHOLD@g" "$deployment_working_file"
-                sed -i -e "s@<DesiredPropertyCallbackFailureThreshold>@$DESIRED_PROPERTY_UPDATE_FAILURE_THRESHOLD@g" "$deployment_working_file";;
+                sed -i -e "s@<EdgeHubRestartFailureTolerance>@$EDGEHUB_RESTART_FAILURE_TOLERANCE@g" "$deployment_working_file";;
             'tempfilter')
                 echo "Copy deployment file from $module_to_module_deployment_artifact_file"
                 cp "$module_to_module_deployment_artifact_file" "$deployment_working_file";;
@@ -387,7 +387,7 @@ function process_args() {
             TWIN_UPDATE_FAILURE_THRESHOLD="$arg"
             saveNextArg=0;
         elif [ $saveNextArg -eq 37 ]; then
-            DESIRED_PROPERTY_CALLBACK_FAILURE_THRESHOLD="$arg"
+            EDGEHUB_RESTART_FAILURE_TOLERANCE="$arg"
             saveNextArg=0;
         elif [ $saveNextArg -eq 38 ]; then
             METRICS_ENDPOINTS_CSV="$arg"
@@ -443,7 +443,7 @@ function process_args() {
                 '-twinUpdateSize' ) saveNextArg=34;;
                 '-twinUpdateFrequency' ) saveNextArg=35;;
                 '-twinUpdateFailureThreshold' ) saveNextArg=36;;
-                '-desiredPropertyCallbackFailureThreshold' ) saveNextArg=37;;
+                '-edgeHubRestartFailureTolerance' ) saveNextArg=37;;
                 '-metricsEndpointsCSV' ) saveNextArg=38;;
                 '-metricsScrapeFrequencyInSecs' ) saveNextArg=39;;
                 '-metricsUploadTarget' ) saveNextArg=40;;
@@ -1056,7 +1056,7 @@ function usage() {
     echo ' -twinUpdateSize                                Specifies the char count (i.e. size) of each twin update. Default is 1 for long haul and 100 for stress test.'
     echo ' -twinUpdateFrequency                           Frequency to make twin updates. This should be specified in DateTime format. Default is 00:00:15 for long haul and 00:00:05 for stress test.'
     echo ' -twinUpdateFailureThreshold                    Specifies the longest period of time a twin update can take before being marked as a failure. This should be specified in DateTime format. Default is 00:01:00'
-    echo ' -desiredPropertyCallbackFailureThreshold       Specifies how close to an edgehub restart desired property callback tests will be ignored. This should be specified in DateTime format. Default is 00:01:00'
+    echo ' -edgeHubRestartFailureTolerance                Specifies how close to an edgehub restart desired property callback tests will be ignored. This should be specified in DateTime format. Default is 00:01:00'
     echo ' -metricsEndpointsCSV                           Optional csv of exposed endpoints for which to scrape metrics.'
     echo ' -metricsScrapeFrequencyInSecs                  Optional frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
     echo ' -metricsUploadTarget                           Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
@@ -1085,7 +1085,7 @@ if [[ "${TEST_NAME,,}" == "longhaul" ]] ||
     TEST_INFO="$TEST_INFO,TestId=$tracking_id"
 
     TWIN_UPDATE_FAILURE_THRESHOLD="${TWIN_UPDATE_FAILURE_THRESHOLD:-00:01:00}"
-    DESIRED_PROPERTY_CALLBACK_FAILURE_THRESHOLD="${DESIRED_PROPERTY_CALLBACK_FAILURE_THRESHOLD:-00:01:00}"
+    EDGEHUB_RESTART_FAILURE_TOLERANCE="${EDGEHUB_RESTART_FAILURE_TOLERANCE:-00:01:00}"
 fi
 if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
     DESIRED_MODULES_TO_RESTART_CSV="${DESIRED_MODULES_TO_RESTART_CSV:-,}"

@@ -114,8 +114,8 @@
                 "TwinUpdateFailureThreshold": {
                     "value": "<TwinUpdateFailureThreshold>"
                 },
-                "DesiredPropertyCallbackFailureThreshold": {
-                    "value": "<TwinUpdateFailureThreshold>"
+                "EdgeHubRestartFailureTolerance": {
+                    "value": "<EdgeHubRestartFailureTolerance>"
                 }
             },
             "status": "running",
@@ -144,8 +144,8 @@
                 "TwinUpdateFailureThreshold": {
                     "value": "<TwinUpdateFailureThreshold>"
                 },
-                "DesiredPropertyCallbackFailureThreshold": {
-                    "value": "<TwinUpdateFailureThreshold>"
+                "EdgeHubRestartFailureTolerance": {
+                    "value": "<EdgeHubRestartFailureTolerance>"
                 }
             },
             "status": "running",
