@@ -40,6 +40,7 @@ pub use crate::persist::{
 pub use crate::server::Server;
 pub use crate::session::SessionState;
 pub use crate::snapshot::{Snapshotter, StateSnapshotHandle};
+pub use crate::transport::TransportBuilder;
 
 #[derive(Clone, Debug, Display, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ClientId(Arc<String>);
