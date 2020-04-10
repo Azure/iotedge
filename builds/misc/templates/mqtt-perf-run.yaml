@@ -10,7 +10,7 @@ jobs:
     parameters: 
       parentJob: setup_completed
       id: 1
-      publishers: 10
+      publishers: 100
       subscribers: 2
       topics: 1
       payload: 32
@@ -23,16 +23,26 @@ jobs:
       publishers: 10
       subscribers: 2
       topics: 1
-      payload: 1024
+      payload: 131072 # 128kb
       qos: 0
-  
+
   - template: mqtt-perf-test-case.yaml
     parameters: 
       parentJob: run_completed_2
       id: 3
+      publishers: 100
+      subscribers: 2
+      topics: 100
+      payload: 32
+      qos: 0
+  
+  - template: mqtt-perf-test-case.yaml
+    parameters: 
+      parentJob: run_completed_3
+      id: 4
       publishers: 10
       subscribers: 2
-      topics: 1
+      topics: 10
       payload: 131072 # 128kb
       qos: 0
   
@@ -40,9 +50,9 @@ jobs:
   
   - template: mqtt-perf-test-case.yaml
     parameters: 
-      parentJob: run_completed_3
+      parentJob: run_completed_4
       id: 50
-      publishers: 10
+      publishers: 100
       subscribers: 2
       topics: 1
       payload: 32
@@ -55,16 +65,26 @@ jobs:
       publishers: 10
       subscribers: 2
       topics: 1
-      payload: 1024
+      payload: 131072 # 128kb
       qos: 1
-  
+
   - template: mqtt-perf-test-case.yaml
     parameters: 
       parentJob: run_completed_51
       id: 52
+      publishers: 100
+      subscribers: 2
+      topics: 100
+      payload: 32
+      qos: 1
+  
+  - template: mqtt-perf-test-case.yaml
+    parameters: 
+      parentJob: run_completed_52
+      id: 53
       publishers: 10
       subscribers: 2
-      topics: 1
+      topics: 10
       payload: 131072 # 128kb
       qos: 1
   
@@ -76,7 +96,7 @@ jobs:
   
   - template: mqtt-perf-test-case.yaml
     parameters: 
-      parentJob: run_completed_52
+      parentJob: run_completed_53
       id: 100
       publishers: 10
       subscribers: 10
@@ -91,16 +111,26 @@ jobs:
       publishers: 10
       subscribers: 10
       topics: 1
-      payload: 1024
+      payload: 131072 # 128kb
       qos: 0
   
   - template: mqtt-perf-test-case.yaml
     parameters: 
       parentJob: run_completed_101
       id: 102
+      publishers: 100
+      subscribers: 100
+      topics: 100
+      payload: 32 # 128kb
+      qos: 0
+
+  - template: mqtt-perf-test-case.yaml
+    parameters: 
+      parentJob: run_completed_102
+      id: 103
       publishers: 10
       subscribers: 10
-      topics: 1
+      topics: 10
       payload: 131072 # 128kb
       qos: 0
   
@@ -108,7 +138,7 @@ jobs:
   
   - template: mqtt-perf-test-case.yaml
     parameters: 
-      parentJob: run_completed_102
+      parentJob: run_completed_53
       id: 150
       publishers: 10
       subscribers: 10
@@ -118,21 +148,31 @@ jobs:
   
   - template: mqtt-perf-test-case.yaml
     parameters: 
-      parentJob: run_completed_150
+      parentJob: run_completed_100
       id: 151
       publishers: 10
       subscribers: 10
       topics: 1
-      payload: 1024
+      payload: 131072 # 128kb
       qos: 1
   
   - template: mqtt-perf-test-case.yaml
     parameters: 
-      parentJob: run_completed_151
+      parentJob: run_completed_101
       id: 152
+      publishers: 100
+      subscribers: 100
+      topics: 100
+      payload: 32 # 128kb
+      qos: 1
+
+  - template: mqtt-perf-test-case.yaml
+    parameters: 
+      parentJob: run_completed_102
+      id: 153
       publishers: 10
       subscribers: 10
-      topics: 1
+      topics: 10
       payload: 131072 # 128kb
       qos: 1
   
@@ -144,10 +184,10 @@ jobs:
   
   - template: mqtt-perf-test-case.yaml
     parameters: 
-      parentJob: run_completed_152
+      parentJob: run_completed_153
       id: 200
       publishers: 2
-      subscribers: 10
+      subscribers: 100
       topics: 1
       payload: 32
       qos: 0
@@ -159,16 +199,26 @@ jobs:
       publishers: 2
       subscribers: 10
       topics: 1
-      payload: 1024
+      payload: 131072 # 128kb
       qos: 0
-  
+
   - template: mqtt-perf-test-case.yaml
     parameters: 
       parentJob: run_completed_201
       id: 202
       publishers: 2
+      subscribers: 100
+      topics: 100
+      payload: 32
+      qos: 0
+  
+  - template: mqtt-perf-test-case.yaml
+    parameters: 
+      parentJob: run_completed_202
+      id: 203
+      publishers: 2
       subscribers: 10
-      topics: 1
+      topics: 10
       payload: 131072 # 128kb
       qos: 0
   
@@ -176,10 +226,10 @@ jobs:
   
   - template: mqtt-perf-test-case.yaml
     parameters: 
-      parentJob: run_completed_202
+      parentJob: run_completed_203
       id: 250
       publishers: 2
-      subscribers: 10
+      subscribers: 100
       topics: 1
       payload: 32
       qos: 1
@@ -191,16 +241,25 @@ jobs:
       publishers: 2
       subscribers: 10
       topics: 1
-      payload: 1024
+      payload: 131072 # 128kb
       qos: 1
-  
+
   - template: mqtt-perf-test-case.yaml
     parameters: 
       parentJob: run_completed_251
       id: 252
       publishers: 2
-      subscribers: 10
-      topics: 1
-      payload: 131072 # 128kb
+      subscribers: 100
+      topics: 100
+      payload: 32
       qos: 1
   
+  - template: mqtt-perf-test-case.yaml
+    parameters: 
+      parentJob: run_completed_252
+      id: 253
+      publishers: 2
+      subscribers: 10
+      topics: 10
+      payload: 131072 # 128kb
+      qos: 1

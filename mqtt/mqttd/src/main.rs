@@ -41,8 +41,6 @@ async fn main() -> Result<(), Terminate> {
         .nth(3)
         .unwrap_or_else(|| "broker.pfx".to_string());
 
-    let identity = load_identity(cert_path).context(ErrorKind::IdentityConfiguration)?;
-
     // Setup the shutdown handle
     let shutdown = shutdown::shutdown();
     pin_mut!(shutdown);
@@ -56,7 +54,7 @@ async fn main() -> Result<(), Terminate> {
     let state = persistor.load().await?.unwrap_or_else(BrokerState::default);
     let broker = BrokerBuilder::default()
         .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(false))
+        .authorizer(|_| Ok(true))
         .state(state)
         .build();
     info!("state loaded.");
@@ -78,7 +76,7 @@ async fn main() -> Result<(), Terminate> {
     let snapshot = snapshot::snapshot(broker.handle(), snapshot_handle.clone());
     tokio::spawn(snapshot);
 
-    let transports = vec![(addr_tcp).into(), (addr_tls, identity).into()];
+    let transports = vec![(addr_tcp).into()];
 
     info!("Starting server...");
     let state = Server::from_broker(broker)
@@ -96,16 +94,6 @@ async fn main() -> Result<(), Terminate> {
     info!("exiting... goodbye");
 
     Ok(())
-}
-
-fn load_identity(path: String) -> Result<Identity, Error> {
-    let cert_buffer = std::fs::read(&path).context(ErrorKind::LoadIdentity)?;
-
-    let cert_pwd = "";
-    let cert = Identity::from_pkcs12(cert_buffer.as_slice(), &cert_pwd)
-        .context(ErrorKind::DecodeIdentity)?;
-
-    Ok(cert)
 }
 
 async fn tick_snapshot(
