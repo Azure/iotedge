@@ -20,6 +20,7 @@ namespace DirectMethodReceiver
         ILogger logger;
         ModuleClient moduleClient;
         Option<TestResultReportingClient> testResultReportingClient;
+
         Option<string> trackingId;
 
         public DirectMethodReceiver(
@@ -84,8 +85,14 @@ namespace DirectMethodReceiver
                 ModuleUtil.DefaultTransientRetryStrategy,
                 this.logger);
 
+            this.moduleClient.SetConnectionStatusChangesHandler(this.OnConnectionStatusChanged);
             await this.moduleClient.OpenAsync();
             await this.moduleClient.SetMethodHandlerAsync("HelloWorldMethod", this.HelloWorldMethodAsync, null);
+        }
+
+        void OnConnectionStatusChanged(ConnectionStatus status, ConnectionStatusChangeReason reason)
+        {
+            this.logger.LogInformation($"Connection status changed to {status} with reason {reason}");
         }
     }
 }
