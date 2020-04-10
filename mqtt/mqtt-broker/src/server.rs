@@ -191,9 +191,10 @@ where
                 ))?;
 
                 let broker_handle = handle.clone();
+                let acks_handle = handle.clone();
                 let span = span.clone();
                 tokio::spawn(async move {
-                    if let Err(e) = connection::process(stream, peer, broker_handle)
+                    if let Err(e) = connection::process(stream, peer, broker_handle, acks_handle)
                         .instrument(span)
                         .await
                     {

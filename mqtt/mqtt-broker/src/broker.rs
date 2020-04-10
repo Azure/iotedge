@@ -17,6 +17,10 @@ use crate::{
     subscription::Subscription, AuthId, ClientEvent, ClientId, ConnReq, Error, ErrorKind, Message,
     SystemEvent,
 };
+use futures::{
+    stream::{self, Select},
+    StreamExt,
+};
 
 static EXPECTED_PROTOCOL_NAME: &str = mqtt3::PROTOCOL_NAME;
 const EXPECTED_PROTOCOL_LEVEL: u8 = mqtt3::PROTOCOL_LEVEL;
@@ -35,7 +39,8 @@ where
     Z: Authorizer,
 {
     sender: Sender<Message>,
-    messages: Receiver<Message>,
+    messages: Select<Receiver<Message>, Receiver<Message>>,
+    acks_sender: Sender<Message>,
     sessions: HashMap<ClientId, Session>,
     retained: HashMap<String, proto::Publication>,
     authenticator: N,
@@ -51,8 +56,12 @@ where
         BrokerHandle(self.sender.clone())
     }
 
+    pub fn acks(&self) -> BrokerHandle {
+        BrokerHandle(self.acks_sender.clone())
+    }
+
     pub async fn run(mut self) -> BrokerState {
-        while let Some(message) = self.messages.recv().await {
+        while let Some(message) = self.messages.next().await {
             match message {
                 Message::Client(client_id, event) => {
                     let span = span!(Level::INFO, "broker", client_id = %client_id, event="client");
@@ -981,10 +990,14 @@ where
         };
 
         let (sender, messages) = mpsc::channel(1024);
+        let (acks_sender, acks_receiver) = mpsc::channel(1024);
+
+        let messages = stream::select(messages, acks_receiver);
 
         Broker {
             sender,
             messages,
+            acks_sender,
             sessions,
             retained,
             authenticator: self.authenticator,

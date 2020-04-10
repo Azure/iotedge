@@ -72,6 +72,7 @@ pub async fn process<I>(
     io: I,
     remote_addr: SocketAddr,
     mut broker_handle: BrokerHandle,
+    acks_handle: BrokerHandle,
 ) -> Result<(), Error>
 where
     I: AsyncRead + AsyncWrite + GetPeerCertificate<Certificate = Certificate> + Unpin,
@@ -126,7 +127,7 @@ where
                 // Start up the processing tasks
                 let (outgoing, incoming) = codec.split();
                 let incoming_task =
-                    incoming_task(client_id.clone(), incoming, broker_handle.clone());
+                    incoming_task(client_id.clone(), incoming, broker_handle.clone(), acks_handle.clone());
                 let outgoing_task = outgoing_task(client_id.clone(), events, outgoing, broker_handle.clone());
                 pin_mut!(incoming_task);
                 pin_mut!(outgoing_task);
@@ -202,6 +203,7 @@ async fn incoming_task<S>(
     client_id: ClientId,
     mut incoming: S,
     mut broker: BrokerHandle,
+    mut acks: BrokerHandle,
 ) -> Result<(), Error>
 where
     S: Stream<Item = Result<Packet, DecodeError>> + Unpin,
@@ -239,8 +241,16 @@ where
                     Packet::UnsubAck(unsuback) => ClientEvent::UnsubAck(unsuback),
                 };
 
-                let message = Message::Client(client_id.clone(), event);
-                broker.send(message).await?;
+                if matches!(
+                    event,
+                    ClientEvent::PingReq(_) | ClientEvent::PubAck(_)
+                ) {
+                    let message = Message::Client(client_id.clone(), event);
+                    acks.send(message).await?;
+                } else {
+                    let message = Message::Client(client_id.clone(), event);
+                    broker.send(message).await?;
+                }
             }
             Err(e) => {
                 warn!(message="error occurred while reading from connection", error=%e);
