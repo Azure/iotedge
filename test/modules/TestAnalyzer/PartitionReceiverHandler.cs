@@ -16,6 +16,7 @@ namespace TestAnalyzer
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(PartitionReceiveHandler));
         readonly string deviceId;
         readonly IList<string> excludedModulesIds;
+        int total = 0;
 
         public PartitionReceiveHandler(string deviceId, IList<string> excludedModulesIds)
         {
@@ -29,6 +30,8 @@ namespace TestAnalyzer
         {
             if (events != null)
             {
+                int count = 0;
+                Guid guid = Guid.NewGuid();
                 foreach (EventData eventData in events)
                 {
                     eventData.SystemProperties.TryGetValue(DeviceIdPropertyName, out object devId);
@@ -57,6 +60,14 @@ namespace TestAnalyzer
                             Logger.LogDebug($"Message for module [{modId}] and device [{this.deviceId}] doesn't contain batch id and sequence number.");
                         }
                     }
+
+                    count += 1;
+                    this.total += 1;
+                }
+
+                if (this.total % 1000 == 0)
+                {
+                    Logger.LogInformation($"Read {count} events from eventhub for batch {guid}. Read {this.total} messages in total.");
                 }
             }
         }
