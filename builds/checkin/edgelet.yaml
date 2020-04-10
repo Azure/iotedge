@@ -175,12 +175,10 @@ jobs:
           curl -L https://raw.github.com/eriwen/lcov-to-cobertura-xml/8c55cd11f80a21e7e46f20f8c81fcde0bf11f5e5/lcov_cobertura/lcov_cobertura.py -o lcov_cobertura.py
         workingDirectory: edgelet
         displayName: Install code coverage tools
-      - script: $CARGO build --verbose
+      - script: edgelet/build/linux/build.sh
         displayName: Build
-        workingDirectory: edgelet
-      - script: $CARGO test --verbose
+      - script: edgelet/build/linux/test.sh
         displayName: Test
-        workingDirectory: edgelet
       - script: find ./target -type f ! -name '*.gc*' -delete
         displayName: Cleanup build and test artifacts
         workingDirectory: edgelet
