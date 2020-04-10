@@ -19,7 +19,8 @@ use tracing_futures::Instrument;
 use uuid::Uuid;
 
 use crate::broker::BrokerHandle;
-use crate::{ClientEvent, ClientId, ConnReq, Error, ErrorKind, Message, Publish};
+use crate::transport::GetPeerCertificate;
+use crate::{Certificate, ClientEvent, ClientId, ConnReq, Error, ErrorKind, Message, Publish};
 
 lazy_static! {
     static ref DEFAULT_TIMEOUT: Duration = Duration::from_secs(5);
@@ -73,10 +74,9 @@ pub async fn process<I>(
     mut broker_handle: BrokerHandle,
 ) -> Result<(), Error>
 where
-    I: AsyncRead + AsyncWrite + Unpin,
+    I: AsyncRead + AsyncWrite + GetPeerCertificate<Certificate = Certificate> + Unpin,
 {
-    // TODO read certificate from stream when ready
-    let certificate = None;
+    let certificate = io.peer_certificate()?;
 
     let mut timeout = TimeoutStream::new(io);
     timeout.set_read_timeout(Some(*DEFAULT_TIMEOUT));
