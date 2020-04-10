@@ -5,6 +5,7 @@ namespace DirectMethodSender
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -50,6 +51,11 @@ namespace DirectMethodSender
 
                 logger.LogInformation($"Invoke DirectMethod with count {this.directMethodCount}: finished.");
                 return new Tuple<HttpStatusCode, ulong>((HttpStatusCode)resultStatus, this.directMethodCount);
+            }
+            catch (DeviceNotFoundException e)
+            {
+                logger.LogInformation(e, $"Transient exception caught with count {this.directMethodCount}");
+                return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.NotFound, this.directMethodCount);
             }
             catch (Exception e)
             {
