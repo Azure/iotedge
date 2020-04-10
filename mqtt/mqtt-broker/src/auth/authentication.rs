@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::auth::{AuthId,};
+use crate::auth::AuthId;
 
 /// Describes a MQTT client credentials.
 pub enum Credentials {
@@ -20,7 +20,6 @@ impl From<Vec<u8>> for Certificate {
         Self(certificate)
     }
 }
-
 
 /// A trait to authenticate a MQTT client with given credentials.
 #[async_trait]
