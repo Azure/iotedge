@@ -1,26 +1,6 @@
 use async_trait::async_trait;
 
-/// Authenticated MQTT client identity.
-#[derive(Clone, Debug, PartialEq)]
-pub enum AuthId {
-    /// Identity for anonymous client.
-    Anonymous,
-
-    /// Identity for non-anonymous client.
-    Value(Identity),
-}
-
-impl std::fmt::Display for AuthId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Anonymous => write!(f, "*"),
-            Self::Value(identity) => write!(f, "{}", identity),
-        }
-    }
-}
-
-/// Non-anonymous client identity.
-pub type Identity = String;
+use crate::auth::{AuthId,};
 
 /// Describes a MQTT client credentials.
 pub enum Credentials {
@@ -40,6 +20,7 @@ impl From<Vec<u8>> for Certificate {
         Self(certificate)
     }
 }
+
 
 /// A trait to authenticate a MQTT client with given credentials.
 #[async_trait]
@@ -86,42 +67,29 @@ impl Authenticator for DefaultAuthenticator {
     }
 }
 
-/// A trait to check a MQTT client permissions to perform some actions.
-#[async_trait]
-pub trait Authorizer {
-    /// Authentication error.
-    type Error;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    /// Authorizes a MQTT client to perform some action.
-    async fn authorize(&self, auth_id: AuthId) -> Result<bool, Self::Error>;
-}
+    use matches::assert_matches;
 
-#[async_trait]
-impl<F> Authorizer for F
-where
-    F: Fn(AuthId) -> Result<bool, AuthorizeError> + Sync,
-{
-    type Error = AuthorizeError;
+    #[tokio::test]
+    async fn default_auth_always_return_unknown_client_identity() {
+        let authenticator = DefaultAuthenticator;
+        let credentials = Credentials::Basic(Some("username".into()), Some("password".into()));
 
-    async fn authorize(&self, auth_id: AuthId) -> Result<bool, Self::Error> {
-        self(auth_id)
+        let auth_id = authenticator.authenticate(credentials).await;
+
+        assert_matches!(auth_id, Ok(None));
     }
-}
 
-/// Authorization error type placeholder.
-#[derive(Debug, thiserror::Error)]
-#[error("An error occurred checking client permissions.")]
-pub struct AuthorizeError;
+    #[tokio::test]
+    async fn authenticator_wrapper_around_function() {
+        let authenticator = |_| Ok(Some(AuthId::Anonymous));
+        let credentials = Credentials::Basic(Some("username".into()), Some("password".into()));
 
-/// Default implementation that always denies any operation a client intends to perform.
-/// This implementation will be used if custom authorization mechanism was not provided.
-pub struct DefaultAuthorizer;
+        let auth_id = authenticator.authenticate(credentials).await;
 
-#[async_trait]
-impl Authorizer for DefaultAuthorizer {
-    type Error = AuthorizeError;
-
-    async fn authorize(&self, _: AuthId) -> Result<bool, Self::Error> {
-        Ok(false)
+        assert_matches!(auth_id, Ok(Some(AuthId::Anonymous)));
     }
 }

@@ -796,6 +796,7 @@ name = "mqttd"
 version = "0.1.0"
 dependencies = [
  "atty",
+ "clap",
  "futures-util",
  "mqtt-broker",
  "native-tls",

@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use mqtt3::proto::Packet;
 use thiserror::Error;
 
@@ -75,8 +77,8 @@ pub enum InitializeBrokerError {
     #[error("An error occurred loading configuration.")]
     LoadConfiguration(#[source] config::ConfigError),
 
-    #[error("An error occurred loading identity from file.")]
-    LoadIdentity(#[source] std::io::Error),
+    #[error("An error occurred loading identity from file {0}.")]
+    LoadIdentity(PathBuf, #[source] std::io::Error),
 
     #[error("An error occurred  decoding identity content.")]
     DecodeIdentity(#[source] native_tls::Error),

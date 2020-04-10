@@ -39,6 +39,7 @@ pub use crate::persist::{
 pub use crate::server::Server;
 pub use crate::session::SessionState;
 pub use crate::snapshot::{Snapshotter, StateSnapshotHandle};
+pub use crate::transport::TransportBuilder;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ClientId(Arc<String>);
@@ -49,9 +50,9 @@ impl ClientId {
     }
 }
 
-impl From<String> for ClientId {
-    fn from(s: String) -> ClientId {
-        ClientId(Arc::new(s))
+impl<T: Into<String>> From<T> for ClientId {
+    fn from(s: T) -> ClientId {
+        ClientId(Arc::new(s.into()))
     }
 }
 

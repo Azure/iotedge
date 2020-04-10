@@ -262,11 +262,11 @@ namespace TestResultCoordinator.Reports.DirectMethod
             }
             else if (NetworkControllerStatus.Enabled.Equals(networkControllerStatus))
             {
-                if (HttpStatusCode.InternalServerError.Equals(statusCode))
+                if (HttpStatusCode.NotFound.Equals(statusCode))
                 {
                     networkOffSuccess++;
                 }
-                else if (HttpStatusCode.OK.Equals(dmSenderTestResult.HttpStatusCode))
+                else if (HttpStatusCode.OK.Equals(statusCode))
                 {
                     if (isWithinTolerancePeriod)
                     {
@@ -276,6 +276,10 @@ namespace TestResultCoordinator.Reports.DirectMethod
                     {
                         networkOffFailure++;
                     }
+                }
+                else if (HttpStatusCode.InternalServerError.Equals(statusCode))
+                {
+                    networkOffFailure++;
                 }
                 else
                 {

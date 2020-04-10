@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fmt::Display};
 
+use futures_util::future;
 use mqtt3::proto;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{self, Receiver, Sender};
@@ -7,10 +8,13 @@ use tracing::{debug, info, span, warn, Level};
 use tracing_futures::Instrument;
 
 use crate::auth::{
-    Authenticator, Authorizer, Credentials, DefaultAuthenticator, DefaultAuthorizer,
+    Activity, Authenticator, Authorizer, Credentials, DefaultAuthenticator, DefaultAuthorizer,
+    Operation,
 };
 use crate::session::{ConnectedSession, Session, SessionState};
-use crate::{AuthId, ClientEvent, ClientId, ConnReq, Error, Message, SystemEvent};
+use crate::{
+    subscription::Subscription, AuthId, ClientEvent, ClientId, ConnReq, Error, Message, SystemEvent,
+};
 
 static EXPECTED_PROTOCOL_NAME: &str = mqtt3::PROTOCOL_NAME;
 const EXPECTED_PROTOCOL_LEVEL: u8 = mqtt3::PROTOCOL_LEVEL;
@@ -176,6 +180,7 @@ where
         Ok(())
     }
 
+    #[allow(clippy::too_many_lines)]
     async fn process_connect(
         &mut self,
         client_id: ClientId,
@@ -237,7 +242,14 @@ where
         // and authorization checks. If any of these checks fail, it SHOULD send an
         // appropriate CONNACK response with a non-zero return code as described in
         // section 3.2 and it MUST close the Network Connection.
-        let auth_id = match self.authenticate(&connreq).await {
+        let credentials = connreq.certificate().map_or(
+            Credentials::Basic(
+                connreq.connect().username.clone(),
+                connreq.connect().password.clone(),
+            ),
+            |certificate| Credentials::ClientCertificate(certificate.clone()),
+        );
+        let auth_id = match self.authenticator.authenticate(credentials).await {
             Ok(Some(auth_id)) => {
                 debug!(
                     "client {} successfully authenticated: {}",
@@ -258,7 +270,9 @@ where
         };
 
         // Check client permissions to connect
-        match self.authorize(auth_id).await {
+        let operation = Operation::new_connect(connreq.connect().clone());
+        let activity = Activity::new(auth_id.clone(), client_id.clone(), operation);
+        match self.authorizer.authorize(activity).await {
             Ok(true) => {
                 debug!("client {} successfully authorized", client_id);
             }
@@ -276,7 +290,7 @@ where
 
         // Process the CONNECT packet after it has been validated
         // TODO - fix ConnAck return_code != accepted to not add session to sessions map
-        match self.open_session(connreq) {
+        match self.open_session(auth_id, connreq) {
             Ok((ack, events)) => {
                 // Send ConnAck on new session
                 let session = self.get_session_mut(&client_id)?;
@@ -325,6 +339,10 @@ where
     }
 
     async fn process_drop_connection(&mut self, client_id: ClientId) -> Result<(), Error> {
+        self.drop_connection(client_id).await
+    }
+
+    async fn drop_connection(&mut self, client_id: ClientId) -> Result<(), Error> {
         debug!("handling drop connection...");
         if let Some(mut session) = self.close_session(&client_id) {
             session.send(ClientEvent::DropConnection).await?;
@@ -374,18 +392,15 @@ where
     async fn process_subscribe(
         &mut self,
         client_id: ClientId,
-        subscribe: proto::Subscribe,
+        sub: proto::Subscribe,
     ) -> Result<(), Error> {
-        let subscriptions = match self.get_session_mut(&client_id) {
-            Ok(session) => {
-                let (suback, subscriptions) = session.subscribe(subscribe)?;
-                session.send(ClientEvent::SubAck(suback)).await?;
-                subscriptions
-            }
-            Err(NoSessionError) => {
-                debug!("no session for {}", client_id);
-                return Ok(());
-            }
+        let subscriptions = if let Some(session) = self.sessions.get_mut(&client_id) {
+            let (suback, subscriptions) = subscribe(&self.authorizer, session, sub.clone()).await?;
+            session.send(ClientEvent::SubAck(suback)).await?;
+            subscriptions
+        } else {
+            debug!("no session for {}", client_id);
+            return Ok(());
         };
 
         // Handle retained messages
@@ -400,19 +415,16 @@ where
             .cloned()
             .collect::<Vec<proto::Publication>>();
 
-        match self.get_session_mut(&client_id) {
-            Ok(session) => {
-                for mut publication in publications {
-                    publication.retain = true;
-                    publish_to(session, &publication).await?;
-                }
-                Ok(())
+        if let Some(session) = self.sessions.get_mut(&client_id) {
+            for mut publication in publications {
+                publication.retain = true;
+                publish_to(&self.authorizer, session, &publication).await?;
             }
-            Err(NoSessionError) => {
-                debug!("no session for {}", client_id);
-                Ok(())
-            }
+        } else {
+            debug!("no session for {}", client_id);
         }
+
+        Ok(())
     }
 
     async fn process_unsubscribe(
@@ -437,24 +449,42 @@ where
         client_id: ClientId,
         publish: proto::Publish,
     ) -> Result<(), Error> {
-        let maybe_publication = match self.get_session_mut(&client_id) {
-            Ok(session) => {
-                let (maybe_publication, maybe_event) = session.handle_publish(publish)?;
-                if let Some(event) = maybe_event {
-                    session.send(event).await?;
-                }
-                maybe_publication
-            }
-            Err(NoSessionError) => {
-                debug!("no session for {}", client_id);
-                return Ok(());
-            }
-        };
+        let operation = Operation::new_publish(publish.clone());
+        if let Some(session) = self.sessions.get_mut(&client_id) {
+            let activity = Activity::new(session.auth_id()?.clone(), client_id.clone(), operation);
+            match self.authorizer.authorize(activity).await {
+                Ok(true) => {
+                    debug!("client {} successfully authorized", client_id);
+                    let (maybe_publication, maybe_event) = session.handle_publish(publish)?;
 
-        if let Some(publication) = maybe_publication {
-            self.publish_all(publication).await?
+                    if let Some(event) = maybe_event {
+                        session.send(event).await?;
+                    }
+
+                    if let Some(publication) = maybe_publication {
+                        self.publish_all(publication).await?
+                    }
+
+                    Ok(())
+                }
+                Ok(false) => {
+                    warn!(
+                        "client {} not allowed to publish to topic {}",
+                        client_id, publish.topic_name,
+                    );
+                    self.drop_connection(client_id).await?;
+                    Ok(())
+                }
+                Err(e) => {
+                    warn!(message="error authorizing client: {}", error = %e);
+                    self.drop_connection(client_id).await?;
+                    Err(e.into())
+                }
+            }
+        } else {
+            debug!("no session for {}", client_id);
+            Ok(())
         }
-        Ok(())
     }
 
     async fn process_puback(
@@ -565,36 +595,19 @@ where
             .ok_or_else(|| NoSessionError)
     }
 
-    async fn authenticate(&mut self, connreq: &ConnReq) -> Result<Option<AuthId>, N::Error> {
-        let credentials = connreq.certificate().map_or(
-            Credentials::Basic(
-                connreq.connect().username.clone(),
-                connreq.connect().password.clone(),
-            ),
-            |certificate| Credentials::ClientCertificate(certificate.clone()),
-        );
-
-        let auth_id = self.authenticator.authenticate(credentials).await?;
-        Ok(auth_id)
-    }
-
-    async fn authorize(&mut self, auth_id: AuthId) -> Result<bool, Z::Error> {
-        let authorized = self.authorizer.authorize(auth_id.into()).await?;
-        Ok(authorized)
-    }
-
     fn open_session(
         &mut self,
+        auth_id: AuthId,
         connreq: ConnReq,
     ) -> Result<(proto::ConnAck, Vec<ClientEvent>), SessionError> {
         let client_id = connreq.client_id().clone();
 
         match self.sessions.remove(&client_id) {
             Some(Session::Transient(current_connected)) => {
-                self.open_session_connected(connreq, current_connected)
+                self.open_session_connected(auth_id, connreq, current_connected)
             }
             Some(Session::Persistent(current_connected)) => {
-                self.open_session_connected(connreq, current_connected)
+                self.open_session_connected(auth_id, connreq, current_connected)
             }
             Some(Session::Offline(offline)) => {
                 debug!("found an offline session for {}", client_id);
@@ -605,11 +618,11 @@ where
                         let (state, events) = offline
                             .into_online()
                             .map_err(|_| SessionError::PacketIdentifiersExhausted)?;
-                        let new_session = Session::new_persistent(connreq, state);
+                        let new_session = Session::new_persistent(auth_id, connreq, state);
                         (new_session, events, true)
                     } else {
                         info!("cleaning offline session for {}", client_id);
-                        let new_session = Session::new_transient(connreq);
+                        let new_session = Session::new_transient(auth_id, connreq);
                         (new_session, vec![], false)
                     };
 
@@ -632,10 +645,10 @@ where
                 {
                     info!("creating new persistent session for {}", client_id);
                     let state = SessionState::new(client_id.clone());
-                    Session::new_persistent(connreq, state)
+                    Session::new_persistent(auth_id, connreq, state)
                 } else {
                     info!("creating new transient session for {}", client_id);
-                    Session::new_transient(connreq)
+                    Session::new_transient(auth_id, connreq)
                 };
 
                 self.sessions.insert(client_id.clone(), new_session);
@@ -653,6 +666,7 @@ where
 
     fn open_session_connected(
         &mut self,
+        auth_id: AuthId,
         connreq: ConnReq,
         current_connected: ConnectedSession,
     ) -> Result<(proto::ConnAck, Vec<ClientEvent>), SessionError> {
@@ -679,19 +693,19 @@ where
             );
 
             let client_id = connreq.client_id().clone();
-            let (state, _will, handle) = current_connected.into_parts();
-            let old_session = Session::new_disconnecting(client_id.clone(), None, handle);
+            let (auth_id_, state, _will, handle) = current_connected.into_parts();
+            let old_session = Session::new_disconnecting(auth_id_, client_id.clone(), None, handle);
             let (new_session, session_present) =
                 if let proto::ClientId::IdWithExistingSession(_) = connreq.connect().client_id {
                     debug!(
                         "moving persistent session to this connection for {}",
                         client_id
                     );
-                    let new_session = Session::new_persistent(connreq, state);
+                    let new_session = Session::new_persistent(auth_id, connreq, state);
                     (new_session, true)
                 } else {
                     info!("cleaning session for {}", client_id);
-                    let new_session = Session::new_transient(connreq);
+                    let new_session = Session::new_transient(auth_id, connreq);
                     (new_session, false)
                 };
 
@@ -709,8 +723,13 @@ where
         match self.sessions.remove(client_id) {
             Some(Session::Transient(connected)) => {
                 info!("closing transient session for {}", client_id);
-                let (_state, will, handle) = connected.into_parts();
-                Some(Session::new_disconnecting(client_id.clone(), will, handle))
+                let (auth_id, _state, will, handle) = connected.into_parts();
+                Some(Session::new_disconnecting(
+                    auth_id,
+                    client_id.clone(),
+                    will,
+                    handle,
+                ))
             }
             Some(Session::Persistent(connected)) => {
                 // Move a persistent session into the offline state
@@ -718,10 +737,15 @@ where
                 // to be sent on the connection
 
                 info!("moving persistent session to offline for {}", client_id);
-                let (state, will, handle) = connected.into_parts();
+                let (auth_id, state, will, handle) = connected.into_parts();
                 let new_session = Session::new_offline(state);
                 self.sessions.insert(client_id.clone(), new_session);
-                Some(Session::new_disconnecting(client_id.clone(), will, handle))
+                Some(Session::new_disconnecting(
+                    auth_id,
+                    client_id.clone(),
+                    will,
+                    handle,
+                ))
             }
             Some(Session::Offline(offline)) => {
                 debug!("closing already offline session for {}", client_id);
@@ -769,7 +793,7 @@ where
         publication.retain = false;
 
         for session in self.sessions.values_mut() {
-            if let Err(e) = publish_to(session, &publication).await {
+            if let Err(e) = publish_to(&self.authorizer, session, &publication).await {
                 warn!(message = "error processing message", error = %e);
             }
         }
@@ -778,9 +802,93 @@ where
     }
 }
 
-async fn publish_to(session: &mut Session, publication: &proto::Publication) -> Result<(), Error> {
-    if let Some(event) = session.publish_to(&publication)? {
-        session.send(event).await?
+async fn subscribe<Z>(
+    authorizer: &Z,
+    session: &mut Session,
+    subscribe: proto::Subscribe,
+) -> Result<(proto::SubAck, Vec<Subscription>), Error>
+where
+    Z: Authorizer,
+    Z::Error: Display,
+{
+    let auth_id = session.auth_id()?.clone();
+    let client_id = session.client_id().clone();
+
+    let mut subscriptions = Vec::with_capacity(subscribe.subscribe_to.len());
+    let mut acks = Vec::with_capacity(subscribe.subscribe_to.len());
+
+    let auth_results = subscribe
+        .subscribe_to
+        .into_iter()
+        .map(|subscribe_to| async {
+            let operation = Operation::new_subscribe(subscribe_to.clone());
+            let activity = Activity::new(auth_id.clone(), client_id.clone(), operation);
+            let auth = authorizer.authorize(activity).await;
+            auth.map(|auth| (auth, subscribe_to))
+        });
+
+    for auth in future::join_all(auth_results).await {
+        let ack_qos = match auth {
+            Ok((true, subscribe_to)) => match session.subscribe_to(subscribe_to) {
+                Ok((qos, subscription)) => {
+                    if let Some(subscription) = subscription {
+                        subscriptions.push(subscription);
+                    }
+                    qos
+                }
+                Err(e) => {
+                    warn!(message="error subscribing to a topic: {}", error = %e);
+                    proto::SubAckQos::Failure
+                }
+            },
+            Ok((false, subscribe_to)) => {
+                debug!(
+                    "client {} not allowed to subscribe to topic {} qos {}",
+                    client_id,
+                    subscribe_to.topic_filter,
+                    u8::from(subscribe_to.qos)
+                );
+                proto::SubAckQos::Failure
+            }
+            Err(e) => {
+                warn!(message="error authorizing client subscription: {}", error = %e);
+                proto::SubAckQos::Failure
+            }
+        };
+        acks.push(ack_qos);
+    }
+
+    let suback = proto::SubAck {
+        packet_identifier: subscribe.packet_identifier,
+        qos: acks,
+    };
+
+    Ok((suback, subscriptions))
+}
+
+async fn publish_to<Z>(
+    authorizer: &Z,
+    session: &mut Session,
+    publication: &proto::Publication,
+) -> Result<(), Error>
+where
+    Z: Authorizer,
+    Z::Error: Into<Error>,
+{
+    let operation = Operation::new_receive(publication.clone());
+    let client_id = session.client_id().clone();
+    let auth_id = session.auth_id()?;
+    let activity = Activity::new(auth_id.clone(), client_id.clone(), operation);
+
+    if authorizer.authorize(activity).await.map_err(|e| e.into())? {
+        if let Some(event) = session.publish_to(&publication)? {
+            session.send(event).await?
+        }
+    } else {
+        debug!(
+            "client {} not allowed to receive messages",
+            session.client_id()
+        );
     }
     Ok(())
 }
@@ -906,17 +1014,19 @@ pub(crate) mod tests {
 
     use std::time::Duration;
 
+    use bytes::Bytes;
     use futures_util::future::FutureExt;
     use matches::assert_matches;
     use proptest::collection::{hash_map, vec};
     use proptest::prelude::*;
+    use tokio::sync::mpsc::error::TryRecvError;
     use uuid::Uuid;
 
     use crate::session::tests::*;
     use crate::tests::*;
     use crate::{
         auth::{AuthenticateError, AuthorizeError},
-        ConnectionHandle,
+        AuthId, ConnectionHandle,
     };
 
     prop_compose! {
@@ -1327,7 +1437,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_connect_client_has_no_permissions() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Value("client-a".into()))))
+            .authenticator(|_| Ok(Some("client-a".into())))
             .authorizer(|_| Ok(false))
             .build();
 
@@ -1436,8 +1546,9 @@ pub(crate) mod tests {
         let connect = transient_connect(id);
         let handle = connection_handle();
         let req = ConnReq::new(client_id.clone(), connect, None, handle);
+        let auth_id = AuthId::Anonymous;
 
-        broker.open_session(req).unwrap();
+        broker.open_session(auth_id, req).unwrap();
 
         // check new session
         assert_eq!(1, broker.sessions.len());
@@ -1461,8 +1572,9 @@ pub(crate) mod tests {
         let connect = persistent_connect(id);
         let handle = connection_handle();
         let req = ConnReq::new(client_id.clone(), connect, None, handle);
+        let auth_id = AuthId::Anonymous;
 
-        broker.open_session(req).unwrap();
+        broker.open_session(auth_id, req).unwrap();
 
         assert_eq!(1, broker.sessions.len());
         assert_matches!(broker.sessions[&client_id], Session::Persistent(_));
@@ -1493,11 +1605,12 @@ pub(crate) mod tests {
 
         let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
         let req2 = ConnReq::new(client_id, connect2, None, handle2);
+        let auth_id = AuthId::Anonymous;
 
-        broker.open_session(req1).unwrap();
+        broker.open_session(auth_id.clone(), req1).unwrap();
         assert_eq!(1, broker.sessions.len());
 
-        let result = broker.open_session(req2);
+        let result = broker.open_session(auth_id, req2);
         assert_matches!(result, Err(SessionError::ProtocolViolation(_)));
         assert_eq!(0, broker.sessions.len());
     }
@@ -1521,11 +1634,12 @@ pub(crate) mod tests {
 
         let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
         let req2 = ConnReq::new(client_id, connect2, None, handle2);
+        let auth_id = AuthId::Anonymous;
 
-        broker.open_session(req1).unwrap();
+        broker.open_session(auth_id.clone(), req1).unwrap();
         assert_eq!(1, broker.sessions.len());
 
-        let result = broker.open_session(req2);
+        let result = broker.open_session(auth_id, req2);
         assert_matches!(result, Err(SessionError::ProtocolViolation(_)));
         assert_eq!(0, broker.sessions.len());
     }
@@ -1544,12 +1658,13 @@ pub(crate) mod tests {
         let handle1 = connection_handle();
         let handle2 = connection_handle();
         let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
+        let auth_id = AuthId::Anonymous;
 
-        broker.open_session(req1).unwrap();
+        broker.open_session(auth_id.clone(), req1).unwrap();
         assert_eq!(1, broker.sessions.len());
 
         let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
-        let result = broker.open_session(req2);
+        let result = broker.open_session(auth_id, req2);
         assert_matches!(result, Err(SessionError::DuplicateSession(_, _)));
         assert_matches!(broker.sessions[&client_id], Session::Transient(_));
         assert_eq!(1, broker.sessions.len());
@@ -1569,12 +1684,13 @@ pub(crate) mod tests {
         let handle1 = connection_handle();
         let handle2 = connection_handle();
         let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
+        let auth_id = AuthId::Anonymous;
 
-        broker.open_session(req1).unwrap();
+        broker.open_session(auth_id.clone(), req1).unwrap();
         assert_eq!(1, broker.sessions.len());
 
         let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
-        let result = broker.open_session(req2);
+        let result = broker.open_session(auth_id, req2);
         assert_matches!(result, Err(SessionError::DuplicateSession(_, _)));
         assert_matches!(broker.sessions[&client_id], Session::Persistent(_));
         assert_eq!(1, broker.sessions.len());
@@ -1594,12 +1710,13 @@ pub(crate) mod tests {
         let handle1 = connection_handle();
         let handle2 = connection_handle();
         let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
+        let auth_id = AuthId::Anonymous;
 
-        broker.open_session(req1).unwrap();
+        broker.open_session(auth_id.clone(), req1).unwrap();
         assert_eq!(1, broker.sessions.len());
 
         let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
-        let result = broker.open_session(req2);
+        let result = broker.open_session(auth_id, req2);
         assert_matches!(result, Err(SessionError::DuplicateSession(_, _)));
         assert_matches!(broker.sessions[&client_id], Session::Transient(_));
         assert_eq!(1, broker.sessions.len());
@@ -1620,11 +1737,12 @@ pub(crate) mod tests {
         let handle2 = connection_handle();
         let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
         let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
+        let auth_id = AuthId::Anonymous;
 
-        broker.open_session(req1).unwrap();
+        broker.open_session(auth_id.clone(), req1).unwrap();
         assert_eq!(1, broker.sessions.len());
 
-        let result = broker.open_session(req2);
+        let result = broker.open_session(auth_id, req2);
         assert_matches!(result, Err(SessionError::DuplicateSession(_, _)));
         assert_matches!(broker.sessions[&client_id], Session::Persistent(_));
         assert_eq!(1, broker.sessions.len());
@@ -1645,8 +1763,9 @@ pub(crate) mod tests {
         let handle2 = connection_handle();
         let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
         let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
+        let auth_id = AuthId::Anonymous;
 
-        broker.open_session(req1).unwrap();
+        broker.open_session(auth_id.clone(), req1).unwrap();
 
         assert_eq!(1, broker.sessions.len());
         assert_matches!(broker.sessions[&client_id], Session::Persistent(_));
@@ -1658,7 +1777,7 @@ pub(crate) mod tests {
         assert_matches!(broker.sessions[&client_id], Session::Offline(_));
 
         // Reopen session
-        broker.open_session(req2).unwrap();
+        broker.open_session(auth_id, req2).unwrap();
 
         assert_eq!(1, broker.sessions.len());
         assert_matches!(broker.sessions[&client_id], Session::Persistent(_));
@@ -1677,8 +1796,9 @@ pub(crate) mod tests {
         let handle1 = connection_handle();
         let handle2 = connection_handle();
         let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
+        let auth_id = AuthId::Anonymous;
 
-        broker.open_session(req1).unwrap();
+        broker.open_session(auth_id.clone(), req1).unwrap();
 
         assert_eq!(1, broker.sessions.len());
         assert_matches!(broker.sessions[&client_id], Session::Persistent(_));
@@ -1692,9 +1812,179 @@ pub(crate) mod tests {
         // Reopen session
         let connect2 = transient_connect(id);
         let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
-        broker.open_session(req2).unwrap();
+        broker.open_session(auth_id, req2).unwrap();
 
         assert_eq!(1, broker.sessions.len());
         assert_matches!(broker.sessions[&client_id], Session::Transient(_));
+    }
+
+    #[tokio::test]
+    async fn test_publish_client_has_no_permissions() {
+        let broker = BrokerBuilder::default()
+            .authenticator(|_| Ok(Some("client-a".into())))
+            .authorizer(|activity: Activity| match activity.operation() {
+                Operation::Connect(_) => Ok(true),
+                _ => Ok(false),
+            })
+            .build();
+
+        let mut broker_handle = broker.handle();
+        tokio::spawn(broker.run().map(drop));
+
+        let (client_id, mut rx) = connect_client("pub", &mut broker_handle).await.unwrap();
+
+        let publish = proto::Publish {
+            packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtLeastOnce(
+                proto::PacketIdentifier::new(1).unwrap(),
+                false,
+            ),
+            retain: true,
+            topic_name: "/foo/bar".to_string(),
+            payload: Bytes::new(),
+        };
+
+        let message = Message::Client(client_id.clone(), ClientEvent::PublishFrom(publish));
+        broker_handle.send(message).await.unwrap();
+
+        assert_matches!(
+            rx.recv().await,
+            Some(Message::Client(_, ClientEvent::DropConnection))
+        );
+        assert_matches!(rx.recv().await, None)
+    }
+
+    #[tokio::test]
+    async fn test_subscribe_client_has_no_permissions() {
+        let broker = BrokerBuilder::default()
+            .authenticator(|_| Ok(Some("client-a".into())))
+            .authorizer(|activity: Activity| match activity.operation() {
+                Operation::Connect(_) => Ok(true),
+                Operation::Subscribe(subscribe) => match subscribe.topic_filter() {
+                    "/topic/denied" => Ok(false),
+                    _ => Ok(true),
+                },
+                _ => Ok(false),
+            })
+            .build();
+
+        let mut broker_handle = broker.handle();
+        tokio::spawn(broker.run().map(drop));
+
+        let (client_id, mut rx1) = connect_client("sub", &mut broker_handle).await.unwrap();
+
+        let subscribe = proto::Subscribe {
+            packet_identifier: proto::PacketIdentifier::new(1).unwrap(),
+            subscribe_to: vec![
+                proto::SubscribeTo {
+                    topic_filter: "/topic/allowed".to_string(),
+                    qos: proto::QoS::AtLeastOnce,
+                },
+                proto::SubscribeTo {
+                    topic_filter: "/topic/denied".to_string(),
+                    qos: proto::QoS::AtMostOnce,
+                },
+                proto::SubscribeTo {
+                    topic_filter: "/topic/in#va/#lid".to_string(),
+                    qos: proto::QoS::ExactlyOnce,
+                },
+            ],
+        };
+
+        let message = Message::Client(client_id.clone(), ClientEvent::Subscribe(subscribe));
+        broker_handle.send(message).await.unwrap();
+
+        let expected_qos = vec![
+            proto::SubAckQos::Success(proto::QoS::AtLeastOnce),
+            proto::SubAckQos::Failure,
+            proto::SubAckQos::Failure,
+        ];
+        assert_matches!(
+            rx1.recv().await,
+            Some(Message::Client(_, ClientEvent::SubAck(suback))) if suback.qos == expected_qos
+        );
+    }
+
+    #[tokio::test]
+    async fn test_receive_client_has_no_permissions() {
+        let broker = BrokerBuilder::default()
+            .authenticator(|_| Ok(Some("client-a".into())))
+            .authorizer(|activity: Activity| match activity.operation() {
+                Operation::Connect(_) => Ok(true),
+                Operation::Publish(_) => Ok(true),
+                Operation::Subscribe(_) => Ok(true),
+                _ => Ok(false),
+            })
+            .build();
+
+        let mut broker_handle = broker.handle();
+        tokio::spawn(broker.run().map(drop));
+
+        let (sub_id, mut sub_rx) = connect_client("sub", &mut broker_handle).await.unwrap();
+
+        let subscribe = proto::Subscribe {
+            packet_identifier: proto::PacketIdentifier::new(1).unwrap(),
+            subscribe_to: vec![proto::SubscribeTo {
+                topic_filter: "/foo/bar".to_string(),
+                qos: proto::QoS::AtLeastOnce,
+            }],
+        };
+
+        let message = Message::Client(sub_id.clone(), ClientEvent::Subscribe(subscribe));
+        broker_handle.send(message).await.unwrap();
+
+        let (pub_id, mut pub_rx) = connect_client("pub", &mut broker_handle).await.unwrap();
+
+        let publish = proto::Publish {
+            packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtLeastOnce(
+                proto::PacketIdentifier::new(1).unwrap(),
+                false,
+            ),
+            retain: true,
+            topic_name: "/foo/bar".to_string(),
+            payload: Bytes::new(),
+        };
+
+        let message = Message::Client(pub_id.clone(), ClientEvent::PublishFrom(publish));
+        broker_handle.send(message).await.unwrap();
+
+        assert_matches!(
+            pub_rx.recv().await,
+            Some(Message::Client(_, ClientEvent::PubAck(_)))
+        );
+
+        assert_matches!(
+            sub_rx.recv().await,
+            Some(Message::Client(_, ClientEvent::SubAck(_)))
+        );
+        assert_matches!(sub_rx.try_recv(), Err(TryRecvError::Empty))
+    }
+
+    async fn connect_client(
+        client_id: &str,
+        broker_handle: &mut BrokerHandle,
+    ) -> Result<(ClientId, Receiver<Message>), Error> {
+        let connect = persistent_connect(client_id.into());
+
+        let (tx, mut rx) = mpsc::channel(128);
+        let conn = ConnectionHandle::from_sender(tx);
+        let client_id = ClientId::from(client_id);
+        let req = ConnReq::new(client_id.clone(), connect, None, conn);
+        broker_handle
+            .send(Message::Client(
+                client_id.clone(),
+                ClientEvent::ConnReq(req),
+            ))
+            .await?;
+
+        assert_matches!(
+            rx.recv().await,
+            Some(Message::Client(_, ClientEvent::ConnAck(proto::ConnAck {
+                return_code:
+                    proto::ConnectReturnCode::Accepted,
+                ..
+            })))
+        );
+
+        Ok((client_id, rx))
     }
 }
