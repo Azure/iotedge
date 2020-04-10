@@ -1,5 +1,6 @@
 use std::cmp;
 use std::collections::HashMap;
+use std::convert::TryInto;
 use std::fs::{self, OpenOptions};
 use std::io::{Read, Write};
 use std::iter::FromIterator;
@@ -322,11 +323,23 @@ where
                     Err(Error::from(ErrorKind::Persist(ErrorReason::Serialize)))
                 });
 
-                let mut version = [0; 100];
                 debug!("reading version");
+                let mut size = [0; std::mem::size_of::<u32>()];
+                file.read_exact(&mut size)
+                    .map_err(|_| Error::from(ErrorKind::Persist(ErrorReason::ReadVersion)))?;
+                let size: usize = u32::from_be_bytes(size).try_into().unwrap();
+
+                let mut version = Vec::with_capacity(size);
+                unsafe {
+                    version.set_len(size);
+                }
                 file.read_exact(&mut version)
                     .map_err(|_| Error::from(ErrorKind::Persist(ErrorReason::ReadVersion)))?;
+                let version: &str = bincode::deserialize(&version)
+                    .map_err(|_| Error::from(ErrorKind::Persist(ErrorReason::ReadVersion)))?;
+                assert_eq!(version, "Version 0.0.1");
 
+                debug!("loading state");
                 let state = format.load(file).map_err(Into::into)?;
                 Ok(Some(state))
             } else {
@@ -391,8 +404,12 @@ where
                 .context(ErrorKind::Persist(ErrorReason::FileOpen(path.clone())))?;
             debug!("{} opened.", path.display());
 
-            let version: [u8; 100] = [0; 100];
+            let version = bincode::serialize("Version 0.0.1")
+                .map_err(|_| Error::from(ErrorKind::Persist(ErrorReason::WriteVersion)))?;
+            let size: u32 = version.len().try_into().unwrap();
             debug!("writing version to {}...", path.display());
+            file.write_all(&size.to_be_bytes())
+                .map_err(|_| Error::from(ErrorKind::Persist(ErrorReason::WriteVersion)))?;
             file.write_all(&version)
                 .map_err(|_| Error::from(ErrorKind::Persist(ErrorReason::WriteVersion)))?;
 
