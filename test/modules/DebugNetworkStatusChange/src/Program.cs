@@ -27,20 +27,23 @@ namespace DebugNetworkStatusChange
                 .AddEnvironmentVariables()
                 .Build();
 
+            // configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only),
             ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
-                configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only),
+                TransportType.Amqp_Tcp_Only,
                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                 ModuleUtil.DefaultTransientRetryStrategy,
                 Logger);
 
-            NonStaticClass nsc = new NonStaticClass(Logger) ;
+            NonStaticClass nsc = new NonStaticClass(Logger);
 
-            moduleClient.SetConnectionStatusChangesHandler(nsc.statusChangedHandler);
+            moduleClient.SetConnectionStatusChangesHandler(nsc.StatusChangedHandler);
             await moduleClient.OpenAsync();
+
+            await Task.Delay(new TimeSpan(2, 5, 00));
 
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
-            Logger.LogInformation("DirectMethodReceiver Main() finished.");
+            Logger.LogInformation("DebugNetworkStatusChange Main() finished.");
 
             return 0;
         }

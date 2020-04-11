@@ -22,7 +22,7 @@ namespace DebugNetworkStatusChange
             this.logger = logger;
         }
 
-        public void statusChangedHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
+        public void StatusChangedHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
         {
             this.logger.LogInformation($"Connection status changed to {status} with reason {reason}");
         }
