@@ -872,7 +872,12 @@ async fn publish_to<Z: Authorizer>(
     session: &mut Session,
     publication: &proto::Publication,
 ) -> Result<(), Error> {
-    if can_publish_to(authorizer, session, publication).await? {
+    let operation = Operation::new_receive(publication.clone());
+    let client_id = session.client_id().clone();
+    let auth_id = session.auth_id()?;
+    let activity = Activity::new(auth_id.clone(), client_id.clone(), operation);
+
+    if authorizer.authorize(activity).await? {
         if let Some(event) = session.publish_to(&publication)? {
             session.send(event).await?
         }
@@ -883,24 +888,6 @@ async fn publish_to<Z: Authorizer>(
         );
     }
     Ok(())
-}
-
-async fn can_publish_to<Z: Authorizer>(
-    authorizer: &Z,
-    session: &mut Session,
-    publication: &proto::Publication,
-) -> Result<bool, Error> {
-    let operation = Operation::new_receive(publication.clone());
-    let client_id = session.client_id().clone();
-    let auth_id = session.auth_id()?;
-    let activity = Activity::new(auth_id.clone(), client_id.clone(), operation);
-
-    if !authorizer.authorize(activity).await? {
-        info!("client {} not allowed to receive messages", client_id);
-        return Ok(false);
-    }
-
-    Ok(true)
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Deserialize, Serialize)]
