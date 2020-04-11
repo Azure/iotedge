@@ -40,7 +40,7 @@ jobs:
   steps:
   - checkout: none
   - script: |
-      $(benchmarkToolPath)/mqtt-benchmark -pub -broker $(brokerAddress) -runId $(runId) -caseID ${{ parameters['id'] }} -clients ${{ parameters['publishers'] }} -duration $(test.duration) -size ${{ parameters['payload'] }} -topics ${{ parameters['topics'] }} -qos ${{ parameters['qos'] }} -dop $(clientDop) -waitFor $(subscriber.readyEndpoint) -quiet -panic
+      $(benchmarkToolPath)/mqtt-benchmark -pub -broker $(brokerAddress) -runId $(runId) -caseId ${{ parameters['id'] }} -clients ${{ parameters['publishers'] }} -duration $(test.duration) -size ${{ parameters['payload'] }} -topics ${{ parameters['topics'] }} -qos ${{ parameters['qos'] }} -dop $(clientDop) -waitFor $(subscriber.readyEndpoint) -quiet -panic
     displayName: 'Running test case'
     env:
       LOGANALYTICS_CUSTOMER_ID: $(logs.workspaceid)
@@ -58,7 +58,7 @@ jobs:
   steps:
   - checkout: none
   - script: |
-      $(benchmarkToolPath)/mqtt-benchmark -sub -broker $(brokerAddress) -runId $(runId) -caseID ${{ parameters['id'] }} -clients ${{ parameters['subscribers'] }} -duration $(test.duration) -qos ${{ parameters['qos'] }} -dop $(clientDop) -quiet -panic
+      $(benchmarkToolPath)/mqtt-benchmark -sub -broker $(brokerAddress) -runId $(runId) -caseId ${{ parameters['id'] }} -clients ${{ parameters['subscribers'] }} -duration $(test.duration) -qos ${{ parameters['qos'] }} -dop $(clientDop) -quiet -panic
     displayName: 'Running test case'
     env:
       LOGANALYTICS_CUSTOMER_ID: $(logs.workspaceid)
