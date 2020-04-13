@@ -1,4 +1,4 @@
-use crate::ClientEvent;
+use crate::{ClientEvent, Publish};
 use lazy_static::lazy_static;
 use mqtt3::proto;
 use regex::Regex;
@@ -12,9 +12,15 @@ pub fn translate_incoming(client_id: &str, event: ClientEvent) -> ClientEvent {
     }
 }
 
-pub fn translate_outgoing(packet: proto::Packet) -> proto::Packet {
-    match packet {
-        proto::Packet::Publish(p) => proto::Packet::Publish(publish_to(p)),
+pub fn translate_outgoing(event: ClientEvent) -> ClientEvent {
+    match event {
+        ClientEvent::PublishTo(Publish::QoS0(pid, p)) => {
+            ClientEvent::PublishTo(Publish::QoS0(pid, publish_to(p)))
+        }
+        ClientEvent::PublishTo(Publish::QoS12(pid, p)) => {
+            ClientEvent::PublishTo(Publish::QoS12(pid, publish_to(p)))
+        }
+
         p => p,
     }
 }
