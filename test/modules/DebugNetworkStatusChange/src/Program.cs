@@ -40,6 +40,7 @@ namespace DebugNetworkStatusChange
 
                 NonStaticClass nsc = new NonStaticClass(Logger);
 
+                Console.WriteLine("BEARWASHERE");
                 moduleClient.SetConnectionStatusChangesHandler(nsc.StatusChangedHandler);
                 await moduleClient.OpenAsync();
 

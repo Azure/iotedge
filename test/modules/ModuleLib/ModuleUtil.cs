@@ -96,14 +96,18 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
                     case TransportType.Mqtt_WebSocket_Only:
                         return new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_WebSocket_Only) };
                     case TransportType.Amqp_WebSocket_Only:
-                        return new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only) };
+                        var amqpSocketSettings = new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only);
+                        amqpSocketSettings.IdleTimeout = TimeSpan.FromSeconds(60);
+                        return new ITransportSettings[] {amqpSocketSettings};
                     default:
-                        return new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
+                        var amqpSettings = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
+                        amqpSettings.IdleTimeout = TimeSpan.FromSeconds(60);
+                        return new ITransportSettings[] {amqpSettings};
                 }
             }
 
             ITransportSettings[] settings = GetTransportSettings();
-            WriteLog(logger, LogLevel.Information, $"Trying to initialize module client using transport type [{transportType}].");
+            WriteLog(logger, LogLevel.Information, $"Trying to initialize module client using transport type [{transportType}] with idleTimeout : {((AmqpTransportSettings)settings[0]).IdleTimeout.ToString()}.");
             ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
             await moduleClient.OpenAsync();
 
