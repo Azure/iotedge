@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use bytes::Bytes;
 use failure::ResultExt;
 use futures_util::future;
 use mqtt3::proto;
@@ -393,6 +394,27 @@ where
         client_id: ClientId,
         sub: proto::Subscribe,
     ) -> Result<(), Error> {
+        {
+            // poc notify
+            let topics: String = sub
+                .subscribe_to
+                .iter()
+                .map(|s| s.topic_filter.clone())
+                .collect::<Vec<String>>()
+                .join(" ");
+
+            let publish = proto::Publish {
+                packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtMostOnce, //no ack
+                retain: false,
+                topic_name: format!("$sys/subscribe/{}", client_id),
+                payload: Bytes::from(topics),
+            };
+
+            let message = Message::Client("system".into(), ClientEvent::PublishFrom(publish));
+
+            self.sender.send(message).await.unwrap(); // just for poc
+        }
+
         let subscriptions = if let Some(session) = self.sessions.get_mut(&client_id) {
             let (suback, subscriptions) = subscribe(&self.authorizer, session, sub.clone()).await?;
             session.send(ClientEvent::SubAck(suback)).await?;
