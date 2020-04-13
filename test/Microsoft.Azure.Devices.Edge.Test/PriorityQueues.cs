@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             // Wait long enough for TTL to expire for some of the messages
             Log.Information($"Waiting for {testInfo.TtlThreshold} seconds for TTL's to expire");
-            await Task.Delay(testInfo.TtlThreshold);
+            await Task.Delay(testInfo.TtlThreshold * 1000);
 
             Action<EdgeConfigBuilder> addRelayerConfig = new Action<EdgeConfigBuilder>(
                 builder =>
