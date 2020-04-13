@@ -121,8 +121,6 @@ jobs:
         displayName: Test
       - powershell: edgelet/build/windows/clippy.ps1
         displayName: Clippy
-      - powershell: edgelet/build/windows/check-arm32-patch.ps1
-        displayName: Sanity-check that ARM32 build won't break
 
 ################################################################################
   - job: style_check
@@ -151,7 +149,7 @@ jobs:
     variables:
       coverage.excludes: "docker-rs*"
       coverage.goal: 68
-      rust.toolchain: nightly-2019-11-06
+      rust.toolchain: nightly-2020-04-10
     pool:
       vmImage: "ubuntu-16.04"
     steps:

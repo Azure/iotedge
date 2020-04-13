@@ -82,8 +82,8 @@ impl TryFrom<Deployment> for KubeModuleOwner {
                 .as_ref()
                 .map(String::to_string)
                 .ok_or(ErrorKind::MissingMetadata(MissingMetadataReason::Name))?,
-            api_version: Deployment::api_version().to_string(),
-            kind: Deployment::kind().to_string(),
+            api_version: Deployment::API_VERSION.to_string(),
+            kind: Deployment::KIND.to_string(),
             uid: metadata
                 .uid
                 .as_ref()
