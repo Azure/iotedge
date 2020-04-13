@@ -19,6 +19,7 @@ use tracing_futures::Instrument;
 use uuid::Uuid;
 
 use crate::broker::BrokerHandle;
+use crate::translation::translate_incoming;
 use crate::transport::GetPeerCertificate;
 use crate::{Certificate, ClientEvent, ClientId, ConnReq, Error, ErrorKind, Message, Publish};
 
@@ -238,6 +239,8 @@ where
                     Packet::Unsubscribe(unsubscribe) => ClientEvent::Unsubscribe(unsubscribe),
                     Packet::UnsubAck(unsuback) => ClientEvent::UnsubAck(unsuback),
                 };
+
+                let event = translate_incoming(&client_id.0, event);
 
                 let message = Message::Client(client_id.clone(), event);
                 broker.send(message).await?;
