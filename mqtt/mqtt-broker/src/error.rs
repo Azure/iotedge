@@ -1,3 +1,5 @@
+use std::path;
+
 use derive_more::Display;
 use failure::{Backtrace, Context, Fail};
 use mqtt3::proto::Packet;
@@ -9,9 +11,6 @@ pub struct Error {
 
 #[derive(Debug, Fail, PartialEq)]
 pub enum ErrorKind {
-    #[fail(display = "An error occurred trying to connect.")]
-    Connect,
-
     #[fail(display = "An error occurred sending a message to the broker.")]
     SendBrokerMessage,
 
@@ -20,18 +19,6 @@ pub enum ErrorKind {
 
     #[fail(display = "An error occurred sending a message to a snapshotter.")]
     SendSnapshotMessage,
-
-    #[fail(display = "An error occurred binding the server's listening socket.")]
-    BindServer,
-
-    #[fail(display = "An error occurred getting a connection's peer address.")]
-    ConnectionPeerAddress,
-
-    #[fail(display = "An error occurred getting local address.")]
-    ConnectionLocalAddress,
-
-    #[fail(display = "An error occurred configuring a connection.")]
-    ConnectionConfiguration,
 
     #[fail(display = "An error occurred decoding a packet.")]
     DecodePacket,
@@ -66,23 +53,11 @@ pub enum ErrorKind {
     #[fail(display = "An error occurred persisting state: {}", _0)]
     Persist(crate::persist::ErrorReason),
 
-    #[fail(display = "An error occurred joining the broker task.")]
-    BrokerJoin,
-
-    #[fail(display = "An error occurred obtaining service identity.")]
-    IdentityConfiguration,
-
-    #[fail(display = "Error loading identity from file.")]
-    LoadIdentity,
-
-    #[fail(display = "Error decoding identity content.")]
-    DecodeIdentity,
-
-    #[fail(display = "Error starting listener.")]
-    StartListener,
-
     #[fail(display = "Unable to obtain peer leaf certificate.")]
     PeerCertificate,
+
+    #[fail(display = "Unable to start broker: {}", _0)]
+    InitializeBroker(InitializeBrokerReason),
 
     #[fail(display = "An error occurred checking client permissions: {}.", _0)]
     Auth(crate::auth::ErrorReason),
@@ -120,4 +95,41 @@ impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
     }
+}
+
+/// Represents reason for errors occurred while bootstrapping broker.
+#[derive(Debug, Display, PartialEq)]
+pub enum InitializeBrokerReason {
+    #[display(fmt = "An error occurred binding the server's listening socket.")]
+    BindServer,
+
+    #[display(fmt = "An error occurred getting a connection's peer address.")]
+    ConnectionPeerAddress,
+
+    #[display(fmt = "An error occurred getting local address.")]
+    ConnectionLocalAddress,
+
+    #[display(fmt = "An error occurred configuring a connection.")]
+    ConnectionConfiguration,
+
+    #[display(fmt = "An error occurred loading configuration.")]
+    LoadConfiguration,
+
+    #[display(fmt = "An error occurred  obtaining service identity.")]
+    IdentityConfiguration,
+
+    #[display(
+        fmt = "An error occurred  loading identity from file {}",
+        "_0.display()"
+    )]
+    LoadIdentity(path::PathBuf),
+
+    #[display(fmt = "An error occurred  decoding identity content.")]
+    DecodeIdentity,
+
+    #[display(fmt = "An error occurred  starting listener.")]
+    StartListener,
+
+    #[display(fmt = "An error occurred  bootstrapping TLS")]
+    Tls,
 }

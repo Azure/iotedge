@@ -66,7 +66,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                     SortedDictionary<uint, EndpointExecutorFsm> snapshot = this.prioritiesToFsms;
                     ICheckpointer checkpointer = snapshot[priority].Checkpointer;
 
-                    IMessage storedMessage = await this.messageStore.Add(GetMessageQueueId(this.Endpoint.Id, priority), message);
+                    IMessage storedMessage = await this.messageStore.Add(GetMessageQueueId(this.Endpoint.Id, priority), message, timeToLiveSecs);
                     checkpointer.Propose(storedMessage);
                     Events.AddMessageSuccess(this, storedMessage.Offset, priority, timeToLiveSecs);
                 }
