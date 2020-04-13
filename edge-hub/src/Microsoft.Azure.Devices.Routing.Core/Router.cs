@@ -111,15 +111,19 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         public async Task SetRoute(Route route)
         {
+            Events.PrintCustomeMessage($"Router.SetRoute: route={JsonConvert.SerializeObject(route)}");
             this.CheckClosed();
 
+            Events.PrintCustomeMessage($"Router.SetRoute: passed checkClosed");
             using (await this.sync.LockAsync(this.cts.Token))
             {
+                Events.PrintCustomeMessage($"Router.SetRoute: can acquire lock");
                 this.CheckClosed();
+                Events.PrintCustomeMessage($"Router.SetRoute: passed checkClosed 2");
                 ImmutableDictionary<string, Route> snapshot = this.routes;
                 this.routes.Value = snapshot.SetItem(route.Id, route);
                 this.evaluator.SetRoute(route);
-
+                Events.PrintCustomeMessage($"Router.SetRoute: passed evaluator.SetRoute");
                 // Get another snapshot since we just added the new route,
                 // then recalculate the priorities for the endpoint with
                 // the new route taken into account
@@ -129,16 +133,21 @@ namespace Microsoft.Azure.Devices.Routing.Core
                     .Select(r => r.Priority).ToList();
 
                 await this.dispatcher.SetEndpoint(route.Endpoint, priorities);
+                Events.PrintCustomeMessage($"Router.SetRoute: dispatcher.SetEndpoint");
             }
         }
 
         public async Task RemoveRoute(string id)
         {
+            Events.PrintCustomeMessage($"Router.RemoveRoute: route id={id}");
             this.CheckClosed();
 
+            Events.PrintCustomeMessage($"Router.RemoveRoute: passed checkClosed");
             using (await this.sync.LockAsync(this.cts.Token))
             {
+                Events.PrintCustomeMessage($"Router.RemoveRoute: can acquire lock");
                 this.CheckClosed();
+                Events.PrintCustomeMessage($"Router.RemoveRoute: passed checkClosed 2");
                 ImmutableDictionary<string, Route> snapshot = this.routes;
                 Events.PrintCustomeMessage($"Router.RemoveRoute: id={id}, count={snapshot.Count} started");
 
@@ -156,17 +165,21 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         public async Task ReplaceRoutes(ISet<Route> newRoutes)
         {
+            Events.PrintCustomeMessage($"Router.ReplaceRoutes: newRoutes={JsonConvert.SerializeObject(newRoutes)}");
             this.CheckClosed();
 
+            Events.PrintCustomeMessage($"Router.ReplaceRoutes: passed checkClosed");
             using (await this.sync.LockAsync(this.cts.Token))
             {
+                Events.PrintCustomeMessage($"Router.ReplaceRoutes: can acquire lock");
                 this.CheckClosed();
-                Events.PrintCustomeMessage($"Router.ReplaceRoutes: newRoutes={JsonConvert.SerializeObject(newRoutes)}");
+                Events.PrintCustomeMessage($"Router.ReplaceRoutes: passed checkClosed 2");
                 ImmutableHashSet<Endpoint> endpoints = newRoutes.Select(r => r.Endpoint).ToImmutableHashSet();
                 IDictionary<Endpoint, IList<uint>> endpointWithPriority = GetEndpointsWithPriority(newRoutes, Option.None<Route>());
                 Events.PrintCustomeMessage($"Router.ReplaceRoutes: Endpoints={string.Join(",", endpointWithPriority.Keys.Select(k => $"[{k.Id},{k.Name}]"))}");
                 this.evaluator.ReplaceRoutes(newRoutes);
                 await this.dispatcher.ReplaceEndpoints(endpointWithPriority);
+                Events.PrintCustomeMessage($"Router.ReplaceRoutes: dispatcher ReplaceEndpoints finished");
                 this.routes.Value = newRoutes.ToImmutableDictionary(r => r.Id, r => r);
                 Events.PrintCustomeMessage($"Router.ReplaceRoutes: finished");
             }
