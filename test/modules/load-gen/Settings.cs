@@ -69,6 +69,17 @@ namespace LoadGen
                 : configuration.GetValue<string>("ttls").Split(';').Select(int.Parse).ToList();
 
             int ttlThresholdValue = configuration.GetValue<int>("ttlThresholdSecs");
+
+            if (!(ttls == null && priorities == null && ttlThresholdValue <= 0)
+                && !(ttls != null && priorities != null && ttlThresholdValue > 0))
+            {
+                throw new ArgumentException("TTLs, priorities, and TTLThreshold must either all be set or all not be set.");
+            }
+            else if (ttls.Count != priorities.Count && ttls.Count != 0)
+            {
+                throw new ArgumentException("TTL and priorities must have the same number of elements.");
+            }
+
             Option<int> ttlThresholdSecs = ttlThresholdValue > 0 ? Option.Some(ttlThresholdValue) : Option.None<int>();
 
             return new Settings(

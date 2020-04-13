@@ -165,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             ("messageFrequency", "00:00:00.5"),
                             ("priorities", string.Join(';', testInfo.Priorities)),
                             ("ttls", string.Join(';', testInfo.Ttls)),
-                            ("ttlThresholdSecs", "100")
+                            ("ttlThresholdSecs", testInfo.TtlThreshold.ToString())
                         });
 
                     Dictionary<string, object> routes = this.BuildRoutes(testInfo.Priorities, testInfo.Ttls, LoadGenModuleName, RelayerModuleName);
@@ -198,17 +198,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
 
             return routes;
-        }
-
-        private List<int> BuildDefaultTtls(int numberOfTTLs)
-        {
-            var ttls = new List<int>();
-            for (int i = 0; i < numberOfTTLs; i++)
-            {
-                ttls.Add(0);
-            }
-
-            return ttls;
         }
 
         private List<int> BuildTtls(int numberOfTTLs, int ttlThreshold)
@@ -267,10 +256,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
             return testStatus;
         }
 
-        private TestInfo InitTestInfo(int length, int ttlThreshold, bool defaultTtls = false)
+        private TestInfo InitTestInfo(int numOfRoutes, int ttlThreshold, bool defaultTtls = false)
         {
-            List<int> ttls = defaultTtls ? this.BuildDefaultTtls(length) : this.BuildTtls(length, ttlThreshold);
-            List<int> priorities = this.BuildPriorities(length);
+            List<int> ttls = defaultTtls ? new List<int>(Enumerable.Repeat(0, numOfRoutes)) : this.BuildTtls(numOfRoutes, ttlThreshold);
+            List<int> priorities = this.BuildPriorities(numOfRoutes);
             return new TestInfo() { Ttls = ttls, Priorities = priorities, TtlThreshold = ttlThreshold };
         }
 
