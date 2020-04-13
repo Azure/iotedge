@@ -42,8 +42,8 @@ async fn run() -> Result<(), Error> {
     info!("Loading state...");
     let state = persistor.load().await?.unwrap_or_else(BrokerState::default);
     let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(false))
+        .authenticator(|_| Ok(Some(AuthId::anonymous())))
+        .authorizer(|_| Ok(true))
         .state(state)
         .build();
     info!("state loaded.");

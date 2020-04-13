@@ -22,8 +22,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
             string Get(string name) => context.GetValue<string>(name);
 
-            string GetOrDefault(string name, string defaultValue) => context.GetValue(name, defaultValue);
-
             IEnumerable<(string, string, string)> GetAndValidateRegistries()
             {
                 var result = new List<(string, string, string)>();
@@ -80,7 +78,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
             this.CaCertScriptPath = Option.Maybe(Get("caCertScriptPath"));
             this.ConnectionString = Get("IOT_HUB_CONNECTION_STRING");
-            this.DeviceId = IdentityLimits.CheckEdgeId(GetOrDefault("deviceId", defaultId));
             this.DpsIdScope = Option.Maybe(Get("dpsIdScope"));
             this.DpsGroupKey = Option.Maybe(Get("DPS_GROUP_KEY"));
             this.EdgeAgentImage = Option.Maybe(Get("edgeAgentImage"));
@@ -117,8 +114,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public string ConnectionString { get; }
 
         public Dictionary<string, EdgeDevice> DeleteList { get; } = new Dictionary<string, EdgeDevice>();
-
-        public string DeviceId { get; }
 
         public Option<string> DpsIdScope { get; }
 
