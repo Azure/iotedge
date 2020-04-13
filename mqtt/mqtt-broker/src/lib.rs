@@ -22,6 +22,7 @@ mod broker;
 mod configuration;
 mod connection;
 mod error;
+mod notifier;
 mod persist;
 mod server;
 mod session;
@@ -41,6 +42,7 @@ pub use crate::server::Server;
 pub use crate::session::SessionState;
 pub use crate::snapshot::{Snapshotter, StateSnapshotHandle};
 pub use crate::transport::TransportBuilder;
+pub use notifier::*;
 
 #[derive(Clone, Debug, Display, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ClientId(Arc<String>);
