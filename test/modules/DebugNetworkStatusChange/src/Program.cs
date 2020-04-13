@@ -5,6 +5,7 @@ namespace DebugNetworkStatusChange
     using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
+    using System.Diagnostics.Tracing;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -14,6 +15,7 @@ namespace DebugNetworkStatusChange
     class Program
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("DebugNetworkStatusChange");
+        private readonly ConsoleEventListener _listener = new ConsoleEventListener("Microsoft-Azure-Devices-Device-Client");
 
         public static int Main() => MainAsync().Result;
 
@@ -27,22 +29,28 @@ namespace DebugNetworkStatusChange
                 .AddEnvironmentVariables()
                 .Build();
 
-            // configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only),
-            ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
-                TransportType.Amqp_Tcp_Only,
-                ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                ModuleUtil.DefaultTransientRetryStrategy,
-                Logger);
-
-            NonStaticClass nsc = new NonStaticClass(Logger);
-
-            moduleClient.SetConnectionStatusChangesHandler(nsc.StatusChangedHandler);
-            // await moduleClient.SetMethodHandlerAsync("HelloWorldMethod", nsc.HelloWorldMethodAsync, null);
-            await moduleClient.OpenAsync();
-
-            while (!cts.IsCancellationRequested || true)
+            try
             {
-                await Task.Delay(TimeSpan.FromMilliseconds(5));
+                // configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only),
+                ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
+                    TransportType.Amqp_Tcp_Only,
+                    ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
+                    ModuleUtil.DefaultTransientRetryStrategy,
+                    Logger);
+
+                NonStaticClass nsc = new NonStaticClass(Logger);
+
+                moduleClient.SetConnectionStatusChangesHandler(nsc.StatusChangedHandler);
+                await moduleClient.OpenAsync();
+
+                while (!cts.IsCancellationRequested || true)
+                {
+                    await Task.Delay(TimeSpan.FromMilliseconds(5));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"{DateTime.UtcNow} Exception {ex}");
             }
 
             completed.Set();
