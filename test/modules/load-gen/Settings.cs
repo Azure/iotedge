@@ -24,8 +24,8 @@ namespace LoadGen
             Option<string> testResultCoordinatorUrl,
             string moduleId,
             LoadGenSenderType senderType,
-            Option<string> priorities,
-            Option<string> ttls,
+            Option<List<int>> priorities,
+            Option<List<int>> ttls,
             Option<int> ttlThresholdSecs)
         {
             Preconditions.CheckRange(messageFrequency.Ticks, 0);
@@ -60,13 +60,13 @@ namespace LoadGen
                 ? null
                 : configuration.GetValue<string>("testResultCoordinatorUrl");
 
-            string priorities = string.IsNullOrWhiteSpace(configuration.GetValue<string>("priorities"))
+            List<int> priorities = string.IsNullOrWhiteSpace(configuration.GetValue<string>("priorities"))
                 ? null
-                : configuration.GetValue<string>("priorities");
+                : configuration.GetValue<string>("priorities").Split(';').Select(int.Parse).ToList();
 
-            string ttls = string.IsNullOrWhiteSpace(configuration.GetValue<string>("ttls"))
+            List<int> ttls = string.IsNullOrWhiteSpace(configuration.GetValue<string>("ttls"))
                 ? null
-                : configuration.GetValue<string>("ttls");
+                : configuration.GetValue<string>("ttls").Split(';').Select(int.Parse).ToList();
 
             int ttlThresholdValue = configuration.GetValue<int>("ttlThresholdSecs");
             Option<int> ttlThresholdSecs = ttlThresholdValue > 0 ? Option.Some(ttlThresholdValue) : Option.None<int>();
@@ -107,9 +107,9 @@ namespace LoadGen
 
         public LoadGenSenderType SenderType { get; }
 
-        public Option<string> Priorities { get; }
+        public Option<List<int>> Priorities { get; }
 
-        public Option<string> Ttls { get; }
+        public Option<List<int>> Ttls { get; }
 
         public Option<int> TtlThresholdSecs { get; }
 
@@ -129,6 +129,9 @@ namespace LoadGen
                 { nameof(this.TestResultCoordinatorUrl), this.TestResultCoordinatorUrl.ToString() },
                 { nameof(this.SenderType), this.SenderType.ToString() }
             };
+            Priorities.ForEach(p => fields.Add(nameof(this.Priorities), p.ToString()));
+            Ttls.ForEach(t => fields.Add(nameof(this.Ttls), t.ToString()));
+            TtlThresholdSecs.ForEach(t => fields.Add(nameof(this.TtlThresholdSecs), t.ToString()));
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
         }

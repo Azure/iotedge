@@ -27,9 +27,9 @@ namespace LoadGen
             string trackingId)
             : base(logger, moduleClient, batchId, trackingId)
         {
-            this.PriorityString = Settings.Current.Priorities.Expect(() =>
+            this.Priorities = Settings.Current.Priorities.Expect(() =>
                 new ArgumentException("PriorityMessageSender must have 'priorities' environment variable set to a valid list of strings delimited by ';'"));
-            this.TtlString = Settings.Current.Ttls.Expect(() =>
+            this.Ttls = Settings.Current.Ttls.Expect(() =>
                 new ArgumentException("PriorityMessageSender must have 'ttls' environment variable set to a valid list of strings delimited by ';'"));
             this.TtlThresholdSecs = Settings.Current.TtlThresholdSecs.Expect(() =>
                 new ArgumentException("PriorityMessageSender must have 'ttlThresholdSecs' environment variable set to a valid int"));
@@ -37,17 +37,14 @@ namespace LoadGen
             this.resultsSent = 0;
         }
 
-        public string PriorityString { get; }
+        List<int> Priorities { get; }
 
-        public string TtlString { get; }
+        List<int> Ttls { get; }
 
-        public int TtlThresholdSecs { get; }
+        int TtlThresholdSecs { get; }
 
         public async override Task RunAsync(CancellationTokenSource cts, DateTime testStartAt)
         {
-            string[] outputs = this.PriorityString.Split(';');
-            string[] ttls = this.TtlString.Split(';');
-
             bool firstMessageWhileOffline = true;
             var priorityAndSequence = new SortedDictionary<int, List<long>>();
             long messageIdCounter = 1;
@@ -59,12 +56,12 @@ namespace LoadGen
             {
                 try
                 {
-                    int choosePri = this.rng.Next(outputs.Length);
-                    string output = outputs[choosePri];
-                    int ttlForMessage = int.Parse(ttls[choosePri]);
+                    int rand = this.rng.Next(this.Priorities.Count);
+                    int priority = this.Priorities[rand];
+                    int ttlForMessage = this.Ttls[rand];
 
-                    await this.SendEventAsync(messageIdCounter, "pri" + output);
-                    this.Logger.LogInformation($"Sent message {messageIdCounter} with pri {output} and ttl {ttlForMessage}");
+                    await this.SendEventAsync(messageIdCounter, "pri" + priority);
+                    this.Logger.LogInformation($"Sent message {messageIdCounter} with pri {priority} and ttl {ttlForMessage}");
 
                     // We need to set the first message because of the way priority queue logic works
                     // When edgeHub cannot send a message, it will retry on that message until it sends
@@ -76,11 +73,11 @@ namespace LoadGen
                     }
                     else if (ttlForMessage <= 0 || ttlForMessage > this.TtlThresholdSecs)
                     {
-                        int priority = output.Contains(TestConstants.PriorityQueues.Default) ? 2000000000 : int.Parse(output);
+                        int priorityInt = TestConstants.PriorityQueues.Default.Equals(priority)  ? 2000000000 : priority;
 
-                        if (!priorityAndSequence.TryGetValue(priority, out List<long> sequenceNums))
+                        if (!priorityAndSequence.TryGetValue(priorityInt, out List<long> sequenceNums))
                         {
-                            priorityAndSequence.Add(priority, new List<long> { messageIdCounter });
+                            priorityAndSequence.Add(priorityInt, new List<long> { messageIdCounter });
                         }
                         else
                         {
