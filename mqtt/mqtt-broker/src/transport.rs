@@ -1,4 +1,5 @@
 use std::{
+    convert::TryFrom,
     future::Future,
     net::SocketAddr,
     pin::Pin,
@@ -15,8 +16,9 @@ use tokio::{
     stream::Stream,
 };
 use tokio_native_tls::{TlsAcceptor, TlsStream};
-use tracing::{debug, error, warn};
+use tracing::{debug, error, info, warn};
 
+use crate::configuration::Transport as TransportConfig;
 use crate::{Certificate, Error, InitializeBrokerError};
 
 pub enum TransportBuilder<A> {
@@ -32,6 +34,30 @@ where
         match self {
             TransportBuilder::Tcp(addr) => Transport::new_tcp(addr).await,
             TransportBuilder::Tls(addr, identity) => Transport::new_tls(addr, identity).await,
+        }
+    }
+}
+
+impl TryFrom<TransportConfig> for TransportBuilder<String> {
+    type Error = InitializeBrokerError;
+
+    fn try_from(transport: TransportConfig) -> Result<Self, Self::Error> {
+        match transport {
+            TransportConfig::Tcp { address } => Ok(Self::Tcp(address)),
+            TransportConfig::Tls {
+                address,
+                certificate,
+            } => {
+                info!("Loading identity from {}", certificate.display());
+                let cert_buffer = std::fs::read(&certificate).map_err(|e| {
+                    InitializeBrokerError::LoadIdentity(certificate.to_path_buf(), e)
+                })?;
+
+                let cert = Identity::from_pkcs12(cert_buffer.as_slice(), "")
+                    .map_err(InitializeBrokerError::DecodeIdentity)?;
+
+                Ok(Self::Tls(address, cert))
+            }
         }
     }
 }

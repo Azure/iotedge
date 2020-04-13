@@ -32,7 +32,7 @@ static STATE_EXTENSION: &str = "dat";
 
 #[async_trait]
 pub trait Persist {
-    type Error: Into<PersistError>;
+    type Error: std::error::Error;
 
     async fn load(&mut self) -> Result<Option<BrokerState>, Self::Error>;
 
@@ -58,7 +58,7 @@ impl Persist for NullPersistor {
 
 /// An abstraction over the broker state's file format.
 pub trait FileFormat {
-    type Error: Into<PersistError>;
+    type Error: std::error::Error;
 
     /// Load `BrokerState` from a reader.
     fn load<R: Read>(&self, reader: R) -> Result<BrokerState, Self::Error>;
@@ -290,7 +290,7 @@ where
 #[async_trait]
 impl<F> Persist for FilePersistor<F>
 where
-    F: FileFormat + Clone + Send + 'static,
+    F: FileFormat<Error = PersistError> + Clone + Send + 'static,
 {
     type Error = PersistError;
 
@@ -314,7 +314,7 @@ where
                 fail_point!("filepersistor.load.format", |_| {
                     Err(PersistError::Deserialize(None))
                 });
-                let state = format.load(file).map_err(Into::into)?;
+                let state = format.load(file)?;
                 Ok(Some(state))
             } else {
                 info!("no state file found at {}.", path.display());
@@ -468,7 +468,7 @@ where
                     });
                     fs::remove_file(&path)
                         .map_err(|e| (PersistError::FileUnlink(path, Some(e))))?;
-                    return Err(e.into());
+                    return Err(e);
                 }
             }
             info!(message="persisted state.", file=%path.display());

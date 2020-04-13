@@ -68,7 +68,7 @@ where
         while let Some(event) = self.events.recv().await {
             match event {
                 Event::State(state) => {
-                    if let Err(e) = self.persistor.store(state).await.map_err(Into::into) {
+                    if let Err(e) = self.persistor.store(state).await {
                         warn!(message = "an error occurred persisting state snapshot.", error=%e);
                     }
                 }

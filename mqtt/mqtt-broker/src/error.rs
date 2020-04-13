@@ -27,6 +27,7 @@ pub enum Error {
 
     #[error("Connection closed before any packets received.")]
     NoPackets,
+
     #[error("Session is offline.")]
     SessionOffline,
 
