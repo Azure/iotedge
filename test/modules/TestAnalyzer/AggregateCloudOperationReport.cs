@@ -58,7 +58,9 @@ namespace TestAnalyzer
                 (x.StatusCode.Equals("0") && this.ModuleId.Contains("DirectMethod")));
 
             // The SDK does not allow edgehub to de-register from iothub subscriptions, which results in DirectMethod clients sometimes receiving status code 0.
+            // Github issue: https://github.com/Azure/iotedge/issues/681
             // We expect to get this status sometimes because of edgehub restarts, but if we receive too many we should fail the tests.
+            // TODO: When the SDK allows edgehub to de-register from subscriptions and we make the fix in edgehub, then we can fail tests for any status code 0.
             bool statusCodeZeroBelowThreshold = this.StatusCodes.Where(s => s.StatusCode.Equals("0")).Count() < (this.StatusCodes.Count / 100);
 
             return noUnexpectedStatus && statusCodeZeroBelowThreshold;
