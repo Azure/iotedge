@@ -67,7 +67,7 @@ fn to_new_topic(client_id: &str, topic: String) -> String {
 }
 
 fn to_legacy_topic(topic: String) -> String {
-    const DEVICE_ID: &'static str = r"[a-zA-Z-\.\+%_#\*\?!\(\),=@\$']";
+    const DEVICE_ID: &str = r"[a-zA-Z-\.\+%_#\*\?!\(\),=@\$']";
     lazy_static! {
         static ref TWIN_PATTERN: Regex = Regex::new(&format!("\\$edgehub/{}/twin/get", DEVICE_ID))
             .expect("failed to create new Regex from pattern");
