@@ -21,13 +21,13 @@ namespace DebugNetworkStatusChange
 
         static async Task<int> MainAsync()
         {
-            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromHours(3), Logger);
+            // (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromHours(3), Logger);
 
-            IConfiguration configuration = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("config/appsettings.json", optional: true)
-                .AddEnvironmentVariables()
-                .Build();
+            // IConfiguration configuration = new ConfigurationBuilder()
+            //     .SetBasePath(Directory.GetCurrentDirectory())
+            //     .AddJsonFile("config/appsettings.json", optional: true)
+            //     .AddEnvironmentVariables()
+            //     .Build();
 
             try
             {
@@ -43,9 +43,10 @@ namespace DebugNetworkStatusChange
                 moduleClient.SetConnectionStatusChangesHandler(nsc.StatusChangedHandler);
                 await moduleClient.OpenAsync();
 
-                while (!cts.IsCancellationRequested || true)
+                while (moduleClient!=null)
                 {
                     await Task.Delay(TimeSpan.FromMilliseconds(5));
+                    moduleClient.SetConnectionStatusChangesHandler(nsc.StatusChangedHandler);
                 }
             }
             catch (Exception ex)
@@ -53,8 +54,8 @@ namespace DebugNetworkStatusChange
                 Console.WriteLine($"{DateTime.UtcNow} Exception {ex}");
             }
 
-            completed.Set();
-            handler.ForEach(h => GC.KeepAlive(h));
+            // completed.Set();
+            // handler.ForEach(h => GC.KeepAlive(h));
             Logger.LogInformation("DebugNetworkStatusChange Main() finished.");
 
             return 0;
