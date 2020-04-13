@@ -19,7 +19,7 @@ use tracing_futures::Instrument;
 use uuid::Uuid;
 
 use crate::broker::BrokerHandle;
-use crate::translation::translate_incoming;
+use crate::translation::{translate_incoming, translate_outgoing};
 use crate::transport::GetPeerCertificate;
 use crate::{Certificate, ClientEvent, ClientId, ConnReq, Error, ErrorKind, Message, Publish};
 
@@ -323,6 +323,8 @@ where
         };
 
         if let Some(packet) = maybe_packet {
+            let packet = translate_outgoing(packet);
+
             let result = outgoing.send(packet).await.context(ErrorKind::EncodePacket);
 
             if let Err(e) = result {
