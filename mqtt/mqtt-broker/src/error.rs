@@ -27,10 +27,6 @@ pub enum Error {
 
     #[error("Connection closed before any packets received.")]
     NoPackets,
-
-    #[error(transparent)]
-    NoSession(#[from] crate::broker::NoSessionError),
-
     #[error("Session is offline.")]
     SessionOffline,
 
@@ -54,12 +50,6 @@ pub enum Error {
 
     #[error("Unable to start broker.")]
     InitializeBroker(#[from] InitializeBrokerError),
-
-    #[error(transparent)]
-    Authenticate(#[from] crate::auth::AuthenticateError),
-
-    #[error(transparent)]
-    Authorize(#[from] crate::auth::AuthorizeError),
 }
 
 /// Represents errors occurred while bootstrapping broker.

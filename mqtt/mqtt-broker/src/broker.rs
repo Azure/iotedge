@@ -30,9 +30,7 @@ macro_rules! try_send {
 pub struct Broker<N, Z>
 where
     N: Authenticator,
-    N::Error: Into<Error>,
     Z: Authorizer,
-    Z::Error: Into<Error>,
 {
     sender: Sender<Message>,
     messages: Receiver<Message>,
@@ -45,9 +43,7 @@ where
 impl<N, Z> Broker<N, Z>
 where
     N: Authenticator,
-    N::Error: Into<Error>,
     Z: Authorizer,
-    Z::Error: Into<Error>,
 {
     pub fn handle(&self) -> BrokerHandle {
         BrokerHandle(self.sender.clone())
@@ -265,7 +261,7 @@ where
             Err(e) => {
                 warn!(message = "error authenticating client: {}", error = %e);
                 refuse_connection!(proto::ConnectionRefusedReason::ServerUnavailable);
-                return Err(e.into());
+                return Ok(());
             }
         };
 
@@ -284,7 +280,7 @@ where
             Err(e) => {
                 warn!(message="error authorizing client: {}", error = %e);
                 refuse_connection!(proto::ConnectionRefusedReason::ServerUnavailable);
-                return Err(e.into());
+                return Ok(());
             }
         }
 
@@ -293,7 +289,9 @@ where
         match self.open_session(auth_id, connreq) {
             Ok((ack, events)) => {
                 // Send ConnAck on new session
-                let session = self.get_session_mut(&client_id)?;
+                let session = self
+                    .get_session_mut(&client_id)
+                    .expect("session must exist");
                 session.send(ClientEvent::ConnAck(ack)).await?;
 
                 for event in events {
@@ -306,7 +304,9 @@ where
 
                 // Send ConnAck on new connection
                 let should_drop = ack.return_code != proto::ConnectReturnCode::Accepted;
-                let session = self.get_session_mut(&client_id)?;
+                let session = self
+                    .get_session_mut(&client_id)
+                    .expect("session must exist");
                 session.send(ClientEvent::ConnAck(ack)).await?;
 
                 if should_drop {
@@ -464,8 +464,6 @@ where
                     if let Some(publication) = maybe_publication {
                         self.publish_all(publication).await?
                     }
-
-                    Ok(())
                 }
                 Ok(false) => {
                     warn!(
@@ -473,18 +471,17 @@ where
                         client_id, publish.topic_name,
                     );
                     self.drop_connection(client_id).await?;
-                    Ok(())
                 }
                 Err(e) => {
                     warn!(message="error authorizing client: {}", error = %e);
                     self.drop_connection(client_id).await?;
-                    Err(e.into())
                 }
             }
         } else {
             debug!("no session for {}", client_id);
-            Ok(())
         }
+
+        Ok(())
     }
 
     async fn process_puback(
@@ -872,22 +869,27 @@ async fn publish_to<Z>(
 ) -> Result<(), Error>
 where
     Z: Authorizer,
-    Z::Error: Into<Error>,
 {
     let operation = Operation::new_receive(publication.clone());
     let client_id = session.client_id().clone();
     let auth_id = session.auth_id()?;
     let activity = Activity::new(auth_id.clone(), client_id.clone(), operation);
 
-    if authorizer.authorize(activity).await.map_err(Into::into)? {
-        if let Some(event) = session.publish_to(&publication)? {
-            session.send(event).await?
+    match authorizer.authorize(activity).await {
+        Ok(true) => {
+            if let Some(event) = session.publish_to(&publication)? {
+                session.send(event).await?
+            }
         }
-    } else {
-        debug!(
-            "client {} not allowed to receive messages",
-            session.client_id()
-        );
+        Ok(false) => {
+            debug!(
+                "client {} not allowed to receive messages",
+                session.client_id()
+            );
+        }
+        Err(e) => {
+            warn!(message="error authorizing client: {}", error = %e);
+        }
     }
     Ok(())
 }
@@ -927,9 +929,7 @@ impl Default for BrokerBuilder<DefaultAuthenticator, DefaultAuthorizer> {
 impl<N, Z> BrokerBuilder<N, Z>
 where
     N: Authenticator,
-    N::Error: Into<Error> + Send,
     Z: Authorizer,
-    Z::Error: Into<Error> + Send,
 {
     pub fn authenticator<N1>(self, authenticator: N1) -> BrokerBuilder<N1, Z>
     where

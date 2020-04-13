@@ -15,9 +15,7 @@ use crate::{connection, Error, InitializeBrokerError, Message, SystemEvent};
 pub struct Server<N, Z>
 where
     N: Authenticator,
-    N::Error: Into<Error> + Send,
     Z: Authorizer,
-    Z::Error: Into<Error> + Send,
 {
     broker: Broker<N, Z>,
 }
@@ -25,9 +23,7 @@ where
 impl<N, Z> Server<N, Z>
 where
     N: Authenticator + Send + Sync + 'static,
-    N::Error: Into<Error> + Send,
     Z: Authorizer + Send + Sync + 'static,
-    Z::Error: Into<Error> + Send,
 {
     pub fn from_broker(broker: Broker<N, Z>) -> Self {
         Self { broker }
