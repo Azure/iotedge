@@ -46,7 +46,6 @@ namespace DebugNetworkStatusChange
                 while (moduleClient!=null)
                 {
                     await Task.Delay(TimeSpan.FromMilliseconds(5));
-                    moduleClient.SetConnectionStatusChangesHandler(nsc.StatusChangedHandler);
                 }
             }
             catch (Exception ex)
