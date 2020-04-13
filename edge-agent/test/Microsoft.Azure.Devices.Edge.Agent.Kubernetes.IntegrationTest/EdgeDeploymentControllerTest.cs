@@ -261,9 +261,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             var tokenSource = new CancellationTokenSource(DefaultTimeout * 3);
 
             await this.client.AddModuleDeploymentAsync(moduleName, labels, null);
-            await this.client.WaitUntilAnyDeploymentAsync(tokenSource.Token);
+            await this.client.WaitUntilRunningDeploymentAsync(moduleName, tokenSource.Token);
             await this.client.ReplaceModuleImageAsync(moduleName, newImage);
-            await this.client.WaitUntilAnyDeploymentAsync(tokenSource.Token);
+            await this.client.WaitUntilRunningDeploymentAsync(moduleName, tokenSource.Token);
             await controller.DeployModulesAsync(ModuleSet.Create(km1updated), ModuleSet.Create(km1));
 
             this.AssertNoMatchingDeployments(deviceSelector, moduleName);
