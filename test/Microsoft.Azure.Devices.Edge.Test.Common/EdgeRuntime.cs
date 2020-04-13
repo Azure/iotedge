@@ -13,22 +13,24 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     public class EdgeRuntime
     {
         readonly Option<string> agentImage;
-        readonly string deviceId;
         readonly Option<string> hubImage;
         readonly IotHub iotHub;
         readonly bool optimizeForPerformance;
         readonly Option<Uri> proxy;
         readonly Registries registries;
 
+        public string DeviceId { get; }
+
         public EdgeRuntime(string deviceId, Option<string> agentImage, Option<string> hubImage, Option<Uri> proxy, Registries registries, bool optimizeForPerformance, IotHub iotHub)
         {
             this.agentImage = agentImage;
-            this.deviceId = deviceId;
             this.hubImage = hubImage;
             this.iotHub = iotHub;
             this.optimizeForPerformance = optimizeForPerformance;
             this.proxy = proxy;
             this.registries = registries;
+
+            this.DeviceId = deviceId;
         }
 
         // DeployConfigurationAsync builds a configuration that includes Edge Agent, Edge Hub, and
@@ -39,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             CancellationToken token,
             bool stageSystemModules = true)
         {
-            var builder = new EdgeConfigBuilder(this.deviceId);
+            var builder = new EdgeConfigBuilder(this.DeviceId);
             builder.AddRegistryCredentials(this.registries);
             builder.AddEdgeAgent(this.agentImage.OrDefault())
                 .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
@@ -57,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             {
                 await edgeConfiguration.DeployAsync(this.iotHub, token);
                 EdgeModule[] modules = edgeConfiguration.ModuleNames
-                    .Select(id => new EdgeModule(id, this.deviceId, this.iotHub))
+                    .Select(id => new EdgeModule(id, this.DeviceId, this.iotHub))
                     .ToArray();
                 await EdgeModule.WaitForStatusAsync(modules, EdgeModuleStatus.Running, token);
                 await edgeConfiguration.VerifyAsync(this.iotHub, token);

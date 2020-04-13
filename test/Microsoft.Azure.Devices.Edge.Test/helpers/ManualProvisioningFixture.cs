@@ -15,62 +15,24 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     {
         protected readonly IEdgeDaemon daemon;
         protected readonly IotHub iotHub;
-        protected EdgeRuntime runtime;
 
-        public ManualProvisioningFixture(string deviceIdSuffix)
+        public ManualProvisioningFixture()
         {
             this.daemon = OsPlatform.Current.CreateEdgeDaemon(Context.Current.InstallerPath);
             this.iotHub = new IotHub(
                 Context.Current.ConnectionString,
                 Context.Current.EventHubEndpoint,
                 Context.Current.Proxy);
-            this.runtime = new EdgeRuntime(
-                Context.Current.DeviceId + deviceIdSuffix,
-                Context.Current.EdgeAgentImage,
-                Context.Current.EdgeHubImage,
-                Context.Current.Proxy,
-                Context.Current.Registries,
-                Context.Current.OptimizeForPerformance,
-                this.iotHub);
         }
 
-        public async Task ManuallyProvisionEdgeSasAsync(EdgeDevice device, DateTime startTime, CancellationToken token)
+        protected async Task ConfigureDaemonAsync(
+            Func<DaemonConfiguration, Task<(string, object[])>> config,
+            EdgeDevice device,
+            DateTime startTime,
+            CancellationToken token)
         {
-            IotHubConnectionStringBuilder builder =
-                IotHubConnectionStringBuilder.Create(device.ConnectionString);
+            await this.daemon.ConfigureAsync(config, token);
 
-            await this.daemon.ConfigureAsync(
-                config =>
-                {
-                    config.SetDeviceConnectionString(device.ConnectionString);
-                    config.Update();
-                    return Task.FromResult((
-                        "with connection string for device '{Identity}'",
-                        new object[] { builder.DeviceId }));
-                },
-                token);
-
-            await this.WaitForConfiguredStatusAsync(device, startTime, token);
-        }
-
-        public async Task ManuallyProvisionEdgeX509Async(EdgeDevice device, string certPath, string keyPath, DateTime startTime, CancellationToken token)
-        {
-            await this.daemon.ConfigureAsync(
-                config =>
-                {
-                    config.SetDeviceManualX509(device.HubHostname, device.Id, certPath, keyPath);
-                    config.Update();
-                    return Task.FromResult((
-                        "with x509 certificate for device '{Identity}'",
-                        new object[] { device.Id }));
-                },
-                token);
-
-            await this.WaitForConfiguredStatusAsync(device, startTime, token);
-        }
-
-        private async Task WaitForConfiguredStatusAsync(EdgeDevice device, DateTime startTime, CancellationToken token)
-        {
             try
             {
                 await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
