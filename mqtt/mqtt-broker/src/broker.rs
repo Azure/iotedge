@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display};
+use std::collections::HashMap;
 
 use futures_util::future;
 use mqtt3::proto;
@@ -30,9 +30,9 @@ macro_rules! try_send {
 pub struct Broker<N, Z>
 where
     N: Authenticator,
-    N::Error: Display + Into<Error>,
+    N::Error: Into<Error>,
     Z: Authorizer,
-    Z::Error: Display + Into<Error>,
+    Z::Error: Into<Error>,
 {
     sender: Sender<Message>,
     messages: Receiver<Message>,
@@ -45,9 +45,9 @@ where
 impl<N, Z> Broker<N, Z>
 where
     N: Authenticator,
-    N::Error: Display + Into<Error>,
+    N::Error: Into<Error>,
     Z: Authorizer,
-    Z::Error: Display + Into<Error>,
+    Z::Error: Into<Error>,
 {
     pub fn handle(&self) -> BrokerHandle {
         BrokerHandle(self.sender.clone())
@@ -809,7 +809,6 @@ async fn subscribe<Z>(
 ) -> Result<(proto::SubAck, Vec<Subscription>), Error>
 where
     Z: Authorizer,
-    Z::Error: Display,
 {
     let auth_id = session.auth_id()?.clone();
     let client_id = session.client_id().clone();
@@ -928,9 +927,9 @@ impl Default for BrokerBuilder<DefaultAuthenticator, DefaultAuthorizer> {
 impl<N, Z> BrokerBuilder<N, Z>
 where
     N: Authenticator,
-    N::Error: Display + Into<Error> + Send,
+    N::Error: Into<Error> + Send,
     Z: Authorizer,
-    Z::Error: Display + Into<Error> + Send,
+    Z::Error: Into<Error> + Send,
 {
     pub fn authenticator<N1>(self, authenticator: N1) -> BrokerBuilder<N1, Z>
     where

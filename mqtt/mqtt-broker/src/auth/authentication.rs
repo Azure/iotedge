@@ -25,7 +25,7 @@ impl From<Vec<u8>> for Certificate {
 #[async_trait]
 pub trait Authenticator {
     /// Authentication error.
-    type Error;
+    type Error: std::error::Error;
 
     /// Authenticates a MQTT client with given credentials.
     ///

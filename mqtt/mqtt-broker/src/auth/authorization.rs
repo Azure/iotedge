@@ -8,7 +8,7 @@ use crate::{AuthId, ClientId};
 #[async_trait]
 pub trait Authorizer {
     /// Authentication error.
-    type Error;
+    type Error: std::error::Error;
 
     /// Authorizes a MQTT client to perform some action.
     async fn authorize(&self, activity: Activity) -> Result<bool, Self::Error>;
