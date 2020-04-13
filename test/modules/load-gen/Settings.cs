@@ -129,9 +129,10 @@ namespace LoadGen
                 { nameof(this.TestResultCoordinatorUrl), this.TestResultCoordinatorUrl.ToString() },
                 { nameof(this.SenderType), this.SenderType.ToString() }
             };
-            Priorities.ForEach(p => fields.Add(nameof(this.Priorities), p.ToString()));
-            Ttls.ForEach(t => fields.Add(nameof(this.Ttls), t.ToString()));
-            TtlThresholdSecs.ForEach(t => fields.Add(nameof(this.TtlThresholdSecs), t.ToString()));
+
+            this.Priorities.ForEach(p => fields.Add(nameof(this.Priorities), p.ToString()));
+            this.Ttls.ForEach(t => fields.Add(nameof(this.Ttls), t.ToString()));
+            this.TtlThresholdSecs.ForEach(t => fields.Add(nameof(this.TtlThresholdSecs), t.ToString()));
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
         }

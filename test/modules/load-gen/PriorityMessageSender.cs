@@ -73,11 +73,11 @@ namespace LoadGen
                     }
                     else if (ttlForMessage <= 0 || ttlForMessage > this.TtlThresholdSecs)
                     {
-                        int priorityInt = TestConstants.PriorityQueues.Default.Equals(priority)  ? 2000000000 : priority;
+                        priority = (priority < 0) ? 2000000000 : priority;
 
-                        if (!priorityAndSequence.TryGetValue(priorityInt, out List<long> sequenceNums))
+                        if (!priorityAndSequence.TryGetValue(priority, out List<long> sequenceNums))
                         {
-                            priorityAndSequence.Add(priorityInt, new List<long> { messageIdCounter });
+                            priorityAndSequence.Add(priority, new List<long> { messageIdCounter });
                         }
                         else
                         {
