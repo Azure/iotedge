@@ -168,18 +168,18 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             ("ttlThresholdSecs", testInfo.TtlThreshold.ToString())
                         });
 
-                    Dictionary<string, object> routes = this.BuildRoutes(testInfo.Priorities, testInfo.Ttls, LoadGenModuleName, RelayerModuleName);
+                    Dictionary<string, object> routes = this.BuildRoutes(testInfo, LoadGenModuleName, RelayerModuleName);
                     builder.GetModule(ModuleName.EdgeHub).WithDesiredProperties(new Dictionary<string, object> { ["routes"] = routes });
                 });
         }
 
-        private Dictionary<string, object> BuildRoutes(List<int> priorities, List<int> ttls, string sendModule, string receiveModule)
+        private Dictionary<string, object> BuildRoutes(TestInfo testInfo, string sendModule, string receiveModule)
         {
             Dictionary<string, object> routes = new Dictionary<string, object>();
-            for (int i = 0; i < priorities.Count; i++)
+            for (int i = 0; i < testInfo.Priorities.Count; i++)
             {
-                int ttl = ttls[i];
-                int priority = priorities[i];
+                int ttl = testInfo.Ttls[i];
+                int priority = testInfo.Priorities[i];
                 var routeInfo = new Dictionary<string, object>();
                 routeInfo["route"] = $"FROM /messages/modules/{sendModule}/outputs/pri{priority} INTO BrokeredEndpoint('/modules/{receiveModule}/inputs/input1')";
 
