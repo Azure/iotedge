@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use bytes::Bytes;
 use failure::ResultExt;
 use futures_util::future;
 use mqtt3::proto;
@@ -13,6 +12,7 @@ use crate::auth::{
     Activity, Authenticator, Authorizer, Credentials, DefaultAuthenticator, DefaultAuthorizer,
     Operation,
 };
+use crate::notifier::Notifier;
 use crate::session::{ConnectedSession, Session, SessionState};
 use crate::{
     subscription::Subscription, AuthId, ClientEvent, ClientId, ConnReq, Error, ErrorKind, Message,
@@ -41,6 +41,7 @@ where
     retained: HashMap<String, proto::Publication>,
     authenticator: N,
     authorizer: Z,
+    notifier: Notifier,
 }
 
 impl<N, Z> Broker<N, Z>
@@ -394,26 +395,7 @@ where
         client_id: ClientId,
         sub: proto::Subscribe,
     ) -> Result<(), Error> {
-        {
-            // poc notify
-            let topics: String = sub
-                .subscribe_to
-                .iter()
-                .map(|s| s.topic_filter.clone())
-                .collect::<Vec<String>>()
-                .join(" ");
-
-            let publish = proto::Publish {
-                packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtMostOnce, //no ack
-                retain: false,
-                topic_name: format!("$sys/subscribe/{}", client_id),
-                payload: Bytes::from(topics),
-            };
-
-            let message = Message::Client("system".into(), ClientEvent::PublishFrom(publish));
-
-            self.sender.send(message).await.unwrap(); // just for poc
-        }
+        self.notifier.subscription(&client_id.0, &sub).await;
 
         let subscriptions = if let Some(session) = self.sessions.get_mut(&client_id) {
             let (suback, subscriptions) = subscribe(&self.authorizer, session, sub.clone()).await?;
@@ -991,6 +973,8 @@ where
 
         let (sender, messages) = mpsc::channel(1024);
 
+        let notifier = Notifier::new(BrokerHandle(sender.clone()));
+
         Broker {
             sender,
             messages,
@@ -998,6 +982,7 @@ where
             retained,
             authenticator: self.authenticator,
             authorizer: self.authorizer,
+            notifier,
         }
     }
 }

@@ -22,6 +22,7 @@ mod broker;
 mod configuration;
 mod connection;
 mod error;
+mod notifier;
 mod persist;
 mod server;
 mod session;
@@ -34,6 +35,7 @@ pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle, BrokerState};
 pub use crate::configuration::BrokerConfig;
 pub use crate::connection::ConnectionHandle;
 pub use crate::error::{Error, ErrorKind, InitializeBrokerReason};
+pub use crate::notifier::Notifier;
 pub use crate::persist::{
     ConsolidatedStateFormat, FileFormat, FilePersistor, NullPersistor, Persist,
 };
