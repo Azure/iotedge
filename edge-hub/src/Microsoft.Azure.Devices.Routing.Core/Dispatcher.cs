@@ -161,7 +161,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 // Can't use Task.WhenAll because access to the executors dict must be serialized
                 foreach (KeyValuePair<Endpoint, IList<uint>> e in endpointsWithPriorities)
                 {
-                    Events.PrintCustomMessage($"Dispatcher.ReplaceEndpoints: set endpoint.Id={e.Key.Id}, endpoint.Name={e.Key.Name}, priorities={string.Join(",",e.Value)}");
+                    Events.PrintCustomMessage($"Dispatcher.ReplaceEndpoints: set endpoint.Id={e.Key.Id}, endpoint.Name={e.Key.Name}, priorities={string.Join(",", e.Value)}");
                     await this.SetEndpointInternal(e.Key, e.Value);
                 }
 
