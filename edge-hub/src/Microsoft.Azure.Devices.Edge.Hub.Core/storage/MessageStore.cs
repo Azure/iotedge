@@ -67,6 +67,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
         public async Task RemoveEndpoint(string endpointId)
         {
+            System.Diagnostics.StackTrace t = new System.Diagnostics.StackTrace();
+            Console.WriteLine($"MessageStore.RemoveEndpoint [{endpointId}]: {t}");
+
             if (this.endpointSequentialStores.TryRemove(endpointId, out ISequentialStore<MessageRef> sequentialStore))
             {
                 await this.storeProvider.RemoveStore(sequentialStore);

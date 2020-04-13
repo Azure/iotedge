@@ -135,22 +135,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         {
             if (routes != null)
             {
-                ISet<Route> routeSet = new HashSet<Route>(routes.Select(r => r.Value.Route));
-                if (replaceExisting)
+                try
                 {
-                    Events.PrintCustomMessage($"ConfigUpdater.UpdateRoutes: Replace routes with keys [{string.Join(",", routes.Keys)}]");
-                    await this.router.ReplaceRoutes(routeSet);
-                }
-                else
-                {
-                    Events.PrintCustomMessage($"ConfigUpdater.UpdateRoutes: Call SetRoute");
-                    foreach (Route route in routeSet)
+                    ISet<Route> routeSet = new HashSet<Route>(routes.Select(r => r.Value.Route));
+                    if (replaceExisting)
                     {
-                        await this.router.SetRoute(route);
+                        Events.PrintCustomMessage($"ConfigUpdater.UpdateRoutes: Replace routes with keys [{string.Join(",", routes.Keys)}]");
+                        await this.router.ReplaceRoutes(routeSet);
+                        Events.PrintCustomMessage($"ConfigUpdater.UpdateRoutes: Replace routes with {routes.Keys.Count()} keys finished.");
                     }
-                }
+                    else
+                    {
+                        Events.PrintCustomMessage($"ConfigUpdater.UpdateRoutes: Call SetRoute");
+                        foreach (Route route in routeSet)
+                        {
+                            Events.PrintCustomMessage($"ConfigUpdater.UpdateRoutes: Set route with route={route.ToJson()}");
+                            await this.router.SetRoute(route);
+                        }
+                    }
 
-                Events.RoutesUpdated(routes);
+                    Events.RoutesUpdated(routes);
+                }
+                catch (Exception ex)
+                {
+                    Events.PrintCustomMessage($"ConfigUpdater.UpdateRoutes exception caught: {ex}");
+                    throw;
+                }
             }
         }
 
