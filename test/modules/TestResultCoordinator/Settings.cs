@@ -20,6 +20,7 @@ namespace TestResultCoordinator
     {
         const string DefaultStoragePath = "";
         const ushort DefaultWebHostPort = 5001;
+        const ushort DefaultUnmatchedResultsMaxSize = 10;
 
         internal static Settings Current = Create();
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TestResultCoordinator));
@@ -44,6 +45,7 @@ namespace TestResultCoordinator
             bool logUploadEnabled,
             string storageAccountConnectionString,
             string networkControllerRunProfileName,
+            ushort unmatchedResultsMaxSize,
             string testInfo)
         {
             Preconditions.CheckRange(testDuration.Ticks, 1);
@@ -66,6 +68,7 @@ namespace TestResultCoordinator
             this.LogUploadEnabled = logUploadEnabled;
             this.StorageAccountConnectionString = Preconditions.CheckNonWhiteSpace(storageAccountConnectionString, nameof(storageAccountConnectionString));
             this.NetworkControllerType = this.GetNetworkControllerType(networkControllerRunProfileName);
+            this.UnmatchedResultsMaxSize = Preconditions.CheckRange<ushort>(unmatchedResultsMaxSize, 1);
 
             this.TestInfo = ModuleUtil.ParseKeyValuePairs(testInfo, Logger, true);
             this.TestInfo.Add("DeviceId", this.DeviceId);
@@ -111,6 +114,7 @@ namespace TestResultCoordinator
                 configuration.GetValue<bool>("logUploadEnabled", true),
                 configuration.GetValue<string>("STORAGE_ACCOUNT_CONNECTION_STRING"),
                 configuration.GetValue<string>(TestConstants.NetworkController.RunProfilePropertyName),
+                configuration.GetValue<ushort>("UNMATCHED_RESULTS_MAX_SIZE", DefaultUnmatchedResultsMaxSize),
                 configuration.GetValue<string>("TEST_INFO"));
         }
 
@@ -151,6 +155,8 @@ namespace TestResultCoordinator
         public SortedDictionary<string, string> TestInfo { get; }
 
         public NetworkControllerType NetworkControllerType { get; }
+
+        public ushort UnmatchedResultsMaxSize { get; }
 
         public override string ToString()
         {
