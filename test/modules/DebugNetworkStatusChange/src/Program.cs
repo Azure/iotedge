@@ -19,7 +19,7 @@ namespace DebugNetworkStatusChange
 
         static async Task<int> MainAsync()
         {
-            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromHours(3), Logger);
 
             IConfiguration configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
@@ -37,9 +37,13 @@ namespace DebugNetworkStatusChange
             NonStaticClass nsc = new NonStaticClass(Logger);
 
             moduleClient.SetConnectionStatusChangesHandler(nsc.StatusChangedHandler);
+            // await moduleClient.SetMethodHandlerAsync("HelloWorldMethod", nsc.HelloWorldMethodAsync, null);
             await moduleClient.OpenAsync();
 
-            await Task.Delay(new TimeSpan(2, 5, 00));
+            while (!cts.IsCancellationRequested || true)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(5));
+            }
 
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));

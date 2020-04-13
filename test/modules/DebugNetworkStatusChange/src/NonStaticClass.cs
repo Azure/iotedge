@@ -25,6 +25,7 @@ namespace DebugNetworkStatusChange
         public void StatusChangedHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
         {
             this.logger.LogInformation($"Connection status changed to {status} with reason {reason}");
+            Console.WriteLine($"{DateTime.UtcNow} Connection status changed to {status} with reason {reason}");
         }
     }
 }
