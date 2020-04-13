@@ -22,14 +22,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             await this.runtime.DeployConfigurationAsync(token);
 
-            string leafDeviceId =
-                IdentityLimits.CheckLeafId($"{Context.Current.DeviceId}-x509-quickstart-certs");
+            string leafDeviceId = DeviceId.Current.Generate();
 
             var leaf = await LeafDevice.CreateAsync(
                 leafDeviceId,
                 Protocol.Amqp,
                 AuthenticationType.Sas,
-                Option.Some(Context.Current.DeviceId + "-x509"),
+                Option.Some(this.runtime.DeviceId),
                 false,
                 CertificateAuthority.GetQuickstart(),
                 this.iotHub,
