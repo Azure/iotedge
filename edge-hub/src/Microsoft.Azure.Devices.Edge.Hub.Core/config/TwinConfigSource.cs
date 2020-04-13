@@ -118,9 +118,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         {
             try
             {
+                Events.PrintCustomMessage("TwinConfigSource.HandleDesiredPropertiesUpdate: started");
                 TwinCollection twinCollection = this.twinCollectionMessageConverter.FromMessage(desiredPropertiesUpdate);
                 using (await this.configLock.LockAsync())
                 {
+                    Events.PrintCustomMessage("TwinConfigSource.HandleDesiredPropertiesUpdate: before calling PatchDesiredProperties");
                     Option<EdgeHubConfig> edgeHubConfig = await this.lastDesiredProperties
                         .Map(e => this.PatchDesiredProperties(e, twinCollection))
                         .GetOrElse(() => this.GetConfigInternal());
@@ -149,9 +151,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             try
             {
                 string desiredPropertiesJson = JsonEx.Merge(baseline, patch, true);
+                Events.PrintCustomMessage($"TwinConfigSource.PatchDesiredProperties: desiredPropertiesJson={desiredPropertiesJson}");
                 this.lastDesiredProperties = Option.Some(new TwinCollection(desiredPropertiesJson));
                 var desiredPropertiesPatch = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(desiredPropertiesJson);
+                Events.PrintCustomMessage($"TwinConfigSource.PatchDesiredProperties: calling EdgeHubConfigParser.GetEdgeHubConfig");
                 edgeHubConfig = Option.Some(EdgeHubConfigParser.GetEdgeHubConfig(desiredPropertiesPatch, this.routeFactory));
+                Events.PrintCustomMessage($"TwinConfigSource.PatchDesiredProperties: finished EdgeHubConfigParser.GetEdgeHubConfig");
                 lastDesiredStatus = new LastDesiredStatus(200, string.Empty);
                 Events.PatchConfigSuccess();
             }
@@ -195,7 +200,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 ErrorUpdatingLastDesiredStatus,
                 ErrorHandlingDesiredPropertiesUpdate,
                 PatchConfigSuccess,
-                ErrorGettingCachedConfig
+                ErrorGettingCachedConfig,
+                CustomMessage
             }
 
             internal static void ErrorGettingEdgeHubConfig(Exception ex)
@@ -246,6 +252,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                     (int)EventIds.ErrorGettingCachedConfig,
                     ex,
                     Invariant($"Failed to get local config"));
+            }
+
+            internal static void PrintCustomMessage(string message)
+            {
+                Log.LogDebug((int)EventIds.CustomMessage, message);
             }
         }
     }

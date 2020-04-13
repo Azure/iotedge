@@ -153,6 +153,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 IEnumerable<Endpoint> removedEndpoints = this.Endpoints.Except(endpointsWithPriorities.Select(e => e.Key).ToImmutableHashSet());
                 foreach (Endpoint endpoint in removedEndpoints)
                 {
+                    Events.PrintCustomMessage($"Dispatcher.ReplaceEndpoints: remove endpoint.Id={endpoint.Id}, endpoint.Name={endpoint.Name}");
                     await this.RemoveEndpointInternal(endpoint.Id);
                 }
 
@@ -160,8 +161,11 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 // Can't use Task.WhenAll because access to the executors dict must be serialized
                 foreach (KeyValuePair<Endpoint, IList<uint>> e in endpointsWithPriorities)
                 {
+                    Events.PrintCustomMessage($"Dispatcher.ReplaceEndpoints: set endpoint.Id={e.Key.Id}, endpoint.Name={e.Key.Name}, priorities={string.Join(",",e.Value)}");
                     await this.SetEndpointInternal(e.Key, e.Value);
                 }
+
+                Events.PrintCustomMessage($"Dispatcher.ReplaceEndpoints: finished.");
             }
         }
 
@@ -267,6 +271,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             enum EventIds
             {
                 CounterFailed = IdStart,
+                CustomMessage,
             }
 
             public static void UnmatchedMessage(string iotHubName, IMessage message)
@@ -282,6 +287,11 @@ namespace Microsoft.Azure.Devices.Routing.Core
                     Routing.UserMetricLogger.LogEgressMetric(1, iotHubName, MessageRoutingStatus.Orphaned, message.MessageSource.ToString());
                     Routing.UserAnalyticsLogger.LogOrphanedMessage(iotHubName, message);
                 }
+            }
+
+            public static void PrintCustomMessage(string message)
+            {
+                Log.LogDebug((int)EventIds.CustomMessage, message);
             }
         }
     }

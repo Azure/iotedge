@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
 
     public class Router : IDisposable
     {
@@ -139,13 +140,17 @@ namespace Microsoft.Azure.Devices.Routing.Core
             {
                 this.CheckClosed();
                 ImmutableDictionary<string, Route> snapshot = this.routes;
+                Events.PrintCustomeMessage($"Router.RemoveRoute: id={id}, count={snapshot.Count} started");
 
                 if (snapshot.TryGetValue(id, out Route removedRoute))
                 {
+                    Events.PrintCustomeMessage($"Router.RemoveRoute: find removed route, id={id}");
                     this.routes.Value = snapshot.Remove(id);
                     this.evaluator.RemoveRoute(id);
                     await this.dispatcher.RemoveEndpoint(removedRoute.Endpoint.Id);
                 }
+
+                Events.PrintCustomeMessage($"Router.RemoveRoute: id={id}, count={snapshot.Count} finished");
             }
         }
 
@@ -156,11 +161,14 @@ namespace Microsoft.Azure.Devices.Routing.Core
             using (await this.sync.LockAsync(this.cts.Token))
             {
                 this.CheckClosed();
+                Events.PrintCustomeMessage($"Router.ReplaceRoutes: newRoutes={JsonConvert.SerializeObject(newRoutes)}");
                 ImmutableHashSet<Endpoint> endpoints = newRoutes.Select(r => r.Endpoint).ToImmutableHashSet();
                 IDictionary<Endpoint, IList<uint>> endpointWithPriority = GetEndpointsWithPriority(newRoutes, Option.None<Route>());
+                Events.PrintCustomeMessage($"Router.ReplaceRoutes: Endpoints={string.Join(",", endpointWithPriority.Keys.Select(k => $"[{k.Id},{k.Name}]"))}");
                 this.evaluator.ReplaceRoutes(newRoutes);
                 await this.dispatcher.ReplaceEndpoints(endpointWithPriority);
                 this.routes.Value = newRoutes.ToImmutableDictionary(r => r.Id, r => r);
+                Events.PrintCustomeMessage($"Router.ReplaceRoutes: finished");
             }
         }
 
@@ -244,6 +252,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             enum EventIds
             {
                 CounterFailed = IdStart,
+                CustomMessage,
             }
 
             public static void MessageEvaluation(string iotHubName, IMessage message, ISet<RouteResult> results)
@@ -252,6 +261,11 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 {
                     Log.LogError((int)EventIds.CounterFailed, "[LogMessageEndpointsMatchedCounterFailed] {0}", error);
                 }
+            }
+
+            public static void PrintCustomeMessage(string message)
+            {
+                Log.LogDebug((int)EventIds.CustomMessage, message);
             }
         }
     }

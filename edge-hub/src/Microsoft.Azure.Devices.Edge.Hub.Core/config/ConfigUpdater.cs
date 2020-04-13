@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
 
     public class ConfigUpdater
     {
@@ -94,6 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
         async Task UpdateConfig(Option<EdgeHubConfig> edgeHubConfig)
         {
+            Events.PrintCustomMessage($"ConfigUpdater.UpdateConfig: started");
             using (await this.updateLock.LockAsync())
             {
                 await edgeHubConfig.ForEachAsync(
@@ -103,8 +105,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                         Events.ConfigReceived(hasUpdates);
                         if (hasUpdates)
                         {
+                            Console.WriteLine("ConfigUpdater.UpdateConfig: has updates");
+                            Events.PrintCustomMessage($"ConfigUpdater.UpdateConfig: Routes - {JsonConvert.SerializeObject(ehc.Routes)}");
                             await this.UpdateRoutes(ehc.Routes, this.currentConfig.HasValue);
+                            Events.PrintCustomMessage($"ConfigUpdater.UpdateConfig: Update routes completed");
                             this.UpdateStoreAndForwardConfig(ehc.StoreAndForwardConfiguration);
+                            Events.PrintCustomMessage($"ConfigUpdater.UpdateConfig: Store and forward config completed");
                             this.currentConfig = Option.Some(ehc);
                         }
                     });
@@ -132,10 +138,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 ISet<Route> routeSet = new HashSet<Route>(routes.Select(r => r.Value.Route));
                 if (replaceExisting)
                 {
+                    Events.PrintCustomMessage($"ConfigUpdater.UpdateRoutes: Replace routes with keys [{string.Join(",", routes.Keys)}]");
                     await this.router.ReplaceRoutes(routeSet);
                 }
                 else
                 {
+                    Events.PrintCustomMessage($"ConfigUpdater.UpdateRoutes: Call SetRoute");
                     foreach (Route route in routeSet)
                     {
                         await this.router.SetRoute(route);
@@ -182,7 +190,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 ErrorPullingConfig,
                 ConfigReceived,
                 GettingConfig,
-                InitializedWithPrefechedConfig
+                InitializedWithPrefechedConfig,
+                CustomMessage
             }
 
             public static void ErrorPullingConfig(Exception ex)
@@ -256,6 +265,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             internal static void InitializedWithPrefetchedConfig()
             {
                 Log.LogDebug((int)EventIds.InitializedWithPrefechedConfig, $"Initialized with prefetched configuration");
+            }
+
+            internal static void PrintCustomMessage(string message)
+            {
+                Log.LogDebug((int)EventIds.CustomMessage, message);
             }
         }
     }
