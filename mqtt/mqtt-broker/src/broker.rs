@@ -129,36 +129,36 @@ where
                 info!("broker received CONNACK, ignoring");
                 Ok(())
             }
-            ClientEvent::Disconnect(_) => self.process_disconnect(client_id),
-            ClientEvent::DropConnection => self.process_drop_connection(client_id),
-            ClientEvent::CloseSession => self.process_close_session(client_id),
-            ClientEvent::PingReq(ping) => self.process_ping_req(client_id, ping),
+            ClientEvent::Disconnect(_) => self.process_disconnect(&client_id),
+            ClientEvent::DropConnection => self.process_drop_connection(&client_id),
+            ClientEvent::CloseSession => self.process_close_session(&client_id),
+            ClientEvent::PingReq(ref ping) => self.process_ping_req(&client_id, ping),
             ClientEvent::PingResp(_) => {
                 info!("broker received PINGRESP, ignoring");
                 Ok(())
             }
-            ClientEvent::Subscribe(subscribe) => self.process_subscribe(client_id, subscribe),
+            ClientEvent::Subscribe(subscribe) => self.process_subscribe(&client_id, subscribe),
             ClientEvent::SubAck(_) => {
                 info!("broker received SUBACK, ignoring");
                 Ok(())
             }
-            ClientEvent::Unsubscribe(unsubscribe) => {
-                self.process_unsubscribe(client_id, unsubscribe)
+            ClientEvent::Unsubscribe(ref unsubscribe) => {
+                self.process_unsubscribe(&client_id, unsubscribe)
             }
             ClientEvent::UnsubAck(_) => {
                 info!("broker received UNSUBACK, ignoring");
                 Ok(())
             }
-            ClientEvent::PublishFrom(publish) => self.process_publish(client_id, publish),
+            ClientEvent::PublishFrom(publish) => self.process_publish(&client_id, publish),
             ClientEvent::PublishTo(_publish) => {
                 info!("broker received a PublishTo, ignoring");
                 Ok(())
             }
-            ClientEvent::PubAck0(id) => self.process_puback0(client_id, id),
-            ClientEvent::PubAck(puback) => self.process_puback(client_id, puback),
-            ClientEvent::PubRec(pubrec) => self.process_pubrec(client_id, pubrec),
-            ClientEvent::PubRel(pubrel) => self.process_pubrel(client_id, pubrel),
-            ClientEvent::PubComp(pubcomp) => self.process_pubcomp(client_id, pubcomp),
+            ClientEvent::PubAck0(id) => self.process_puback0(&client_id, id),
+            ClientEvent::PubAck(ref puback) => self.process_puback(&client_id, puback),
+            ClientEvent::PubRec(ref pubrec) => self.process_pubrec(&client_id, pubrec),
+            ClientEvent::PubRel(ref pubrel) => self.process_pubrel(&client_id, pubrel),
+            ClientEvent::PubComp(ref pubcomp) => self.process_pubcomp(&client_id, pubcomp),
         };
 
         if let Err(e) = result {
@@ -331,9 +331,9 @@ where
         Ok(())
     }
 
-    fn process_disconnect(&mut self, client_id: ClientId) -> Result<(), Error> {
+    fn process_disconnect(&mut self, client_id: &ClientId) -> Result<(), Error> {
         debug!("handling disconnect...");
-        if let Some(mut session) = self.close_session(&client_id) {
+        if let Some(mut session) = self.close_session(client_id) {
             session.send(ClientEvent::Disconnect(proto::Disconnect))?;
         } else {
             debug!("no session for {}", client_id);
@@ -342,13 +342,13 @@ where
         Ok(())
     }
 
-    fn process_drop_connection(&mut self, client_id: ClientId) -> Result<(), Error> {
+    fn process_drop_connection(&mut self, client_id: &ClientId) -> Result<(), Error> {
         self.drop_connection(client_id)
     }
 
-    fn drop_connection(&mut self, client_id: ClientId) -> Result<(), Error> {
+    fn drop_connection(&mut self, client_id: &ClientId) -> Result<(), Error> {
         debug!("handling drop connection...");
-        if let Some(mut session) = self.close_session(&client_id) {
+        if let Some(mut session) = self.close_session(client_id) {
             session.send(ClientEvent::DropConnection)?;
 
             // Ungraceful disconnect - send the will
@@ -362,9 +362,9 @@ where
         Ok(())
     }
 
-    fn process_close_session(&mut self, client_id: ClientId) -> Result<(), Error> {
+    fn process_close_session(&mut self, client_id: &ClientId) -> Result<(), Error> {
         debug!("handling close session...");
-        if let Some(session) = self.close_session(&client_id) {
+        if let Some(session) = self.close_session(client_id) {
             debug!("session removed");
 
             // Ungraceful disconnect - send the will
@@ -380,11 +380,11 @@ where
 
     fn process_ping_req(
         &mut self,
-        client_id: ClientId,
-        _ping: proto::PingReq,
+        client_id: &ClientId,
+        _ping: &proto::PingReq,
     ) -> Result<(), Error> {
         debug!("handling ping request...");
-        match self.get_session_mut(&client_id) {
+        match self.get_session_mut(client_id) {
             Ok(session) => session.send(ClientEvent::PingResp(proto::PingResp)),
             Err(NoSessionError) => {
                 debug!("no session for {}", client_id);
@@ -395,11 +395,11 @@ where
 
     fn process_subscribe(
         &mut self,
-        client_id: ClientId,
+        client_id: &ClientId,
         sub: proto::Subscribe,
     ) -> Result<(), Error> {
-        let subscriptions = if let Some(session) = self.sessions.get_mut(&client_id) {
-            let (suback, subscriptions) = subscribe(&self.authorizer, session, sub.clone())?;
+        let subscriptions = if let Some(session) = self.sessions.get_mut(client_id) {
+            let (suback, subscriptions) = subscribe(&self.authorizer, session, sub)?;
             session.send(ClientEvent::SubAck(suback))?;
             subscriptions
         } else {
@@ -419,7 +419,7 @@ where
             .cloned()
             .collect::<Vec<proto::Publication>>();
 
-        if let Some(session) = self.sessions.get_mut(&client_id) {
+        if let Some(session) = self.sessions.get_mut(client_id) {
             for mut publication in publications {
                 publication.retain = true;
                 publish_to(&self.authorizer, session, &publication)?;
@@ -433,12 +433,12 @@ where
 
     fn process_unsubscribe(
         &mut self,
-        client_id: ClientId,
-        unsubscribe: proto::Unsubscribe,
+        client_id: &ClientId,
+        unsubscribe: &proto::Unsubscribe,
     ) -> Result<(), Error> {
-        match self.get_session_mut(&client_id) {
+        match self.get_session_mut(client_id) {
             Ok(session) => {
-                let unsuback = session.unsubscribe(&unsubscribe)?;
+                let unsuback = session.unsubscribe(unsubscribe)?;
                 session.send(ClientEvent::UnsubAck(unsuback))
             }
             Err(NoSessionError) => {
@@ -450,11 +450,11 @@ where
 
     fn process_publish(
         &mut self,
-        client_id: ClientId,
+        client_id: &ClientId,
         publish: proto::Publish,
     ) -> Result<(), Error> {
         let operation = Operation::new_publish(publish.clone());
-        if let Some(session) = self.sessions.get_mut(&client_id) {
+        if let Some(session) = self.sessions.get_mut(client_id) {
             let activity = Activity::new(session.auth_id()?.clone(), client_id.clone(), operation);
             match self.authorizer.authorize(activity) {
                 Ok(true) => {
@@ -474,11 +474,11 @@ where
                         "client {} not allowed to publish to topic {}",
                         client_id, publish.topic_name,
                     );
-                    self.drop_connection(client_id)?;
+                    self.drop_connection(&client_id)?;
                 }
                 Err(e) => {
                     warn!(message="error authorizing client: {}", error = %e);
-                    self.drop_connection(client_id)?;
+                    self.drop_connection(&client_id)?;
                 }
             }
         } else {
@@ -488,10 +488,14 @@ where
         Ok(())
     }
 
-    fn process_puback(&mut self, client_id: ClientId, puback: proto::PubAck) -> Result<(), Error> {
-        match self.get_session_mut(&client_id) {
+    fn process_puback(
+        &mut self,
+        client_id: &ClientId,
+        puback: &proto::PubAck,
+    ) -> Result<(), Error> {
+        match self.get_session_mut(client_id) {
             Ok(session) => {
-                if let Some(event) = session.handle_puback(&puback)? {
+                if let Some(event) = session.handle_puback(puback)? {
                     session.send(event)?
                 }
                 Ok(())
@@ -505,10 +509,10 @@ where
 
     fn process_puback0(
         &mut self,
-        client_id: ClientId,
+        client_id: &ClientId,
         id: proto::PacketIdentifier,
     ) -> Result<(), Error> {
-        match self.get_session_mut(&client_id) {
+        match self.get_session_mut(client_id) {
             Ok(session) => {
                 if let Some(event) = session.handle_puback0(id)? {
                     session.send(event)?
@@ -522,10 +526,14 @@ where
         }
     }
 
-    fn process_pubrec(&mut self, client_id: ClientId, pubrec: proto::PubRec) -> Result<(), Error> {
-        match self.get_session_mut(&client_id) {
+    fn process_pubrec(
+        &mut self,
+        client_id: &ClientId,
+        pubrec: &proto::PubRec,
+    ) -> Result<(), Error> {
+        match self.get_session_mut(client_id) {
             Ok(session) => {
-                if let Some(event) = session.handle_pubrec(&pubrec)? {
+                if let Some(event) = session.handle_pubrec(pubrec)? {
                     session.send(event)?
                 }
                 Ok(())
@@ -537,11 +545,15 @@ where
         }
     }
 
-    fn process_pubrel(&mut self, client_id: ClientId, pubrel: proto::PubRel) -> Result<(), Error> {
-        let maybe_publication = match self.get_session_mut(&client_id) {
+    fn process_pubrel(
+        &mut self,
+        client_id: &ClientId,
+        pubrel: &proto::PubRel,
+    ) -> Result<(), Error> {
+        let maybe_publication = match self.get_session_mut(client_id) {
             Ok(session) => {
                 let packet_identifier = pubrel.packet_identifier;
-                let maybe_publication = session.handle_pubrel(&pubrel)?;
+                let maybe_publication = session.handle_pubrel(pubrel)?;
 
                 let pubcomp = proto::PubComp { packet_identifier };
                 session.send(ClientEvent::PubComp(pubcomp))?;
@@ -561,12 +573,12 @@ where
 
     fn process_pubcomp(
         &mut self,
-        client_id: ClientId,
-        pubcomp: proto::PubComp,
+        client_id: &ClientId,
+        pubcomp: &proto::PubComp,
     ) -> Result<(), Error> {
-        match self.get_session_mut(&client_id) {
+        match self.get_session_mut(client_id) {
             Ok(session) => {
-                if let Some(event) = session.handle_pubcomp(&pubcomp)? {
+                if let Some(event) = session.handle_pubcomp(pubcomp)? {
                     session.send(event)?
                 }
                 Ok(())
