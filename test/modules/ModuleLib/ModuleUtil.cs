@@ -107,6 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             }
 
             ITransportSettings[] settings = GetTransportSettings();
+            WriteLog(logger, LogLevel.Information, $"BEARWASHERE: get IOTEDGE_GATEWAYHOSTNAME={Environment.GetEnvironmentVariable("IOTEDGE_GATEWAYHOSTNAME")}");
             WriteLog(logger, LogLevel.Information, $"Trying to initialize module client using transport type [{transportType}] with idleTimeout : {((AmqpTransportSettings)settings[0]).IdleTimeout.ToString()}.");
             ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
             await moduleClient.OpenAsync();

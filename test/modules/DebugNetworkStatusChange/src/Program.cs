@@ -31,7 +31,7 @@ namespace DebugNetworkStatusChange
 
             try
             {
-                // configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only),
+                Environment.SetEnvironmentVariable("IOTEDGE_GATEWAYHOSTNAME", string.Empty);
                 ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
                     TransportType.Amqp_Tcp_Only,
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
@@ -40,12 +40,12 @@ namespace DebugNetworkStatusChange
 
                 NonStaticClass nsc = new NonStaticClass(Logger);
 
-                Console.WriteLine("BEARWASHERE");
                 moduleClient.SetConnectionStatusChangesHandler(nsc.StatusChangedHandler);
                 await moduleClient.OpenAsync();
 
                 while (moduleClient!=null)
                 {
+                    // Console.WriteLine($"{DateTime.UtcNow} Waiting for status change");
                     await Task.Delay(TimeSpan.FromMilliseconds(5));
                 }
             }
