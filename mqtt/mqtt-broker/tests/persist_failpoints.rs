@@ -10,7 +10,6 @@ const FAILPOINTS: &[&str] = &[
     "consolidatestate.store.serialize_into",
     "filepersistor.load.fileopen",
     "filepersistor.load.format",
-    "filepersistor.load.spawn_blocking",
     "filepersistor.store.fileopen",
     "filepersistor.store.filerename",
     "filepersistor.store.symlink_unlink",
@@ -19,7 +18,6 @@ const FAILPOINTS: &[&str] = &[
     "filepersistor.store.readdir",
     "filepersistor.store.entry_unlink",
     "filepersistor.store.new_file_unlink",
-    "filepersistor.store.spawn_blocking",
 ];
 
 #[derive(Clone, Debug)]

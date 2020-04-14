@@ -11,7 +11,8 @@ async-trait = "0.1"
 bincode = "1.2"
 bytes = "0.5"
 chrono = "0.4"
-config = { version = "0.10", default-features = false, features = ["json"] } 
+config = { version = "0.10", default-features = false, features = ["json"] }
+crossbeam-channel = "0.4"
 fail = "0.3"
 flate2 = "1.0"
 futures = "0.3"

@@ -1,10 +1,12 @@
-use tokio::sync::mpsc::{self, Receiver, Sender};
-use tracing::{info, warn};
+use std::thread;
+
+use crossbeam_channel::{Receiver, Sender};
+use tracing::{error, info, warn};
 
 use crate::persist::Persist;
 use crate::{BrokerState, Error};
 
-enum Event {
+pub(crate) enum Event {
     State(BrokerState),
     Shutdown,
 }
@@ -13,11 +15,10 @@ enum Event {
 pub struct StateSnapshotHandle(Sender<Event>);
 
 impl StateSnapshotHandle {
-    pub async fn send(&mut self, state: BrokerState) -> Result<(), Error> {
+    pub fn try_send(&mut self, state: BrokerState) -> Result<(), Error> {
         self.0
             .send(Event::State(state))
-            .await
-            .map_err(|_| Error::SendSnapshotMessage)?;
+            .map_err(|_e| Error::SendSnapshotMessage)?;
         Ok(())
     }
 }
@@ -26,11 +27,10 @@ impl StateSnapshotHandle {
 pub struct ShutdownHandle(Sender<Event>);
 
 impl ShutdownHandle {
-    pub async fn shutdown(&mut self) -> Result<(), Error> {
+    pub fn try_shutdown(&mut self) -> Result<(), Error> {
         self.0
             .send(Event::Shutdown)
-            .await
-            .map_err(|_| Error::SendSnapshotMessage)?;
+            .map_err(|_e| Error::SendSnapshotMessage)?;
         Ok(())
     }
 }
@@ -43,7 +43,7 @@ pub struct Snapshotter<P> {
 
 impl<P> Snapshotter<P> {
     pub fn new(persistor: P) -> Self {
-        let (sender, events) = mpsc::channel(1024);
+        let (sender, events) = crossbeam_channel::bounded(5);
         Snapshotter {
             persistor,
             sender,
@@ -62,13 +62,27 @@ impl<P> Snapshotter<P> {
 
 impl<P> Snapshotter<P>
 where
-    P: Persist,
+    P: Persist + Send + 'static,
 {
-    pub async fn run(mut self) -> P {
-        while let Some(event) = self.events.recv().await {
+    pub async fn run(self) -> P {
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        thread::spawn(|| {
+            let persist = self.snapshotter_loop();
+            if let Err(_e) = tx.send(persist) {
+                error!("failed to send persist to event loop on shutdown");
+            }
+        });
+
+        // TODO: return errors from the snapshotter run
+        let result = rx.await;
+        result.unwrap()
+    }
+
+    fn snapshotter_loop(mut self) -> P {
+        while let Ok(event) = self.events.recv() {
             match event {
                 Event::State(state) => {
-                    if let Err(e) = self.persistor.store(state).await {
+                    if let Err(e) = self.persistor.store(state) {
                         warn!(message = "an error occurred persisting state snapshot.", error=%e);
                     }
                 }

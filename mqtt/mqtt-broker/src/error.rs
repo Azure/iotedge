@@ -8,7 +8,7 @@ use crate::Message;
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("An error occurred sending a message to the broker.")]
-    SendBrokerMessage(#[source] tokio::sync::mpsc::error::SendError<Message>),
+    SendBrokerMessage(#[source] crossbeam_channel::TrySendError<Message>),
 
     #[error("An error occurred sending a message to a connection.")]
     SendConnectionMessage(#[source] tokio::sync::mpsc::error::SendError<Message>),

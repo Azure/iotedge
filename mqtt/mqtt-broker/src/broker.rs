@@ -1,11 +1,10 @@
 use std::collections::HashMap;
+use std::thread;
 
-use futures_util::future;
+use crossbeam_channel::{Receiver, Sender};
 use mqtt3::proto;
 use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc::{self, Receiver, Sender};
-use tracing::{debug, info, span, warn, Level};
-use tracing_futures::Instrument;
+use tracing::{debug, error, info, span, warn, Level};
 
 use crate::auth::{
     Activity, Authenticator, Authorizer, Credentials, DefaultAuthenticator, DefaultAuthorizer,
@@ -21,17 +20,13 @@ const EXPECTED_PROTOCOL_LEVEL: u8 = mqtt3::PROTOCOL_LEVEL;
 
 macro_rules! try_send {
     ($session:expr, $msg:expr) => {{
-        if let Err(e) = $session.send($msg).await {
+        if let Err(e) = $session.send($msg) {
             warn!(message = "error processing message", error = %e);
         }
     }};
 }
 
-pub struct Broker<N, Z>
-where
-    N: Authenticator,
-    Z: Authorizer,
-{
+pub struct Broker<N, Z> {
     sender: Sender<Message>,
     messages: Receiver<Message>,
     sessions: HashMap<ClientId, Session>,
@@ -42,33 +37,45 @@ where
 
 impl<N, Z> Broker<N, Z>
 where
-    N: Authenticator,
-    Z: Authorizer,
+    N: Authenticator + Send + 'static,
+    Z: Authorizer + Send + 'static,
 {
     pub fn handle(&self) -> BrokerHandle {
         BrokerHandle(self.sender.clone())
     }
 
-    pub async fn run(mut self) -> BrokerState {
-        while let Some(message) = self.messages.recv().await {
+    pub async fn run(self) -> BrokerState {
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        thread::spawn(|| {
+            let state = self.broker_loop();
+            if let Err(_e) = tx.send(state) {
+                error!("failed to send broker state to event loop on shutdown");
+            }
+        });
+
+        // TODO: return errors from the broker run
+        let result = rx.await;
+        result.unwrap_or_else(|_e| BrokerState::default())
+    }
+
+    fn broker_loop(mut self) -> BrokerState {
+        while let Ok(message) = self.messages.recv() {
             match message {
                 Message::Client(client_id, event) => {
                     let span = span!(Level::INFO, "broker", client_id = %client_id, event="client");
-                    if let Err(e) = self
-                        .process_message(client_id, event)
-                        .instrument(span)
-                        .await
-                    {
+                    let _enter = span.enter();
+                    if let Err(e) = self.process_message(client_id, event) {
                         warn!(message = "an error occurred processing a message", error = %e);
                     }
                 }
                 Message::System(event) => {
                     let span = span!(Level::INFO, "broker", event = "system");
+                    let _enter = span.enter();
                     match event {
                         SystemEvent::Shutdown => {
                             info!("gracefully shutting down the broker...");
                             debug!("closing sessions...");
-                            if let Err(e) = self.process_shutdown().instrument(span).await {
+                            if let Err(e) = self.process_shutdown() {
                                 warn!(message = "an error occurred shutting down the broker", error = %e);
                             }
                             break;
@@ -77,7 +84,7 @@ where
                             let state = self.snapshot();
                             let _guard = span.enter();
                             info!("asking snapshotter to persist state...");
-                            if let Err(e) = handle.send(state).await {
+                            if let Err(e) = handle.try_send(state) {
                                 warn!(message = "an error occurred communicating with the snapshotter", error = %e);
                             } else {
                                 info!("sent state to snapshotter.");
@@ -107,48 +114,44 @@ where
         BrokerState { retained, sessions }
     }
 
-    async fn process_message(
-        &mut self,
-        client_id: ClientId,
-        event: ClientEvent,
-    ) -> Result<(), Error> {
+    fn process_message(&mut self, client_id: ClientId, event: ClientEvent) -> Result<(), Error> {
         debug!("incoming: {:?}", event);
         let result = match event {
-            ClientEvent::ConnReq(connreq) => self.process_connect(client_id, connreq).await,
+            ClientEvent::ConnReq(connreq) => self.process_connect(client_id, connreq),
             ClientEvent::ConnAck(_) => {
                 info!("broker received CONNACK, ignoring");
                 Ok(())
             }
-            ClientEvent::Disconnect(_) => self.process_disconnect(client_id).await,
-            ClientEvent::DropConnection => self.process_drop_connection(client_id).await,
-            ClientEvent::CloseSession => self.process_close_session(client_id).await,
-            ClientEvent::PingReq(ping) => self.process_ping_req(client_id, ping).await,
+            ClientEvent::Disconnect(_) => self.process_disconnect(client_id),
+            ClientEvent::DropConnection => self.process_drop_connection(client_id),
+            ClientEvent::CloseSession => self.process_close_session(client_id),
+            ClientEvent::PingReq(ping) => self.process_ping_req(client_id, ping),
             ClientEvent::PingResp(_) => {
                 info!("broker received PINGRESP, ignoring");
                 Ok(())
             }
-            ClientEvent::Subscribe(subscribe) => self.process_subscribe(client_id, subscribe).await,
+            ClientEvent::Subscribe(subscribe) => self.process_subscribe(client_id, subscribe),
             ClientEvent::SubAck(_) => {
                 info!("broker received SUBACK, ignoring");
                 Ok(())
             }
             ClientEvent::Unsubscribe(unsubscribe) => {
-                self.process_unsubscribe(client_id, unsubscribe).await
+                self.process_unsubscribe(client_id, unsubscribe)
             }
             ClientEvent::UnsubAck(_) => {
                 info!("broker received UNSUBACK, ignoring");
                 Ok(())
             }
-            ClientEvent::PublishFrom(publish) => self.process_publish(client_id, publish).await,
+            ClientEvent::PublishFrom(publish) => self.process_publish(client_id, publish),
             ClientEvent::PublishTo(_publish) => {
                 info!("broker received a PublishTo, ignoring");
                 Ok(())
             }
-            ClientEvent::PubAck0(id) => self.process_puback0(client_id, id).await,
-            ClientEvent::PubAck(puback) => self.process_puback(client_id, puback).await,
-            ClientEvent::PubRec(pubrec) => self.process_pubrec(client_id, pubrec).await,
-            ClientEvent::PubRel(pubrel) => self.process_pubrel(client_id, pubrel).await,
-            ClientEvent::PubComp(pubcomp) => self.process_pubcomp(client_id, pubcomp).await,
+            ClientEvent::PubAck0(id) => self.process_puback0(client_id, id),
+            ClientEvent::PubAck(puback) => self.process_puback(client_id, puback),
+            ClientEvent::PubRec(pubrec) => self.process_pubrec(client_id, pubrec),
+            ClientEvent::PubRel(pubrel) => self.process_pubrel(client_id, pubrel),
+            ClientEvent::PubComp(pubcomp) => self.process_pubcomp(client_id, pubcomp),
         };
 
         if let Err(e) = result {
@@ -158,7 +161,7 @@ where
         Ok(())
     }
 
-    async fn process_shutdown(&mut self) -> Result<(), Error> {
+    fn process_shutdown(&mut self) -> Result<(), Error> {
         let mut sessions = vec![];
         let client_ids = self.sessions.keys().cloned().collect::<Vec<ClientId>>();
 
@@ -169,7 +172,7 @@ where
         }
 
         for mut session in sessions {
-            if let Err(e) = session.send(ClientEvent::DropConnection).await {
+            if let Err(e) = session.send(ClientEvent::DropConnection) {
                 warn!(error = %e, message = "an error occurred closing the session", client_id = %session.client_id());
             }
         }
@@ -177,11 +180,7 @@ where
     }
 
     #[allow(clippy::too_many_lines)]
-    async fn process_connect(
-        &mut self,
-        client_id: ClientId,
-        mut connreq: ConnReq,
-    ) -> Result<(), Error> {
+    fn process_connect(&mut self, client_id: ClientId, mut connreq: ConnReq) -> Result<(), Error> {
         debug!("handling connect...");
 
         macro_rules! refuse_connection {
@@ -245,7 +244,7 @@ where
             ),
             |certificate| Credentials::ClientCertificate(certificate.clone()),
         );
-        let auth_id = match self.authenticator.authenticate(credentials).await {
+        let auth_id = match self.authenticator.authenticate(credentials) {
             Ok(Some(auth_id)) => {
                 debug!(
                     "client {} successfully authenticated: {}",
@@ -268,7 +267,7 @@ where
         // Check client permissions to connect
         let operation = Operation::new_connect(connreq.connect().clone());
         let activity = Activity::new(auth_id.clone(), client_id.clone(), operation);
-        match self.authorizer.authorize(activity).await {
+        match self.authorizer.authorize(activity) {
             Ok(true) => {
                 debug!("client {} successfully authorized", client_id);
             }
@@ -292,29 +291,29 @@ where
                 let session = self
                     .get_session_mut(&client_id)
                     .expect("session must exist");
-                session.send(ClientEvent::ConnAck(ack)).await?;
+                session.send(ClientEvent::ConnAck(ack))?;
 
                 for event in events {
-                    session.send(event).await?;
+                    session.send(event)?;
                 }
             }
             Err(SessionError::DuplicateSession(mut old_session, ack)) => {
                 // Drop the old connection
-                old_session.send(ClientEvent::DropConnection).await?;
+                old_session.send(ClientEvent::DropConnection)?;
 
                 // Send ConnAck on new connection
                 let should_drop = ack.return_code != proto::ConnectReturnCode::Accepted;
                 let session = self
                     .get_session_mut(&client_id)
                     .expect("session must exist");
-                session.send(ClientEvent::ConnAck(ack)).await?;
+                session.send(ClientEvent::ConnAck(ack))?;
 
                 if should_drop {
-                    session.send(ClientEvent::DropConnection).await?;
+                    session.send(ClientEvent::DropConnection)?;
                 }
             }
             Err(SessionError::ProtocolViolation(mut old_session)) => {
-                old_session.send(ClientEvent::DropConnection).await?
+                old_session.send(ClientEvent::DropConnection)?
             }
             Err(SessionError::PacketIdentifiersExhausted) => {
                 panic!("Session identifiers exhausted, this can only be caused by a bug.");
@@ -325,12 +324,10 @@ where
         Ok(())
     }
 
-    async fn process_disconnect(&mut self, client_id: ClientId) -> Result<(), Error> {
+    fn process_disconnect(&mut self, client_id: ClientId) -> Result<(), Error> {
         debug!("handling disconnect...");
         if let Some(mut session) = self.close_session(&client_id) {
-            session
-                .send(ClientEvent::Disconnect(proto::Disconnect))
-                .await?;
+            session.send(ClientEvent::Disconnect(proto::Disconnect))?;
         } else {
             debug!("no session for {}", client_id);
         }
@@ -338,18 +335,18 @@ where
         Ok(())
     }
 
-    async fn process_drop_connection(&mut self, client_id: ClientId) -> Result<(), Error> {
-        self.drop_connection(client_id).await
+    fn process_drop_connection(&mut self, client_id: ClientId) -> Result<(), Error> {
+        self.drop_connection(client_id)
     }
 
-    async fn drop_connection(&mut self, client_id: ClientId) -> Result<(), Error> {
+    fn drop_connection(&mut self, client_id: ClientId) -> Result<(), Error> {
         debug!("handling drop connection...");
         if let Some(mut session) = self.close_session(&client_id) {
-            session.send(ClientEvent::DropConnection).await?;
+            session.send(ClientEvent::DropConnection)?;
 
             // Ungraceful disconnect - send the will
             if let Some(will) = session.into_will() {
-                self.publish_all(will).await?;
+                self.publish_all(will)?;
             }
         } else {
             debug!("no session for {}", client_id);
@@ -358,14 +355,14 @@ where
         Ok(())
     }
 
-    async fn process_close_session(&mut self, client_id: ClientId) -> Result<(), Error> {
+    fn process_close_session(&mut self, client_id: ClientId) -> Result<(), Error> {
         debug!("handling close session...");
         if let Some(session) = self.close_session(&client_id) {
             debug!("session removed");
 
             // Ungraceful disconnect - send the will
             if let Some(will) = session.into_will() {
-                self.publish_all(will).await?;
+                self.publish_all(will)?;
             }
         } else {
             debug!("no session for {}", client_id);
@@ -374,14 +371,14 @@ where
         Ok(())
     }
 
-    async fn process_ping_req(
+    fn process_ping_req(
         &mut self,
         client_id: ClientId,
         _ping: proto::PingReq,
     ) -> Result<(), Error> {
         debug!("handling ping request...");
         match self.get_session_mut(&client_id) {
-            Ok(session) => session.send(ClientEvent::PingResp(proto::PingResp)).await,
+            Ok(session) => session.send(ClientEvent::PingResp(proto::PingResp)),
             Err(NoSessionError) => {
                 debug!("no session for {}", client_id);
                 Ok(())
@@ -389,14 +386,14 @@ where
         }
     }
 
-    async fn process_subscribe(
+    fn process_subscribe(
         &mut self,
         client_id: ClientId,
         sub: proto::Subscribe,
     ) -> Result<(), Error> {
         let subscriptions = if let Some(session) = self.sessions.get_mut(&client_id) {
-            let (suback, subscriptions) = subscribe(&self.authorizer, session, sub.clone()).await?;
-            session.send(ClientEvent::SubAck(suback)).await?;
+            let (suback, subscriptions) = subscribe(&self.authorizer, session, sub.clone())?;
+            session.send(ClientEvent::SubAck(suback))?;
             subscriptions
         } else {
             debug!("no session for {}", client_id);
@@ -418,7 +415,7 @@ where
         if let Some(session) = self.sessions.get_mut(&client_id) {
             for mut publication in publications {
                 publication.retain = true;
-                publish_to(&self.authorizer, session, &publication).await?;
+                publish_to(&self.authorizer, session, &publication)?;
             }
         } else {
             debug!("no session for {}", client_id);
@@ -427,7 +424,7 @@ where
         Ok(())
     }
 
-    async fn process_unsubscribe(
+    fn process_unsubscribe(
         &mut self,
         client_id: ClientId,
         unsubscribe: proto::Unsubscribe,
@@ -435,7 +432,7 @@ where
         match self.get_session_mut(&client_id) {
             Ok(session) => {
                 let unsuback = session.unsubscribe(&unsubscribe)?;
-                session.send(ClientEvent::UnsubAck(unsuback)).await
+                session.send(ClientEvent::UnsubAck(unsuback))
             }
             Err(NoSessionError) => {
                 debug!("no session for {}", client_id);
@@ -444,7 +441,7 @@ where
         }
     }
 
-    async fn process_publish(
+    fn process_publish(
         &mut self,
         client_id: ClientId,
         publish: proto::Publish,
@@ -452,17 +449,17 @@ where
         let operation = Operation::new_publish(publish.clone());
         if let Some(session) = self.sessions.get_mut(&client_id) {
             let activity = Activity::new(session.auth_id()?.clone(), client_id.clone(), operation);
-            match self.authorizer.authorize(activity).await {
+            match self.authorizer.authorize(activity) {
                 Ok(true) => {
                     debug!("client {} successfully authorized", client_id);
                     let (maybe_publication, maybe_event) = session.handle_publish(publish)?;
 
                     if let Some(event) = maybe_event {
-                        session.send(event).await?;
+                        session.send(event)?;
                     }
 
                     if let Some(publication) = maybe_publication {
-                        self.publish_all(publication).await?
+                        self.publish_all(publication)?
                     }
                 }
                 Ok(false) => {
@@ -470,11 +467,11 @@ where
                         "client {} not allowed to publish to topic {}",
                         client_id, publish.topic_name,
                     );
-                    self.drop_connection(client_id).await?;
+                    self.drop_connection(client_id)?;
                 }
                 Err(e) => {
                     warn!(message="error authorizing client: {}", error = %e);
-                    self.drop_connection(client_id).await?;
+                    self.drop_connection(client_id)?;
                 }
             }
         } else {
@@ -484,15 +481,11 @@ where
         Ok(())
     }
 
-    async fn process_puback(
-        &mut self,
-        client_id: ClientId,
-        puback: proto::PubAck,
-    ) -> Result<(), Error> {
+    fn process_puback(&mut self, client_id: ClientId, puback: proto::PubAck) -> Result<(), Error> {
         match self.get_session_mut(&client_id) {
             Ok(session) => {
                 if let Some(event) = session.handle_puback(&puback)? {
-                    session.send(event).await?
+                    session.send(event)?
                 }
                 Ok(())
             }
@@ -503,7 +496,7 @@ where
         }
     }
 
-    async fn process_puback0(
+    fn process_puback0(
         &mut self,
         client_id: ClientId,
         id: proto::PacketIdentifier,
@@ -511,7 +504,7 @@ where
         match self.get_session_mut(&client_id) {
             Ok(session) => {
                 if let Some(event) = session.handle_puback0(id)? {
-                    session.send(event).await?
+                    session.send(event)?
                 }
                 Ok(())
             }
@@ -522,15 +515,11 @@ where
         }
     }
 
-    async fn process_pubrec(
-        &mut self,
-        client_id: ClientId,
-        pubrec: proto::PubRec,
-    ) -> Result<(), Error> {
+    fn process_pubrec(&mut self, client_id: ClientId, pubrec: proto::PubRec) -> Result<(), Error> {
         match self.get_session_mut(&client_id) {
             Ok(session) => {
                 if let Some(event) = session.handle_pubrec(&pubrec)? {
-                    session.send(event).await?
+                    session.send(event)?
                 }
                 Ok(())
             }
@@ -541,18 +530,14 @@ where
         }
     }
 
-    async fn process_pubrel(
-        &mut self,
-        client_id: ClientId,
-        pubrel: proto::PubRel,
-    ) -> Result<(), Error> {
+    fn process_pubrel(&mut self, client_id: ClientId, pubrel: proto::PubRel) -> Result<(), Error> {
         let maybe_publication = match self.get_session_mut(&client_id) {
             Ok(session) => {
                 let packet_identifier = pubrel.packet_identifier;
                 let maybe_publication = session.handle_pubrel(&pubrel)?;
 
                 let pubcomp = proto::PubComp { packet_identifier };
-                session.send(ClientEvent::PubComp(pubcomp)).await?;
+                session.send(ClientEvent::PubComp(pubcomp))?;
                 maybe_publication
             }
             Err(NoSessionError) => {
@@ -562,12 +547,12 @@ where
         };
 
         if let Some(publication) = maybe_publication {
-            self.publish_all(publication).await?
+            self.publish_all(publication)?
         }
         Ok(())
     }
 
-    async fn process_pubcomp(
+    fn process_pubcomp(
         &mut self,
         client_id: ClientId,
         pubcomp: proto::PubComp,
@@ -575,7 +560,7 @@ where
         match self.get_session_mut(&client_id) {
             Ok(session) => {
                 if let Some(event) = session.handle_pubcomp(&pubcomp)? {
-                    session.send(event).await?
+                    session.send(event)?
                 }
                 Ok(())
             }
@@ -754,7 +739,7 @@ where
         }
     }
 
-    async fn publish_all(&mut self, mut publication: proto::Publication) -> Result<(), Error> {
+    fn publish_all(&mut self, mut publication: proto::Publication) -> Result<(), Error> {
         if publication.retain {
             // [MQTT-3.3.1-6]. If the Server receives a QoS 0 message with the
             // RETAIN flag set to 1 it MUST discard any message previously
@@ -790,7 +775,7 @@ where
         publication.retain = false;
 
         for session in self.sessions.values_mut() {
-            if let Err(e) = publish_to(&self.authorizer, session, &publication).await {
+            if let Err(e) = publish_to(&self.authorizer, session, &publication) {
                 warn!(message = "error processing message", error = %e);
             }
         }
@@ -799,7 +784,7 @@ where
     }
 }
 
-async fn subscribe<Z>(
+fn subscribe<Z>(
     authorizer: &Z,
     session: &mut Session,
     subscribe: proto::Subscribe,
@@ -813,17 +798,14 @@ where
     let mut subscriptions = Vec::with_capacity(subscribe.subscribe_to.len());
     let mut acks = Vec::with_capacity(subscribe.subscribe_to.len());
 
-    let auth_results = subscribe
-        .subscribe_to
-        .into_iter()
-        .map(|subscribe_to| async {
-            let operation = Operation::new_subscribe(subscribe_to.clone());
-            let activity = Activity::new(auth_id.clone(), client_id.clone(), operation);
-            let auth = authorizer.authorize(activity).await;
-            auth.map(|auth| (auth, subscribe_to))
-        });
+    let auth_results = subscribe.subscribe_to.into_iter().map(|subscribe_to| {
+        let operation = Operation::new_subscribe(subscribe_to.clone());
+        let activity = Activity::new(auth_id.clone(), client_id.clone(), operation);
+        let auth = authorizer.authorize(activity);
+        auth.map(|auth| (auth, subscribe_to))
+    });
 
-    for auth in future::join_all(auth_results).await {
+    for auth in auth_results {
         let ack_qos = match auth {
             Ok((true, subscribe_to)) => match session.subscribe_to(subscribe_to) {
                 Ok((qos, subscription)) => {
@@ -862,7 +844,7 @@ where
     Ok((suback, subscriptions))
 }
 
-async fn publish_to<Z>(
+fn publish_to<Z>(
     authorizer: &Z,
     session: &mut Session,
     publication: &proto::Publication,
@@ -876,10 +858,10 @@ where
     let auth_id = session.auth_id().unwrap_or(&AuthId::Anonymous);
     let activity = Activity::new(auth_id.clone(), client_id.clone(), operation);
 
-    match authorizer.authorize(activity).await {
+    match authorizer.authorize(activity) {
         Ok(true) => {
             if let Some(event) = session.publish_to(&publication)? {
-                session.send(event).await?
+                session.send(event)?
             }
         }
         Ok(false) => {
@@ -972,7 +954,7 @@ where
             None => (HashMap::default(), HashMap::default()),
         };
 
-        let (sender, messages) = mpsc::channel(1024);
+        let (sender, messages) = crossbeam_channel::bounded(1024);
 
         Broker {
             sender,
@@ -989,8 +971,14 @@ where
 pub struct BrokerHandle(Sender<Message>);
 
 impl BrokerHandle {
-    pub async fn send(&mut self, message: Message) -> Result<(), Error> {
-        self.0.send(message).await.map_err(Error::SendBrokerMessage)
+    pub fn send(&mut self, message: Message) -> Result<(), Error> {
+        self.0
+            .send(message)
+            .map_err(|e| Error::SendBrokerMessage(e.into()))
+    }
+
+    pub fn try_send(&mut self, message: Message) -> Result<(), Error> {
+        self.0.try_send(message).map_err(Error::SendBrokerMessage)
     }
 }
 
