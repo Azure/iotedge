@@ -297,6 +297,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
             public static void PrintCustomMessage(string message)
             {
+                Console.WriteLine(message);
                 Log.LogDebug((int)EventIds.CustomMessage, message);
             }
         }

@@ -280,6 +280,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
             public static void PrintCustomeMessage(string message)
             {
+                Console.WriteLine(message);
                 Log.LogDebug((int)EventIds.CustomMessage, message);
             }
         }
