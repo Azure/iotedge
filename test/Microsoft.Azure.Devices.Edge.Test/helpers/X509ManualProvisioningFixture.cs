@@ -11,13 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
     public class X509ManualProvisioningFixture : ManualProvisioningFixture
     {
-        public X509ManualProvisioningFixture()
-            : base("-x509")
-        {
-        }
-
-        public X509Thumbprint Thumbprint { get; set; }
-        public EdgeDevice Device { get; set; }
+        protected EdgeRuntime runtime;
 
         [OneTimeSetUp]
         public async Task X509ProvisionEdgeAsync()
@@ -29,34 +23,58 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     {
                         CancellationToken token = cts.Token;
                         DateTime startTime = DateTime.Now;
+                        string deviceId = DeviceId.Current.Generate();
 
-                        IdCertificates certs;
-                        (this.Thumbprint, certs) = await this.CreateDeviceIdCertAsync(Context.Current.DeviceId + "-x509", token);
+                        (X509Thumbprint thumbprint, IdCertificates certs) = await this.CreateIdentityCertAsync(
+                            deviceId, token);
 
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
-                            Context.Current.DeviceId + "-x509",
+                            deviceId,
                             this.iotHub,
                             AuthenticationType.SelfSigned,
-                            this.Thumbprint,
+                            thumbprint,
                             token);
 
                         Context.Current.DeleteList.TryAdd(device.Id, device);
 
-                        this.Device = device;
+                        this.runtime = new EdgeRuntime(
+                            device.Id,
+                            Context.Current.EdgeAgentImage,
+                            Context.Current.EdgeHubImage,
+                            Context.Current.Proxy,
+                            Context.Current.Registries,
+                            Context.Current.OptimizeForPerformance,
+                            this.iotHub);
 
-                        await this.ManuallyProvisionEdgeX509Async(device, certs.CertificatePath, certs.KeyPath, startTime, token);
+                        await this.ConfigureDaemonAsync(
+                            config =>
+                            {
+                                config.SetDeviceManualX509(
+                                    device.HubHostname,
+                                    device.Id,
+                                    certs.CertificatePath,
+                                    certs.KeyPath);
+                                config.Update();
+                                return Task.FromResult((
+                                    "with x509 certificate for device '{Identity}'",
+                                    new object[] { device.Id }));
+                            },
+                            device,
+                            startTime,
+                            token);
                     }
                 },
                 "Completed edge manual provisioning with self-signed certificate");
         }
 
-        private async Task<(X509Thumbprint, IdCertificates)> CreateDeviceIdCertAsync(string deviceId, CancellationToken token)
+        async Task<(X509Thumbprint, IdCertificates)> CreateIdentityCertAsync(string deviceId, CancellationToken token)
         {
             (string, string, string) rootCa =
             Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing root CA keys"));
-            string caCertScriptPath =
-                        Context.Current.CaCertScriptPath.Expect(() => new InvalidOperationException("Missing CA cert script path"));
-            string idScope = Context.Current.DpsIdScope.Expect(() => new InvalidOperationException("Missing DPS ID scope"));
+            string caCertScriptPath = Context.Current.CaCertScriptPath.Expect(
+                () => new InvalidOperationException("Missing CA cert script path"));
+            string idScope = Context.Current.DpsIdScope.Expect(
+                () => new InvalidOperationException("Missing DPS ID scope"));
 
             CertificateAuthority ca = await CertificateAuthority.CreateAsync(
                 deviceId,
