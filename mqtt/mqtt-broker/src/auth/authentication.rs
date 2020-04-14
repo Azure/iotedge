@@ -67,8 +67,8 @@ mod tests {
 
     use crate::auth::{AuthId, Authenticator, Credentials, DefaultAuthenticator};
 
-    #[tokio::test]
-    async fn default_auth_always_return_unknown_client_identity() {
+    #[test]
+    fn default_auth_always_return_unknown_client_identity() {
         let authenticator = DefaultAuthenticator;
         let credentials = Credentials::Basic(Some("username".into()), Some("password".into()));
 
@@ -77,6 +77,7 @@ mod tests {
         assert_matches!(auth_id, Ok(None));
     }
 
+    #[test]
     fn authenticator_wrapper_around_function() {
         let authenticator = |_| Ok(Some(AuthId::Anonymous));
         let credentials = Credentials::Basic(Some("username".into()), Some("password".into()));

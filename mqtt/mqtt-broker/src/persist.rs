@@ -553,8 +553,8 @@ pub(crate) mod tests {
         let path = tmp_dir.path().to_owned();
         let mut persistor = FilePersistor::new(path, ConsolidatedStateFormat::default());
 
-        persistor.store(BrokerState::default()).await.unwrap();
-        let state = persistor.load().await.unwrap().unwrap();
+        persistor.store(BrokerState::default()).unwrap();
+        let state = persistor.load().unwrap().unwrap();
         assert_eq!(BrokerState::default(), state);
     }
 }

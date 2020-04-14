@@ -1007,7 +1007,7 @@ pub(crate) mod tests {
     use proptest::collection::{hash_map, vec};
     use proptest::prelude::*;
     use tokio::sync::mpsc::error::TryRecvError;
-    use tokio::sync::mpsc::{self, Receiver};
+    use tokio::sync::mpsc::{self, UnboundedReceiver};
     use uuid::Uuid;
 
     use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
@@ -1035,7 +1035,7 @@ pub(crate) mod tests {
 
     fn connection_handle() -> ConnectionHandle {
         let id = Uuid::new_v4();
-        let (tx1, _rx1) = mpsc::channel(128);
+        let (tx1, _rx1) = mpsc::unbounded_channel();
         ConnectionHandle::new(id, tx1)
     }
 
@@ -1093,7 +1093,7 @@ pub(crate) mod tests {
             protocol_level: PROTOCOL_LEVEL,
         };
         let id = Uuid::new_v4();
-        let (tx1, mut rx1) = mpsc::channel(128);
+        let (tx1, mut rx1) = mpsc::unbounded_channel();
         let conn1 = ConnectionHandle::new(id, tx1.clone());
         let conn2 = ConnectionHandle::new(id, tx1);
         let client_id = ClientId::from("blah".to_string());
@@ -1106,14 +1106,12 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
-            .await
             .unwrap();
         broker_handle
             .send(Message::Client(
                 client_id.clone(),
                 ClientEvent::ConnReq(req2),
             ))
-            .await
             .unwrap();
 
         assert_matches!(
@@ -1155,8 +1153,8 @@ pub(crate) mod tests {
             protocol_name: PROTOCOL_NAME.to_string(),
             protocol_level: PROTOCOL_LEVEL,
         };
-        let (tx1, mut rx1) = mpsc::channel(128);
-        let (tx2, mut rx2) = mpsc::channel(128);
+        let (tx1, mut rx1) = mpsc::unbounded_channel();
+        let (tx2, mut rx2) = mpsc::unbounded_channel();
         let conn1 = ConnectionHandle::from_sender(tx1);
         let conn2 = ConnectionHandle::from_sender(tx2);
         let client_id = ClientId::from("blah".to_string());
@@ -1169,14 +1167,12 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
-            .await
             .unwrap();
         broker_handle
             .send(Message::Client(
                 client_id.clone(),
                 ClientEvent::ConnReq(req2),
             ))
-            .await
             .unwrap();
 
         assert_matches!(
@@ -1214,7 +1210,7 @@ pub(crate) mod tests {
             protocol_name: "AMQP".to_string(),
             protocol_level: PROTOCOL_LEVEL,
         };
-        let (tx1, mut rx1) = mpsc::channel(128);
+        let (tx1, mut rx1) = mpsc::unbounded_channel();
         let conn1 = ConnectionHandle::from_sender(tx1);
         let client_id = ClientId::from("blah".to_string());
         let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
@@ -1224,7 +1220,6 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
-            .await
             .unwrap();
 
         assert_matches!(
@@ -1253,7 +1248,7 @@ pub(crate) mod tests {
             protocol_name: PROTOCOL_NAME.to_string(),
             protocol_level: 0x3,
         };
-        let (tx1, mut rx1) = mpsc::channel(128);
+        let (tx1, mut rx1) = mpsc::unbounded_channel();
         let conn1 = ConnectionHandle::from_sender(tx1);
         let client_id = ClientId::from("blah".to_string());
         let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
@@ -1263,7 +1258,6 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
-            .await
             .unwrap();
 
         assert_matches!(
@@ -1303,7 +1297,7 @@ pub(crate) mod tests {
             protocol_level: PROTOCOL_LEVEL,
         };
 
-        let (tx1, mut rx1) = mpsc::channel(128);
+        let (tx1, mut rx1) = mpsc::unbounded_channel();
         let conn1 = ConnectionHandle::from_sender(tx1);
         let client_id = ClientId::from("blah".to_string());
         let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
@@ -1313,7 +1307,6 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
-            .await
             .unwrap();
 
         assert_matches!(
@@ -1346,7 +1339,7 @@ pub(crate) mod tests {
             protocol_level: PROTOCOL_LEVEL,
         };
 
-        let (tx1, mut rx1) = mpsc::channel(128);
+        let (tx1, mut rx1) = mpsc::unbounded_channel();
         let conn1 = ConnectionHandle::from_sender(tx1);
         let client_id = ClientId::from("blah".to_string());
         let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
@@ -1356,7 +1349,6 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
-            .await
             .unwrap();
 
         assert_matches!(
@@ -1396,7 +1388,7 @@ pub(crate) mod tests {
             protocol_level: PROTOCOL_LEVEL,
         };
 
-        let (tx1, mut rx1) = mpsc::channel(128);
+        let (tx1, mut rx1) = mpsc::unbounded_channel();
         let conn1 = ConnectionHandle::from_sender(tx1);
         let client_id = ClientId::from("blah".to_string());
         let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
@@ -1406,7 +1398,6 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
-            .await
             .unwrap();
 
         assert_matches!(
@@ -1446,7 +1437,7 @@ pub(crate) mod tests {
             protocol_level: PROTOCOL_LEVEL,
         };
 
-        let (tx1, mut rx1) = mpsc::channel(128);
+        let (tx1, mut rx1) = mpsc::unbounded_channel();
         let conn1 = ConnectionHandle::from_sender(tx1);
         let client_id = ClientId::from("blah".to_string());
         let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
@@ -1456,7 +1447,6 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
-            .await
             .unwrap();
 
         assert_matches!(
@@ -1496,7 +1486,7 @@ pub(crate) mod tests {
             protocol_level: PROTOCOL_LEVEL,
         };
 
-        let (tx1, mut rx1) = mpsc::channel(128);
+        let (tx1, mut rx1) = mpsc::unbounded_channel();
         let conn1 = ConnectionHandle::from_sender(tx1);
         let client_id = ClientId::from("blah".to_string());
         let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
@@ -1506,7 +1496,6 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
-            .await
             .unwrap();
 
         assert_matches!(
@@ -1591,7 +1580,7 @@ pub(crate) mod tests {
         let connect1 = transient_connect(id.clone());
         let connect2 = transient_connect(id);
         let id = Uuid::new_v4();
-        let (tx1, _rx1) = mpsc::channel(128);
+        let (tx1, _rx1) = mpsc::unbounded_channel();
         let handle1 = ConnectionHandle::new(id, tx1.clone());
         let handle2 = ConnectionHandle::new(id, tx1);
 
@@ -1620,7 +1609,7 @@ pub(crate) mod tests {
         let connect1 = persistent_connect(id.clone());
         let connect2 = persistent_connect(id);
         let id = Uuid::new_v4();
-        let (tx1, _rx1) = mpsc::channel(128);
+        let (tx1, _rx1) = mpsc::unbounded_channel();
         let handle1 = ConnectionHandle::new(id, tx1.clone());
         let handle2 = ConnectionHandle::new(id, tx1);
 
@@ -1836,7 +1825,7 @@ pub(crate) mod tests {
         };
 
         let message = Message::Client(client_id.clone(), ClientEvent::PublishFrom(publish));
-        broker_handle.send(message).await.unwrap();
+        broker_handle.send(message).unwrap();
 
         assert_matches!(
             rx.recv().await,
@@ -1883,7 +1872,7 @@ pub(crate) mod tests {
         };
 
         let message = Message::Client(client_id.clone(), ClientEvent::Subscribe(subscribe));
-        broker_handle.send(message).await.unwrap();
+        broker_handle.send(message).unwrap();
 
         let expected_qos = vec![
             proto::SubAckQos::Success(proto::QoS::AtLeastOnce),
@@ -1922,7 +1911,7 @@ pub(crate) mod tests {
         };
 
         let message = Message::Client(sub_id.clone(), ClientEvent::Subscribe(subscribe));
-        broker_handle.send(message).await.unwrap();
+        broker_handle.send(message).unwrap();
 
         let (pub_id, mut pub_rx) = connect_client("pub", &mut broker_handle).await.unwrap();
 
@@ -1937,7 +1926,7 @@ pub(crate) mod tests {
         };
 
         let message = Message::Client(pub_id.clone(), ClientEvent::PublishFrom(publish));
-        broker_handle.send(message).await.unwrap();
+        broker_handle.send(message).unwrap();
 
         assert_matches!(
             pub_rx.recv().await,
@@ -1954,19 +1943,17 @@ pub(crate) mod tests {
     async fn connect_client(
         client_id: &str,
         broker_handle: &mut BrokerHandle,
-    ) -> Result<(ClientId, Receiver<Message>), Error> {
+    ) -> Result<(ClientId, UnboundedReceiver<Message>), Error> {
         let connect = persistent_connect(client_id.into());
 
-        let (tx, mut rx) = mpsc::channel(128);
+        let (tx, mut rx) = mpsc::unbounded_channel();
         let conn = ConnectionHandle::from_sender(tx);
         let client_id = ClientId::from(client_id);
         let req = ConnReq::new(client_id.clone(), connect, None, conn);
-        broker_handle
-            .send(Message::Client(
-                client_id.clone(),
-                ClientEvent::ConnReq(req),
-            ))
-            .await?;
+        broker_handle.send(Message::Client(
+            client_id.clone(),
+            ClientEvent::ConnReq(req),
+        ))?;
 
         assert_matches!(
             rx.recv().await,

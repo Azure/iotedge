@@ -932,7 +932,7 @@ pub(crate) mod tests {
 
     fn connection_handle() -> ConnectionHandle {
         let id = Uuid::new_v4();
-        let (tx1, _rx1) = mpsc::channel(128);
+        let (tx1, _rx1) = mpsc::unbounded_channel();
         ConnectionHandle::new(id, tx1)
     }
 
