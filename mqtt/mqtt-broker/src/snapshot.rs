@@ -67,13 +67,16 @@ where
     pub async fn run(self) -> Result<P, Error> {
         let (tx, rx) = tokio::sync::oneshot::channel::<()>();
 
-        let handle = thread::spawn(|| {
-            let persist = self.snapshotter_loop();
-            if let Err(_e) = tx.send(()) {
-                error!("failed to send persist to event loop on shutdown");
-            }
-            persist
-        });
+        let handle = thread::Builder::new()
+            .name("mqtt::snapshotter".to_string())
+            .spawn(|| {
+                let persist = self.snapshotter_loop();
+                if let Err(_e) = tx.send(()) {
+                    error!("failed to send persist to event loop on shutdown");
+                }
+                persist
+            })
+            .expect("failed to spawn snapshotter thread");
 
         // wait for the thread to exit
         rx.await.map_err(Error::ThreadShutdown)?;

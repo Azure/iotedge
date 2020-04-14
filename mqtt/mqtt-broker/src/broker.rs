@@ -46,13 +46,16 @@ where
 
     pub async fn run(self) -> Result<BrokerState, Error> {
         let (tx, rx) = tokio::sync::oneshot::channel::<()>();
-        let handle = thread::spawn(|| {
-            let state = self.broker_loop();
-            if let Err(_e) = tx.send(()) {
-                error!("failed to send broker state to event loop on shutdown");
-            }
-            state
-        });
+        let handle = thread::Builder::new()
+            .name("mqtt::broker".to_string())
+            .spawn(|| {
+                let state = self.broker_loop();
+                if let Err(_e) = tx.send(()) {
+                    error!("failed to send broker state to event loop on shutdown");
+                }
+                state
+            })
+            .expect("failed to spawn broker thread");
 
         // wait for the thread to exit
         rx.await.map_err(Error::ThreadShutdown)?;
