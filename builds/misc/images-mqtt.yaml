@@ -21,21 +21,22 @@ jobs:
           command: login
           containerRegistry: iotedge-edgebuilds-acr
 
-      # - task: Docker@2
-      #   displayName: Build amd64 image
-      #   inputs:
-      #     repository: $(imageName)
-      #     command: buildAndPush
-      #     containerRegistry: iotedge-edgebuilds-acr
-      #     Dockerfile: mqtt/docker/linux/amd64/Dockerfile
-      #     buildContext: mqtt/.
-      #     tags: $(Build.BuildId)-$(os)-$(arch)
+      - task: Docker@2
+        displayName: Build amd64 image
+        inputs:
+          repository: $(imageName)
+          command: buildAndPush
+          containerRegistry: iotedge-edgebuilds-acr
+          Dockerfile: mqtt/docker/linux/amd64/Dockerfile
+          buildContext: mqtt/.
+          tags: $(Build.BuildId)-$(os)-$(arch)
       
-      - script: |
-          echo $(imageName):$(Build.BuildId)-$(os)-$(arch) > image$(arch)
+      - script: echo $(imageName):$(Build.BuildId)-$(os)-$(arch) > image$(arch)
+        displayName: Create image name
       
       - publish: image$(arch)
         artifact: image$(arch)
+        displayName: Publish image name
 
 ################################################################################
   - job: linux_arm32
@@ -56,18 +57,19 @@ jobs:
           command: login
           containerRegistry: iotedge-edgebuilds-acr
 
-      # - task: Docker@2
-      #   displayName: Build amd64 image
-      #   inputs:
-      #     repository: $(imageName)
-      #     command: buildAndPush
-      #     containerRegistry: iotedge-edgebuilds-acr
-      #     Dockerfile: mqtt/docker/linux/amd64/Dockerfile
-      #     buildContext: mqtt/.
-      #     tags: $(Build.BuildId)-$(os)-$(arch)
+      - task: Docker@2
+        displayName: Build amd64 image
+        inputs:
+          repository: $(imageName)
+          command: buildAndPush
+          containerRegistry: iotedge-edgebuilds-acr
+          Dockerfile: mqtt/docker/linux/amd64/Dockerfile
+          buildContext: mqtt/.
+          tags: $(Build.BuildId)-$(os)-$(arch)
 
-      - script: |
-          echo $(imageName):$(Build.BuildId)-$(os)-$(arch) > image$(arch)
+      - script: echo $(imageName):$(Build.BuildId)-$(os)-$(arch) > image$(arch)
+        displayName: Create image name
       
       - publish: image$(arch)
         artifact: image$(arch)
+        displayName: Publish image name
