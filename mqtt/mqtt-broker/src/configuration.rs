@@ -1,6 +1,6 @@
 use std::convert::From;
 use std::ops::Mul;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -10,6 +10,18 @@ use regex::Regex;
 use serde::{Deserialize, Deserializer};
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Transport {
+    Tcp {
+        address: String,
+    },
+    Tls {
+        address: String,
+        certificate: PathBuf,
+    },
+}
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -58,10 +70,17 @@ pub struct Session {
 
 #[derive(Debug, Deserialize)]
 pub struct BrokerConfig {
+    transports: Vec<Transport>,
     inflight_messages: InflightMessages,
     retained_messages: RetainedMessages,
     session: Session,
     persistence: Option<SessionPersistence>,
+}
+
+impl BrokerConfig {
+    pub fn transports(&self) -> &Vec<Transport> {
+        &self.transports
+    }
 }
 
 pub fn humansize<'de, T, D>(deserializer: D) -> Result<T, D::Error>
