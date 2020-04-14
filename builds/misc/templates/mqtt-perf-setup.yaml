@@ -12,7 +12,7 @@ jobs:
 
     # get latest docker image name from mqtt images pipeline, 
     # if no image specified in the pipeline variables
-    - task: DownloadPipelineArtifacts@2
+    - task: DownloadBuildArtifacts@0
       displayName: Get MQTT broker image info
       inputs:
         buildType: specific
