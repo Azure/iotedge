@@ -64,7 +64,7 @@ namespace LoadGen
 
                     // We need to set the first message because of the way priority queue logic works
                     // When edgeHub cannot send a message, it will retry on that message until it sends, regardless
-                    // of priority and TTL. So even though it may not be highest priority or may be expired (or both), 
+                    // of priority and TTL. So even though it may not be highest priority or may be expired (or both),
                     // this message will still be the first to send when the receiver comes online.
                     if (firstMessageWhileOffline)
                     {
