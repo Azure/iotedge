@@ -44,18 +44,22 @@ where
         BrokerHandle(self.sender.clone())
     }
 
-    pub async fn run(self) -> BrokerState {
-        let (tx, rx) = tokio::sync::oneshot::channel();
-        thread::spawn(|| {
+    pub async fn run(self) -> Result<BrokerState, Error> {
+        let (tx, rx) = tokio::sync::oneshot::channel::<()>();
+        let handle = thread::spawn(|| {
             let state = self.broker_loop();
-            if let Err(_e) = tx.send(state) {
+            if let Err(_e) = tx.send(()) {
                 error!("failed to send broker state to event loop on shutdown");
             }
+            state
         });
 
-        // TODO: return errors from the broker run
-        let result = rx.await;
-        result.unwrap_or_else(|_e| BrokerState::default())
+        // wait for the thread to exit
+        rx.await.map_err(Error::ThreadShutdown)?;
+
+        // unwrap the JoinHandle so that we propagate any panics
+        let state = handle.join().unwrap();
+        Ok(state)
     }
 
     fn broker_loop(mut self) -> BrokerState {

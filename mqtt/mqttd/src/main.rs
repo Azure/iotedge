@@ -79,7 +79,7 @@ async fn run() -> Result<(), Error> {
 
     // Stop snapshotting
     shutdown_handle.try_shutdown()?;
-    let mut persistor = join_handle.await?;
+    let mut persistor = join_handle.await??;
     info!("state snapshotter shutdown.");
 
     info!("persisting state before exiting...");

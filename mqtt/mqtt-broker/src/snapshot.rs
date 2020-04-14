@@ -64,18 +64,23 @@ impl<P> Snapshotter<P>
 where
     P: Persist + Send + 'static,
 {
-    pub async fn run(self) -> P {
-        let (tx, rx) = tokio::sync::oneshot::channel();
-        thread::spawn(|| {
+    pub async fn run(self) -> Result<P, Error> {
+        let (tx, rx) = tokio::sync::oneshot::channel::<()>();
+
+        let handle = thread::spawn(|| {
             let persist = self.snapshotter_loop();
-            if let Err(_e) = tx.send(persist) {
+            if let Err(_e) = tx.send(()) {
                 error!("failed to send persist to event loop on shutdown");
             }
+            persist
         });
 
-        // TODO: return errors from the snapshotter run
-        let result = rx.await;
-        result.unwrap()
+        // wait for the thread to exit
+        rx.await.map_err(Error::ThreadShutdown)?;
+
+        // unwrap the JoinHandle so that we propagate any panics
+        let persist = handle.join().unwrap();
+        Ok(persist)
     }
 
     fn snapshotter_loop(mut self) -> P {
