@@ -11,6 +11,7 @@ namespace DebugNetworkStatusChange
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
 
     class Program
     {
@@ -32,18 +33,36 @@ namespace DebugNetworkStatusChange
             try
             {
                 Environment.SetEnvironmentVariable("IOTEDGE_GATEWAYHOSTNAME", string.Empty);
-                ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
-                    TransportType.Amqp_Tcp_Only,
-                    ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                    ModuleUtil.DefaultTransientRetryStrategy,
-                    Logger);
+                // ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
+                //     TransportType.Amqp_Tcp_Only,
+                //     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
+                //     ModuleUtil.DefaultTransientRetryStrategy,
+                //     Logger);
 
-                NonStaticClass nsc = new NonStaticClass(Logger);
+                var retryPolicy = new RetryPolicy(ModuleUtil.DefaultTimeoutErrorDetectionStrategy, ModuleUtil.DefaultTransientRetryStrategy);
+                retryPolicy.Retrying += (_, args) =>
+                {
+                    Console.WriteLine($"Retry {args.CurrentRetryCount} times to create module client and failed with exception:{Environment.NewLine}{args.LastException}");
+                };
 
-                moduleClient.SetConnectionStatusChangesHandler(nsc.StatusChangedHandler);
-                await moduleClient.OpenAsync();
+                ModuleClient client = await retryPolicy.ExecuteAsync(() => InitializeModuleClientAsync(TransportType.Amqp_Tcp_Only, Logger));
 
-                while (moduleClient!=null)
+                async Task<ModuleClient> InitializeModuleClientAsync(TransportType transportType, ILogger logger)
+                {
+                    var amqpSettings = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
+                    amqpSettings.IdleTimeout = TimeSpan.FromSeconds(60);
+                    ITransportSettings[] settings = new ITransportSettings[] {amqpSettings};
+
+                    NonStaticClass nsc = new NonStaticClass(Logger);
+
+                    ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
+                    moduleClient.SetConnectionStatusChangesHandler(nsc.StatusChangedHandler);
+                    await moduleClient.OpenAsync();
+
+                    return moduleClient;
+                }
+
+                while (client!=null)
                 {
                     // Console.WriteLine($"{DateTime.UtcNow} Waiting for status change");
                     await Task.Delay(TimeSpan.FromMilliseconds(5));
