@@ -9,6 +9,26 @@ jobs:
   displayName: Setup Host
   steps:
     - checkout: none
+
+    # get latest docker image name from mqtt images pipeline, 
+    # if no image specified in the pipeline variables
+    - task: DownloadPipelineArtifacts@2
+      displayName: Get MQTT broker image info
+      inputs:
+        buildType: specific
+        project: $(resources.pipeline.images.projectID)
+        pipeline: $(resources.pipeline.images.pipelineName)
+        buildVersionToDownload: specific
+        buildId: $(resources.pipeline.images.runID)
+        downloadType: single
+        artifactName: image$(arch)
+      condition: eq(variables['brokerImageName'], '')
+
+    - script: |
+        brokerImageName=$(cat $(Pipeline.Workspace)/images/image$(arch)/image$(arch))
+      displayName: 'Set broker image name variable'
+      condition: eq(variables['brokerImageName'], '')
+
     # AMD64 setup
     - task: SSH@0
       displayName: Cleanup running containers AMD64

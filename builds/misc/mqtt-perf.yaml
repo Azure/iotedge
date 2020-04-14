@@ -24,6 +24,9 @@ resources:
     type: github
     endpoint: Azure/iotedge
     name: vadim-kovalyov/mqtt-benchmark
+  pipelines:
+  - pipeline: images
+    source: 'Azure-IoT-Edge-Core Build MQTT Images'
 
 variables:
   benchmarkToolPath: $(Agent.WorkFolder)/mqtt-benchmark
