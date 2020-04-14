@@ -15,6 +15,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
         {
              logger.LogInformation("System Resource Metrics are NOT being collected");
         }
-
     }
 }
