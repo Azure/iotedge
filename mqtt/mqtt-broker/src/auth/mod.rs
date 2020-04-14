@@ -1,32 +1,34 @@
-use derive_more::Display;
-use failure::Fail;
-
 mod authentication;
 mod authorization;
 
-pub use authentication::{Authenticator, Certificate, Credentials, DefaultAuthenticator};
-pub use authorization::{Activity, Authorizer, DefaultAuthorizer, Operation};
+pub use authentication::{
+    AuthenticateError, Authenticator, Certificate, Credentials, DefaultAuthenticator,
+};
+pub use authorization::{Activity, AuthorizeError, Authorizer, DefaultAuthorizer, Operation};
 
 /// Authenticated MQTT client identity.
-#[derive(Clone, Debug, Display, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum AuthId {
     /// Identity for anonymous client.
-    #[display(fmt = "*")]
     Anonymous,
 
-    /// Identity for identified client.
+    /// Identity for non-anonymous client.
     Identity(Identity),
+}
+
+impl std::fmt::Display for AuthId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Anonymous => write!(f, "*"),
+            Self::Identity(identity) => write!(f, "{}", identity),
+        }
+    }
 }
 
 impl AuthId {
     /// Creates a MQTT identity for known client.
     pub fn from_identity<T: Into<Identity>>(identity: T) -> Self {
         Self::Identity(identity.into())
-    }
-
-    /// Creates an anonymous MQTT client identity.
-    pub fn anonymous() -> Self {
-        AuthId::Anonymous
     }
 }
 
@@ -38,13 +40,3 @@ impl<T: Into<Identity>> From<T> for AuthId {
 
 /// Non-anonymous client identity.
 pub type Identity = String;
-
-/// Represents reason for failed auth operations.
-#[derive(Debug, Display, Fail, PartialEq)]
-pub enum ErrorReason {
-    #[display(fmt = "Error occurred during authentication")]
-    Authenticate,
-
-    #[display(fmt = "Error occurred during authorization")]
-    Authorize,
-}

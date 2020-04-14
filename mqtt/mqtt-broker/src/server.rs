@@ -1,6 +1,5 @@
 use std::future::Future;
 
-use failure::ResultExt;
 use futures_util::future::{self, Either, FutureExt};
 use futures_util::pin_mut;
 use futures_util::stream::StreamExt;
@@ -11,7 +10,7 @@ use tracing_futures::Instrument;
 use crate::auth::{Authenticator, Authorizer};
 use crate::broker::{Broker, BrokerHandle, BrokerState};
 use crate::transport::TransportBuilder;
-use crate::{connection, Error, ErrorKind, InitializeBrokerReason, Message, SystemEvent};
+use crate::{connection, Error, InitializeBrokerError, Message, SystemEvent};
 
 pub struct Server<N, Z>
 where
@@ -84,7 +83,7 @@ where
 
                         debug!("sending Shutdown message to broker");
                         handle.send(Message::System(SystemEvent::Shutdown)).await?;
-                        broker_task.await.context(ErrorKind::TaskJoin)?
+                        broker_task.await?
                     }
                     Either::Left((broker_state, incoming_tasks)) => {
                         warn!("broker exited before accept loop");
@@ -100,7 +99,7 @@ where
                             warn!(message = "failed to shutdown protocol head", error=%e);
                         }
 
-                        broker_state.context(ErrorKind::TaskJoin)?
+                        broker_state?
                     }
                 }
             }
@@ -127,7 +126,7 @@ where
                         warn!(message = "failed to shutdown protocol head", error=%e);
                     }
 
-                    broker_state.context(ErrorKind::TaskJoin)?
+                    broker_state?
                 }
                 Either::Left((broker_state, incoming_tasks)) => {
                     warn!("broker exited before accept loop");
@@ -146,7 +145,7 @@ where
                         warn!(message = "failed to shutdown protocol head", error=%e);
                     }
 
-                    broker_state.context(ErrorKind::TaskJoin)?
+                    broker_state?
                 }
             },
         };
@@ -186,9 +185,9 @@ where
     loop {
         match future::select(&mut shutdown_signal, incoming.next()).await {
             Either::Right((Some(Ok(stream)), _)) => {
-                let peer = stream.peer_addr().context(ErrorKind::InitializeBroker(
-                    InitializeBrokerReason::ConnectionPeerAddress,
-                ))?;
+                let peer = stream
+                    .peer_addr()
+                    .map_err(InitializeBrokerError::ConnectionPeerAddress)?;
 
                 let broker_handle = handle.clone();
                 let span = span.clone();
