@@ -1,0 +1,61 @@
+trigger: none
+pr: none
+
+jobs:
+################################################################################
+  - job: linux_amd64
+################################################################################
+    displayName: Linux AMD64
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    variables:
+      os: linux
+      arch: amd64
+      imageName: azureiotedge/iotedge-mqtt-broker
+
+    steps:
+      - task: Docker@2
+        displayName: Docker Login
+        inputs:
+          command: login
+          containerRegistry: iotedge-edgebuilds-acr
+
+      - task: Docker@2
+        displayName: Build amd64 image
+        inputs:
+          repository: $(imageName)
+          command: buildAndPush
+          containerRegistry: iotedge-edgebuilds-acr
+          Dockerfile: mqtt/docker/linux/amd64/Dockerfile
+          buildContext: mqtt/.
+          tags: $(Build.BuildId)-$(os)-$(arch)
+
+################################################################################
+  - job: linux_arm32
+################################################################################
+    displayName: Linux ARM32
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    variables:
+      os: linux
+      arch: arm32v7
+      imageName: azureiotedge/iotedge-mqtt-broker
+
+    steps:
+      - task: Docker@2
+        displayName: Docker Login
+        inputs:
+          command: login
+          containerRegistry: iotedge-edgebuilds-acr
+
+      - task: Docker@2
+        displayName: Build amd64 image
+        inputs:
+          repository: $(imageName)
+          command: buildAndPush
+          containerRegistry: iotedge-edgebuilds-acr
+          Dockerfile: mqtt/docker/linux/amd64/Dockerfile
+          buildContext: mqtt/.
+          tags: $(Build.BuildId)-$(os)-$(arch)
