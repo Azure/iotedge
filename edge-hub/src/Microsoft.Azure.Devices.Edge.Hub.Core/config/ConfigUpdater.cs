@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -141,6 +142,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                     if (replaceExisting)
                     {
                         Events.PrintCustomMessage($"ConfigUpdater.UpdateRoutes: Replace routes with keys [{string.Join(",", routes.Keys)}]");
+                        Events.PrintCustomMessage($"ConfigUpdater.UpdateRoutes: calling router.ReplaceRoute");
+                        Events.PrintCustomMessage($"ConfigUpdater.UpdateRoutes: calling router.ReplaceRoute={routeSet.ToPrettyJson()}");
                         await this.router.ReplaceRoutes(routeSet);
                         Events.PrintCustomMessage($"ConfigUpdater.UpdateRoutes: Replace routes with {routes.Keys.Count()} keys finished.");
                     }
@@ -149,7 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                         Events.PrintCustomMessage($"ConfigUpdater.UpdateRoutes: Call SetRoute");
                         foreach (Route route in routeSet)
                         {
-                            Events.PrintCustomMessage($"ConfigUpdater.UpdateRoutes: Set route with route={route.ToJson()}");
+                            Events.PrintCustomMessage($"ConfigUpdater.UpdateRoutes: Set route with route={route.ToPrettyJson()}");
                             await this.router.SetRoute(route);
                         }
                     }

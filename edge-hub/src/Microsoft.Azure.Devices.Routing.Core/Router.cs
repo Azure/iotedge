@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -165,7 +166,8 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         public async Task ReplaceRoutes(ISet<Route> newRoutes)
         {
-            Events.PrintCustomeMessage($"Router.ReplaceRoutes: newRoutes={JsonConvert.SerializeObject(newRoutes)}");
+            Events.PrintCustomeMessage($"Router.ReplaceRoutes started");
+            Events.PrintCustomeMessage($"Router.ReplaceRoutes: newRoutes={newRoutes.ToPrettyJson()}");
             this.CheckClosed();
 
             Events.PrintCustomeMessage($"Router.ReplaceRoutes: passed checkClosed");
