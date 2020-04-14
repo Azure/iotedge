@@ -75,7 +75,7 @@ namespace LoadGen
             {
                 throw new ArgumentException("TTLs, priorities, and TTLThreshold must either all be set or all not be set.");
             }
-            else if (ttls.Count != priorities.Count && ttls.Count != 0)
+            else if (ttls?.Count != 0 && ttls?.Count != priorities?.Count)
             {
                 throw new ArgumentException("TTL and priorities must have the same number of elements.");
             }

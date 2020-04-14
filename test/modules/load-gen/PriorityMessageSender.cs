@@ -64,9 +64,9 @@ namespace LoadGen
                     this.Logger.LogInformation($"Sent message {messageIdCounter} with pri {priority} and ttl {ttlForMessage}");
 
                     // We need to set the first message because of the way priority queue logic works
-                    // When edgeHub cannot send a message, it will retry on that message until it sends
-                    // So even though it may not be highest priority, this message will still be the first
-                    // to send when the receiver comes online
+                    // When edgeHub cannot send a message, it will retry on that message until it sends, regardless
+                    // of priority and TTL. So even though it may not be highest priority or may be expired (or both), 
+                    // this message will still be the first to send when the receiver comes online.
                     if (firstMessageWhileOffline)
                     {
                         firstMessageWhileOffline = false;
@@ -106,9 +106,10 @@ namespace LoadGen
                 .SelectMany(t => t.Value)
                 .ToList();
 
+            // Need to add 1 for the first sequence number, since it is a special case that we omitted in the expectedSequenceNumberList.
             this.resultsSent = expectedSequenceNumberList.Count + 1;
 
-            // See explanation above why we need to send sequence number 1 first
+            // See explanation above why we need to send sequence number 1 as the first expected value.
             await this.ReportResult(1);
 
             foreach (int sequenceNumber in expectedSequenceNumberList)
