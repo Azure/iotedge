@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
     using Microsoft.Azure.Devices.Routing.Core.Query;
     using Microsoft.Extensions.Logging;
@@ -56,6 +57,8 @@ namespace Microsoft.Azure.Devices.Routing.Core
             // Because we are only reading here, it doesn't matter that it is under a lock
             // ReSharper disable once InconsistentlySynchronizedField - compiledRoutes is immutable
             ImmutableDictionary<string, CompiledRoute> snapshot = this.compiledRoutes;
+
+            Events.PrintCustomMessage($"Evaluator.Evaluate: {string.Join(Environment.NewLine, snapshot.Values.Select(v => v.Route.ToPrettyJson()))}");
 
             // Multiple routes for the same endpoint can exist, in which case
             // the message should be routed with the highest available priority
@@ -176,6 +179,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 CompileSuccess,
                 CompileFailure,
                 EvaluatorFailure,
+                CustomMessage
             }
 
             public static void Compile(Route route)
@@ -201,6 +205,11 @@ namespace Microsoft.Azure.Devices.Routing.Core
             public static void EvaluateFallback(Endpoint endpoint)
             {
                 Routing.UserMetricLogger.LogEgressFallbackMetric(1, endpoint.IotHubName);
+            }
+
+            public static void PrintCustomMessage(string message)
+            {
+                Log.LogDebug((int)EventIds.CustomMessage, message);
             }
 
             static string GetMessage(string message, Route route)

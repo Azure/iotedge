@@ -57,6 +57,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
         public async Task AddEndpoint(string endpointId)
         {
+            System.Diagnostics.StackTrace t = new System.Diagnostics.StackTrace();
+            Console.WriteLine($"MessageStore.AddEndpoint [{endpointId}]: {t}");
+
             CheckpointData checkpointData = await this.checkpointStore.GetCheckpointDataAsync(endpointId, CancellationToken.None);
             ISequentialStore<MessageRef> sequentialStore = await this.storeProvider.GetSequentialStore<MessageRef>(endpointId, checkpointData.Offset + 1);
             if (this.endpointSequentialStores.TryAdd(endpointId, sequentialStore))

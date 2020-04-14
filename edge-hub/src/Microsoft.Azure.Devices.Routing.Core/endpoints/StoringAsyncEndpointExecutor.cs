@@ -382,7 +382,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 Close,
                 CloseSuccess,
                 CloseFailure,
-                ErrorInPopulatePump
+                ErrorInPopulatePump,
+                CustomMessage
             }
 
             public static void AddMessageSuccess(StoringAsyncEndpointExecutor executor, long offset, uint priority, uint timeToLiveSecs)
@@ -469,6 +470,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             public static void ErrorInPopulatePump(Exception ex)
             {
                 Log.LogWarning((int)EventIds.ErrorInPopulatePump, ex, "Error in populate messages pump");
+            }
+
+            public static void PrintCustomMessage(string message)
+            {
+                Log.LogDebug((int)EventIds.CustomMessage, message);
             }
         }
 

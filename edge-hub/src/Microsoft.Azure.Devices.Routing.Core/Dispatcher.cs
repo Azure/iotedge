@@ -223,8 +223,10 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         async Task SetEndpointInternal(Endpoint endpoint, IList<uint> priorities)
         {
+            Events.PrintCustomMessage("Dispatcher.SetEndpointInternal started");
             IEndpointExecutor executor;
             ImmutableDictionary<string, IEndpointExecutor> snapshot = this.executors;
+            Events.PrintCustomMessage($"Dispatcher.SetEndpointInternal executors: [{string.Join(",", snapshot.Keys)}]");
             if (!snapshot.TryGetValue(endpoint.Id, out executor))
             {
                 executor = await this.endpointExecutorFactory.CreateAsync(endpoint, priorities, this.masterCheckpointer);
@@ -232,11 +234,15 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 {
                     throw new InvalidOperationException($"Invalid set endpoint operation for executor {endpoint.Id}");
                 }
+
+                Events.PrintCustomMessage($"Dispatcher.SetEndpointInternal executors after: [{string.Join(",", snapshot.Keys)}]");
             }
             else
             {
                 await executor.SetEndpoint(endpoint, priorities);
             }
+
+            Events.PrintCustomMessage("Dispatcher.SetEndpointInternal finished");
         }
 
         async Task RemoveEndpointInternal(string id)
