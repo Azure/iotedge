@@ -1,17 +1,13 @@
-use std::convert::{From, TryFrom};
+use std::convert::From;
 use std::ops::Mul;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::Duration;
 
-use crate::{transport::TransportBuilder, Error, ErrorKind, InitializeBrokerReason};
 use config::{Config, ConfigError, File, FileFormat};
-use failure::ResultExt;
 use lazy_static::lazy_static;
-use native_tls::Identity;
 use regex::Regex;
 use serde::{Deserialize, Deserializer};
-use tracing::info;
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 
@@ -25,32 +21,6 @@ pub enum Transport {
         address: String,
         certificate: PathBuf,
     },
-}
-
-impl TryFrom<Transport> for TransportBuilder<String> {
-    type Error = Error;
-
-    fn try_from(transport: Transport) -> Result<Self, Self::Error> {
-        match transport {
-            Transport::Tcp { address } => Ok(Self::Tcp(address)),
-            Transport::Tls {
-                address,
-                certificate,
-            } => load_identity(certificate.as_path()).map(|identity| Self::Tls(address, identity)),
-        }
-    }
-}
-
-fn load_identity(path: &Path) -> Result<Identity, Error> {
-    info!("Loading identity from {:?}", path);
-    let cert_buffer = std::fs::read(&path).context(ErrorKind::InitializeBroker(
-        InitializeBrokerReason::LoadIdentity(path.to_path_buf()),
-    ))?;
-    let cert = Identity::from_pkcs12(cert_buffer.as_slice(), "").context(
-        ErrorKind::InitializeBroker(InitializeBrokerReason::DecodeIdentity),
-    )?;
-
-    Ok(cert)
 }
 
 #[derive(Debug, Deserialize)]

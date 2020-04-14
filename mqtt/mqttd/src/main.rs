@@ -1,7 +1,6 @@
 use std::{convert::TryInto, env, io};
 
 use clap::{crate_description, crate_name, crate_version, App, Arg};
-use failure::ResultExt;
 use futures_util::pin_mut;
 use mqtt_broker::*;
 use tokio::time::{Duration, Instant};
@@ -20,13 +19,16 @@ async fn main() -> Result<(), Terminate> {
         .finish();
     let _ = tracing::subscriber::set_global_default(subscriber);
 
+    run().await?;
+    Ok(())
+}
+
+async fn run() -> Result<(), Error> {
     let config = create_app()
         .get_matches()
         .value_of("config")
         .map_or(BrokerConfig::new(), BrokerConfig::from_file)
-        .context(ErrorKind::InitializeBroker(
-            InitializeBrokerReason::LoadConfiguration,
-        ))?;
+        .map_err(InitializeBrokerError::LoadConfiguration)?;
 
     // Setup the shutdown handle
     let shutdown = shutdown::shutdown();
@@ -40,7 +42,7 @@ async fn main() -> Result<(), Terminate> {
     info!("Loading state...");
     let state = persistor.load().await?.unwrap_or_else(BrokerState::default);
     let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::anonymous())))
+        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
         .authorizer(|_| Ok(true))
         .state(state)
         .build();
@@ -77,7 +79,7 @@ async fn main() -> Result<(), Terminate> {
 
     // Stop snapshotting
     shutdown_handle.shutdown().await?;
-    let mut persistor = join_handle.await.context(ErrorKind::TaskJoin)?;
+    let mut persistor = join_handle.await?;
     info!("state snapshotter shutdown.");
 
     info!("persisting state before exiting...");
