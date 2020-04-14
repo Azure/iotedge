@@ -1,6 +1,6 @@
 use fail::FailScenario;
 
-use mqtt_broker::{BrokerState, ConsolidatedStateFormat, ErrorKind, FilePersistor, Persist};
+use mqtt_broker::{BrokerState, ConsolidatedStateFormat, FilePersistor, Persist, PersistError};
 use proptest::collection::vec;
 use proptest::prelude::*;
 use tempfile::TempDir;
@@ -91,8 +91,7 @@ fn test_failpoints_smoketest() {
             let mut persistor = FilePersistor::new(path, ConsolidatedStateFormat::default());
 
             let result = persistor.load().await;
-            let err = result.unwrap_err();
-            assert_eq!(&ErrorKind::TaskJoin, err.kind());
+            matches::assert_matches!(result, Err(PersistError::TaskJoin(_)));
         });
     scenario.teardown();
 }
