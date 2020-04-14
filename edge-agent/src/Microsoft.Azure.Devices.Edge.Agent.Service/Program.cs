@@ -232,7 +232,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                                 proxy,
                                 closeOnIdleTimeout,
                                 idleTimeout,
-                                performanceMetricsUpdateFrequency,
                                 useServerHeartbeat,
                                 kubernetesExperimentalFeatures,
                                 moduleOwner,
