@@ -8,7 +8,6 @@ edition = "2018"
 [dependencies]
 atty = "0.2"
 clap = "2.33"
-failure = "0.1"
 futures-util = { version = "0.3", features = ["sink"] }
 tokio = { version = "0.2", features = ["dns", "macros", "rt-threaded", "signal", "stream", "tcp", "time"] }
 native-tls = "0.2"
