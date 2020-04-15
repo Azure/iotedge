@@ -84,7 +84,7 @@ jobs:
       sshEndpoint: iotedge-mqtt-perf-amd64-conn
       runOptions: commands
       commands: |
-        docker kill $(docker ps -q) 2>/dev/null
+        docker stop mqtt-broker || docker rm mqtt-broker
     continueOnError: true 
     condition: eq(variables['arch'], 'amd64')
   - task: SSH@0
@@ -93,7 +93,7 @@ jobs:
       sshEndpoint: iotedge-mqtt-perf-amd64-conn
       runOptions: commands
       commands: |
-        docker run -d -p 1883:1883 $(brokerImageName)
+        docker run -d -p 1883:1883 --name mqtt-broker $(brokerImageName)
     condition: eq(variables['arch'], 'amd64')
 
   # ARM32 Cleanup
@@ -103,7 +103,7 @@ jobs:
       sshEndpoint: iotedge-mqtt-perf-arm32v7-conn
       runOptions: commands
       commands: |
-        docker kill $(docker ps -q) 2>/dev/null
+        docker stop mqtt-broker || docker rm mqtt-broker
     continueOnError: true 
     condition: eq(variables['arch'], 'arm32v7')
   - task: SSH@0
@@ -112,5 +112,5 @@ jobs:
       sshEndpoint: iotedge-mqtt-perf-arm32v7-conn
       runOptions: commands
       commands: |
-        docker run -d -p 1883:1883 $(brokerImageName)
+        docker run -d -p 1883:1883 --name mqtt-broker $(brokerImageName)
     condition: eq(variables['arch'], 'arm32v7')
