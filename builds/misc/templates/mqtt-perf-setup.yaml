@@ -18,8 +18,8 @@ jobs:
       condition: eq(variables['brokerImageName'], '')
 
     - script: |
-        ls -ap $(Pipeline.Workspace)/images/
         brokerImageName=$(cat $(Pipeline.Workspace)/images/image$(arch)/image$(arch))
+        echo "##vso[task.setvariable variable=brokerImageName;]$brokerImageName"
       displayName: 'Set broker image name variable'
       condition: eq(variables['brokerImageName'], '')
 
