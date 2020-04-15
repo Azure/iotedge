@@ -31,6 +31,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 new object[] { Enumerable.Range(1, 7).Select(v => GetFormattedDeploymentTestResult("expectedSource", v)), new int[] { 2, 3, 5 }.Select(v => GetFormattedDeploymentTestResult("actualSource", v)), 10, 7, 3, 5, 2, GetDeploymentTestResult("actualSource", 5) },
             };
         static readonly string TestDescription = "dummy description";
+        static readonly ushort UnmatchedResultsMaxSize = 10;
 
         [Fact]
         public void TestConstructorSuccess()
@@ -50,7 +51,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 expectedSource,
                 expectedResults,
                 actualSource,
-                actualResults);
+                actualResults,
+                UnmatchedResultsMaxSize);
 
             Assert.Equal(TestDescription, reportGenerator.TestDescription);
             Assert.Equal(actualSource, reportGenerator.ActualSource);
@@ -76,7 +78,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     "expectedSource",
                     mockExpectedResults.Object,
                     "actualSource",
-                    mockActualStore.Object));
+                    mockActualStore.Object,
+                    UnmatchedResultsMaxSize));
 
             Assert.StartsWith("testDescription", ex.Message);
         }
@@ -96,7 +99,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     "expectedSource",
                     mockExpectedResults.Object,
                     "actualSource",
-                    mockActualStore.Object));
+                    mockActualStore.Object,
+                    UnmatchedResultsMaxSize));
 
             Assert.StartsWith("trackingId", ex.Message);
         }
@@ -116,7 +120,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     expectedSource,
                     mockExpectedResults.Object,
                     "actualSource",
-                    mockActualStore.Object));
+                    mockActualStore.Object,
+                    UnmatchedResultsMaxSize));
 
             Assert.StartsWith("expectedSource", ex.Message);
         }
@@ -133,7 +138,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     "expectedSource",
                     null,
                     "actualSource",
-                    mockActualStore.Object));
+                    mockActualStore.Object,
+                    UnmatchedResultsMaxSize));
 
             Assert.Equal("expectedTestResults", ex.ParamName);
         }
@@ -153,7 +159,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     "expectedSource",
                     mockExpectedResults.Object,
                     actualSource,
-                    mockActualStore.Object));
+                    mockActualStore.Object,
+                    UnmatchedResultsMaxSize));
 
             Assert.StartsWith("actualSource", ex.Message);
         }
@@ -170,9 +177,28 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     "expectedSource",
                     mockExpectedResults.Object,
                     "actualSource",
-                    null));
+                    null,
+                    UnmatchedResultsMaxSize));
 
             Assert.Equal("actualTestResults", ex.ParamName);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        public void TestConstructorThrowsWhenUnmatchedResultsMaxSizeIsNonPositive(ushort unmatchedResultsMaxSize)
+        {
+            var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockActualStore = new Mock<ITestResultCollection<TestOperationResult>>();
+
+            ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(
+                () => new DeploymentTestReportGenerator(
+                    TestDescription,
+                    Guid.NewGuid().ToString(),
+                    "expectedSource",
+                    mockExpectedResults.Object,
+                    "actualSource",
+                    mockActualStore.Object,
+                    unmatchedResultsMaxSize));
         }
 
         [Fact]
@@ -193,7 +219,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 expectedSource,
                 expectedResults,
                 actualSource,
-                actualResults);
+                actualResults,
+                UnmatchedResultsMaxSize);
 
             var report = (DeploymentTestReport)await reportGenerator.CreateReportAsync();
 
@@ -231,7 +258,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 expectedSource,
                 expectedResults,
                 actualSource,
-                actualResults);
+                actualResults,
+                UnmatchedResultsMaxSize);
 
             var expectedStoreData = GetStoreData(expectedSource, resultType, expectedStoreValues);
             for (int i = 0; i < expectedStoreData.Count; i += batchSize)

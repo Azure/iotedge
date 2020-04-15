@@ -23,7 +23,6 @@ The end-to-end tests take several parameters, which they expect to find in a fil
 | Name | Required | Description |
 |------|----------|-------------|
 | `caCertScriptPath` | * | Path to the folder containing `certGen.sh` (Linux) or `ca-certs.ps1` (Windows). Required when running the test 'TransparentGateway', ignored otherwise. |
-| `deviceId` || Name by which the edge device-under-test will be registered in IoT Hub. If not given, a name will automatically be generated in the format: `e2e-{device hostname}-{yyMMdd-HHmmss.fff}`. DPS tests will derive their "registration ID" from `deviceId` by appending the normalized test name (lowercased, with sequences of non-word characters replaced by a single dash). |
 | `dpsIdScope` | * | The [ID Scope](https://docs.microsoft.com/en-us/azure/iot-dps/concepts-device#id-scope) assigned to a Device Provisioning Service. Required when running any DPS tests, ignored otherwise. |
 | `edgeAgentImage` || Docker image to pull/use for Edge Agent. If not given, the default value `mcr.microsoft.com/azureiotedge-agent:1.0` is used. Note also that the default value is ALWAYS used in config.yaml to start IoT Edge; this setting only applies to any configurations deployed by the tests. |
 | `edgeHubImage` || Docker image to pull/use for Edge Hub. If not given, `mcr.microsoft.com/azureiotedge-hub:1.0` is used. |

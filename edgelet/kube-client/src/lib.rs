@@ -8,6 +8,7 @@
     clippy::module_name_repetitions,
     clippy::must_use_candidate,
     clippy::shadow_unrelated,
+    clippy::similar_names,
     clippy::too_many_lines,
     clippy::use_self
 )]
