@@ -16,7 +16,6 @@ namespace DebugNetworkStatusChange
     class Program
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("DebugNetworkStatusChange");
-        private readonly ConsoleEventListener _listener = new ConsoleEventListener("Microsoft-Azure-Devices-Device-Client");
 
         public static int Main() => MainAsync().Result;
 
@@ -29,6 +28,8 @@ namespace DebugNetworkStatusChange
             //     .AddJsonFile("config/appsettings.json", optional: true)
             //     .AddEnvironmentVariables()
             //     .Build();
+
+            ConsoleEventListener _listener = new ConsoleEventListener("Microsoft-Azure-Devices-Device-Client");
 
             try
             {

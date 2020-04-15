@@ -13,9 +13,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IoTEdgeDashboard", "IoTEdge
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VstsPipelineSync", "VstsPipelineSync\VstsPipelineSync.csproj", "{27B25AE7-C157-41FA-B7DF-EEC4647649F1}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Util", "..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj", "{BFB8B12D-D44C-4667-9186-9E67188EB61B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.ModuleUtil", "..\..\test\modules\ModuleLib\Microsoft.Azure.Devices.Edge.ModuleUtil.csproj", "{3D0A366B-97D3-4C6F-82B6-2EDB04BD40D0}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.ModuleUtil", "..\..\test\modules\ModuleLib\Microsoft.Azure.Devices.Edge.ModuleUtil.csproj", "{271F490E-9372-471B-BC6D-A752F9C19046}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Util", "..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj", "{050D5349-6D43-4709-B315-9CC444EB6655}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -54,18 +54,18 @@ Global
 		{27B25AE7-C157-41FA-B7DF-EEC4647649F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{27B25AE7-C157-41FA-B7DF-EEC4647649F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{27B25AE7-C157-41FA-B7DF-EEC4647649F1}.Release|Any CPU.Build.0 = Release|Any CPU
-		{BFB8B12D-D44C-4667-9186-9E67188EB61B}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
-		{BFB8B12D-D44C-4667-9186-9E67188EB61B}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
-		{BFB8B12D-D44C-4667-9186-9E67188EB61B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BFB8B12D-D44C-4667-9186-9E67188EB61B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BFB8B12D-D44C-4667-9186-9E67188EB61B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BFB8B12D-D44C-4667-9186-9E67188EB61B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{271F490E-9372-471B-BC6D-A752F9C19046}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
-		{271F490E-9372-471B-BC6D-A752F9C19046}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
-		{271F490E-9372-471B-BC6D-A752F9C19046}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{271F490E-9372-471B-BC6D-A752F9C19046}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{271F490E-9372-471B-BC6D-A752F9C19046}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{271F490E-9372-471B-BC6D-A752F9C19046}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3D0A366B-97D3-4C6F-82B6-2EDB04BD40D0}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
+		{3D0A366B-97D3-4C6F-82B6-2EDB04BD40D0}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
+		{3D0A366B-97D3-4C6F-82B6-2EDB04BD40D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D0A366B-97D3-4C6F-82B6-2EDB04BD40D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D0A366B-97D3-4C6F-82B6-2EDB04BD40D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D0A366B-97D3-4C6F-82B6-2EDB04BD40D0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{050D5349-6D43-4709-B315-9CC444EB6655}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
+		{050D5349-6D43-4709-B315-9CC444EB6655}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
+		{050D5349-6D43-4709-B315-9CC444EB6655}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{050D5349-6D43-4709-B315-9CC444EB6655}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{050D5349-6D43-4709-B315-9CC444EB6655}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{050D5349-6D43-4709-B315-9CC444EB6655}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
