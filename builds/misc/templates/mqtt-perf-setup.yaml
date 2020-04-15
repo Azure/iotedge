@@ -25,7 +25,8 @@ jobs:
       condition: eq(variables['brokerImageName'], '')
 
     - script: |
-        brokerImageName=$(cat $(Pipeline.Workspace)/images/image$(arch)/image$(arch))
+        ll $(System.ArtifactsDirectory)
+        brokerImageName=$(cat $(System.ArtifactsDirectory)/images/image$(arch)/image$(arch))
       displayName: 'Set broker image name variable'
       condition: eq(variables['brokerImageName'], '')
 
