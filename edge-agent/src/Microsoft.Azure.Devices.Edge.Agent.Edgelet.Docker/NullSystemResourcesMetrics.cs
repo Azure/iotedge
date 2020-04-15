@@ -7,10 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
 
     public class NullSystemResourcesMetrics : ISystemResourcesMetrics
     {
-        public NullSystemResourcesMetrics()
-        {
-        }
-
         public void Start(ILogger logger)
         {
              logger.LogInformation("System Resource Metrics are NOT being collected");
