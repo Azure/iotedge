@@ -872,7 +872,8 @@ where
 {
     let operation = Operation::new_receive(publication.clone());
     let client_id = session.client_id().clone();
-    let auth_id = session.auth_id()?;
+    // TODO refactor auth_id logic for offline sessions
+    let auth_id = session.auth_id().unwrap_or(&AuthId::Anonymous);
     let activity = Activity::new(auth_id.clone(), client_id.clone(), operation);
 
     match authorizer.authorize(activity).await {
