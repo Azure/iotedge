@@ -40,7 +40,7 @@ jobs:
   steps:
   - checkout: none
   - script: |
-      $(benchmarkToolPath)/mqtt-benchmark -pub -broker $(brokerAddress) -runId $(runId) -caseId ${{ parameters['id'] }} -clients ${{ parameters['publishers'] }} -duration $(test.duration) -size ${{ parameters['payload'] }} -topics ${{ parameters['topics'] }} -qos ${{ parameters['qos'] }} -dop $(clientDop) -waitFor $(subscriber.readyEndpoint) -quiet -panic
+      $(benchmarkToolPath)/mqtt-benchmark -pub -broker $(brokerEndpoint) -runId $(runId) -caseId ${{ parameters['id'] }} -clients ${{ parameters['publishers'] }} -duration $(test.duration) -size ${{ parameters['payload'] }} -topics ${{ parameters['topics'] }} -qos ${{ parameters['qos'] }} -dop $(clientDop) -waitFor $(subscriber.readyEndpoint) -quiet -panic
     displayName: 'Running test case'
     env:
       LOGANALYTICS_CUSTOMER_ID: $(logs.workspaceid)
@@ -57,7 +57,7 @@ jobs:
   steps:
   - checkout: none
   - script: |
-      $(benchmarkToolPath)/mqtt-benchmark -sub -broker $(brokerAddress) -runId $(runId) -caseId ${{ parameters['id'] }} -clients ${{ parameters['subscribers'] }} -duration $(test.duration) -qos ${{ parameters['qos'] }} -dop $(clientDop) -quiet -panic
+      $(benchmarkToolPath)/mqtt-benchmark -sub -broker $(brokerEndpoint) -runId $(runId) -caseId ${{ parameters['id'] }} -clients ${{ parameters['subscribers'] }} -duration $(test.duration) -qos ${{ parameters['qos'] }} -dop $(clientDop) -quiet -panic
     displayName: 'Running test case'
     env:
       LOGANALYTICS_CUSTOMER_ID: $(logs.workspaceid)
@@ -75,25 +75,11 @@ jobs:
   - "run_pub_${{ parameters['id'] }}"
   steps:
   - checkout: none
-
-  # AMD64 Cleanup
   - task: SSH@0
     displayName: Stop broker AMD64
     inputs:
-      sshEndpoint: iotedge-mqtt-perf-amd64-conn
+      sshEndpoint: ${{ variables.brokerSsh }} 
       runOptions: commands
       commands: |
         docker restart mqtt-broker
     continueOnError: true 
-    condition: eq(variables['arch'], 'amd64')
-
-  # ARM32 Cleanup
-  - task: SSH@0
-    displayName: Stop broker ARM32
-    inputs:
-      sshEndpoint: iotedge-mqtt-perf-arm32v7-conn
-      runOptions: commands
-      commands: |
-        docker restart mqtt-broker
-    continueOnError: true 
-    condition: eq(variables['arch'], 'arm32v7')

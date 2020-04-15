@@ -10,8 +10,8 @@
 # - with 'mqtt-perf-tests-pub' demand - for publisher node
 # - with 'mqtt-perf-tests-sub' demand - for subscriber node
 # And two SSH service connections for AMD64 and ARM32 test hosts:
-#  - $(broker.sshconnection.amd64)
-#  - $(broker.sshconnection.arm32v7)
+#  - iotedge-mqtt-perf-arm32v7-conn
+#  - iotedge-mqtt-perf-amd64-conn
 # to manage and run 'mqttd' docker container there.
 
 trigger: none
@@ -44,10 +44,10 @@ stages:
 ################################################################################	
   variables:
     arch: arm32v7
-    runId: $(Build.BuildId)-arm32v7
+    runId: $(Build.BuildNumber)-arm32v7
     brokerImageName: $(broker.image.arm32v7)
-    brokerAddress: $(broker.address.arm32v7)
-    brokerSsh: $(broker.sshconnection.arm32v7)
+    brokerEndpoint: $(broker.endpoint.arm32v7)
+    brokerSsh: iotedge-mqtt-perf-arm32v7-conn
     clientDop: 4 # the number of max threads that can execute mqtt-benchmark tool code simultaneously
 
   pool: $(pool.name)
@@ -60,10 +60,10 @@ stages:
 ################################################################################	
   variables:
     arch: amd64
-    runId: $(Build.BuildId)-amd64
+    runId: $(Build.BuildNumber)-amd64
     brokerImageName: $(broker.image.amd64)
-    brokerAddress: $(broker.address.amd64)
-    brokerSsh: $(broker.sshconnection.amd64)
+    brokerEndpoint: $(broker.endpoint.amd64)
+    brokerSsh: iotedge-mqtt-perf-amd64-conn
     clientDop: 4 # the number of max threads that can execute mqtt-benchmark tool code simultaneously
 
   pool: $(pool.name)
@@ -76,10 +76,10 @@ stages:
 ################################################################################	
   variables:
     arch: amd64
-    runId: $(Build.BuildId)-mosquitto
+    runId: $(Build.BuildNumber)-mosquitto
     brokerImageName: $(broker.image.mosquitto)
-    brokerAddress: $(broker.address.amd64)
-    brokerSsh: $(broker.sshconnection.amd64)
+    brokerEndpoint: $(broker.endpoint.amd64)
+    brokerSsh: iotedge-mqtt-perf-amd64-conn
     clientDop: 4 # the number of max threads that can execute mqtt-benchmark tool code simultaneously
 
   pool: $(pool.name)
