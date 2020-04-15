@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::thread;
+use std::{panic, thread};
 
 use crossbeam_channel::{Receiver, Sender};
 use mqtt3::proto;
@@ -57,12 +57,21 @@ where
             })
             .expect("failed to spawn broker thread");
 
-        // wait for the thread to exit
-        rx.await.map_err(Error::ThreadShutdown)?;
+        // Wait for the thread to exit
+        // This rx will complete for two reasons:
+        //   1. The thread gracefully shutdown
+        //   2. The thread panicked and the tx was dropped.
+        //
+        // We don't really care about the error here ---
+        //   we just want to join the thread handle to get the result
+        //   or deal with the panic
+        rx.await.map(drop).unwrap_or_else(|_e| ());
 
-        // unwrap the JoinHandle so that we propagate any panics
-        let state = handle.join().unwrap();
-        Ok(state)
+        // propagate any panics onto the event loop thread
+        match handle.join() {
+            Ok(state) => Ok(state),
+            Err(e) => panic::resume_unwind(e),
+        }
     }
 
     fn broker_loop(mut self) -> BrokerState {
