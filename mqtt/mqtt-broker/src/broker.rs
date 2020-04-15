@@ -45,13 +45,30 @@ where
     }
 
     pub async fn run(self) -> Result<BrokerState, Error> {
+        // There is a dance here between a `oneshot` and a thread join.
+        //
+        // This `run` function needs to do two things:
+        //   1. Be `async` so that it can be joined with the other tasks in the `server`
+        //   2. Handle and propagate any panics on the thread to the event loop thread
+        //      so that the process exits/crashes properly. We don't want this thread
+        //      to die and have the process still running, not able to do anything.
+        //
+        // The `oneshot` is used to make this function `async`. It is used by the thread
+        // to signal that it has exited, so that the `run` function will return.
+        // The nice thing about a `oneshot` is that the receiver will complete if the sender
+        // is dropped. This allows a panic in the broker loop to gracefully signal the event
+        // loop that it has exited.
+        //
+        // The `handle.join()` is used to propagate the panic from the broker thread
+        // to the thread that is handling the async task.
+
         let (tx, rx) = tokio::sync::oneshot::channel::<()>();
         let handle = thread::Builder::new()
             .name("mqtt::broker".to_string())
             .spawn(|| {
                 let state = self.broker_loop();
                 if let Err(_e) = tx.send(()) {
-                    error!("failed to send broker state to event loop on shutdown");
+                    error!("failed to signal the event loop that the broker thread is exiting");
                 }
                 state
             })
@@ -59,7 +76,7 @@ where
 
         // Wait for the thread to exit
         // This rx will complete for two reasons:
-        //   1. The thread gracefully shutdown
+        //   1. The thread gracefully shutdown and sent on the tx.
         //   2. The thread panicked and the tx was dropped.
         //
         // We don't really care about the error here ---

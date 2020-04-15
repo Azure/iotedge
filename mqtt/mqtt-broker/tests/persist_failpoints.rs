@@ -73,6 +73,13 @@ fn test_persistor(count: usize, ops: Vec<Op>) {
     assert!(state.is_some());
 }
 
+// This test is meant to verify that the failpoints are actually enabled.
+// This is to prevent the case where someone disables the `fail/failpoints` feature
+// in the `Config.yaml` and unknowingly turns off the failpoints. This would render
+// the proptest tests useless because they would not exercise the failpoints.
+//
+// This smoke test ensures that the failpoints are actually enabled and should
+// catch this mistake.
 #[test]
 fn test_failpoints_smoketest() {
     let scenario = FailScenario::setup();

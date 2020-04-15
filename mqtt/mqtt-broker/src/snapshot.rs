@@ -72,7 +72,9 @@ where
             .spawn(|| {
                 let persist = self.snapshotter_loop();
                 if let Err(_e) = tx.send(()) {
-                    error!("failed to send persist to event loop on shutdown");
+                    error!(
+                        "failed to signal the event loop that the snapshotter thread is exiting"
+                    );
                 }
                 persist
             })
