@@ -78,7 +78,7 @@ jobs:
 
   # AMD64 Cleanup
   - task: SSH@0
-    displayName: Stop broker AMD64
+    displayName: Restart broker AMD64
     inputs:
       sshEndpoint: iotedge-mqtt-perf-amd64-conn
       runOptions: commands
@@ -89,7 +89,7 @@ jobs:
 
   # ARM32 Cleanup
   - task: SSH@0
-    displayName: Stop broker ARM32
+    displayName: Restart broker ARM32
     inputs:
       sshEndpoint: iotedge-mqtt-perf-arm32v7-conn
       runOptions: commands
