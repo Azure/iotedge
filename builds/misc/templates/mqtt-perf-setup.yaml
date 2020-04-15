@@ -12,21 +12,14 @@ jobs:
 
     # get latest docker image name from mqtt images pipeline, 
     # if no image specified in the pipeline variables
-    - task: DownloadBuildArtifacts@0
+    - download: images
+      artifact: image$(arch)
       displayName: Get MQTT broker image info
-      inputs:
-        buildType: specific
-        project: $(resources.pipeline.images.projectID)
-        pipeline: $(resources.pipeline.images.pipelineName)
-        buildVersionToDownload: specific
-        buildId: $(resources.pipeline.images.runID)
-        downloadType: single
-        artifactName: image$(arch)
       condition: eq(variables['brokerImageName'], '')
 
     - script: |
-        ls -ap $(System.ArtifactsDirectory)
-        brokerImageName=$(cat $(System.ArtifactsDirectory)/image$(arch)/image$(arch))
+        ls -ap $(Pipeline.Workspace)/images/
+        brokerImageName=$(cat $(Pipeline.Workspace)/images/image$(arch)/image$(arch))
       displayName: 'Set broker image name variable'
       condition: eq(variables['brokerImageName'], '')
 
