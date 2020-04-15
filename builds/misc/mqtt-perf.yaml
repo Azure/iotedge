@@ -47,7 +47,6 @@ stages:
     runId: $(Build.BuildNumber)-arm32v7
     brokerImageName: $(broker.image.arm32v7)
     brokerEndpoint: $(broker.endpoint.arm32v7)
-    brokerSsh: iotedge-mqtt-perf-arm32v7-conn
     clientDop: 4 # the number of max threads that can execute mqtt-benchmark tool code simultaneously
 
   pool: $(pool.name)
@@ -63,7 +62,6 @@ stages:
     runId: $(Build.BuildNumber)-amd64
     brokerImageName: $(broker.image.amd64)
     brokerEndpoint: $(broker.endpoint.amd64)
-    brokerSsh: iotedge-mqtt-perf-amd64-conn
     clientDop: 4 # the number of max threads that can execute mqtt-benchmark tool code simultaneously
 
   pool: $(pool.name)
@@ -79,7 +77,6 @@ stages:
     runId: $(Build.BuildNumber)-mosquitto
     brokerImageName: $(broker.image.mosquitto)
     brokerEndpoint: $(broker.endpoint.amd64)
-    brokerSsh: iotedge-mqtt-perf-amd64-conn
     clientDop: 4 # the number of max threads that can execute mqtt-benchmark tool code simultaneously
 
   pool: $(pool.name)

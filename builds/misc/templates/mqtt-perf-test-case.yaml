@@ -75,11 +75,25 @@ jobs:
   - "run_pub_${{ parameters['id'] }}"
   steps:
   - checkout: none
+
+  # AMD64 Cleanup
   - task: SSH@0
     displayName: Stop broker AMD64
     inputs:
-      sshEndpoint: ${{ variables.brokerSsh }} 
+      sshEndpoint: iotedge-mqtt-perf-amd64-conn
       runOptions: commands
       commands: |
         docker restart mqtt-broker
     continueOnError: true 
+    condition: eq(variables['arch'], 'amd64')
+
+  # ARM32 Cleanup
+  - task: SSH@0
+    displayName: Stop broker ARM32
+    inputs:
+      sshEndpoint: iotedge-mqtt-perf-arm32v7-conn
+      runOptions: commands
+      commands: |
+        docker restart mqtt-broker
+    continueOnError: true 
+    condition: eq(variables['arch'], 'arm32v7')
