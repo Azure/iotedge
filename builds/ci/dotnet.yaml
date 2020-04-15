@@ -32,7 +32,6 @@ jobs:
             IotHubConnStr2,
             IotHubMqttHeadCert,
             AKSClusterKubeconfig
-Versions
       - task: UseDotNet@2
         displayName: Install .NET Core sdk
         inputs:
@@ -75,11 +74,11 @@ Versions
 #        displayName: Install Kubernetes cluster manager (kind)
 #        condition: succeededOrFailed()
 #     - script: |
-#          kind create cluster --name "edgy" --wait 5m         
+#          kind create cluster --name "edgy" --wait 5m
+#          KUBECONFIG=$(kind get kubeconfig-path --name "edgy")
 #          echo "##vso[task.setvariable variable=KUBECONFIG;]$KUBECONFIG"
-#         echo "##vso[task.setvariable variable=USE_EXISTING_KUBERNETES_CLUSTER;]true"
+#          echo "##vso[task.setvariable variable=USE_EXISTING_KUBERNETES_CLUSTER;]true"
 #        displayName: Create Kubernetes cluster (edgy)
-#        displayName: Set up AKS cluster config
 #        condition: succeededOrFailed()
       - script: |
           echo "##vso[task.setvariable variable=KUBECONFIG;]$KUBECONFIG"
