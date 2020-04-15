@@ -26,7 +26,7 @@ jobs:
     - task: SSH@0
       displayName: Cleanup running containers AMD64
       inputs:
-        sshEndpoint: ${{ variables.brokerSsh }} 
+        sshEndpoint: ${{ variables['brokerSsh'] }} 
         runOptions: commands        
         commands: |
           docker stop mqtt-broker ; docker system prune -a
@@ -36,7 +36,7 @@ jobs:
     - task: SSH@0
       displayName: Install and Run docker image AMD64
       inputs:
-        sshEndpoint: ${{ variables.brokerSsh }} 
+        sshEndpoint: ${{ variables['brokerSsh'] }} 
         runOptions: commands
         commands: |
           echo "$(registry.password)" | docker login $(registry.address) --username $(registry.user) --password-stdin 2>/dev/null
