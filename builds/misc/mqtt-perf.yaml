@@ -16,6 +16,13 @@
 
 trigger: none
 pr: none
+schedules:
+  - cron: "0 23 * * *"
+    displayName: Daily at 11 PM
+    branches:
+      include:
+      - master
+    always: true
 
 # github repo for our fork of mqtt-benchmark tool.
 resources:
