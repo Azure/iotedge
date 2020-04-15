@@ -39,34 +39,17 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string trackingId = Guid.NewGuid().ToString();
             TestInfo testInfo = this.InitTestInfo(5, 1000, true);
 
-            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, trcImage, loadGenImage, testInfo);
+            string trcIPAddress = Dns.GetHostEntry(TrcModuleName).AddressList[0].ToString();
+            string trcUrl = $"http://{trcIPAddress}:5001";
+
+            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, trcImage, loadGenImage, trcUrl, testInfo);
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
 
-            Action<EdgeConfigBuilder> addRelayerConfig = new Action<EdgeConfigBuilder>(
-                builder =>
-                {
-                    builder.AddModule(RelayerModuleName, relayerImage)
-                        .WithEnvironment(new[]
-                        {
-                            ("receiveOnly", "true"),
-                            ("uniqueResultsExpected", loadGenTestStatus.ResultCount.ToString())
-                        });
-                });
-
+            Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus, trcUrl);
             deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token, false);
             await this.PollUntilFinishedAsync(RelayerModuleName, token);
-
-            HttpClient client = new HttpClient();
-            HttpResponseMessage response = await client.GetAsync("http://localhost:5001/api/report");
-            var jsonstring = await response.Content.ReadAsStringAsync();
-            bool isPassed = (bool)JArray.Parse(jsonstring)[0]["IsPassed"];
-            if (!isPassed)
-            {
-                Log.Verbose("Test Result Coordinator response: {Response}", jsonstring);
-            }
-
-            Assert.IsTrue(isPassed);
+            await this.ValidateResultsAsync();
         }
 
         [Test]
@@ -79,7 +62,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string trackingId = Guid.NewGuid().ToString();
             TestInfo testInfo = this.InitTestInfo(5, 20);
 
-            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, trcImage, loadGenImage, testInfo);
+            string trcIPAddress = Dns.GetHostEntry(TrcModuleName).AddressList[0].ToString();
+            string trcUrl = $"http://{trcIPAddress}:5001";
+
+            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, trcImage, loadGenImage, trcUrl, testInfo);
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
@@ -88,20 +74,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Log.Information($"Waiting for {testInfo.TtlThreshold} seconds for TTL's to expire");
             await Task.Delay(testInfo.TtlThreshold * 1000);
 
-            Action<EdgeConfigBuilder> addRelayerConfig = new Action<EdgeConfigBuilder>(
-                builder =>
-                {
-                    builder.AddModule(RelayerModuleName, relayerImage)
-                        .WithEnvironment(new[]
-                        {
-                            ("receiveOnly", "true"),
-                            ("uniqueResultsExpected", loadGenTestStatus.ResultCount.ToString())
-                        });
-                });
-
+            Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus, trcUrl);
             deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token, false);
             await this.PollUntilFinishedAsync(RelayerModuleName, token);
+            await this.ValidateResultsAsync();
+        }
 
+        private async Task ValidateResultsAsync()
+        {
             HttpClient client = new HttpClient();
             HttpResponseMessage response = await client.GetAsync("http://localhost:5001/api/report");
             var jsonstring = await response.Content.ReadAsStringAsync();
@@ -114,7 +94,22 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Assert.IsTrue(isPassed);
         }
 
-        private Action<EdgeConfigBuilder> BuildAddInitialConfig(string trackingId, string trcImage, string loadGenImage, TestInfo testInfo)
+        private Action<EdgeConfigBuilder> BuildAddRelayerConfig(string relayerImage, PriorityQueueTestStatus loadGenTestStatus, string trcUrl)
+        {
+            return new Action<EdgeConfigBuilder>(
+                builder =>
+                {
+                    builder.AddModule(RelayerModuleName, relayerImage)
+                        .WithEnvironment(new[]
+                        {
+                            ("receiveOnly", "true"),
+                            ("uniqueResultsExpected", loadGenTestStatus.ResultCount.ToString()),
+                            ("testResultCoordinatorUrl", trcUrl)
+                        });
+                });
+        }
+
+        private Action<EdgeConfigBuilder> BuildAddInitialConfig(string trackingId, string trcImage, string loadGenImage, string trcUrl, TestInfo testInfo)
         {
             return new Action<EdgeConfigBuilder>(
                 builder =>
@@ -158,7 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     builder.AddModule(LoadGenModuleName, loadGenImage)
                         .WithEnvironment(new[]
                         {
-                            ("testResultCoordinatorUrl", TrcUrl),
+                            ("testResultCoordinatorUrl", trcUrl),
                             ("senderType", "PriorityMessageSender"),
                             ("trackingId", trackingId),
                             ("testDuration", LoadGenTestDuration),
