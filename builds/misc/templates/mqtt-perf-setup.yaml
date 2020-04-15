@@ -30,7 +30,7 @@ jobs:
         sshEndpoint: iotedge-mqtt-perf-amd64-conn
         runOptions: commands        
         commands: |
-          docker stop mqtt-broker || docker rm mqtt-broker
+          docker stop mqtt-broker ; docker rm mqtt-broker
       # ignore cleanup errors if no containers running
       continueOnError: true 
       condition: eq(variables['arch'], 'amd64')
@@ -54,7 +54,7 @@ jobs:
         sshEndpoint: iotedge-mqtt-perf-arm32v7-conn
         runOptions: commands        
         commands: |
-          docker stop mqtt-broker || docker rm mqtt-broker
+          docker stop mqtt-broker ; docker rm mqtt-broker
       # ignore cleanup errors if no containers running
       continueOnError: true 
       condition: eq(variables['arch'], 'arm32v7')
