@@ -25,8 +25,8 @@ jobs:
       condition: eq(variables['brokerImageName'], '')
 
     - script: |
-        ll $(System.ArtifactsDirectory)
-        brokerImageName=$(cat $(System.ArtifactsDirectory)/images/image$(arch)/image$(arch))
+        ls -ap $(System.ArtifactsDirectory)
+        brokerImageName=$(cat $(System.ArtifactsDirectory)/image$(arch)/image$(arch))
       displayName: 'Set broker image name variable'
       condition: eq(variables['brokerImageName'], '')
 
