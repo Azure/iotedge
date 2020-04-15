@@ -31,11 +31,11 @@ jobs:
           buildContext: mqtt/.
           tags: $(Build.BuildId)-$(os)-$(arch)
       
-      - script: echo $(registry.address)/$(imageName):$(Build.BuildId)-$(os)-$(arch) > image$(arch)
+      - script: echo $(registry.address)/$(imageName):$(Build.BuildId)-$(os)-$(arch) > artifactInfo.txt
         displayName: Create image name
       
-      - publish: image$(arch)
-        artifact: image$(arch)
+      - publish: artifactInfo.txt
+        artifact: image-$(arch)
         displayName: Publish image name
 
 ################################################################################
@@ -67,9 +67,9 @@ jobs:
           buildContext: mqtt/.
           tags: $(Build.BuildId)-$(os)-$(arch)
 
-      - script: echo $(registry.address)/$(imageName):$(Build.BuildId)-$(os)-$(arch) > image$(arch)
+      - script: echo $(registry.address)/$(imageName):$(Build.BuildId)-$(os)-$(arch) > artifactInfo.txt
         displayName: Create image name
       
-      - publish: image$(arch)
-        artifact: image$(arch)
+      - publish: artifactInfo.txt
+        artifact: image-$(arch)
         displayName: Publish image name
