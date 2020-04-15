@@ -31,7 +31,7 @@ jobs:
           buildContext: mqtt/.
           tags: $(Build.BuildId)-$(os)-$(arch)
       
-      - script: echo $(imageName):$(Build.BuildId)-$(os)-$(arch) > image$(arch)
+      - script: echo $(registry.address)/$(imageName):$(Build.BuildId)-$(os)-$(arch) > image$(arch)
         displayName: Create image name
       
       - publish: image$(arch)
@@ -67,7 +67,7 @@ jobs:
           buildContext: mqtt/.
           tags: $(Build.BuildId)-$(os)-$(arch)
 
-      - script: echo $(imageName):$(Build.BuildId)-$(os)-$(arch) > image$(arch)
+      - script: echo $(registry.address)/$(imageName):$(Build.BuildId)-$(os)-$(arch) > image$(arch)
         displayName: Create image name
       
       - publish: image$(arch)
