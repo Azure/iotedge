@@ -30,7 +30,7 @@ jobs:
         sshEndpoint: iotedge-mqtt-perf-amd64-conn
         runOptions: commands        
         commands: |
-          docker stop mqtt-broker ; docker rm mqtt-broker
+          docker stop mqtt-broker ; docker system prune -a
       # ignore cleanup errors if no containers running
       continueOnError: true 
       condition: eq(variables['arch'], 'amd64')
@@ -70,7 +70,6 @@ jobs:
           docker run -d -p 1883:1883 --name mqtt-broker $(brokerImageName)
           docker logout
       condition: eq(variables['arch'], 'arm32v7')
-
       
 - job: setup_pub
   pool:
