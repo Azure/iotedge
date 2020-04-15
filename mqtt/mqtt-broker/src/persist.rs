@@ -22,8 +22,7 @@ use tracing::{debug, info, span, Level};
 
 use crate::session::SessionState;
 use crate::subscription::Subscription;
-use crate::BrokerState;
-use crate::ClientId;
+use crate::{AuthId, BrokerState, ClientId};
 
 /// sets the number of past states to save - 2 means we save the current and the pervious
 const STATE_DEFAULT_PREVIOUS_COUNT: usize = 2;
@@ -165,7 +164,7 @@ impl From<BrokerState> for ConsolidatedState {
         let sessions = sessions
             .into_iter()
             .map(|session| {
-                let (client_id, subscriptions, waiting_to_be_sent) = session.into_parts();
+                let (client_id, auth_id, subscriptions, waiting_to_be_sent) = session.into_parts();
 
                 #[allow(clippy::redundant_closure)] // removing closure leads to borrow error
                 let waiting_to_be_sent = waiting_to_be_sent
@@ -175,6 +174,7 @@ impl From<BrokerState> for ConsolidatedState {
 
                 ConsolidatedSession {
                     client_id,
+                    auth_id,
                     subscriptions,
                     waiting_to_be_sent,
                 }
@@ -230,6 +230,7 @@ impl From<ConsolidatedState> for BrokerState {
                     .collect();
                 SessionState::from_parts(
                     session.client_id,
+                    session.auth_id,
                     session.subscriptions,
                     waiting_to_be_sent,
                 )
@@ -252,6 +253,7 @@ struct ConsolidatedState {
 #[derive(Deserialize, Serialize)]
 struct ConsolidatedSession {
     client_id: ClientId,
+    auth_id: AuthId,
     subscriptions: HashMap<String, Subscription>,
     waiting_to_be_sent: Vec<SimplifiedPublication>,
 }

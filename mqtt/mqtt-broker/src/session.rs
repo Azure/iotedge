@@ -15,20 +15,17 @@ const MAX_INFLIGHT_MESSAGES: usize = 16;
 #[derive(Debug)]
 pub struct ConnectedSession {
     state: SessionState,
-    auth_id: AuthId,
     will: Option<proto::Publication>,
     handle: ConnectionHandle,
 }
 
 impl ConnectedSession {
     fn new(
-        auth_id: AuthId,
         state: SessionState,
         will: Option<proto::Publication>,
         handle: ConnectionHandle,
     ) -> Self {
         Self {
-            auth_id,
             state,
             will,
             handle,
@@ -40,7 +37,7 @@ impl ConnectedSession {
     }
 
     pub fn auth_id(&self) -> &AuthId {
-        &self.auth_id
+        &self.state.auth_id
     }
 
     pub fn handle(&self) -> &ConnectionHandle {
@@ -55,15 +52,8 @@ impl ConnectedSession {
         self.will
     }
 
-    pub fn into_parts(
-        self,
-    ) -> (
-        AuthId,
-        SessionState,
-        Option<proto::Publication>,
-        ConnectionHandle,
-    ) {
-        (self.auth_id, self.state, self.will, self.handle)
+    pub fn into_parts(self) -> (SessionState, Option<proto::Publication>, ConnectionHandle) {
+        (self.state, self.will, self.handle)
     }
 
     pub fn handle_publish(
@@ -161,6 +151,10 @@ impl OfflineSession {
 
     pub fn client_id(&self) -> &ClientId {
         &self.state.client_id
+    }
+
+    pub fn auth_id(&self) -> &AuthId {
+        &self.state.auth_id
     }
 
     pub fn state(&self) -> &SessionState {
@@ -279,6 +273,7 @@ impl DisconnectingSession {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SessionState {
     client_id: ClientId,
+    auth_id: AuthId,
     subscriptions: HashMap<String, Subscription>,
     packet_identifiers: PacketIdentifiers,
     packet_identifiers_qos0: PacketIdentifiers,
@@ -295,9 +290,10 @@ pub struct SessionState {
 }
 
 impl SessionState {
-    pub fn new(client_id: ClientId) -> Self {
+    pub fn new(client_id: ClientId, auth_id: AuthId) -> Self {
         Self {
             client_id,
+            auth_id,
             subscriptions: HashMap::new(),
             packet_identifiers: PacketIdentifiers::default(),
             packet_identifiers_qos0: PacketIdentifiers::default(),
@@ -312,6 +308,15 @@ impl SessionState {
 
     pub fn client_id(&self) -> &ClientId {
         &self.client_id
+    }
+
+    pub fn auth_id(&self) -> &AuthId {
+        &self.auth_id
+    }
+
+    pub fn with_auth_id(mut self, auth_id: AuthId) -> Self {
+        self.auth_id = auth_id;
+        self
     }
 
     pub fn update_subscription(
@@ -529,19 +534,27 @@ impl SessionState {
         self,
     ) -> (
         ClientId,
+        AuthId,
         HashMap<String, Subscription>,
         VecDeque<proto::Publication>,
     ) {
-        (self.client_id, self.subscriptions, self.waiting_to_be_sent)
+        (
+            self.client_id,
+            self.auth_id,
+            self.subscriptions,
+            self.waiting_to_be_sent,
+        )
     }
 
     pub fn from_parts(
         client_id: ClientId,
+        auth_id: AuthId,
         subscriptions: HashMap<String, Subscription>,
         waiting_to_be_sent: VecDeque<proto::Publication>,
     ) -> Self {
         Self {
             client_id,
+            auth_id,
             subscriptions,
             packet_identifiers: PacketIdentifiers::default(),
             packet_identifiers_qos0: PacketIdentifiers::default(),
@@ -565,15 +578,15 @@ pub enum Session {
 
 impl Session {
     pub fn new_transient(auth_id: AuthId, connreq: ConnReq) -> Self {
-        let state = SessionState::new(connreq.client_id().clone());
+        let state = SessionState::new(connreq.client_id().clone(), auth_id);
         let (connect, handle) = connreq.into_parts();
-        let connected = ConnectedSession::new(auth_id, state, connect.will, handle);
+        let connected = ConnectedSession::new(state, connect.will, handle);
         Self::Transient(connected)
     }
 
-    pub fn new_persistent(auth_id: AuthId, connreq: ConnReq, state: SessionState) -> Self {
+    pub fn new_persistent(connreq: ConnReq, state: SessionState) -> Self {
         let (connect, handle) = connreq.into_parts();
-        let connected = ConnectedSession::new(auth_id, state, connect.will, handle);
+        let connected = ConnectedSession::new(state, connect.will, handle);
         Self::Persistent(connected)
     }
 
@@ -601,12 +614,12 @@ impl Session {
         }
     }
 
-    pub fn auth_id(&self) -> Result<&AuthId, Error> {
+    pub fn auth_id(&self) -> &AuthId {
         match self {
-            Self::Transient(connected) => Ok(connected.auth_id()),
-            Self::Persistent(connected) => Ok(connected.auth_id()),
-            Self::Offline(_offline) => Err(Error::SessionOffline),
-            Self::Disconnecting(disconnecting) => Ok(disconnecting.auth_id()),
+            Self::Transient(connected) => connected.auth_id(),
+            Self::Persistent(connected) => connected.auth_id(),
+            Self::Offline(offline) => offline.auth_id(),
+            Self::Disconnecting(disconnecting) => disconnecting.auth_id(),
         }
     }
 
@@ -899,7 +912,8 @@ pub(crate) mod tests {
 
     prop_compose! {
         pub fn arb_session_state()(
-            client_id in arb_clientid(),
+            client_id in arb_client_id(),
+            auth_id in arb_auth_id(),
             subscriptions in hash_map(arb_topic(), arb_subscription(), 0..10),
             packet_identifiers in arb_packet_identifiers(),
             packet_identifiers_qos0 in arb_packet_identifiers(),
@@ -911,6 +925,7 @@ pub(crate) mod tests {
         ) -> SessionState {
             SessionState {
                 client_id,
+                auth_id,
                 subscriptions,
                 packet_identifiers,
                 packet_identifiers_qos0,
@@ -1069,7 +1084,8 @@ pub(crate) mod tests {
     fn test_offline_subscribe_to() {
         let id = "id1".to_string();
         let client_id = ClientId::from(id);
-        let mut session = Session::new_offline(SessionState::new(client_id));
+        let auth_id = AuthId::from("client-id1");
+        let mut session = Session::new_offline(SessionState::new(client_id, auth_id));
 
         let subscribe_to = proto::SubscribeTo {
             topic_filter: "topic/new".to_string(),
@@ -1083,7 +1099,8 @@ pub(crate) mod tests {
     fn test_offline_unsubscribe() {
         let id = "id1".to_string();
         let client_id = ClientId::from(id);
-        let mut session = Session::new_offline(SessionState::new(client_id));
+        let auth_id = AuthId::from("client-id1");
+        let mut session = Session::new_offline(SessionState::new(client_id, auth_id));
 
         let unsubscribe = proto::Unsubscribe {
             packet_identifier: proto::PacketIdentifier::new(24).unwrap(),

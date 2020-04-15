@@ -200,8 +200,12 @@ pub(crate) mod tests {
 
     use crate::subscription::tests::arb_qos;
 
-    pub fn arb_clientid() -> impl Strategy<Value = ClientId> {
+    pub fn arb_client_id() -> impl Strategy<Value = ClientId> {
         "[a-zA-Z0-9]{1,23}".prop_map(|s| ClientId(Arc::new(s)))
+    }
+
+    pub fn arb_auth_id() -> impl Strategy<Value = AuthId> {
+        "\\PC*".prop_map(|s| s.into())
     }
 
     pub fn arb_packet_identifier() -> impl Strategy<Value = proto::PacketIdentifier> {

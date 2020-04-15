@@ -451,7 +451,7 @@ where
     ) -> Result<(), Error> {
         let operation = Operation::new_publish(publish.clone());
         if let Some(session) = self.sessions.get_mut(&client_id) {
-            let activity = Activity::new(session.auth_id()?.clone(), client_id.clone(), operation);
+            let activity = Activity::new(session.auth_id().clone(), client_id.clone(), operation);
             match self.authorizer.authorize(activity).await {
                 Ok(true) => {
                     debug!("client {} successfully authorized", client_id);
@@ -615,7 +615,8 @@ where
                         let (state, events) = offline
                             .into_online()
                             .map_err(|_| SessionError::PacketIdentifiersExhausted)?;
-                        let new_session = Session::new_persistent(auth_id, connreq, state);
+                        let state = state.with_auth_id(auth_id);
+                        let new_session = Session::new_persistent(connreq, state);
                         (new_session, events, true)
                     } else {
                         info!("cleaning offline session for {}", client_id);
@@ -641,8 +642,8 @@ where
                     connreq.connect().client_id
                 {
                     info!("creating new persistent session for {}", client_id);
-                    let state = SessionState::new(client_id.clone());
-                    Session::new_persistent(auth_id, connreq, state)
+                    let state = SessionState::new(client_id.clone(), auth_id);
+                    Session::new_persistent(connreq, state)
                 } else {
                     info!("creating new transient session for {}", client_id);
                     Session::new_transient(auth_id, connreq)
@@ -690,15 +691,21 @@ where
             );
 
             let client_id = connreq.client_id().clone();
-            let (auth_id_, state, _will, handle) = current_connected.into_parts();
-            let old_session = Session::new_disconnecting(auth_id_, client_id.clone(), None, handle);
+            let (state, _will, handle) = current_connected.into_parts();
+            let old_session = Session::new_disconnecting(
+                state.auth_id().clone(),
+                client_id.clone(),
+                None,
+                handle,
+            );
             let (new_session, session_present) =
                 if let proto::ClientId::IdWithExistingSession(_) = connreq.connect().client_id {
                     debug!(
                         "moving persistent session to this connection for {}",
                         client_id
                     );
-                    let new_session = Session::new_persistent(auth_id, connreq, state);
+                    let state = state.with_auth_id(auth_id);
+                    let new_session = Session::new_persistent(connreq, state);
                     (new_session, true)
                 } else {
                     info!("cleaning session for {}", client_id);
@@ -720,9 +727,9 @@ where
         match self.sessions.remove(client_id) {
             Some(Session::Transient(connected)) => {
                 info!("closing transient session for {}", client_id);
-                let (auth_id, _state, will, handle) = connected.into_parts();
+                let (state, will, handle) = connected.into_parts();
                 Some(Session::new_disconnecting(
-                    auth_id,
+                    state.auth_id().clone(),
                     client_id.clone(),
                     will,
                     handle,
@@ -734,7 +741,8 @@ where
                 // to be sent on the connection
 
                 info!("moving persistent session to offline for {}", client_id);
-                let (auth_id, state, will, handle) = connected.into_parts();
+                let (state, will, handle) = connected.into_parts();
+                let auth_id = state.auth_id().clone();
                 let new_session = Session::new_offline(state);
                 self.sessions.insert(client_id.clone(), new_session);
                 Some(Session::new_disconnecting(
@@ -807,7 +815,7 @@ async fn subscribe<Z>(
 where
     Z: Authorizer,
 {
-    let auth_id = session.auth_id()?.clone();
+    let auth_id = session.auth_id().clone();
     let client_id = session.client_id().clone();
 
     let mut subscriptions = Vec::with_capacity(subscribe.subscribe_to.len());
@@ -870,13 +878,15 @@ async fn publish_to<Z>(
 where
     Z: Authorizer,
 {
+    info!("publish_to:{}", session.client_id());
     let operation = Operation::new_receive(publication.clone());
     let client_id = session.client_id().clone();
-    let auth_id = session.auth_id()?;
+    let auth_id = session.auth_id();
     let activity = Activity::new(auth_id.clone(), client_id.clone(), operation);
 
     match authorizer.authorize(activity).await {
         Ok(true) => {
+            info!("authorized");
             if let Some(event) = session.publish_to(&publication)? {
                 session.send(event).await?
             }

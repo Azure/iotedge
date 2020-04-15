@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 mod authentication;
 mod authorization;
 
@@ -7,7 +9,7 @@ pub use authentication::{
 pub use authorization::{Activity, AuthorizeError, Authorizer, DefaultAuthorizer, Operation};
 
 /// Authenticated MQTT client identity.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum AuthId {
     /// Identity for anonymous client.
     Anonymous,
