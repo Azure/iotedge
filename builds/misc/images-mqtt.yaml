@@ -27,7 +27,7 @@ jobs:
           repository: $(imageName)
           command: buildAndPush
           containerRegistry: iotedge-edgebuilds-acr
-          Dockerfile: mqtt/docker/linux/amd64/Dockerfile
+          Dockerfile: mqtt/docker/$(os)/$(arch)/Dockerfile
           buildContext: mqtt/.
           tags: $(Build.BuildId)-$(os)-$(arch)
       
@@ -58,12 +58,12 @@ jobs:
           containerRegistry: iotedge-edgebuilds-acr
 
       - task: Docker@2
-        displayName: Build amd64 image
+        displayName: Build arm32v7 image
         inputs:
           repository: $(imageName)
           command: buildAndPush
           containerRegistry: iotedge-edgebuilds-acr
-          Dockerfile: mqtt/docker/linux/amd64/Dockerfile
+          Dockerfile: mqtt/docker/$(os)/$(arch)/Dockerfile
           buildContext: mqtt/.
           tags: $(Build.BuildId)-$(os)-$(arch)
 
