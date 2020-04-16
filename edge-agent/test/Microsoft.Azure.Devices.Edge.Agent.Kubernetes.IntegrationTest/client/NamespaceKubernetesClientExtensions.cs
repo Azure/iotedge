@@ -20,9 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
             await client.Kubernetes.CreateNamespaceAsync(@namespace);
         }
 
-        public static async Task DeleteNamespaceAsync(this KubernetesClient client)
-        {
-            await client.Kubernetes.DeleteNamespaceAsync(@namespace);
-        }
+        public static async Task DeleteNamespaceAsync(this KubernetesClient client, string deviceNamespace) => await client.Kubernetes.DeleteNamespaceAsync(deviceNamespace);
     }
 }

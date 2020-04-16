@@ -37,11 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
 
         public async Task InitializeAsync() => await this.client.AddNamespaceAsync();
 
-        public Task DisposeAsync()
-        {
-            await this.client.DeleteNamespaceAsync();
-            Task.CompletedTask;
-        }
+        public async Task DisposeAsync() => await this.client.DeleteNamespaceAsync(this.client.DeviceNamespace);
 
         [Fact]
         public async Task CheckIfCreateDeploymentIsSuccessfulWithNoResources()
