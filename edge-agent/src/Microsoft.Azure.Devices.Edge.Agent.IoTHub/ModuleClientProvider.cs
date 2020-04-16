@@ -153,10 +153,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 //     Events.RetryingDeviceClientConnection);
                 ISdkModuleClient moduleClient = null;
                 UpstreamProtocol protocol = UpstreamProtocol.Amqp;
-                while(moduleClient == null)
+                while (moduleClient == null)
                 {
                     (moduleClient, protocol) = await this.CreateSdkModuleClient(statusChangedHandler);
                 }
+
                 Events.DeviceClientCreated();
                 return (moduleClient, protocol);
             }
