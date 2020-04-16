@@ -30,6 +30,13 @@ jobs:
           Dockerfile: mqtt/docker/linux/amd64/Dockerfile
           buildContext: mqtt/.
           tags: $(Build.BuildId)-$(os)-$(arch)
+      
+      - script: echo $(registry.address)/$(imageName):$(Build.BuildId)-$(os)-$(arch) > artifactInfo.txt
+        displayName: Create image name
+      
+      - publish: artifactInfo.txt
+        artifact: image-$(arch)
+        displayName: Publish image name
 
 ################################################################################
   - job: linux_arm32
@@ -59,3 +66,10 @@ jobs:
           Dockerfile: mqtt/docker/linux/amd64/Dockerfile
           buildContext: mqtt/.
           tags: $(Build.BuildId)-$(os)-$(arch)
+
+      - script: echo $(registry.address)/$(imageName):$(Build.BuildId)-$(os)-$(arch) > artifactInfo.txt
+        displayName: Create image name
+      
+      - publish: artifactInfo.txt
+        artifact: image-$(arch)
+        displayName: Publish image name
