@@ -43,7 +43,7 @@ jobs:
         commands: |
           echo "$(registry.password)" | docker login $(registry.address) --username $(registry.user) --password-stdin 2>/dev/null
           docker pull $(brokerImageName)
-          docker run -d -p 1883:1883 --name mqtt-broker $(brokerImageName)
+          docker run -d --network=host --name=mqtt-broker $(brokerImageName)
           docker logout
       condition: eq(variables['arch'], 'amd64')
 
@@ -67,7 +67,7 @@ jobs:
         commands: |
           echo "$(registry.password)" | docker login $(registry.address) --username $(registry.user) --password-stdin 2>/dev/null
           docker pull $(brokerImageName)
-          docker run -d -p 1883:1883 --name mqtt-broker $(brokerImageName)
+          docker run -d --network=host --name=mqtt-broker $(brokerImageName)
           docker logout
       condition: eq(variables['arch'], 'arm32v7')
       
