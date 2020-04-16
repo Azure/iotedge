@@ -148,9 +148,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             try
             {
-                (ISdkModuleClient moduleClient, UpstreamProtocol protocol) = await ExecuteWithRetry(
-                    () => this.CreateSdkModuleClient(statusChangedHandler),
-                    Events.RetryingDeviceClientConnection);
+                // (ISdkModuleClient moduleClient, UpstreamProtocol protocol) = await ExecuteWithRetry(
+                //     () => this.CreateSdkModuleClient(statusChangedHandler),
+                //     Events.RetryingDeviceClientConnection);
+                ISdkModuleClient moduleClient = null;
+                UpstreamProtocol protocol = UpstreamProtocol.Amqp;
+                while(moduleClient == null)
+                {
+                    (moduleClient, protocol) = await this.CreateSdkModuleClient(statusChangedHandler);
+                }
                 Events.DeviceClientCreated();
                 return (moduleClient, protocol);
             }
