@@ -39,14 +39,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string trackingId = Guid.NewGuid().ToString();
             TestInfo testInfo = this.InitTestInfo(5, 1000, true);
 
-            string trcIPAddress = Dns.GetHostEntry(TrcModuleName).AddressList[0].ToString();
-            string trcUrl = $"http://{trcIPAddress}:5001";
-
-            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, trcImage, loadGenImage, trcUrl, testInfo);
+            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, trcImage, loadGenImage, testInfo);
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
-
-            Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus, trcUrl);
+            Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
             deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token, false);
             await this.PollUntilFinishedAsync(RelayerModuleName, token);
             await this.ValidateResultsAsync();
@@ -62,11 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string trackingId = Guid.NewGuid().ToString();
             TestInfo testInfo = this.InitTestInfo(5, 20);
 
-            string trcIPAddress = Dns.GetHostEntry(TrcModuleName).AddressList[0].ToString();
-            string trcUrl = $"http://{trcIPAddress}:5001";
-
-            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, trcImage, loadGenImage, trcUrl, testInfo);
-
+            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, trcImage, loadGenImage, testInfo);
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
 
@@ -74,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Log.Information($"Waiting for {testInfo.TtlThreshold} seconds for TTL's to expire");
             await Task.Delay(testInfo.TtlThreshold * 1000);
 
-            Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus, trcUrl);
+            Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
             deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token, false);
             await this.PollUntilFinishedAsync(RelayerModuleName, token);
             await this.ValidateResultsAsync();
@@ -94,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Assert.IsTrue(isPassed);
         }
 
-        private Action<EdgeConfigBuilder> BuildAddRelayerConfig(string relayerImage, PriorityQueueTestStatus loadGenTestStatus, string trcUrl)
+        private Action<EdgeConfigBuilder> BuildAddRelayerConfig(string relayerImage, PriorityQueueTestStatus loadGenTestStatus)
         {
             return new Action<EdgeConfigBuilder>(
                 builder =>
@@ -104,12 +96,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         {
                             ("receiveOnly", "true"),
                             ("uniqueResultsExpected", loadGenTestStatus.ResultCount.ToString()),
-                            ("testResultCoordinatorUrl", trcUrl)
+                            ("testResultCoordinatorUrl", TrcUrl)
                         });
                 });
         }
 
-        private Action<EdgeConfigBuilder> BuildAddInitialConfig(string trackingId, string trcImage, string loadGenImage, string trcUrl, TestInfo testInfo)
+        private Action<EdgeConfigBuilder> BuildAddInitialConfig(string trackingId, string trcImage, string loadGenImage, TestInfo testInfo)
         {
             return new Action<EdgeConfigBuilder>(
                 builder =>
@@ -153,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     builder.AddModule(LoadGenModuleName, loadGenImage)
                         .WithEnvironment(new[]
                         {
-                            ("testResultCoordinatorUrl", trcUrl),
+                            ("testResultCoordinatorUrl", TrcUrl),
                             ("senderType", "PriorityMessageSender"),
                             ("trackingId", trackingId),
                             ("testDuration", LoadGenTestDuration),
