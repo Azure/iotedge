@@ -16,6 +16,7 @@ namespace DebugNetworkStatusChange
     class NonStaticClass
     {
         ILogger logger = null;
+        UInt32 counter = 0;
 
         public NonStaticClass(ILogger logger)
         {
@@ -24,8 +25,8 @@ namespace DebugNetworkStatusChange
 
         public void StatusChangedHandler(ConnectionStatus status, ConnectionStatusChangeReason reason)
         {
-            this.logger.LogInformation($"Connection status changed to {status} with reason {reason}");
-            Console.WriteLine($"{DateTime.UtcNow} Connection status changed to {status} with reason {reason}");
+            this.logger.LogInformation($"Counter {this.counter} - Connection status changed to {status} with reason {reason}");
+            this.counter++;
         }
     }
 }

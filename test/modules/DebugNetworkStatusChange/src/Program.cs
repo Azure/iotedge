@@ -40,30 +40,44 @@ namespace DebugNetworkStatusChange
                 //     ModuleUtil.DefaultTransientRetryStrategy,
                 //     Logger);
 
-                var retryPolicy = new RetryPolicy(ModuleUtil.DefaultTimeoutErrorDetectionStrategy, ModuleUtil.DefaultTransientRetryStrategy);
-                retryPolicy.Retrying += (_, args) =>
-                {
-                    Console.WriteLine($"Retry {args.CurrentRetryCount} times to create module client and failed with exception:{Environment.NewLine}{args.LastException}");
-                };
+                // var retryPolicy = new RetryPolicy(ModuleUtil.DefaultTimeoutErrorDetectionStrategy, ModuleUtil.DefaultTransientRetryStrategy);
+                // retryPolicy.Retrying += (_, args) =>
+                // {
+                //     Console.WriteLine($"Retry {args.CurrentRetryCount} times to create module client and failed with exception:{Environment.NewLine}{args.LastException}");
+                // };
 
-                ModuleClient client = await retryPolicy.ExecuteAsync(() => InitializeModuleClientAsync(TransportType.Amqp_Tcp_Only, Logger));
+                // ModuleClient client = await retryPolicy.ExecuteAsync(() => InitializeModuleClientAsync(TransportType.Amqp_Tcp_Only, Logger));
 
-                async Task<ModuleClient> InitializeModuleClientAsync(TransportType transportType, ILogger logger)
+                // async Task<ModuleClient> InitializeModuleClientAsync(TransportType transportType, ILogger logger)
+                // {
+                //     var amqpSettings = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
+                //     amqpSettings.IdleTimeout = TimeSpan.FromSeconds(60);
+                //     ITransportSettings[] settings = new ITransportSettings[] {amqpSettings};
+
+                //     NonStaticClass nsc = new NonStaticClass(Logger);
+
+                //     ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
+                //     moduleClient.SetConnectionStatusChangesHandler(nsc.StatusChangedHandler);
+                //     await moduleClient.OpenAsync();
+
+                //     return moduleClient;
+                // }
+
+                ModuleClient moduleClient = null;
+                while(moduleClient == null)
                 {
                     var amqpSettings = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
                     amqpSettings.IdleTimeout = TimeSpan.FromSeconds(60);
                     ITransportSettings[] settings = new ITransportSettings[] {amqpSettings};
 
-                    NonStaticClass nsc = new NonStaticClass(Logger);
-
-                    ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
-                    moduleClient.SetConnectionStatusChangesHandler(nsc.StatusChangedHandler);
-                    await moduleClient.OpenAsync();
-
-                    return moduleClient;
+                    moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
                 }
 
-                while (client!=null)
+                NonStaticClass nsc = new NonStaticClass(Logger);
+                moduleClient.SetConnectionStatusChangesHandler(nsc.StatusChangedHandler);
+                await moduleClient.OpenAsync();
+
+                while (moduleClient!=null)
                 {
                     // Console.WriteLine($"{DateTime.UtcNow} Waiting for status change");
                     await Task.Delay(TimeSpan.FromMilliseconds(5));
