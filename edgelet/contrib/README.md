@@ -60,12 +60,6 @@ All of the accompanying files in the debian package can be found in the `contrib
 
 [iotedge.mgmt.service](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/systemd/debian/iotedge.mgmt.socket) installed as `/lib/systemd/system/iotedge.mgmt.socket` with mode/user `644 root:root`
 
-#### SysV Init
-
-[iotedge.init](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/debian/iotedge.init) installed as `/etc/init.d/iotedge` with mode/user `755 root:root`
-
-[iotedge.default](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/debian/iotedge.default) installed as `/etc/default/iotedge` with mode/user `644 root:root`
-
 ### Directories
 
 The `/var/lib/iotedge` and `/var/log/iotedge` directories are both created with mode/user `755 iotedge:iotedge`.
