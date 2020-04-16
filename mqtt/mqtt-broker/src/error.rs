@@ -1,126 +1,79 @@
-use derive_more::Display;
-use failure::{Backtrace, Context, Fail};
+use std::path::PathBuf;
+
 use mqtt3::proto::Packet;
+use thiserror::Error;
 
-#[derive(Debug, Display)]
-pub struct Error {
-    inner: Context<ErrorKind>,
-}
+use crate::Message;
 
-#[derive(Debug, Fail, PartialEq)]
-pub enum ErrorKind {
-    #[fail(display = "An error occurred trying to connect.")]
-    Connect,
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("An error occurred sending a message to the broker.")]
+    SendBrokerMessage(#[source] tokio::sync::mpsc::error::SendError<Message>),
 
-    #[fail(display = "An error occurred sending a message to the broker.")]
-    SendBrokerMessage,
+    #[error("An error occurred sending a message to a connection.")]
+    SendConnectionMessage(#[source] tokio::sync::mpsc::error::SendError<Message>),
 
-    #[fail(display = "An error occurred sending a message to a connection.")]
-    SendConnectionMessage,
-
-    #[fail(display = "An error occurred sending a message to a snapshotter.")]
+    #[error("An error occurred sending a message to a snapshotter.")]
     SendSnapshotMessage,
 
-    #[fail(display = "An error occurred binding the server's listening socket.")]
-    BindServer,
+    #[error("An error occurred decoding a packet.")]
+    DecodePacket(#[from] mqtt3::proto::DecodeError),
 
-    #[fail(display = "An error occurred getting a connection's peer address.")]
-    ConnectionPeerAddress,
+    #[error("An error occurred encoding a packet.")]
+    EncodePacket(#[from] mqtt3::proto::EncodeError),
 
-    #[fail(display = "An error occurred getting local address.")]
-    ConnectionLocalAddress,
-
-    #[fail(display = "An error occurred configuring a connection.")]
-    ConnectionConfiguration,
-
-    #[fail(display = "An error occurred decoding a packet.")]
-    DecodePacket,
-
-    #[fail(display = "An error occurred encoding a packet.")]
-    EncodePacket,
-
-    #[fail(display = "Expected CONNECT packet as first packet, received {:?}", _0)]
+    #[error("Expected CONNECT packet as first packet, received {0:?}")]
     NoConnect(Packet),
 
-    #[fail(display = "Connection closed before any packets received.")]
+    #[error("Connection closed before any packets received.")]
     NoPackets,
 
-    #[fail(display = "No session.")]
-    NoSession,
-
-    #[fail(display = "Session is offline.")]
+    #[error("Session is offline.")]
     SessionOffline,
 
-    #[fail(display = "MQTT protocol violation occurred.")]
+    #[error("MQTT protocol violation occurred.")]
     ProtocolViolation,
 
-    #[fail(display = "Provided topic filter is invalid: {}", _0)]
+    #[error("Provided topic filter is invalid: {0}")]
     InvalidTopicFilter(String),
 
-    #[fail(display = "All packet identifiers are exhausted.")]
+    #[error("All packet identifiers are exhausted.")]
     PacketIdentifiersExhausted,
 
-    #[fail(display = "An error occurred joining a task.")]
-    TaskJoin,
+    #[error("An error occurred joining a task.")]
+    TaskJoin(#[from] tokio::task::JoinError),
 
-    #[fail(display = "An error occurred persisting state: {}", _0)]
-    Persist(crate::persist::ErrorReason),
+    #[error("An error occurred persisting state")]
+    Persist(#[from] crate::persist::PersistError),
 
-    #[fail(display = "An error occurred loading configuration.")]
-    LoadConfiguration,
+    #[error("Unable to obtain peer certificate.")]
+    PeerCertificate(#[source] native_tls::Error),
 
-    #[fail(display = "An error occurred joining the broker task.")]
-    BrokerJoin,
-
-    #[fail(display = "An error occurred obtaining service identity.")]
-    IdentityConfiguration,
-
-    #[fail(display = "Error loading identity from file.")]
-    LoadIdentity,
-
-    #[fail(display = "Error decoding identity content.")]
-    DecodeIdentity,
-
-    #[fail(display = "Error starting listener.")]
-    StartListener,
-
-    #[fail(display = "Unable to obtain peer leaf certificate.")]
-    PeerCertificate,
-
-    #[fail(display = "An error occurred checking client permissions: {}.", _0)]
-    Auth(crate::auth::ErrorReason),
+    #[error("Unable to start broker.")]
+    InitializeBroker(#[from] InitializeBrokerError),
 }
 
-impl Fail for Error {
-    fn cause(&self) -> Option<&dyn Fail> {
-        self.inner.cause()
-    }
+/// Represents errors occurred while bootstrapping broker.
+#[derive(Debug, Error)]
+pub enum InitializeBrokerError {
+    #[error("An error occurred binding the server's listening socket.")]
+    BindServer(#[source] std::io::Error),
 
-    fn backtrace(&self) -> Option<&Backtrace> {
-        self.inner.backtrace()
-    }
-}
+    #[error("An error occurred getting a connection's peer address.")]
+    ConnectionPeerAddress(#[source] std::io::Error),
 
-impl Error {
-    pub fn new(inner: Context<ErrorKind>) -> Self {
-        Error { inner }
-    }
+    #[error("An error occurred getting local address.")]
+    ConnectionLocalAddress(#[source] std::io::Error),
 
-    pub fn kind(&self) -> &ErrorKind {
-        self.inner.get_context()
-    }
-}
+    #[error("An error occurred loading configuration.")]
+    LoadConfiguration(#[source] config::ConfigError),
 
-impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Self {
-        Error {
-            inner: Context::new(kind),
-        }
-    }
-}
+    #[error("An error occurred loading identity from file {0}.")]
+    LoadIdentity(PathBuf, #[source] std::io::Error),
 
-impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Self {
-        Error { inner }
-    }
+    #[error("An error occurred  decoding identity content.")]
+    DecodeIdentity(#[source] native_tls::Error),
+
+    #[error("An error occurred  bootstrapping TLS")]
+    Tls(#[source] native_tls::Error),
 }
