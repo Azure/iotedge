@@ -13,7 +13,6 @@
 
 use std::sync::Arc;
 
-use derive_more::Display;
 use mqtt3::*;
 use serde::{Deserialize, Serialize};
 
@@ -33,16 +32,16 @@ pub use crate::auth::{AuthId, Certificate};
 pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle, BrokerState};
 pub use crate::configuration::BrokerConfig;
 pub use crate::connection::ConnectionHandle;
-pub use crate::error::{Error, ErrorKind, InitializeBrokerReason};
+pub use crate::error::{Error, InitializeBrokerError};
 pub use crate::persist::{
-    ConsolidatedStateFormat, FileFormat, FilePersistor, NullPersistor, Persist,
+    ConsolidatedStateFormat, FileFormat, FilePersistor, NullPersistor, Persist, PersistError,
 };
 pub use crate::server::Server;
 pub use crate::session::SessionState;
 pub use crate::snapshot::{Snapshotter, StateSnapshotHandle};
 pub use crate::transport::TransportBuilder;
 
-#[derive(Clone, Debug, Display, Eq, Hash, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ClientId(Arc<String>);
 
 impl ClientId {
@@ -51,12 +50,17 @@ impl ClientId {
     }
 }
 
-impl From<String> for ClientId {
-    fn from(s: String) -> ClientId {
-        ClientId(Arc::new(s))
+impl<T: Into<String>> From<T> for ClientId {
+    fn from(s: T) -> ClientId {
+        ClientId(Arc::new(s.into()))
     }
 }
 
+impl std::fmt::Display for ClientId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
 #[derive(Debug)]
 pub struct ConnReq {
     client_id: ClientId,

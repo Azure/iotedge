@@ -340,6 +340,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     })
                 .As<Task<IEnvironmentProvider>>()
                 .SingleInstance();
+
+            // ISystemResourcesMetrics
+            builder.Register(c => new Edgelet.Docker.NullSystemResourcesMetrics())
+                .As<Edgelet.Docker.ISystemResourcesMetrics>()
+                .SingleInstance();
         }
     }
 
