@@ -3,6 +3,7 @@ parameters:
   release.label: ''
   test.buildNumber: ''
   test.buildId: ''
+  test.startDelay: ''
   build.source.branch: ''
   edgelet.source.branch: ''
   images.source.branch: ''
@@ -100,6 +101,15 @@ steps:
           $ScheduleTime=$ScheduleDatetime.ToString("HH:mm")
           Write-Host "Schedule to stop iotedge service at $ScheduleDate $ScheduleTime"
           SchTasks.exe /Create /RU "SYSTEM" /SC ONCE /TN “StopStressTest” /TR "net stop iotedge" /SD $ScheduleDate /ST $ScheduleTime /F
+
+          # Stress tests are not configured to make use of a test start delay variable (only for long haul)
+          # The shell script below will expect a parameter defined because it is also used for long haul
+          # We can hardcode a 0 second delay to get around this.
+          $testStartDelay = "00:00:00"
+        }
+        else
+        {
+          $testStartDelay = "${{ parameters['test.startDelay'] }}"
         }
         
         $testInfo="TestBuildNumber=${{ parameters['test.buildNumber'] }}"
@@ -145,5 +155,6 @@ steps:
           -MetricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" `
           -MetricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" `
           -TestInfo "$testInfo" `
+          -TestStartDelay "$testStartDelay" `
           -BypassEdgeInstallation
       CommunicationProtocol: Http
