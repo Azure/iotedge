@@ -1,7 +1,6 @@
 use async_trait::async_trait;
-use derive_more::From;
 
-use crate::{AuthId, Error};
+use crate::auth::AuthId;
 
 /// Describes a MQTT client credentials.
 pub enum Credentials {
@@ -13,30 +12,46 @@ pub enum Credentials {
 }
 
 /// Represents a client certificate.
-#[derive(Clone, Debug, From)]
+#[derive(Clone, Debug)]
 pub struct Certificate(Vec<u8>);
+
+impl From<Vec<u8>> for Certificate {
+    fn from(certificate: Vec<u8>) -> Self {
+        Self(certificate)
+    }
+}
 
 /// A trait to authenticate a MQTT client with given credentials.
 #[async_trait]
 pub trait Authenticator {
+    /// Authentication error.
+    type Error: std::error::Error + Send;
+
     /// Authenticates a MQTT client with given credentials.
     ///
     /// ## Returns
     /// * `Ok(Some(auth_id))` - authenticator is able to identify a client with given credentials.
     /// * `Ok(None)` - authenticator is not able to identify a client with given credentials.
     /// * `Err(e)` - an error occurred when authenticating a client.
-    async fn authenticate(&self, credentials: Credentials) -> Result<Option<AuthId>, Error>;
+    async fn authenticate(&self, credentials: Credentials) -> Result<Option<AuthId>, Self::Error>;
 }
 
 #[async_trait]
 impl<F> Authenticator for F
 where
-    F: Fn(Credentials) -> Result<Option<AuthId>, Error> + Sync,
+    F: Fn(Credentials) -> Result<Option<AuthId>, AuthenticateError> + Sync,
 {
-    async fn authenticate(&self, credentials: Credentials) -> Result<Option<AuthId>, Error> {
+    type Error = AuthenticateError;
+
+    async fn authenticate(&self, credentials: Credentials) -> Result<Option<AuthId>, Self::Error> {
         self(credentials)
     }
 }
+
+/// Authentication error type placeholder.
+#[derive(Debug, thiserror::Error)]
+#[error("An error occurred authenticating client.")]
+pub struct AuthenticateError;
 
 /// Default implementation that always unable to authenticate a MQTT client and return `Ok(None)`.
 /// This implementation will be used if custom authentication mechanism was not provided.
@@ -44,7 +59,9 @@ pub struct DefaultAuthenticator;
 
 #[async_trait]
 impl Authenticator for DefaultAuthenticator {
-    async fn authenticate(&self, _: Credentials) -> Result<Option<AuthId>, Error> {
+    type Error = AuthenticateError;
+
+    async fn authenticate(&self, _: Credentials) -> Result<Option<AuthId>, Self::Error> {
         Ok(None)
     }
 }

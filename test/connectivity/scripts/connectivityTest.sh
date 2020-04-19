@@ -484,7 +484,7 @@ function usage() {
     echo ' -eventHubConnectionString                Event hub connection string for receive D2C messages.'
     echo ' -eventHubConsumerGroupId                 Event hub consumer group for receive D2C messages.'
     echo ' -testDuration                            Connectivity test duration'
-    echo ' -testStartDelay                          Connectivity test start after delay'
+    echo ' -testStartDelay                          Tests start after delay for applicable modules'
     echo ' -loadGenMessageFrequency                 Message frequency sent by load gen'
     echo ' -networkControllerFrequency              Frequency for controlling the network with offlineFrequence, onlineFrequence, runsCount. Example "00:05:00 00:05:00 6"'
     echo ' -networkControllerRunProfile             Online, Offline, SatelliteGood or Cellular3G'

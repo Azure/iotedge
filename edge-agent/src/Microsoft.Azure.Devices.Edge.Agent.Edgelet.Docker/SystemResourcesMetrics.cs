@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    public class SystemResourcesMetrics : IDisposable
+    public class SystemResourcesMetrics : ISystemResourcesMetrics, IDisposable
     {
         public static readonly TimeSpan MaxUpdateFrequency = TimeSpan.FromSeconds(5);
         static readonly string[] EdgeRuntimeModules = { Constants.EdgeAgentModuleName, Constants.EdgeHubModuleName };

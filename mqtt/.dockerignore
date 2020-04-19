@@ -3,6 +3,7 @@
 .git
 .gitignore
 .vscode
+state
 target
 Dockerfile
 LICENSE
