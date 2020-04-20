@@ -321,6 +321,9 @@ where
         }
 
         debug!("connect handled.");
+
+        self.notify_connection_change().await;
+
         Ok(())
     }
 
@@ -334,6 +337,9 @@ where
             debug!("no session for {}", client_id);
         }
         debug!("disconnect handled.");
+
+        self.notify_connection_change().await;
+
         Ok(())
     }
 
@@ -354,6 +360,9 @@ where
             debug!("no session for {}", client_id);
         }
         debug!("drop connection handled.");
+
+        self.notify_connection_change().await;
+
         Ok(())
     }
 
@@ -370,6 +379,9 @@ where
             debug!("no session for {}", client_id);
         }
         debug!("close session handled.");
+
+        self.notify_connection_change().await;
+
         Ok(())
     }
 
@@ -811,7 +823,7 @@ where
         Ok(())
     }
 
-    pub async fn notify_subscription_change(&mut self, client_id: &ClientId) {
+    async fn notify_subscription_change(&mut self, client_id: &ClientId) {
         let topics: String = self
             .sessions
             .get(client_id) // find session that changed
@@ -836,6 +848,31 @@ where
             retain: true,
             topic_name: format!("$sys/subscriptions/{}", client_id),
             payload: Bytes::from(topics),
+        };
+
+        let message = Message::Client("system".into(), ClientEvent::PublishFrom(publish));
+
+        self.sender.send(message).await.unwrap();
+    }
+
+    async fn notify_connection_change(&mut self) {
+        let connected: String = self
+            .sessions
+            .iter()
+            .filter_map(|(client_id, session)| match session {
+                Session::Transient(_) => Some(client_id),
+                Session::Persistent(_) => Some(client_id),
+                _ => None,
+            })
+            .map(|client_id| client_id.as_str())
+            .collect::<Vec<&str>>()
+            .join(r"\u{0000}");
+
+        let publish = proto::Publish {
+            packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtMostOnce, //no ack
+            retain: true,
+            topic_name: format!("$sys/connected"),
+            payload: Bytes::from(connected),
         };
 
         let message = Message::Client("system".into(), ClientEvent::PublishFrom(publish));
