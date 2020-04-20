@@ -91,8 +91,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             {
                 if (!this.closed.GetAndSet(true))
                 {
+                    Events.PrintCustomMessage("StoringAsyncEndpointExecutor.CloseAsync: getandset is done");
                     this.cts.Cancel();
+                    Events.PrintCustomMessage("StoringAsyncEndpointExecutor.CloseAsync: getandset is done");
                     await (this.messageStore?.RemoveEndpoint(this.Endpoint.Id) ?? Task.CompletedTask);
+                    Events.PrintCustomMessage("StoringAsyncEndpointExecutor.CloseAsync: getandset is done");
                     await (this.sendMessageTask ?? Task.CompletedTask);
                 }
 
@@ -103,6 +106,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 Events.CloseFailure(this, ex);
                 throw;
             }
+
+            Events.PrintCustomMessage("StoringAsyncEndpointExecutor.CloseAsync: finished");
         }
 
         public async Task SetEndpoint(Endpoint newEndpoint, IList<uint> priorities)
@@ -212,7 +217,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 {
                     try
                     {
+                        Events.PrintCustomMessage("StoringAsyncEndpointExecutor.SendMessagesPump: WaitAsync called");
                         await this.hasMessagesInQueue.WaitAsync(this.options.BatchTimeout);
+                        Events.PrintCustomMessage("StoringAsyncEndpointExecutor.SendMessagesPump: WaitAsync passed");
 
                         SortedDictionary<uint, EndpointExecutorFsm> snapshot = this.prioritiesToFsms;
                         bool haveMessagesRemaining = false;
@@ -220,6 +227,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                         // Iterate through all the message queues in priority order
                         foreach (KeyValuePair<uint, EndpointExecutorFsm> entry in snapshot)
                         {
+                            Events.PrintCustomMessage($"StoringAsyncEndpointExecutor.SendMessagesPump: foreach loop - [{this.cts.IsCancellationRequested}]");
+
                             // Also check for cancellation in every inner loop,
                             // since it could take time to send a batch of messages
                             if (this.cts.IsCancellationRequested)
@@ -283,13 +292,19 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             {
                 Events.SendMessagesPumpFailure(this, ex);
             }
+
+            Events.PrintCustomMessage($"StoringAsyncEndpointExecutor.SendMessagesPump: [{this.Endpoint.Id}, {this.Endpoint.Name}] [{this.closed}] finished");
         }
 
         async Task ProcessMessages(IMessage[] messages, EndpointExecutorFsm fsm)
         {
+            Events.PrintCustomMessage("StoringAsyncEndpointExecutor.ProcessMessages: started");
             SendMessage command = Commands.SendMessage(messages);
+            Events.PrintCustomMessage("StoringAsyncEndpointExecutor.ProcessMessages: step 1 done");
             await fsm.RunAsync(command);
+            Events.PrintCustomMessage("StoringAsyncEndpointExecutor.ProcessMessages: step 2 done");
             await command.Completion;
+            Events.PrintCustomMessage("StoringAsyncEndpointExecutor.ProcessMessages: finished");
         }
 
         void Dispose(bool disposing)

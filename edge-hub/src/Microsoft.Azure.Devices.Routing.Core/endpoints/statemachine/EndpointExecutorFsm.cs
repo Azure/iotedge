@@ -587,7 +587,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 UpdateEndpoint,
                 UpdateEndpointSuccess,
                 UpdateEndpointFailure,
-                CheckRetryInnerException
+                CheckRetryInnerException,
+                CustomMessage
+            }
+
+            public static void PrintCustomMessage(string message)
+            {
+                Log.LogTrace((int)EventIds.CustomMessage, message);
             }
 
             public static void StateEnter(EndpointExecutorFsm fsm)

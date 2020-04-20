@@ -157,6 +157,8 @@ namespace Microsoft.Azure.Devices.Routing.Core
                     await this.RemoveEndpointInternal(endpoint.Id);
                 }
 
+                Events.PrintCustomMessage($"Dispatcher.ReplaceEndpoints: remove endpoint.");
+
                 // Set all of the new endpoints
                 // Can't use Task.WhenAll because access to the executors dict must be serialized
                 foreach (KeyValuePair<Endpoint, IList<uint>> e in endpointsWithPriorities)
@@ -256,8 +258,11 @@ namespace Microsoft.Azure.Devices.Routing.Core
                     throw new InvalidOperationException($"Invalid remove endpoint operation for executor {id}");
                 }
 
+                Events.PrintCustomMessage($"Dispatcher.RemoveEndpointInternal {id}: remove from snapshot and snapshot.count={snapshot.Count}");
                 await executor.CloseAsync();
+                Events.PrintCustomMessage($"Dispatcher.RemoveEndpointInternal {id}: closeAsync done");
                 executor.Dispose();
+                Events.PrintCustomMessage($"Dispatcher.RemoveEndpointInternal {id}: finished");
             }
         }
 
