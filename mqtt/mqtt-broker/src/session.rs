@@ -325,6 +325,10 @@ impl SessionState {
         &self.client_id
     }
 
+    pub fn subscriptions(&self) -> &HashMap<String, Subscription> {
+        &self.subscriptions
+    }
+
     pub fn update_subscription(
         &mut self,
         topic_filter: String,

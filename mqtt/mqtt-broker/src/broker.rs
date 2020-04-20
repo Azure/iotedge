@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use bytes::Bytes;
 use failure::ResultExt;
 use futures_util::future;
 use mqtt3::proto;
@@ -12,7 +13,6 @@ use crate::auth::{
     Activity, Authenticator, Authorizer, Credentials, DefaultAuthenticator, DefaultAuthorizer,
     Operation,
 };
-use crate::notifier::Notifier;
 use crate::session::{ConnectedSession, Session, SessionState};
 use crate::{
     subscription::Subscription, AuthId, ClientEvent, ClientId, ConnReq, Error, ErrorKind, Message,
@@ -41,7 +41,6 @@ where
     retained: HashMap<String, proto::Publication>,
     authenticator: N,
     authorizer: Z,
-    notifier: Notifier,
 }
 
 impl<N, Z> Broker<N, Z>
@@ -395,8 +394,6 @@ where
         client_id: ClientId,
         sub: proto::Subscribe,
     ) -> Result<(), Error> {
-        self.notifier.subscription(&client_id.0, &sub).await;
-
         let subscriptions = if let Some(session) = self.sessions.get_mut(&client_id) {
             let (suback, subscriptions) = subscribe(&self.authorizer, session, sub.clone()).await?;
             session.send(ClientEvent::SubAck(suback)).await?;
@@ -427,6 +424,8 @@ where
             debug!("no session for {}", client_id);
         }
 
+        self.notify_subscription_change(&client_id).await;
+
         Ok(())
     }
 
@@ -438,7 +437,9 @@ where
         match self.get_session_mut(&client_id) {
             Ok(session) => {
                 let unsuback = session.unsubscribe(&unsubscribe)?;
-                session.send(ClientEvent::UnsubAck(unsuback)).await
+                session.send(ClientEvent::UnsubAck(unsuback)).await?;
+                self.notify_subscription_change(&client_id).await;
+                Ok(())
             }
             Err(e) if *e.kind() == ErrorKind::NoSession => {
                 debug!("no session for {}", client_id);
@@ -809,6 +810,38 @@ where
 
         Ok(())
     }
+
+    pub async fn notify_subscription_change(&mut self, client_id: &ClientId) {
+        let topics: String = self
+            .sessions
+            .get(client_id) // find session that changed
+            .and_then(|session| match session {
+                // get session state
+                Session::Transient(connected) => Some(connected.state()),
+                Session::Persistent(connected) => Some(connected.state()),
+                Session::Offline(offline) => Some(offline.state()),
+                _ => None,
+            })
+            .map(|state| state.subscriptions().keys()) // get topic filters
+            .map(|topics| {
+                topics
+                    .map(|t| t.as_ref())
+                    .collect::<Vec<&str>>()
+                    .join(r"\u{0000}")
+            }) // join to string for payload
+            .unwrap_or_default(); // no subscriptions is default
+
+        let publish = proto::Publish {
+            packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtMostOnce, //no ack
+            retain: true,
+            topic_name: format!("$sys/subscriptions/{}", client_id),
+            payload: Bytes::from(topics),
+        };
+
+        let message = Message::Client("system".into(), ClientEvent::PublishFrom(publish));
+
+        self.sender.send(message).await.unwrap();
+    }
 }
 
 async fn subscribe<Z: Authorizer>(
@@ -973,8 +1006,6 @@ where
 
         let (sender, messages) = mpsc::channel(1024);
 
-        let notifier = Notifier::new(BrokerHandle(sender.clone()));
-
         Broker {
             sender,
             messages,
@@ -982,7 +1013,6 @@ where
             retained,
             authenticator: self.authenticator,
             authorizer: self.authorizer,
-            notifier,
         }
     }
 }
