@@ -871,8 +871,35 @@ where
         let publish = proto::Publish {
             packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtMostOnce, //no ack
             retain: true,
-            topic_name: format!("$sys/connected"),
+            topic_name: "$sys/connected".to_owned(),
             payload: Bytes::from(connected),
+        };
+
+        let message = Message::Client("system".into(), ClientEvent::PublishFrom(publish));
+
+        self.sender.send(message).await.unwrap();
+        self.notify_session_change().await;
+    }
+
+    async fn notify_session_change(&mut self) {
+        let sessions: String = self
+            .sessions
+            .iter()
+            .filter_map(|(client_id, session)| match session {
+                Session::Transient(_) => Some(client_id),
+                Session::Persistent(_) => Some(client_id),
+                Session::Offline(_) => Some(client_id),
+                _ => None,
+            })
+            .map(|client_id| client_id.as_str())
+            .collect::<Vec<&str>>()
+            .join(r"\u{0000}");
+
+        let publish = proto::Publish {
+            packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtMostOnce, //no ack
+            retain: true,
+            topic_name: "$sys/sessions".to_owned(),
+            payload: Bytes::from(sessions),
         };
 
         let message = Message::Client("system".into(), ClientEvent::PublishFrom(publish));
