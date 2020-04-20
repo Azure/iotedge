@@ -87,7 +87,7 @@ jobs:
         displayName: Kubernetes Integration Tests
         condition: succeededOrFailed()     
         env:
-        KUBECONFIG: $(AKSClusterKubeconfig)
+        KUBECONFIG: "$(AKSClusterKubeconfig)"
       - task: PublishTestResults@2
         displayName: Publish test results
         inputs:
