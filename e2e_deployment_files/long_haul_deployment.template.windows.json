@@ -114,8 +114,13 @@
                 "TwinUpdateFailureThreshold": {
                     "value": "<TwinUpdateFailureThreshold>"
                 },
+<<<<<<< HEAD
                 "EdgeHubRestartFailureTolerance": {
                     "value": "<EdgeHubRestartFailureTolerance>"
+=======
+                "testStartDelay": {
+                  "value": "<TestStartDelay>"
+>>>>>>> d70cc7b9c46d237c086765a1c2d801e9d9770ff3
                 }
             },
             "status": "running",
@@ -144,8 +149,13 @@
                 "TwinUpdateFailureThreshold": {
                     "value": "<TwinUpdateFailureThreshold>"
                 },
+<<<<<<< HEAD
                 "EdgeHubRestartFailureTolerance": {
                     "value": "<EdgeHubRestartFailureTolerance>"
+=======
+                "testStartDelay": {
+                  "value": "<TestStartDelay>"
+>>>>>>> d70cc7b9c46d237c086765a1c2d801e9d9770ff3
                 }
             },
             "status": "running",
@@ -312,6 +322,9 @@
               },
               "TargetModuleId": {
                 "value": "DirectMethodReceiver"
+              },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
               }
             },
             "settings": {
@@ -352,6 +365,9 @@
               },
               "TargetModuleId": {
                 "value": "DirectMethodReceiver2"
+              },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
               }
             },
             "settings": {

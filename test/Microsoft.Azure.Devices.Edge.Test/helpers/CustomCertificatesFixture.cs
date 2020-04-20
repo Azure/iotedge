@@ -12,9 +12,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     {
         protected CertificateAuthority ca;
 
+        [SetUp]
+        public override Task SasProvisionEdgeAsync()
+        {
+            // Do nothing; everything happens at [OneTimeSetUp] instead. We do this to avoid
+            // creating a new device for every permutation of the Transparent Gateway tests.
+            return Task.CompletedTask;
+        }
+
         [OneTimeSetUp]
         public async Task SetUpCertificatesAsync()
         {
+            await Profiler.Run(
+                () => base.SasProvisionEdgeAsync(),
+                "Completed edge manual provisioning with SAS token");
+
             await Profiler.Run(
                 async () =>
                 {
@@ -27,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     {
                         DateTime startTime = DateTime.Now;
                         CancellationToken token = cts.Token;
-                        string deviceId = Context.Current.DeviceId;
+                        string deviceId = this.runtime.DeviceId;
 
                         try
                         {

@@ -1,4 +1,5 @@
 use std::{
+    convert::TryFrom,
     future::Future,
     net::SocketAddr,
     pin::Pin,
@@ -7,7 +8,6 @@ use std::{
 
 use bytes::{Buf, BufMut};
 use core::mem::MaybeUninit;
-use failure::{Fail, ResultExt};
 use futures::stream::FuturesUnordered;
 use native_tls::Identity;
 use tokio::{
@@ -16,9 +16,10 @@ use tokio::{
     stream::Stream,
 };
 use tokio_native_tls::{TlsAcceptor, TlsStream};
-use tracing::{debug, error, warn};
+use tracing::{debug, error, info, warn};
 
-use crate::{Certificate, Error, ErrorKind, InitializeBrokerReason};
+use crate::configuration::Transport as TransportConfig;
+use crate::{Certificate, Error, InitializeBrokerError};
 
 pub enum TransportBuilder<A> {
     Tcp(A),
@@ -29,10 +30,34 @@ impl<A> TransportBuilder<A>
 where
     A: ToSocketAddrs,
 {
-    pub async fn build(self) -> Result<Transport, Error> {
+    pub async fn build(self) -> Result<Transport, InitializeBrokerError> {
         match self {
             TransportBuilder::Tcp(addr) => Transport::new_tcp(addr).await,
             TransportBuilder::Tls(addr, identity) => Transport::new_tls(addr, identity).await,
+        }
+    }
+}
+
+impl TryFrom<TransportConfig> for TransportBuilder<String> {
+    type Error = InitializeBrokerError;
+
+    fn try_from(transport: TransportConfig) -> Result<Self, Self::Error> {
+        match transport {
+            TransportConfig::Tcp { address } => Ok(Self::Tcp(address)),
+            TransportConfig::Tls {
+                address,
+                certificate,
+            } => {
+                info!("Loading identity from {}", certificate.display());
+                let cert_buffer = std::fs::read(&certificate).map_err(|e| {
+                    InitializeBrokerError::LoadIdentity(certificate.to_path_buf(), e)
+                })?;
+
+                let cert = Identity::from_pkcs12(cert_buffer.as_slice(), "")
+                    .map_err(InitializeBrokerError::DecodeIdentity)?;
+
+                Ok(Self::Tls(address, cert))
+            }
         }
     }
 }
@@ -43,32 +68,30 @@ pub enum Transport {
 }
 
 impl Transport {
-    pub async fn new_tcp<A>(addr: A) -> Result<Self, Error>
+    async fn new_tcp<A>(addr: A) -> Result<Self, InitializeBrokerError>
     where
         A: ToSocketAddrs,
     {
         let tcp = TcpListener::bind(addr)
             .await
-            .context(ErrorKind::InitializeBroker(
-                InitializeBrokerReason::BindServer,
-            ))?;
+            .map_err(InitializeBrokerError::BindServer)?;
+
         Ok(Transport::Tcp(tcp))
     }
 
-    pub async fn new_tls<A>(addr: A, identity: Identity) -> Result<Self, Error>
+    async fn new_tls<A>(addr: A, identity: Identity) -> Result<Self, InitializeBrokerError>
     where
         A: ToSocketAddrs,
     {
         let acceptor = TlsAcceptor::from(
             native_tls::TlsAcceptor::builder(identity)
                 .build()
-                .context(ErrorKind::InitializeBroker(InitializeBrokerReason::Tls))?,
+                .map_err(InitializeBrokerError::Tls)?,
         );
         let tcp = TcpListener::bind(addr)
             .await
-            .context(ErrorKind::InitializeBroker(
-                InitializeBrokerReason::BindServer,
-            ))?;
+            .map_err(InitializeBrokerError::BindServer)?;
+
         Ok(Transport::Tls(tcp, acceptor))
     }
 
@@ -79,15 +102,12 @@ impl Transport {
         }
     }
 
-    pub fn local_addr(&self) -> Result<SocketAddr, Error> {
+    pub fn local_addr(&self) -> Result<SocketAddr, InitializeBrokerError> {
         let addr = match self {
             Self::Tcp(listener) => listener.local_addr(),
             Self::Tls(listener, _) => listener.local_addr(),
         };
-        let addr = addr.context(ErrorKind::InitializeBroker(
-            InitializeBrokerReason::ConnectionLocalAddress,
-        ))?;
-        Ok(addr)
+        addr.map_err(InitializeBrokerError::ConnectionLocalAddress)
     }
 }
 
@@ -251,7 +271,7 @@ impl GetPeerCertificate for StreamSelector {
                     cert.map(|cert| cert.to_der().map(Certificate::from))
                         .transpose()
                 })
-                .map_err(|e| e.context(ErrorKind::PeerCertificate).into()),
+                .map_err(Error::PeerCertificate),
         }
     }
 }
