@@ -70,14 +70,23 @@ namespace LoadGen
 
             int ttlThresholdValue = configuration.GetValue<int>("ttlThresholdSecs");
 
-            if (!(ttls == null && priorities == null && ttlThresholdValue <= 0)
-                && !(ttls != null && priorities != null && ttlThresholdValue > 0))
+            if (LoadGenSenderType.PriorityMessageSender.Equals(configuration.GetValue<LoadGenSenderType>("senderType")))
             {
-                throw new ArgumentException("TTLs, priorities, and TTLThreshold must either all be set or all not be set.");
+                if (ttls == null || ttlThresholdValue <= 0 || priorities == null)
+                {
+                    throw new ArgumentException("For PriorityMessageSender, ttls ttlThreshold, and priorities must all be set");
+                }
+                else if (ttls?.Count != 0 && ttls?.Count != priorities?.Count)
+                {
+                    throw new ArgumentException("TTL and priorities must have the same number of elements.");
+                }
             }
-            else if (ttls?.Count != 0 && ttls?.Count != priorities?.Count)
+            else
             {
-                throw new ArgumentException("TTL and priorities must have the same number of elements.");
+                if (ttls != null || ttlThresholdValue != 0 || priorities != null)
+                {
+                    throw new ArgumentException("Tttls ttlThreshold, and priorities cannot be set unless PriorityMessageSender type is selected");
+                }
             }
 
             Option<int> ttlThresholdSecs = ttlThresholdValue > 0 ? Option.Some(ttlThresholdValue) : Option.None<int>();

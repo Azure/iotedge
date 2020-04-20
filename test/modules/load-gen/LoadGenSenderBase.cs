@@ -65,10 +65,7 @@ namespace LoadGen
             await Settings.Current.TestResultCoordinatorUrl.ForEachAsync(
                 async trcUrl =>
                 {
-                    Uri trcUri = new Uri(trcUrl, UriKind.Absolute);
-                    var builder = new UriBuilder(trcUri);
-                    builder.Host = Dns.GetHostEntry(trcUri.Host).AddressList[0].ToString();
-                    Uri testResultCoordinatorUrl = builder.Uri;
+                    var testResultCoordinatorUrl = new Uri(trcUrl, UriKind.Absolute);
                     var testResultReportingClient = new TestResultReportingClient { BaseUrl = testResultCoordinatorUrl.AbsoluteUri };
                     var testResult = new MessageTestResult(Settings.Current.ModuleId + ".send", DateTime.UtcNow)
                     {

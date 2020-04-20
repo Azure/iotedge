@@ -5,6 +5,7 @@ namespace LoadGen
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
+    using System.Net.NetworkInformation;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -47,6 +48,7 @@ namespace LoadGen
             bool firstMessageWhileOffline = true;
             var priorityAndSequence = new SortedDictionary<int, List<long>>();
             long messageIdCounter = 1;
+            string trcUrl = Settings.Current.TestResultCoordinatorUrl.Expect<ArgumentException>(() => throw new ArgumentException("Expected TestResultCoordinator URL"));
 
             await this.SetIsFinishedDirectMethodAsync();
 
@@ -99,6 +101,23 @@ namespace LoadGen
             }
 
             this.Logger.LogInformation($"Sending finished. Now sending expected results to {Settings.Current.TestResultCoordinatorUrl}");
+
+            Ping ping = new Ping();
+            try
+            {
+               Settings.Current.TestResultCoordinatorUrl.ForEach(
+               url =>
+               {
+                   Uri uri = new Uri(url);
+                   this.Logger.LogInformation($"Sending ping to {uri.Host}");
+                   ping.Send(uri.Host);
+               });
+            }
+            catch (Exception)
+            {
+                this.Logger.LogInformation($"Sending ping to testResultCoordinator");
+                ping.Send("testResultCoordinator");
+            }
 
             // Sort priority by sequence number
             List<long> expectedSequenceNumberList = priorityAndSequence
