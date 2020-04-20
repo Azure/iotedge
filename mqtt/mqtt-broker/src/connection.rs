@@ -1,9 +1,7 @@
-use std::fmt;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use failure::{Fail, ResultExt};
 use futures_util::future::{select, Either};
 use futures_util::pin_mut;
 use futures_util::sink::{Sink, SinkExt};
@@ -19,7 +17,8 @@ use tracing_futures::Instrument;
 use uuid::Uuid;
 
 use crate::broker::BrokerHandle;
-use crate::{ClientEvent, ClientId, ConnReq, Error, ErrorKind, Message, Publish};
+use crate::transport::GetPeerCertificate;
+use crate::{Certificate, ClientEvent, ClientId, ConnReq, Error, Message, Publish};
 
 lazy_static! {
     static ref DEFAULT_TIMEOUT: Duration = Duration::from_secs(5);
@@ -51,20 +50,19 @@ impl ConnectionHandle {
         self.sender
             .send(message)
             .await
-            .context(ErrorKind::SendConnectionMessage)?;
-        Ok(())
+            .map_err(Error::SendConnectionMessage)
+    }
+}
+
+impl std::fmt::Display for ConnectionHandle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.id)
     }
 }
 
 impl PartialEq for ConnectionHandle {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
-    }
-}
-
-impl fmt::Display for ConnectionHandle {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.id)
     }
 }
 
@@ -78,8 +76,10 @@ pub async fn process<I>(
     mut broker_handle: BrokerHandle,
 ) -> Result<(), Error>
 where
-    I: AsyncRead + AsyncWrite + Unpin,
+    I: AsyncRead + AsyncWrite + GetPeerCertificate<Certificate = Certificate> + Unpin,
 {
+    let certificate = io.peer_certificate()?;
+
     let mut timeout = TimeoutStream::new(io);
     timeout.set_read_timeout(Some(*DEFAULT_TIMEOUT));
     timeout.set_write_timeout(Some(*DEFAULT_TIMEOUT));
@@ -120,14 +120,13 @@ where
                     codec.get_mut().set_read_timeout(Some(keep_alive));
                 }
 
-                let (outgoing, incoming) = codec.split();
-
-                let req = ConnReq::new(client_id.clone(), connect, connection_handle);
+                let req = ConnReq::new(client_id.clone(), connect, certificate, connection_handle);
                 let event = ClientEvent::ConnReq(req);
                 let message = Message::Client(client_id.clone(), event);
                 broker_handle.send(message).await?;
 
                 // Start up the processing tasks
+                let (outgoing, incoming) = codec.split();
                 let incoming_task =
                     incoming_task(client_id.clone(), incoming, broker_handle.clone());
                 let outgoing_task = outgoing_task(client_id.clone(), events, outgoing, broker_handle.clone());
@@ -195,9 +194,9 @@ where
                 .instrument(span)
                 .await
         }
-        Some(Ok(packet)) => Err(ErrorKind::NoConnect(packet).into()),
-        Some(Err(e)) => Err(e.context(ErrorKind::DecodePacket).into()),
-        None => Err(ErrorKind::NoPackets.into()),
+        Some(Ok(packet)) => Err(Error::NoConnect(packet)),
+        Some(Err(e)) => Err(e.into()),
+        None => Err(Error::NoPackets),
     }
 }
 
@@ -219,7 +218,7 @@ where
                         // sent from a Client as a protocol violation and disconnect the Client.
 
                         warn!("CONNECT packet received on an already established connection, dropping connection due to protocol violation");
-                        return Err(Error::from(ErrorKind::ProtocolViolation));
+                        return Err(Error::ProtocolViolation);
                     }
                     Packet::ConnAck(connack) => ClientEvent::ConnAck(connack),
                     Packet::Disconnect(disconnect) => {
@@ -247,7 +246,7 @@ where
             }
             Err(e) => {
                 warn!(message="error occurred while reading from connection", error=%e);
-                return Err(e.context(ErrorKind::DecodePacket).into());
+                return Err(e.into());
             }
         }
     }
@@ -293,10 +292,7 @@ where
                     Some(Packet::Publish(publish))
                 }
                 ClientEvent::PublishTo(Publish::QoS0(id, publish)) => {
-                    let result = outgoing
-                        .send(Packet::Publish(publish))
-                        .await
-                        .context(ErrorKind::EncodePacket);
+                    let result = outgoing.send(Packet::Publish(publish)).await;
 
                     if let Err(e) = result {
                         warn!(message = "error occurred while writing to connection", error=%e);
@@ -323,7 +319,7 @@ where
         };
 
         if let Some(packet) = maybe_packet {
-            let result = outgoing.send(packet).await.context(ErrorKind::EncodePacket);
+            let result = outgoing.send(packet).await;
 
             if let Err(e) = result {
                 warn!(message = "error occurred while writing to connection", error=%e);

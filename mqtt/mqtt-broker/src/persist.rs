@@ -1,22 +1,29 @@
+use std::cmp;
+use std::collections::HashMap;
 use std::fs::{self, OpenOptions};
 use std::io::{Read, Write};
+use std::iter::FromIterator;
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
 #[cfg(windows)]
 use std::os::windows::fs::symlink_file;
 use std::path::PathBuf;
-use std::{cmp, fmt};
 
 use async_trait::async_trait;
+use bytes::Bytes;
 use fail::fail_point;
-use failure::ResultExt;
 use flate2::read::GzDecoder;
 use flate2::write::GzEncoder;
 use flate2::Compression;
+use mqtt3::proto::Publication;
+use serde::ser::SerializeMap;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use tracing::{debug, info, span, Level};
 
-use crate::error::{Error, ErrorKind};
+use crate::session::SessionState;
+use crate::subscription::Subscription;
 use crate::BrokerState;
+use crate::ClientId;
 
 /// sets the number of past states to save - 2 means we save the current and the pervious
 const STATE_DEFAULT_PREVIOUS_COUNT: usize = 2;
@@ -25,7 +32,7 @@ static STATE_EXTENSION: &str = "dat";
 
 #[async_trait]
 pub trait Persist {
-    type Error: Into<Error>;
+    type Error: std::error::Error;
 
     async fn load(&mut self) -> Result<Option<BrokerState>, Self::Error>;
 
@@ -38,7 +45,7 @@ pub struct NullPersistor;
 
 #[async_trait]
 impl Persist for NullPersistor {
-    type Error = Error;
+    type Error = PersistError;
 
     async fn load(&mut self) -> Result<Option<BrokerState>, Self::Error> {
         Ok(None)
@@ -51,7 +58,7 @@ impl Persist for NullPersistor {
 
 /// An abstraction over the broker state's file format.
 pub trait FileFormat {
-    type Error: Into<Error>;
+    type Error: std::error::Error;
 
     /// Load `BrokerState` from a reader.
     fn load<R: Read>(&self, reader: R) -> Result<BrokerState, Self::Error>;
@@ -101,46 +108,191 @@ impl<F> FilePersistor<F> {
     }
 }
 
-/// A simple format based on Bincode and serde
 #[derive(Clone, Debug, Default)]
-pub struct BincodeFormat;
+pub struct ConsolidatedStateFormat;
 
-impl BincodeFormat {
-    pub fn new() -> Self {
-        Self
-    }
-}
-
-impl FileFormat for BincodeFormat {
-    type Error = Error;
+impl FileFormat for ConsolidatedStateFormat {
+    type Error = PersistError;
 
     fn load<R: Read>(&self, reader: R) -> Result<BrokerState, Self::Error> {
         let decoder = GzDecoder::new(reader);
         fail_point!("bincodeformat.load.deserialize_from", |_| {
-            Err(Error::from(ErrorKind::Persist(ErrorReason::Deserialize)))
+            Err(PersistError::Deserialize(None))
         });
-        let state = bincode::deserialize_from(decoder)
-            .context(ErrorKind::Persist(ErrorReason::Deserialize))?;
-        Ok(state)
+
+        let state: ConsolidatedState =
+            bincode::deserialize_from(decoder).map_err(|e| PersistError::Deserialize(Some(e)))?;
+
+        Ok(state.into())
     }
 
     fn store<W: Write>(&self, writer: W, state: BrokerState) -> Result<(), Self::Error> {
+        let state: ConsolidatedState = state.into();
+
         let encoder = GzEncoder::new(writer, Compression::default());
         fail_point!("bincodeformat.store.serialize_into", |_| {
-            Err(Error::from(ErrorKind::Persist(ErrorReason::Deserialize)))
+            Err(PersistError::Serialize(None))
         });
-        bincode::serialize_into(encoder, &state)
-            .context(ErrorKind::Persist(ErrorReason::Serialize))?;
-        Ok(())
+        bincode::serialize_into(encoder, &state).map_err(|e| PersistError::Serialize(Some(e)))
     }
+}
+
+impl From<BrokerState> for ConsolidatedState {
+    fn from(state: BrokerState) -> Self {
+        let (retained, sessions) = state.into_parts();
+
+        #[allow(clippy::mutable_key_type)]
+        let mut payloads = HashMap::new();
+
+        let mut shrink_payload = |publication: Publication| {
+            let next_id = payloads.len() as u64;
+
+            let id = *payloads.entry(publication.payload).or_insert(next_id);
+
+            SimplifiedPublication {
+                topic_name: publication.topic_name,
+                qos: publication.qos,
+                retain: publication.retain,
+                payload: id,
+            }
+        };
+
+        let retained = retained
+            .into_iter()
+            .map(|(topic, publication)| (topic, shrink_payload(publication)))
+            .collect();
+
+        let sessions = sessions
+            .into_iter()
+            .map(|session| {
+                let (client_id, subscriptions, waiting_to_be_sent) = session.into_parts();
+
+                #[allow(clippy::redundant_closure)] // removing closure leads to borrow error
+                let waiting_to_be_sent = waiting_to_be_sent
+                    .into_iter()
+                    .map(|publication| shrink_payload(publication))
+                    .collect();
+
+                ConsolidatedSession {
+                    client_id,
+                    subscriptions,
+                    waiting_to_be_sent,
+                }
+            })
+            .collect();
+
+        // Note that while payloads are consolidated using a Hashmap<Byte, u64>, they are stored as a Hashmap<u64, Byte>.
+        // This makes consolidation much faster
+        let payloads = payloads
+            .drain()
+            .map(|(payload, id)| (id, payload))
+            .collect();
+
+        ConsolidatedState {
+            payloads,
+            retained,
+            sessions,
+        }
+    }
+}
+
+impl From<ConsolidatedState> for BrokerState {
+    fn from(state: ConsolidatedState) -> Self {
+        let ConsolidatedState {
+            payloads,
+            retained,
+            sessions,
+        } = state;
+
+        let expand_payload = |publication: SimplifiedPublication| Publication {
+            topic_name: publication.topic_name,
+            qos: publication.qos,
+            retain: publication.retain,
+            payload: payloads
+                .get(&publication.payload)
+                .expect("corrupted data")
+                .clone(),
+        };
+
+        let retained = retained
+            .into_iter()
+            .map(|(topic, publication)| (topic, expand_payload(publication)))
+            .collect();
+
+        #[allow(clippy::redundant_closure)] // removing closure leads to borrow error
+        let sessions = sessions
+            .into_iter()
+            .map(|session| {
+                let waiting_to_be_sent = session
+                    .waiting_to_be_sent
+                    .into_iter()
+                    .map(|publication| expand_payload(publication))
+                    .collect();
+                SessionState::from_parts(
+                    session.client_id,
+                    session.subscriptions,
+                    waiting_to_be_sent,
+                )
+            })
+            .collect();
+
+        BrokerState::new(retained, sessions)
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+struct ConsolidatedState {
+    #[serde(serialize_with = "serialize_payloads")]
+    #[serde(deserialize_with = "deserialize_payloads")]
+    payloads: HashMap<u64, Bytes>,
+    retained: HashMap<String, SimplifiedPublication>,
+    sessions: Vec<ConsolidatedSession>,
+}
+
+#[derive(Deserialize, Serialize)]
+struct ConsolidatedSession {
+    client_id: ClientId,
+    subscriptions: HashMap<String, Subscription>,
+    waiting_to_be_sent: Vec<SimplifiedPublication>,
+}
+
+#[derive(Deserialize, Serialize)]
+struct SimplifiedPublication {
+    topic_name: String,
+    qos: crate::proto::QoS,
+    retain: bool,
+    payload: u64,
+}
+
+fn serialize_payloads<S>(payloads: &HashMap<u64, Bytes>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let mut map = serializer.serialize_map(Some(payloads.len()))?;
+    for (k, v) in payloads {
+        map.serialize_entry(k, &v[..])?;
+    }
+
+    map.end()
+}
+
+fn deserialize_payloads<'de, D>(deserializer: D) -> Result<HashMap<u64, Bytes>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let payloads = HashMap::<u64, Vec<u8>>::deserialize(deserializer)?
+        .into_iter()
+        .map(|(k, v)| (k, Bytes::from(v)));
+    let payloads = HashMap::from_iter(payloads);
+    Ok(payloads)
 }
 
 #[async_trait]
 impl<F> Persist for FilePersistor<F>
 where
-    F: FileFormat + Clone + Send + 'static,
+    F: FileFormat<Error = PersistError> + Clone + Send + 'static,
 {
-    type Error = Error;
+    type Error = PersistError;
 
     async fn load(&mut self) -> Result<Option<BrokerState>, Self::Error> {
         let dir = self.dir.clone();
@@ -152,19 +304,17 @@ where
                 info!("loading state from file {}.", path.display());
 
                 fail_point!("filepersistor.load.fileopen", |_| {
-                    Err(Error::from(ErrorKind::Persist(ErrorReason::FileOpen(
-                        path.clone(),
-                    ))))
+                    Err(PersistError::FileOpen(path.clone(), None))
                 });
                 let file = OpenOptions::new()
                     .read(true)
                     .open(&path)
-                    .context(ErrorKind::Persist(ErrorReason::FileOpen(path)))?;
+                    .map_err(|e| PersistError::FileOpen(path.clone(), Some(e)))?;
 
                 fail_point!("filepersistor.load.format", |_| {
-                    Err(Error::from(ErrorKind::Persist(ErrorReason::Serialize)))
+                    Err(PersistError::Deserialize(None))
                 });
-                let state = format.load(file).map_err(Into::into)?;
+                let state = format.load(file)?;
                 Ok(Some(state))
             } else {
                 info!("no state file found at {}.", path.display());
@@ -174,9 +324,9 @@ where
         .await;
 
         fail_point!("filepersistor.load.spawn_blocking", |_| {
-            Err(Error::from(ErrorKind::TaskJoin))
+            Err(PersistError::TaskJoin(None))
         });
-        res.context(ErrorKind::TaskJoin)?
+        res.map_err(|e| PersistError::TaskJoin(Some(e)))?
     }
 
     #[allow(clippy::too_many_lines)]
@@ -194,12 +344,10 @@ where
 
             if !dir.exists() {
                 fail_point!("filepersistor.store.createdir", |_| {
-                    Err(Error::from(ErrorKind::Persist(ErrorReason::CreateDir(
-                        dir.clone(),
-                    ))))
+                    Err(PersistError::CreateDir(dir.clone(), None))
                 });
                 fs::create_dir_all(&dir)
-                    .context(ErrorKind::Persist(ErrorReason::CreateDir(dir.clone())))?;
+                    .map_err(|e| PersistError::CreateDir(dir.clone(), Some(e)))?;
             }
 
             let link_path = dir.join(format!("{}.{}", STATE_DEFAULT_STEM, STATE_EXTENSION));
@@ -217,19 +365,17 @@ where
             info!(message="persisting state...", file=%path.display());
             debug!("opening {} for writing state...", path.display());
             fail_point!("filepersistor.store.fileopen", |_| {
-                Err(Error::from(ErrorKind::Persist(ErrorReason::FileOpen(
-                    path.clone(),
-                ))))
+                Err(PersistError::FileOpen(path.clone(), None))
             });
             let file = OpenOptions::new()
                 .create(true)
                 .write(true)
                 .open(&path)
-                .context(ErrorKind::Persist(ErrorReason::FileOpen(path.clone())))?;
+                .map_err(|e| PersistError::FileOpen(path.clone(), Some(e)))?;
             debug!("{} opened.", path.display());
 
             debug!("persisting state to {}...", path.display());
-            match format.store(file, state).map_err(Into::into) {
+            match format.store(file, state) {
                 Ok(_) => {
                     debug!("state persisted to {}.", path.display());
 
@@ -238,56 +384,54 @@ where
                     //   - link the new file
                     if temp_link_path.exists() {
                         fail_point!("filepersistor.store.symlink_unlink", |_| {
-                            Err(Error::from(ErrorKind::Persist(ErrorReason::SymlinkUnlink(
-                                temp_link_path.clone(),
-                            ))))
+                            Err(PersistError::SymlinkUnlink(temp_link_path.clone(), None))
                         });
-                        fs::remove_file(&temp_link_path).context(ErrorKind::Persist(
-                            ErrorReason::SymlinkUnlink(temp_link_path.clone()),
-                        ))?;
+                        fs::remove_file(&temp_link_path).map_err(|e| {
+                            PersistError::SymlinkUnlink(temp_link_path.clone(), Some(e))
+                        })?;
                     }
 
                     debug!("linking {} to {}", temp_link_path.display(), path.display());
 
                     fail_point!("filepersistor.store.symlink", |_| {
-                        Err(Error::from(ErrorKind::Persist(ErrorReason::Symlink(
+                        Err(PersistError::Symlink(
                             temp_link_path.clone(),
                             path.clone(),
-                        ))))
+                            None,
+                        ))
                     });
 
                     #[cfg(unix)]
-                    symlink(&path, &temp_link_path).context(ErrorKind::Persist(
-                        ErrorReason::Symlink(temp_link_path.clone(), path.clone()),
-                    ))?;
+                    symlink(&path, &temp_link_path).map_err(|e| {
+                        PersistError::Symlink(temp_link_path.clone(), path.clone(), Some(e))
+                    })?;
 
                     #[cfg(windows)]
-                    symlink_file(&path, &temp_link_path).context(ErrorKind::Persist(
-                        ErrorReason::Symlink(temp_link_path.clone(), path.clone()),
-                    ))?;
+                    symlink_file(&path, &temp_link_path).map_err(|e| {
+                        PersistError::Symlink(temp_link_path.clone(), path.clone(), Some(e))
+                    })?;
 
                     // Commit the updated link by renaming the temp link.
                     // This is the so-called "capistrano" trick for atomically updating links
                     // https://github.com/capistrano/capistrano/blob/d04c1e3ea33e84b183d056b71c7cacf7744ce7ad/lib/capistrano/tasks/deploy.rake
                     fail_point!("filepersistor.store.filerename", |_| {
-                        Err(Error::from(ErrorKind::Persist(ErrorReason::FileRename(
+                        Err(PersistError::FileRename(
                             temp_link_path.clone(),
-                            link_path.clone(),
-                        ))))
+                            path.clone(),
+                            None,
+                        ))
                     });
-                    fs::rename(&temp_link_path, &link_path).context(ErrorKind::Persist(
-                        ErrorReason::FileRename(temp_link_path, link_path),
-                    ))?;
+                    fs::rename(&temp_link_path, &link_path).map_err(|e| {
+                        PersistError::Symlink(temp_link_path.clone(), path.clone(), Some(e))
+                    })?;
 
                     // Prune old states
                     fail_point!("filepersistor.store.readdir", |_| {
-                        Err(Error::from(ErrorKind::Persist(ErrorReason::ReadDir(
-                            dir.clone(),
-                        ))))
+                        Err(PersistError::ReadDir(dir.clone(), None))
                     });
 
                     let mut entries = fs::read_dir(&dir)
-                        .context(ErrorKind::Persist(ErrorReason::ReadDir(dir.clone())))?
+                        .map_err(|e| (PersistError::ReadDir(dir.clone(), Some(e))))?
                         .filter_map(Result::ok)
                         .filter(|entry| entry.file_type().ok().map_or(false, |f| f.is_file()))
                         .filter(|entry| {
@@ -311,24 +455,19 @@ where
                         );
 
                         fail_point!("filepersistor.store.entry_unlink", |_| {
-                            Err(Error::from(ErrorKind::Persist(ErrorReason::FileUnlink(
-                                entry.path(),
-                            ))))
+                            Err(PersistError::FileUnlink(entry.path(), None))
                         });
-                        fs::remove_file(&entry.path()).context(ErrorKind::Persist(
-                            ErrorReason::FileUnlink(entry.path().clone()),
-                        ))?;
+                        fs::remove_file(&entry.path())
+                            .map_err(|e| PersistError::FileUnlink(entry.path(), Some(e)))?;
                         debug!("{} pruned.", entry.file_name().to_string_lossy());
                     }
                 }
                 Err(e) => {
                     fail_point!("filepersistor.store.new_file_unlink", |_| {
-                        Err(Error::from(ErrorKind::Persist(ErrorReason::FileUnlink(
-                            path.clone(),
-                        ))))
+                        Err(PersistError::FileUnlink(path.clone(), None))
                     });
                     fs::remove_file(&path)
-                        .context(ErrorKind::Persist(ErrorReason::FileUnlink(path)))?;
+                        .map_err(|e| (PersistError::FileUnlink(path, Some(e))))?;
                     return Err(e);
                 }
             }
@@ -337,56 +476,44 @@ where
         })
         .await;
 
-        fail_point!("filepersistor.store.spawn_blocking", |_| {
-            Err(Error::from(ErrorKind::TaskJoin))
+        fail_point!("filepersistor.load.spawn_blocking", |_| {
+            Err(PersistError::TaskJoin(None))
         });
-        res.context(ErrorKind::TaskJoin)?
+        res.map_err(|e| PersistError::TaskJoin(Some(e)))?
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub enum ErrorReason {
-    FileOpen(PathBuf),
-    FileRename(PathBuf, PathBuf),
-    FileUnlink(PathBuf),
-    CreateDir(PathBuf),
-    ReadDir(PathBuf),
-    Symlink(PathBuf, PathBuf),
-    SymlinkUnlink(PathBuf),
-    Serialize,
-    Deserialize,
-}
+#[derive(Debug, thiserror::Error)]
+pub enum PersistError {
+    #[error("failed to open file {0}")]
+    FileOpen(PathBuf, #[source] Option<std::io::Error>),
 
-impl fmt::Display for ErrorReason {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ErrorReason::FileOpen(pb) => write!(f, "failed to open file {}", pb.display()),
-            ErrorReason::FileRename(from, to) => write!(
-                f,
-                "failed to rename file {} to {}",
-                from.display(),
-                to.display()
-            ),
-            ErrorReason::FileUnlink(pb) => write!(f, "failed to remove file {}", pb.display()),
-            ErrorReason::CreateDir(pb) => {
-                write!(f, "failed to create state directory {}", pb.display())
-            }
-            ErrorReason::ReadDir(pb) => {
-                write!(f, "failed to read contents of directory {}", pb.display())
-            }
-            ErrorReason::Symlink(from, to) => write!(
-                f,
-                "failed to create symlink from {} to {}",
-                from.display(),
-                to.display()
-            ),
-            ErrorReason::SymlinkUnlink(pb) => {
-                write!(f, "failed to remove symlink {}", pb.display())
-            }
-            ErrorReason::Serialize => write!(f, "failed to serialize state"),
-            ErrorReason::Deserialize => write!(f, "failed to deserialize state"),
-        }
-    }
+    #[error("failed to rename file {0} to {}")]
+    FileRename(PathBuf, PathBuf, #[source] Option<std::io::Error>),
+
+    #[error("failed to remove file {0}")]
+    FileUnlink(PathBuf, #[source] Option<std::io::Error>),
+
+    #[error("failed to create state directory {0}")]
+    CreateDir(PathBuf, #[source] Option<std::io::Error>),
+
+    #[error("failed to read contents of directory {0}")]
+    ReadDir(PathBuf, #[source] Option<std::io::Error>),
+
+    #[error("failed to create symlink from {0} to {1}")]
+    Symlink(PathBuf, PathBuf, #[source] Option<std::io::Error>),
+
+    #[error("failed to remove symlink {0}")]
+    SymlinkUnlink(PathBuf, #[source] Option<std::io::Error>),
+
+    #[error("failed to serialize state")]
+    Serialize(#[source] Option<bincode::Error>),
+
+    #[error("failed to deserialize state")]
+    Deserialize(#[source] Option<bincode::Error>),
+
+    #[error("An error occurred joining a task.")]
+    TaskJoin(#[source] Option<tokio::task::JoinError>),
 }
 
 #[cfg(test)]
@@ -402,16 +529,40 @@ pub(crate) mod tests {
 
     proptest! {
         #[test]
-        fn bincode_roundtrip(state in arb_broker_state()) {
-            let expected = state.clone();
-            let format = BincodeFormat;
+        fn consolidate_simple(state in arb_broker_state()) {
+            let (expected_retained, expected_sessions) = state.clone().into_parts();
+
+            let consolidated: ConsolidatedState = state.into();
+            prop_assert_eq!(expected_retained.len(), consolidated.retained.len());
+            prop_assert_eq!(expected_sessions.len(), consolidated.sessions.len());
+
+            let state: BrokerState = consolidated.into();
+            let (result_retained, result_sessions) = state.into_parts();
+
+            prop_assert_eq!(expected_retained, result_retained);
+            prop_assert_eq!(expected_sessions.len(), result_sessions.len());
+            for i in 0..expected_sessions.len(){
+                prop_assert_eq!(expected_sessions[i].clone().into_parts(), result_sessions[i].clone().into_parts());
+            }
+        }
+
+        #[test]
+        fn consolidate_roundtrip(state in arb_broker_state()) {
+            let (expected_retained, expected_sessions) = state.clone().into_parts();
+            let format = ConsolidatedStateFormat;
             let mut buffer = vec![0_u8; 10 * 1024 * 1024];
             let writer = Cursor::new(&mut buffer);
             format.store(writer, state).unwrap();
 
             let reader = Cursor::new(buffer);
             let state = format.load(reader).unwrap();
-            prop_assert_eq!(expected, state);
+            let (result_retained, result_sessions) = state.into_parts();
+
+            prop_assert_eq!(expected_retained, result_retained);
+            prop_assert_eq!(expected_sessions.len(), result_sessions.len());
+            for i in 0..expected_sessions.len(){
+                prop_assert_eq!(expected_sessions[i].clone().into_parts(), result_sessions[i].clone().into_parts());
+            }
         }
     }
 
@@ -419,7 +570,7 @@ pub(crate) mod tests {
     async fn filepersistor_smoketest() {
         let tmp_dir = TempDir::new().unwrap();
         let path = tmp_dir.path().to_owned();
-        let mut persistor = FilePersistor::new(path, BincodeFormat::new());
+        let mut persistor = FilePersistor::new(path, ConsolidatedStateFormat::default());
 
         persistor.store(BrokerState::default()).await.unwrap();
         let state = persistor.load().await.unwrap().unwrap();

@@ -13,5 +13,5 @@ COPY $EXE_DIR/ ./
 RUN adduser -Ds /bin/sh moduleuser 
 USER moduleuser
 
-CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Edge Agent" && \
+CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Temperature Filter" && \
     exec /usr/bin/dotnet TemperatureFilter.dll

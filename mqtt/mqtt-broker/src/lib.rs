@@ -11,13 +11,14 @@
     clippy::missing_errors_doc
 )]
 
-use std::fmt;
 use std::sync::Arc;
 
 use mqtt3::*;
 use serde::{Deserialize, Serialize};
 
+mod auth;
 mod broker;
+mod configuration;
 mod connection;
 mod error;
 mod persist;
@@ -25,13 +26,20 @@ mod server;
 mod session;
 mod snapshot;
 mod subscription;
+mod transport;
 
-pub use crate::broker::{Broker, BrokerHandle, BrokerState};
+pub use crate::auth::{AuthId, Certificate};
+pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle, BrokerState};
+pub use crate::configuration::BrokerConfig;
 pub use crate::connection::ConnectionHandle;
-pub use crate::error::{Error, ErrorKind};
-pub use crate::persist::{BincodeFormat, FileFormat, FilePersistor, NullPersistor, Persist};
+pub use crate::error::{Error, InitializeBrokerError};
+pub use crate::persist::{
+    ConsolidatedStateFormat, FileFormat, FilePersistor, NullPersistor, Persist, PersistError,
+};
 pub use crate::server::Server;
+pub use crate::session::SessionState;
 pub use crate::snapshot::{Snapshotter, StateSnapshotHandle};
+pub use crate::transport::TransportBuilder;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ClientId(Arc<String>);
@@ -42,30 +50,36 @@ impl ClientId {
     }
 }
 
-impl fmt::Display for ClientId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl<T: Into<String>> From<T> for ClientId {
+    fn from(s: T) -> ClientId {
+        ClientId(Arc::new(s.into()))
+    }
+}
+
+impl std::fmt::Display for ClientId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_str())
     }
 }
-
-impl From<String> for ClientId {
-    fn from(s: String) -> ClientId {
-        ClientId(Arc::new(s))
-    }
-}
-
 #[derive(Debug)]
 pub struct ConnReq {
     client_id: ClientId,
     connect: proto::Connect,
+    certificate: Option<Certificate>,
     handle: ConnectionHandle,
 }
 
 impl ConnReq {
-    pub fn new(client_id: ClientId, connect: proto::Connect, handle: ConnectionHandle) -> Self {
+    pub fn new(
+        client_id: ClientId,
+        connect: proto::Connect,
+        certificate: Option<Certificate>,
+        handle: ConnectionHandle,
+    ) -> Self {
         Self {
             client_id,
             connect,
+            certificate,
             handle,
         }
     }
@@ -80,6 +94,10 @@ impl ConnReq {
 
     pub fn handle(&self) -> &ConnectionHandle {
         &self.handle
+    }
+
+    pub fn certificate(&self) -> Option<&Certificate> {
+        self.certificate.as_ref()
     }
 
     pub fn handle_mut(&mut self) -> &mut ConnectionHandle {

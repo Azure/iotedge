@@ -34,17 +34,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
         }
 
-        string GetRegistrationId()
-        {
-            return $"{Context.Current.DeviceId}-{TestContext.CurrentContext.Test.NormalizedName()}";
-        }
-
         [Test]
         public async Task DpsSymmetricKey()
         {
             string idScope = Context.Current.DpsIdScope.Expect(() => new InvalidOperationException("Missing DPS ID scope"));
             string groupKey = Context.Current.DpsGroupKey.Expect(() => new InvalidOperationException("Missing DPS enrollment group key"));
-            string registrationId = this.GetRegistrationId();
+            string registrationId = DeviceId.Current.Generate();
 
             string deviceKey = this.DeriveDeviceKey(Convert.FromBase64String(groupKey), registrationId);
 
@@ -72,8 +67,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 this.iotHub,
                 token,
                 takeOwnership: true);
-            Context.Current.DeleteList.TryAdd(registrationId, device.Expect(() => new InvalidOperationException(
-                $"Device '{registrationId}' should have been created by DPS, but was not found in '{this.iotHub.Hostname}'")));
+
+            Context.Current.DeleteList.TryAdd(
+                registrationId,
+                device.Expect(() => new InvalidOperationException(
+                    $"Device '{registrationId}' should have been created by DPS, but was not found in '{this.iotHub.Hostname}'")));
         }
 
         [Test]
@@ -84,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string caCertScriptPath =
                         Context.Current.CaCertScriptPath.Expect(() => new InvalidOperationException("Missing CA cert script path"));
             string idScope = Context.Current.DpsIdScope.Expect(() => new InvalidOperationException("Missing DPS ID scope"));
-            string registrationId = this.GetRegistrationId();
+            string registrationId = DeviceId.Current.Generate();
 
             CancellationToken token = this.TestToken;
 

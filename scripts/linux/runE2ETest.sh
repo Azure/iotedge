@@ -19,12 +19,12 @@ function clean_up() {
     rm -rf /var/run/iotedge/
     rm -rf /etc/iotedge/config.yaml
 
+    echo 'Remove docker containers'
+    docker rm -f $(docker ps -aq) || true
+
     if [ "$CLEAN_ALL" = '1' ]; then
         echo 'Prune docker system'
         docker system prune -af --volumes || true
-    else
-        echo 'Remove docker containers'
-        docker rm -f $(docker ps -aq) || true
     fi
 }
 
@@ -169,12 +169,10 @@ function prepare_test_from_artifacts() {
 
                 local escapedSnitchAlertUrl
                 local escapedBuildId
-                local tracking_id=$(cat /proc/sys/kernel/random/uuid)
 
                 sed -i -e "s@<Analyzer.ConsumerGroupId>@$EVENT_HUB_CONSUMER_GROUP_ID@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
-                sed -i -e "s@<Analyzer.TestInfo>@$TEST_INFO@g" "$deployment_working_file"
-                sed -i -e "s@<MetricsCollector.HostPlatform>@$HOST_PLATFORM@g" "$deployment_working_file"
+                sed -i -e "s@<TestInfo>@$TEST_INFO@g" "$deployment_working_file"
                 sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
                 sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHARED_KEY@g" "$deployment_working_file"
                 sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACE_ID@g" "$deployment_working_file"
@@ -208,6 +206,7 @@ function prepare_test_from_artifacts() {
         sed -i -e "s@<CR.Username>@$CONTAINER_REGISTRY_USERNAME@g" "$deployment_working_file"
         sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
         sed -i -e "s@<Container_Registry>@$CONTAINER_REGISTRY@g" "$deployment_working_file"
+        sed -i -e "s@<TestStartDelay>@$TEST_START_DELAY@g" "$deployment_working_file"
     fi
 }
 
@@ -397,13 +396,13 @@ function process_args() {
             METRICS_UPLOAD_TARGET="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 40 ]; then
-            HOST_PLATFORM="$arg"
-            saveNextArg=0
-        elif [ $saveNextArg -eq 41 ]; then
             INITIALIZE_WITH_AGENT_ARTIFACT="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 42 ]; then
+        elif [ $saveNextArg -eq 41 ]; then
             TEST_INFO="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 42 ]; then
+            TEST_START_DELAY="$arg"
             saveNextArg=0
         else
             case "$arg" in
@@ -447,9 +446,9 @@ function process_args() {
                 '-metricsEndpointsCSV' ) saveNextArg=37;;
                 '-metricsScrapeFrequencyInSecs' ) saveNextArg=38;;
                 '-metricsUploadTarget' ) saveNextArg=39;;
-                '-hostPlatform' ) saveNextArg=40;;
-                '-initializeWithAgentArtifact' ) saveNextArg=41;;
-                '-testInfo' ) saveNextArg=42;;
+                '-initializeWithAgentArtifact' ) saveNextArg=40;;
+                '-testInfo' ) saveNextArg=41;;
+                '-testStartDelay' ) saveNextArg=42;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -990,11 +989,6 @@ function validate_test_parameters() {
             print_error "Required snitch storage master key."
             ((error++))
         fi
-
-        if [[ -z "$HOST_PLATFORM" ]]; then
-            print_error "Required host platform."
-            ((error++))
-        fi
         
         if [[ -z "$TEST_INFO" ]]; then
             print_error "Required test info."
@@ -1065,9 +1059,9 @@ function usage() {
     echo ' -metricsEndpointsCSV              Optional csv of exposed endpoints for which to scrape metrics.'
     echo ' -metricsScrapeFrequencyInSecs     Optional frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
     echo ' -metricsUploadTarget              Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
-    echo ' -hostPlatform                     Describes the host OS and cpu architecture. This information is added to scraped metrics.'
     echo ' -initializeWithAgentArtifact      Boolean specifying if the iotedge installation should initialize edge agent with the official 1.0 image or the desired artifact. If false, the deployment after installation will start the desired agent artifact.'
     echo ' -testInfo                         Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.' 
+    echo ' -testStartDelay                   Tests start after delay for applicable modules'
     exit 1;
 }
 
@@ -1082,9 +1076,15 @@ TRANSPORT_TYPE_1="${TRANSPORT_TYPE_1:-amqp}"
 TRANSPORT_TYPE_2="${TRANSPORT_TYPE_2:-amqp}"
 TRANSPORT_TYPE_3="${TRANSPORT_TYPE_3:-mqtt}"
 TRANSPORT_TYPE_4="${TRANSPORT_TYPE_4:-mqtt}"
-TWIN_UPDATE_FAILURE_THRESHOLD="${TWIN_UPDATE_FAILURE_THRESHOLD:-00:01:00}"
-METRICS_SCRAPE_FREQUENCY_IN_SECS="${METRICS_SCRAPE_FREQUENCY_IN_SECS:-300}"
-METRICS_UPLOAD_TARGET="${METRICS_UPLOAD_TARGET:-AzureLogAnalytics}"
+
+if [[ "${TEST_NAME,,}" == "longhaul" ]] ||
+   [[ "${TEST_NAME,,}" == "stress"  ]]; then
+    tracking_id=$(cat /proc/sys/kernel/random/uuid)
+    TEST_INFO="$TEST_INFO,TestId=$tracking_id"
+    TWIN_UPDATE_FAILURE_THRESHOLD="${TWIN_UPDATE_FAILURE_THRESHOLD:-00:01:00}"
+    METRICS_SCRAPE_FREQUENCY_IN_SECS="${METRICS_SCRAPE_FREQUENCY_IN_SECS:-300}"
+    METRICS_UPLOAD_TARGET="${METRICS_UPLOAD_TARGET:-AzureLogAnalytics}"
+fi
 if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
     DESIRED_MODULES_TO_RESTART_CSV="${DESIRED_MODULES_TO_RESTART_CSV:-,}"
     LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:01}"
@@ -1093,6 +1093,7 @@ if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
     SNITCH_TEST_DURATION_IN_SECS="${SNITCH_TEST_DURATION_IN_SECS:-604800}"
     TWIN_UPDATE_SIZE="${TWIN_UPDATE_SIZE:-1}"
     TWIN_UPDATE_FREQUENCY="${TWIN_UPDATE_FREQUENCY:-00:00:15}"
+    TEST_START_DELAY="${TEST_START_DELAY:-00:00:00}"
 fi
 if [[ "${TEST_NAME,,}" == "stress" ]]; then
     LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:00.03}"
