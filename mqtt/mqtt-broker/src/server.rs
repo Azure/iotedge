@@ -173,7 +173,7 @@ where
     A: ToSocketAddrs,
     F: Future<Output = ()> + Unpin,
 {
-    let mut io = transport.build().await?;
+    let io = transport.build().await?;
     let addr = io.local_addr()?;
     let span = span!(Level::INFO, "server", listener=%addr);
     let _enter = span.enter();
