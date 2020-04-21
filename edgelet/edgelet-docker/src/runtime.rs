@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::ops::Deref;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use base64;
@@ -41,7 +43,7 @@ use std::convert::TryInto;
 use std::mem;
 use std::process;
 use std::time::{SystemTime, UNIX_EPOCH};
-use sysinfo::{DiskExt, ProcessExt, ProcessorExt, SystemExt};
+use sysinfo::{DiskExt, ProcessExt, ProcessorExt, System, SystemExt};
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
@@ -59,6 +61,7 @@ lazy_static! {
 #[derive(Clone)]
 pub struct DockerModuleRuntime {
     client: DockerClient<UrlConnector>,
+    system_resources: Arc<Mutex<Cell<System>>>,
 }
 
 impl DockerModuleRuntime {
@@ -243,8 +246,13 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                         e
                     })
                     .map(|client| {
+                        let mut system_resources = System::new();
+                        system_resources.refresh_all();
                         info!("Successfully initialized module runtime");
-                        DockerModuleRuntime { client }
+                        DockerModuleRuntime {
+                            client,
+                            system_resources: Arc::new(Mutex::new(Cell::new(system_resources))),
+                        }
                     });
 
                 future::Either::A(fut)
@@ -644,8 +652,10 @@ impl ModuleRuntime for DockerModuleRuntime {
         #[cfg(windows)]
         let uptime: u64 = unsafe { winapi::um::sysinfoapi::GetTickCount() }.into();
 
-        let mut system_info = sysinfo::System::new();
-        system_info.refresh_all();
+        let mut system_resources = self.system_resources.as_ref().lock().unwrap();
+        let system_resources = system_resources.get_mut();
+        system_resources.refresh_all();
+
         let current_time = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
@@ -653,19 +663,21 @@ impl ModuleRuntime for DockerModuleRuntime {
         let start_time = process::id()
             .try_into()
             .map(|id| {
-                system_info
+                system_resources
                     .get_process(id)
                     .map(|p| p.start_time())
                     .unwrap_or_default()
             })
             .unwrap_or_default();
 
-        let used_cpu = system_info.get_global_processor_info().get_cpu_usage();
+        let used_cpu = system_resources
+            .get_global_processor_info()
+            .get_cpu_usage();
 
-        let total_memory = system_info.get_total_memory() * 1000;
-        let used_memory = system_info.get_used_memory() * 1000;
+        let total_memory = system_resources.get_total_memory() * 1000;
+        let used_memory = system_resources.get_used_memory() * 1000;
 
-        let disks = system_info
+        let disks = system_resources
             .get_disks()
             .iter()
             .map(|disk| {
