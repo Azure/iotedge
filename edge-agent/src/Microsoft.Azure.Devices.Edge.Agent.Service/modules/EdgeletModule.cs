@@ -168,6 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // SystemResourcesMetrics
             builder.Register(c => new SystemResourcesMetrics(c.Resolve<IMetricsProvider>(), c.Resolve<IModuleManager>().GetSystemResourcesAsync, this.apiVersion, this.performanceMetricsUpdateFrequency))
+                .As<ISystemResourcesMetrics>()
                 .SingleInstance();
         }
     }
