@@ -156,7 +156,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
                     // Create a checkpointer and a FSM for every message queue
                     ICheckpointer checkpointer = await this.checkpointerFactory.CreateAsync(id);
-                    EndpointExecutorFsm fsm = new EndpointExecutorFsm(this.Endpoint, checkpointer, this.config);
+                    EndpointExecutorFsm fsm = new EndpointExecutorFsm(this.Endpoint, checkpointer, this.config, this.cts.Token);
 
                     // Add it to our dictionary
                     snapshot.Add(priority, fsm);

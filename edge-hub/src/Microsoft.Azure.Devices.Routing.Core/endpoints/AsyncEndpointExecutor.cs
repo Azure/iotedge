@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             this.checkpointer = Preconditions.CheckNotNull(checkpointer);
             this.cts = new CancellationTokenSource();
             this.options = Preconditions.CheckNotNull(options);
-            this.machine = new EndpointExecutorFsm(endpoint, checkpointer, config);
+            this.machine = new EndpointExecutorFsm(endpoint, checkpointer, config, this.cts.Token);
             this.closed = new AtomicBoolean();
 
             // The three size variables below adjust the following parameters:

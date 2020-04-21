@@ -36,8 +36,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             Preconditions.CheckNotNull(config);
 
             this.checkpointer = Preconditions.CheckNotNull(checkpointer);
-            this.machine = new EndpointExecutorFsm(endpoint, checkpointer, config);
             this.cts = new CancellationTokenSource();
+            this.machine = new EndpointExecutorFsm(endpoint, checkpointer, config, this.cts.Token);
             this.closed = new AtomicBoolean();
             this.sync = new AsyncLock();
         }
