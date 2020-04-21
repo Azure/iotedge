@@ -93,9 +93,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 {
                     Events.PrintCustomMessage("StoringAsyncEndpointExecutor.CloseAsync: getandset is done");
                     this.cts.Cancel();
-                    Events.PrintCustomMessage("StoringAsyncEndpointExecutor.CloseAsync: getandset is done");
+                    Events.PrintCustomMessage("StoringAsyncEndpointExecutor.CloseAsync: canceled token done");
                     await (this.messageStore?.RemoveEndpoint(this.Endpoint.Id) ?? Task.CompletedTask);
-                    Events.PrintCustomMessage("StoringAsyncEndpointExecutor.CloseAsync: getandset is done");
+                    Events.PrintCustomMessage("StoringAsyncEndpointExecutor.CloseAsync: remove endpoint done");
                     await (this.sendMessageTask ?? Task.CompletedTask);
                 }
 

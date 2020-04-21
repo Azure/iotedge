@@ -290,14 +290,18 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             ICollection<IMessage> messages = EmptyMessages;
             Stopwatch stopwatch = Stopwatch.StartNew();
             TimeSpan endpointTimeout = TimeSpan.FromMilliseconds(thisPtr.config.Timeout.TotalMilliseconds * thisPtr.Endpoint.FanOutFactor);
+
+            Events.PrintCustomMessage($"EndpointExexcutorFsm.EnterSendingAsync: Canceled = {thisPtr.EndpointExecutorToken.IsCancellationRequested}");
+            if (thisPtr.EndpointExecutorToken.IsCancellationRequested)
+            {
+                Events.SendCanceled(thisPtr);
+                await RunInternalAsync(thisPtr, Commands.Checkpoint(SinkResult<IMessage>.Empty));
+                return;
+            }
+
             try
             {
-                if (thisPtr.EndpointExecutorToken.IsCancellationRequested)
-                {
-                    Events.SendCanceled(thisPtr);
-                    next = Commands.Checkpoint(SinkResult<IMessage>.Empty);
-                }
-
+                Events.PrintCustomMessage($"EndpointExexcutorFsm.EnterSendingAsync: start getting messages");
                 Preconditions.CheckNotNull(thisPtr.currentSendCommand);
 
                 messages = thisPtr.currentSendCommand.Messages.Where(thisPtr.Checkpointer.Admit).ToArray();
