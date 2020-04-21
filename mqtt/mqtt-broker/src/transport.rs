@@ -112,7 +112,7 @@ impl Transport {
 }
 
 type HandshakeFuture =
-    Pin<Box<dyn Future<Output = Result<TlsStream<TcpStream>, native_tls::Error>> + Send>> ;
+    Pin<Box<dyn Future<Output = Result<TlsStream<TcpStream>, native_tls::Error>> + Send>>;
 
 pub enum Incoming {
     Tcp(IncomingTcp),
