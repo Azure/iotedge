@@ -95,6 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             this.RegisterMqttModule(builder, storeAndForward, optimizeForPerformance);
             this.RegisterAmqpModule(builder);
             builder.RegisterModule(new HttpModule());
+            builder.RegisterModule(new AuthModule());
         }
 
         internal static Option<UpstreamProtocol> GetUpstreamProtocol(IConfigurationRoot configuration) =>
