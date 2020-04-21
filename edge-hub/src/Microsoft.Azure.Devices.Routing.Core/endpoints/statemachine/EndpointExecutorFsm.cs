@@ -81,6 +81,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
         readonly Timer retryTimer;
         readonly AsyncLock sync = new AsyncLock();
         readonly ISystemTime systemTime;
+        readonly CancellationToken endpointExecutorToken;
 
         volatile State state;
         volatile int retryAttempts;
@@ -91,12 +92,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
         volatile IProcessor processor;
         TimeSpan retryPeriod;
 
-        public EndpointExecutorFsm(Endpoint endpoint, ICheckpointer checkpointer, EndpointExecutorConfig config)
-            : this(endpoint, checkpointer, config, SystemTime.Instance)
+        public EndpointExecutorFsm(Endpoint endpoint, ICheckpointer checkpointer, EndpointExecutorConfig config, CancellationToken endpointExecutorToken)
+            : this(endpoint, checkpointer, config, SystemTime.Instance, endpointExecutorToken)
         {
         }
 
-        public EndpointExecutorFsm(Endpoint endpoint, ICheckpointer checkpointer, EndpointExecutorConfig config, ISystemTime systemTime)
+        public EndpointExecutorFsm(Endpoint endpoint, ICheckpointer checkpointer, EndpointExecutorConfig config, ISystemTime systemTime, CancellationToken endpointExecutorToken)
         {
             this.processor = Preconditions.CheckNotNull(endpoint).CreateProcessor();
             this.Checkpointer = Preconditions.CheckNotNull(checkpointer);
@@ -106,6 +107,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             this.retryPeriod = Timeout.InfiniteTimeSpan;
             this.lastFailedRevivalTime = checkpointer.LastFailedRevivalTime;
             this.unhealthySince = checkpointer.UnhealthySince;
+            this.endpointExecutorToken = endpointExecutorToken;
 
             if (checkpointer.LastFailedRevivalTime.HasValue)
             {
@@ -124,6 +126,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
 
         public EndpointExecutorStatus Status =>
             new EndpointExecutorStatus(this.Endpoint.Id, this.state, this.retryAttempts, this.retryPeriod, this.lastFailedRevivalTime, this.unhealthySince, new CheckpointerStatus(this.Checkpointer.Id, this.Checkpointer.Offset, this.Checkpointer.Proposed));
+
+        public CancellationToken EndpointExecutorToken => this.endpointExecutorToken;
 
         public async Task RunAsync(ICommand command)
         {
@@ -288,6 +292,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             TimeSpan endpointTimeout = TimeSpan.FromMilliseconds(thisPtr.config.Timeout.TotalMilliseconds * thisPtr.Endpoint.FanOutFactor);
             try
             {
+                if (thisPtr.EndpointExecutorToken.IsCancellationRequested)
+                {
+                    Events.SendCanceled(thisPtr);
+                    next = Commands.Checkpoint(SinkResult<IMessage>.Empty);
+                }
+
                 Preconditions.CheckNotNull(thisPtr.currentSendCommand);
 
                 messages = thisPtr.currentSendCommand.Messages.Where(thisPtr.Checkpointer.Admit).ToArray();
@@ -680,6 +690,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                     GetContextString(fsm));
 
                 LogUnhealthyEndpointOpMonError(fsm, failureDetails.FailureKind);
+            }
+
+            public static void SendCanceled(EndpointExecutorFsm fsm)
+            {
+                Log.LogDebug((int)EventIds.SendNone, "[SendCancelled] Endpoint executor token is canceled. {0}", GetContextString(fsm));
             }
 
             public static void SendNone(EndpointExecutorFsm fsm)

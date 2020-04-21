@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             checkpointer.Setup(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), Option.None<DateTime>(), Option.None<DateTime>(), It.IsAny<CancellationToken>())).Returns(TaskEx.Done);
             checkpointer.Setup(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), Option.None<DateTime>(), Option.None<DateTime>(), It.IsAny<CancellationToken>())).Returns(TaskEx.Done);
 
-            var machine1 = new EndpointExecutorFsm(endpoint1, checkpointer.Object, MaxConfig);
+            var machine1 = new EndpointExecutorFsm(endpoint1, checkpointer.Object, MaxConfig, CancellationToken.None);
             await machine1.RunAsync(Commands.SendMessage(Message1, Message2));
             checkpointer.Verify(c => c.CommitAsync(new[] { Message1, Message2 }, new IMessage[0], Option.None<DateTime>(), Option.None<DateTime>(), It.IsAny<CancellationToken>()), Times.Exactly(1));
             await machine1.CloseAsync();
@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             checkpointer2.Setup(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), Option.None<DateTime>(), Option.None<DateTime>(), It.IsAny<CancellationToken>())).Returns(TaskEx.Done);
             checkpointer2.Setup(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), Option.None<DateTime>(), Option.None<DateTime>(), It.IsAny<CancellationToken>())).Returns(TaskEx.Done);
 
-            var machine2 = new EndpointExecutorFsm(endpoint2, checkpointer2.Object, MaxConfig);
+            var machine2 = new EndpointExecutorFsm(endpoint2, checkpointer2.Object, MaxConfig, CancellationToken.None);
             await machine2.RunAsync(Commands.SendMessage(Message1));
             checkpointer2.Verify(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), Option.None<DateTime>(), Option.None<DateTime>(), It.IsAny<CancellationToken>()), Times.Never);
             await machine2.CloseAsync();
@@ -70,7 +70,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             dao.Setup(d => d.GetCheckpointDataAsync("id1", It.IsAny<CancellationToken>())).Returns(Task.FromResult(new CheckpointData(10L)));
 
             using (ICheckpointer checkpointer = await Checkpointer.CreateAsync("id1", dao.Object))
-            using (var machine = new EndpointExecutorFsm(endpoint, checkpointer, MaxConfig))
+            using (var machine = new EndpointExecutorFsm(endpoint, checkpointer, MaxConfig, CancellationToken.None))
             {
                 await machine.RunAsync(Commands.SendMessage(MessageWithOffset(1), MessageWithOffset(2), MessageWithOffset(3)));
                 dao.Verify(d => d.SetCheckpointDataAsync(It.IsAny<string>(), new CheckpointData(It.IsAny<long>()), It.IsAny<CancellationToken>()), Times.Never);
@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.MaxValue);
 
             using (ICheckpointer checkpointer = await Checkpointer.CreateAsync("id1", dao.Object))
-            using (var machine = new EndpointExecutorFsm(endpoint, checkpointer, config))
+            using (var machine = new EndpointExecutorFsm(endpoint, checkpointer, config, CancellationToken.None))
             {
                 await machine.RunAsync(Commands.SendMessage(MessageWithOffset(11)));
                 Assert.Equal(State.DeadIdle, machine.Status.State);
@@ -140,7 +140,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             var retryStrategy = new FixedInterval(1, TimeSpan.FromSeconds(1));
             var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5));
 
-            var machine1 = new EndpointExecutorFsm(endpoint1, checkpointer1.Object, config);
+            var machine1 = new EndpointExecutorFsm(endpoint1, checkpointer1.Object, config, CancellationToken.None);
             SendMessage command1 = Commands.SendMessage(Message1);
             await machine1.RunAsync(command1);
             await command1.Completion;
@@ -157,7 +157,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             checkpointer2.Setup(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>())).Throws(new Exception());
 
             var config2 = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5), true);
-            var machine2 = new EndpointExecutorFsm(endpoint2, checkpointer2.Object, config2);
+            var machine2 = new EndpointExecutorFsm(endpoint2, checkpointer2.Object, config2, CancellationToken.None);
             SendMessage command2 = Commands.SendMessage(Message1);
             await machine2.RunAsync(command2);
             await Assert.ThrowsAsync<Exception>(() => command2.Completion);
@@ -172,7 +172,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             checkpointer3.Setup(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>())).Throws(new Exception());
             checkpointer3.Setup(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>())).Throws(new Exception());
 
-            var machine3 = new EndpointExecutorFsm(endpoint3, checkpointer3.Object, config);
+            var machine3 = new EndpointExecutorFsm(endpoint3, checkpointer3.Object, config, CancellationToken.None);
             SendMessage command3 = Commands.SendMessage(Message1, Message2);
             await machine3.RunAsync(command3);
             Assert.Equal(State.Failing, machine3.Status.State);
@@ -194,7 +194,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             var retryStrategy = new FixedInterval(1, TimeSpan.FromMilliseconds(5));
             var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5));
 
-            using (var machine1 = new EndpointExecutorFsm(endpoint1, checkpointer1, config))
+            using (var machine1 = new EndpointExecutorFsm(endpoint1, checkpointer1, config, CancellationToken.None))
             {
                 SendMessage command1 = Commands.SendMessage(Message1, Message3, Message2, Message4);
                 await machine1.RunAsync(command1);
@@ -219,7 +219,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             var retryStrategy = new FixedInterval(4, TimeSpan.FromMilliseconds(100));
             var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5));
 
-            using (var machine1 = new EndpointExecutorFsm(endpoint1, checkpointer1, config))
+            using (var machine1 = new EndpointExecutorFsm(endpoint1, checkpointer1, config, CancellationToken.None))
             {
                 SendMessage command1 = Commands.SendMessage(Message1, Message3, Message2, Message4);
                 await machine1.RunAsync(command1);
@@ -240,7 +240,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             var endpoint2 = new TestEndpoint("id1");
             var endpoint3 = new TestEndpoint("id3");
 
-            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), MaxConfig))
+            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), MaxConfig, CancellationToken.None))
             {
                 await Assert.ThrowsAsync<ArgumentNullException>(() => machine.RunAsync(Commands.UpdateEndpoint(null)));
 
@@ -278,7 +278,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             var retryStrategy = new Incremental(int.MaxValue, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
             var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5));
 
-            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config))
+            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config, CancellationToken.None))
             {
                 EndpointExecutorStatus status = machine.Status;
                 Assert.Equal(State.Idle, status.State);
@@ -317,7 +317,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             var endpoint2 = new FailedEndpoint("id1", new Exception("endpoint failed"));
             var endpoint3 = new TestEndpoint("id1");
 
-            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), MaxConfig))
+            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), MaxConfig, CancellationToken.None))
             {
                 EndpointExecutorStatus status = machine.Status;
                 Assert.Equal(State.Idle, status.State);
@@ -359,7 +359,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             var endpoint1 = new FailedEndpoint("id1", new Exception("endpoint failed"));
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1)))
-            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), MaxConfig))
+            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), MaxConfig, CancellationToken.None))
             {
                 EndpointExecutorStatus status = machine.Status;
                 Assert.Equal(State.Idle, status.State);
@@ -391,7 +391,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             var retryStrategy = new FixedInterval(5, TimeSpan.FromMinutes(1));
             var config = new EndpointExecutorConfig(TimeSpan.FromMilliseconds(1), retryStrategy, TimeSpan.FromMinutes(5));
 
-            using (var machine = new EndpointExecutorFsm(endpoint, new NullCheckpointer(), config))
+            using (var machine = new EndpointExecutorFsm(endpoint, new NullCheckpointer(), config, CancellationToken.None))
             {
                 await machine.RunAsync(Commands.SendMessage(Message1));
 
@@ -411,7 +411,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             var retryStrategy = new FixedInterval(5, TimeSpan.FromMilliseconds(5));
             var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5));
 
-            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config))
+            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config, CancellationToken.None))
             {
                 // Set endpoint to always fail
                 endpoint1.Failing = true;
@@ -467,7 +467,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             var retryStrategy = new FixedInterval(5, TimeSpan.FromMilliseconds(5));
             var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5));
 
-            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config))
+            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config, CancellationToken.None))
             {
                 EndpointExecutorStatus status = machine.Status;
                 Assert.Equal(State.Idle, status.State);
@@ -505,7 +505,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             var retryStrategy = new FixedInterval(5, TimeSpan.FromMinutes(5));
             var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5), true);
 
-            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config))
+            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config, CancellationToken.None))
             {
                 EndpointExecutorStatus status = machine.Status;
                 Assert.Equal(State.Idle, status.State);
@@ -542,7 +542,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             var retryStrategy = new FixedInterval(5, TimeSpan.FromMilliseconds(50));
             var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5));
 
-            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config))
+            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config, CancellationToken.None))
             {
                 SendMessage command = Commands.SendMessage(Message1);
                 await machine.RunAsync(command);
@@ -571,7 +571,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(1));
             var systemTime = new MockSystemTime();
 
-            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config, systemTime))
+            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config, systemTime, CancellationToken.None))
             {
                 EndpointExecutorStatus status = machine.Status;
                 Assert.Equal(State.Idle, status.State);
@@ -627,7 +627,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             var retryStrategy = new FixedInterval(5, TimeSpan.FromMilliseconds(int.MaxValue));
             var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMilliseconds(50));
 
-            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config))
+            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config, CancellationToken.None))
             {
                 EndpointExecutorStatus status = machine.Status;
                 Assert.Equal(State.Idle, status.State);
@@ -679,7 +679,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             var retryStrategy = new FixedInterval(5, TimeSpan.FromMilliseconds(int.MaxValue));
             var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMilliseconds(50));
 
-            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config))
+            using (var machine = new EndpointExecutorFsm(endpoint1, new NullCheckpointer(), config, CancellationToken.None))
             {
                 EndpointExecutorStatus status = machine.Status;
                 Assert.Equal(State.Idle, status.State);
@@ -707,7 +707,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             var retryStrategy = new FixedInterval(5, TimeSpan.FromMinutes(5));
             var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5));
 
-            var machine = new EndpointExecutorFsm(endpoint1, checkpointer.Object, config);
+            var machine = new EndpointExecutorFsm(endpoint1, checkpointer.Object, config, CancellationToken.None);
             EndpointExecutorStatus status = machine.Status;
             Assert.Equal(State.Idle, status.State);
             Assert.Equal(0, status.RetryAttempts);
@@ -753,7 +753,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             var retryStrategy = new FixedInterval(1, TimeSpan.FromMilliseconds(int.MaxValue));
             var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5));
 
-            using (var machine1 = new EndpointExecutorFsm(endpoint1, checkpointer1.Object, config))
+            using (var machine1 = new EndpointExecutorFsm(endpoint1, checkpointer1.Object, config, CancellationToken.None))
             {
                 await machine1.RunAsync(Commands.SendMessage(Message1));
                 await machine1.RunAsync(Commands.Retry);
@@ -768,7 +768,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             checkpointer2.Setup(c => c.Admit(It.IsAny<IMessage>())).Returns(true);
             checkpointer2.Setup(c => c.CommitAsync(It.IsAny<ICollection<IMessage>>(), It.IsAny<ICollection<IMessage>>(), It.IsAny<Option<DateTime>>(), It.IsAny<Option<DateTime>>(), It.IsAny<CancellationToken>())).Throws(new Exception());
 
-            var machine2 = new EndpointExecutorFsm(endpoint2, checkpointer2.Object, config);
+            var machine2 = new EndpointExecutorFsm(endpoint2, checkpointer2.Object, config, CancellationToken.None);
             SendMessage command2 = Commands.SendMessage(Message1);
             await machine2.RunAsync(command2);
             await machine2.RunAsync(Commands.Retry);
@@ -794,7 +794,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             var retryStrategy = new FixedInterval(5, TimeSpan.FromMilliseconds(5));
             var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5));
 
-            using (var machine = new EndpointExecutorFsm(endpoint1, checkpointer.Object, config))
+            using (var machine = new EndpointExecutorFsm(endpoint1, checkpointer.Object, config, CancellationToken.None))
             {
                 EndpointExecutorStatus status = machine.Status;
                 Assert.Equal(State.Idle, status.State);
@@ -837,7 +837,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
 
             var endpoint = new TestEndpoint("endpoint1");
 
-            using (var machine = new EndpointExecutorFsm(endpoint, checkpointer, config))
+            using (var machine = new EndpointExecutorFsm(endpoint, checkpointer, config, CancellationToken.None))
             {
                 // TODO find a way to test this without a delay
                 // await machine.RunAsync(Commands.SendMessage(Message1));
@@ -882,7 +882,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             var config = new EndpointExecutorConfig(Timeout.InfiniteTimeSpan, retryStrategy, TimeSpan.FromMinutes(5));
             var endpoint = new TestEndpoint("endpoint1");
 
-            using (var machine = new EndpointExecutorFsm(endpoint, checkpointer, config))
+            using (var machine = new EndpointExecutorFsm(endpoint, checkpointer, config, CancellationToken.None))
             {
                 await machine.RunAsync(Commands.SendMessage(Message1));
                 Assert.Equal(0, endpoint.N); // endpoint should not get the message as it is dead
@@ -897,7 +897,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             }
 
             // restart executor and still we should be in dead state
-            using (var machine1 = new EndpointExecutorFsm(endpoint, checkpointer, config))
+            using (var machine1 = new EndpointExecutorFsm(endpoint, checkpointer, config, CancellationToken.None))
             {
                 Assert.Equal(machine1.Status.LastFailedRevivalTime.GetOrElse(DateTime.MinValue), dateTimeNow);
                 Assert.Equal(State.DeadIdle, machine1.Status.State);
@@ -919,7 +919,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints.StateMachine
             var endpoint = new InvalidEndpoint("id1", () => processor.Object);
             processor.Setup(p => p.Endpoint).Returns(endpoint);
 
-            var machine = new EndpointExecutorFsm(endpoint, checkpointer, MaxConfig);
+            var machine = new EndpointExecutorFsm(endpoint, checkpointer, MaxConfig, CancellationToken.None);
             Assert.Equal(State.Idle, machine.Status.State);
             await machine.RunAsync(Commands.SendMessage(Message1, Message2, Message3));
 
