@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.AuthAgent;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
 
     class AuthModule : Module
     {
@@ -15,7 +16,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         async c =>
                         {
                             var auth = await c.Resolve<Task<IAuthenticator>>();
-                            return new AuthAgentListener(auth);
+                            var usernameParser = c.Resolve<IUsernameParser>();
+                            var identityFactory = c.Resolve<IClientCredentialsFactory>();
+                            
+                            return new AuthAgentListener(auth, usernameParser, identityFactory);
                         })
                     .As<Task<AuthAgentListener>>()
                     .SingleInstance();

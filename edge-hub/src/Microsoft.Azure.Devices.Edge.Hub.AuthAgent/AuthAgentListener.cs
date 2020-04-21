@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
     using System.Threading.Tasks;
     
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
 
     using Microsoft.Extensions.Logging;
@@ -15,6 +16,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
     public class AuthAgentListener : IProtocolHead
     {
         private IAuthenticator authenticator;
+        private IUsernameParser usernameParser;
+        private IClientCredentialsFactory clientCredentialsFactory;
+
         private HttpListener listener;
 
         private Task listenerTask;
@@ -24,9 +28,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
         private static readonly string listeningAddress = "http://localhost:7120/authenticate/";
         private const int maxInBufferSize = 32 * 1024;
 
-        public AuthAgentListener(IAuthenticator authenticator)
+        public AuthAgentListener(IAuthenticator authenticator, IUsernameParser usernameParser, IClientCredentialsFactory clientCredentialsFactory)
         {
             this.authenticator = authenticator;
+            this.usernameParser = usernameParser;
+            this.clientCredentialsFactory = clientCredentialsFactory;
         }
 
         public string Name => "AUTH";
