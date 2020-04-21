@@ -102,23 +102,6 @@ namespace LoadGen
 
             this.Logger.LogInformation($"Sending finished. Now sending expected results to {Settings.Current.TestResultCoordinatorUrl}");
 
-            Ping ping = new Ping();
-            try
-            {
-               Settings.Current.TestResultCoordinatorUrl.ForEach(
-               url =>
-               {
-                   Uri uri = new Uri(url);
-                   this.Logger.LogInformation($"Sending ping to {uri.Host}");
-                   ping.Send(uri.Host);
-               });
-            }
-            catch (Exception)
-            {
-                this.Logger.LogInformation($"Sending ping to testResultCoordinator");
-                ping.Send("testResultCoordinator");
-            }
-
             // Sort priority by sequence number
             List<long> expectedSequenceNumberList = priorityAndSequence
                 .SelectMany(t => t.Value)
