@@ -113,6 +113,9 @@
                 },
                 "TwinUpdateFailureThreshold": {
                     "value": "<TwinUpdateFailureThreshold>"
+                },
+                "testStartDelay": {
+                  "value": "<TestStartDelay>"
                 }
             },
             "status": "running",
@@ -140,6 +143,9 @@
                 },
                 "TwinUpdateFailureThreshold": {
                     "value": "<TwinUpdateFailureThreshold>"
+                },
+                "testStartDelay": {
+                  "value": "<TestStartDelay>"
                 }
             },
             "status": "running",
@@ -306,6 +312,9 @@
               },
               "TargetModuleId": {
                 "value": "DirectMethodReceiver"
+              },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
               }
             },
             "settings": {
@@ -346,6 +355,9 @@
               },
               "TargetModuleId": {
                 "value": "DirectMethodReceiver2"
+              },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
               }
             },
             "settings": {
