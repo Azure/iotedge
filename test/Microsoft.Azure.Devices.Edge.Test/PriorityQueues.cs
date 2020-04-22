@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Net;
     using System.Net.Http;
     using System.Text;
@@ -22,32 +23,105 @@ namespace Microsoft.Azure.Devices.Edge.Test
     [EndToEnd]
     public class PriorityQueues : SasManualProvisioningFixture
     {
+        const string TrcModuleName = "testResultCoordinator";
+        const string LoadGenModuleName = "loadGenModule";
+        const string RelayerModuleName = "relayerModule";
+        const string TrcUrl = "http://" + TrcModuleName + ":5001";
+        const string LoadGenTestDuration = "00:00:20";
+
         [Test]
         public async Task PriorityQueueModuleToModuleMessages()
         {
+            // TODO: Fix PriorityQueue E2E tests for Windows and ARM32
+            if (OsPlatform.IsWindows() || !OsPlatform.Is64Bit() )
+            {
+                Assert.Ignore("Priority Queue module to module messages test has been disabled for Windows and Arm32 until we can fix it.");
+            }
+
             CancellationToken token = this.TestToken;
             string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
             string relayerImage = Context.Current.RelayerImage.Expect(() => new ArgumentException("relayerImage parameter is required for Priority Queues test"));
-
-            const string trcModuleName = "testResultCoordinator";
-            const string loadGenModuleName = "loadGenModule";
-            const string relayerModuleName = "relayerModule";
-            const string trcUrl = "http://" + trcModuleName + ":5001";
-            const string loadGenTestDuration = "00:00:20";
-
-            string routeTemplate = $"FROM /messages/modules/{loadGenModuleName}/outputs/pri{0} INTO BrokeredEndpoint('/modules/{relayerModuleName}/inputs/input1')";
-
             string trackingId = Guid.NewGuid().ToString();
-            string priorityString = this.BuildPriorityString(5);
+            TestInfo testInfo = this.InitTestInfo(5, 1000, true);
 
-            Action<EdgeConfigBuilder> addInitialConfig = new Action<EdgeConfigBuilder>(
+            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, trcImage, loadGenImage, testInfo);
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token);
+            PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
+            Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
+            deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token, false);
+            await this.PollUntilFinishedAsync(RelayerModuleName, token);
+            await this.ValidateResultsAsync();
+        }
+
+        [Test]
+        public async Task PriorityQueueTimeToLive()
+        {
+            // TODO: Fix PriorityQueue TTL E2E tests for Windows and ARM32
+            if (OsPlatform.IsWindows() || !OsPlatform.Is64Bit())
+            {
+                Assert.Ignore("Priority Queue time to live test has been disabled for Windows and Arm32 until we can fix it.");
+            }
+
+            CancellationToken token = this.TestToken;
+            string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
+            string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
+            string relayerImage = Context.Current.RelayerImage.Expect(() => new ArgumentException("relayerImage parameter is required for Priority Queues test"));
+            string trackingId = Guid.NewGuid().ToString();
+            TestInfo testInfo = this.InitTestInfo(5, 20);
+
+            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, trcImage, loadGenImage, testInfo);
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token);
+            PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
+
+            // Wait long enough for TTL to expire for some of the messages
+            Log.Information($"Waiting for {testInfo.TtlThreshold} seconds for TTL's to expire");
+            await Task.Delay(testInfo.TtlThreshold * 1000);
+
+            Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
+            deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token, false);
+            await this.PollUntilFinishedAsync(RelayerModuleName, token);
+            await this.ValidateResultsAsync();
+        }
+
+        private async Task ValidateResultsAsync()
+        {
+            HttpClient client = new HttpClient();
+            HttpResponseMessage response = await client.GetAsync("http://localhost:5001/api/report");
+            var jsonstring = await response.Content.ReadAsStringAsync();
+            bool isPassed = (bool)JArray.Parse(jsonstring)[0]["IsPassed"];
+            if (!isPassed)
+            {
+                Log.Verbose("Test Result Coordinator response: {Response}", jsonstring);
+            }
+
+            Assert.IsTrue(isPassed);
+        }
+
+        private Action<EdgeConfigBuilder> BuildAddRelayerConfig(string relayerImage, PriorityQueueTestStatus loadGenTestStatus)
+        {
+            return new Action<EdgeConfigBuilder>(
+                builder =>
+                {
+                    builder.AddModule(RelayerModuleName, relayerImage)
+                        .WithEnvironment(new[]
+                        {
+                            ("receiveOnly", "true"),
+                            ("uniqueResultsExpected", loadGenTestStatus.ResultCount.ToString()),
+                            ("testResultCoordinatorUrl", TrcUrl)
+                        });
+                });
+        }
+
+        private Action<EdgeConfigBuilder> BuildAddInitialConfig(string trackingId, string trcImage, string loadGenImage, TestInfo testInfo)
+        {
+            return new Action<EdgeConfigBuilder>(
                 builder =>
                 {
                     // This test uses the TestResultCoordinator. It was originally designed for connectivity tests, so many of the parameters
                     // are unnecessary for the e2e tests.
                     // TODO: Make TestResultCoordinator more generic, so we don't have to fill out garbage values in the e2e tests.
-                    builder.AddModule(trcModuleName, trcImage)
+                    builder.AddModule(TrcModuleName, trcImage)
                        .WithEnvironment(new[]
                        {
                            ("trackingId", trackingId),
@@ -73,105 +147,98 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                {
                                    ["TestReportType"] = "CountingReport",
                                    ["TestOperationResultType"] = "Messages",
-                                   ["ExpectedSource"] = $"{loadGenModuleName}.send",
-                                   ["ActualSource"] = $"{relayerModuleName}.receive",
+                                   ["ExpectedSource"] = $"{LoadGenModuleName}.send",
+                                   ["ActualSource"] = $"{RelayerModuleName}.receive",
                                    ["TestDescription"] = "unnecessary"
                                }
                            }
                        });
 
-                    builder.AddModule(loadGenModuleName, loadGenImage)
+                    builder.AddModule(LoadGenModuleName, loadGenImage)
                         .WithEnvironment(new[]
                         {
-                            ("testResultCoordinatorUrl", trcUrl),
+                            ("testResultCoordinatorUrl", TrcUrl),
                             ("senderType", "PriorityMessageSender"),
                             ("trackingId", trackingId),
-                            ("testDuration", loadGenTestDuration),
+                            ("testDuration", LoadGenTestDuration),
                             ("messageFrequency", "00:00:00.5"),
-                            ("priorities", priorityString)
+                            ("priorities", string.Join(';', testInfo.Priorities)),
+                            ("ttls", string.Join(';', testInfo.Ttls)),
+                            ("ttlThresholdSecs", testInfo.TtlThreshold.ToString())
                         });
 
-                    Dictionary<string, object> routes = this.BuildRoutes(priorityString.Split(';'), loadGenModuleName, relayerModuleName);
+                    Dictionary<string, object> routes = this.BuildRoutes(testInfo, LoadGenModuleName, RelayerModuleName);
                     builder.GetModule(ModuleName.EdgeHub).WithDesiredProperties(new Dictionary<string, object> { ["routes"] = routes });
                 });
-
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token);
-            PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(loadGenModuleName, token);
-
-            Action<EdgeConfigBuilder> addRelayerConfig = new Action<EdgeConfigBuilder>(
-                builder =>
-                {
-                    builder.AddModule(relayerModuleName, relayerImage)
-                        .WithEnvironment(new[]
-                        {
-                            ("receiveOnly", "true"),
-                            ("uniqueResultsExpected", loadGenTestStatus.ResultCount.ToString())
-                        });
-                });
-
-            deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token, false);
-            await this.PollUntilFinishedAsync(relayerModuleName, token);
-
-            HttpClient client = new HttpClient();
-            HttpResponseMessage response = await client.GetAsync("http://localhost:5001/api/report");
-            var jsonstring = await response.Content.ReadAsStringAsync();
-            bool isPassed = (bool)JArray.Parse(jsonstring)[0]["IsPassed"];
-            if (!isPassed)
-            {
-                Log.Verbose("Test Result Coordinator response: {Response}", jsonstring);
-            }
-
-            Assert.IsTrue(isPassed);
         }
 
-        private Dictionary<string, object> BuildRoutes(string[] priorities, string sendModule, string receiveModule)
+        private Dictionary<string, object> BuildRoutes(TestInfo testInfo, string sendModule, string receiveModule)
         {
             Dictionary<string, object> routes = new Dictionary<string, object>();
-            foreach (string priority in priorities)
+            for (int i = 0; i < testInfo.Priorities.Count; i++)
             {
+                int ttl = testInfo.Ttls[i];
+                int priority = testInfo.Priorities[i];
+                var routeInfo = new Dictionary<string, object>();
+                routeInfo["route"] = $"FROM /messages/modules/{sendModule}/outputs/pri{priority} INTO BrokeredEndpoint('/modules/{receiveModule}/inputs/input1')";
+
                 // If we encounter "Default" in the priority list, don't add a priority - the default priority will automatically get picked up
-                if (priority.Contains(TestConstants.PriorityQueues.Default))
+                if (priority >= 0)
                 {
-                    routes.Add($"LoadGenToRelayer{priority}", new Dictionary<string, object>
-                    {
-                        ["route"] = $"FROM /messages/modules/{sendModule}/outputs/pri{priority} INTO BrokeredEndpoint('/modules/{receiveModule}/inputs/input1')",
-                    });
+                    routeInfo["priority"] = priority;
                 }
-                else
+
+                if (ttl >= 0)
                 {
-                    routes.Add($"LoadGenToRelayer{priority}", new Dictionary<string, object>
-                    {
-                        ["route"] = $"FROM /messages/modules/{sendModule}/outputs/pri{priority} INTO BrokeredEndpoint('/modules/{receiveModule}/inputs/input1')",
-                        ["priority"] = int.Parse(priority)
-                    });
+                    routeInfo["timeToLiveSecs"] = ttl;
                 }
+
+                routes.Add($"LoadGenToRelayer{priority}", routeInfo);
             }
 
             return routes;
         }
 
-        private string BuildPriorityString(int numberOfPriorities)
+        private List<int> BuildTtls(int numberOfTTLs, int ttlThreshold)
+        {
+            Random rng = new Random();
+            // Choose from a set of hardcoded offsets to add to the threshold, some below, some above
+            var ttlOffsets = new int[] { -15, -5, 200, 1600 };
+
+            // Make sure default is always in the string. We always want to test that default TTL works.
+            List<int> ttls = new List<int>() { -1, 0 };
+            for (int i = 0; i < numberOfTTLs - 2; i++)
+            {
+                ttls.Add(ttlThreshold + ttlOffsets[rng.Next(ttlOffsets.Length)]);
+            }
+
+            return ttls;
+        }
+
+        private List<int> BuildPriorities(int numberOfPriorities)
         {
             if (numberOfPriorities > 11)
             {
                 throw new ArgumentException("Maximum of 11 priorities (10 priorities + the Default priority) is supported at this time.");
             }
 
-            string priorityString = string.Empty;
+            // -1 represents default priority, which we always want to test
+            List<int> priorities = new List<int>() { -1 };
+
             Random rng = new Random();
             for (int i = 0; i < numberOfPriorities - 1; i++)
             {
-                string pri;
+                int pri;
                 do
                 {
-                    pri = rng.Next(10).ToString();
+                    pri = rng.Next(10);
                 }
-                while (priorityString.Contains(pri));
+                while (priorities.Contains(pri));
 
-                priorityString = priorityString + pri + ";";
+                priorities.Add(pri);
             }
 
-            return priorityString + TestConstants.PriorityQueues.Default;
+            return priorities;
         }
 
         private async Task<PriorityQueueTestStatus> PollUntilFinishedAsync(string moduleName, CancellationToken token)
@@ -186,6 +253,20 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
             while (!testStatus.IsFinished);
             return testStatus;
+        }
+
+        private TestInfo InitTestInfo(int numOfRoutes, int ttlThreshold, bool defaultTtls = false)
+        {
+            List<int> ttls = defaultTtls ? new List<int>(Enumerable.Repeat(0, numOfRoutes)) : this.BuildTtls(numOfRoutes, ttlThreshold);
+            List<int> priorities = this.BuildPriorities(numOfRoutes);
+            return new TestInfo() { Ttls = ttls, Priorities = priorities, TtlThreshold = ttlThreshold };
+        }
+
+        struct TestInfo
+        {
+            public List<int> Ttls;
+            public List<int> Priorities;
+            public int TtlThreshold;
         }
     }
 }
