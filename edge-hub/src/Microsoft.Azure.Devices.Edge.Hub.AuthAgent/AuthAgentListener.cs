@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
         // FIXME: should come from config
         private static readonly string listeningAddress = "http://localhost:7120/authenticate/";
         private const int maxInBufferSize = 32 * 1024;
-        private TimeSpan requestTimeout = TimeSpan.FromSeconds(5);
+        private static readonly TimeSpan requestTimeout = TimeSpan.FromSeconds(5);
 
         public AuthAgentListener(IAuthenticator authenticator, IUsernameParser usernameParser, IClientCredentialsFactory clientCredentialsFactory)
         {
@@ -120,11 +120,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
                     Events.AuthRequestReceived();
 
                     var requestString = await ReadRequestBodyAsStringAsync(context.Request);
-                    var requestRecord = this.Decode(requestString);
+                    var requestRecord = Decode(requestString);
 
                     await requestRecord.Match(
                         async r => await this.SendResponseAsync(r, context),
-                        async () => await this.SendErrorAsync(context)
+                        async () => await SendErrorAsync(context)
                     );                   
                 }
                 catch (ObjectDisposedException e) when (e.ObjectName == typeof(HttpListener).FullName)
@@ -217,7 +217,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
             return false;
         }
 
-        private Task SendAuthResultAsync(HttpListenerContext context, bool isAuthenticated, Option<IClientCredentials> credentials)
+        private static Task SendAuthResultAsync(HttpListenerContext context, bool isAuthenticated, Option<IClientCredentials> credentials)
         {
             // note, that if authenticated, then these values are present, and defaults never apply
             var iotHubName = credentials.Map(c => c.Identity.IotHubHostName).GetOrElse("any");
@@ -236,13 +236,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
             }
         }
 
-        private Task SendErrorAsync(HttpListenerContext context)
+        private static Task SendErrorAsync(HttpListenerContext context)
         {
             // we don't reveal error details: for the caller if something is not right, that is unauthenticated
             return SendAsync(context, @"{""result"":403,""version"":""2020-04-20""}");
         }
 
-        private async Task SendAsync(HttpListenerContext context, string body)
+        private static async Task SendAsync(HttpListenerContext context, string body)
         {
             byte[] buffer = Encoding.UTF8.GetBytes(body);
 
@@ -257,7 +257,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
             }
         }
 
-        private async Task<Option<string>> ReadRequestBodyAsStringAsync(HttpListenerRequest request)
+        private static async Task<Option<string>> ReadRequestBodyAsStringAsync(HttpListenerRequest request)
         {
             var requestBodyBuffer = GetRequestBodyBuffer(request);
 
@@ -308,7 +308,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
             return Option.Some<String>(result);
         }
 
-        private byte[] GetRequestBodyBuffer(HttpListenerRequest request)
+        private static byte[] GetRequestBodyBuffer(HttpListenerRequest request)
         {
             // the request may contain the content-length in the header - or not
             var requestSize = IsKnownPayloadSize(request) ? request.ContentLength64 : maxInBufferSize;
@@ -316,19 +316,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
             return new byte[requestSize];
         }
 
-        private bool IsKnownPayloadSize(HttpListenerRequest request)
+        private static bool IsKnownPayloadSize(HttpListenerRequest request)
         {
             // if the client sends too big number in the header - don't believe it
             // in that case use a maximum and treat the size as unknown
             return request.ContentLength64 >= 0 && request.ContentLength64 < maxInBufferSize;
         }
 
-        private bool NoRequestTimeout(DateTime startTime)
+        private static bool NoRequestTimeout(DateTime startTime)
         {
             return DateTime.Now.Subtract(startTime) > requestTimeout;
         }
 
-        private Option<AuthRequest> Decode(Option<string> request)
+        private static Option<AuthRequest> Decode(Option<string> request)
         {            
             try
             {
@@ -341,7 +341,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
             }
         }
 
-        private X509Certificate2 DecodeCertificate(string encodedCertificate)
+        private static X509Certificate2 DecodeCertificate(string encodedCertificate)
         {            
             try
             {
@@ -357,7 +357,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
             }
         }
 
-        private List<X509Certificate2> DecodeCertificateChain(string[] encodedCertificates)
+        private static List<X509Certificate2> DecodeCertificateChain(string[] encodedCertificates)
         {
             if (encodedCertificates != null)
             {
