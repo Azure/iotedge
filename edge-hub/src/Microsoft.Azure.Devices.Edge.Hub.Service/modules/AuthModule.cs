@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var auth = await c.Resolve<Task<IAuthenticator>>();
                             var usernameParser = c.Resolve<IUsernameParser>();
                             var identityFactory = c.Resolve<IClientCredentialsFactory>();
-                            
+
                             return new AuthAgentListener(auth, usernameParser, identityFactory);
                         })
                     .As<Task<AuthAgentListener>>()

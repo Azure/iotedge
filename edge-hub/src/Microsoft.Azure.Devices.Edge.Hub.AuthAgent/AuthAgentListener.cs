@@ -12,12 +12,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
     using Microsoft.Azure.Devices.Edge.Util;
 
     using Microsoft.Extensions.Logging;
-    
+    using Newtonsoft.Json;
+
     public class AuthAgentListener : IProtocolHead
     {
-        private IAuthenticator authenticator;
-        private IUsernameParser usernameParser;
-        private IClientCredentialsFactory clientCredentialsFactory;
+        private readonly IAuthenticator authenticator;
+        private readonly IUsernameParser usernameParser;
+        private readonly IClientCredentialsFactory clientCredentialsFactory;
 
         private HttpListener listener;
 
@@ -111,24 +112,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
                 try
                 {
                     var context = await this.listener.GetContextAsync();
-                    var request = context.Request;
+                 
+                    var requestString = await ReadRequestBodyAsStringAsync(context.Request);
+                    var requestRecord = this.Decode(requestString);
 
-                    var requestString = await ReadRequestBodyAsString(request);
-
-                    ////////////////////////////////////////////////////////
-                    /// SENDING BACK SOMETHING - WILL BE REWRITTEN FROM HERE:
-
-                    var response = context.Response;
-                    string responseString = @"{""result"":""OK"", ""identity"":""device_1/module_2""}";
-                    byte[] buffer = Encoding.UTF8.GetBytes(responseString);
-
-                    response.ContentType = "application/json; charset=utf-8";
-                    response.ContentEncoding = Encoding.UTF8;
-                    
-                    //response.ContentLength64 = buffer.Length;
-                    System.IO.Stream output = response.OutputStream;
-                    output.Write(buffer, 0, buffer.Length);
-                    output.Close();
+                    await requestRecord.Match(
+                        async r => await this.SendResponseAsync(r, context),
+                        async () => await this.SendErrorAsync(context)
+                    );                   
                 }
                 catch (ObjectDisposedException e) when (e.ObjectName == typeof(HttpListener).FullName)
                 {
@@ -143,7 +134,116 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
             }
         }
 
-        private async Task<Option<string>> ReadRequestBodyAsString(HttpListenerRequest request)
+        private async Task SendResponseAsync(AuthRequest request, HttpListenerContext context)
+        {
+            try
+            {
+                (var isAuthenticated, var credentials) =
+                    await GetIdsFromUsername(request)
+                            .FlatMap(ids => GetCredentials(request, ids.deviceId, ids.moduleId, ids.deviceClientType))
+                            .Match(
+                                async creds => (await AuthenticateAsync(creds), Option.Some(creds)),
+                                () => Task.FromResult((false, Option.None<IClientCredentials>())));
+
+                await SendAuthResultAsync(context, isAuthenticated, credentials);
+            }
+            catch (Exception e)
+            {
+                Events.ErrorSendingResponse(e);
+                return;
+            }
+        }
+
+        private Option<(string deviceId, string moduleId, string deviceClientType)> GetIdsFromUsername(AuthRequest request)
+        {
+            try
+            {
+                return Option.Some(this.usernameParser.Parse(request.Username));
+            }
+            catch (Exception e)
+            {
+                Events.InvalidUsernameFormat(e);
+                return Option.None<(string, string, string)>();
+            }
+        }
+
+        private Option<IClientCredentials> GetCredentials(AuthRequest request, string deviceId, string moduleId, string deviceClientType)
+        {
+            var result = Option.None<IClientCredentials>();
+
+            try
+            {
+                if (!String.IsNullOrWhiteSpace(request.Password))
+                {
+                    result = Option.Some(this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, deviceClientType, request.Password, false));
+                }
+                else if (!String.IsNullOrWhiteSpace(request.EncodedCertificateChain))
+                {
+                    // FIXME: implement
+                }
+                else
+                {
+                    Events.NoCredentialsSpecified();                    
+                }
+            }
+            catch (Exception e)
+            {
+                Events.InvalidCredentials(e);
+            }
+
+            return result;
+        }
+
+        private async Task<bool> AuthenticateAsync(IClientCredentials credentials)
+        {
+            try
+            {
+                return await this.authenticator.AuthenticateAsync(credentials);                
+            }
+            catch (Exception e)
+            {
+                Events.InvalidCredentials(e);                               
+            }
+
+            return false;
+        }
+
+        private Task SendAuthResultAsync(HttpListenerContext context, bool isAuthenticated, Option<IClientCredentials> credentials)
+        {
+            if (isAuthenticated)
+            {
+                // note, that if authenticated, then these values are present, and defaults never apply
+                var iotHubName = credentials.Map(c => c.Identity.IotHubHostName).GetOrElse("any");
+                var id = credentials.Map(c => c.Identity.Id).GetOrElse("anonymous");
+
+                return SendAsync(context, $@"{{""result"":200,""identity"":""{iotHubName}/{id}"",""version"":""2020-04-20""}}");                 
+            }
+            else
+            {
+                return SendErrorAsync(context);
+            }
+        }
+
+        private Task SendErrorAsync(HttpListenerContext context)
+        {
+            return SendAsync(context, @"{""result"":403,""version"":""2020-04-20""}");
+        }
+
+        private async Task SendAsync(HttpListenerContext context, string body)
+        {
+            byte[] buffer = Encoding.UTF8.GetBytes(body);
+
+            context.Response.ContentType = "application/json; charset=utf-8";
+            context.Response.ContentEncoding = Encoding.UTF8;
+
+            //response.ContentLength64 = buffer.Length;
+            using (context.Response.OutputStream)
+            {
+                await context.Response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
+            }
+        }
+
+        private async Task<Option<string>> ReadRequestBodyAsStringAsync(HttpListenerRequest request)
         {
             var requestBodyBuffer = GetRequestBodyBuffer(request);
 
@@ -196,6 +296,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
             return new byte[requestSize];
         }
 
+        private Option<AuthRequest> Decode(Option<string> request)
+        {            
+            try
+            {
+                return request.Map(s => JsonConvert.DeserializeObject<AuthRequest>(s));                
+            }
+            catch (Exception e)
+            {
+                Events.ErrorDecodingPayload(e);
+                return Option.None<AuthRequest>();
+            }
+        }
+
         static class Events
         {
             const int IdStart = AuthAgentEventIds.AuthAgentListener;
@@ -214,7 +327,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
                 ErrorExitListenerLoop,
                 InvalidRequest,
                 ErrorReadingStream,
-                ErrorDecodingStream
+                ErrorDecodingStream,
+                ErrorDecodingPayload,
+                NoCredentialsSpecified,
+                InvalidUsernameFormat,
+                InvalidCredentials,
+                ErrorSendingResponse
             }
 
             public static void Starting()
@@ -264,7 +382,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
 
             public static void InvalidRequest()
             {
-                Log.LogWarning((int)EventIds.InvalidRequest, "Invalid request - ignoring");
+                Log.LogWarning((int)EventIds.InvalidRequest, "Invalid request for AUTH - ignoring");
             }
 
             public static void ErrorReadingStream(Exception e)
@@ -275,6 +393,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
             public static void ErrorDecodingStream(Exception e)
             {
                 Log.LogWarning((int)EventIds.ErrorDecodingStream, e, "Error decoding AUTH request, UTF8 encoding expected");
+            }
+
+            public static void ErrorDecodingPayload(Exception e)
+            {
+                Log.LogWarning((int)EventIds.ErrorDecodingPayload, e, "Error decoding AUTH request, invalid JSON structure");
+            }
+
+            public static void NoCredentialsSpecified()
+            {
+                Log.LogWarning((int)EventIds.NoCredentialsSpecified, "No credentials specified: either a certificate or a SAS token must be present for AUTH");
+            }
+
+            public static void InvalidUsernameFormat(Exception e)
+            {
+                Log.LogWarning((int)EventIds.InvalidUsernameFormat, e, "Invalid username format provided for AUTH");
+            }
+
+            public static void InvalidCredentials(Exception e)
+            {
+                Log.LogWarning((int)EventIds.InvalidCredentials, e, "Invalid credentials provided for AUTH");
+            }
+
+            public static void ErrorSendingResponse(Exception e)
+            {
+                Log.LogWarning((int)EventIds.ErrorSendingResponse, e, "Error sending AUTH response");
             }            
         }
     }
