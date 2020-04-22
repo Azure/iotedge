@@ -2,7 +2,10 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
 {
     using System;
+    using System.Collections.Generic;
+    using System.Linq;
     using System.Net;
+    using System.Security.Cryptography.X509Certificates;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -112,7 +115,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
                 try
                 {
                     var context = await this.listener.GetContextAsync();
-                 
+
+                    Events.AuthRequestReceived();
+
                     var requestString = await ReadRequestBodyAsStringAsync(context.Request);
                     var requestRecord = this.Decode(requestString);
 
@@ -177,9 +182,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
                 {
                     result = Option.Some(this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, deviceClientType, request.Password, false));
                 }
-                else if (!String.IsNullOrWhiteSpace(request.EncodedCertificateChain))
+                else if (!String.IsNullOrWhiteSpace(request.EncodedCertificate))
                 {
-                    // FIXME: implement
+                    var certificate = DecodeCertificate(request.EncodedCertificate);
+                    var chain = DecodeCertificateChain(request.EncodedCertificateChain);
+
+                    result = Option.Some(this.clientCredentialsFactory.GetWithX509Cert(deviceId, moduleId, deviceClientType, certificate, chain));
                 }
                 else
                 {
@@ -210,22 +218,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
 
         private Task SendAuthResultAsync(HttpListenerContext context, bool isAuthenticated, Option<IClientCredentials> credentials)
         {
+            // note, that if authenticated, then these values are present, and defaults never apply
+            var iotHubName = credentials.Map(c => c.Identity.IotHubHostName).GetOrElse("any");
+            var id = credentials.Map(c => c.Identity.Id).GetOrElse("anonymous");
+
             if (isAuthenticated)
             {
-                // note, that if authenticated, then these values are present, and defaults never apply
-                var iotHubName = credentials.Map(c => c.Identity.IotHubHostName).GetOrElse("any");
-                var id = credentials.Map(c => c.Identity.Id).GetOrElse("anonymous");
-
-                return SendAsync(context, $@"{{""result"":200,""identity"":""{iotHubName}/{id}"",""version"":""2020-04-20""}}");                 
+                Events.AuthSucceeded(id);
+                return SendAsync(context, $@"{{""result"":200,""identity"":""{iotHubName}/{id}"",""version"":""2020-04-20""}}");
+                
             }
             else
             {
-                return SendErrorAsync(context);
+                Events.AuthFailed(id);
+                return SendErrorAsync(context);                
             }
         }
 
         private Task SendErrorAsync(HttpListenerContext context)
         {
+            // we don't reveal error details: for the caller if something is not right, that is unauthenticated
             return SendAsync(context, @"{""result"":403,""version"":""2020-04-20""}");
         }
 
@@ -236,7 +248,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
             context.Response.ContentType = "application/json; charset=utf-8";
             context.Response.ContentEncoding = Encoding.UTF8;
 
-            //response.ContentLength64 = buffer.Length;
+            // we could set content-length, however it is not necessary.
+            // leaving this here just for reference: response.ContentLength64 = buffer.Length;
             using (context.Response.OutputStream)
             {
                 await context.Response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
@@ -254,6 +267,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
             {
                 try
                 {
+                    // Note, that if the caller decides to send the request in multiple tcp packets and they arrive
+                    // slow, this call might not deliver the full content. Consider adding a loop counting the bracket "balance",
+                    // given that this should be a json packet.
                     bytesRead = await request.InputStream.ReadAsync(requestBodyBuffer, 0, requestBodyBuffer.Length);
                 }
                 catch (Exception e)
@@ -309,6 +325,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
             }
         }
 
+        private X509Certificate2 DecodeCertificate(string encodedCertificate)
+        {            
+            try
+            {
+                var certificateContent = Convert.FromBase64String(encodedCertificate);
+                var certificate = new X509Certificate2(certificateContent);
+
+                return certificate;
+            }
+            catch (Exception e)
+            {
+                Events.ErrorDecodingCertificate(e);
+                throw;
+            }
+        }
+
+        private List<X509Certificate2> DecodeCertificateChain(string[] encodedCertificates)
+        {
+            if (encodedCertificates != null)
+            {
+                return encodedCertificates.Select(DecodeCertificate).ToList();
+            }
+            else
+            {
+                return new List<X509Certificate2>();
+            }                
+        }
+
         static class Events
         {
             const int IdStart = AuthAgentEventIds.AuthAgentListener;
@@ -325,10 +369,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
                 StartedWhenAlreadyRunning,
                 ShutdownListenerLoop,
                 ErrorExitListenerLoop,
+                AuthRequestReceived,
+                AuthSucceeded,
+                AuthFailed,
                 InvalidRequest,
                 ErrorReadingStream,
                 ErrorDecodingStream,
                 ErrorDecodingPayload,
+                ErrorDecodingCertificate,
                 NoCredentialsSpecified,
                 InvalidUsernameFormat,
                 InvalidCredentials,
@@ -377,7 +425,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
 
             public static void ErrorExitListenerLoop(Exception e)
             {
-                Log.LogWarning((int)EventIds.ErrorExitListenerLoop, e, "Exiting AUTH listener loop by error");
+                Log.LogError((int)EventIds.ErrorExitListenerLoop, e, "Exiting AUTH listener loop by error");
+            }
+
+            public static void AuthRequestReceived()
+            {
+                Log.LogInformation((int)EventIds.AuthRequestReceived, "AUTH request received");
+            }
+
+            public static void AuthSucceeded(string id)
+            {
+                Log.LogInformation((int)EventIds.AuthSucceeded, "AUTH succeeded {0}", id);
+            }
+
+            public static void AuthFailed(string id)
+            {
+                Log.LogWarning((int)EventIds.AuthSucceeded, "AUTH failed {0}", id);
             }
 
             public static void InvalidRequest()
@@ -387,7 +450,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
 
             public static void ErrorReadingStream(Exception e)
             {
-                Log.LogWarning((int)EventIds.ErrorReadingStream, e, "Error reading AUTH request");
+                Log.LogError((int)EventIds.ErrorReadingStream, e, "Error reading AUTH request");
             }
 
             public static void ErrorDecodingStream(Exception e)
@@ -398,6 +461,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
             public static void ErrorDecodingPayload(Exception e)
             {
                 Log.LogWarning((int)EventIds.ErrorDecodingPayload, e, "Error decoding AUTH request, invalid JSON structure");
+            }
+
+            public static void ErrorDecodingCertificate(Exception e)
+            {
+                Log.LogWarning((int)EventIds.ErrorDecodingCertificate, e, "Error decoding certificate");
             }
 
             public static void NoCredentialsSpecified()
@@ -417,7 +485,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
 
             public static void ErrorSendingResponse(Exception e)
             {
-                Log.LogWarning((int)EventIds.ErrorSendingResponse, e, "Error sending AUTH response");
+                Log.LogError((int)EventIds.ErrorSendingResponse, e, "Error sending AUTH response");
             }            
         }
     }

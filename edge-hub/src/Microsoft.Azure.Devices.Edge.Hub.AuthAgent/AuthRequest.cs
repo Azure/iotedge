@@ -15,6 +15,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
         public string Password { get; set; }
 
         [JsonProperty("certificate")]
-        public string EncodedCertificateChain { get; set; }         
+        public string EncodedCertificate { get; set; }
+
+        [JsonProperty("certificateChain")]
+        public string[] EncodedCertificateChain { get; set; }
     }
 }
