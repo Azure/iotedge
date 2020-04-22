@@ -642,7 +642,7 @@ impl ModuleRuntime for DockerModuleRuntime {
             }
         };
         #[cfg(windows)]
-        let uptime: u64 = unsafe { winapi::um::sysinfoapi::GetTickCount() }.into();
+        let uptime: u64 = unsafe { winapi::um::sysinfoapi::GetTickCount64() / 1000 };
 
         let mut system_info = sysinfo::System::new();
         system_info.refresh_all();
