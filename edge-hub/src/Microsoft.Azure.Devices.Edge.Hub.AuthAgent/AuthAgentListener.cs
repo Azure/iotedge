@@ -31,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
         // FIXME: should come from config
         private static readonly string listeningAddress = "http://localhost:7120/authenticate/";
         private const int maxInBufferSize = 32 * 1024;
+        private TimeSpan requestTimeout = TimeSpan.FromSeconds(5);
 
         public AuthAgentListener(IAuthenticator authenticator, IUsernameParser usernameParser, IClientCredentialsFactory clientCredentialsFactory)
         {
@@ -267,23 +268,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
             {
                 try
                 {
-                    // Note, that if the caller decides to send the request in multiple tcp packets and they arrive
-                    // slow, this call might not deliver the full content. Consider adding a loop counting the bracket "balance",
-                    // given that this should be a json packet.
-                    bytesRead = await request.InputStream.ReadAsync(requestBodyBuffer, 0, requestBodyBuffer.Length);
+                    // We have two cases:
+                    // - Content-Length was sent (and it is not too big). In that case we want to read that many bytes,
+                    //   so if the first read attempt could not get it, it retries reading, up to the time limit.
+                    // - No Content-Length. In that case we read the already arrived data, and won't retry. In order
+                    //   to retry, the data must be analyzed (e.g. if it is a valid and full json). This will not be
+                    //   implemented for now. This means that if an http client sends its payload in tiny packets,
+                    //   sends them slow and does not send Content-Length, then the read may fail.
+                    var startTime = DateTime.Now;
+                    do
+                    {
+                        bytesRead += await request.InputStream.ReadAsync(requestBodyBuffer, 0 + bytesRead, requestBodyBuffer.Length - bytesRead);
+                    }
+                    while (NoRequestTimeout(startTime) && IsKnownPayloadSize(request) && bytesRead < requestBodyBuffer.Length);
+
+                    if (IsKnownPayloadSize(request) && bytesRead < requestBodyBuffer.Length)
+                    {
+                        Events.CouldNotReadFull();
+                        return Option.None<String>();
+                    }
                 }
                 catch (Exception e)
                 {
                     Events.ErrorReadingStream(e);
-                    return Option.None<String>();
-                }
-
-                // read as many bytes as the buffer capacity. Remember that we allocated +1 byte,
-                // so we don't expect that the buffer will be full. If it is, the Content-Length was
-                // wrong, or the request is bigger than the maximum allowed.
-                if (bytesRead == requestBodyBuffer.Length)
-                {
-                    Events.InvalidRequest();
                     return Option.None<String>();
                 }
 
@@ -304,12 +311,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
         private byte[] GetRequestBodyBuffer(HttpListenerRequest request)
         {
             // the request may contain the content-length in the header - or not
-            var requestSize = request.ContentLength64 >= 0 ? request.ContentLength64 : maxInBufferSize;
-
-            // if the client sends too big number in the header - don't believe it
-            // also, overallocate the buffer by one, so at the end we should read less bytes than requested
-            requestSize = Math.Min(maxInBufferSize, requestSize + 1);
+            var requestSize = IsKnownPayloadSize(request) ? request.ContentLength64 : maxInBufferSize;
+            
             return new byte[requestSize];
+        }
+
+        private bool IsKnownPayloadSize(HttpListenerRequest request)
+        {
+            // if the client sends too big number in the header - don't believe it
+            // in that case use a maximum and treat the size as unknown
+            return request.ContentLength64 >= 0 && request.ContentLength64 < maxInBufferSize;
+        }
+
+        private bool NoRequestTimeout(DateTime startTime)
+        {
+            return DateTime.Now.Subtract(startTime) > requestTimeout;
         }
 
         private Option<AuthRequest> Decode(Option<string> request)
@@ -372,7 +388,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
                 AuthRequestReceived,
                 AuthSucceeded,
                 AuthFailed,
-                InvalidRequest,
+                CouldNotReadFull,
                 ErrorReadingStream,
                 ErrorDecodingStream,
                 ErrorDecodingPayload,
@@ -443,9 +459,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
                 Log.LogWarning((int)EventIds.AuthSucceeded, "AUTH failed {0}", id);
             }
 
-            public static void InvalidRequest()
+            public static void CouldNotReadFull()
             {
-                Log.LogWarning((int)EventIds.InvalidRequest, "Invalid request for AUTH - ignoring");
+                Log.LogError((int)EventIds.CouldNotReadFull, "Could not read AUTH request, parts missing");
             }
 
             public static void ErrorReadingStream(Exception e)
