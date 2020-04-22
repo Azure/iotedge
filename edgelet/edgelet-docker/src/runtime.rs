@@ -670,9 +670,7 @@ impl ModuleRuntime for DockerModuleRuntime {
             })
             .unwrap_or_default();
 
-        let used_cpu = system_resources
-            .get_global_processor_info()
-            .get_cpu_usage();
+        let used_cpu = system_resources.get_global_processor_info().get_cpu_usage();
 
         let total_memory = system_resources.get_total_memory() * 1000;
         let used_memory = system_resources.get_used_memory() * 1000;
