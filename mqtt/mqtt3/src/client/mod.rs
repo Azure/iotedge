@@ -474,6 +474,7 @@ pub struct ReceivedPublication {
     pub payload: bytes::Bytes,
 }
 
+#[derive(Clone, Debug)]
 pub struct ShutdownHandle(futures_channel::mpsc::Sender<()>);
 
 impl ShutdownHandle {
