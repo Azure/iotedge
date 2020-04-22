@@ -246,7 +246,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                         e
                     })
                     .map(|client| {
-                        let mut system_resources = System::new();
+                        let mut system_resources = System::new_all();
                         system_resources.refresh_all();
                         info!("Successfully initialized module runtime");
                         DockerModuleRuntime {
