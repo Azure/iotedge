@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string RelayerModuleName = "relayerModule";
         const string NetworkControllerModuleName = "networkController";
         const string TrcUrl = "http://" + TrcModuleName + ":5001";
-        const string LoadGenTestDuration = "00:00:40";
+        const string LoadGenTestDuration = "00:00:20";
 
         [Test]
         public async Task PriorityQueueModuleToModuleMessages()
@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 deployment.StartTime,
                 data =>
                 {
-                    Log.Information("RECEIVED MESSAGE. Message body:" + data.Body.ToString());
+                    Log.Information("RECEIVED MESSAGE. Message body:" + Encoding.UTF8.GetString(data.Body));
                     // Report result to TRC until we have as many unique messages as we sent
                     results++;
                     return results == loadGenTestStatus.ResultCount;

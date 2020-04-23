@@ -12,6 +12,7 @@ namespace NetworkController
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json.Linq;
 
@@ -60,7 +61,7 @@ namespace NetworkController
                                 await StartAsync(cellular, cts.Token);
                                 break;
                             case NetworkControllerType.Online:
-                                ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(TransportType.Amqp_Tcp_Only);
+                                ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(TransportType.Amqp_Tcp_Only, ModuleUtil.DefaultTimeoutErrorDetectionStrategy, ModuleUtil.DefaultTransientRetryStrategy);
                                 await moduleClient.SetMethodHandlerAsync("toggleConnectivity", ToggleConnectivity, new Tuple<string, CancellationToken>(name, cts.Token));
                                 Log.LogInformation($"No restrictions to be set, running as online");
                                 break;
