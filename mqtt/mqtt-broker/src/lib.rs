@@ -191,14 +191,16 @@ pub enum Message {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::{proto, Arc, ClientId, Publish};
+    use std::sync::Arc;
 
     use bytes::Bytes;
     use proptest::collection::vec;
     use proptest::num;
     use proptest::prelude::*;
 
-    use crate::subscription::tests::arb_qos;
+    use mqtt3::proto;
+
+    use crate::{subscription::tests::arb_qos, ClientId, Publish};
 
     pub fn arb_clientid() -> impl Strategy<Value = ClientId> {
         "[a-zA-Z0-9]{1,23}".prop_map(|s| ClientId(Arc::new(s)))

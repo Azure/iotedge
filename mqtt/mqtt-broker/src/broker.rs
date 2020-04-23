@@ -1007,27 +1007,26 @@ pub struct NoSessionError;
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::{
-        mpsc, proto, Activity, BrokerBuilder, BrokerHandle, BrokerState, ClientEvent, ClientId,
-        ConnReq, Error, Message, Operation, Receiver, Session, SessionError,
-    };
-
     use std::time::Duration;
 
     use bytes::Bytes;
     use futures_util::future::FutureExt;
     use matches::assert_matches;
-    use mqtt3::{PROTOCOL_LEVEL, PROTOCOL_NAME};
     use proptest::collection::{hash_map, vec};
     use proptest::prelude::*;
     use tokio::sync::mpsc::error::TryRecvError;
+    use tokio::sync::mpsc::{self, Receiver};
     use uuid::Uuid;
 
-    use crate::session::tests::arb_session_state;
-    use crate::tests::{arb_publication, arb_topic};
+    use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
+
     use crate::{
-        auth::{AuthenticateError, AuthorizeError},
-        AuthId, ConnectionHandle,
+        auth::{Activity, AuthenticateError, AuthorizeError, Operation},
+        broker::{BrokerBuilder, BrokerHandle, BrokerState, SessionError},
+        error::Error,
+        session::{tests::arb_session_state, Session},
+        tests::{arb_publication, arb_topic},
+        AuthId, ClientEvent, ClientId, ConnReq, ConnectionHandle, Message,
     };
 
     prop_compose! {

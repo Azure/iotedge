@@ -161,12 +161,15 @@ impl FromStr for TopicFilter {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::{proto, Segment, Subscription, TopicFilter};
     use std::str::FromStr;
 
     use proptest::bool;
     use proptest::collection::vec;
     use proptest::prelude::*;
+
+    use mqtt3::proto;
+
+    use crate::subscription::{Segment, Subscription, TopicFilter};
 
     fn arb_segment() -> impl Strategy<Value = Segment> {
         prop_oneof![

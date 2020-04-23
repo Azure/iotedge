@@ -861,27 +861,27 @@ impl Default for PacketIdentifiers {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::{
-        proto, AuthId, ClientId, ConnReq, Error, IdentifiersInUse, PacketIdentifiers, Session,
-        SessionState,
-    };
-
     use std::time::Duration;
 
     use matches::assert_matches;
-    use mqtt3::{PROTOCOL_LEVEL, PROTOCOL_NAME};
     use proptest::collection::{hash_map, hash_set, vec, vec_deque};
     use proptest::num;
     use proptest::prelude::*;
     use tokio::sync::mpsc;
     use uuid::Uuid;
 
+    use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
+
     use crate::subscription::tests::arb_subscription;
     use crate::tests::{
         arb_clientid, arb_packet_identifier, arb_proto_publish, arb_publication, arb_publish,
         arb_topic,
     };
-    use crate::ConnectionHandle;
+    use crate::{auth::AuthId, ConnectionHandle};
+    use crate::{
+        session::{IdentifiersInUse, PacketIdentifiers, Session, SessionState},
+        ClientId, ConnReq, Error,
+    };
 
     fn arb_identifiers_in_use() -> impl Strategy<Value = IdentifiersInUse> {
         vec(num::usize::ANY, PacketIdentifiers::SIZE).prop_map(|v| {

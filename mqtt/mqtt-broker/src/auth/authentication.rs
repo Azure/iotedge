@@ -68,8 +68,9 @@ impl Authenticator for DefaultAuthenticator {
 
 #[cfg(test)]
 mod tests {
-    use super::{AuthId, Authenticator, Credentials, DefaultAuthenticator};
     use matches::assert_matches;
+
+    use crate::auth::{AuthId, Authenticator, Credentials, DefaultAuthenticator};
 
     #[tokio::test]
     async fn default_auth_always_return_unknown_client_identity() {

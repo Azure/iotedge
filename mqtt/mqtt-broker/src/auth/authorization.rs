@@ -193,7 +193,7 @@ mod tests {
 
     use matches::assert_matches;
 
-    use super::{Activity, Authorizer, DefaultAuthorizer, Operation};
+    use crate::auth::{Activity, Authorizer, DefaultAuthorizer, Operation};
 
     fn connect() -> mqtt3::proto::Connect {
         mqtt3::proto::Connect {
