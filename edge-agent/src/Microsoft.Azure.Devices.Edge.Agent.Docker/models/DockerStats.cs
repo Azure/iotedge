@@ -122,11 +122,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
     public class MemoryStats
     {
         [JsonConstructor]
-        public MemoryStats(double? limit, double? max_usage, double? usage)
+        public MemoryStats(double? limit, double? max_usage, double? usage, MemoryStatsExtended stats)
         {
             this.Limit = Option.Maybe(limit);
             this.MaxUsage = Option.Maybe(max_usage);
             this.Usage = Option.Maybe(usage);
+            this.Stats = Option.Maybe(stats);
         }
 
         [JsonProperty("limit", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
@@ -137,6 +138,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
 
         [JsonProperty("usage", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public Option<double> Usage { get; }
+
+        [JsonProperty("stats", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public Option<MemoryStatsExtended> Stats { get; }
+    }
+
+    public class MemoryStatsExtended
+    {
+        [JsonConstructor]
+        public MemoryStatsExtended(double? cache)
+        {
+            this.Cache = Option.Maybe(cache);
+        }
+
+        [JsonProperty("cache", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public Option<double> Cache { get; }
+
     }
 
     public class NetworkInfo
