@@ -266,28 +266,46 @@ namespace LeafDeviceTest
             {
                 using (cts.Token.Register(() => result.TrySetCanceled()))
                 {
-                    eventHubReceiver.SetReceiveHandler(
-                        new PartitionReceiveHandler(
-                            eventData =>
-                            {
-                                eventData.SystemProperties.TryGetValue("iothub-connection-device-id", out var devId);
-
-                                if (devId != null && devId.ToString().Equals(this.context.Device.Id, StringComparison.Ordinal)
-                                                  && Encoding.UTF8.GetString(eventData.Body).Contains(this.context.MessageGuid, StringComparison.Ordinal))
+                    try
+                    {
+                        eventHubReceiver.SetReceiveHandler(
+                            new PartitionReceiveHandler(
+                                eventData =>
                                 {
-                                    result.TrySetResult(true);
-                                    return true;
-                                }
+                                    eventData.SystemProperties.TryGetValue("iothub-connection-device-id", out var devId);
 
-                                return false;
-                            }));
+                                    if (devId != null && devId.ToString().Equals(this.context.Device.Id, StringComparison.Ordinal)
+                                                    && Encoding.UTF8.GetString(eventData.Body).Contains(this.context.MessageGuid, StringComparison.Ordinal))
+                                    {
+                                        result.TrySetResult(true);
+                                        return true;
+                                    }
 
-                    await result.Task;
+                                    return false;
+                                }));
+
+                        await result.Task;
+                    }
+                    catch (Exception e)
+                    {
+                        string[] edgeHubLogs = await Process.RunAsync("iotedge", "logs edgeHub", cts.Token);
+                        WriteToConsole("EdgeHub logs: ", edgeHubLogs);
+                        throw e;
+                    }
                 }
             }
 
             await eventHubReceiver.CloseAsync();
             await eventHubClient.CloseAsync();
+        }
+
+        static void WriteToConsole(string header, string[] result)
+        {
+            Console.WriteLine(header);
+            foreach (string r in result)
+            {
+                Console.WriteLine(r);
+            }
         }
 
         protected async Task VerifyDirectMethodAsync()
