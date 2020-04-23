@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             CancellationToken token = this.TestToken;
             string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
-            string relayerImage = Context.Current.NetworkControllerImage.Expect(() => new ArgumentException("relayerImage parameter is required for Priority Queues test"));
+            string relayerImage = Context.Current.RelayerImage.Expect(() => new ArgumentException("relayerImage parameter is required for Priority Queues test"));
             string networkControllerImage = Context.Current.NetworkControllerImage.Expect(() => new ArgumentException("networkControllerImage parameter is required for Priority Queues test"));
             string trackingId = Guid.NewGuid().ToString();
             TestInfo testInfo = this.InitTestInfo(5, 1000, true);
@@ -176,7 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         .WithEnvironment(new[]
                         {
                             ("trackingId", trackingId),
-                            ("testResultCoordinatorUrl", "blah"),
+                            ("testResultCoordinatorUrl", TrcUrl),
                             ("RunFrequencies__0__OfflineFrequency", "00:00:00"),
                             ("RunFrequencies__0__OnlineFrequency", "00:00:00"),
                             ("RunFrequencies__0__RunsCount", "0"),
@@ -323,7 +323,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.iotHub.InvokeMethodAsync(
                 this.runtime.DeviceId,
                 moduleName,
-                new CloudToDeviceMethod("ToggleConnectivity", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson($"\"networkOnValue\": \"{connectivityOn}\""), token);
+                new CloudToDeviceMethod("ToggleConnectivity", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson($"\"networkOnValue\": \"{connectivityOn}\""),
+                token);
         }
 
         private async Task<PriorityQueueTestStatus> PollUntilFinishedAsync(string moduleName, CancellationToken token)

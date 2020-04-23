@@ -61,7 +61,7 @@ namespace NetworkController
                                 break;
                             case NetworkControllerType.Online:
                                 ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(TransportType.Amqp_Tcp_Only);
-                                await moduleClient.SetMethodHandlerAsync("toggleConnectivity", ToggleConnectivity,new Tuple<string, CancellationToken>(name, cts.Token));
+                                await moduleClient.SetMethodHandlerAsync("toggleConnectivity", ToggleConnectivity, new Tuple<string, CancellationToken>(name, cts.Token));
                                 Log.LogInformation($"No restrictions to be set, running as online");
                                 break;
                             default:
@@ -84,7 +84,7 @@ namespace NetworkController
             handler.ForEach(h => GC.KeepAlive(h));
         }
 
-        private async static Task<MethodResponse> ToggleConnectivity(MethodRequest methodRequest, object userContext)
+        private static async Task<MethodResponse> ToggleConnectivity(MethodRequest methodRequest, object userContext)
         {
             var tup = (Tuple<string, CancellationToken>)userContext;
 
