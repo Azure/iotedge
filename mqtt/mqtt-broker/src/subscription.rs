@@ -161,7 +161,7 @@ impl FromStr for TopicFilter {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::*;
+    use super::{proto, Segment, Subscription, TopicFilter};
     use std::str::FromStr;
 
     use proptest::bool;

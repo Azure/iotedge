@@ -1007,20 +1007,24 @@ pub struct NoSessionError;
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::*;
+    use super::{
+        mpsc, proto, Activity, BrokerBuilder, BrokerHandle, BrokerState, ClientEvent, ClientId,
+        ConnReq, Error, Message, Operation, Receiver, Session, SessionError,
+    };
 
     use std::time::Duration;
 
     use bytes::Bytes;
     use futures_util::future::FutureExt;
     use matches::assert_matches;
+    use mqtt3::{PROTOCOL_LEVEL, PROTOCOL_NAME};
     use proptest::collection::{hash_map, vec};
     use proptest::prelude::*;
     use tokio::sync::mpsc::error::TryRecvError;
     use uuid::Uuid;
 
-    use crate::session::tests::*;
-    use crate::tests::*;
+    use crate::session::tests::arb_session_state;
+    use crate::tests::{arb_publication, arb_topic};
     use crate::{
         auth::{AuthenticateError, AuthorizeError},
         AuthId, ConnectionHandle,
@@ -1051,8 +1055,8 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession(id),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         }
     }
 
@@ -1063,8 +1067,8 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithExistingSession(id),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         }
     }
 
@@ -1085,8 +1089,8 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         };
         let connect2 = proto::Connect {
             username: None,
@@ -1094,8 +1098,8 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         };
         let id = Uuid::new_v4();
         let (tx1, mut rx1) = mpsc::channel(128);
@@ -1148,8 +1152,8 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         };
         let connect2 = proto::Connect {
             username: None,
@@ -1157,8 +1161,8 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         };
         let (tx1, mut rx1) = mpsc::channel(128);
         let (tx2, mut rx2) = mpsc::channel(128);
@@ -1217,7 +1221,7 @@ pub(crate) mod tests {
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
             protocol_name: "AMQP".to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_level: PROTOCOL_LEVEL,
         };
         let (tx1, mut rx1) = mpsc::channel(128);
         let conn1 = ConnectionHandle::from_sender(tx1);
@@ -1255,7 +1259,7 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
+            protocol_name: PROTOCOL_NAME.to_string(),
             protocol_level: 0x3,
         };
         let (tx1, mut rx1) = mpsc::channel(128);
@@ -1304,8 +1308,8 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         };
 
         let (tx1, mut rx1) = mpsc::channel(128);
@@ -1347,8 +1351,8 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         };
 
         let (tx1, mut rx1) = mpsc::channel(128);
@@ -1397,8 +1401,8 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         };
 
         let (tx1, mut rx1) = mpsc::channel(128);
@@ -1447,8 +1451,8 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         };
 
         let (tx1, mut rx1) = mpsc::channel(128);
@@ -1497,8 +1501,8 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         };
 
         let (tx1, mut rx1) = mpsc::channel(128);

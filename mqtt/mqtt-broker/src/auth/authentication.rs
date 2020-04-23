@@ -68,8 +68,7 @@ impl Authenticator for DefaultAuthenticator {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
+    use super::{AuthId, Authenticator, Credentials, DefaultAuthenticator};
     use matches::assert_matches;
 
     #[tokio::test]

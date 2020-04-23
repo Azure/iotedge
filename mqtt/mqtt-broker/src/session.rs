@@ -861,11 +861,15 @@ impl Default for PacketIdentifiers {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::*;
+    use super::{
+        proto, AuthId, ClientId, ConnReq, Error, IdentifiersInUse, PacketIdentifiers, Session,
+        SessionState,
+    };
 
     use std::time::Duration;
 
     use matches::assert_matches;
+    use mqtt3::{PROTOCOL_LEVEL, PROTOCOL_NAME};
     use proptest::collection::{hash_map, hash_set, vec, vec_deque};
     use proptest::num;
     use proptest::prelude::*;
@@ -873,7 +877,10 @@ pub(crate) mod tests {
     use uuid::Uuid;
 
     use crate::subscription::tests::arb_subscription;
-    use crate::tests::*;
+    use crate::tests::{
+        arb_clientid, arb_packet_identifier, arb_proto_publish, arb_publication, arb_publish,
+        arb_topic,
+    };
     use crate::ConnectionHandle;
 
     fn arb_identifiers_in_use() -> impl Strategy<Value = IdentifiersInUse> {
@@ -936,8 +943,8 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession(id),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         }
     }
 

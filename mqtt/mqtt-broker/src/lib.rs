@@ -13,7 +13,7 @@
 
 use std::sync::Arc;
 
-use mqtt3::*;
+use mqtt3::proto;
 use serde::{Deserialize, Serialize};
 
 mod auth;
@@ -191,7 +191,7 @@ pub enum Message {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::*;
+    use super::{proto, Arc, ClientId, Publish};
 
     use bytes::Bytes;
     use proptest::collection::vec;

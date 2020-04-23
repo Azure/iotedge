@@ -518,7 +518,9 @@ pub enum PersistError {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::*;
+    use super::{
+        BrokerState, ConsolidatedState, ConsolidatedStateFormat, FileFormat, FilePersistor, Persist,
+    };
 
     use std::io::Cursor;
 

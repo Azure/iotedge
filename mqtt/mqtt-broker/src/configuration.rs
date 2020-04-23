@@ -163,7 +163,7 @@ mod tests {
     use serde_json::json;
     use test_case::test_case;
 
-    use super::*;
+    use super::{humansize, BrokerConfig, From};
 
     #[test]
     fn it_loads_defaults() {
