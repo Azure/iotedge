@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
+    using Microsoft.Azure.EventHubs;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using NUnit.Framework;
@@ -90,8 +91,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 deployment.StartTime,
                 data =>
                 {
-                    Log.Information("RECEIVED MESSAGE. Message body:" + Encoding.UTF8.GetString(data.Body));
-                    // Report result to TRC until we have as many unique messages as we sent
+                    Log.Information("RECEIVED MESSAGE");
+                    foreach (var prop in data.Properties)
+                    {
+                        Log.Information($"prop {prop.Key}, val: {prop.Value}");
+                    }
+
+                    // TODO: Report result to TRC until we have as many unique messages as we sent
                     results++;
                     return results == loadGenTestStatus.ResultCount;
                 },
