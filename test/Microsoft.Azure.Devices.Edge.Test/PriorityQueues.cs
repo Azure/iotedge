@@ -77,8 +77,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, trcImage, loadGenImage, testInfo, true);
             Action<EdgeConfigBuilder> addNetworkControllerConfig = this.BuildAddNetworkControllerConfig(trackingId, networkControllerImage);
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addNetworkControllerConfig, token);
+            Log.Information("Toggling connectivity off");
             await this.ToggleConnectivity(false, NetworkControllerModuleName, token);
+            Log.Information("Waiting for 20");
             await Task.Delay(20000);
+            Log.Information("Toggling connectivity on");
             await this.ToggleConnectivity(true, NetworkControllerModuleName, token);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
             int results = 0;
@@ -183,7 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             ("NetworkControllerRunProfile", "Online"),
                             ("StartAfter", "00:00:00")
                         })
-                        .WithSettings(new[] { ("createOptions", "{\"HostConfig\":{\"Privileged\":\"true\",\"NetworkMode\":\"host\",\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"]},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}") });
+                        .WithSettings(new[] { ("createOptions", "{\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"], \"NetworkMode\":\"host\", \"HostConfig\":{\"Privileged\":\"true\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}") });
                 });
         }
 
@@ -323,7 +326,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.iotHub.InvokeMethodAsync(
                 this.runtime.DeviceId,
                 moduleName,
-                new CloudToDeviceMethod("ToggleConnectivity", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson($"\"networkOnValue\": \"{connectivityOn}\""),
+                new CloudToDeviceMethod("ToggleConnectivity", TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(20)).SetPayloadJson($"\"networkOnValue\": \"{connectivityOn}\""),
                 token);
         }
 
