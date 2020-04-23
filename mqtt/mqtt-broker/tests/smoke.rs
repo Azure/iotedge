@@ -1,4 +1,5 @@
 use futures_util::FutureExt;
+
 use mqtt3::proto::QoS::{AtLeastOnce, AtMostOnce, ExactlyOnce};
 use mqtt3::proto::SubscribeTo;
 use mqtt3::{Event, ReceivedPublication};

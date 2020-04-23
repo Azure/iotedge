@@ -1,11 +1,12 @@
 use futures_util::StreamExt;
+use tokio::sync::mpsc::{self, Receiver};
+use tokio::task::JoinError;
+
 use mqtt3::proto::{Publication, SubscribeTo};
 use mqtt3::{
     Client, Event, PublishError, PublishHandle, ShutdownError, ShutdownHandle,
     UpdateSubscriptionError, UpdateSubscriptionHandle,
 };
-use tokio::sync::mpsc::{self, Receiver};
-use tokio::task::JoinError;
 
 /// A wrapper on the mqtt3::Client to help simplify client event loop management.
 #[derive(Debug)]
