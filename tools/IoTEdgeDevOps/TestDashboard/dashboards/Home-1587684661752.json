@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 5,
-  "iteration": 1587683533645,
+  "iteration": 1587684604902,
   "links": [],
   "panels": [
     {
@@ -1760,8 +1760,9 @@
           "url": "/d/XP0gH0QZz/azure-dev-ops-build-status?orgId=1&var-BranchName=${BranchName}&var-BuildType=Longhaul%20Test"
         },
         {
+          "targetBlank": true,
           "title": "Report Viewer",
-          "url": "/d/aAVz4M_Zz/longhaul-stress-report-details?orgId=1&var-TestType=LongHaul"
+          "url": "https://ms.portal.azure.com/#@microsoft.onmicrosoft.com/resource/subscriptions/5ed2dcb6-29bb-40de-a855-8c24a8260343/resourceGroups/EdgeBuilds/providers/Microsoft.OperationalInsights/workspaces/iotedgeLogAnalytic/logs"
         },
         {
           "targetBlank": true,
@@ -1882,10 +1883,12 @@
       "id": 36,
       "links": [
         {
+          "targetBlank": true,
           "title": "Historical",
           "url": "/d/XP0gH0QZz/azure-dev-ops-build-status?orgId=1&var-BranchName=${BranchName}&var-BuildType=Longhaul%20Test"
         },
         {
+          "targetBlank": true,
           "title": "Report Viewer",
           "url": "/d/aAVz4M_Zz/longhaul-stress-report-details?orgId=1&var-TestType=LongHaul"
         },
@@ -2505,5 +2508,5 @@
   "timezone": "",
   "title": "Home",
   "uid": "OLjJ46wWz",
-  "version": 6
+  "version": 8
 }
