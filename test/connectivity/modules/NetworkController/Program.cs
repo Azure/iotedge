@@ -3,12 +3,17 @@ namespace NetworkController
 {
     using System;
     using System.Collections.Generic;
+    using System.Configuration;
     using System.Diagnostics;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json.Linq;
 
     class Program
     {
@@ -55,6 +60,8 @@ namespace NetworkController
                                 await StartAsync(cellular, cts.Token);
                                 break;
                             case NetworkControllerType.Online:
+                                ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(TransportType.Amqp_Tcp_Only);
+                                await moduleClient.SetMethodHandlerAsync("toggleConnectivity", ToggleConnectivity,new Tuple<string, CancellationToken>(name, cts.Token));
                                 Log.LogInformation($"No restrictions to be set, running as online");
                                 break;
                             default:
@@ -75,6 +82,19 @@ namespace NetworkController
             await cts.Token.WhenCanceled();
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
+        }
+
+        private async static Task<MethodResponse> ToggleConnectivity(MethodRequest methodRequest, object userContext)
+        {
+            var tup = (Tuple<string, CancellationToken>)userContext;
+
+            // true for network on (restriction disabled), false for network off (restriction enabled)
+            bool networkOnValue = (bool)JObject.Parse(methodRequest.DataAsJson)["networkOnValue"];
+            INetworkStatusReporter reporter = new NetworkStatusReporter(Settings.Current.TestResultCoordinatorEndpoint, Settings.Current.ModuleId, Settings.Current.TrackingId);
+            var controller = new OfflineController(tup.Item1, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
+            NetworkControllerStatus ncs = networkOnValue ? NetworkControllerStatus.Disabled : NetworkControllerStatus.Enabled;
+            await SetNetworkControllerStatus(controller, ncs, reporter, tup.Item2);
+            return new MethodResponse((int)HttpStatusCode.OK);
         }
 
         static async Task StartAsync(INetworkController controller, CancellationToken cancellationToken)

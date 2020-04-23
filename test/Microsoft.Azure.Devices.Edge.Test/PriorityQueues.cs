@@ -26,8 +26,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string TrcModuleName = "testResultCoordinator";
         const string LoadGenModuleName = "loadGenModule";
         const string RelayerModuleName = "relayerModule";
+        const string NetworkControllerModuleName = "networkController";
         const string TrcUrl = "http://" + TrcModuleName + ":5001";
-        const string LoadGenTestDuration = "00:00:20";
+        const string LoadGenTestDuration = "00:00:40";
 
         [Test]
         public async Task PriorityQueueModuleToModuleMessages()
@@ -45,12 +46,53 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string trackingId = Guid.NewGuid().ToString();
             TestInfo testInfo = this.InitTestInfo(5, 1000, true);
 
-            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, trcImage, loadGenImage, testInfo);
+            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, trcImage, loadGenImage, testInfo, false);
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
             Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
             deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token, false);
             await this.PollUntilFinishedAsync(RelayerModuleName, token);
+            await this.ValidateResultsAsync();
+        }
+
+        [Test]
+        public async Task PriorityQueueModuleToHubMessages()
+        {
+            // TODO: Fix PriorityQueue E2E tests for Windows and ARM32
+            if (OsPlatform.IsWindows() || !OsPlatform.Is64Bit())
+            {
+                Assert.Ignore("Priority Queue module to module messages test has been disabled for Windows and Arm32 until we can fix it.");
+            }
+
+            CancellationToken token = this.TestToken;
+            string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
+            string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
+            string relayerImage = Context.Current.NetworkControllerImage.Expect(() => new ArgumentException("relayerImage parameter is required for Priority Queues test"));
+            string networkControllerImage = Context.Current.NetworkControllerImage.Expect(() => new ArgumentException("networkControllerImage parameter is required for Priority Queues test"));
+            string trackingId = Guid.NewGuid().ToString();
+            TestInfo testInfo = this.InitTestInfo(5, 1000, true);
+
+            var testResultReportingClient = new TestResultReportingClient { BaseUrl = "http://localhost:5001" };
+
+            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, trcImage, loadGenImage, testInfo, true);
+            Action<EdgeConfigBuilder> addNetworkControllerConfig = this.BuildAddNetworkControllerConfig(trackingId, networkControllerImage);
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addNetworkControllerConfig, token);
+            await this.ToggleConnectivity(false, NetworkControllerModuleName, token);
+            await Task.Delay(20000);
+            await this.ToggleConnectivity(true, NetworkControllerModuleName, token);
+            PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
+            int results = 0;
+            await this.iotHub.ReceiveEventsAsync(
+                this.runtime.DeviceId,
+                deployment.StartTime,
+                data =>
+                {
+                    Log.Information("RECEIVED MESSAGE. Message body:" + data.Body.ToString());
+                    // Report result to TRC until we have as many unique messages as we sent
+                    results++;
+                    return results == loadGenTestStatus.ResultCount;
+                },
+                token);
             await this.ValidateResultsAsync();
         }
 
@@ -70,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string trackingId = Guid.NewGuid().ToString();
             TestInfo testInfo = this.InitTestInfo(5, 20);
 
-            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, trcImage, loadGenImage, testInfo);
+            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, trcImage, loadGenImage, testInfo, false);
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
 
@@ -82,6 +124,18 @@ namespace Microsoft.Azure.Devices.Edge.Test
             deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token, false);
             await this.PollUntilFinishedAsync(RelayerModuleName, token);
             await this.ValidateResultsAsync();
+        }
+
+        private async void ReportResult(TestResultReportingClient testResultReportingClient, string sourceName, string trackingId, string batchId, string sequenceNumber)
+        {
+            var testResultReceived = new MessageTestResult(sourceName + ".receive", DateTime.UtcNow)
+            {
+                TrackingId = trackingId,
+                BatchId = batchId,
+                SequenceNumber = sequenceNumber
+            };
+
+            await testResultReportingClient.ReportResultAsync(testResultReceived.ToTestOperationResultDto());
         }
 
         private async Task ValidateResultsAsync()
@@ -113,7 +167,26 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 });
         }
 
-        private Action<EdgeConfigBuilder> BuildAddInitialConfig(string trackingId, string trcImage, string loadGenImage, TestInfo testInfo)
+        private Action<EdgeConfigBuilder> BuildAddNetworkControllerConfig(string trackingId, string networkControllerImage)
+        {
+            return new Action<EdgeConfigBuilder>(
+                builder =>
+                {
+                    builder.AddModule(NetworkControllerModuleName, networkControllerImage)
+                        .WithEnvironment(new[]
+                        {
+                            ("trackingId", trackingId),
+                            ("testResultCoordinatorUrl", "blah"),
+                            ("RunFrequencies__0__OfflineFrequency", "00:00:00"),
+                            ("RunFrequencies__0__OnlineFrequency", "00:00:00"),
+                            ("RunFrequencies__0__RunsCount", "0"),
+                            ("NetworkControllerRunProfile", "Online"),
+                            ("StartAfter", "00:00:00")
+                        })
+                        .WithSettings(new[] { ("createOptions", "{\"HostConfig\":{\"Privileged\":\"true\",\"NetworkMode\":\"host\",\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"]},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}") });
+                })
+        }
+        private Action<EdgeConfigBuilder> BuildAddInitialConfig(string trackingId, string trcImage, string loadGenImage, TestInfo testInfo, bool cloudUpstream)
         {
             return new Action<EdgeConfigBuilder>(
                 builder =>
@@ -159,6 +232,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         {
                             ("testResultCoordinatorUrl", TrcUrl),
                             ("senderType", "PriorityMessageSender"),
+                            ("testStartDelay", "00:00:20"),
                             ("trackingId", trackingId),
                             ("testDuration", LoadGenTestDuration),
                             ("messageFrequency", "00:00:00.5"),
@@ -167,12 +241,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             ("ttlThresholdSecs", testInfo.TtlThreshold.ToString())
                         });
 
-                    Dictionary<string, object> routes = this.BuildRoutes(testInfo, LoadGenModuleName, RelayerModuleName);
+                    Dictionary<string, object> routes = this.BuildRoutes(testInfo, LoadGenModuleName, RelayerModuleName, cloudUpstream);
                     builder.GetModule(ModuleName.EdgeHub).WithDesiredProperties(new Dictionary<string, object> { ["routes"] = routes });
                 });
         }
 
-        private Dictionary<string, object> BuildRoutes(TestInfo testInfo, string sendModule, string receiveModule)
+        private Dictionary<string, object> BuildRoutes(TestInfo testInfo, string sendModule, string receiveModule, bool cloudUpstream)
         {
             Dictionary<string, object> routes = new Dictionary<string, object>();
             for (int i = 0; i < testInfo.Priorities.Count; i++)
@@ -180,7 +254,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 int ttl = testInfo.Ttls[i];
                 int priority = testInfo.Priorities[i];
                 var routeInfo = new Dictionary<string, object>();
-                routeInfo["route"] = $"FROM /messages/modules/{sendModule}/outputs/pri{priority} INTO BrokeredEndpoint('/modules/{receiveModule}/inputs/input1')";
+                routeInfo["route"] = cloudUpstream ?
+                    $"FROM /messages/modules/{sendModule}/outputs/pri{priority} INTO $upstream"
+                    : $"FROM /messages/modules/{sendModule}/outputs/pri{priority} INTO BrokeredEndpoint('/modules/{receiveModule}/inputs/input1')";
 
                 // If we encounter "Default" in the priority list, don't add a priority - the default priority will automatically get picked up
                 if (priority >= 0)
@@ -239,6 +315,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
 
             return priorities;
+        }
+
+        private async Task ToggleConnectivity(bool connectivityOn, string moduleName, CancellationToken token)
+        {
+            await this.iotHub.InvokeMethodAsync(
+                this.runtime.DeviceId,
+                moduleName,
+                new CloudToDeviceMethod("ToggleConnectivity", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson($"\"networkOnValue\": \"{connectivityOn}\""), token);
         }
 
         private async Task<PriorityQueueTestStatus> PollUntilFinishedAsync(string moduleName, CancellationToken token)
