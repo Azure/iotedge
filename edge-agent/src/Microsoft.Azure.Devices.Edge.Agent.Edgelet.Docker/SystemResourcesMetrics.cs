@@ -177,7 +177,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
                 module.MemoryStats.ForEach(ms =>
                 {
                     ms.Limit.ForEach(limit => this.totalMemory.Set(limit, tags));
-                    ms.Usage.ForEach(usage => this.usedMemory.Set((long)usage, tags));
+                    ms.Usage.ForEach(usage =>
+                    {
+                        double actualUsage = usage - ms.Stats.AndThen(s => s.Cache).GetOrElse(0);
+                        this.usedMemory.Set((long)actualUsage, tags);
+                    });
                 });
                 module.PidsStats.ForEach(ps => ps.Current.ForEach(current => this.createdPids.Set(current, tags)));
 

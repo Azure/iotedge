@@ -170,6 +170,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
         }
 
         [Pure]
+        public Option<TResult> AndThen<TResult>(Func<T, Option<TResult>> mapping)
+        {
+            return this.HasValue
+                ? mapping(this.Value)
+                : Option.None<TResult>();
+        }
+
+        [Pure]
         public Option<TResult> FlatMap<TResult>(Func<T, Option<TResult>> mapping) => this.Match(
             some: mapping,
             none: Option.None<TResult>);
