@@ -186,7 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             ("NetworkControllerRunProfile", "Online"),
                             ("StartAfter", "00:00:00")
                         })
-                        .WithSettings(new[] { ("createOptions", "{\"HostConfig\":{\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"], \"NetworkMode\":\"host\", \"Privileged\":true},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}") });
+                        .WithSettings(new[] { ("createOptions", "{\"HostConfig\":{\"Privileged\":\"true\",\"NetworkMode\":\"host\",\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"]},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}") });
                 });
         }
 
