@@ -1,12 +1,20 @@
-use futures_util::StreamExt;
-use tokio::sync::mpsc::{self, Receiver};
-use tokio::task::JoinError;
+use std::sync::atomic::{AtomicU32, Ordering};
 
-use mqtt3::proto::{Publication, SubscribeTo};
+use futures_util::FutureExt;
+use futures_util::StreamExt;
+use lazy_static::lazy_static;
+use tokio::sync::{
+    mpsc::{self, Receiver},
+    oneshot::{self, Sender},
+};
+use tokio::task::{JoinError, JoinHandle};
+
 use mqtt3::{
+    proto::{Publication, SubscribeTo},
     Client, Event, PublishError, PublishHandle, ShutdownError, ShutdownHandle,
     UpdateSubscriptionError, UpdateSubscriptionHandle,
 };
+use mqtt_broker::{Authenticator, Authorizer, Broker, BrokerState, Error, Server};
 
 /// A wrapper on the mqtt3::Client to help simplify client event loop management.
 #[derive(Debug)]
@@ -15,7 +23,7 @@ pub struct TestClient {
     subscription_handle: UpdateSubscriptionHandle,
     shutdown_handle: ShutdownHandle,
     pub events_receiver: Receiver<Event>,
-    task: tokio::task::JoinHandle<()>,
+    task: JoinHandle<()>,
 }
 
 impl TestClient {
@@ -127,4 +135,27 @@ impl TestClientBuilder {
             task,
         }
     }
+}
+
+/// Starts a test server with a provided broker and returns
+/// shutdown handle, broker task and server binding.
+pub fn start_server<N, Z>(
+    broker: Broker<N, Z>,
+) -> (Sender<()>, JoinHandle<Result<BrokerState, Error>>, String)
+where
+    N: Authenticator + Send + Sync + 'static,
+    Z: Authorizer + Send + Sync + 'static,
+{
+    lazy_static! {
+        static ref PORT: AtomicU32 = AtomicU32::new(5555);
+    }
+
+    let port = PORT.fetch_add(1, Ordering::SeqCst);
+    let server: String = format!("localhost:{}", port);
+
+    let (shutdown, rx) = oneshot::channel::<()>();
+    let transports = vec![mqtt_broker::TransportBuilder::Tcp(server.clone())];
+    let broker_task = tokio::spawn(Server::from_broker(broker).serve(transports, rx.map(drop)));
+
+    (shutdown, broker_task, server)
 }

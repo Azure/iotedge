@@ -1,27 +1,21 @@
-use futures_util::FutureExt;
-
 use mqtt3::proto::QoS::{AtLeastOnce, AtMostOnce, ExactlyOnce};
 use mqtt3::proto::SubscribeTo;
 use mqtt3::{Event, ReceivedPublication};
-use mqtt_broker::{AuthId, BrokerBuilder, Server};
+use mqtt_broker::{AuthId, BrokerBuilder};
 
 mod common;
 
 #[tokio::test]
 async fn basic_connect_clean_session() {
-    const SERVER: &str = "localhost:1883";
-
     let broker = BrokerBuilder::default()
         .authenticator(|_| Ok(Some(AuthId::Anonymous)))
         .authorizer(|_| Ok(true))
         .build();
 
-    let (shutdown, rx) = tokio::sync::oneshot::channel::<()>();
-    let transports = vec![mqtt_broker::TransportBuilder::Tcp(SERVER)];
-    let broker_task = tokio::spawn(Server::from_broker(broker).serve(transports, rx.map(drop)));
+    let (broker_shutdown, broker_task, binding) = common::start_server(broker);
 
     let mut client = common::TestClientBuilder::default()
-        .server(SERVER)
+        .server(&binding)
         .client_id("mqtt-smoke-tests")
         .build();
 
@@ -30,7 +24,7 @@ async fn basic_connect_clean_session() {
         Some(Event::NewConnection { reset_session }) if reset_session
     );
 
-    shutdown.send(()).expect("can't stop the broker");
+    broker_shutdown.send(()).expect("can't stop the broker");
     broker_task
         .await
         .unwrap()
@@ -39,7 +33,6 @@ async fn basic_connect_clean_session() {
 
 #[tokio::test]
 async fn basic_pub_sub() {
-    const SERVER: &str = "localhost:1884";
     const TOPIC: &str = "topic/A";
 
     let broker = BrokerBuilder::default()
@@ -47,12 +40,10 @@ async fn basic_pub_sub() {
         .authorizer(|_| Ok(true))
         .build();
 
-    let (broker_shutdown, rx) = tokio::sync::oneshot::channel::<()>();
-    let transports = vec![mqtt_broker::TransportBuilder::Tcp(SERVER)];
-    let broker_task = tokio::spawn(Server::from_broker(broker).serve(transports, rx.map(drop)));
+    let (broker_shutdown, broker_task, binding) = common::start_server(broker);
 
     let mut client = common::TestClientBuilder::default()
-        .server(SERVER)
+        .server(&binding)
         .client_id("mqtt-smoke-tests")
         .build();
 
