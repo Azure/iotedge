@@ -2,14 +2,8 @@
 
 mod common;
 
-#[test]
-fn server_generated_id_must_always_resubscribe() {
-    let mut runtime = tokio::runtime::Builder::new()
-        .basic_scheduler()
-        .enable_time()
-        .build()
-        .expect("couldn't initialize tokio runtime");
-
+#[tokio::test]
+async fn server_generated_id_must_always_resubscribe() {
     let (io_source, done) = common::IoSource::new(vec![
         vec![
             common::TestConnectionStep::Receives(mqtt3::proto::Packet::Connect(
@@ -145,7 +139,6 @@ fn server_generated_id_must_always_resubscribe() {
         .unwrap();
 
     common::verify_client_events(
-        &mut runtime,
         client,
         vec![
             mqtt3::Event::NewConnection {
@@ -200,21 +193,15 @@ fn server_generated_id_must_always_resubscribe() {
                 }),
             ]),
         ],
-    );
+    )
+    .await;
 
-    let () = runtime
-        .block_on(done)
+    done.await
         .expect("connection broken while there were still steps remaining on the server");
 }
 
-#[test]
-fn client_id_should_not_resubscribe_when_session_is_present() {
-    let mut runtime = tokio::runtime::Builder::new()
-        .basic_scheduler()
-        .enable_time()
-        .build()
-        .expect("couldn't initialize tokio runtime");
-
+#[tokio::test]
+async fn client_id_should_not_resubscribe_when_session_is_present() {
     let (io_source, done) = common::IoSource::new(vec![
         vec![
             common::TestConnectionStep::Receives(mqtt3::proto::Packet::Connect(
@@ -384,7 +371,6 @@ fn client_id_should_not_resubscribe_when_session_is_present() {
         .unwrap();
 
     common::verify_client_events(
-        &mut runtime,
         client,
         vec![
             mqtt3::Event::NewConnection {
@@ -425,21 +411,15 @@ fn client_id_should_not_resubscribe_when_session_is_present() {
                 reset_session: false,
             },
         ],
-    );
+    )
+    .await;
 
-    let () = runtime
-        .block_on(done)
+    done.await
         .expect("connection broken while there were still steps remaining on the server");
 }
 
-#[test]
-fn should_combine_pending_subscription_updates() {
-    let mut runtime = tokio::runtime::Builder::new()
-        .basic_scheduler()
-        .enable_time()
-        .build()
-        .expect("couldn't initialize tokio runtime");
-
+#[tokio::test]
+async fn should_combine_pending_subscription_updates() {
     let (io_source, done) = common::IoSource::new(vec![vec![
         common::TestConnectionStep::Receives(mqtt3::proto::Packet::Connect(
             mqtt3::proto::Connect {
@@ -517,7 +497,6 @@ fn should_combine_pending_subscription_updates() {
     client.unsubscribe("topic2".to_string()).unwrap();
 
     common::verify_client_events(
-        &mut runtime,
         client,
         vec![
             mqtt3::Event::NewConnection {
@@ -534,10 +513,10 @@ fn should_combine_pending_subscription_updates() {
                 }),
             ]),
         ],
-    );
+    )
+    .await;
 
-    let () = runtime
-        .block_on(done)
+    done.await
         .expect("connection broken while there were still steps remaining on the server");
 }
 
