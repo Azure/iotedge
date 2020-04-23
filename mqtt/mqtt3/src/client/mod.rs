@@ -850,7 +850,7 @@ impl std::error::Error for ShutdownError {}
 mod tests {
     use std::convert::TryInto;
 
-    use super::*;
+    use crate::client::PacketIdentifiers;
 
     #[test]
     fn packet_identifiers() {
