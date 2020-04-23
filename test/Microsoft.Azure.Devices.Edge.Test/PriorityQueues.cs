@@ -184,8 +184,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             ("StartAfter", "00:00:00")
                         })
                         .WithSettings(new[] { ("createOptions", "{\"HostConfig\":{\"Privileged\":\"true\",\"NetworkMode\":\"host\",\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"]},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}") });
-                })
+                });
         }
+
         private Action<EdgeConfigBuilder> BuildAddInitialConfig(string trackingId, string trcImage, string loadGenImage, TestInfo testInfo, bool cloudUpstream)
         {
             return new Action<EdgeConfigBuilder>(
