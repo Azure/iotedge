@@ -1,5 +1,7 @@
 #![allow(clippy::let_unit_value)]
 
+use futures_util::future;
+
 mod common;
 
 #[tokio::test]
@@ -138,7 +140,7 @@ async fn server_generated_id_must_always_resubscribe() {
         })
         .unwrap();
 
-    common::verify_client_events(
+    let verify = common::verify_client_events(
         client,
         vec![
             mqtt3::Event::NewConnection {
@@ -193,11 +195,9 @@ async fn server_generated_id_must_always_resubscribe() {
                 }),
             ]),
         ],
-    )
-    .await;
+    );
 
-    done.await
-        .expect("connection broken while there were still steps remaining on the server");
+    assert!(matches!(future::join(verify, done).await, (Ok(()), _)));
 }
 
 #[tokio::test]
@@ -370,7 +370,7 @@ async fn client_id_should_not_resubscribe_when_session_is_present() {
         })
         .unwrap();
 
-    common::verify_client_events(
+    let verify = common::verify_client_events(
         client,
         vec![
             mqtt3::Event::NewConnection {
@@ -411,11 +411,9 @@ async fn client_id_should_not_resubscribe_when_session_is_present() {
                 reset_session: false,
             },
         ],
-    )
-    .await;
+    );
 
-    done.await
-        .expect("connection broken while there were still steps remaining on the server");
+    assert!(matches!(future::join(verify, done).await, (Ok(()), _)));
 }
 
 #[tokio::test]
@@ -496,7 +494,7 @@ async fn should_combine_pending_subscription_updates() {
         .unwrap();
     client.unsubscribe("topic2".to_string()).unwrap();
 
-    common::verify_client_events(
+    let verify = common::verify_client_events(
         client,
         vec![
             mqtt3::Event::NewConnection {
@@ -513,11 +511,9 @@ async fn should_combine_pending_subscription_updates() {
                 }),
             ]),
         ],
-    )
-    .await;
+    );
 
-    done.await
-        .expect("connection broken while there were still steps remaining on the server");
+    assert!(matches!(future::join(verify, done).await, (Ok(()), _)));
 }
 
 #[test]

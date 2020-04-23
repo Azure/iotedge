@@ -1,21 +1,19 @@
 use std::future::Future;
 
-pub(crate) async fn verify_client_events(
+pub(crate) fn verify_client_events(
     mut client: mqtt3::Client<IoSource>,
     expected: Vec<mqtt3::Event>,
-) {
-    let mut expected = expected.into_iter();
+) -> tokio::task::JoinHandle<()> {
+    let expected = expected.into_iter();
 
     tokio::spawn(async move {
         use futures_util::StreamExt;
 
-        while let Some(event) = client.next().await {
-            let event = event.unwrap();
-            assert_eq!(expected.next(), Some(event));
+        for expected in expected {
+            let event = client.next().await.unwrap();
+            assert_eq!(expected, event.unwrap());
         }
     })
-    .await
-    .expect("all events read");
 }
 
 /// An `mqtt3::IoSource` impl suitable for use with an `mqtt3::Client`. The IoSource pretends to provide connections

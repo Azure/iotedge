@@ -1,5 +1,7 @@
 #![allow(clippy::let_unit_value)]
 
+use futures_util::future;
+
 mod common;
 
 #[tokio::test]
@@ -78,7 +80,7 @@ async fn server_generated_id_can_connect_and_idle() {
         std::time::Duration::from_secs(4),
     );
 
-    common::verify_client_events(
+    let verify = common::verify_client_events(
         client,
         vec![
             mqtt3::Event::NewConnection {
@@ -89,10 +91,9 @@ async fn server_generated_id_can_connect_and_idle() {
             },
         ],
     )
-    .await;
+    ;
 
-    done.await
-        .expect("connection broken while there were still steps remaining on the server");
+    assert!(matches!(future::join(verify, done).await, (Ok(()), _)));
 }
 
 #[tokio::test]
@@ -211,7 +212,7 @@ async fn client_id_can_connect_and_idle() {
         std::time::Duration::from_secs(4),
     );
 
-    common::verify_client_events(
+    let verify = common::verify_client_events(
         client,
         vec![
             mqtt3::Event::NewConnection {
@@ -225,8 +226,7 @@ async fn client_id_can_connect_and_idle() {
             },
         ],
     )
-    .await;
+   ;
 
-    done.await
-        .expect("connection broken while there were still steps remaining on the server");
+    assert!(matches!(future::join(verify, done).await, (Ok(()), _)));
 }

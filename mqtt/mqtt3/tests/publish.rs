@@ -1,5 +1,7 @@
 #![allow(clippy::let_unit_value)]
 
+use futures_util::future;
+
 mod common;
 
 #[tokio::test]
@@ -62,7 +64,7 @@ async fn server_publishes_at_most_once() {
         })
         .unwrap();
 
-    common::verify_client_events(
+    let verify = common::verify_client_events(
         client,
         vec![
             mqtt3::Event::NewConnection {
@@ -82,11 +84,9 @@ async fn server_publishes_at_most_once() {
                 payload: [0x01, 0x02, 0x03][..].into(),
             }),
         ],
-    )
-    .await;
+    );
 
-    done.await
-        .expect("connection broken while there were still steps remaining on the server");
+    assert!(matches!(future::join(verify, done).await, (Ok(()), _)));
 }
 
 #[tokio::test]
@@ -155,7 +155,7 @@ async fn server_publishes_at_least_once() {
         })
         .unwrap();
 
-    common::verify_client_events(
+    let verify = common::verify_client_events(
         client,
         vec![
             mqtt3::Event::NewConnection {
@@ -175,11 +175,9 @@ async fn server_publishes_at_least_once() {
                 payload: [0x01, 0x02, 0x03][..].into(),
             }),
         ],
-    )
-    .await;
+    );
 
-    done.await
-        .expect("connection broken while there were still steps remaining on the server");
+    assert!(matches!(future::join(verify, done).await, (Ok(()), _)));
 }
 
 #[tokio::test]
@@ -306,7 +304,7 @@ async fn server_publishes_at_least_once_with_reconnect_before_publish() {
         })
         .unwrap();
 
-    common::verify_client_events(
+    let verify = common::verify_client_events(
         client,
         vec![
             mqtt3::Event::NewConnection {
@@ -332,11 +330,9 @@ async fn server_publishes_at_least_once_with_reconnect_before_publish() {
                 payload: [0x01, 0x02, 0x03][..].into(),
             }),
         ],
-    )
-    .await;
+    );
 
-    done.await
-        .expect("connection broken while there were still steps remaining on the server");
+    assert!(matches!(future::join(verify, done).await, (Ok(()), _)));
 }
 
 #[tokio::test]
@@ -474,7 +470,7 @@ async fn server_publishes_at_least_once_with_reconnect_before_ack() {
         })
         .unwrap();
 
-    common::verify_client_events(
+    let verify = common::verify_client_events(
         client,
         vec![
             mqtt3::Event::NewConnection {
@@ -507,11 +503,9 @@ async fn server_publishes_at_least_once_with_reconnect_before_ack() {
                 payload: [0x01, 0x02, 0x03][..].into(),
             }),
         ],
-    )
-    .await;
+    );
 
-    done.await
-        .expect("connection broken while there were still steps remaining on the server");
+    assert!(matches!(future::join(verify, done).await, (Ok(()), _)));
 }
 
 #[tokio::test]
@@ -556,16 +550,15 @@ async fn should_reject_invalid_publications() {
         payload: Default::default(),
     });
 
-    common::verify_client_events(
+    let verify = common::verify_client_events(
         client,
         vec![mqtt3::Event::NewConnection {
             reset_session: true,
         }],
-    )
-    .await;
+    );
 
-    done.await
-        .expect("connection broken while there were still steps remaining on the server");
+    assert!(matches!(future::join(verify, done).await, (Ok(()), _)));
+
     match publish_future.await {
 		Err(mqtt3::PublishError::EncodePacket(_, mqtt3::proto::EncodeError::StringTooLarge(_))) => (),
 		result => panic!("expected client.publish() to fail with EncodePacket(StringTooLarge) but it returned {:?}", result),
