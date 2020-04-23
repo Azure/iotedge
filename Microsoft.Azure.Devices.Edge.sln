@@ -221,7 +221,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeHubRestartTester", "tes
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CloudToDeviceMessageTester", "test\modules\CloudToDeviceMessageTester\CloudToDeviceMessageTester.csproj", "{446F50F3-3E93-454B-8EBF-4830E92DFE5D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Hub.AuthAgent", "edge-hub\src\Microsoft.Azure.Devices.Edge.Hub.AuthAgent\Microsoft.Azure.Devices.Edge.Hub.AuthAgent.csproj", "{F040EA42-20FB-453E-8E09-9A1E04E80039}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.AuthAgent", "edge-hub\src\Microsoft.Azure.Devices.Edge.Hub.AuthAgent\Microsoft.Azure.Devices.Edge.Hub.AuthAgent.csproj", "{F040EA42-20FB-453E-8E09-9A1E04E80039}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test", "edge-hub\test\Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test\Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test.csproj", "{E5E341ED-571D-473F-B802-0CA885723C67}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -620,6 +622,12 @@ Global
 		{F040EA42-20FB-453E-8E09-9A1E04E80039}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F040EA42-20FB-453E-8E09-9A1E04E80039}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F040EA42-20FB-453E-8E09-9A1E04E80039}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E5E341ED-571D-473F-B802-0CA885723C67}.CheckInBuild|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5E341ED-571D-473F-B802-0CA885723C67}.CheckInBuild|Any CPU.Build.0 = Debug|Any CPU
+		{E5E341ED-571D-473F-B802-0CA885723C67}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5E341ED-571D-473F-B802-0CA885723C67}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5E341ED-571D-473F-B802-0CA885723C67}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5E341ED-571D-473F-B802-0CA885723C67}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -709,6 +717,7 @@ Global
 		{DA073067-83EF-4F4C-8E58-51CA7870C1F6} = {F921339B-32F9-4BF3-B364-2DB01FA2F1A1}
 		{446F50F3-3E93-454B-8EBF-4830E92DFE5D} = {F921339B-32F9-4BF3-B364-2DB01FA2F1A1}
 		{F040EA42-20FB-453E-8E09-9A1E04E80039} = {AB4285D8-CF1D-4B20-95F6-CB80892C8321}
+		{E5E341ED-571D-473F-B802-0CA885723C67} = {63969606-14B2-4D9D-AB72-A5D60D22037C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}
