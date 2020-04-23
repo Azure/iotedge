@@ -227,6 +227,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                    ["ExpectedSource"] = $"{LoadGenModuleName}.send",
                                    ["ActualSource"] = $"{RelayerModuleName}.receive",
                                    ["TestDescription"] = "unnecessary"
+                               },
+                               ["reportMetadata2"] = new Dictionary<string, object>
+                               {
+                                   ["TestReportType"] = "NetworkControllerReport",
+                                   ["Source"] = $"{NetworkControllerModuleName}",
+                                   ["TestDescription"] = "network controller"
                                }
                            }
                        });
