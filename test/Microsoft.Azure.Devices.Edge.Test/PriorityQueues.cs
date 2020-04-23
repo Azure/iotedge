@@ -326,7 +326,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.iotHub.InvokeMethodAsync(
                 this.runtime.DeviceId,
                 moduleName,
-                new CloudToDeviceMethod("ToggleConnectivity", TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(20)).SetPayloadJson($"\"networkOnValue\": {connectivityOn}"),
+                new CloudToDeviceMethod("ToggleConnectivity", TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(20)).SetPayloadJson($"{{\"networkOnValue\": \"{connectivityOn}\"}}"),
                 token);
         }
 
