@@ -90,8 +90,7 @@ async fn server_generated_id_can_connect_and_idle() {
                 reset_session: true,
             },
         ],
-    )
-    ;
+    );
 
     assert!(matches!(future::join(verify, done).await, (Ok(()), _)));
 }
@@ -225,8 +224,7 @@ async fn client_id_can_connect_and_idle() {
                 reset_session: false,
             },
         ],
-    )
-   ;
+    );
 
     assert!(matches!(future::join(verify, done).await, (Ok(()), _)));
 }
