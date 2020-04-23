@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using AuthConfig = global::Docker.DotNet.Models.AuthConfig;
 
@@ -33,6 +34,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             CreateContainerParameters createOptions = CloneOrCreateParams(combinedConfig.CreateOptions);
             this.MountSockets(module, createOptions);
             this.InjectNetworkAliases(module, createOptions);
+
+            // For edge agent only, add a label to the create options that will help us detect changes in future deployments.
+            ILogger log = Logger.Factory.CreateLogger<CombinedEdgeletConfigProvider>();
+            log.LogInformation($">>> COMBINE CONFIG FOR MODULE '{module.Name}'");
+            if (module.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase))
+            {
+                var labels = createOptions.Labels ?? new Dictionary<string, string>();
+                labels.Add("something", DateTime.Now.ToString());
+                createOptions.Labels = labels;
+
+                string json = JsonConvert.SerializeObject(createOptions, Formatting.Indented);
+                log.LogInformation($">>> UPDATED CREATE OPTIONS:\n{json}\n");
+            }
 
             return new CombinedDockerConfig(combinedConfig.Image, createOptions, combinedConfig.AuthConfig);
         }
