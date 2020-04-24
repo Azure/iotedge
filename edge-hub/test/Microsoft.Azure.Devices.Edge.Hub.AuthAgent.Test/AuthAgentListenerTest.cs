@@ -2,17 +2,20 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
 {
     using System;
+    using System.Collections.Generic;
     using System.Dynamic;
     using System.IO;
     using System.Net.Http;
     using System.Net.Http.Headers;
     using System.Net.Sockets;
+    using System.Security.Cryptography.X509Certificates;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
 
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
 
     using Moq;
@@ -151,6 +154,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
                 Assert.Equal(403, (int)response.result);
 
                 content.certificate = ThumbprintTestCert2;
+
+                response = await PostAsync(content, URL);
+                Assert.Equal(200, (int)response.result);
+            }
+        }
+
+        [Fact]
+        public async Task AcceptsGoodCaDeniesBadCa()
+        {
+            (_, var usernameParser, var credFactory) = SetupAcceptEverything();
+
+            var goodCa = new X509Certificate2(Encoding.ASCII.GetBytes(CaTestRoot2));
+
+            var authenticator = SetupAcceptGoodCa(goodCa);
+
+            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
+            {
+                await sut.StartAsync();
+
+                dynamic content = new ExpandoObject();
+                content.version = "2020-04-20";
+                content.username = "testhub/device/api-version=2018-06-30";
+                content.certificate = CaTestDevice;
+                content.certificateChain = new List<string>() { CaTestRoot };
+
+                dynamic response = await PostAsync(content, URL);
+                Assert.Equal(403, (int)response.result);
+
+                content.certificate = CaTestDevice2;
+                content.certificateChain = new List<string>() { CaTestRoot2 };
 
                 response = await PostAsync(content, URL);
                 Assert.Equal(200, (int)response.result);
@@ -423,6 +456,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
             return authenticator;
         }
 
+        private IAuthenticator SetupAcceptGoodCa(X509Certificate2 goodCa)
+        {
+            var trustedCaList = Option.Some<IList<X509Certificate2>>(new List<X509Certificate2>() { goodCa });
+            var authenticator = Mock.Of<IAuthenticator>();
+
+            Mock.Get(authenticator)
+                .Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>()))
+                .Returns(
+                    (IClientCredentials c) =>
+                    {
+                        var result = false;
+                        var x509Creds = c as X509CertCredentials;
+                        if (x509Creds != null)
+                        {
+                            (result, _) = Util.CertificateHelper.ValidateCert(x509Creds.ClientCertificate, x509Creds.ClientCertificateChain, trustedCaList);
+                        }
+
+                        return Task.FromResult(result);
+                    });
+
+            return authenticator;
+        }
+
         private static async Task<dynamic> PostAsync(dynamic content, string requestUri)
         {
             using (var client = new HttpClient())
@@ -493,6 +549,40 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
                                                              "9vXQEszj2KHk9u3t/TKFfFCqbCb4uRNhQbsWDBwFqTAKBggqhkjOPQQDAgNIADBF" +
                                                              "AiBuh6l2aW4yxyhcPxOyRd0qbNJMMpx04a7waO8XvK5GNwIhALPq5K8sNzkMZhnZ" +
                                                              "tp8R7qnaCWxYLkGuaXwuZw4LST1U";
+
+        private static readonly string CaTestRoot = "MIIBfDCCASKgAwIBAgIJAIIuyXPWOrrvMAoGCCqGSM49BAMCMBQxEjAQBgNVBAMM" +
+                                                    "CVRlc3QgUm9vdDAeFw0yMDA0MjQyMDUwMTRaFw0zNDAxMDEyMDUwMTRaMBQxEjAQ" +
+                                                    "BgNVBAMMCVRlc3QgUm9vdDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABM58STQE" +
+                                                    "OhfUumBphMzVpa4dQSS6lv+qJP/Q1XV1xTW6MQBAbpxabqk4jNbCe2XLTdETbzrn" +
+                                                    "Wnskm40CzxAVkBmjXTBbMAwGA1UdEwQFMAMBAf8wCwYDVR0PBAQDAgHGMB0GA1Ud" +
+                                                    "DgQWBBSrZLo1F8FcV6c4eYH1IPIlQdU9lzAfBgNVHSMEGDAWgBSrZLo1F8FcV6c4" +
+                                                    "eYH1IPIlQdU9lzAKBggqhkjOPQQDAgNIADBFAiEApVcPpM3I0lsJjc1OmOOO8SGy" +
+                                                    "rbv22nbkceeenoGRkyQCIHy5Na2OY49AJc1mzRpKCH10mQYkTUkSX1DaqIo//tYF";
+
+        private static readonly string CaTestDevice = "MIIBRjCB7KADAgECAgkA+igvZ6louWcwCgYIKoZIzj0EAwIwFDESMBAGA1UEAwwJ" +
+                                                      "VGVzdCBSb290MB4XDTIwMDQyNDIwNTAxNVoXDTM0MDEwMTIwNTAxNVowETEPMA0G" +
+                                                      "A1UEAwwGZGV2aWNlMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE0p3AZbTbMkJb" +
+                                                      "VXQdLjoZ3wosQ5vU5NX22w7coUtz9RECDgZ6YKa6r28s1/z18Q2MRd534NOu+OUB" +
+                                                      "x0UFD0qI26MqMCgwEwYDVR0lBAwwCgYIKwYBBQUHAwEwEQYDVR0RBAowCIIGZGV2" +
+                                                      "aWNlMAoGCCqGSM49BAMCA0kAMEYCIQC/VEzxzPpJeD8//ltr7mUIhb/owzgbLrmi" +
+                                                      "kAFHRd1UDgIhALUZ081U9Tm/bLw9rlRb5iMzrj4tUmMcwujlz+Sl73KX";
+
+        private static readonly string CaTestRoot2 = "MIIBfDCCASKgAwIBAgIJAOhzRYU913Y6MAoGCCqGSM49BAMCMBQxEjAQBgNVBAMM" +
+                                                     "CVRlc3QgUm9vdDAeFw0yMDA0MjQyMDU0MzJaFw0zNDAxMDEyMDU0MzJaMBQxEjAQ" +
+                                                     "BgNVBAMMCVRlc3QgUm9vdDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABGkdpWjE" +
+                                                     "uIBtieocAB0n7/uRA0lRmwToOqNRZgb05C2Aq66QjuYXpewUzIMoaweRPFYRZQ+l" +
+                                                     "8TxanEkYNKS7KAijXTBbMAwGA1UdEwQFMAMBAf8wCwYDVR0PBAQDAgHGMB0GA1Ud" +
+                                                     "DgQWBBSCNXZZQGZh6o7IIOkPPhqb11pYaDAfBgNVHSMEGDAWgBSCNXZZQGZh6o7I" +
+                                                     "IOkPPhqb11pYaDAKBggqhkjOPQQDAgNIADBFAiEA/s0g4uAhcXb4i6oqJDmR0alY" +
+                                                     "O+RyzRgCy22Ap3CTlC4CIHjA2CF7sMxOb5oADQRKxEDw40QDvlyXys/akxD03K49";
+
+        private static readonly string CaTestDevice2 = "MIIBRDCB7KADAgECAgkAlwSWPRWfIsYwCgYIKoZIzj0EAwIwFDESMBAGA1UEAwwJ" +
+                                                       "VGVzdCBSb290MB4XDTIwMDQyNDIwNTQzMloXDTM0MDEwMTIwNTQzMlowETEPMA0G" +
+                                                       "A1UEAwwGZGV2aWNlMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExFs+1Rdwnr9k" +
+                                                       "QAMu6vdKiDRKPgeIq0GljTzMDh5NsJhlE252CLqtI6oMdZ0Zz/3Ym5WONgcxgyyY" +
+                                                       "dFFPOU5l/KMqMCgwEwYDVR0lBAwwCgYIKwYBBQUHAwEwEQYDVR0RBAowCIIGZGV2" +
+                                                       "aWNlMAoGCCqGSM49BAMCA0cAMEQCIDq8t07xw0wP2qS7ynjOfWxGZcNvJhcLZNPT" +
+                                                       "kIBHATXPAiAxv00Sv6MsM+a8aKhns2/yfGRKOVEhpqeSUqoqn9fhSg==";
 
         private static readonly string RequestWithContentLenTemplate = "POST /authenticate/ HTTP/1.1\r\n" +
                                                                        "Content-Type: application/json\r\n" +
