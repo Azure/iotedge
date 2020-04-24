@@ -35,7 +35,7 @@ async fn basic_connect_clean_session() {
 
 #[tokio::test]
 async fn basic_pub_sub() {
-    const TOPIC: &str = "topic/A";
+    let topic = "topic/A";
 
     let broker = BrokerBuilder::default()
         .authenticator(|_| Ok(Some(AuthId::Anonymous)))
@@ -50,7 +50,7 @@ async fn basic_pub_sub() {
 
     client
         .subscribe(SubscribeTo {
-            topic_filter: TOPIC.into(),
+            topic_filter: topic.into(),
             qos: AtMostOnce,
         })
         .await
@@ -58,7 +58,7 @@ async fn basic_pub_sub() {
 
     client
         .publish(mqtt3::proto::Publication {
-            topic_name: TOPIC.into(),
+            topic_name: topic.into(),
             qos: AtMostOnce,
             retain: false,
             payload: "qos 0".into(),
@@ -68,7 +68,7 @@ async fn basic_pub_sub() {
 
     client
         .publish(mqtt3::proto::Publication {
-            topic_name: TOPIC.into(),
+            topic_name: topic.into(),
             qos: AtLeastOnce,
             retain: false,
             payload: "qos 1".into(),
@@ -78,7 +78,7 @@ async fn basic_pub_sub() {
 
     client
         .publish(mqtt3::proto::Publication {
-            topic_name: TOPIC.into(),
+            topic_name: topic.into(),
             qos: ExactlyOnce,
             retain: false,
             payload: "qos 2".into(),
