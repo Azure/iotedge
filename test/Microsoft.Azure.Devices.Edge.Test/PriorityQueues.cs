@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string RelayerModuleName = "relayerModule";
         const string NetworkControllerModuleName = "networkController";
         const string TrcUrl = "http://" + TrcModuleName + ":5001";
-        const string LoadGenTestDuration = "00:00:20";
+        const string LoadGenTestDuration = "00:00:15";
 
         [Test]
         public async Task PriorityQueueModuleToModuleMessages()
@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Log.Information("Toggling connectivity off");
             await this.ToggleConnectivity(false, NetworkControllerModuleName, token);
             Log.Information("Waiting for 20");
-            await Task.Delay(20000);
+            await Task.Delay(30000);
             Log.Information("Toggling connectivity on");
             await this.ToggleConnectivity(true, NetworkControllerModuleName, token);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);

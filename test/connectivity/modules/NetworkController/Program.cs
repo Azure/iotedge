@@ -87,10 +87,12 @@ namespace NetworkController
 
         private static async Task<MethodResponse> ToggleConnectivity(MethodRequest methodRequest, object userContext)
         {
+            Log.LogInformation("Direct method toggleConnectivity has been invoked.");
             var tup = (Tuple<string, CancellationToken>)userContext;
 
             // true for network on (restriction disabled), false for network off (restriction enabled)
             bool networkOnValue = (bool)JObject.Parse(methodRequest.DataAsJson)["networkOnValue"];
+            Log.LogInformation($"Toggling to {networkOnValue}");
             INetworkStatusReporter reporter = new NetworkStatusReporter(Settings.Current.TestResultCoordinatorEndpoint, Settings.Current.ModuleId, Settings.Current.TrackingId);
             var controller = new OfflineController(tup.Item1, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
             NetworkControllerStatus ncs = networkOnValue ? NetworkControllerStatus.Disabled : NetworkControllerStatus.Enabled;
