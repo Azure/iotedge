@@ -98,11 +98,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                         break;
 
                     case Core.Constants.EdgeAgentModuleName:
-                        var env = new Dictionary<string, EnvVal>();
-                        if (dockerRuntimeInfo.Config.CreateOptions.Labels.TryGetValue(Core.Constants.Labels.Env, out string envStr))
-                        {
-                            env = JsonConvert.DeserializeObject<Dictionary<string, EnvVal>>(envStr);
-                        }
+                        var env = dockerRuntimeInfo.Config.CreateOptions.Labels.TryGetValue(Core.Constants.Labels.Env, out string envStr)
+                            ? JsonConvert.DeserializeObject<Dictionary<string, EnvVal>>(envStr)
+                            : new Dictionary<string, EnvVal>();
 
                         module = new EdgeAgentDockerRuntimeModule(
                             dockerRuntimeInfo.Config,
