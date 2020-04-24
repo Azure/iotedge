@@ -94,12 +94,14 @@ Function New-Package([string] $Name, [string] $Version)
     $pkggenVariables += ";_OPENSSL_ROOT_DIR=$env:OPENSSL_ROOT_DIR"
     $pkggenVariables += ";_OPENSSL_DLL_SUFFIX=$(if ($Arm) { 'arm' } else { 'x64' })"
     $pkggenVariables += ";_Arch=$(if ($Arm) { 'thumbv7a-pc-windows-msvc' } else { '' })"
-    & $pkggen $manifest /universalbsp "/variables:$pkggenVariables" "/cpu:$(if ($Arm) { 'arm' } else { 'amd64' })" "/version:$Version"
+    Try{
+        & $pkggen $manifest /universalbsp "/variables:$pkggenVariables" "/cpu:$(if ($Arm) { 'arm' } else { 'amd64' })" "/version:$Version" 
+    }Catch{
+        Get-ChildItem -Recurse -Include *-iotedge_*.manifest -Path 'C:\Users\VssAdministrator\AppData\Local\Temp' | %{ $_.FullName; Get-Content $_.FullName }
+    }
     if ($LASTEXITCODE) {
         Throw "Failed to package cab"
     }
-
-    Get-ChildItem -Recurse -Include *-iotedge_*.manifest -Path 'C:\Users\VssAdministrator\AppData\Local\Temp' | %{ $_.FullName; Get-Content $_.FullName }
 
     if (Test-Path $EdgeTemplate) {
         Remove-Item -Path $EdgeTemplate -Recurse -Force
