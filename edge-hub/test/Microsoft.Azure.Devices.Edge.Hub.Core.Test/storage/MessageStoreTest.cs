@@ -495,7 +495,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
             ICheckpointStore checkpointStore = CheckpointStore.Create(storeProvider);
-            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, TimeSpan.FromSeconds(ttlSecs));
+            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, TimeSpan.FromSeconds(ttlSecs), true);
             await messageStore.AddEndpoint("module1");
             await messageStore.AddEndpoint("module2");
             return (messageStore, checkpointStore);

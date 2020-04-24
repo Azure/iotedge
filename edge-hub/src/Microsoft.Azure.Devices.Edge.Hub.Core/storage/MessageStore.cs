@@ -38,14 +38,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         readonly long messageCount = 0;
         TimeSpan timeToLive;
 
-        public MessageStore(IStoreProvider storeProvider, ICheckpointStore checkpointStore, TimeSpan timeToLive)
+        public MessageStore(IStoreProvider storeProvider, ICheckpointStore checkpointStore, TimeSpan timeToLive, bool cleanUpEntireQueue = false)
         {
             this.storeProvider = Preconditions.CheckNotNull(storeProvider);
             this.messageEntityStore = this.storeProvider.GetEntityStore<string, MessageWrapper>(Constants.MessageStorePartitionKey);
             this.endpointSequentialStores = new ConcurrentDictionary<string, ISequentialStore<MessageRef>>();
             this.timeToLive = timeToLive;
             this.checkpointStore = Preconditions.CheckNotNull(checkpointStore, nameof(checkpointStore));
-            this.messagesCleaner = new CleanupProcessor(this);
+            this.messagesCleaner = new CleanupProcessor(this, cleanUpEntireQueue);
             Events.MessageStoreCreated();
         }
 
@@ -196,13 +196,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             readonly MessageStore messageStore;
             readonly Timer ensureCleanupTaskTimer;
             readonly CancellationTokenSource cancellationTokenSource;
+            readonly bool cleanUpEntireQueue;
             Task cleanupTask;
 
-            public CleanupProcessor(MessageStore messageStore)
+            public CleanupProcessor(MessageStore messageStore, bool cleanUpEntireQueue)
             {
                 this.messageStore = messageStore;
                 this.ensureCleanupTaskTimer = new Timer(this.EnsureCleanupTask, null, TimeSpan.Zero, CleanupTaskFrequency);
                 this.cancellationTokenSource = new CancellationTokenSource();
+                this.cleanUpEntireQueue = cleanUpEntireQueue;
             }
 
             public void Dispose()
@@ -233,95 +235,119 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             /// </summary>
             async Task CleanupMessages()
             {
-                long totalCleanupCount = 0;
-                long totalCleanupStoreCount = 0;
-
                 try
                 {
-                    while (true)
-                    {
-                        foreach (KeyValuePair<string, ISequentialStore<MessageRef>> endpointSequentialStore in this.messageStore.endpointSequentialStores)
-                        {
-                            try
-                            {
-                                if (this.cancellationTokenSource.IsCancellationRequested)
-                                {
-                                    return;
-                                }
-
-                                Events.CleanupTaskStarted(endpointSequentialStore.Key);
-                                CheckpointData checkpointData = await this.messageStore.checkpointStore.GetCheckpointDataAsync(endpointSequentialStore.Key, CancellationToken.None);
-                                ISequentialStore<MessageRef> sequentialStore = endpointSequentialStore.Value;
-                                Events.CleanupCheckpointState(endpointSequentialStore.Key, checkpointData);
-                                int cleanupEntityStoreCount = 0;
-
-                                async Task<bool> DeleteMessageCallback(long offset, MessageRef messageRef)
-                                {
-                                    if (checkpointData.Offset < offset &&
-                                        DateTime.UtcNow - messageRef.TimeStamp < messageRef.TimeToLive)
-                                    {
-                                        return false;
-                                    }
-
-                                    bool deleteMessage = false;
-
-                                    // Decrement ref count.
-                                    await this.messageStore.messageEntityStore.Update(
-                                        messageRef.EdgeMessageId,
-                                        m =>
-                                        {
-                                            if (m.RefCount > 0)
-                                            {
-                                                m.RefCount--;
-                                            }
-
-                                            if (m.RefCount == 0)
-                                            {
-                                                deleteMessage = true;
-                                            }
-
-                                            return m;
-                                        });
-
-                                    if (deleteMessage)
-                                    {
-                                        await this.messageStore.messageEntityStore.Remove(messageRef.EdgeMessageId);
-                                        cleanupEntityStoreCount++;
-                                    }
-
-                                    return true;
-                                }
-
-                                // With the addition of PriorityQueues, the CleanupProcessor assumptions change slightly:
-                                // Previously, we could always assume that if a message at the head of the queue should not be deleted,
-                                // then none of the other messages in the queue should be either. Now, because we can have different TTL's
-                                // for messages within the same queue, there can be messages that have expired in the queue after the head.
-                                // This is okay because they will be cleaned up eventually and they will be ignored otherwise.
-                                // TODO: Add optional CleanupProcessor mode that will go through the entire length of the queue each time to remove expired messages.
-                                int cleanupCount = 0;
-                                while (await sequentialStore.RemoveFirst(DeleteMessageCallback))
-                                {
-                                    cleanupCount++;
-                                }
-
-                                totalCleanupCount += cleanupCount;
-                                totalCleanupStoreCount += cleanupEntityStoreCount;
-                                Events.CleanupCompleted(endpointSequentialStore.Key, cleanupCount, cleanupEntityStoreCount, totalCleanupCount, totalCleanupStoreCount);
-                                await Task.Delay(MinCleanupSleepTime, this.cancellationTokenSource.Token);
-                            }
-                            catch (Exception ex)
-                            {
-                                Events.ErrorCleaningMessagesForEndpoint(ex, endpointSequentialStore.Key);
-                            }
-                        }
-
-                        await Task.Delay(this.GetCleanupTaskSleepTime());
-                    }
+                    await this.CleanQueue(this.cleanUpEntireQueue);
                 }
                 catch (Exception ex)
                 {
                     Events.ErrorCleaningMessages(ex);
                     throw;
+                }
+            }
+
+            private async Task CleanQueue(bool cleanEntireQueue)
+            {
+                long totalCleanupCount = 0;
+                long totalCleanupStoreCount = 0;
+                int batchSize = 10;
+                while (true)
+                {
+                    foreach (KeyValuePair<string, ISequentialStore<MessageRef>> endpointSequentialStore in this.messageStore.endpointSequentialStores)
+                    {
+                        try
+                        {
+                            if (this.cancellationTokenSource.IsCancellationRequested)
+                            {
+                                return;
+                            }
+
+                            Events.CleanupTaskStarted(endpointSequentialStore.Key);
+                            CheckpointData checkpointData = await this.messageStore.checkpointStore.GetCheckpointDataAsync(endpointSequentialStore.Key, CancellationToken.None);
+                            ISequentialStore<MessageRef> sequentialStore = endpointSequentialStore.Value;
+                            Events.CleanupCheckpointState(endpointSequentialStore.Key, checkpointData);
+                            int cleanupEntityStoreCount = 0;
+
+                            async Task<bool> DeleteMessageCallback(long offset, MessageRef messageRef)
+                            {
+                                if (checkpointData.Offset < offset &&
+                                    DateTime.UtcNow - messageRef.TimeStamp < messageRef.TimeToLive)
+                                {
+                                    return false;
+                                }
+
+                                bool deleteMessage = false;
+
+                                // Decrement ref count.
+                                await this.messageStore.messageEntityStore.Update(
+                                    messageRef.EdgeMessageId,
+                                    m =>
+                                    {
+                                        if (m.RefCount > 0)
+                                        {
+                                            m.RefCount--;
+                                        }
+
+                                        if (m.RefCount == 0)
+                                        {
+                                            deleteMessage = true;
+                                        }
+
+                                        return m;
+                                    });
+
+                                if (deleteMessage)
+                                {
+                                    await this.messageStore.messageEntityStore.Remove(messageRef.EdgeMessageId);
+                                    cleanupEntityStoreCount++;
+                                }
+
+                                return true;
+                            }
+
+                            // With the addition of PriorityQueues, the CleanupProcessor assumptions change slightly:
+                            // Previously, we could always assume that if a message at the head of the queue should not be deleted,
+                            // then none of the other messages in the queue should be either. Now, because we can have different TTL's
+                            // for messages within the same queue, there can be messages that have expired in the queue after the head.
+                            // This is okay because they will be cleaned up eventually and they will be ignored otherwise.
+                            // TODO: Add optional CleanupProcessor mode that will go through the entire length of the queue each time to remove expired messages.
+                            int cleanupCount = 0;
+                            if (cleanEntireQueue)
+                            {
+                                IEnumerable<(long, MessageRef)> batch;
+                                do
+                                {
+                                    batch = await sequentialStore.GetBatch(sequentialStore.GetHeadOffset(this.cancellationTokenSource.Token), batchSize);
+                                    foreach ((long, MessageRef) messageWithOffset in batch)
+                                    {
+                                        if (await sequentialStore.RemoveOffset(DeleteMessageCallback, messageWithOffset.Item1, this.cancellationTokenSource.Token))
+                                        {
+                                            cleanupCount++;
+                                        }
+                                    }
+                                }
+                                while (batch.Any());
+                            }
+                            else
+                            {
+                                while (await sequentialStore.RemoveFirst(DeleteMessageCallback))
+                                {
+                                    cleanupCount++;
+                                }
+                            }
+
+                            totalCleanupCount += cleanupCount;
+                            totalCleanupStoreCount += cleanupEntityStoreCount;
+                            Events.CleanupCompleted(endpointSequentialStore.Key, cleanupCount, cleanupEntityStoreCount, totalCleanupCount, totalCleanupStoreCount);
+                            await Task.Delay(MinCleanupSleepTime, this.cancellationTokenSource.Token);
+                        }
+                        catch (Exception ex)
+                        {
+                            Events.ErrorCleaningMessagesForEndpoint(ex, endpointSequentialStore.Key);
+                        }
+                    }
+
+                    await Task.Delay(this.GetCleanupTaskSleepTime());
                 }
             }
 
