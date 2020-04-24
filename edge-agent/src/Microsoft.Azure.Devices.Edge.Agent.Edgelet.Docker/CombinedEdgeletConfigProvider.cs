@@ -30,21 +30,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             CombinedDockerConfig combinedConfig = base.GetCombinedConfig(module, runtimeInfo);
 
             CreateContainerParameters createOptions = CloneOrCreateParams(combinedConfig.CreateOptions);
-            // The IModule argument came from the desired properties in a new deployment. For edge agent only,
-            // save its createOptions and env as labels so we can detect changes in future configs.
-            // Note: createOptions and env for each module are generally saved to a store (see the DeploymentConfigInfo
-            // member of Microsoft.Azure.Devices.Edge.Agent.Core.Agent) and we could get it there, but we'd miss the
-            // bootstrap scenario where edge agent is starting for the first time and therefore has no config store.
-            // That's why edge agent is treated differently: its config is persisted in the container's labels before
-            // it ever starts.
-            if (module.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase))
-            {
-                var moduleWithDockerConfig = (IModule<DockerConfig>)module; // cast is safe; base impl already checked it
-                var labels = createOptions.Labels ?? new Dictionary<string, string>();
-                labels.Add(Constants.Labels.CreateOptions, JsonConvert.SerializeObject(createOptions));
-                labels.Add(Constants.Labels.Env, JsonConvert.SerializeObject(moduleWithDockerConfig.Env));
-                createOptions.Labels = labels;
-            }
+
+            // save edge agent's createOptions + env as container labels so they're available as soon as it loads
+            InjectEdgeAgentLabels(module, createOptions);
 
             // if the workload URI is a Unix domain socket then volume mount it into the container
             this.MountSockets(module, createOptions);
@@ -76,6 +64,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? Path.GetDirectoryName(uri.LocalPath)
                 : uri.AbsolutePath;
+        }
+
+        static void InjectEdgeAgentLabels(IModule module, CreateContainerParameters createOptions)
+        {
+            // The IModule argument came from the desired properties in a new deployment. For edge agent only,
+            // save its createOptions and env as labels so we can detect changes in future configs.
+            // Note: createOptions and env for each module are generally saved to a store (see the DeploymentConfigInfo
+            // member of Microsoft.Azure.Devices.Edge.Agent.Core.Agent) and we could get them there, but we'd miss the
+            // bootstrap scenario where edge agent is starting for the first time and therefore has no config store.
+            // That's why edge agent is treated differently: its config is persisted in the container's labels before
+            // it ever starts.
+            if (module.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase))
+            {
+                var moduleWithDockerConfig = (IModule<DockerConfig>)module; // cast is safe; base impl already checked it
+                var labels = createOptions.Labels ?? new Dictionary<string, string>();
+                labels.Add(Constants.Labels.CreateOptions, JsonConvert.SerializeObject(createOptions));
+                labels.Add(Constants.Labels.Env, JsonConvert.SerializeObject(moduleWithDockerConfig.Env));
+                createOptions.Labels = labels;
+            }
         }
 
         void InjectNetworkAliases(IModule module, CreateContainerParameters createOptions)
