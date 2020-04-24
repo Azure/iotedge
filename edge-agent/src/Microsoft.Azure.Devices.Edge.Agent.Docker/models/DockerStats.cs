@@ -161,7 +161,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
 
         [JsonProperty("cache", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public Option<double> Cache { get; }
-
     }
 
     public class NetworkInfo
