@@ -87,6 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
 
             Volatile.Write(ref this.exitListenerLoop, false);
 
+            SetupTimeouts(newListener);
             this.listener.Prefixes.Add(listeningAddress);
             this.listener.Start();
 
@@ -179,11 +180,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
 
             try
             {
-                if (!String.IsNullOrWhiteSpace(request.Password))
+                var isPasswordPresent = !String.IsNullOrWhiteSpace(request.Password);
+                var isCertificatePresent = !String.IsNullOrWhiteSpace(request.EncodedCertificate);
+
+                if (isPasswordPresent && isCertificatePresent)
+                {
+                    Events.MoreCredentialsSpecified();
+                }
+                else if (isPasswordPresent)
                 {
                     result = Option.Some(this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, deviceClientType, request.Password, false));
                 }
-                else if (!String.IsNullOrWhiteSpace(request.EncodedCertificate))
+                else if (isCertificatePresent)
                 {
                     var certificate = DecodeCertificate(request.EncodedCertificate);
                     var chain = DecodeCertificateChain(request.EncodedCertificateChain);
@@ -248,9 +256,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
 
             context.Response.ContentType = "application/json; charset=utf-8";
             context.Response.ContentEncoding = Encoding.UTF8;
+            context.Response.ContentLength64 = buffer.Length;
 
-            // we could set content-length, however it is not necessary.
-            // leaving this here just for reference: response.ContentLength64 = buffer.Length;
             using (context.Response.OutputStream)
             {
                 await context.Response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
@@ -268,17 +275,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
             {
                 try
                 {
-                    // We have two cases:
-                    // - Content-Length was sent (and it is not too big). In that case we want to read that many bytes,
-                    //   so if the first read attempt could not get it, it retries reading, up to the time limit.
-                    // - No Content-Length. In that case we read the already arrived data, and won't retry. In order
-                    //   to retry, the data must be analyzed (e.g. if it is a valid and full json). This will not be
-                    //   implemented for now. This means that if an http client sends its payload in tiny packets,
-                    //   sends them slow and does not send Content-Length, then the read may fail.
+                    // Apparently the stream doesn't return if it cannot read all the content - either indicated by content-length or finding the last chunk,
+                    // so the loop below will never spin, just hangs in the call, which is unexpected. Even the cancellation token is ignored.
+                    // To avoid keeping up processing, the timeout manager of the listener is set up to cut the connection after a couple seconds.
+                    // Leaving the loop here as this is the right implementation for the expected behavior of ReadAsync().
                     var startTime = DateTime.Now;
                     do
-                    {
-                        bytesRead += await request.InputStream.ReadAsync(requestBodyBuffer, 0 + bytesRead, requestBodyBuffer.Length - bytesRead);
+                    {                        
+                        bytesRead += await request.InputStream.ReadAsync(requestBodyBuffer, 0 + bytesRead, requestBodyBuffer.Length - bytesRead, GetTimeoutToken());
                     }
                     while (NoRequestTimeout(startTime) && IsKnownPayloadSize(request) && bytesRead < requestBodyBuffer.Length);
 
@@ -328,6 +332,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
             return DateTime.Now.Subtract(startTime) > requestTimeout;
         }
 
+        private static CancellationToken GetTimeoutToken()
+        {
+            var cts = new CancellationTokenSource();
+            cts.CancelAfter(requestTimeout);
+
+            return cts.Token;
+        }
+
         private static Option<AuthRequest> Decode(Option<string> request)
         {            
             try
@@ -369,6 +381,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
             }                
         }
 
+        private static void SetupTimeouts(HttpListener listener)
+        {
+            listener.TimeoutManager.EntityBody = requestTimeout;
+            listener.TimeoutManager.HeaderWait = requestTimeout;
+        }
+
         static class Events
         {
             const int IdStart = AuthAgentEventIds.AuthAgentListener;
@@ -394,6 +412,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
                 ErrorDecodingPayload,
                 ErrorDecodingCertificate,
                 NoCredentialsSpecified,
+                MoreCredentialsSpecified,
                 InvalidUsernameFormat,
                 InvalidCredentials,
                 ErrorSendingResponse
@@ -489,6 +508,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
                 Log.LogWarning((int)EventIds.NoCredentialsSpecified, "No credentials specified: either a certificate or a SAS token must be present for AUTH");
             }
 
+            public static void MoreCredentialsSpecified()
+            {
+                Log.LogWarning((int)EventIds.MoreCredentialsSpecified, "More credentials specified: only a certificate or a SAS token must be present for AUTH");
+            }
+            
             public static void InvalidUsernameFormat(Exception e)
             {
                 Log.LogWarning((int)EventIds.InvalidUsernameFormat, e, "Invalid username format provided for AUTH");
