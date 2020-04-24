@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
-    using Microsoft.Extensions.Logging;
+    // using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using AuthConfig = global::Docker.DotNet.Models.AuthConfig;
 
@@ -30,23 +30,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
         {
             CombinedDockerConfig combinedConfig = base.GetCombinedConfig(module, runtimeInfo);
 
-            // if the workload URI is a Unix domain socket then volume mount it into the container
             CreateContainerParameters createOptions = CloneOrCreateParams(combinedConfig.CreateOptions);
-            this.MountSockets(module, createOptions);
-            this.InjectNetworkAliases(module, createOptions);
-
-            // For edge agent only, add a label to the create options that will help us detect changes in future deployments.
-            ILogger log = Logger.Factory.CreateLogger<CombinedEdgeletConfigProvider>();
-            log.LogInformation($">>> COMBINE CONFIG FOR MODULE '{module.Name}'");
+            // The IModule argument came from the desired properties in a new deployment. For edge agent only,
+            // save its createOptions and env as labels so we can detect changes in future configs.
+            // ILogger log = Logger.Factory.CreateLogger<CombinedEdgeletConfigProvider>();
+            // log.LogInformation($">>> COMBINE CONFIG FOR MODULE '{module.Name}'");
             if (module.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase))
             {
+                var moduleWithDockerConfig = (IModule<DockerConfig>)module; // cast is safe; base impl already checked it
                 var labels = createOptions.Labels ?? new Dictionary<string, string>();
-                labels.Add("something", DateTime.Now.ToString());
+                labels.Add("net.azure-devices.edge.create-options", JsonConvert.SerializeObject(createOptions));
+                labels.Add("net.azure-devices.edge.env", JsonConvert.SerializeObject(moduleWithDockerConfig.Env));
                 createOptions.Labels = labels;
 
-                string json = JsonConvert.SerializeObject(createOptions, Formatting.Indented);
-                log.LogInformation($">>> UPDATED CREATE OPTIONS:\n{json}\n");
+                // log.LogInformation($">>> ADDED LABELS TO CREATE OPTIONS:\n{JsonConvert.SerializeObject(createOptions, Formatting.Indented)}\n");
             }
+
+            // if the workload URI is a Unix domain socket then volume mount it into the container
+            this.MountSockets(module, createOptions);
+            this.InjectNetworkAliases(module, createOptions);
 
             return new CombinedDockerConfig(combinedConfig.Image, createOptions, combinedConfig.AuthConfig);
         }

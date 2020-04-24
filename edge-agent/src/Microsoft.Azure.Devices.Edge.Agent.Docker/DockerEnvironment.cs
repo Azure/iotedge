@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
 
     /// <summary>
     /// This implementation gets the module runtime information from IRuntimeInfoProvider and
@@ -65,6 +66,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     dockerModule = new DockerModule(dockerRuntimeInfo.Name, string.Empty, ModuleStatus.Unknown, Core.RestartPolicy.Unknown, new DockerConfig(Constants.UnknownImage, new CreateContainerParameters()), ImagePullPolicy.OnCreate, Core.Constants.HighestPriority, new ConfigurationInfo(), null);
                 }
 
+                // if (moduleRuntimeInfo.Name == Core.Constants.EdgeAgentModuleName)
+                // {
+                //     ILogger log = Logger.Factory.CreateLogger<DockerEnvironment>();
+                //     log.LogInformation($">>> AGENT DOCKER REPORTED CONFIG:\n{JsonConvert.SerializeObject(dockerRuntimeInfo.Config, Formatting.Indented)}");
+                // }
                 Option<ModuleState> moduleStateOption = await this.moduleStateStore.Get(moduleRuntimeInfo.Name);
                 ModuleState moduleState = moduleStateOption.GetOrElse(new ModuleState(0, moduleRuntimeInfo.ExitTime.GetOrElse(DateTime.MinValue)));
                 // compute module state based on restart policy
@@ -97,8 +103,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                         break;
 
                     case Core.Constants.EdgeAgentModuleName:
+                        var env = new Dictionary<string, EnvVal>();
+                        if (dockerRuntimeInfo.Config.CreateOptions.Labels.TryGetValue("net.azure-devices.edge.env", out string envStr))
+                        {
+                            env = JsonConvert.DeserializeObject<Dictionary<string, EnvVal>>(envStr);
+                        }
+
                         module = new EdgeAgentDockerRuntimeModule(
-                            dockerReportedConfig,
+                            dockerRuntimeInfo.Config,
                             moduleRuntimeStatus,
                             (int)dockerRuntimeInfo.ExitCode,
                             dockerRuntimeInfo.Description,
@@ -106,7 +118,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                             lastExitTime,
                             dockerModule.ImagePullPolicy,
                             dockerModule.ConfigurationInfo,
-                            dockerModule.Env);
+                            env);
+
+                        // ILogger log = Logger.Factory.CreateLogger<DockerEnvironment>();
+                        // log.LogInformation($">>> EdgeAgentDockerRuntimeModule:\n{JsonConvert.SerializeObject(module, Formatting.Indented)}");
                         break;
 
                     default:

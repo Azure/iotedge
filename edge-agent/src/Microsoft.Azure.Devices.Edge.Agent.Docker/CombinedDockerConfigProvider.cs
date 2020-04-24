@@ -7,6 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
+    // using Microsoft.Extensions.Logging;
+    // using Newtonsoft.Json;
 
     /// <summary>
     /// This implementation combines docker image and docker create
@@ -44,6 +46,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             Option<AuthConfig> authConfig = deploymentAuthConfigs.FirstAuthConfig(moduleWithDockerConfig.Config.Image)
                 .Else(() => this.authConfigs.FirstAuthConfig(moduleWithDockerConfig.Config.Image));
 
+            // if (moduleWithDockerConfig.Config.Image.Contains("azureiotedge-agent"))
+            // {
+            //     ILogger log = Logger.Factory.CreateLogger<CombinedDockerConfigProvider>();
+            //     log.LogInformation($">>> AGENT SETTINGS:\n{JsonConvert.SerializeObject(moduleWithDockerConfig.Config)}");
+            //     log.LogInformation($">>> AGENT ENV:\n{JsonConvert.SerializeObject(moduleWithDockerConfig.Env)}\n");
+            // }
             return new CombinedDockerConfig(moduleWithDockerConfig.Config.Image, moduleWithDockerConfig.Config.CreateOptions, authConfig);
         }
     }
