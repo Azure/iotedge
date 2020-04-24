@@ -191,6 +191,7 @@ if ($CreateTemplate) {
         if ($version -notmatch "\d+\.\d+\.\d+\.\d+") {
             throw "Unexpected version string; Windows package requires VERSION in form major.minor.build.revision, each segment having 0-65535."
         }
+        echo "pathA version: $version  - splitVersion: $splitVersion"
     }
     elseif ($splitVersion[1] -match "^\w+\d{8}\.\d+$") { # internal build with version set to something like: '1.0.8~dev20190328.3'
         # we need 255^2 tops per segment
@@ -201,6 +202,7 @@ if ($CreateTemplate) {
         $dateEncoded = ("{0}{1}" -f ($date.ToString("yy")), $date.DayOfYear.ToString("000"))
         $buildPerDay = $splitSuffix[-1]
         $version = "0.{0}.{1}.{2}" -f $major, $dateEncoded, $buildPerDay
+        echo "pathB version: $version  - splitVersion: $splitVersion"
     }
     else {
         throw "Unexpected version string."
