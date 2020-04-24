@@ -204,6 +204,15 @@ if ($CreateTemplate) {
     Write-Host "IoTEdge using version '$version'"
 
     New-Package -Name "iotedge" -Version $version
+
+    Get-ChildItem -Path 'C:\Users\VssAdministrator\AppData\Local\Temp\' -Recurse -Force -Filter '*.manifest' | ForEach-Object {
+    @'`
+    File name - {0} 
+    {1}
+    .....................
+    '@ -f $_.Name, (Get-Content $_.FullName -Raw)
+    }
+    
 }
 elseif ($CreateCab) {
     $TemplateDirLength = ((Get-Item -Path $EdgeTemplate).FullName.Length + 1)
