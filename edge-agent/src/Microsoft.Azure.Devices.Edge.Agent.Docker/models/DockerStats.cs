@@ -14,16 +14,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
     public class DockerStats
     {
         [JsonConstructor]
-        public DockerStats(string name, Dictionary<string, DiskIO[]> blkio_stats, DockerCpuStats cpu_stats, MemoryStats memory_stats, Dictionary<string, NetworkInfo> networks, int? num_procs, PidsStats pids_stats, DateTime? read)
+        public DockerStats(string name, Dictionary<string, DiskIO[]> blkio_stats, DockerCpuStats cpu_stats, DockerCpuStats precpu_stats, MemoryStats memory_stats, Dictionary<string, NetworkInfo> networks, int? num_procs, PidsStats pids_stats, DateTime? read, DateTime? preread)
         {
             this.Name = Option.Maybe(name);
             this.BlockIoStats = Option.Maybe(blkio_stats);
             this.CpuStats = Option.Maybe(cpu_stats);
+            this.PreviousCpuStats = Option.Maybe(precpu_stats);
             this.MemoryStats = Option.Maybe(memory_stats);
             this.Networks = Option.Maybe(networks);
             this.NumProcesses = Option.Maybe(num_procs);
             this.PidsStats = Option.Maybe(pids_stats);
             this.Read = Option.Maybe(read);
+            this.PreviousRead = Option.Maybe(preread);
 
             // Remove null entries in dictionarys
             this.BlockIoStats.ForEach(stats => stats.Where(stat => stat.Value == null).ToList().ForEach(stat => stats.Remove(stat.Key)));
@@ -39,6 +41,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
         [JsonProperty("cpu_stats", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public Option<DockerCpuStats> CpuStats { get; }
 
+        [JsonProperty("precpu_stats", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public Option<DockerCpuStats> PreviousCpuStats { get; }
+
         [JsonProperty("memory_stats", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public Option<MemoryStats> MemoryStats { get; }
 
@@ -53,6 +58,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
 
         [JsonProperty("read", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public Option<DateTime> Read { get; }
+
+        [JsonProperty("preread", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public Option<DateTime> PreviousRead { get; }
     }
 
     public class DiskIO
