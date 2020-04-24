@@ -98,14 +98,8 @@ Function New-Package([string] $Name, [string] $Version)
     if ($LASTEXITCODE) {
         Throw "Failed to package cab"
     }
-    
-    Get-ChildItem -Path 'C:\Users\VssAdministrator\AppData\Local\Temp\' -Recurse -Force -Filter '*.manifest' | ForEach-Object {
-    @'`
-    File name - {0} 
-    {1}
-    .....................
-    '@ -f $_.Name, (Get-Content $_.FullName -Raw)
-    }
+
+    Get-ChildItem -Recurse -Include *-iotedge_*.manifest -Path 'C:\Users\VssAdministrator\AppData\Local\Temp' | %{ $_.FullName; Get-Content $_.FullName }
 
     if (Test-Path $EdgeTemplate) {
         Remove-Item -Path $EdgeTemplate -Recurse -Force
