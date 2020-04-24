@@ -93,27 +93,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             };
         }
 
-        public static IEnumerable<object[]> GetUsernames()
-        {
-            yield return new object[] { "iotHub1/device1/api-version=2010-01-01&DeviceClientType=customDeviceClient1", "device1", string.Empty, "customDeviceClient1" };
-
-            yield return new object[] { "iotHub1/device1/module1/api-version=2010-01-01&DeviceClientType=customDeviceClient2", "device1", "module1", "customDeviceClient2" };
-
-            yield return new object[] { "iotHub1/device1/module1/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003", "device1", "module1", "Microsoft.Azure.Devices.Client/1.5.1-preview-003" };
-
-            yield return new object[] { "iotHub1/device1/?api-version=2010-01-01&DeviceClientType=customDeviceClient1", "device1", string.Empty, "customDeviceClient1" };
-
-            yield return new object[] { "iotHub1/device1/module1/?api-version=2010-01-01&DeviceClientType=customDeviceClient1", "device1", "module1", "customDeviceClient1" };
-
-            yield return new object[] { "iotHub1/device1/api-version=2010-01-01&DeviceClientType1=customDeviceClient1", "device1", string.Empty, string.Empty };
-
-            yield return new object[] { "iotHub1/device1/module1/api-version=2010-01-01&", "device1", "module1", string.Empty };
-
-            yield return new object[] { "iotHub1/device1/?api-version=2010-01-01", "device1", string.Empty, string.Empty };
-
-            yield return new object[] { "iotHub1/device1/module1/?api-version=2010-01-01&Foo=customDeviceClient1", "device1", "module1", string.Empty };
-        }
-
         [Theory]
         [Integration]
         [MemberData(nameof(GetIdentityProviderInputs))]
@@ -130,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var authenticator = new Mock<IAuthenticator>();
             var productInfoStore = Mock.Of<IProductInfoStore>();
             authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(authRetVal);
-            var deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new ClientCredentialsFactory(new IdentityProvider(iotHubHostName)), productInfoStore, true);
+            var deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new UsernameParser(), new ClientCredentialsFactory(new IdentityProvider(iotHubHostName)), productInfoStore, true);
             if (certificate != null)
             {
                 deviceIdentityProvider.RegisterConnectionCertificate(certificate, chain);
@@ -138,36 +117,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
             IDeviceIdentity deviceIdentity = await deviceIdentityProvider.GetAsync(clientId, username, password, null);
             Assert.IsAssignableFrom(expectedType, deviceIdentity);
-        }
-
-        [Theory]
-        [MemberData(nameof(GetUsernames))]
-        [Unit]
-        public void ParseUsernameTest(string username, string expectedDeviceId, string expectedModuleId, string expectedDeviceClientType)
-        {
-            (string deviceId, string moduleId, string deviceClientType) = DeviceIdentityProvider.ParseUserName(username);
-            Assert.Equal(expectedDeviceId, deviceId);
-            Assert.Equal(expectedModuleId, moduleId);
-            Assert.Equal(expectedDeviceClientType, deviceClientType);
-        }
-
-        [Theory]
-        [InlineData("iotHub1/device1")]
-        [InlineData("iotHub1/device1/fooBar")]
-        [InlineData("iotHub1/device1/api-version")]
-        [InlineData("iotHub1/device1/module1/fooBar")]
-        [InlineData("iotHub1/device1/module1/api-version")]
-        [InlineData("iotHub1/device1/module1/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003/prodInfo")]
-        [InlineData("iotHub1/device1/module1/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client")]
-        [InlineData("iotHub1/device1/module1")]
-        [InlineData("iotHub1/device1/module1?api-version=2010-01-01?DeviceClientType=customDeviceClient1")]
-        [InlineData("iotHub1?api-version=2010-01-01&DeviceClientType=customDeviceClient1")]
-        [InlineData("iotHub1/device1/module1/?version=2010-01-01&DeviceClientType=customDeviceClient1")]
-        [InlineData("iotHub1//?api-version=2010-01-01&DeviceClientType=customDeviceClient1")]
-        [Unit]
-        public void ParseUserNameErrorTest(string username)
-        {
-            Assert.Throws<EdgeHubConnectionException>(() => DeviceIdentityProvider.ParseUserName(username));
         }
 
         [Fact]
@@ -178,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var authenticator = new Mock<IAuthenticator>();
             var productInfoStore = Mock.Of<IProductInfoStore>();
             authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
-            var deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new ClientCredentialsFactory(new IdentityProvider(iotHubHostName)), productInfoStore, false);
+            var deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new UsernameParser(), new ClientCredentialsFactory(new IdentityProvider(iotHubHostName)), productInfoStore, false);
             deviceIdentityProvider.RegisterConnectionCertificate(new X509Certificate2(), new List<X509Certificate2> { new X509Certificate2() });
             IDeviceIdentity deviceIdentity = await deviceIdentityProvider.GetAsync(
                 "Device_2",

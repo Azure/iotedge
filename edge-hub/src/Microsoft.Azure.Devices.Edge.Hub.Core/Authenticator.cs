@@ -21,15 +21,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(ICredentialsCache));
         }
 
-        /// <summary>
-        /// Authenticates the client credentials
-        /// </summary>
         public Task<bool> AuthenticateAsync(IClientCredentials clientCredentials)
             => this.AuthenticateAsync(clientCredentials, false);
 
-        /// <summary>
-        /// Reauthenticates the client credentials
-        /// </summary>
         public Task<bool> ReauthenticateAsync(IClientCredentials clientCredentials)
             => this.AuthenticateAsync(clientCredentials, true);
 
