@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory))
+            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
             {
                 await sut.StartAsync();
 
@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory))
+            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
             {
                 await sut.StartAsync();
 
@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory))
+            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
             {
                 await sut.StartAsync();
 
@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory))
+            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
             {
                 await sut.StartAsync();
 
@@ -113,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
             (_, var usernameParser, var credFactory) = SetupAcceptEverything();
             var authenticator = SetupAcceptGoodToken("good_token");
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory))
+            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
             {
                 await sut.StartAsync();
 
@@ -138,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
             (_, var usernameParser, var credFactory) = SetupAcceptEverything();
             var authenticator = SetupAcceptGoodThumbprint(ThumbprintTestCertThumbprint2);
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory))
+            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
             {
                 await sut.StartAsync();
 
@@ -162,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory))
+            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
             {
                 await sut.StartAsync();
 
@@ -182,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory))
+            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
             {
                 await sut.StartAsync();
 
@@ -202,7 +202,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory))
+            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
             {
                 await sut.StartAsync();
                 var result = await SendDirectRequest(RequestBody);
@@ -216,7 +216,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory))
+            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
             {
                 await sut.StartAsync();
                 var result = await SendDirectRequest(RequestBody, withContentLength: false);
@@ -230,7 +230,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory))
+            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
             {
                 await sut.StartAsync();
                 var result = await SendDirectRequest(NonJSONRequestBody);
@@ -244,7 +244,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory))
+            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
             {
                 await sut.StartAsync();
 
@@ -261,7 +261,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory))
+            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
             {
                 await sut.StartAsync();
                 var result = await SendDirectRequest(RequestBody, contentLengthOverride: RequestBody.Length - 10);

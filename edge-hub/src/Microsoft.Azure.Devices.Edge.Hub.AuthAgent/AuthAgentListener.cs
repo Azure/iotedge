@@ -22,22 +22,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
         private readonly IAuthenticator authenticator;
         private readonly IUsernameParser usernameParser;
         private readonly IClientCredentialsFactory clientCredentialsFactory;
+        private readonly string listeningAddress;
 
         private HttpListener listener;
 
         private Task listenerTask;
         private bool exitListenerLoop;
 
-        // FIXME: should come from config
-        private static readonly string listeningAddress = "http://localhost:7120/authenticate/";
         private const int maxInBufferSize = 32 * 1024;
         private static readonly TimeSpan requestTimeout = TimeSpan.FromSeconds(5);
 
-        public AuthAgentListener(IAuthenticator authenticator, IUsernameParser usernameParser, IClientCredentialsFactory clientCredentialsFactory)
+        public AuthAgentListener(IAuthenticator authenticator, IUsernameParser usernameParser, IClientCredentialsFactory clientCredentialsFactory, string listeningAddress)
         {
-            this.authenticator = authenticator;
-            this.usernameParser = usernameParser;
-            this.clientCredentialsFactory = clientCredentialsFactory;
+            this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
+            this.usernameParser = Preconditions.CheckNotNull(usernameParser, nameof(usernameParser));
+            this.clientCredentialsFactory = Preconditions.CheckNotNull(clientCredentialsFactory, nameof(clientCredentialsFactory));
+            this.listeningAddress = Preconditions.CheckNotNull(listeningAddress, nameof(listeningAddress));
         }
 
         public string Name => "AUTH";
@@ -88,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent
             Volatile.Write(ref this.exitListenerLoop, false);
 
             SetupTimeouts(newListener);
-            this.listener.Prefixes.Add(listeningAddress);
+            this.listener.Prefixes.Add(this.listeningAddress);
             this.listener.Start();
 
             this.listenerTask = ListenerLoop();
