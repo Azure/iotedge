@@ -114,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
             this.dockerAuthConfig = Preconditions.CheckNotNull(dockerAuthConfig, nameof(dockerAuthConfig));
             this.upstreamProtocol = Preconditions.CheckNotNull(upstreamProtocol, nameof(upstreamProtocol));
-            this.productInfo = productInfo;
+            this.productInfo = productInfo.Map(p => $"{p} (Kubernetes)");
             this.defaultMapServiceType = defaultMapServiceType;
             this.enableServiceCallTracing = enableServiceCallTracing;
             this.useMountSourceForVolumeName = useMountSourceForVolumeName;
@@ -339,6 +339,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         return kubernetesEnvironmentProvider;
                     })
                 .As<Task<IEnvironmentProvider>>()
+                .SingleInstance();
+
+            // ISystemResourcesMetrics
+            builder.Register(c => new Edgelet.Docker.NullSystemResourcesMetrics())
+                .As<Edgelet.Docker.ISystemResourcesMetrics>()
                 .SingleInstance();
         }
     }

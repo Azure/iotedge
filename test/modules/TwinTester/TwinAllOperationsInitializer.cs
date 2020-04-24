@@ -61,7 +61,14 @@ namespace TwinTester
                 else
                 {
                     Logger.LogInformation("Existing storage detected. Initializing reported / desired property update counters.");
-                    initializedState = new TwinState { ReportedPropertyUpdateCounter = GetNewPropertyCounter(reportedPropertyUpdates), DesiredPropertyUpdateCounter = GetNewPropertyCounter(desiredPropertyUpdates), TwinETag = twin.ETag, LastTimeOffline = DateTime.MinValue };
+                    initializedState = new TwinState
+                    {
+                        ReportedPropertyUpdateCounter = GetNewPropertyCounter(reportedPropertyUpdates),
+                        DesiredPropertyUpdateCounter = GetNewPropertyCounter(desiredPropertyUpdates),
+                        TwinETag = twin.ETag,
+                        LastTimeOffline = DateTime.MinValue,
+                        LastTimeOfEdgeRestart = DateTime.MinValue
+                    };
                 }
 
                 Logger.LogInformation($"Start state of module twin: {JsonConvert.SerializeObject(twin, Formatting.Indented)}");

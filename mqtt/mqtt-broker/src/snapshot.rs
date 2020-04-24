@@ -2,7 +2,7 @@ use tokio::sync::mpsc::{self, Receiver, Sender};
 use tracing::{info, warn};
 
 use crate::persist::Persist;
-use crate::{BrokerState, Error, ErrorKind};
+use crate::{BrokerState, Error};
 
 enum Event {
     State(BrokerState),
@@ -17,7 +17,7 @@ impl StateSnapshotHandle {
         self.0
             .send(Event::State(state))
             .await
-            .map_err(|_| ErrorKind::SendSnapshotMessage)?;
+            .map_err(|_| Error::SendSnapshotMessage)?;
         Ok(())
     }
 }
@@ -30,7 +30,7 @@ impl ShutdownHandle {
         self.0
             .send(Event::Shutdown)
             .await
-            .map_err(|_| ErrorKind::SendSnapshotMessage)?;
+            .map_err(|_| Error::SendSnapshotMessage)?;
         Ok(())
     }
 }
@@ -68,7 +68,7 @@ where
         while let Some(event) = self.events.recv().await {
             match event {
                 Event::State(state) => {
-                    if let Err(e) = self.persistor.store(state).await.map_err(Into::into) {
+                    if let Err(e) = self.persistor.store(state).await {
                         warn!(message = "an error occurred persisting state snapshot.", error=%e);
                     }
                 }
