@@ -100,6 +100,7 @@ Function New-Package([string] $Name, [string] $Version)
         Get-ChildItem -Recurse -Include *-iotedge_*.manifest -Path 'C:\Users\VssAdministrator\AppData\Local\Temp' | %{ $_.FullName; Get-Content $_.FullName }
     }
     if ($LASTEXITCODE) {
+        Get-ChildItem -Recurse -Include *-iotedge_*.manifest -Path 'C:\Users\VssAdministrator\AppData\Local\Temp' | %{ $_.FullName; Get-Content $_.FullName }
         Throw "Failed to package cab"
     }
 
