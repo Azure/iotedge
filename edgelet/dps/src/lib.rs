@@ -22,4 +22,4 @@ pub use model::{
 };
 pub use registration::{DpsClient, DpsTokenSource};
 
-pub const DPS_API_VERSION: &str = "2018-11-01";
+pub const DPS_API_VERSION: &str = "2019-05-01";

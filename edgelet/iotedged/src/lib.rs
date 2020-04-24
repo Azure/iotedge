@@ -203,6 +203,8 @@ const DEVICE_IDENTITY_CERT_PATH_ENV_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_CERT";
 /// This is used for both DPS attestation and manual authentication modes.
 const DEVICE_IDENTITY_KEY_PATH_ENV_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_PK";
 
+// const IOTEDGED_IDENTITY_COMMONNAME: &str = "iotedged identity";
+
 const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
 const IOTEDGED_TLS_COMMONNAME: &str = "iotedged";
 // 5 mins
@@ -546,6 +548,25 @@ where
             ProvisioningType::Dps(dps) => {
                 let dps_path = cache_subdir_path.join(EDGE_PROVISIONING_BACKUP_FILENAME);
 
+                // let issued_id_data = prepare_issued_identity_cert(&crypto, auto_generated_ca_lifetime_seconds).expect("Unable to pull issued ID");
+
+                info!("Generating issued id cert.");
+
+                let edgelet_ca_props = CertificateProperties::new(
+                    auto_generated_ca_lifetime_seconds,
+                    IOTEDGED_COMMONNAME.to_string(),
+                    CertificateType::Client,
+                    "iot-edge-device-identity".to_string(),
+                ).with_issuer(CertificateIssuer::DeviceCa);
+
+                let issued_id_cert = crypto
+                    .create_certificate(&edgelet_ca_props)
+                    .context(ErrorKind::Initialize(
+                        InitializeErrorReason::PrepareWorkloadCa,
+                    ))?;
+
+                info!("Pulled issued ID cert Data. Beginning attestation phase");
+
                 match dps.attestation() {
                     AttestationMethod::Tpm(ref tpm) => {
                         info!("Starting provisioning edge device via TPM...");
@@ -574,6 +595,7 @@ where
                             &dps,
                             hyper_client.clone(),
                             symmetric_key_info,
+                            issued_id_cert.pem().unwrap().as_ref(),
                         )?;
                         let (key_store, provisioning_result, root_key) =
                             dps_symmetric_key_provision(
@@ -604,6 +626,7 @@ where
                             x509_info,
                             hybrid_identity_key,
                             &id_data.common_name,
+                            issued_id_cert.pem().unwrap().as_ref(),
                         )?;
 
                         let (key_store, provisioning_result, root_key) = dps_x509_provision(
@@ -874,6 +897,46 @@ where
     info!("Finished configuring provisioning environment variables and certificates.");
     Ok(())
 }
+
+/*
+fn prepare_issued_identity_cert<C> (
+    crypto: &C,
+    auto_generated_ca_lifetime_seconds: u64,
+) -> Result<&[u8], Error>
+where
+    C: CreateCertificate,
+{
+    // Not using x509 but still need a device identity cert for CSR
+    // TODO : Make this only happen when CSR is enabled
+
+    info!("Issued (DPS CSR) device identity cert.");
+
+    let edgelet_ca_props = CertificateProperties::new(
+        auto_generated_ca_lifetime_seconds,
+        IOTEDGED_COMMONNAME.to_string(),
+        CertificateType::Client,
+        "iot-edge-device-identity".to_string(),
+    ).with_issuer(CertificateIssuer::DeviceCa);
+
+    let cert = crypto
+        .create_certificate(&edgelet_ca_props)
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::PrepareWorkloadCa,
+        ))?;
+
+    // let common_name = cert.get_common_name().expect("Failed to get generated cert common name");
+
+    // let thumbprint = get_thumbprint(&cert).expect("failed to get generated cert thumbprint");
+
+    // let cert_data = IdentityCertificateData {
+        common_name,
+        thumbprint,
+    };
+
+    Ok(&cert.pem().unwrap().as_bytes())
+}
+*/
+
 
 fn prepare_httpclient_and_identity_data<S>(
     hsm_lock: Arc<HsmLock>,
@@ -1666,6 +1729,7 @@ fn dps_x509_provision_init<HC>(
     x509_info: &X509AttestationInfo,
     hybrid_identity_key: Option<Vec<u8>>,
     common_name: &str,
+    issued_id_cert: &[u8]
 ) -> Result<(MemoryKeyStore, DpsX509Provisioning<HC>), Error>
 where
     HC: 'static + ClientImpl,
@@ -1688,6 +1752,7 @@ where
         dps.global_endpoint().clone(),
         dps.scope_id().to_string(),
         reg_id,
+        String::from_utf8(issued_id_cert.to_vec()).expect("Unable to convert cert to string."),
         DPS_API_VERSION.to_string(),
     )
     .context(ErrorKind::Initialize(
@@ -1819,6 +1884,7 @@ fn dps_symmetric_key_provision_init<HC>(
     provisioning: &Dps,
     hyper_client: HC,
     key: &SymmetricKeyAttestationInfo,
+    _id_cert: &[u8]
 ) -> Result<(MemoryKeyStore, DpsSymmetricKeyProvisioning<HC>), Error>
 where
     HC: 'static + ClientImpl,

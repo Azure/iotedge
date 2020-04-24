@@ -23,6 +23,8 @@ pub struct DeviceRegistration {
     registration_id: Option<String>,
     #[serde(rename = "tpm", skip_serializing_if = "Option::is_none")]
     tpm: Option<TpmAttestation>,
+    #[serde(rename = "csr", skip_serializing_if = "Option::is_none")]
+    csr: Option<String>,
 }
 
 impl DeviceRegistration {
@@ -31,6 +33,7 @@ impl DeviceRegistration {
         DeviceRegistration {
             registration_id: None,
             tpm: None,
+            csr: None,
         }
     }
 
@@ -42,6 +45,8 @@ impl DeviceRegistration {
         self.registration_id = Some(registration_id);
         self
     }
+
+    pub fn set_csr(&mut self, csr: Option<String>) { self.csr = csr; }
 
     pub fn registration_id(&self) -> Option<&str> {
         self.registration_id.as_ref().map(AsRef::as_ref)
@@ -527,6 +532,9 @@ pub struct DeviceRegistrationResult {
     /// Registration result returned when using SymmetricKey attestation
     #[serde(rename = "symmetricKey", skip_serializing_if = "Option::is_none")]
     symmetric_key: Option<SymmetricKeyRegistrationResult>,
+    /// Issued certificate from the CSR
+    #[serde(rename = "issuedCertificate", skip_serializing_if = "Option::is_none")]
+    issued_certificate: Option<String>,
     /// The registration ID is alphanumeric, lowercase, and may contain hyphens.
     #[serde(rename = "registrationId", skip_serializing_if = "Option::is_none")]
     registration_id: Option<String>,
@@ -577,6 +585,7 @@ impl DeviceRegistrationResult {
             x509: None,
             symmetric_key: None,
             registration_id: None,
+            issued_certificate: None,
             created_date_time_utc: None,
             assigned_hub: None,
             device_id: None,
@@ -630,6 +639,10 @@ impl DeviceRegistrationResult {
     pub fn with_registration_id(mut self, registration_id: String) -> Self {
         self.registration_id = Some(registration_id);
         self
+    }
+
+    pub fn issued_certificate(&self) -> Option<String> {
+        self.issued_certificate.clone()
     }
 
     pub fn registration_id(&self) -> Option<&str> {
