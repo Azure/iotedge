@@ -193,17 +193,19 @@ mod tests {
 
     use matches::assert_matches;
 
-    use super::*;
+    use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
 
-    fn connect() -> mqtt3::proto::Connect {
+    use crate::auth::{Activity, Authorizer, DefaultAuthorizer, Operation};
+
+    fn connect() -> proto::Connect {
         proto::Connect {
             username: None,
             password: None,
             will: None,
             client_id: proto::ClientId::ServerGenerated,
             keep_alive: Duration::from_secs(1),
-            protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
-            protocol_level: mqtt3::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         }
     }
 

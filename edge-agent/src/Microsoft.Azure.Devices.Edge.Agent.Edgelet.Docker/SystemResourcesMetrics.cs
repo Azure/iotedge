@@ -144,6 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             // edgelet sets used cpu to -1 on error
             if (systemResources.UsedCpu > 0)
             {
+                Console.WriteLine($"host cpu {systemResources.UsedCpu}");
                 this.cpuPercentage.Update(systemResources.UsedCpu, hostTags);
             }
 
@@ -158,6 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             }
 
             this.SetModuleStats(systemResources);
+            Console.WriteLine();
         }
 
         void SetModuleStats(SystemResources systemResources)
@@ -173,7 +175,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
                 string name = module.Name.OrDefault().Substring(1); // remove '/' from start of name
                 var tags = new string[] { name, EdgeRuntimeModules.Contains(name).ToString() };
 
-                this.GetCpuUsage(module, name).ForEach(usedCpu => this.cpuPercentage.Update(usedCpu, tags));
+                this.GetCpuUsage(module).ForEach(usedCpu =>
+                {
+                    this.cpuPercentage.Update(usedCpu, tags);
+                    Console.WriteLine($"{name} cpu {usedCpu}");
+                });
                 module.MemoryStats.ForEach(ms =>
                 {
                     ms.Limit.ForEach(limit => this.totalMemory.Set(limit, tags));
@@ -199,82 +205,79 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             }
         }
 
-        Option<double> GetCpuUsage(DockerStats module, string name)
+        Option<double> GetCpuUsage(DockerStats module)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                // Get values if exist
-                double totalUsage = 0, systemUsage = 0;
-                if (!module.CpuStats.Exists(cpuStats => cpuStats.CpuUsage.Exists(cpuUsage => cpuUsage.TotalUsage.Exists(tu =>
-                     {
-                         totalUsage = tu;
-                         return true;
-                     })) && cpuStats.SystemCpuUsage.Exists(su =>
-                     {
-                         systemUsage = su;
-                         return true;
-                     })))
-                {
-                    // One of the values is missing, skip.
-                    return Option.None<double>();
-                }
-
-                // Calculate
-                if (this.previousModuleCpu.TryGetValue(name, out double prevModule) && this.previousSystemCpu.TryGetValue(name, out double prevSystem))
-                {
-                    double moduleDiff = totalUsage - prevModule;
-                    double systemDiff = systemUsage - prevSystem;
-                    if (systemDiff > 0)
-                    {
-                        double result = 100 * moduleDiff / systemDiff;
-
-                        // Occasionally on startup results in a very large number (billions of percent). Ignore this point.
-                        if (result < 100)
-                        {
-                            return Option.Some(result);
-                        }
-                    }
-                }
-
-                this.previousModuleCpu[name] = totalUsage;
-                this.previousSystemCpu[name] = systemUsage;
+                return GetCpuLinux(module);
             }
             else
             {
-                // Get values if exist
-                double totalUsage = 0;
-                DateTime readTime = DateTime.MinValue;
-                if (!(module.CpuStats.Exists(cpuStats => cpuStats.CpuUsage.Exists(cpuUsage => cpuUsage.TotalUsage.Exists(tu =>
-                    {
-                        totalUsage = tu;
-                        return true;
-                    }))) && module.Read.Exists(read =>
-                    {
-                        readTime = read;
-                        return true;
-                    })))
-                {
-                    // One of the values is missing, skip.
-                    return Option.None<double>();
-                }
+                return GetCpuWindows(module);
+            }
+        }
 
-                // Calculate
-                if (this.previousModuleCpu.TryGetValue(name, out double prevModule) && this.previousReadTime.TryGetValue(name, out DateTime prevTime))
-                {
-                    double totalIntervals = (readTime - prevTime).TotalMilliseconds * 10; // Get number of 100ns intervals during read
-                    double intervalsUsed = totalUsage - prevModule;
+        // Modeled after https://github.com/docker/cli/blob/master/cli/command/container/stats_helpers.go#L166
+        Option<double> GetCpuLinux(DockerStats module)
+        {
+            Option<double> currentTotal = module.CpuStats.AndThen(s => s.CpuUsage).AndThen(s => s.TotalUsage);
+            Option<double> previousTotal = module.Name.AndThen(previousModuleCpu.GetOption);
+            Option<double> moduleDelta = currentTotal.AndThen(curr => previousTotal.Map(prev => curr - prev));
 
-                    if (totalIntervals > 0)
+            Option<double> currentSystem = module.CpuStats.AndThen(s => s.SystemCpuUsage);
+            Option<double> previousSystem = module.Name.AndThen(previousSystemCpu.GetOption);
+            Option<double> systemDelta = currentSystem.AndThen(curr => previousSystem.Map(prev => curr - prev));
+
+            // set previous to new current
+            module.Name.ForEach(name =>
+            {
+                currentTotal.ForEach(curr => previousModuleCpu[name] = curr);
+                currentSystem.ForEach(curr => previousSystemCpu[name] = curr);
+            });
+
+            return moduleDelta.AndThen(moduleDif => systemDelta.AndThen(systemDif =>
+            {
+                if (moduleDif >= 0 && systemDif > 0)
+                {
+                    double result = 100 * moduleDif / systemDif;
+
+                    // Occasionally on startup results in a very large number (billions of percent). Ignore this point.
+                    if (result < 100)
                     {
-                        return Option.Some(100 * intervalsUsed / totalIntervals);
+                        return Option.Some(result);
                     }
                 }
 
-                this.previousModuleCpu[name] = totalUsage;
-                this.previousReadTime[name] = readTime;
-            }
+                return Option.None<double>();
+            }));
+        }
 
-            return Option.None<double>();
+        // Modeled after https://github.com/docker/cli/blob/master/cli/command/container/stats_helpers.go#L185
+        Option<double> GetCpuWindows(DockerStats module)
+        {
+            Option<TimeSpan> timeBetweenReadings = module.Read.AndThen(read => module.PreviousRead.Map(preRead => read - preRead));
+            Option<long> intervalsPerCpu = timeBetweenReadings.Map(tbr => (long)tbr.TotalMilliseconds * 10);
+            Option<long> possibleIntervals = intervalsPerCpu.AndThen(cpuInt => module.NumProcesses.Map(numProc => cpuInt * numProc));
+
+            Option<double> currentTotal = module.CpuStats.AndThen(s => s.CpuUsage).AndThen(s => s.TotalUsage);
+            Option<double> previousTotal = module.PreviousCpuStats.AndThen(s => s.CpuUsage).AndThen(s => s.TotalUsage);
+            Option<double> intervalsUsed = currentTotal.AndThen(curr => previousTotal.Map(prev => curr - prev));
+
+            return intervalsUsed.AndThen(used => possibleIntervals.AndThen(possible =>
+            {
+                if (possible > 0)
+                {
+                    double result = 100 * used / possible;
+
+                    // Occasionally on startup results in a very large number (billions of percent). Ignore this point.
+                    if (result < 100)
+                    {
+                        return Option.Some(result);
+                    }
+                }
+
+                return Option.None<double>();
+            }));
         }
     }
 }
