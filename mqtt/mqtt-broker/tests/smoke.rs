@@ -15,7 +15,7 @@ async fn basic_connect_clean_session() {
     let (broker_shutdown, broker_task, binding) = common::start_server(broker);
 
     let mut client = common::TestClientBuilder::default()
-        .server(&binding)
+        .server(binding)
         .client_id("mqtt-smoke-tests")
         .build();
 
@@ -43,7 +43,7 @@ async fn basic_pub_sub() {
     let (broker_shutdown, broker_task, binding) = common::start_server(broker);
 
     let mut client = common::TestClientBuilder::default()
-        .server(&binding)
+        .server(binding)
         .client_id("mqtt-smoke-tests")
         .build();
 

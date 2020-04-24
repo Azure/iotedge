@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use futures_util::FutureExt;
 use futures_util::StreamExt;
 use lazy_static::lazy_static;
+use tokio::net::ToSocketAddrs;
 use tokio::sync::{
     mpsc::{self, Receiver},
     oneshot::{self, Sender},
@@ -47,19 +48,36 @@ impl TestClient {
     }
 }
 
-#[derive(Default)]
-pub struct TestClientBuilder {
-    server: Option<String>,
+pub struct TestClientBuilder<T>
+where
+    T: ToSocketAddrs + Clone + Send + Sync + Unpin + 'static,
+{
+    server: T,
     client_id: Option<String>,
     username: Option<String>,
     password: Option<String>,
     will: Option<Publication>,
 }
 
+impl Default for TestClientBuilder<String> {
+    fn default() -> Self {
+        Self {
+            server: "localhost:1883".into(),
+            client_id: None,
+            username: None,
+            password: None,
+            will: None,
+        }
+    }
+}
+
 #[allow(dead_code)]
-impl TestClientBuilder {
-    pub fn server(mut self, server: &str) -> Self {
-        self.server = Some(server.into());
+impl<T> TestClientBuilder<T>
+where
+    T: ToSocketAddrs + Clone + Send + Sync + Unpin + 'static,
+{
+    pub fn server(mut self, server: T) -> Self {
+        self.server = server;
         self
     }
 
@@ -84,13 +102,13 @@ impl TestClientBuilder {
     }
 
     pub fn build(self) -> TestClient {
-        let server = self.server.expect("server address is missing");
-        let password = self.password.clone();
+        let server = self.server;
+        let password = self.password;
 
         let mut client = Client::new(
-            self.client_id.clone(),
-            self.username.clone(),
-            self.will.clone(),
+            self.client_id,
+            self.username,
+            self.will,
             move || {
                 let server = server.clone();
                 let password = password.clone();
