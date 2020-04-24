@@ -290,7 +290,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
         }
 
         [Fact]
-        public async Task DisconnectsOnBadContentLengthLongBody()
+        public async Task DeniesBadContentLengthLongBody()
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
 
@@ -412,69 +412,50 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
             return (authenticator, usernameParser, credFactory);
         }
 
-        private IAuthenticator SetupAcceptGoodToken(string goodToken)
+        private IAuthenticator SetupAcceptGoodToken(string goodToken) => SetupAccept(
+                c =>
+                {
+                    var result = false;
+                    if (c is TokenCredentials tokenCreds)
+                    {
+                        result = tokenCreds.Token == goodToken;
+                    }
+
+                    return Task.FromResult(result);
+                });
+
+        private IAuthenticator SetupAcceptGoodThumbprint(string goodThumbprint) => SetupAccept(
+                c =>
+                {
+                    var result = false;
+                    if (c is X509CertCredentials x509Creds)
+                    {
+                        result = string.Equals(x509Creds.ClientCertificate.Thumbprint, goodThumbprint, StringComparison.OrdinalIgnoreCase);
+                    }
+
+                    return Task.FromResult(result);
+                });
+
+        private IAuthenticator SetupAcceptGoodCa(X509Certificate2 goodCa) => SetupAccept(
+                c =>
+                {
+                    var trustedCaList = Option.Some<IList<X509Certificate2>>(new List<X509Certificate2>() { goodCa });
+                    var result = false;
+                    if (c is X509CertCredentials x509Creds)
+                    {
+                        (result, _) = Util.CertificateHelper.ValidateCert(x509Creds.ClientCertificate, x509Creds.ClientCertificateChain, trustedCaList);
+                    }
+
+                    return Task.FromResult(result);
+                });
+
+        private IAuthenticator SetupAccept(Func<IClientCredentials, Task<bool>> condition)
         {
             var authenticator = Mock.Of<IAuthenticator>();
 
             Mock.Get(authenticator)
                 .Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>()))
-                .Returns(
-                    (IClientCredentials c) =>
-                    {
-                        var result = false;
-                        var tokenCreds = c as TokenCredentials;
-                        if (tokenCreds != null)
-                        {
-                            result = tokenCreds.Token == goodToken;
-                        }
-
-                        return Task.FromResult(result);
-                    });
-
-            return authenticator;
-        }
-
-        private IAuthenticator SetupAcceptGoodThumbprint(string goodThumbprint)
-        {
-            var authenticator = Mock.Of<IAuthenticator>();
-
-            Mock.Get(authenticator)
-                .Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>()))
-                .Returns(
-                    (IClientCredentials c) =>
-                    {
-                        var result = false;
-                        var x509Creds = c as X509CertCredentials;
-                        if (x509Creds != null)
-                        {
-                            result = string.Equals(x509Creds.ClientCertificate.Thumbprint, goodThumbprint, StringComparison.OrdinalIgnoreCase);
-                        }
-
-                        return Task.FromResult(result);
-                    });
-
-            return authenticator;
-        }
-
-        private IAuthenticator SetupAcceptGoodCa(X509Certificate2 goodCa)
-        {
-            var trustedCaList = Option.Some<IList<X509Certificate2>>(new List<X509Certificate2>() { goodCa });
-            var authenticator = Mock.Of<IAuthenticator>();
-
-            Mock.Get(authenticator)
-                .Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>()))
-                .Returns(
-                    (IClientCredentials c) =>
-                    {
-                        var result = false;
-                        var x509Creds = c as X509CertCredentials;
-                        if (x509Creds != null)
-                        {
-                            (result, _) = Util.CertificateHelper.ValidateCert(x509Creds.ClientCertificate, x509Creds.ClientCertificateChain, trustedCaList);
-                        }
-
-                        return Task.FromResult(result);
-                    });
+                .Returns(condition);
 
             return authenticator;
         }
