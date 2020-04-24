@@ -52,7 +52,7 @@ pub struct TestClientBuilder<T>
 where
     T: ToSocketAddrs + Clone + Send + Sync + Unpin + 'static,
 {
-    server: T,
+    address: T,
     client_id: Option<String>,
     username: Option<String>,
     password: Option<String>,
@@ -62,7 +62,7 @@ where
 impl Default for TestClientBuilder<String> {
     fn default() -> Self {
         Self {
-            server: "localhost:1883".into(),
+            address: "localhost:1883".into(),
             client_id: None,
             username: None,
             password: None,
@@ -76,8 +76,8 @@ impl<T> TestClientBuilder<T>
 where
     T: ToSocketAddrs + Clone + Send + Sync + Unpin + 'static,
 {
-    pub fn server(mut self, server: T) -> Self {
-        self.server = server;
+    pub fn address(mut self, address: T) -> Self {
+        self.address = address;
         self
     }
 
@@ -102,7 +102,7 @@ where
     }
 
     pub fn build(self) -> TestClient {
-        let server = self.server;
+        let address = self.address;
         let password = self.password;
 
         let mut client = Client::new(
@@ -110,10 +110,10 @@ where
             self.username,
             self.will,
             move || {
-                let server = server.clone();
+                let address = address.clone();
                 let password = password.clone();
                 Box::pin(async move {
-                    let io = tokio::net::TcpStream::connect(&server).await;
+                    let io = tokio::net::TcpStream::connect(&address).await;
                     io.map(|io| (io, password))
                 })
             },
@@ -169,11 +169,11 @@ where
     }
 
     let port = PORT.fetch_add(1, Ordering::SeqCst);
-    let server: String = format!("localhost:{}", port);
+    let address: String = format!("localhost:{}", port);
 
     let (shutdown, rx) = oneshot::channel::<()>();
-    let transports = vec![mqtt_broker::TransportBuilder::Tcp(server.clone())];
+    let transports = vec![mqtt_broker::TransportBuilder::Tcp(address.clone())];
     let broker_task = tokio::spawn(Server::from_broker(broker).serve(transports, rx.map(drop)));
 
-    (shutdown, broker_task, server)
+    (shutdown, broker_task, address)
 }

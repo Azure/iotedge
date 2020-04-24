@@ -12,10 +12,10 @@ async fn basic_connect_clean_session() {
         .authorizer(|_| Ok(true))
         .build();
 
-    let (broker_shutdown, broker_task, binding) = common::start_server(broker);
+    let (broker_shutdown, broker_task, address) = common::start_server(broker);
 
     let mut client = common::TestClientBuilder::default()
-        .server(binding)
+        .address(address)
         .client_id("mqtt-smoke-tests")
         .build();
 
@@ -40,10 +40,10 @@ async fn basic_pub_sub() {
         .authorizer(|_| Ok(true))
         .build();
 
-    let (broker_shutdown, broker_task, binding) = common::start_server(broker);
+    let (broker_shutdown, broker_task, address) = common::start_server(broker);
 
     let mut client = common::TestClientBuilder::default()
-        .server(binding)
+        .address(address)
         .client_id("mqtt-smoke-tests")
         .build();
 
