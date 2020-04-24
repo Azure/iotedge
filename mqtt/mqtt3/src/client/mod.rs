@@ -92,6 +92,38 @@ where
         })
     }
 
+    pub fn from_state(
+        state: SessionState,
+        io_source: IoS,
+        max_reconnect_back_off: std::time::Duration,
+        keep_alive: std::time::Duration,
+    ) -> Self {
+        let (shutdown_send, shutdown_recv) = futures_channel::mpsc::channel(0);
+
+        let publish = Default::default();
+        let subscriptions = Default::default();
+        let packet_identifiers = Default::default();
+
+        Client(ClientState::Up {
+            client_id: crate::proto::ClientId::IdWithExistingSession(state.client_id),
+            username: state.username,
+            will: state.will,
+            keep_alive,
+
+            shutdown_send,
+            shutdown_recv,
+
+            packet_identifiers,
+
+            connect: connect::Connect::new(io_source, max_reconnect_back_off),
+            ping: ping::State::BeginWaitingForNextPing,
+            publish,
+            subscriptions,
+
+            packets_waiting_to_be_sent: Default::default(),
+        })
+    }
+
     /// Queues a message to be published to the server
     pub fn publish(
         &mut self,
@@ -296,7 +328,7 @@ where
 
                     sent_disconnect,
 
-                    reason,
+                    state,
                 } => {
                     let connect::Connected { mut framed, .. } = match connect.poll(
                         cx,
@@ -309,7 +341,7 @@ where
                         std::task::Poll::Pending => {
                             // Already disconnected
                             self.0 = ClientState::ShutDown {
-                                reason: reason.take(),
+                                state: state.take(),
                             };
                             continue;
                         }
@@ -320,7 +352,7 @@ where
                             match std::pin::Pin::new(&mut framed).poll_flush(cx) {
                                 std::task::Poll::Ready(Ok(())) => {
                                     self.0 = ClientState::ShutDown {
-                                        reason: reason.take(),
+                                        state: state.take(),
                                     };
                                     break;
                                 }
@@ -329,7 +361,7 @@ where
                                     let err = Error::EncodePacket(err);
                                     log::warn!("couldn't send DISCONNECT: {}", err);
                                     self.0 = ClientState::ShutDown {
-                                        reason: reason.take(),
+                                        state: state.take(),
                                     };
                                     break;
                                 }
@@ -347,7 +379,7 @@ where
                                         Err(err) => {
                                             log::warn!("couldn't send DISCONNECT: {}", err);
                                             self.0 = ClientState::ShutDown {
-                                                reason: reason.take(),
+                                                state: state.take(),
                                             };
                                             break;
                                         }
@@ -357,7 +389,7 @@ where
                                 std::task::Poll::Ready(Err(err)) => {
                                     log::warn!("couldn't send DISCONNECT: {}", err);
                                     self.0 = ClientState::ShutDown {
-                                        reason: reason.take(),
+                                        state: state.take(),
                                     };
                                     break;
                                 }
@@ -368,8 +400,11 @@ where
                     }
                 }
 
-                ClientState::ShutDown { reason } => match reason.take() {
-                    Some(err) => return std::task::Poll::Ready(Some(Err(err))),
+                ClientState::ShutDown { state } => match state.take() {
+                    Some(state) => {
+                        let event = state.map(Event::Stopped);
+                        return std::task::Poll::Ready(Some(event));
+                    }
                     None => return std::task::Poll::Ready(None),
                 },
             }
@@ -377,7 +412,7 @@ where
 
         // If we're here, then we're transitioning from Up to ShuttingDown
 
-        match std::mem::replace(&mut self.0, ClientState::ShutDown { reason: None }) {
+        match std::mem::replace(&mut self.0, ClientState::ShutDown { state: None }) {
             ClientState::Up {
                 client_id,
                 username,
@@ -385,9 +420,30 @@ where
                 keep_alive,
 
                 connect,
+
+                publish,
+                subscriptions,
                 ..
             } => {
                 log::warn!("Shutting down...");
+
+                let state = if let Some(reason) = reason {
+                    Err(reason)
+                } else {
+                    match &client_id {
+                        crate::proto::ClientId::IdWithCleanSession(client_id)
+                        | crate::proto::ClientId::IdWithExistingSession(client_id) => {
+                            Ok(Some(SessionState {
+                                client_id: client_id.clone(),
+                                username: username.clone(),
+                                will: will.clone(),
+                                publications: publish.into(),
+                                subscriptions: subscriptions.into(),
+                            }))
+                        }
+                        _ => Ok(None),
+                    }
+                };
 
                 self.0 = ClientState::ShuttingDown {
                     client_id,
@@ -399,7 +455,7 @@ where
 
                     sent_disconnect: false,
 
-                    reason,
+                    state: Some(state),
                 };
                 self.poll_next(cx)
             }
@@ -455,6 +511,9 @@ pub enum Event {
 
     /// Subscription updates acked by the server
     SubscriptionUpdates(Vec<SubscriptionUpdateEvent>),
+
+    /// A client stopped its work
+    Stopped(Option<SessionState>),
 }
 
 /// A subscription update event
@@ -472,6 +531,92 @@ pub struct ReceivedPublication {
     pub qos: crate::proto::QoS,
     pub retain: bool,
     pub payload: bytes::Bytes,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct SessionState {
+    pub client_id: String,
+    pub username: Option<String>,
+    pub will: Option<crate::proto::Publication>,
+    pub publications: Publications,
+    pub subscriptions: Subscriptions,
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct Publications {
+    pub publish_requests_waiting_to_be_sent: std::collections::VecDeque<crate::proto::Publication>,
+
+    /// Holds PUBLISH packets sent by us, waiting for a corresponding PUBACK or PUBREC
+    pub waiting_to_be_acked:
+        std::collections::BTreeMap<crate::proto::PacketIdentifier, crate::proto::Publish>,
+
+    /// Holds the identifiers of PUBREC packets sent by us, waiting for a corresponding PUBREL,
+    /// and the contents of the original PUBLISH packet for which we sent the PUBREC
+    pub waiting_to_be_released:
+        std::collections::BTreeMap<crate::proto::PacketIdentifier, crate::ReceivedPublication>,
+
+    /// Holds PUBLISH packets sent by us, waiting for a corresponding PUBCOMP
+    pub waiting_to_be_completed:
+        std::collections::BTreeMap<crate::proto::PacketIdentifier, crate::proto::Publish>,
+}
+
+impl From<publish::State> for Publications {
+    fn from(state: publish::State) -> Self {
+        let publish_requests_waiting_to_be_sent = state
+            .publish_requests_waiting_to_be_sent
+            .into_iter()
+            .map(publish::PublishRequest::into_publication)
+            .collect();
+
+        let waiting_to_be_acked = state
+            .waiting_to_be_acked
+            .into_iter()
+            .map(|(id, (_, publish))| (id, publish))
+            .collect();
+
+        let waiting_to_be_released = state.waiting_to_be_released;
+
+        let waiting_to_be_completed = state
+            .waiting_to_be_completed
+            .into_iter()
+            .map(|(id, (_, publish))| (id, publish))
+            .collect();
+
+        Self {
+            publish_requests_waiting_to_be_sent,
+            waiting_to_be_acked,
+            waiting_to_be_released,
+            waiting_to_be_completed,
+        }
+    }
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct Subscriptions {
+    pub subscriptions: std::collections::BTreeMap<String, crate::proto::QoS>,
+
+    pub subscription_updates_waiting_to_be_sent:
+        std::collections::VecDeque<subscriptions::SubscriptionUpdate>,
+
+    pub subscription_updates_waiting_to_be_acked: std::collections::VecDeque<(
+        crate::proto::PacketIdentifier,
+        subscriptions::BatchedSubscriptionUpdate,
+    )>,
+}
+
+impl From<subscriptions::State> for Subscriptions {
+    fn from(state: subscriptions::State) -> Self {
+        let subscriptions = state.subscriptions;
+        let subscription_updates_waiting_to_be_sent = state.subscription_updates_waiting_to_be_sent;
+        let subscription_updates_waiting_to_be_acked =
+            state.subscription_updates_waiting_to_be_acked;
+
+        Self {
+            subscriptions,
+            subscription_updates_waiting_to_be_sent,
+            subscription_updates_waiting_to_be_acked,
+        }
+    }
 }
 
 pub struct ShutdownHandle(futures_channel::mpsc::Sender<()>);
@@ -527,13 +672,15 @@ where
         /// If the DISCONNECT packet has already been sent
         sent_disconnect: bool,
 
-        /// The Error that caused the Client to transition away from Up, if any
-        reason: Option<Error>,
+        /// Holds either optional session state for non-server generated client id, or
+        /// the Error that caused the Client to transition away from Up, if any
+        state: Option<Result<Option<SessionState>, Error>>,
     },
 
     ShutDown {
-        /// The Error that caused the Client to transition away from Up, if any
-        reason: Option<Error>,
+        /// Holds either optional session state for non-server generated client id, or
+        /// the Error that caused the Client to transition away from Up, if any
+        state: Option<Result<Option<SessionState>, Error>>,
     },
 }
 

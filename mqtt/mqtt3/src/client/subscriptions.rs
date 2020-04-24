@@ -1,12 +1,13 @@
 #[derive(Debug)]
 pub(super) struct State {
-    subscriptions: std::collections::BTreeMap<String, crate::proto::QoS>,
+    pub(super) subscriptions: std::collections::BTreeMap<String, crate::proto::QoS>,
 
     subscriptions_updated_send: futures_channel::mpsc::Sender<SubscriptionUpdate>,
     subscriptions_updated_recv: futures_channel::mpsc::Receiver<SubscriptionUpdate>,
 
-    subscription_updates_waiting_to_be_sent: std::collections::VecDeque<SubscriptionUpdate>,
-    subscription_updates_waiting_to_be_acked:
+    pub(super) subscription_updates_waiting_to_be_sent:
+        std::collections::VecDeque<SubscriptionUpdate>,
+    pub(super) subscription_updates_waiting_to_be_acked:
         std::collections::VecDeque<(crate::proto::PacketIdentifier, BatchedSubscriptionUpdate)>,
 }
 
@@ -521,8 +522,8 @@ impl Default for State {
     }
 }
 
-#[derive(Clone, Debug)]
-pub(super) enum SubscriptionUpdate {
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum SubscriptionUpdate {
     Subscribe(crate::proto::SubscribeTo),
     Unsubscribe(String),
 }
@@ -574,8 +575,8 @@ impl SubscriptionUpdate {
     }
 }
 
-#[derive(Debug)]
-enum BatchedSubscriptionUpdate {
+#[derive(Debug, PartialEq, Eq)]
+pub enum BatchedSubscriptionUpdate {
     Subscribe(Vec<crate::proto::SubscribeTo>),
     Unsubscribe(Vec<String>),
 }

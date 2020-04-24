@@ -5,21 +5,21 @@ pub(super) struct State {
     publish_request_send: futures_channel::mpsc::Sender<PublishRequest>,
     publish_request_recv: futures_channel::mpsc::Receiver<PublishRequest>,
 
-    publish_requests_waiting_to_be_sent: std::collections::VecDeque<PublishRequest>,
+    pub(crate) publish_requests_waiting_to_be_sent: std::collections::VecDeque<PublishRequest>,
 
     /// Holds PUBLISH packets sent by us, waiting for a corresponding PUBACK or PUBREC
-    waiting_to_be_acked: std::collections::BTreeMap<
+    pub(crate) waiting_to_be_acked: std::collections::BTreeMap<
         crate::proto::PacketIdentifier,
         (futures_channel::oneshot::Sender<()>, crate::proto::Publish),
     >,
 
     /// Holds the identifiers of PUBREC packets sent by us, waiting for a corresponding PUBREL,
     /// and the contents of the original PUBLISH packet for which we sent the PUBREC
-    waiting_to_be_released:
+    pub(crate) waiting_to_be_released:
         std::collections::BTreeMap<crate::proto::PacketIdentifier, crate::ReceivedPublication>,
 
     /// Holds PUBLISH packets sent by us, waiting for a corresponding PUBCOMP
-    waiting_to_be_completed: std::collections::BTreeMap<
+    pub(crate) waiting_to_be_completed: std::collections::BTreeMap<
         crate::proto::PacketIdentifier,
         (futures_channel::oneshot::Sender<()>, crate::proto::Publish),
     >,
@@ -415,7 +415,7 @@ impl std::error::Error for PublishError {
 }
 
 #[derive(Debug)]
-struct PublishRequest {
+pub(crate) struct PublishRequest {
     publication: crate::proto::Publication,
     ack_sender: futures_channel::oneshot::Sender<()>,
 }
@@ -453,5 +453,9 @@ impl PublishRequest {
             }),
             Err(err) => Err(PublishError::EncodePacket(publication, err)),
         }
+    }
+
+    pub fn into_publication(self) -> crate::proto::Publication {
+        self.publication
     }
 }
