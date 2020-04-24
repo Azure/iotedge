@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System.Collections.Generic;
+    using System.Linq;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     // using Microsoft.Extensions.Logging;
@@ -37,6 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             //     log.LogInformation($">>> THIS labels:\n{JsonConvert.SerializeObject(this.Config.CreateOptions?.Labels)}");
             //     log.LogInformation($">>> OTHER labels:\n{JsonConvert.SerializeObject(labels)}\n");
             // }
+
             // log.LogInformation($">>> Agent container has agent-* labels? {labels != null && labels.ContainsKey("net.azure-devices.edge.create-options") && labels.ContainsKey("net.azure-devices.edge.env")}");
             if (labels == null ||
                 !labels.TryGetValue("net.azure-devices.edge.create-options", out string createOptions) ||
@@ -49,10 +51,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             // If the 'net.azure-devices.edge.create-options' and 'net.azure-devices.edge.create-options' labels exist
             // on the other IModule, compare them to this IModule
             string desiredCreateOptions = JsonConvert.SerializeObject(this.Config.CreateOptions);
-            string desiredEnv = JsonConvert.SerializeObject(this.Env);
+
             // log.LogInformation($">>> AGENT CREATE OPTIONS ARE EQUAL?: {desiredCreateOptions == createOptions}");
-            // log.LogInformation($">>> AGENT ENVS ARE EQUAL?: {desiredEnv == env}");
-            return desiredCreateOptions == createOptions && desiredEnv == env;
+            var desiredEnv = JsonConvert.DeserializeObject<IDictionary<string, EnvVal>>(env);
+            bool equalEnv = desiredEnv.Count == this.Env.Count &&
+                !desiredEnv.Keys.Except(this.Env.Keys).Any() &&
+                !this.Env.Keys.Except(desiredEnv.Keys).Any() &&
+                desiredEnv.All(v => this.Env.TryGetValue(v.Key, out EnvVal val) && val.Equals(v.Value));
+
+            // log.LogInformation($">>> AGENT ENVS ARE EQUAL?: {equalEnv}");
+            return desiredCreateOptions == createOptions && equalEnv;
         }
 
         public override int GetHashCode()
