@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 {
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Xunit;
@@ -11,11 +12,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     [Unit]
     public class DockerReportedConfigTest
     {
-        static readonly DockerReportedConfig Config1 = new DockerReportedConfig("image1:42", @"{""HostConfig"": {""PortBindings"": {""42/udp"": [{""HostPort"": ""42""}]}}}", "sha256:foo");
-        static readonly DockerReportedConfig Config2 = new DockerReportedConfig("image1:42", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", "sha256:foo");
-        static readonly DockerReportedConfig Config3 = new DockerReportedConfig("image1:42", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", "sha256:foo");
-        static readonly DockerReportedConfig Config4 = new DockerReportedConfig("image1:43", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", "sha256:foo");
-        static readonly DockerReportedConfig Config5 = new DockerReportedConfig("image1:43", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", "sha256:foosha");
+        static readonly DockerReportedConfig Config1 = new DockerReportedConfig("image1:42", @"{""HostConfig"": {""PortBindings"": {""42/udp"": [{""HostPort"": ""42""}]}}}", "sha256:foo", Option.None<NotaryContentTrust>());
+        static readonly DockerReportedConfig Config2 = new DockerReportedConfig("image1:42", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", "sha256:foo", Option.None<NotaryContentTrust>());
+        static readonly DockerReportedConfig Config3 = new DockerReportedConfig("image1:42", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", "sha256:foo", Option.None<NotaryContentTrust>());
+        static readonly DockerReportedConfig Config4 = new DockerReportedConfig("image1:43", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", "sha256:foo", Option.None<NotaryContentTrust>());
+        static readonly DockerReportedConfig Config5 = new DockerReportedConfig("image1:43", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", "sha256:foosha", Option.None<NotaryContentTrust>());
 
         static readonly string Extended5 = @"
         {
@@ -104,13 +105,84 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [Fact]
         public void TestSerialization()
         {
-            var createOptions = @"{""Env"": [""k1=v1"", ""k2=v2"", ""k3=v3""], ""HostConfig"": {""PortBindings"": {""43/udp"": [" +
+            string createOptions = @"{""Env"": [""k1=v1"", ""k2=v2"", ""k3=v3""], ""HostConfig"": {""PortBindings"": {""43/udp"": [" +
                 string.Join(", ", Enumerable.Repeat(@"{""HostPort"": ""43""}", 50)) +
                 @"], ""42/tcp"": [{""HostPort"": ""42""}]}}}";
-            var config = new DockerReportedConfig("image1:42", createOptions, "sha256:foosha");
-            var json = JsonConvert.SerializeObject(config);
-            var expected = "{\"image\":\"image1:42\",\"imageHash\":\"sha256:foosha\",\"createOptions\":\"{\\\"Env\\\":[\\\"k1=v1\\\",\\\"k2=v2\\\",\\\"k3=v3\\\"],\\\"HostConfig\\\":{\\\"PortBindings\\\":{\\\"43/udp\\\":[{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostP\",\"createOptions01\":\"ort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"}],\\\"42/tcp\\\":[{\\\"HostPort\\\":\\\"42\\\"}]}}}\"}";
+
+            DockerReportedConfig config = new DockerReportedConfig("image1:42", createOptions, "sha256:foosha", Option.None<NotaryContentTrust>());
+            string json = JsonConvert.SerializeObject(config);
+            string expected = "{\"image\":\"image1:42\",\"imageHash\":\"sha256:foosha\",\"createOptions\":\"{\\\"Env\\\":[\\\"k1=v1\\\",\\\"k2=v2\\\",\\\"k3=v3\\\"],\\\"HostConfig\\\":{\\\"PortBindings\\\":{\\\"43/udp\\\":[{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostP\",\"createOptions01\":\"ort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"}],\\\"42/tcp\\\":[{\\\"HostPort\\\":\\\"42\\\"}]}}}\"}";
+
             Assert.Equal(expected, json);
+        }
+
+        [Fact]
+        public void TestSerializationForNotaryContentTrustDefaultValue()
+        {
+            DockerReportedConfig config = new DockerReportedConfig("image1:42", "{}", "sha256:foosha", Option.Maybe(new NotaryContentTrust()));
+            string json = JsonConvert.SerializeObject(config);
+            string expected = "{\"image\":\"image1:42\",\"imageHash\":\"sha256:foosha\",\"createOptions\":\"{}\",\"notaryContentTrust\":{\"disableTOFU\":false}}";
+
+            Assert.Equal(expected, json);
+        }
+
+        [Fact]
+        public void TestSerializationForNotaryContentTrust()
+        {
+            NotaryContentTrust notaryContentTrust = new NotaryContentTrust
+            {
+                RootJsonPath = "/home/path/module/rootjson",
+                RootID = "45634232423523232423423525253252532523432333",
+                RootCertificatePath = "/home/path/module/rootca",
+                DisableTOFU = true
+            };
+            DockerReportedConfig config = new DockerReportedConfig("image1:42", "{}", "sha256:foosha", Option.Maybe(notaryContentTrust));
+
+            string json = JsonConvert.SerializeObject(config);
+            string expected = "{\"image\":\"image1:42\",\"imageHash\":\"sha256:foosha\",\"createOptions\":\"{}\",\"notaryContentTrust\":{\"rootJsonPath\":\"/home/path/module/rootjson\",\"rootID\":\"45634232423523232423423525253252532523432333\",\"rootCertificatePath\":\"/home/path/module/rootca\",\"disableTOFU\":true}}";
+
+            Assert.Equal(expected, json);
+        }
+
+        [Fact]
+        public void TestDeserializationForNotaryContentTrustDefaultValue()
+        {
+            string testConfig = @"
+            {
+                'image': 'image1:42',
+                'imageHash': 'sha256:foosha',
+                'createOptions' : ""{}"",
+                'notaryContentTrust' : {}
+            }";
+
+            DockerReportedConfig config = new DockerReportedConfig("image1:42", "{}", "sha256:foosha", Option.Maybe(new NotaryContentTrust()));
+            DockerReportedConfig expectedConfig = JsonConvert.DeserializeObject<DockerReportedConfig>(testConfig);
+
+            Assert.Equal(expectedConfig, config);
+        }
+
+        [Fact]
+        public void TestDeserializationForNotaryContentTrust()
+        {
+            string testConfig = @"
+            {
+                'image': 'image1:42',
+                'imageHash': 'sha256:foosha',
+                'createOptions' : ""{}"",
+                'notaryContentTrust' : { 'rootJsonPath' : '/home/path/module/rootjson', 'rootID' : '45634232423523232423423525253252532523432333', 'rootCertificatePath' : '/home/path/module/rootca', 'disableTOFU': 'true'}
+            }";
+            NotaryContentTrust notaryContentTrust = new NotaryContentTrust
+            {
+                RootJsonPath = "/home/path/module/rootjson",
+                RootID = "45634232423523232423423525253252532523432333",
+                RootCertificatePath = "/home/path/module/rootca",
+                DisableTOFU = true
+            };
+
+            DockerReportedConfig config = new DockerReportedConfig("image1:42", "{}", "sha256:foosha", Option.Maybe(notaryContentTrust));
+            DockerReportedConfig expectedConfig = JsonConvert.DeserializeObject<DockerReportedConfig>(testConfig);
+
+            Assert.Equal(expectedConfig, config);
         }
     }
 }
