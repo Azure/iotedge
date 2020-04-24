@@ -1,3 +1,6 @@
+use matches::assert_matches;
+
+use common::TestClientBuilder;
 use mqtt3::proto::QoS::{AtLeastOnce, AtMostOnce, ExactlyOnce};
 use mqtt3::proto::SubscribeTo;
 use mqtt3::{Event, ReceivedPublication};
@@ -14,12 +17,11 @@ async fn basic_connect_clean_session() {
 
     let (broker_shutdown, broker_task, address) = common::start_server(broker);
 
-    let mut client = common::TestClientBuilder::default()
-        .address(address)
+    let mut client = TestClientBuilder::new(address)
         .client_id("mqtt-smoke-tests")
         .build();
 
-    matches::assert_matches!(
+    assert_matches!(
         client.events_receiver.recv().await,
         Some(Event::NewConnection { reset_session }) if reset_session
     );
@@ -42,8 +44,7 @@ async fn basic_pub_sub() {
 
     let (broker_shutdown, broker_task, address) = common::start_server(broker);
 
-    let mut client = common::TestClientBuilder::default()
-        .address(address)
+    let mut client = TestClientBuilder::new(address)
         .client_id("mqtt-smoke-tests")
         .build();
 
@@ -87,19 +88,19 @@ async fn basic_pub_sub() {
 
     client.events_receiver.recv().await; //skip connect event
 
-    matches::assert_matches!(
+    assert_matches!(
         client.events_receiver.recv().await,
         Some(Event::SubscriptionUpdates(_))
     );
-    matches::assert_matches!(
+    assert_matches!(
         client.events_receiver.recv().await,
         Some(Event::Publication(ReceivedPublication{payload, ..})) if payload == bytes::Bytes::from("qos 0")
     );
-    matches::assert_matches!(
+    assert_matches!(
         client.events_receiver.recv().await,
         Some(Event::Publication(ReceivedPublication{payload, ..})) if payload == bytes::Bytes::from("qos 1")
     );
-    matches::assert_matches!(
+    assert_matches!(
         client.events_receiver.recv().await,
         Some(Event::Publication(ReceivedPublication{payload, ..})) if payload == bytes::Bytes::from("qos 2")
     );

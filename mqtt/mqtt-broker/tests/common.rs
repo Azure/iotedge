@@ -1,7 +1,9 @@
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::{
+    sync::atomic::{AtomicU32, Ordering},
+    time::Duration,
+};
 
-use futures_util::FutureExt;
-use futures_util::StreamExt;
+use futures_util::{FutureExt, StreamExt};
 use lazy_static::lazy_static;
 use tokio::net::ToSocketAddrs;
 use tokio::sync::{
@@ -17,7 +19,7 @@ use mqtt3::{
 };
 use mqtt_broker::{Authenticator, Authorizer, Broker, BrokerState, Error, Server};
 
-/// A wrapper on the mqtt3::Client to help simplify client event loop management.
+/// A wrapper on the [`mqtt3::Client`] to help simplify client event loop management.
 #[derive(Debug)]
 pub struct TestClient {
     publish_handle: PublishHandle,
@@ -59,23 +61,21 @@ where
     will: Option<Publication>,
 }
 
-impl Default for TestClientBuilder<String> {
-    fn default() -> Self {
+#[allow(dead_code)]
+impl<T> TestClientBuilder<T>
+where
+    T: ToSocketAddrs + Clone + Send + Sync + Unpin + 'static,
+{
+    pub fn new(address: T) -> Self {
         Self {
-            address: "localhost:1883".into(),
+            address,
             client_id: None,
             username: None,
             password: None,
             will: None,
         }
     }
-}
 
-#[allow(dead_code)]
-impl<T> TestClientBuilder<T>
-where
-    T: ToSocketAddrs + Clone + Send + Sync + Unpin + 'static,
-{
     pub fn address(mut self, address: T) -> Self {
         self.address = address;
         self
@@ -117,8 +117,8 @@ where
                     io.map(|io| (io, password))
                 })
             },
-            std::time::Duration::from_secs(1),
-            std::time::Duration::from_secs(60),
+            Duration::from_secs(1),
+            Duration::from_secs(60),
         );
 
         let publish_handle = client
@@ -137,9 +137,9 @@ where
 
         let task = tokio::spawn(async move {
             while let Some(event) = client.next().await {
-                let e = event.unwrap();
+                let event = event.expect("event expected");
                 events_sender
-                    .send(e)
+                    .send(event)
                     .await
                     .expect("can't send an event to a channel");
             }
