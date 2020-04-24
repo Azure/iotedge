@@ -144,6 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             // edgelet sets used cpu to -1 on error
             if (systemResources.UsedCpu > 0)
             {
+                Console.WriteLine($"host cpu {systemResources.UsedCpu}");
                 this.cpuPercentage.Update(systemResources.UsedCpu, hostTags);
             }
 
@@ -158,6 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             }
 
             this.SetModuleStats(systemResources);
+            Console.WriteLine();
         }
 
         void SetModuleStats(SystemResources systemResources)
@@ -173,7 +175,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
                 string name = module.Name.OrDefault().Substring(1); // remove '/' from start of name
                 var tags = new string[] { name, EdgeRuntimeModules.Contains(name).ToString() };
 
-                this.GetCpuUsage(module, name).ForEach(usedCpu => this.cpuPercentage.Update(usedCpu, tags));
+                this.GetCpuUsage(module).ForEach(usedCpu =>
+                {
+                    this.cpuPercentage.Update(usedCpu, tags);
+                    Console.WriteLine($"{name} cpu {usedCpu}");
+                });
                 module.MemoryStats.ForEach(ms =>
                 {
                     ms.Limit.ForEach(limit => this.totalMemory.Set(limit, tags));
@@ -215,16 +221,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
         Option<double> GetCpuLinux(DockerStats module)
         {
             Option<double> currentTotal = module.CpuStats.AndThen(s => s.CpuUsage).AndThen(s => s.TotalUsage);
-            Option<double> previousTotal = module.PreviousCpuStats.AndThen(s => s.CpuUsage).AndThen(s => s.TotalUsage);
+            Option<double> previousTotal = module.Name.AndThen(previousModuleCpu.GetOption);
             Option<double> moduleDelta = currentTotal.AndThen(curr => previousTotal.Map(prev => curr - prev));
 
             Option<double> currentSystem = module.CpuStats.AndThen(s => s.SystemCpuUsage);
-            Option<double> previousSystem = module.PreviousCpuStats.AndThen(s => s.SystemCpuUsage);
+            Option<double> previousSystem = module.Name.AndThen(previousSystemCpu.GetOption);
             Option<double> systemDelta = currentSystem.AndThen(curr => previousSystem.Map(prev => curr - prev));
+
+            // set previous to new current
+            module.Name.ForEach(name =>
+            {
+                currentTotal.ForEach(curr => previousModuleCpu[name] = curr);
+                currentSystem.ForEach(curr => previousSystemCpu[name] = curr);
+            });
 
             return moduleDelta.AndThen(moduleDif => systemDelta.AndThen(systemDif =>
             {
-                if (moduleDif > 0 && systemDif > 0)
+                if (moduleDif >= 0 && systemDif > 0)
                 {
                     double result = 100 * moduleDif / systemDif;
 

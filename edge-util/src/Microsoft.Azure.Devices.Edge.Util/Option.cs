@@ -251,6 +251,11 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
+        public static Option<T> GetOption<K, T>(this IDictionary<K, T> dict, K key)
+        {
+            return dict.TryGetValue(key, out T o) ? Some(o) : None<T>();
+        }
+
         /// <summary>
         /// Creates an <c>Option &lt;T&gt;</c> with <paramref name="value"/> and marks
         /// the option object as having a value, i.e., <c>Option&lt;T&gt;.HasValue == true</c>.
