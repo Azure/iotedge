@@ -31,11 +31,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
             IDictionary<string, string> labels = other.Config.CreateOptions?.Labels;
             if (labels == null ||
-                !labels.TryGetValue("net.azure-devices.edge.create-options", out string createOptions) ||
-                !labels.TryGetValue("net.azure-devices.edge.env", out string env))
+                !labels.TryGetValue(Core.Constants.Labels.CreateOptions, out string createOptions) ||
+                !labels.TryGetValue(Core.Constants.Labels.Env, out string env))
                 return true;
 
-            // If the 'net.azure-devices.edge.create-options' and 'net.azure-devices.edge.create-options' labels exist
+            // If the 'net.azure-devices.edge.create-options' and 'net.azure-devices.edge.env' labels exist
             // on the other IModule, compare them to this IModule
             string desiredCreateOptions = JsonConvert.SerializeObject(this.Config.CreateOptions);
 

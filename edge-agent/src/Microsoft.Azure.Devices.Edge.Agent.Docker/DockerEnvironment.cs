@@ -99,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
                     case Core.Constants.EdgeAgentModuleName:
                         var env = new Dictionary<string, EnvVal>();
-                        if (dockerRuntimeInfo.Config.CreateOptions.Labels.TryGetValue("net.azure-devices.edge.env", out string envStr))
+                        if (dockerRuntimeInfo.Config.CreateOptions.Labels.TryGetValue(Core.Constants.Labels.Env, out string envStr))
                         {
                             env = JsonConvert.DeserializeObject<Dictionary<string, EnvVal>>(envStr);
                         }

@@ -41,8 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             {
                 var moduleWithDockerConfig = (IModule<DockerConfig>)module; // cast is safe; base impl already checked it
                 var labels = createOptions.Labels ?? new Dictionary<string, string>();
-                labels.Add("net.azure-devices.edge.create-options", JsonConvert.SerializeObject(createOptions));
-                labels.Add("net.azure-devices.edge.env", JsonConvert.SerializeObject(moduleWithDockerConfig.Env));
+                labels.Add(Constants.Labels.CreateOptions, JsonConvert.SerializeObject(createOptions));
+                labels.Add(Constants.Labels.Env, JsonConvert.SerializeObject(moduleWithDockerConfig.Env));
                 createOptions.Labels = labels;
             }
 
