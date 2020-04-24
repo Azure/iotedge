@@ -76,11 +76,6 @@ where
         }
     }
 
-    pub fn address(mut self, address: T) -> Self {
-        self.address = address;
-        self
-    }
-
     pub fn client_id(mut self, client_id: &str) -> Self {
         self.client_id = Some(client_id.into());
         self
