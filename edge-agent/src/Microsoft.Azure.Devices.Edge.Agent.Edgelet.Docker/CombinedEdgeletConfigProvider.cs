@@ -10,7 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
-    // using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using AuthConfig = global::Docker.DotNet.Models.AuthConfig;
 
@@ -33,8 +32,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             CreateContainerParameters createOptions = CloneOrCreateParams(combinedConfig.CreateOptions);
             // The IModule argument came from the desired properties in a new deployment. For edge agent only,
             // save its createOptions and env as labels so we can detect changes in future configs.
-            // ILogger log = Logger.Factory.CreateLogger<CombinedEdgeletConfigProvider>();
-            // log.LogInformation($">>> COMBINE CONFIG FOR MODULE '{module.Name}'");
+            // Note: createOptions and env for each module are generally saved to a store (see the DeploymentConfigInfo
+            // member of Microsoft.Azure.Devices.Edge.Agent.Core.Agent) and we could get it there, but we'd miss the
+            // bootstrap scenario where edge agent is starting for the first time and therefore has no config store.
+            // That's why edge agent is treated differently: its config is persisted in the container's labels before
+            // it ever starts.
             if (module.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase))
             {
                 var moduleWithDockerConfig = (IModule<DockerConfig>)module; // cast is safe; base impl already checked it
@@ -42,8 +44,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
                 labels.Add("net.azure-devices.edge.create-options", JsonConvert.SerializeObject(createOptions));
                 labels.Add("net.azure-devices.edge.env", JsonConvert.SerializeObject(moduleWithDockerConfig.Env));
                 createOptions.Labels = labels;
-
-                // log.LogInformation($">>> ADDED LABELS TO CREATE OPTIONS:\n{JsonConvert.SerializeObject(createOptions, Formatting.Indented)}\n");
             }
 
             // if the workload URI is a Unix domain socket then volume mount it into the container

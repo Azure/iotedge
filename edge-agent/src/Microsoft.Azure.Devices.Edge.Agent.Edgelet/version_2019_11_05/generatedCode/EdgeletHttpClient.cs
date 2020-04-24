@@ -8,8 +8,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_11_05.GeneratedCode
 {
-    // using Microsoft.Azure.Devices.Edge.Util;
-    // using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using System;
 #pragma warning disable // Disable all warnings
@@ -100,8 +98,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_11_05.Generate
                         if (status_ == "200")
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<ModuleList>(response_, headers_).ConfigureAwait(false);
-                            // ILogger log = Logger.Factory.CreateLogger<EdgeletHttpClient>();
-                            // log.LogInformation($">>> LIST MODULES:\n{JsonConvert.SerializeObject(objectResponse_.Object, Formatting.Indented)}\n");
                             return objectResponse_.Object;
                         }
                         else

@@ -66,11 +66,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     dockerModule = new DockerModule(dockerRuntimeInfo.Name, string.Empty, ModuleStatus.Unknown, Core.RestartPolicy.Unknown, new DockerConfig(Constants.UnknownImage, new CreateContainerParameters()), ImagePullPolicy.OnCreate, Core.Constants.HighestPriority, new ConfigurationInfo(), null);
                 }
 
-                // if (moduleRuntimeInfo.Name == Core.Constants.EdgeAgentModuleName)
-                // {
-                //     ILogger log = Logger.Factory.CreateLogger<DockerEnvironment>();
-                //     log.LogInformation($">>> AGENT DOCKER REPORTED CONFIG:\n{JsonConvert.SerializeObject(dockerRuntimeInfo.Config, Formatting.Indented)}");
-                // }
                 Option<ModuleState> moduleStateOption = await this.moduleStateStore.Get(moduleRuntimeInfo.Name);
                 ModuleState moduleState = moduleStateOption.GetOrElse(new ModuleState(0, moduleRuntimeInfo.ExitTime.GetOrElse(DateTime.MinValue)));
                 // compute module state based on restart policy
@@ -119,9 +114,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                             dockerModule.ImagePullPolicy,
                             dockerModule.ConfigurationInfo,
                             env);
-
-                        // ILogger log = Logger.Factory.CreateLogger<DockerEnvironment>();
-                        // log.LogInformation($">>> EdgeAgentDockerRuntimeModule:\n{JsonConvert.SerializeObject(module, Formatting.Indented)}");
                         break;
 
                     default:
