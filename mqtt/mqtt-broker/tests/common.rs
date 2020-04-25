@@ -1,16 +1,20 @@
 use std::{
+    pin::Pin,
     sync::atomic::{AtomicU32, Ordering},
+    task::{Context, Poll},
     time::Duration,
 };
 
 use futures_util::{FutureExt, StreamExt};
 use lazy_static::lazy_static;
-use tokio::net::ToSocketAddrs;
-use tokio::sync::{
-    mpsc::{self, Receiver},
-    oneshot::{self, Sender},
+use tokio::{
+    net::ToSocketAddrs,
+    sync::{
+        mpsc::{self, UnboundedReceiver},
+        oneshot::{self, Sender},
+    },
+    task::{JoinError, JoinHandle},
 };
-use tokio::task::{JoinError, JoinHandle};
 
 use mqtt3::{
     proto::{Publication, SubscribeTo},
@@ -25,7 +29,7 @@ pub struct TestClient {
     publish_handle: PublishHandle,
     subscription_handle: UpdateSubscriptionHandle,
     shutdown_handle: ShutdownHandle,
-    pub events_receiver: Receiver<Event>,
+    events_receiver: UnboundedReceiver<Event>,
     task: JoinHandle<()>,
 }
 
@@ -45,8 +49,23 @@ impl TestClient {
         self.shutdown_handle.shutdown().await
     }
 
+    pub fn shutdown_handle(&mut self) -> ShutdownHandle {
+        self.shutdown_handle.clone()
+    }
+
     pub async fn join(self) -> Result<(), JoinError> {
         self.task.await
+    }
+}
+
+impl tokio::stream::Stream for TestClient
+where
+    Self: Unpin,
+{
+    type Item = Event;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        self.events_receiver.poll_recv(cx)
     }
 }
 
@@ -128,14 +147,13 @@ where
             .shutdown_handle()
             .expect("couldn't get shutdown handle");
 
-        let (mut events_sender, events_receiver) = mpsc::channel(128);
+        let (events_sender, events_receiver) = mpsc::unbounded_channel();
 
         let task = tokio::spawn(async move {
             while let Some(event) = client.next().await {
                 let event = event.expect("event expected");
                 events_sender
                     .send(event)
-                    .await
                     .expect("can't send an event to a channel");
             }
         });
