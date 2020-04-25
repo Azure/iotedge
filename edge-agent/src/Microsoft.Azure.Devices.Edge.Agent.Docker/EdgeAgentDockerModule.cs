@@ -23,29 +23,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             if (ReferenceEquals(this, other))
                 return true;
 
-            bool result = string.Equals(this.Name, other.Name) &&
-                string.Equals(this.Type, other.Type) &&
-                string.Equals(this.Config.Image, other.Config.Image);
-            if (!result)
+            if (!string.Equals(this.Name, other.Name) ||
+                !string.Equals(this.Type, other.Type) ||
+                !string.Equals(this.Config.Image, other.Config.Image))
                 return false;
 
-            IDictionary<string, string> labels = other.Config.CreateOptions?.Labels;
-            if (labels == null ||
-                !labels.TryGetValue(Core.Constants.Labels.CreateOptions, out string createOptions) ||
+            IDictionary<string, string> labels = other.Config.CreateOptions?.Labels ?? new Dictionary<string, string>();
+            if (!labels.TryGetValue(Core.Constants.Labels.CreateOptions, out string createOptions) ||
                 !labels.TryGetValue(Core.Constants.Labels.Env, out string env))
                 return true;
 
             // If the 'net.azure-devices.edge.create-options' and 'net.azure-devices.edge.env' labels exist
             // on the other IModule, compare them to this IModule
-            string desiredCreateOptions = JsonConvert.SerializeObject(this.Config.CreateOptions);
+            if (JsonConvert.SerializeObject(this.Config.CreateOptions) != createOptions)
+                return false;
 
             var desiredEnv = JsonConvert.DeserializeObject<IDictionary<string, EnvVal>>(env);
-            bool equalEnv = desiredEnv.Count == this.Env.Count &&
+            return desiredEnv.Count == this.Env.Count &&
                 !desiredEnv.Keys.Except(this.Env.Keys).Any() &&
                 !this.Env.Keys.Except(desiredEnv.Keys).Any() &&
                 desiredEnv.All(v => this.Env.TryGetValue(v.Key, out EnvVal val) && val.Equals(v.Value));
-
-            return desiredCreateOptions == createOptions && equalEnv;
         }
 
         public override int GetHashCode()
