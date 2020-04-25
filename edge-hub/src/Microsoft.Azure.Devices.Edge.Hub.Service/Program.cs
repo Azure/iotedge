@@ -150,7 +150,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             if (configuration.GetValue("httpSettings:enabled", true))
             {
-                protocolHeads.Add(new HttpProtocolHead(hosting.WebHost));
+                protocolHeads.Add(new HttpProtocolHead(hosting.Host));
             }
 
             return new EdgeHubProtocolHead(protocolHeads, logger);

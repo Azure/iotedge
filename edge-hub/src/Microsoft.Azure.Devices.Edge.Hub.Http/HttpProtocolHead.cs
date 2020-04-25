@@ -3,18 +3,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
 {
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.AspNetCore.Hosting;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
 
     public class HttpProtocolHead : IProtocolHead
     {
-        readonly IWebHost webHost;
+        readonly IHost host;
 
-        public HttpProtocolHead(IWebHost webHost)
+        public HttpProtocolHead(IHost host)
         {
-            this.webHost = Preconditions.CheckNotNull(webHost, nameof(webHost));
+            this.host = Preconditions.CheckNotNull(host, nameof(host));
         }
 
         public string Name => "HTTP";
@@ -22,18 +22,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
         public async Task StartAsync()
         {
             Events.Starting();
-            await this.webHost.StartAsync();
+            await this.host.StartAsync();
             Events.Started();
         }
 
         public async Task CloseAsync(CancellationToken token)
         {
             Events.Closing();
-            await this.webHost.StopAsync(token);
+            await this.host.StopAsync(token);
             Events.Closed();
         }
 
-        public void Dispose() => this.webHost?.Dispose();
+        public void Dispose() => this.host?.Dispose();
 
         static class Events
         {

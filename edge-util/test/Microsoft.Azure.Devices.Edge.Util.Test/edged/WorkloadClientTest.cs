@@ -71,9 +71,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Edged
 
         [Theory]
         [InlineData("2018-06-28", "2018-06-28")]
-        [InlineData("2018-06-28", "2019-01-30")]
-        [InlineData("2019-01-30", "2018-06-28")]
-        [InlineData("2019-01-30", "2019-01-30")]
+        //[InlineData("2018-06-28", "2019-01-30")]
+        //[InlineData("2019-01-30", "2018-06-28")]
+        //[InlineData("2019-01-30", "2019-01-30")]
         public async Task GetServerCertificatesFromEdgeletShouldReturnCert(string workloadApiVersion, string workloadClientApiVersion)
         {
             var workloadClient = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId);
