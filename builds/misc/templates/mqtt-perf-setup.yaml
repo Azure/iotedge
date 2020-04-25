@@ -1,6 +1,9 @@
 # Template to set up test host (pull and start 'mqttd' container)
 # as well as publisher node and subscriber node (mqtt-benchmark tool writen in go).
 
+parameters:
+  brokerSshConnection: '' # SSH Service Connection to connect to the test host machine.
+
 jobs:
 - job: setup_host
   pool:
@@ -23,54 +26,27 @@ jobs:
       displayName: 'Set broker image name variable'
       condition: eq(variables['brokerImageName'], '')
 
-    # AMD64 setup
     - task: SSH@0
-      displayName: Cleanup running containers AMD64
+      displayName: Cleanup running containers
       inputs:
-        sshEndpoint: iotedge-mqtt-perf-amd64-conn
+        sshEndpoint: ${{ parameters['brokerSshConnection'] }}
         runOptions: commands        
         commands: |
           docker stop mqtt-broker ; docker system prune -a -f
       # ignore cleanup errors if no containers running
       continueOnError: true 
-      condition: eq(variables['arch'], 'amd64')
 
     - task: SSH@0
-      displayName: Install and Run docker image AMD64
+      displayName: Install and Run docker image
       inputs:
-        sshEndpoint: iotedge-mqtt-perf-amd64-conn
+        sshEndpoint: ${{ parameters['brokerSshConnection'] }}
         runOptions: commands
         commands: |
           echo "$(registry.password)" | docker login $(registry.address) --username $(registry.user) --password-stdin 2>/dev/null
           docker pull $(brokerImageName)
           docker run -d --network=host --name=mqtt-broker $(brokerImageName)
           docker logout
-      condition: eq(variables['arch'], 'amd64')
 
-    # ARM32 setup
-    - task: SSH@0
-      displayName: Cleanup running containers ARM32
-      inputs:
-        sshEndpoint: iotedge-mqtt-perf-arm32v7-conn
-        runOptions: commands        
-        commands: |
-          docker stop mqtt-broker ; docker system prune -a -f
-      # ignore cleanup errors if no containers running
-      continueOnError: true 
-      condition: eq(variables['arch'], 'arm32v7')
-
-    - task: SSH@0
-      displayName: Install and Run docker image ARM32
-      inputs:
-        sshEndpoint: iotedge-mqtt-perf-arm32v7-conn
-        runOptions: commands
-        commands: |
-          echo "$(registry.password)" | docker login $(registry.address) --username $(registry.user) --password-stdin 2>/dev/null
-          docker pull $(brokerImageName)
-          docker run -d --network=host --name=mqtt-broker $(brokerImageName)
-          docker logout
-      condition: eq(variables['arch'], 'arm32v7')
-      
 - job: setup_pub
   pool:
     name: $(pool.name)

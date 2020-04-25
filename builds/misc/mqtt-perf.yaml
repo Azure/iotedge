@@ -17,7 +17,7 @@
 trigger: none
 pr: none
 schedules:
-  - cron: "0 23 * * *"
+  - cron: "0 6 * * *"
     displayName: Daily at 11 PM
     branches:
       include:
@@ -47,11 +47,14 @@ stages:
     runId: $(Build.BuildNumber)-arm32v7
     brokerImageName: $(broker.image.arm32v7)
     brokerEndpoint: $(broker.endpoint.arm32v7)
+    brokerSshConnection: iotedge-mqtt-perf-arm32v7-conn
     clientDop: 4 # the number of max threads that can execute mqtt-benchmark tool code simultaneously
 
   pool: $(pool.name)
   jobs:
     - template: templates/mqtt-perf-setup.yaml
+      parameters:
+        brokerSshConnection: ${{ variables.brokerSshConnection }}
     - template: templates/mqtt-perf-run.yaml
 
 ################################################################################	
@@ -62,11 +65,14 @@ stages:
     runId: $(Build.BuildNumber)-amd64
     brokerImageName: $(broker.image.amd64)
     brokerEndpoint: $(broker.endpoint.amd64)
+    brokerSshConnection: iotedge-mqtt-perf-amd64-conn
     clientDop: 4 # the number of max threads that can execute mqtt-benchmark tool code simultaneously
 
   pool: $(pool.name)
   jobs:
     - template: templates/mqtt-perf-setup.yaml
+      parameters:
+        brokerSshConnection: ${{ variables.brokerSshConnection }}
     - template: templates/mqtt-perf-run.yaml
 
 ################################################################################	
@@ -77,9 +83,12 @@ stages:
     runId: $(Build.BuildNumber)-mosquitto
     brokerImageName: $(broker.image.mosquitto)
     brokerEndpoint: $(broker.endpoint.amd64)
+    brokerSshConnection: iotedge-mqtt-perf-amd64-conn
     clientDop: 4 # the number of max threads that can execute mqtt-benchmark tool code simultaneously
 
   pool: $(pool.name)
   jobs:
     - template: templates/mqtt-perf-setup.yaml
+      parameters:
+        brokerSshConnection: ${{ variables.brokerSshConnection }}
     - template: templates/mqtt-perf-run.yaml
