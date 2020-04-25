@@ -33,7 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
             }
 
             app.UseRouting();
-            app.UseEndpoints(endpoints => {
+            app.UseEndpoints(endpoints =>
+            {
                 endpoints.MapControllers();
             });
         }

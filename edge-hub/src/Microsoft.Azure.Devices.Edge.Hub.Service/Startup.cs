@@ -76,7 +76,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     await next();
                 });
 
-            app.UseEndpoints(endpoints => {
+            app.UseEndpoints(endpoints =>
+            {
                 endpoints.MapControllers();
             });
         }
