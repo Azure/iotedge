@@ -2,7 +2,8 @@
 # as well as publisher node and subscriber node (mqtt-benchmark tool writen in go).
 
 parameters:
-  brokerSshConnection: '' # SSH Service Connection to connect to the test host machine.
+- name: brokerSshConnection # SSH Service Connection to connect to the test host machine; required.
+  default: false
 
 jobs:
 - job: setup_host
