@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     };
                     // Logging options will be derived from these default logging options
                     var loggingConfig = new DockerLoggingConfig("json-file", dockerLoggingOptions);
-                    var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""8080/tcp"": [{""HostPort"": ""80""}]}}}");
+                    var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""8080/tcp"": [{""HostPort"": ""80""}]}}}", Option.None<NotaryContentTrust>());
                     var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, Constants.DefaultPriority, null, EnvVars);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
@@ -126,7 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     await DockerHelper.Client.PullImageAsync(Image, cts.Token);
 
                     var loggingConfig = new DockerLoggingConfig("json-file");
-                    var config = new DockerConfig(Image, @"{""HostConfig"": {""PortBindings"": {""42/udp"": [{""HostPort"": ""42""}]}}}");
+                    var config = new DockerConfig(Image, @"{""HostConfig"": {""PortBindings"": {""42/udp"": [{""HostPort"": ""42""}]}}}", Option.None<NotaryContentTrust>());
                     var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, Constants.DefaultPriority, null, EnvVars);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
@@ -206,7 +206,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     };
                     var loggingConfig = new DockerLoggingConfig("json-file", dockerLoggingOptions);
                     // Logging options will be derived from module options.
-                    var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""LogConfig"": {""Type"":""none""}, ""PortBindings"": {""8080/tcp"": [{""HostPort"": ""80""}],""443/tcp"": [{""HostPort"": ""11443""}]}}}");
+                    var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""LogConfig"": {""Type"":""none""}, ""PortBindings"": {""8080/tcp"": [{""HostPort"": ""80""}],""443/tcp"": [{""HostPort"": ""11443""}]}}}", Option.None<NotaryContentTrust>());
                     var configurationInfo = new ConfigurationInfo();
                     var module = new EdgeHubDockerModule("docker", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, config, ImagePullPolicy.Never, Constants.HighestPriority, configurationInfo, EnvVars);
 
@@ -293,7 +293,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                         { "max-file", "1" }
                     };
                     var loggingConfig = new DockerLoggingConfig("json-file", dockerLoggingOptions);
-                    var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""]}");
+                    var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""]}", Option.None<NotaryContentTrust>());
                     var configurationInfo = new ConfigurationInfo("43");
                     var module = new EdgeHubDockerModule("docker", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, config, ImagePullPolicy.OnCreate, Constants.DefaultPriority, configurationInfo, EnvVars);
 
@@ -684,7 +684,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     };
                     // Logging options will be derived from these default logging options
                     var loggingConfig = new DockerLoggingConfig("json-file", dockerLoggingOptions);
-                    var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""8080/tcp"": [{""HostPort"": ""80""}]}}}");
+                    var config = new DockerConfig(Image, @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""8080/tcp"": [{""HostPort"": ""80""}]}}}", Option.None<NotaryContentTrust>());
                     var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, Constants.DefaultPriority, null, EnvVars);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
