@@ -15,8 +15,7 @@ use crate::auth::{
 };
 use crate::session::{ConnectedSession, Session, SessionState};
 use crate::{
-    subscription::Subscription, AuthId, ClientEvent, ClientId, ConnReq, Error, ErrorKind, Message,
-    SystemEvent,
+    subscription::Subscription, AuthId, ClientEvent, ClientId, ConnReq, Error, Message, SystemEvent,
 };
 
 static EXPECTED_PROTOCOL_NAME: &str = mqtt3::PROTOCOL_NAME;
@@ -264,7 +263,7 @@ where
             Err(e) => {
                 warn!(message = "error authenticating client: {}", error = %e);
                 refuse_connection!(proto::ConnectionRefusedReason::ServerUnavailable);
-                return Err(e);
+                return Ok(());
             }
         };
 
@@ -283,7 +282,7 @@ where
             Err(e) => {
                 warn!(message="error authorizing client: {}", error = %e);
                 refuse_connection!(proto::ConnectionRefusedReason::ServerUnavailable);
-                return Err(e);
+                return Ok(());
             }
         }
 
@@ -292,7 +291,9 @@ where
         match self.open_session(auth_id, connreq) {
             Ok((ack, events)) => {
                 // Send ConnAck on new session
-                let session = self.get_session_mut(&client_id)?;
+                let session = self
+                    .get_session_mut(&client_id)
+                    .expect("session must exist");
                 session.send(ClientEvent::ConnAck(ack)).await?;
 
                 for event in events {
@@ -305,7 +306,9 @@ where
 
                 // Send ConnAck on new connection
                 let should_drop = ack.return_code != proto::ConnectReturnCode::Accepted;
-                let session = self.get_session_mut(&client_id)?;
+                let session = self
+                    .get_session_mut(&client_id)
+                    .expect("session must exist");
                 session.send(ClientEvent::ConnAck(ack)).await?;
 
                 if should_drop {
@@ -393,11 +396,10 @@ where
         debug!("handling ping request...");
         match self.get_session_mut(&client_id) {
             Ok(session) => session.send(ClientEvent::PingResp(proto::PingResp)).await,
-            Err(e) if *e.kind() == ErrorKind::NoSession => {
+            Err(NoSessionError) => {
                 debug!("no session for {}", client_id);
                 Ok(())
             }
-            Err(e) => Err(e),
         }
     }
 
@@ -453,11 +455,10 @@ where
                 self.notify_subscription_change(&client_id).await;
                 Ok(())
             }
-            Err(e) if *e.kind() == ErrorKind::NoSession => {
+            Err(NoSessionError) => {
                 debug!("no session for {}", client_id);
                 Ok(())
             }
-            Err(e) => Err(e),
         }
     }
 
@@ -481,8 +482,6 @@ where
                     if let Some(publication) = maybe_publication {
                         self.publish_all(publication).await?
                     }
-
-                    Ok(())
                 }
                 Ok(false) => {
                     warn!(
@@ -490,18 +489,17 @@ where
                         client_id, publish.topic_name,
                     );
                     self.drop_connection(client_id).await?;
-                    Ok(())
                 }
                 Err(e) => {
                     warn!(message="error authorizing client: {}", error = %e);
                     self.drop_connection(client_id).await?;
-                    Err(e)
                 }
             }
         } else {
             debug!("no session for {}", client_id);
-            Ok(())
         }
+
+        Ok(())
     }
 
     async fn process_puback(
@@ -516,11 +514,10 @@ where
                 }
                 Ok(())
             }
-            Err(e) if *e.kind() == ErrorKind::NoSession => {
+            Err(NoSessionError) => {
                 debug!("no session for {}", client_id);
                 Ok(())
             }
-            Err(e) => Err(e),
         }
     }
 
@@ -536,11 +533,10 @@ where
                 }
                 Ok(())
             }
-            Err(e) if *e.kind() == ErrorKind::NoSession => {
+            Err(NoSessionError) => {
                 debug!("no session for {}", client_id);
                 Ok(())
             }
-            Err(e) => Err(e),
         }
     }
 
@@ -556,11 +552,10 @@ where
                 }
                 Ok(())
             }
-            Err(e) if *e.kind() == ErrorKind::NoSession => {
+            Err(NoSessionError) => {
                 debug!("no session for {}", client_id);
                 Ok(())
             }
-            Err(e) => Err(e),
         }
     }
 
@@ -578,11 +573,10 @@ where
                 session.send(ClientEvent::PubComp(pubcomp)).await?;
                 maybe_publication
             }
-            Err(e) if *e.kind() == ErrorKind::NoSession => {
+            Err(NoSessionError) => {
                 debug!("no session for {}", client_id);
                 return Ok(());
             }
-            Err(e) => return Err(e),
         };
 
         if let Some(publication) = maybe_publication {
@@ -603,18 +597,17 @@ where
                 }
                 Ok(())
             }
-            Err(e) if *e.kind() == ErrorKind::NoSession => {
+            Err(NoSessionError) => {
                 debug!("no session for {}", client_id);
                 Ok(())
             }
-            Err(e) => Err(e),
         }
     }
 
-    fn get_session_mut(&mut self, client_id: &ClientId) -> Result<&mut Session, Error> {
+    fn get_session_mut(&mut self, client_id: &ClientId) -> Result<&mut Session, NoSessionError> {
         self.sessions
             .get_mut(client_id)
-            .ok_or_else(|| ErrorKind::NoSession.into())
+            .ok_or_else(|| NoSessionError)
     }
 
     fn open_session(
@@ -908,11 +901,14 @@ where
     }
 }
 
-async fn subscribe<Z: Authorizer>(
+async fn subscribe<Z>(
     authorizer: &Z,
     session: &mut Session,
     subscribe: proto::Subscribe,
-) -> Result<(proto::SubAck, Vec<Subscription>), Error> {
+) -> Result<(proto::SubAck, Vec<Subscription>), Error>
+where
+    Z: Authorizer,
+{
     let auth_id = session.auth_id()?.clone();
     let client_id = session.client_id().clone();
 
@@ -968,25 +964,35 @@ async fn subscribe<Z: Authorizer>(
     Ok((suback, subscriptions))
 }
 
-async fn publish_to<Z: Authorizer>(
+async fn publish_to<Z>(
     authorizer: &Z,
     session: &mut Session,
     publication: &proto::Publication,
-) -> Result<(), Error> {
+) -> Result<(), Error>
+where
+    Z: Authorizer,
+{
     let operation = Operation::new_receive(publication.clone());
     let client_id = session.client_id().clone();
-    let auth_id = session.auth_id()?;
+    // TODO refactor auth_id logic for offline sessions
+    let auth_id = session.auth_id().unwrap_or(&AuthId::Anonymous);
     let activity = Activity::new(auth_id.clone(), client_id.clone(), operation);
 
-    if authorizer.authorize(activity).await? {
-        if let Some(event) = session.publish_to(&publication)? {
-            session.send(event).await?
+    match authorizer.authorize(activity).await {
+        Ok(true) => {
+            if let Some(event) = session.publish_to(&publication)? {
+                session.send(event).await?
+            }
         }
-    } else {
-        debug!(
-            "client {} not allowed to receive messages",
-            session.client_id()
-        );
+        Ok(false) => {
+            debug!(
+                "client {} not allowed to receive messages",
+                session.client_id()
+            );
+        }
+        Err(e) => {
+            warn!(message="error authorizing client: {}", error = %e);
+        }
     }
     Ok(())
 }
@@ -1086,11 +1092,7 @@ pub struct BrokerHandle(Sender<Message>);
 
 impl BrokerHandle {
     pub async fn send(&mut self, message: Message) -> Result<(), Error> {
-        self.0
-            .send(message)
-            .await
-            .context(ErrorKind::SendBrokerMessage)?;
-        Ok(())
+        self.0.send(message).await.map_err(Error::SendBrokerMessage)
     }
 }
 
@@ -1101,10 +1103,12 @@ pub enum SessionError {
     DuplicateSession(Session, proto::ConnAck),
 }
 
+#[derive(Debug, thiserror::Error)]
+#[error("No session.")]
+pub struct NoSessionError;
+
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::*;
-
     use std::time::Duration;
 
     use bytes::Bytes;
@@ -1113,11 +1117,19 @@ pub(crate) mod tests {
     use proptest::collection::{hash_map, vec};
     use proptest::prelude::*;
     use tokio::sync::mpsc::error::TryRecvError;
+    use tokio::sync::mpsc::{self, Receiver};
     use uuid::Uuid;
 
-    use crate::session::tests::*;
-    use crate::tests::*;
-    use crate::{auth::ErrorReason, AuthId, ConnectionHandle};
+    use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
+
+    use crate::{
+        auth::{Activity, AuthenticateError, AuthorizeError, Operation},
+        broker::{BrokerBuilder, BrokerHandle, BrokerState, SessionError},
+        error::Error,
+        session::{tests::arb_session_state, Session},
+        tests::{arb_publication, arb_topic},
+        AuthId, ClientEvent, ClientId, ConnReq, ConnectionHandle, Message,
+    };
 
     prop_compose! {
         pub fn arb_broker_state()(
@@ -1144,8 +1156,8 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession(id),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         }
     }
 
@@ -1156,8 +1168,8 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithExistingSession(id),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         }
     }
 
@@ -1165,7 +1177,7 @@ pub(crate) mod tests {
     #[should_panic]
     async fn test_double_connect_protocol_violation() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::anonymous())))
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1178,8 +1190,8 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         };
         let connect2 = proto::Connect {
             username: None,
@@ -1187,8 +1199,8 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         };
         let id = Uuid::new_v4();
         let (tx1, mut rx1) = mpsc::channel(128);
@@ -1228,7 +1240,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_double_connect_drop_first_transient() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::anonymous())))
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1241,8 +1253,8 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         };
         let connect2 = proto::Connect {
             username: None,
@@ -1250,8 +1262,8 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         };
         let (tx1, mut rx1) = mpsc::channel(128);
         let (tx2, mut rx2) = mpsc::channel(128);
@@ -1296,7 +1308,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_invalid_protocol_name() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::anonymous())))
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1310,7 +1322,7 @@ pub(crate) mod tests {
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
             protocol_name: "AMQP".to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_level: PROTOCOL_LEVEL,
         };
         let (tx1, mut rx1) = mpsc::channel(128);
         let conn1 = ConnectionHandle::from_sender(tx1);
@@ -1335,7 +1347,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_invalid_protocol_level() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::anonymous())))
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1348,7 +1360,7 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
+            protocol_name: PROTOCOL_NAME.to_string(),
             protocol_level: 0x3,
         };
         let (tx1, mut rx1) = mpsc::channel(128);
@@ -1384,7 +1396,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_connect_auth_succeeded() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::anonymous())))
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1397,8 +1409,8 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         };
 
         let (tx1, mut rx1) = mpsc::channel(128);
@@ -1440,8 +1452,8 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         };
 
         let (tx1, mut rx1) = mpsc::channel(128);
@@ -1477,7 +1489,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_connect_authentication_failed() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Err(ErrorKind::Auth(ErrorReason::Authenticate).into()))
+            .authenticator(|_| Err(AuthenticateError))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1490,8 +1502,8 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         };
 
         let (tx1, mut rx1) = mpsc::channel(128);
@@ -1540,8 +1552,8 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         };
 
         let (tx1, mut rx1) = mpsc::channel(128);
@@ -1577,8 +1589,8 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_connect_authorization_failed() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::anonymous())))
-            .authorizer(|_| Err(ErrorKind::Auth(ErrorReason::Authorize).into()))
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authorizer(|_| Err(AuthorizeError))
             .build();
 
         let mut broker_handle = broker.handle();
@@ -1590,8 +1602,8 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession("blah".to_string()),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         };
 
         let (tx1, mut rx1) = mpsc::channel(128);
@@ -1627,7 +1639,7 @@ pub(crate) mod tests {
     #[test]
     fn test_add_session_empty_transient() {
         let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::anonymous())))
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1636,7 +1648,7 @@ pub(crate) mod tests {
         let connect = transient_connect(id);
         let handle = connection_handle();
         let req = ConnReq::new(client_id.clone(), connect, None, handle);
-        let auth_id = AuthId::anonymous();
+        let auth_id = AuthId::Anonymous;
 
         broker.open_session(auth_id, req).unwrap();
 
@@ -1653,7 +1665,7 @@ pub(crate) mod tests {
     #[test]
     fn test_add_session_empty_persistent() {
         let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::anonymous())))
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1662,7 +1674,7 @@ pub(crate) mod tests {
         let connect = persistent_connect(id);
         let handle = connection_handle();
         let req = ConnReq::new(client_id.clone(), connect, None, handle);
-        let auth_id = AuthId::anonymous();
+        let auth_id = AuthId::Anonymous;
 
         broker.open_session(auth_id, req).unwrap();
 
@@ -1680,7 +1692,7 @@ pub(crate) mod tests {
     #[should_panic]
     fn test_add_session_same_connection_transient() {
         let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::anonymous())))
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1695,7 +1707,7 @@ pub(crate) mod tests {
 
         let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
         let req2 = ConnReq::new(client_id, connect2, None, handle2);
-        let auth_id = AuthId::anonymous();
+        let auth_id = AuthId::Anonymous;
 
         broker.open_session(auth_id.clone(), req1).unwrap();
         assert_eq!(1, broker.sessions.len());
@@ -1709,7 +1721,7 @@ pub(crate) mod tests {
     #[should_panic]
     fn test_add_session_same_connection_persistent() {
         let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::anonymous())))
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1724,7 +1736,7 @@ pub(crate) mod tests {
 
         let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
         let req2 = ConnReq::new(client_id, connect2, None, handle2);
-        let auth_id = AuthId::anonymous();
+        let auth_id = AuthId::Anonymous;
 
         broker.open_session(auth_id.clone(), req1).unwrap();
         assert_eq!(1, broker.sessions.len());
@@ -1737,7 +1749,7 @@ pub(crate) mod tests {
     #[test]
     fn test_add_session_different_connection_transient_then_transient() {
         let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::anonymous())))
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1748,7 +1760,7 @@ pub(crate) mod tests {
         let handle1 = connection_handle();
         let handle2 = connection_handle();
         let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
-        let auth_id = AuthId::anonymous();
+        let auth_id = AuthId::Anonymous;
 
         broker.open_session(auth_id.clone(), req1).unwrap();
         assert_eq!(1, broker.sessions.len());
@@ -1763,7 +1775,7 @@ pub(crate) mod tests {
     #[test]
     fn test_add_session_different_connection_transient_then_persistent() {
         let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::anonymous())))
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1774,7 +1786,7 @@ pub(crate) mod tests {
         let handle1 = connection_handle();
         let handle2 = connection_handle();
         let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
-        let auth_id = AuthId::anonymous();
+        let auth_id = AuthId::Anonymous;
 
         broker.open_session(auth_id.clone(), req1).unwrap();
         assert_eq!(1, broker.sessions.len());
@@ -1789,7 +1801,7 @@ pub(crate) mod tests {
     #[test]
     fn test_add_session_different_connection_persistent_then_transient() {
         let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::anonymous())))
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1800,7 +1812,7 @@ pub(crate) mod tests {
         let handle1 = connection_handle();
         let handle2 = connection_handle();
         let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
-        let auth_id = AuthId::anonymous();
+        let auth_id = AuthId::Anonymous;
 
         broker.open_session(auth_id.clone(), req1).unwrap();
         assert_eq!(1, broker.sessions.len());
@@ -1815,7 +1827,7 @@ pub(crate) mod tests {
     #[test]
     fn test_add_session_different_connection_persistent_then_persistent() {
         let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::anonymous())))
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1827,7 +1839,7 @@ pub(crate) mod tests {
         let handle2 = connection_handle();
         let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
         let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
-        let auth_id = AuthId::anonymous();
+        let auth_id = AuthId::Anonymous;
 
         broker.open_session(auth_id.clone(), req1).unwrap();
         assert_eq!(1, broker.sessions.len());
@@ -1841,7 +1853,7 @@ pub(crate) mod tests {
     #[test]
     fn test_add_session_offline_persistent() {
         let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::anonymous())))
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1853,7 +1865,7 @@ pub(crate) mod tests {
         let handle2 = connection_handle();
         let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
         let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
-        let auth_id = AuthId::anonymous();
+        let auth_id = AuthId::Anonymous;
 
         broker.open_session(auth_id.clone(), req1).unwrap();
 
@@ -1876,7 +1888,7 @@ pub(crate) mod tests {
     #[test]
     fn test_add_session_offline_transient() {
         let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::anonymous())))
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
             .authorizer(|_| Ok(true))
             .build();
 
@@ -1886,7 +1898,7 @@ pub(crate) mod tests {
         let handle1 = connection_handle();
         let handle2 = connection_handle();
         let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
-        let auth_id = AuthId::anonymous();
+        let auth_id = AuthId::Anonymous;
 
         broker.open_session(auth_id.clone(), req1).unwrap();
 

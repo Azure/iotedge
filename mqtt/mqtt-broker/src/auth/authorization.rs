@@ -2,24 +2,34 @@
 use async_trait::async_trait;
 use mqtt3::proto;
 
-use crate::{AuthId, ClientId, Error};
+use crate::{AuthId, ClientId};
 
 /// A trait to check a MQTT client permissions to perform some actions.
 #[async_trait]
 pub trait Authorizer {
+    /// Authentication error.
+    type Error: std::error::Error + Send;
+
     /// Authorizes a MQTT client to perform some action.
-    async fn authorize(&self, activity: Activity) -> Result<bool, Error>;
+    async fn authorize(&self, activity: Activity) -> Result<bool, Self::Error>;
 }
 
 #[async_trait]
 impl<F> Authorizer for F
 where
-    F: Fn(Activity) -> Result<bool, Error> + Sync,
+    F: Fn(Activity) -> Result<bool, AuthorizeError> + Sync,
 {
-    async fn authorize(&self, activity: Activity) -> Result<bool, Error> {
+    type Error = AuthorizeError;
+
+    async fn authorize(&self, activity: Activity) -> Result<bool, Self::Error> {
         self(activity)
     }
 }
+
+/// Authorization error type placeholder.
+#[derive(Debug, thiserror::Error)]
+#[error("An error occurred checking client permissions.")]
+pub struct AuthorizeError;
 
 /// Default implementation that always denies any operation a client intends to perform.
 /// This implementation will be used if custom authorization mechanism was not provided.
@@ -27,7 +37,9 @@ pub struct DefaultAuthorizer;
 
 #[async_trait]
 impl Authorizer for DefaultAuthorizer {
-    async fn authorize(&self, _: Activity) -> Result<bool, Error> {
+    type Error = AuthorizeError;
+
+    async fn authorize(&self, _: Activity) -> Result<bool, Self::Error> {
         Ok(false)
     }
 }
@@ -181,17 +193,19 @@ mod tests {
 
     use matches::assert_matches;
 
-    use super::*;
+    use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
 
-    fn connect() -> mqtt3::proto::Connect {
+    use crate::auth::{Activity, Authorizer, DefaultAuthorizer, Operation};
+
+    fn connect() -> proto::Connect {
         proto::Connect {
             username: None,
             password: None,
             will: None,
             client_id: proto::ClientId::ServerGenerated,
             keep_alive: Duration::from_secs(1),
-            protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
-            protocol_level: mqtt3::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         }
     }
 

@@ -474,6 +474,7 @@ pub struct ReceivedPublication {
     pub payload: bytes::Bytes,
 }
 
+#[derive(Clone, Debug)]
 pub struct ShutdownHandle(futures_channel::mpsc::Sender<()>);
 
 impl ShutdownHandle {
@@ -850,7 +851,7 @@ impl std::error::Error for ShutdownError {}
 mod tests {
     use std::convert::TryInto;
 
-    use super::*;
+    use crate::client::PacketIdentifiers;
 
     #[test]
     fn packet_identifiers() {

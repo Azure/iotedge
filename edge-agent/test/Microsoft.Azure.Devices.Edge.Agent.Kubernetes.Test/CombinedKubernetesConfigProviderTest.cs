@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Newtonsoft.Json;
@@ -91,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
 
             var module = new Mock<IModule<DockerConfig>>();
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", ExperimentalCreateOptions));
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", ExperimentalCreateOptions, Option.None<NotaryContentTrust>()));
             module.SetupGet(m => m.Name).Returns("mod1");
 
             CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), false);
@@ -113,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
 
             var module = new Mock<IModule<DockerConfig>>();
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", ExperimentalCreateOptions));
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", ExperimentalCreateOptions, Option.None<NotaryContentTrust>()));
             module.SetupGet(m => m.Name).Returns("mod1");
 
             CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), true);
@@ -192,7 +193,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
 
             var module = new Mock<IModule<DockerConfig>>();
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("docker.io/nginx:latest", (string)null));
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("docker.io/nginx:latest", (string)null, Option.None<NotaryContentTrust>()));
             module.SetupGet(m => m.Name).Returns("mod1");
 
             var authConfig = new AuthConfig { Username = "user", Password = "password", ServerAddress = "docker.io" };
@@ -214,7 +215,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
 
             var module = new Mock<IModule<DockerConfig>>();
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", string.Empty));
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", string.Empty, Option.None<NotaryContentTrust>()));
             module.SetupGet(m => m.Name).Returns("mod1");
 
             CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), true);
@@ -243,7 +244,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
 
             var module = new Mock<IModule<DockerConfig>>();
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", CmdCreateOptions));
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", CmdCreateOptions, Option.None<NotaryContentTrust>()));
             module.SetupGet(m => m.Name).Returns("mod1");
 
             CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), true);
@@ -274,7 +275,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
 
             var module = new Mock<IModule<DockerConfig>>();
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", EntryPointCreateOptions));
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", EntryPointCreateOptions, Option.None<NotaryContentTrust>()));
             module.SetupGet(m => m.Name).Returns("mod1");
 
             CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), true);
@@ -299,7 +300,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
 
             var module = new Mock<IModule<DockerConfig>>();
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", WorkingDirCreateOptions));
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", WorkingDirCreateOptions, Option.None<NotaryContentTrust>()));
             module.SetupGet(m => m.Name).Returns("mod1");
 
             CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), true);
@@ -326,7 +327,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
 
             var module = new Mock<IModule<DockerConfig>>();
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", InvalidCmdCreateOptions));
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", InvalidCmdCreateOptions, Option.None<NotaryContentTrust>()));
             module.SetupGet(m => m.Name).Returns("mod1");
 
             CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), true);
@@ -348,7 +349,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
 
             var module = new Mock<IModule<DockerConfig>>();
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", InvalidEntryPointCreateOptions));
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", InvalidEntryPointCreateOptions, Option.None<NotaryContentTrust>()));
             module.SetupGet(m => m.Name).Returns("mod1");
 
             CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), true);
@@ -370,7 +371,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
 
             var module = new Mock<IModule<DockerConfig>>();
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", InvalidWorkingDirCreateOptions));
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", InvalidWorkingDirCreateOptions, Option.None<NotaryContentTrust>()));
             module.SetupGet(m => m.Name).Returns("mod1");
 
             CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), true);
