@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use bytes::Bytes;
-use failure::ResultExt;
 use futures_util::future;
 use mqtt3::proto;
 use serde::{Deserialize, Serialize};
