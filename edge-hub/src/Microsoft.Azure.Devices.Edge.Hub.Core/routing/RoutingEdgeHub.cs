@@ -165,6 +165,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     : Constants.DownstreamOriginInterface;
                 message.SystemProperties[SystemProperties.EdgeHubOriginInterface] = edgeHubOriginInterface;
             }
+
+            message.SystemProperties[SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o");
         }
 
         static void ValidateMessageSize(IRoutingMessage messageToBeValidated)
