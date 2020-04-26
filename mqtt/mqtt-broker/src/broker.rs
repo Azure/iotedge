@@ -340,7 +340,7 @@ where
         }
         debug!("disconnect handled.");
 
-        self.notify_connection_change().await;
+        self.notify_disconnect(&client_id).await;
 
         Ok(())
     }
@@ -363,7 +363,7 @@ where
         }
         debug!("drop connection handled.");
 
-        self.notify_connection_change().await;
+        self.notify_disconnect(&client_id).await;
 
         Ok(())
     }
@@ -382,7 +382,7 @@ where
         }
         debug!("close session handled.");
 
-        self.notify_connection_change().await;
+        self.notify_disconnect(&client_id).await;
 
         Ok(())
     }
@@ -843,6 +843,21 @@ where
         };
 
         self.publish_all(publication).await.unwrap();
+    }
+
+    async fn notify_disconnect(&mut self, client_id: &ClientId) {
+        if let None = self.sessions.get(client_id) { // If transient session is closed, remove its subscriptions
+            let publication = proto::Publication {
+                topic_name: format!("$sys/subscriptions/{}", client_id),
+                qos: proto::QoS::AtMostOnce, //no ack
+                retain: true,
+                payload: Bytes::from("".to_owned()),
+            };
+
+            self.publish_all(publication).await.unwrap();
+        }
+
+        self.notify_connection_change().await;
     }
 
     async fn notify_connection_change(&mut self) {
