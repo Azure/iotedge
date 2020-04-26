@@ -835,16 +835,14 @@ where
             }) // join to string for payload
             .unwrap_or_default(); // no subscriptions is default
 
-        let publish = proto::Publish {
-            packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtMostOnce, //no ack
-            retain: true,
+        let publication = proto::Publication {
             topic_name: format!("$sys/subscriptions/{}", client_id),
+            qos: proto::QoS::AtMostOnce, //no ack
+            retain: true,
             payload: Bytes::from(topics),
         };
 
-        let message = Message::Client("system".into(), ClientEvent::PublishFrom(publish));
-
-        self.sender.send(message).await.unwrap();
+        self.publish_all(publication).await.unwrap();
     }
 
     async fn notify_connection_change(&mut self) {
@@ -860,16 +858,14 @@ where
             .collect::<Vec<&str>>()
             .join(r"\u{0000}");
 
-        let publish = proto::Publish {
-            packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtMostOnce, //no ack
-            retain: true,
+        let publication = proto::Publication {
             topic_name: "$sys/connected".to_owned(),
+            qos: proto::QoS::AtMostOnce, //no ack
+            retain: true,
             payload: Bytes::from(connected),
         };
 
-        let message = Message::Client("system".into(), ClientEvent::PublishFrom(publish));
-
-        self.sender.send(message).await.unwrap();
+        self.publish_all(publication).await.unwrap();
         self.notify_session_change().await;
     }
 
@@ -887,16 +883,14 @@ where
             .collect::<Vec<&str>>()
             .join(r"\u{0000}");
 
-        let publish = proto::Publish {
-            packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtMostOnce, //no ack
-            retain: true,
+        let publication = proto::Publication {
             topic_name: "$sys/sessions".to_owned(),
+            qos: proto::QoS::AtMostOnce, //no ack
+            retain: true,
             payload: Bytes::from(sessions),
         };
 
-        let message = Message::Client("system".into(), ClientEvent::PublishFrom(publish));
-
-        self.sender.send(message).await.unwrap();
+        self.publish_all(publication).await.unwrap();
     }
 }
 
