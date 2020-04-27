@@ -35,7 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
             // If the 'net.azure-devices.edge.create-options' and 'net.azure-devices.edge.env' labels exist
             // on the other IModule, compare them to this IModule
-            if (JsonConvert.SerializeObject(this.Config.CreateOptions) != createOptions)
+            var desiredCreateOptions = JsonConvert.DeserializeObject<Models.CreateContainerParameters>(createOptions);
+            if (!desiredCreateOptions.Equals(this.Config.CreateOptions))
                 return false;
 
             var desiredEnv = JsonConvert.DeserializeObject<IDictionary<string, EnvVal>>(env);
