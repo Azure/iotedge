@@ -163,4 +163,4 @@ To enable this feature, an additional environment needs to be set for the edgeAg
 |------------------------------------------|--------|
 | `ExperimentalFeatures__EnableGetLogs`    | `true` |
 
-This method accepts a JSON payload very similar to **UploadLogs** except it doesn't have the "sasUrl" key since the matching logs are returned inline in the response of the direct method. The logs content is truncated to the response size limit of direct methods which is currently 4KB.
+This method accepts a JSON payload very similar to **UploadLogs** except it doesn't have the "sasUrl" key since the matching logs are returned inline in the response of the direct method. The logs content is truncated to the response size limit of direct methods which is currently 128KB.
