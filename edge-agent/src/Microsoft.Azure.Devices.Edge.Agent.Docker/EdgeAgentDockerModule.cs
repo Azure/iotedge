@@ -38,11 +38,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             if (JsonConvert.SerializeObject(this.Config.CreateOptions) != createOptions)
                 return false;
 
-            var desiredEnv = JsonConvert.DeserializeObject<IDictionary<string, EnvVal>>(env);
-            return desiredEnv.Count == this.Env.Count &&
-                !desiredEnv.Keys.Except(this.Env.Keys).Any() &&
-                !this.Env.Keys.Except(desiredEnv.Keys).Any() &&
-                desiredEnv.All(v => this.Env.TryGetValue(v.Key, out EnvVal val) && val.Equals(v.Value));
+            var otherEnv = JsonConvert.DeserializeObject<IDictionary<string, EnvVal>>(env);
+            return otherEnv.Count == this.Env.Count &&
+                !otherEnv.Keys.Except(this.Env.Keys).Any() &&
+                !this.Env.Keys.Except(otherEnv.Keys).Any() &&
+                otherEnv.All(v => this.Env.TryGetValue(v.Key, out EnvVal val) && val.Equals(v.Value));
         }
 
         public override int GetHashCode()
