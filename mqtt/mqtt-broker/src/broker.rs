@@ -1141,7 +1141,7 @@ pub(crate) mod tests {
         error::Error,
         session::{tests::arb_session_state, Session},
         tests::{arb_publication, arb_topic},
-        AuthId, ClientEvent, ClientId, ConnReq, ConnectionHandle, Message,
+        AuthId, ClientEvent, ClientId, ConnReq, ConnectionHandle, Message, Publish,
     };
 
     prop_compose! {
@@ -2074,6 +2074,42 @@ pub(crate) mod tests {
         assert_matches!(sub_rx.try_recv(), Err(TryRecvError::Empty))
     }
 
+    #[tokio::test]
+    async fn test_notify_single_connection() {
+        let broker = BrokerBuilder::default()
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authorizer(|_| Ok(true))
+            .build();
+
+        let mut broker_handle = broker.handle();
+        tokio::spawn(broker.run().map(drop));
+
+        let (a_id, mut a_rx) = connect_client("client_a", &mut broker_handle)
+            .await
+            .unwrap();
+
+        send_subscribe(
+            &mut broker_handle,
+            &mut a_rx,
+            a_id.clone(),
+            "$sys/connected".to_owned(),
+        )
+        .await;
+        if let Some(Message::Client(_, ClientEvent::PublishTo(Publish::QoS0(_, message)))) =
+            a_rx.recv().await
+        {
+            assert_eq!(
+                message,
+                proto::Publish {
+                    packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtMostOnce,
+                    retain: true,
+                    topic_name: "$sys/connected".to_owned(),
+                    payload: "client_a".into(),
+                }
+            );
+        }
+    }
+
     async fn connect_client(
         client_id: &str,
         broker_handle: &mut BrokerHandle,
@@ -2101,5 +2137,28 @@ pub(crate) mod tests {
         );
 
         Ok((client_id, rx))
+    }
+
+    async fn send_subscribe(
+        handle: &mut BrokerHandle,
+        rx: &mut Receiver<Message>,
+        client_id: ClientId,
+        topic: String,
+    ) {
+        let subscribe = proto::Subscribe {
+            packet_identifier: proto::PacketIdentifier::new(1).unwrap(),
+            subscribe_to: vec![proto::SubscribeTo {
+                topic_filter: topic,
+                qos: proto::QoS::AtLeastOnce,
+            }],
+        };
+
+        let message = Message::Client(client_id, ClientEvent::Subscribe(subscribe));
+        handle.send(message).await.unwrap();
+
+        assert_matches!(
+            rx.recv().await,
+            Some(Message::Client(_, ClientEvent::SubAck(_)))
+        );
     }
 }
