@@ -38,7 +38,7 @@ pub struct TopicFilter {
 }
 
 impl TopicFilter {
-    fn new(segments: Vec<Segment>) -> Self {
+    pub fn new(segments: Vec<Segment>) -> Self {
         let len = segments.len();
         let multilevel = len > 0 && segments[len - 1] == Segment::MultiLevelWildcard;
         Self {
@@ -84,7 +84,7 @@ impl TopicFilter {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-enum Segment {
+pub enum Segment {
     Level(String),
     SingleLevelWildcard,
     MultiLevelWildcard,

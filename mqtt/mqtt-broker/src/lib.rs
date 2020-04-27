@@ -39,6 +39,7 @@ pub use crate::persist::{
 pub use crate::server::Server;
 pub use crate::session::SessionState;
 pub use crate::snapshot::{Snapshotter, StateSnapshotHandle};
+pub use crate::subscription::{Segment, Subscription, TopicFilter};
 pub use crate::transport::TransportBuilder;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]

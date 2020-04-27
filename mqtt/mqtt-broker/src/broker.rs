@@ -103,7 +103,27 @@ where
         BrokerState { retained, sessions }
     }
 
-    fn process_message(&mut self, client_id: ClientId, event: ClientEvent) -> Result<(), Error> {
+    pub fn clone_state(&self) -> BrokerState {
+        let retained = self.retained.clone();
+        let sessions = self
+            .sessions
+            .values()
+            .filter_map(|session| match session {
+                Session::Transient(session) => Some(session.state().clone()),
+                Session::Persistent(session) => Some(session.state().clone()),
+                Session::Offline(session) => Some(session.state().clone()),
+                _ => None,
+            })
+            .collect();
+
+        BrokerState { retained, sessions }
+    }
+
+    pub fn process_message(
+        &mut self,
+        client_id: ClientId,
+        event: ClientEvent,
+    ) -> Result<(), Error> {
         debug!("incoming: {:?}", event);
         let result = match event {
             ClientEvent::ConnReq(connreq) => self.process_connect(client_id, connreq),
