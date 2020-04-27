@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
             services.AddMemoryCache();
-            services.AddMvc(options => options.Filters.Add(typeof(ExceptionFilter)));
+            services.AddControllers(options => options.Filters.Add(typeof(ExceptionFilter)));
             services.Configure<MvcOptions>(options => { options.Filters.Add(new RequireHttpsAttribute()); });
             this.Container = this.BuildContainer(services);
 
@@ -44,6 +44,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         public void Configure(IApplicationBuilder app)
         {
+            app.UseRouting();
+
             app.UseWebSockets();
 
             var webSocketListenerRegistry = app.ApplicationServices.GetService(typeof(IWebSocketListenerRegistry)) as IWebSocketListenerRegistry;
@@ -74,7 +76,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     await next();
                 });
 
-            app.UseMvc();
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+            });
         }
 
         IContainer BuildContainer(IServiceCollection services)

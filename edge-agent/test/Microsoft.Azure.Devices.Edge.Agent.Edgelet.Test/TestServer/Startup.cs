@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddMvc();
+            services.AddControllers().AddNewtonsoftJson();
             services.AddSingleton<IController, EdgeletTestImplementation>();
         }
 
@@ -32,7 +32,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseMvc();
+            app.UseRouting();
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+            });
         }
     }
 }
