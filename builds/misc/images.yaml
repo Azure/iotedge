@@ -32,6 +32,9 @@ jobs:
       - bash: 'cargo install --git https://github.com/arsing/cross.git --branch set-path'
         displayName: 'Install cross (fork with docker fix)'
 
+      - bash: 'docker system prune -af --volumes'
+        displayName: 'Clean up existing docker images'
+
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin --os Unix --dotnet_runtime netcoreapp3.0
         name: build
         displayName: Build ($(Build.Configuration))
@@ -184,7 +187,7 @@ jobs:
         displayName: 'Install cross (fork with docker fix)'
 
       - bash: 'docker system prune -af --volumes'
-        displayName: 'Pruning docker images'
+        displayName: 'Clean up existing docker images'
 
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
         name: build
