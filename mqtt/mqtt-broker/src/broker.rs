@@ -846,7 +846,8 @@ where
     }
 
     async fn notify_disconnect(&mut self, client_id: &ClientId) {
-        if let None = self.sessions.get(client_id) { // If transient session is closed, remove its subscriptions
+        if self.sessions.get(client_id).is_none() {
+            // If transient session is closed, remove its subscriptions
             let publication = proto::Publication {
                 topic_name: format!("$sys/subscriptions/{}", client_id),
                 qos: proto::QoS::AtMostOnce, //no ack
@@ -865,11 +866,10 @@ where
             .sessions
             .iter()
             .filter_map(|(client_id, session)| match session {
-                Session::Transient(_) => Some(client_id),
-                Session::Persistent(_) => Some(client_id),
+                Session::Transient(_) => Some(client_id.as_str()),
+                Session::Persistent(_) => Some(client_id.as_str()),
                 _ => None,
             })
-            .map(|client_id| client_id.as_str())
             .collect::<Vec<&str>>()
             .join(r"\u{0000}");
 
@@ -889,12 +889,11 @@ where
             .sessions
             .iter()
             .filter_map(|(client_id, session)| match session {
-                Session::Transient(_) => Some(client_id),
-                Session::Persistent(_) => Some(client_id),
-                Session::Offline(_) => Some(client_id),
+                Session::Transient(_) => Some(client_id.as_str()),
+                Session::Persistent(_) => Some(client_id.as_str()),
+                Session::Offline(_) => Some(client_id.as_str()),
                 _ => None,
             })
-            .map(|client_id| client_id.as_str())
             .collect::<Vec<&str>>()
             .join(r"\u{0000}");
 
