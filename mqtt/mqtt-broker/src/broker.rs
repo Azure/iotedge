@@ -842,7 +842,7 @@ where
             payload: Bytes::from(topics),
         };
 
-        self.publish_all(publication).await.unwrap();
+        handle_notify_error(self.publish_all(publication).await);
     }
 
     async fn notify_disconnect(&mut self, client_id: &ClientId) {
@@ -855,7 +855,7 @@ where
                 payload: Bytes::from("".to_owned()),
             };
 
-            self.publish_all(publication).await.unwrap();
+            handle_notify_error(self.publish_all(publication).await);
         }
 
         self.notify_connection_change().await;
@@ -880,7 +880,7 @@ where
             payload: Bytes::from(connected),
         };
 
-        self.publish_all(publication).await.unwrap();
+        handle_notify_error(self.publish_all(publication).await);
         self.notify_session_change().await;
     }
 
@@ -904,7 +904,7 @@ where
             payload: Bytes::from(sessions),
         };
 
-        self.publish_all(publication).await.unwrap();
+        handle_notify_error(self.publish_all(publication).await);
     }
 }
 
@@ -1002,6 +1002,12 @@ where
         }
     }
     Ok(())
+}
+
+fn handle_notify_error(result: Result<(), Error>) {
+    if let Err(error) = result {
+        warn!("Error when notifying: {:#?}", error);
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Deserialize, Serialize)]
