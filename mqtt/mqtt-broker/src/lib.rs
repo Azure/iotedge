@@ -28,7 +28,7 @@ mod snapshot;
 mod subscription;
 mod transport;
 
-pub use crate::auth::{AuthId, Certificate};
+pub use crate::auth::{AuthId, Authenticator, Authorizer, Certificate};
 pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle, BrokerState};
 pub use crate::configuration::BrokerConfig;
 pub use crate::connection::ConnectionHandle;
