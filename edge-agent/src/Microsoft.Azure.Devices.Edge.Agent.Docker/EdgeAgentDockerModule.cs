@@ -2,13 +2,14 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System.Collections.Generic;
-    using System.Linq;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
     public class EdgeAgentDockerModule : DockerModule, IEdgeAgentModule
     {
+        static readonly DictionaryComparer<string, EnvVal> EnvDictionaryComparer = new DictionaryComparer<string, EnvVal>();
+
         [JsonConstructor]
         public EdgeAgentDockerModule(string type, DockerConfig settings, ImagePullPolicy imagePullPolicy, ConfigurationInfo configuration, IDictionary<string, EnvVal> env, string version = "")
             : base(Core.Constants.EdgeAgentModuleName, version, ModuleStatus.Running, RestartPolicy.Always, settings, imagePullPolicy, Core.Constants.HighestPriority, configuration, env)
@@ -39,10 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 return false;
 
             var otherEnv = JsonConvert.DeserializeObject<IDictionary<string, EnvVal>>(env);
-            return otherEnv.Count == this.Env.Count &&
-                !otherEnv.Keys.Except(this.Env.Keys).Any() &&
-                !this.Env.Keys.Except(otherEnv.Keys).Any() &&
-                otherEnv.All(v => this.Env.TryGetValue(v.Key, out EnvVal val) && val.Equals(v.Value));
+            return EnvDictionaryComparer.Equals(this.Env, otherEnv);
         }
 
         public override int GetHashCode()
@@ -55,6 +53,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 hashCode = (hashCode * 397) ^ (this.Version != null ? this.Version.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (this.Type != null ? this.Type.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (this.Config?.Image != null ? this.Config.Image.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.Config?.CreateOptions != null ? this.Config.CreateOptions.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (this.Env != null ? this.Env.GetHashCode() : 0);
                 return hashCode;
             }
         }
