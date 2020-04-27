@@ -94,13 +94,8 @@ Function New-Package([string] $Name, [string] $Version)
     $pkggenVariables += ";_OPENSSL_ROOT_DIR=$env:OPENSSL_ROOT_DIR"
     $pkggenVariables += ";_OPENSSL_DLL_SUFFIX=$(if ($Arm) { 'arm' } else { 'x64' })"
     $pkggenVariables += ";_Arch=$(if ($Arm) { 'thumbv7a-pc-windows-msvc' } else { '' })"
-    Try{
-        & $pkggen $manifest /universalbsp "/variables:$pkggenVariables" "/cpu:$(if ($Arm) { 'arm' } else { 'amd64' })" "/version:$Version" 
-    }Catch{
-        Get-ChildItem -Recurse -Include *-iotedge_*.manifest -Path 'C:\Users\VssAdministrator\AppData\Local\Temp' | %{ $_.FullName; Get-Content $_.FullName }
-    }
+    & $pkggen $manifest /universalbsp "/variables:$pkggenVariables" "/cpu:$(if ($Arm) { 'arm' } else { 'amd64' })" "/version:$Version"
     if ($LASTEXITCODE) {
-        Get-ChildItem -Recurse -Include *-iotedge_*.manifest -Path 'C:\Users\VssAdministrator\AppData\Local\Temp' | %{ $_.FullName; Get-Content $_.FullName }
         Throw "Failed to package cab"
     }
 
@@ -210,8 +205,7 @@ if ($CreateTemplate) {
 
     Write-Host "IoTEdge using version '$version'"
 
-    New-Package -Name "iotedge" -Version $version
-    
+    New-Package -Name "iotedge" -Version $version    
 }
 elseif ($CreateCab) {
     $TemplateDirLength = ((Get-Item -Path $EdgeTemplate).FullName.Length + 1)
