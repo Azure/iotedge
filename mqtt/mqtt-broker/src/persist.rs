@@ -518,14 +518,15 @@ pub enum PersistError {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::*;
-
     use std::io::Cursor;
 
     use proptest::prelude::*;
     use tempfile::TempDir;
 
-    use crate::broker::tests::arb_broker_state;
+    use crate::broker::{tests::arb_broker_state, BrokerState};
+    use crate::persist::{
+        ConsolidatedState, ConsolidatedStateFormat, FileFormat, FilePersistor, Persist,
+    };
 
     proptest! {
         #[test]
