@@ -8,10 +8,10 @@ namespace TestAnalyzer
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Hosting;
-    using Microsoft.Extensions.Hosting;
     using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.EventHubs;
+    using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
 
     class Program
