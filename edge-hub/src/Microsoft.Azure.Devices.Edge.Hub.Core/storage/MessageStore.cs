@@ -315,9 +315,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                             if (cleanEntireQueue)
                             {
                                 IEnumerable<(long, MessageRef)> batch;
+                                long offset = sequentialStore.GetHeadOffset(this.cancellationTokenSource.Token);
                                 do
                                 {
-                                    batch = await sequentialStore.GetBatch(sequentialStore.GetHeadOffset(this.cancellationTokenSource.Token), batchSize);
+                                    batch = await sequentialStore.GetBatch(offset, batchSize);
                                     foreach ((long, MessageRef) messageWithOffset in batch)
                                     {
                                         if (await sequentialStore.RemoveOffset(DeleteMessageCallback, messageWithOffset.Item1, this.cancellationTokenSource.Token))
@@ -325,6 +326,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                             cleanupCount++;
                                         }
                                     }
+
+                                    offset = offset + batchSize;
                                 }
                                 while (batch.Any());
                             }
@@ -488,7 +491,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
                 try
                 {
-                    Events.GettingNextBatch(this.endpointSequentialStore.EntityName, this.startingOffset, batchSize);
+                     Events.GettingNextBatch(this.endpointSequentialStore.EntityName, this.startingOffset, batchSize);
                     // TODO - Currently, this does not iterate over a snapshot. This should work as the cleanup and reference counting is managed at
                     // application level. But need to check if creating a snapshot for iterating is needed.
                     List<(long offset, MessageRef msgRef)> batch = (await this.endpointSequentialStore.GetBatch(this.startingOffset, batchSize))

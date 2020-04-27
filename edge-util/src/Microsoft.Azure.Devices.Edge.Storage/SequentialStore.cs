@@ -57,10 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public long GetHeadOffset(CancellationToken cancellationToken)
         {
-            using (this.headLockObject.LockAsync(cancellationToken))
-            {
-                return this.headOffset;
-            }
+            return this.headOffset;
         }
 
         public async Task<long> Append(T item, CancellationToken cancellationToken)
