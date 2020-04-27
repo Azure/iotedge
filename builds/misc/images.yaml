@@ -183,6 +183,9 @@ jobs:
       - bash: 'cargo install --git https://github.com/arsing/cross.git --branch set-path'
         displayName: 'Install cross (fork with docker fix)'
 
+      - bash: 'docker system prune -af --volumes'
+        displayName: 'Pruning docker images'
+
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
         name: build
         displayName: Build ($(Build.Configuration))
