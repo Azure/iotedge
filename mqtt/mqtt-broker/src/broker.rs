@@ -2095,6 +2095,7 @@ pub(crate) mod tests {
             "$sys/connected".to_owned(),
         )
         .await;
+
         if let Some(Message::Client(_, ClientEvent::PublishTo(Publish::QoS0(_, message)))) =
             a_rx.recv().await
         {
@@ -2107,6 +2108,48 @@ pub(crate) mod tests {
                     payload: "client_a".into(),
                 }
             );
+        } else {
+            assert!(false);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_notify_multiple_connection() {
+        let broker = BrokerBuilder::default()
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authorizer(|_| Ok(true))
+            .build();
+
+        let mut broker_handle = broker.handle();
+        tokio::spawn(broker.run().map(drop));
+
+        let (a_id, mut a_rx) = connect_client("client_a", &mut broker_handle)
+            .await
+            .unwrap();
+
+        connect_client("client_b", &mut broker_handle)
+            .await
+            .unwrap();
+        connect_client("client_c", &mut broker_handle)
+            .await
+            .unwrap();
+
+        send_subscribe(
+            &mut broker_handle,
+            &mut a_rx,
+            a_id.clone(),
+            "$sys/connected".to_owned(),
+        )
+        .await;
+
+        if let Some(Message::Client(
+            _,
+            ClientEvent::PublishTo(Publish::QoS0(_, proto::Publish { payload, .. })),
+        )) = a_rx.recv().await
+        {
+            is_notify_equal(payload, &["client_a", "client_b", "client_c"]);
+        } else {
+            assert!(false);
         }
     }
 
@@ -2160,5 +2203,16 @@ pub(crate) mod tests {
             rx.recv().await,
             Some(Message::Client(_, ClientEvent::SubAck(_)))
         );
+    }
+
+    fn is_notify_equal(payload: Bytes, expected: &[&str]) {
+        let payload: String = String::from_utf8(payload.to_vec()).unwrap();
+        let mut payload: Vec<&str> = payload.split("\\u{0000}").collect();
+        payload.sort();
+
+        let mut expected: Vec<&str> = expected.into();
+        expected.sort();
+
+        assert_eq!(payload, expected);
     }
 }
