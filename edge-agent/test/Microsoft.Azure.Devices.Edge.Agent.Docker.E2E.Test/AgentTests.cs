@@ -107,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
                 // Initialize docker configuration for this module.
                 DockerConfig dockerConfig = testConfig.ImageCreateOptions != null
-                    ? new DockerConfig(testConfig.Image, testConfig.ImageCreateOptions)
+                    ? new DockerConfig(testConfig.Image, testConfig.ImageCreateOptions, Option.None<NotaryContentTrust>())
                     : new DockerConfig(testConfig.Image);
 
                 ImagePullPolicy imagePullPolicy = ImagePullPolicy.OnCreate;

@@ -116,6 +116,9 @@
     .PARAMETER TwinUpdateFailureThreshold
         Specifies the longest period of time a twin update can take before being marked as a failure. This should be specified in DateTime format. Default is 00:01:00
 
+    .PARAMETER EdgeHubRestartFailureTolerance
+        Specifies how close to an edgehub restart desired property callback tests will be ignored. This should be specified in DateTime format. Default is 00:01:00
+
     .PARAMETER MetricsEndpointsCSV
         Optional CSV of exposed endpoints for which to scrape metrics.
 
@@ -310,6 +313,8 @@ Param (
     [string] $TwinUpdateFrequency = $null,
 
     [string] $TwinUpdateFailureThreshold = $null,
+
+    [string] $EdgeHubRestartFailureTolerance = $null,
 
     [string] $InitializeWithAgentArtifact = "false",
     
@@ -522,6 +527,7 @@ Function PrepareTestFromArtifacts
                 (Get-Content $DeploymentWorkingFilePath).replace('<TwinUpdateSize>',$TwinUpdateSize) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<TwinUpdateFrequency>',$TwinUpdateFrequency) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<TwinUpdateFailureThreshold>',$TwinUpdateFailureThreshold) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<EdgeHubRestartFailureTolerance>',$EdgeHubRestartFailureTolerance) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<TrackingId>',$TrackingId) | Set-Content $DeploymentWorkingFilePath
             }
             "TempFilter"
@@ -1577,6 +1583,7 @@ If ($TestName -eq "LongHaul" -Or $TestName -eq "Stress")
     $TrackingId = New-Guid
     $TestInfo=$TestInfo+",TestId=$TrackingId"
     If ([string]::IsNullOrWhiteSpace($TwinUpdateFailureThreshold)) {$TwinUpdateFailureThreshold="00:00:01";}
+    If ([string]::IsNullOrWhiteSpace($EdgeHubRestartFailureTolerance)) {$EdgeHubRestartFailureTolerance="00:01:00"}
     If ([string]::IsNullOrWhiteSpace($MetricsScrapeFrequencyInSecs)) {$MetricsScrapeFrequencyInSecs=300;}
     If ([string]::IsNullOrWhiteSpace($MetricsUploadTarget)) {$MetricsUploadTarget="AzureLogAnalytics";}
 }
