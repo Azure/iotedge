@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use super::configuration::Configuration;
-use hyper;
 
 pub struct APIClient {
     device_actions_api: Box<dyn crate::apis::DeviceActionsApi>,

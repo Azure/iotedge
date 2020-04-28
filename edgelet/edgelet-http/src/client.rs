@@ -10,7 +10,6 @@ use hyper::{self, Body, Method, Request, Response};
 use log::debug;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use serde_json;
 use typed_headers::{http, mime, ContentLength, ContentType, HeaderMapExt};
 use url::form_urlencoded::Serializer as UrlSerializer;
 use url::Url;

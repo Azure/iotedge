@@ -3,7 +3,6 @@
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
-use base64;
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use failure::{Fail, ResultExt};
@@ -12,7 +11,6 @@ use futures::{future, Future};
 use hyper::{Method, StatusCode};
 use log::{debug, info};
 use percent_encoding::{define_encode_set, percent_encode, PATH_SEGMENT_ENCODE_SET};
-use serde_json;
 use tokio::prelude::*;
 use tokio::timer::Interval;
 use url::form_urlencoded::Serializer as UrlSerializer;

@@ -198,7 +198,7 @@ mod impl_windows {
     use winapi::ctypes::c_long;
     use winapi::um::winsock2::{ioctlsocket, WSAGetLastError, SOCKET_ERROR};
 
-    use super::*;
+    use super::{Pid, UnixStream};
 
     // SIO_AF_UNIX_GETPEERPID is defined in the Windows header afunix.h.
     const SIO_AF_UNIX_GETPEERPID: c_long = 0x5800_0100;

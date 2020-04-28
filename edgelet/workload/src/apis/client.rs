@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use super::configuration::Configuration;
-use hyper;
 
 pub struct APIClient {
     workload_api: Box<dyn (crate::apis::WorkloadApi)>,

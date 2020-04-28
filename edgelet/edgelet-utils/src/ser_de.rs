@@ -10,7 +10,6 @@ use std::str::FromStr;
 use failure::ResultExt;
 use serde::de::{self, Deserialize, DeserializeOwned, Deserializer, MapAccess, Visitor};
 use serde::ser::{Serialize, Serializer};
-use serde_json;
 
 use crate::error::{ErrorKind, Result};
 

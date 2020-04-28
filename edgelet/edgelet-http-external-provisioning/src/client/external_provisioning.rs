@@ -5,7 +5,7 @@ use std::sync::Arc;
 use external_provisioning::apis::client::APIClient;
 use external_provisioning::apis::configuration::Configuration;
 use external_provisioning::apis::ExternalProvisioningApi;
-use external_provisioning::models::*;
+use external_provisioning::models::DeviceProvisioningInfo;
 use failure::{Fail, ResultExt};
 use futures::prelude::*;
 use hyper::Client;
