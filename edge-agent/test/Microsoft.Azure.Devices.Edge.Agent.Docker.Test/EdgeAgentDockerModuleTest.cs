@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Newtonsoft.Json;
     using Xunit;
 
     public class EdgeAgentDockerModuleTest
@@ -84,12 +85,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         [Unit]
         public void MixedIModuleImplEqualsTest()
         {
+            const string CreateOptions = "{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}]}}}";
+            const string Env = "{\"var1\":{\"value\":\"val1\"}}";
+
             var fullModule = new EdgeAgentDockerModule(
                 "docker",
-                new DockerConfig("Foo", "{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}]}}}"),
+                new DockerConfig("Foo", CreateOptions),
                 ImagePullPolicy.OnCreate,
                 new ConfigurationInfo(),
-                new Dictionary<string, EnvVal> { ["var1"] = new EnvVal("val1") },
+                JsonConvert.DeserializeObject<IDictionary<string, EnvVal>>(Env),
                 "version1");
 
             var simpleRuntimeModule = new EdgeAgentDockerRuntimeModule(
@@ -117,7 +121,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 "version1");
 
             var runtimeModuleWithLabels = new EdgeAgentDockerRuntimeModule(
-                new DockerConfig("Foo", "{\"Labels\":{\"net.azure-devices.edge.create-options\":\"{\\\"HostConfig\\\":{\\\"PortBindings\\\":{\\\"8883/tcp\\\":[{\\\"HostPort\\\":\\\"8883\\\"}]}}}\",\"net.azure-devices.edge.env\":\"{\\\"var1\\\":{\\\"value\\\":\\\"val1\\\"}}\"}}"),
+                new DockerConfig("Foo", JsonConvert.SerializeObject(new
+                {
+                    Labels = new Dictionary<string, object>
+                    {
+                        [Constants.Labels.CreateOptions] = CreateOptions,
+                        [Constants.Labels.Env] = Env
+                    }
+                })),
                 ModuleStatus.Running,
                 0,
                 "desc",
