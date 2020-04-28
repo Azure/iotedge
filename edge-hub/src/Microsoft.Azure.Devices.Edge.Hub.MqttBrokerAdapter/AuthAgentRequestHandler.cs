@@ -335,12 +335,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
         }
 
-        static void SetupTimeouts(HttpListener listener)
-        {
-            listener.TimeoutManager.EntityBody = requestTimeout;
-            listener.TimeoutManager.HeaderWait = requestTimeout;
-        }
-
         static class Events
         {
             const int IdStart = AuthAgentEventIds.AuthAgentProtocolHead + 100;
