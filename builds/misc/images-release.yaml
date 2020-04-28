@@ -279,7 +279,8 @@ jobs:
         displayName: "Install .NET Core - 3.1.3"
         inputs: 
           version: "3.1.201"
-      - displayName: "Functions Binding nuget package"
+      - task: DotNetCoreCLI@2
+        displayName: "Functions Binding nuget package"
         inputs: 
           buildProperties: OutDir=$(Build.BinariesDirectory)/publish/Microsoft.Azure.WebJobs.Extensions.EdgeHub
           command: pack
@@ -288,12 +289,12 @@ jobs:
           packagesToPack: "**/Microsoft.Azure.WebJobs.Extensions.EdgeHub.csproj"
           versionEnvVar: version
           versioningScheme: byEnvVar
-        task: DotNetCoreCLI@2
-      - displayName: "Install .NET Core 2.1"
+      - task: DotNetCoreInstaller@0
+        displayName: "Install .NET Core 2.1"
         inputs: 
           version: "2.1.700"
-        task: DotNetCoreInstaller@0
-      - displayName: "Functions Binding nuget package Sign"
+      - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        displayName: "Functions Binding nuget package Sign"
         inputs: 
           ConnectedServiceName: "Azure IoT Edge Code Sign 2"
           FolderPath: $(Build.BinariesDirectory)/publish
@@ -316,13 +317,12 @@ jobs:
                 }
               ]
           signConfigType: inlineSignParams
-        task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
-      - displayName: "Build iotedge-diagnostics"
+      - task: Bash@3
+        displayName: "Build iotedge-diagnostics"
         inputs: 
           arguments: "-i azureiotedge-diagnostics -n microsoft -P iotedge-diagnostics -c $(Build.Configuration)"
           filePath: ./scripts/linux/buildEdgelet.sh
           targetType: filePath
-        task: Bash@3
       - bash: |
             scripts/linux/buildEdgelet.sh -i azureiotedge-diagnostics -n microsoft -P iotedge-diagnostics -c $(configuration) &&
             scripts/linux/buildImage.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(version) -i azureiotedge-diagnostics -n $(namespace) -P azureiotedge-diagnostics
@@ -335,21 +335,21 @@ jobs:
             scripts/linux/buildEdgelet.sh -i azureiotedge-diagnostics -n microsoft -P iotedge-diagnostics -c $(configuration) --target-arch aarch64 &&
             scripts/linux/buildImage.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(version) -i azureiotedge-diagnostics -n $(namespace) -P azureiotedge-diagnostics --target-arch aarch64
             displayName: 'Build Image - azureiotedge-diagnostics - ARM64'
-      - parameters: 
+      - template: templates/image-linux.yaml
+        parameters: 
           imageName: azureiotedge-agent
           name: "Edge Agent"
           project: Microsoft.Azure.Devices.Edge.Agent.Service
-        template: templates/image-linux.yaml
-      - parameters: 
+      - template: templates/image-linux.yaml
+        parameters: 
           imageName: azureiotedge-hub
           name: "Edge Hub"
           project: Microsoft.Azure.Devices.Edge.Hub.Service
-        template: templates/image-linux.yaml
-      - parameters: 
+      - template: templates/image-linux.yaml
+        parameters: 
           imageName: azureiotedge-simulated-temperature-sensor
           name: "Temperature Sensor"
           project: SimulatedTemperatureSensor
-        template: templates/image-linux.yaml
     variables: 
       build.registry.address: edgebuilds.azurecr.io
       build.registry.user: EdgeBuilds
@@ -364,23 +364,24 @@ jobs:
     name: Azure-IoT-Edge-Core
     pool: ~
     steps: 
-      - displayName: "Install .NET Core - 3.1.3"
+      - task: DotNetCoreInstaller@0
+        displayName: "Install .NET Core - 3.1.3"
         inputs: 
           version: "3.1.201"
-        task: DotNetCoreInstaller@0
-      - displayName: "Build ($(Build.Configuration))"
+      - powershell: "scripts/windows/build/Publish-Branch.ps1 -Configuration:\"$(Build.Configuration)\" -PublishTests:$False -UpdateVersion"
+        displayName: "Build ($(Build.Configuration))"
         name: build
-        powershell: "scripts/windows/build/Publish-Branch.ps1 -Configuration:\"$(Build.Configuration)\" -PublishTests:$False -UpdateVersion"
       - script: |
             docker login $(build.registry.address) -u $(build.registry.user) -p $(build.registry.password)
             docker login $(registry.address) -u $(registry.user) -p $(registry.password)
             displayName: 'docker login'
-      - displayName: "Build iotedge-diagnostics"
+      - task: PowerShell@2
+        displayName: "Build iotedge-diagnostics"
         inputs: 
           filePath: ./edgelet/build/windows/build-diagnostics.ps1
           targetType: filePath
-        task: PowerShell@2
-      - displayName: "azureiotedge-diagnostics Code Sign"
+      - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        displayName: "azureiotedge-diagnostics Code Sign"
         inputs: 
           ConnectedServiceName: "Azure IoT Edge Code Sign 2"
           FolderPath: $(Build.BinariesDirectory)\publish\azureiotedge-diagnostics
@@ -434,8 +435,8 @@ jobs:
                 }
               ]
           signConfigType: inlineSignParams
-        task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
-      - displayName: "Edge Agent Code Sign"
+      - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        displayName: "Edge Agent Code Sign"
         inputs: 
           ConnectedServiceName: "Azure IoT Edge Code Sign 2"
           FolderPath: $(Build.BinariesDirectory)\publish\Microsoft.Azure.Devices.Edge.Agent.Service
@@ -489,8 +490,8 @@ jobs:
                 }
               ]
           signConfigType: inlineSignParams
-        task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
-      - displayName: "Edge Hub Code Sign"
+      - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        displayName: "Edge Hub Code Sign"
         inputs: 
           ConnectedServiceName: "Azure IoT Edge Code Sign 2"
           FolderPath: $(Build.BinariesDirectory)\publish\Microsoft.Azure.Devices.Edge.Hub.Service
@@ -544,8 +545,8 @@ jobs:
                 }
               ]
           signConfigType: inlineSignParams
-        task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
-      - displayName: "Temp Sensor Code Sign"
+      - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
+        displayName: "Temp Sensor Code Sign"
         inputs: 
           ConnectedServiceName: "Azure IoT Edge Code Sign 2"
           FolderPath: $(Build.BinariesDirectory)\publish\SimulatedTemperatureSensor
@@ -599,36 +600,35 @@ jobs:
                 }
               ]
           signConfigType: inlineSignParams
-        task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
-      - displayName: "Build Image - Edge Agent - amd64"
+      - task: PowerShell@2
+        displayName: "Build Image - Edge Agent - amd64"
         inputs: 
           arguments: "-Name 'azureiotedge-agent' -Project 'Microsoft.Azure.Devices.Edge.Agent.Service' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
           filePath: ./scripts/windows/build/Publish-DockerImage.ps1
           targetType: filePath
-        task: PowerShell@2
-      - displayName: "Build Image - Edge Hub - amd64"
+      - task: PowerShell@2
+        displayName: "Build Image - Edge Hub - amd64"
         inputs: 
           arguments: "-Name 'azureiotedge-hub' -Project 'Microsoft.Azure.Devices.Edge.Hub.Service' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
           filePath: ./scripts/windows/build/Publish-DockerImage.ps1
           targetType: filePath
-        task: PowerShell@2
-      - displayName: "Build Image - Temp Sensor - amd64"
+      - task: PowerShell@2
+        displayName: "Build Image - Temp Sensor - amd64"
         inputs: 
           arguments: "-Name 'azureiotedge-simulated-temperature-sensor' -Project 'SimulatedTemperatureSensor' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
           filePath: ./scripts/windows/build/Publish-DockerImage.ps1
           targetType: filePath
-        task: PowerShell@2
-      - displayName: "Build Image - azureiotedge-diagnostics - amd64"
+      - task: PowerShell@2
+        displayName: "Build Image - azureiotedge-diagnostics - amd64"
         inputs: 
           arguments: "-Name 'azureiotedge-diagnostics' -Project 'azureiotedge-diagnostics' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
           filePath: ./scripts/windows/build/Publish-DockerImage.ps1
           targetType: filePath
-        task: PowerShell@2
-      - displayName: "Publish Artifacts to VSTS"
+      - task: PublishBuildArtifacts@1
+        displayName: "Publish Artifacts to VSTS"
         inputs: 
           ArtifactName: publish-win
           PathtoPublish: $(Build.BinariesDirectory)\publish
-        task: PublishBuildArtifacts@1
     variables: 
       build.registry.address: edgebuilds.azurecr.io
       build.registry.user: EdgeBuilds
