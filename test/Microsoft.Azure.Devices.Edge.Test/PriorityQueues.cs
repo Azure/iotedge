@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Log.Information("Toggling connectivity off");
             await this.ToggleConnectivity(false, NetworkControllerModuleName, token);
             Log.Information("Waiting for 30 seconds");
-            await Task.Delay(30000);
+            await Task.Delay(40000);
             Log.Information("Toggling connectivity on");
             await this.ToggleConnectivity(true, NetworkControllerModuleName, token);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
