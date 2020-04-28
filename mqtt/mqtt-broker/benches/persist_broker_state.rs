@@ -7,7 +7,7 @@ use criterion::*;
 use mqtt3::proto::{Publication, QoS};
 use mqtt_broker::{
     BrokerState, ClientId, ConsolidatedStateFormat, FileFormat, FilePersistor, Persist,
-    SessionState,
+    PersistError, SessionState,
 };
 use tempfile::TempDir;
 use tokio::runtime::Runtime;
@@ -20,7 +20,7 @@ fn test_write<F>(
     num_retained: u32,
     format: F,
 ) where
-    F: FileFormat + Clone + Send + 'static,
+    F: FileFormat<Error = PersistError> + Clone + Send + 'static,
 {
     let name = format!(
         "{}: Write {} unique and {} shared messages for {} sessions with {} retained messages",
@@ -64,7 +64,7 @@ fn test_read<F>(
     num_retained: u32,
     format: F,
 ) where
-    F: FileFormat + Clone + Send + 'static,
+    F: FileFormat<Error = PersistError> + Clone + Send + 'static,
 {
     let name = format!(
         "{}: Read {} unique and {} shared messages for {} sessions with {} retained messages",

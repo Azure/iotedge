@@ -52,5 +52,5 @@ name = "persist_failpoints"
 required-features = ["fail/failpoints"]
 
 [[bench]]
-name = "file_persist_bench"
+name = "persist_broker_state"
 harness = false
