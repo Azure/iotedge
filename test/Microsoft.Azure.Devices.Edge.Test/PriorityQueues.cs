@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string trackingId = Guid.NewGuid().ToString();
             TestInfo testInfo = this.InitTestInfo(5, 1000, true);
 
-            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, trcImage, loadGenImage, testInfo, false);
+            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, RelayerModuleName, trcImage, loadGenImage, testInfo, false);
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
             Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
@@ -75,12 +75,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             var testResultReportingClient = new TestResultReportingClient { BaseUrl = "http://localhost:5001" };
 
-            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, trcImage, loadGenImage, testInfo, true);
+            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, "hubtest", trcImage, loadGenImage, testInfo, true);
             Action<EdgeConfigBuilder> addNetworkControllerConfig = this.BuildAddNetworkControllerConfig(trackingId, networkControllerImage);
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addNetworkControllerConfig, token);
             Log.Information("Toggling connectivity off");
             await this.ToggleConnectivity(false, NetworkControllerModuleName, token);
-            Log.Information("Waiting for 20");
+            Log.Information("Waiting for 30 seconds");
             await Task.Delay(30000);
             Log.Information("Toggling connectivity on");
             await this.ToggleConnectivity(true, NetworkControllerModuleName, token);
@@ -97,7 +97,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         Log.Information($"prop {prop.Key}, val: {prop.Value}");
                     }
 
-                    // TODO: Report result to TRC until we have as many unique messages as we sent
+                    this.ReportResult(
+                        testResultReportingClient,
+                        "hubtest",
+                        data.Properties["trackingId"].ToString(),
+                        data.Properties["batchId"].ToString(),
+                        data.Properties["sequenceNumber"].ToString());
+                    // TODO account for duplicates
                     results++;
                     return results == loadGenTestStatus.ResultCount;
                 },
@@ -121,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string trackingId = Guid.NewGuid().ToString();
             TestInfo testInfo = this.InitTestInfo(5, 20);
 
-            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, trcImage, loadGenImage, testInfo, false);
+            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, RelayerModuleName, trcImage, loadGenImage, testInfo, false);
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
 
@@ -196,7 +202,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 });
         }
 
-        private Action<EdgeConfigBuilder> BuildAddInitialConfig(string trackingId, string trcImage, string loadGenImage, TestInfo testInfo, bool cloudUpstream)
+        private Action<EdgeConfigBuilder> BuildAddInitialConfig(string trackingId, string actualSource, string trcImage, string loadGenImage, TestInfo testInfo, bool cloudUpstream)
         {
             return new Action<EdgeConfigBuilder>(
                 builder =>
@@ -231,7 +237,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                    ["TestReportType"] = "CountingReport",
                                    ["TestOperationResultType"] = "Messages",
                                    ["ExpectedSource"] = $"{LoadGenModuleName}.send",
-                                   ["ActualSource"] = $"{RelayerModuleName}.receive",
+                                   ["ActualSource"] = $"{actualSource}.receive",
                                    ["TestDescription"] = "unnecessary"
                                },
                                ["reportMetadata2"] = new Dictionary<string, object>

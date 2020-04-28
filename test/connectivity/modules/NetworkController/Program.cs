@@ -92,9 +92,11 @@ namespace NetworkController
 
             // true for network on (restriction disabled), false for network off (restriction enabled)
             bool networkOnValue = (bool)JObject.Parse(methodRequest.DataAsJson)["networkOnValue"];
-            Log.LogInformation($"Toggling to {networkOnValue}");
+            Log.LogInformation($"Toggling network {tup.Item1} to {networkOnValue}");
             INetworkStatusReporter reporter = new NetworkStatusReporter(Settings.Current.TestResultCoordinatorEndpoint, Settings.Current.ModuleId, Settings.Current.TrackingId);
-            var controller = new OfflineController(tup.Item1, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
+            NetworkProfileSetting nps = Settings.Current.NetworkRunProfile.ProfileSetting;
+            nps.PackageLoss = 100;
+            var controller = new OfflineController(tup.Item1, Settings.Current.IotHubHostname, nps);
             NetworkControllerStatus ncs = networkOnValue ? NetworkControllerStatus.Disabled : NetworkControllerStatus.Enabled;
             await SetNetworkControllerStatus(controller, ncs, reporter, tup.Item2);
             return new MethodResponse((int)HttpStatusCode.OK);
