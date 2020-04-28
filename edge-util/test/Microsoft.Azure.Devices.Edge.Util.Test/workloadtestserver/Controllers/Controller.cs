@@ -132,7 +132,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common.WorkloadTestServer.Contr
         [Microsoft.AspNetCore.Mvc.HttpPost, Microsoft.AspNetCore.Mvc.Route("modules/{name}/genid/{genid}/certificate/server")]
         public System.Threading.Tasks.Task<CertificateResponse> CreateServerCertificate([Microsoft.AspNetCore.Mvc.FromQuery(Name = "api-version")] string api_version, string name, string genid, [Microsoft.AspNetCore.Mvc.FromBody] ServerCertificateRequest request)
         {
-            return _implementation.CreateServerCertificateAsync(api_version, name, genid, request);
+            System.Threading.Tasks.Task<CertificateResponse> certificateResponse = _implementation.CreateServerCertificateAsync(api_version, name, genid, request);
+            this.HttpContext.Response.StatusCode = 201;
+            return certificateResponse;
         }
     
         /// <param name="api_version">The version of the API.</param>
