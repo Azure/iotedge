@@ -10,7 +10,7 @@ use url::Url;
 
 use edgelet_utils::ensure_not_empty_with_context;
 
-use super::*;
+use super::NAMED_PIPE_SCHEME;
 use crate::error::{Error, ErrorKind, InvalidUrlReason, Result};
 
 #[derive(Debug)]

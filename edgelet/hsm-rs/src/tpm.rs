@@ -7,7 +7,10 @@ use std::os::raw::{c_uchar, c_void};
 use std::ptr;
 use std::slice;
 
-use super::*;
+use super::{
+    hsm_client_tpm_deinit, hsm_client_tpm_init, hsm_client_tpm_interface, hsm_get_version,
+    HSM_CLIENT_HANDLE, HSM_CLIENT_TPM_INTERFACE,
+};
 use super::{ManageTpmKeys, SignWithTpm};
 use crate::error::{Error, ErrorKind};
 
@@ -224,7 +227,7 @@ mod tests {
 
     use super::super::{ManageTpmKeys, SignWithTpm};
     use super::{Tpm, TpmKey};
-    use hsm_sys::*;
+    use hsm_sys::{HSM_CLIENT_HANDLE, HSM_CLIENT_TPM_INTERFACE};
 
     extern "C" {
         pub fn malloc(size: usize) -> *mut c_void;
