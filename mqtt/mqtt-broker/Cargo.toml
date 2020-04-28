@@ -4,8 +4,6 @@ version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 async-trait = "0.1"
 bincode = "1.2"
@@ -38,6 +36,7 @@ atty = "0.2"
 bytes = "0.5"
 criterion = "0.3"
 fail = { version = "0.3", features = ["failpoints"] }
+itertools = "0.9"
 matches = "0.1"
 proptest = "0.9"
 rand = "0.3"
@@ -51,6 +50,10 @@ tracing-subscriber = "0.1"
 name = "persist_failpoints"
 required-features = ["fail/failpoints"]
 
+# [[bench]]
+# name = "persist_broker_state"
+# harness = false
+
 [[bench]]
-name = "persist_broker_state"
+name = "dispatch_messages"
 harness = false
