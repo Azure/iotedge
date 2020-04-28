@@ -5,9 +5,10 @@ use std::path::Path;
 use std::time::Duration;
 
 use edgelet_core::{
-    AuthId, Authenticator, Certificates, Connect, DiskInfo, GetTrustBundle, Listen, LogOptions, 
-    MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, 
-    Provisioning, ProvisioningResult, RuntimeSettings, SystemInfo, SystemResources, WatchdogSettings
+    AuthId, Authenticator, Certificates, Connect, DiskInfo, GetTrustBundle, Listen, LogOptions,
+    MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
+    Provisioning, ProvisioningResult, RuntimeSettings, SystemInfo, SystemResources,
+    WatchdogSettings,
 };
 use failure::Fail;
 use futures::future::{self, FutureResult};
