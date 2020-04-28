@@ -4,8 +4,6 @@ pr:
     include:
       - master
       - release/*
-variables:
-  dotnet.version: 3.1.201
 jobs:
 
 ################################################################################
@@ -33,11 +31,7 @@ jobs:
     pool:
       vmImage: "ubuntu-16.04"
     steps:
-      - task: UseDotNet@2
-        displayName: Install .NET Core
-        inputs:
-          packageType: sdk
-          version: $(dotnet.version)
+      - template: ../templates/install-dotnet3.yaml
       - task: Bash@3
         displayName: Install Prerequisites
         inputs:
@@ -68,11 +62,7 @@ jobs:
     pool:
       vmImage: "vs2017-win2016"
     steps:
-      - task: UseDotNet@2
-        displayName: Install .NET Core
-        inputs:
-          packageType: sdk
-          version: $(dotnet.version)
+      - template: ../templates/install-dotnet3.yaml
       - task: PowerShell@2
         displayName: Install Prerequisites
         inputs:
