@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Unit]
         public void ParseUsernameTest(string username, string expectedDeviceId, string expectedModuleId, string expectedDeviceClientType)
         {
-            var usernameParser = new UsernameParser();
+            var usernameParser = new MqttUsernameParser();
 
             (string deviceId, string moduleId, string deviceClientType) = usernameParser.Parse(username);
             Assert.Equal(expectedDeviceId, deviceId);
@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Unit]
         public void ParseUserNameErrorTest(string username)
         {
-            var usernameParser = new UsernameParser();
+            var usernameParser = new MqttUsernameParser();
 
             Assert.Throws<EdgeHubConnectionException>(() => usernameParser.Parse(username));
         }
@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [MemberData(nameof(GetBadUsernameInputs))]
         public void NegativeUsernameTest(string username)
         {
-            var usernameParser = new UsernameParser();
+            var usernameParser = new MqttUsernameParser();
 
             Assert.Throws<EdgeHubConnectionException>(() => usernameParser.Parse(username));
         }

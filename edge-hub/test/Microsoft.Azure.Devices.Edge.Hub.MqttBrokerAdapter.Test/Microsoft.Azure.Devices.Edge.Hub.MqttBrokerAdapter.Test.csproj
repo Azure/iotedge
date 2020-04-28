@@ -15,7 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\edge-util\test\Microsoft.Azure.Devices.Edge.Util.Test.Common\Microsoft.Azure.Devices.Edge.Util.Test.Common.csproj" />
-    <ProjectReference Include="..\..\src\Microsoft.Azure.Devices.Edge.Hub.AuthAgent\Microsoft.Azure.Devices.Edge.Hub.AuthAgent.csproj" />
+    <ProjectReference Include="..\..\src\Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter\Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.csproj" />
   </ItemGroup>
 
 </Project>

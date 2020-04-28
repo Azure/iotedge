@@ -6,12 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public interface IUsernameParser
-    {
-        (string deviceId, string moduleId, string deviceClientType) Parse(string username);
-    }
-
-    public class UsernameParser : IUsernameParser
+    public class MqttUsernameParser : IUsernameParser
     {
         const string ApiVersionKey = "api-version";
         const string DeviceClientTypeKey = "DeviceClientType";

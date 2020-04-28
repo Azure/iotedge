@@ -221,9 +221,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdgeHubRestartTester", "tes
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CloudToDeviceMessageTester", "test\modules\CloudToDeviceMessageTester\CloudToDeviceMessageTester.csproj", "{446F50F3-3E93-454B-8EBF-4830E92DFE5D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.AuthAgent", "edge-hub\src\Microsoft.Azure.Devices.Edge.Hub.AuthAgent\Microsoft.Azure.Devices.Edge.Hub.AuthAgent.csproj", "{F040EA42-20FB-453E-8E09-9A1E04E80039}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter", "edge-hub\src\Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter\Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.csproj", "{F040EA42-20FB-453E-8E09-9A1E04E80039}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test", "edge-hub\test\Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test\Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test.csproj", "{E5E341ED-571D-473F-B802-0CA885723C67}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test", "edge-hub\test\Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test\Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test.csproj", "{E5E341ED-571D-473F-B802-0CA885723C67}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

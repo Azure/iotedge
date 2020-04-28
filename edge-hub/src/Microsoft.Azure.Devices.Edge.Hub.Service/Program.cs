@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Hub.Amqp;
-    using Microsoft.Azure.Devices.Edge.Hub.AuthAgent;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
@@ -16,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
@@ -154,8 +154,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 protocolHeads.Add(new HttpProtocolHead(hosting.WebHost));
             }
 
-            // FIXME: add config as for the ones above
-            protocolHeads.Add(await container.Resolve<Task<AuthAgentListener>>());
+            if (configuration.GetValue("authAgentSettings:enabled", true))
+            {
+                protocolHeads.Add(await container.Resolve<Task<AuthAgentProtocolHead>>());
+            }
 
             return new EdgeHubProtocolHead(protocolHeads, logger);
         }

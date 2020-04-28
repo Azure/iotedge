@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
+namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 {
     using System;
     using System.Collections.Generic;
@@ -24,19 +24,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
     using Xunit;
 
     [Integration]
-    public class AuthAgentListenerTest
+    public class AuthAgentHeadTest
     {
         const string HOST = "localhost";
         const int PORT = 7120;
-
         const string URL = "http://localhost:7120/authenticate/";
+
+        readonly AuthAgentProtocolHeadConfig config = new AuthAgentProtocolHeadConfig(PORT, "/authenticate/");
 
         [Fact]
         public async Task StartsUpAndServes()
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
             {
                 await sut.StartAsync();
 
@@ -52,11 +53,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
         }
 
         [Fact]
+        public async Task CannotStartTwice()
+        {
+            (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
+
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
+            {
+                await sut.StartAsync();
+                await Assert.ThrowsAsync<InvalidOperationException>(async () => await sut.StartAsync());
+            }                
+        }
+
+        [Fact]
         public async Task DeniesNoPasswordNorCertificate()
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
             {
                 await sut.StartAsync();
 
@@ -75,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
             {
                 await sut.StartAsync();
 
@@ -96,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
             {
                 await sut.StartAsync();
 
@@ -116,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
             (_, var usernameParser, var credFactory) = SetupAcceptEverything();
             var authenticator = SetupAcceptGoodToken("good_token");
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
             {
                 await sut.StartAsync();
 
@@ -141,7 +154,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
             (_, var usernameParser, var credFactory) = SetupAcceptEverything();
             var authenticator = SetupAcceptGoodThumbprint(ThumbprintTestCertThumbprint2);
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
             {
                 await sut.StartAsync();
 
@@ -169,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
 
             var authenticator = SetupAcceptGoodCa(goodCa);
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
             {
                 await sut.StartAsync();
 
@@ -195,7 +208,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
             {
                 await sut.StartAsync();
 
@@ -215,7 +228,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
             {
                 await sut.StartAsync();
 
@@ -235,7 +248,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
             {
                 await sut.StartAsync();
                 var result = await SendDirectRequest(RequestBody);
@@ -249,7 +262,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
             {
                 await sut.StartAsync();
                 var result = await SendDirectRequest(RequestBody, withContentLength: false);
@@ -263,7 +276,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
             {
                 await sut.StartAsync();
                 var result = await SendDirectRequest(NonJSONRequestBody);
@@ -277,15 +290,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
             {
                 await sut.StartAsync();
+                var result = await SendDirectRequest(RequestBody, contentLengthOverride: RequestBody.Length + 10);
 
-                // Note, that this test pattern is different to the others. That is because HttpListener doesn't give back
-                // control until it is able to read the expected content length. Because in this test we send a bigger number
-                // as content length, Http Listener will keep waiting for the remaining data, then after timeout it closes the
-                // connection. 
-                await Assert.ThrowsAsync<IOException>(async () => await SendDirectRequest(RequestBody, contentLengthOverride: RequestBody.Length + 10));
+                Assert.StartsWith(@"{""result"":403,", result);
             }
         }
 
@@ -294,7 +304,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentListener(authenticator, usernameParser, credFactory, URL))
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
             {
                 await sut.StartAsync();
                 var result = await SendDirectRequest(RequestBody, contentLengthOverride: RequestBody.Length - 10);
@@ -396,15 +406,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.AuthAgent.Test
             }
         }
 
-        private bool IsTimeout(DateTime startTime)
-        {
-            return DateTime.Now - startTime > TimeSpan.FromSeconds(5);
-        }
+        private bool IsTimeout(DateTime startTime) => DateTime.Now - startTime > TimeSpan.FromSeconds(5);
 
         private (IAuthenticator, IUsernameParser, IClientCredentialsFactory) SetupAcceptEverything(string hubname = "testhub")
         {
             var authenticator = Mock.Of<IAuthenticator>();
-            var usernameParser = new UsernameParser();
+            var usernameParser = new MqttUsernameParser();
             var credFactory = new ClientCredentialsFactory(new IdentityProvider(hubname));
 
             Mock.Get(authenticator).Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).Returns(Task.FromResult(true));

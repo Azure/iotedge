@@ -582,7 +582,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<Task<IConnectionProvider>>()
                 .SingleInstance();
 
-            builder.RegisterType<UsernameParser>().As<IUsernameParser>().SingleInstance();
+            builder.RegisterType<MqttUsernameParser>().As<IUsernameParser>().SingleInstance();
 
             base.Load(builder);
         }

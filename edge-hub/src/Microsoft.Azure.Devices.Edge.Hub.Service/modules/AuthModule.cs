@@ -5,17 +5,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
     using Autofac;
 
-    using Microsoft.Azure.Devices.Edge.Hub.AuthAgent;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
 
     class AuthModule : Module
     {
-        private static readonly string defaultAddress = "http://localhost:7120/authenticate/";
+        static readonly int defaultPort = 7120;
+        static readonly string defaultBaseUrl = "/authenticate/";
 
-        private readonly IConfiguration config;
+        readonly IConfiguration config;
 
         public AuthModule(IConfiguration config)
         {
@@ -31,11 +32,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var usernameParser = c.Resolve<IUsernameParser>();
                             var identityFactory = c.Resolve<IClientCredentialsFactory>();
 
-                            var listeningAddress = this.config.GetValue("address", defaultAddress);
+                            var port = this.config.GetValue("port", defaultPort);
+                            var baseUrl = this.config.GetValue("baseUrl", defaultBaseUrl);
 
-                            return new AuthAgentListener(auth, usernameParser, identityFactory, listeningAddress);
+                            var config = new AuthAgentProtocolHeadConfig(port, baseUrl);
+
+                            return new AuthAgentProtocolHead(auth, usernameParser, identityFactory, config);
                         })
-                    .As<Task<AuthAgentListener>>()
+                    .As<Task<AuthAgentProtocolHead>>()
                     .SingleInstance();
 
             base.Load(builder);
