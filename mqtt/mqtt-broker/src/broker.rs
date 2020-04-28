@@ -2214,7 +2214,6 @@ pub(crate) mod tests {
             "foo".to_owned(),
         )
         .await;
-
         check_notify_recieved(&mut a_rx, &["foo"]).await;
 
         send_subscribe(
@@ -2224,8 +2223,10 @@ pub(crate) mod tests {
             "bar".to_owned(),
         )
         .await;
-
         check_notify_recieved(&mut a_rx, &["foo", "bar"]).await;
+
+        send_unsubscribe(&mut broker_handle, &mut b_rx, b_id.clone(), &["foo"]).await;
+        check_notify_recieved(&mut a_rx, &["bar"]).await;
     }
 
     async fn connect_client(
@@ -2286,6 +2287,26 @@ pub(crate) mod tests {
         assert_matches!(
             rx.recv().await,
             Some(Message::Client(_, ClientEvent::SubAck(_)))
+        );
+    }
+
+    async fn send_unsubscribe(
+        handle: &mut BrokerHandle,
+        rx: &mut Receiver<Message>,
+        client_id: ClientId,
+        topics: &[&str],
+    ) {
+        let unsubscribe = proto::Unsubscribe {
+            packet_identifier: proto::PacketIdentifier::new(1).unwrap(),
+            unsubscribe_from: topics.iter().map(|s| s.to_string()).collect(),
+        };
+
+        let message = Message::Client(client_id, ClientEvent::Unsubscribe(unsubscribe));
+        handle.send(message).await.unwrap();
+
+        assert_matches!(
+            rx.recv().await,
+            Some(Message::Client(_, ClientEvent::UnsubAck(_)))
         );
     }
 
