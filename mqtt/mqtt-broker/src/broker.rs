@@ -332,6 +332,7 @@ where
     async fn process_disconnect(&mut self, client_id: ClientId) -> Result<(), Error> {
         debug!("handling disconnect...");
         if let Some(mut session) = self.close_session(&client_id) {
+            self.notify_disconnect(&client_id).await;
             session
                 .send(ClientEvent::Disconnect(proto::Disconnect))
                 .await?;
@@ -339,8 +340,6 @@ where
             debug!("no session for {}", client_id);
         }
         debug!("disconnect handled.");
-
-        self.notify_disconnect(&client_id).await;
 
         Ok(())
     }
@@ -352,6 +351,7 @@ where
     async fn drop_connection(&mut self, client_id: ClientId) -> Result<(), Error> {
         debug!("handling drop connection...");
         if let Some(mut session) = self.close_session(&client_id) {
+            self.notify_disconnect(&client_id).await;
             session.send(ClientEvent::DropConnection).await?;
 
             // Ungraceful disconnect - send the will
@@ -363,8 +363,6 @@ where
         }
         debug!("drop connection handled.");
 
-        self.notify_disconnect(&client_id).await;
-
         Ok(())
     }
 
@@ -372,6 +370,7 @@ where
         debug!("handling close session...");
         if let Some(session) = self.close_session(&client_id) {
             debug!("session removed");
+            self.notify_disconnect(&client_id).await;
 
             // Ungraceful disconnect - send the will
             if let Some(will) = session.into_will() {
@@ -381,8 +380,6 @@ where
             debug!("no session for {}", client_id);
         }
         debug!("close session handled.");
-
-        self.notify_disconnect(&client_id).await;
 
         Ok(())
     }
@@ -2181,10 +2178,7 @@ pub(crate) mod tests {
         check_notify_recieved(&mut a_rx, &["client_a", "client_b", "client_c", "client_d"]).await;
 
         disconnect_client("client_c", &mut broker_handle).await;
-        // // check_notify_recieved(&mut a_rx, &["client_a", "client_b", "client_d"]).await;
-
-        // tokio::time::delay_for(Duration::from_millis(1000)).await;
-        // panic!();
+        check_notify_recieved(&mut a_rx, &["client_a", "client_b", "client_d"]).await;
     }
 
     async fn connect_client(
@@ -2219,7 +2213,6 @@ pub(crate) mod tests {
     async fn disconnect_client(client_id: &str, broker_handle: &mut BrokerHandle) {
         let event = ClientEvent::Disconnect(proto::Disconnect {});
 
-        println!("Sending event: {:#?}", event);
         broker_handle
             .send(Message::Client(client_id.into(), event))
             .await
