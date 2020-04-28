@@ -311,12 +311,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                             // for messages within the same queue, there can be messages that have expired in the queue after the head.
                             // The checkEntireQueueOnCleanup flag is an environment variable for edgeHub. If it is set to true, we will
                             // check the entire queue every time cleanup processor runs. If it is set to false, we just remove the oldest
-                            // items in the queue until we get to one that is not expired. 
+                            // items in the queue until we get to one that is not expired.
                             int cleanupCount = 0;
                             if (checkEntireQueueOnCleanup)
                             {
                                 IEnumerable<(long, MessageRef)> batch;
-                                 long offset = sequentialStore.GetHeadOffset(this.cancellationTokenSource.Token);
+                                long offset = sequentialStore.GetHeadOffset(this.cancellationTokenSource.Token);
                                 do
                                 {
                                     batch = await sequentialStore.GetBatch(offset, batchSize);
@@ -492,11 +492,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
                 try
                 {
-                     Events.GettingNextBatch(this.endpointSequentialStore.EntityName, this.startingOffset, batchSize);
+                    Events.GettingNextBatch(this.endpointSequentialStore.EntityName, this.startingOffset, batchSize);
                     // TODO - Currently, this does not iterate over a snapshot. This should work as the cleanup and reference counting is managed at
                     // application level. But need to check if creating a snapshot for iterating is needed.
-                    List<(long offset, MessageRef msgRef)> batch = (await this.endpointSequentialStore.GetBatch(this.startingOffset, batchSize))
-                        .ToList();
+                    List<(long offset, MessageRef msgRef)> batch = (await this.endpointSequentialStore.GetBatch(this.startingOffset, batchSize)).ToList();
                     if (batch.Count > 0)
                     {
                         foreach ((long offset, MessageRef msgRef) item in batch)
@@ -534,7 +533,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         }
 
         /// <summary>
-        /// Class that stores references to stored messages. This is used for maintaining endpoint queues
+        /// Class that stores references to stored messages. This is used for maintaining endpoint queues.
         /// </summary>
         class MessageRef
         {

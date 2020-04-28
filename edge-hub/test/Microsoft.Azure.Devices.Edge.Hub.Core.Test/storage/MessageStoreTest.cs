@@ -242,7 +242,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
                 {
                     IMessage input = this.GetMessage(i);
                     string edgeMessageId = input.SystemProperties[SystemProperties.EdgeMessageId];
-                    uint timeToLiveSecs = (uint)1000;
+                    uint timeToLiveSecs = 1000;
                     if (i % 2 == 0)
                     {
                         messageIdsExpired.Add(edgeMessageId);
@@ -252,9 +252,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
                     {
                         messageIdsAlive.Add(edgeMessageId);
                     }
+
                     IMessage updatedMessage = await messageStore.Add("module1", input, timeToLiveSecs);
                     CompareUpdatedMessageWithOffset(input, i, updatedMessage);
                 }
+
                 await Task.Delay(TimeSpan.FromSeconds(70));
 
                 IMessageIterator module1Iterator = messageStore.GetMessageIterator("module1");
@@ -264,6 +266,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
                 {
                     Assert.True(await result.inMemoryDbStore.Contains(edgeMessageId.ToBytes()));
                 }
+
                 for (int i = 0; i < messageIdsExpired.Count; i++)
                 {
                     if (checkEntireQueueOnCleanup || i == 0)
