@@ -2109,7 +2109,7 @@ pub(crate) mod tests {
                 }
             );
         } else {
-            assert!(false);
+            panic!();
         }
     }
 
@@ -2142,15 +2142,49 @@ pub(crate) mod tests {
         )
         .await;
 
-        if let Some(Message::Client(
-            _,
-            ClientEvent::PublishTo(Publish::QoS0(_, proto::Publish { payload, .. })),
-        )) = a_rx.recv().await
-        {
-            is_notify_equal(payload, &["client_a", "client_b", "client_c"]);
-        } else {
-            assert!(false);
-        }
+        check_notify_recieved(&mut a_rx, &["client_a", "client_b", "client_c"]).await;
+    }
+
+    #[tokio::test]
+    async fn test_notify_add_remove_connection() {
+        let broker = BrokerBuilder::default()
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authorizer(|_| Ok(true))
+            .build();
+
+        let mut broker_handle = broker.handle();
+        tokio::spawn(broker.run().map(drop));
+
+        let (a_id, mut a_rx) = connect_client("client_a", &mut broker_handle)
+            .await
+            .unwrap();
+
+        connect_client("client_b", &mut broker_handle)
+            .await
+            .unwrap();
+        connect_client("client_c", &mut broker_handle)
+            .await
+            .unwrap();
+
+        send_subscribe(
+            &mut broker_handle,
+            &mut a_rx,
+            a_id.clone(),
+            "$sys/connected".to_owned(),
+        )
+        .await;
+        check_notify_recieved(&mut a_rx, &["client_a", "client_b", "client_c"]).await;
+
+        connect_client("client_d", &mut broker_handle)
+            .await
+            .unwrap();
+        check_notify_recieved(&mut a_rx, &["client_a", "client_b", "client_c", "client_d"]).await;
+
+        disconnect_client("client_c", &mut broker_handle).await;
+        // // check_notify_recieved(&mut a_rx, &["client_a", "client_b", "client_d"]).await;
+
+        // tokio::time::delay_for(Duration::from_millis(1000)).await;
+        // panic!();
     }
 
     async fn connect_client(
@@ -2182,6 +2216,16 @@ pub(crate) mod tests {
         Ok((client_id, rx))
     }
 
+    async fn disconnect_client(client_id: &str, broker_handle: &mut BrokerHandle) {
+        let event = ClientEvent::Disconnect(proto::Disconnect {});
+
+        println!("Sending event: {:#?}", event);
+        broker_handle
+            .send(Message::Client(client_id.into(), event))
+            .await
+            .unwrap();
+    }
+
     async fn send_subscribe(
         handle: &mut BrokerHandle,
         rx: &mut Receiver<Message>,
@@ -2203,6 +2247,18 @@ pub(crate) mod tests {
             rx.recv().await,
             Some(Message::Client(_, ClientEvent::SubAck(_)))
         );
+    }
+
+    async fn check_notify_recieved(rx: &mut Receiver<Message>, expected: &[&str]) {
+        if let Some(Message::Client(
+            _,
+            ClientEvent::PublishTo(Publish::QoS0(_, proto::Publish { payload, .. })),
+        )) = rx.recv().await
+        {
+            is_notify_equal(payload, expected);
+        } else {
+            panic!("Expected to recieve a PublishTo");
+        }
     }
 
     fn is_notify_equal(payload: Bytes, expected: &[&str]) {
