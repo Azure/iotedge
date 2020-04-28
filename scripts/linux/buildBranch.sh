@@ -26,7 +26,7 @@ FUNCTIONS_SAMPLE_DIR=$ROOT_FOLDER/edge-modules/functions/samples
 VERSIONINFO_FILE_PATH=$BUILD_REPOSITORY_LOCALPATH/versionInfo.json
 CONNECTIVITY_TEST_SCRIPT_DIR=$ROOT_FOLDER/test/connectivity/scripts
 DOTNETBUILD_OS=
-DOTNET_RUNTIME=netcoreapp2.1
+DOTNET_RUNTIME=netcoreapp3.1
 
 usage()
 {
@@ -161,7 +161,7 @@ publish_app()
 publish_lib()
 {
     local name="$1"
-    publish_project library "$name" netstandard2.0 $CONFIGURATION "$PUBLISH_FOLDER/$name"
+    publish_project library "$name" netcoreapp3.1 $CONFIGURATION "$PUBLISH_FOLDER/$name"
 }
 
 publish_quickstart()
@@ -225,11 +225,6 @@ build_solution()
         RES=1
     fi
 
-    echo "Building IoT Edge Samples solution"
-    $DOTNET_ROOT_PATH/dotnet build \
-        -c $CONFIGURATION \
-        -o "$BUILD_BINARIESDIRECTORY" \
-        "$ROOT_FOLDER/samples/dotnet/Microsoft.Azure.Devices.Edge.Samples.sln"
     if [ $? -gt 0 ]; then
         RES=1
     fi

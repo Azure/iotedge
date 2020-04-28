@@ -11,18 +11,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Hosting;
 
     public class Hosting
     {
-        Hosting(IWebHost webHost, IContainer container)
+        Hosting(IHost host, IContainer container)
         {
-            this.WebHost = webHost;
+            this.Host = host;
             this.Container = container;
         }
 
         public IContainer Container { get; }
 
-        public IWebHost WebHost { get; }
+        public IHost Host { get; }
 
         public static Hosting Initialize(
             IConfigurationRoot configuration,
@@ -33,36 +34,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             int port = configuration.GetValue("httpSettings:port", 443);
             var certificateMode = clientCertAuthEnabled ? ClientCertificateMode.AllowCertificate : ClientCertificateMode.NoCertificate;
-            IWebHostBuilder webHostBuilder = new WebHostBuilder()
-                .UseKestrel(
-                    options =>
-                    {
-                        options.Listen(
-                            !Socket.OSSupportsIPv6 ? IPAddress.Any : IPAddress.IPv6Any,
-                            port,
-                            listenOptions =>
+
+            IHost host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder
+                        .UseKestrel(
+                            options =>
                             {
-                                listenOptions.UseHttpsExtensions(
-                                    new HttpsConnectionAdapterOptions()
+                                options.Listen(
+                                    !Socket.OSSupportsIPv6 ? IPAddress.Any : IPAddress.IPv6Any,
+                                    port,
+                                    listenOptions =>
                                     {
-                                        ServerCertificate = serverCertificate,
-                                        ClientCertificateValidation = (clientCert, chain, policyErrors) => true,
-                                        ClientCertificateMode = certificateMode,
-                                        SslProtocols = sslProtocols
+                                        listenOptions.UseHttpsExtensions(
+                                            new HttpsConnectionAdapterOptions()
+                                            {
+                                                ServerCertificate = serverCertificate,
+                                                ClientCertificateValidation = (clientCert, chain, policyErrors) => true,
+                                                ClientCertificateMode = certificateMode,
+                                                SslProtocols = sslProtocols
+                                            });
                                     });
-                            });
-                    })
-                .UseSockets()
-                .ConfigureServices(
-                    serviceCollection =>
-                    {
-                        serviceCollection.AddSingleton(configuration);
-                        serviceCollection.AddSingleton(dependencyManager);
-                    })
-                .UseStartup<Startup>();
-            IWebHost webHost = webHostBuilder.Build();
-            IContainer container = webHost.Services.GetService(typeof(IStartup)) is Startup startup ? startup.Container : null;
-            return new Hosting(webHost, container);
+                            })
+                        .UseSockets()
+                        .ConfigureServices(
+                            serviceCollection =>
+                            {
+                                serviceCollection.AddSingleton(configuration);
+                                serviceCollection.AddSingleton(dependencyManager);
+                            })
+                        .UseStartup<Startup>();
+                }).Build();
+
+            IContainer container = host.Services.GetService(typeof(IStartup)) is Startup startup ? startup.Container : null;
+            return new Hosting(host, container);
         }
     }
 }

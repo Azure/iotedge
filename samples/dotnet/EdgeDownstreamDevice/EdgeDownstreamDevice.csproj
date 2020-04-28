@@ -1,12 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup Condition="'$(Platform)' != 'ARM64'">
-    <TargetFramework>netcoreapp2.1</TargetFramework>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(OS)|$(Platform)' == 'Unix|ARM64'">
-    <TargetFramework>netcoreapp3.0</TargetFramework>
-  </PropertyGroup>
+  <Import Project="..\..\..\dotnetVersion.props" />
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
