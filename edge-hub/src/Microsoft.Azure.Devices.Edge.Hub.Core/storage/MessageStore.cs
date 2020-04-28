@@ -246,7 +246,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 }
             }
 
-            private async Task CleanQueue(bool cleanEntireQueue)
+            private async Task CleanQueue(bool checkEntireQueueOnCleanup)
             {
                 long totalCleanupCount = 0;
                 long totalCleanupStoreCount = 0;
@@ -309,13 +309,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                             // Previously, we could always assume that if a message at the head of the queue should not be deleted,
                             // then none of the other messages in the queue should be either. Now, because we can have different TTL's
                             // for messages within the same queue, there can be messages that have expired in the queue after the head.
-                            // This is okay because they will be cleaned up eventually and they will be ignored otherwise.
-                            // TODO: Add optional CleanupProcessor mode that will go through the entire length of the queue each time to remove expired messages.
+                            // The checkEntireQueueOnCleanup flag is an environment variable for edgeHub. If it is set to true, we will
+                            // check the entire queue every time cleanup processor runs. If it is set to false, we just remove the oldest
+                            // items in the queue until we get to one that is not expired. 
                             int cleanupCount = 0;
-                            if (cleanEntireQueue)
+                            if (checkEntireQueueOnCleanup)
                             {
                                 IEnumerable<(long, MessageRef)> batch;
-                                long offset = sequentialStore.GetHeadOffset(this.cancellationTokenSource.Token);
+                                 long offset = sequentialStore.GetHeadOffset(this.cancellationTokenSource.Token);
                                 do
                                 {
                                     batch = await sequentialStore.GetBatch(offset, batchSize);

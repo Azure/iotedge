@@ -232,7 +232,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
         [InlineData(true)]
         public async Task CleanupTestTimeoutMultipleTTLs(bool checkEntireQueueOnCleanup)
         {
-            (IMessageStore messageStore, ICheckpointStore checkpointStore, InMemoryDbStore inMemoryDbStore) result = await this.GetMessageStore(checkEntireQueueOnCleanup, 20);
+            (IMessageStore messageStore, ICheckpointStore checkpointStore, InMemoryDbStore inMemoryDbStore) result = await this.GetMessageStore(checkEntireQueueOnCleanup, 10);
             result.messageStore.SetTimeToLive(TimeSpan.FromSeconds(10));
             using (IMessageStore messageStore = result.messageStore)
             {
@@ -255,7 +255,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
                     IMessage updatedMessage = await messageStore.Add("module1", input, timeToLiveSecs);
                     CompareUpdatedMessageWithOffset(input, i, updatedMessage);
                 }
-                await Task.Delay(TimeSpan.FromSeconds(45));
+                await Task.Delay(TimeSpan.FromSeconds(70));
 
                 IMessageIterator module1Iterator = messageStore.GetMessageIterator("module1");
                 IEnumerable<IMessage> batch = await module1Iterator.GetNext(200);
