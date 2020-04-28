@@ -143,7 +143,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     await Client.CleanupContainerAsync(Name, Image);
 
                     string createOptions = @"{""Env"": [ ""k1=v1"", ""k2=v2""]}";
-                    var config = new DockerConfig(Image, createOptions);
+                    var config = new DockerConfig(Image, createOptions, Option.None<NotaryContentTrust>());
                     var loggingConfig = new DockerLoggingConfig("json-file");
                     var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, Constants.DefaultPriority, null, null);
 

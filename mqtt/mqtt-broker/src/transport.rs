@@ -95,7 +95,7 @@ impl Transport {
         Ok(Transport::Tls(tcp, acceptor))
     }
 
-    pub fn incoming(&mut self) -> Incoming<'_> {
+    pub fn incoming(self) -> Incoming {
         match self {
             Self::Tcp(listener) => Incoming::Tcp(IncomingTcp::new(listener)),
             Self::Tls(listener, acceptor) => Incoming::Tls(IncomingTls::new(listener, acceptor)),
@@ -112,14 +112,14 @@ impl Transport {
 }
 
 type HandshakeFuture =
-    Pin<Box<dyn Future<Output = Result<TlsStream<TcpStream>, native_tls::Error>>>>;
+    Pin<Box<dyn Future<Output = Result<TlsStream<TcpStream>, native_tls::Error>> + Send>>;
 
-pub enum Incoming<'a> {
-    Tcp(IncomingTcp<'a>),
-    Tls(IncomingTls<'a>),
+pub enum Incoming {
+    Tcp(IncomingTcp),
+    Tls(IncomingTls),
 }
 
-impl Stream for Incoming<'_> {
+impl Stream for Incoming {
     type Item = std::io::Result<StreamSelector>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
@@ -130,17 +130,17 @@ impl Stream for Incoming<'_> {
     }
 }
 
-pub struct IncomingTcp<'a> {
-    listener: &'a mut TcpListener,
+pub struct IncomingTcp {
+    listener: TcpListener,
 }
 
-impl<'a> IncomingTcp<'a> {
-    fn new(listener: &'a mut TcpListener) -> Self {
+impl IncomingTcp {
+    fn new(listener: TcpListener) -> Self {
         Self { listener }
     }
 }
 
-impl Stream for IncomingTcp<'_> {
+impl Stream for IncomingTcp {
     type Item = std::io::Result<StreamSelector>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
@@ -170,14 +170,14 @@ impl Stream for IncomingTcp<'_> {
     }
 }
 
-pub struct IncomingTls<'a> {
-    listener: &'a mut TcpListener,
-    acceptor: &'a TlsAcceptor,
+pub struct IncomingTls {
+    listener: TcpListener,
+    acceptor: TlsAcceptor,
     connections: FuturesUnordered<HandshakeFuture>,
 }
 
-impl<'a> IncomingTls<'a> {
-    fn new(listener: &'a mut TcpListener, acceptor: &'a TlsAcceptor) -> Self {
+impl IncomingTls {
+    fn new(listener: TcpListener, acceptor: TlsAcceptor) -> Self {
         Self {
             listener,
             acceptor,
@@ -186,7 +186,7 @@ impl<'a> IncomingTls<'a> {
     }
 }
 
-impl Stream for IncomingTls<'_> {
+impl Stream for IncomingTls {
     type Item = std::io::Result<StreamSelector>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {

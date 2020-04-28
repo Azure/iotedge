@@ -5,11 +5,11 @@ namespace LoadGen
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
+    using System.Net.NetworkInformation;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -27,21 +27,28 @@ namespace LoadGen
             string trackingId)
             : base(logger, moduleClient, batchId, trackingId)
         {
-            this.PriorityString = Settings.Current.Priorities.Expect(() =>
-                new ArgumentException("PriorityMessageSender must have 'priorities' environment variable set to a valid list of string delimited by ';'"));
+            this.Priorities = Settings.Current.Priorities.Expect(() =>
+                new ArgumentException("PriorityMessageSender must have 'priorities' environment variable set to a valid list of strings delimited by ';'"));
+            this.Ttls = Settings.Current.Ttls.Expect(() =>
+                new ArgumentException("PriorityMessageSender must have 'ttls' environment variable set to a valid list of strings delimited by ';'"));
+            this.TtlThresholdSecs = Settings.Current.TtlThresholdSecs.Expect(() =>
+                new ArgumentException("PriorityMessageSender must have 'ttlThresholdSecs' environment variable set to a valid int"));
             this.isFinished = false;
             this.resultsSent = 0;
         }
 
-        public string PriorityString { get; }
+        List<int> Priorities { get; }
+
+        List<int> Ttls { get; }
+
+        int TtlThresholdSecs { get; }
 
         public async override Task RunAsync(CancellationTokenSource cts, DateTime testStartAt)
         {
-            string[] outputs = this.PriorityString.Split(';');
-
             bool firstMessageWhileOffline = true;
             var priorityAndSequence = new SortedDictionary<int, List<long>>();
             long messageIdCounter = 1;
+            string trcUrl = Settings.Current.TestResultCoordinatorUrl.Expect<ArgumentException>(() => throw new ArgumentException("Expected TestResultCoordinator URL"));
 
             await this.SetIsFinishedDirectMethodAsync();
 
@@ -50,26 +57,24 @@ namespace LoadGen
             {
                 try
                 {
-                    int choosePri = this.rng.Next(outputs.Length);
-                    string output = outputs[choosePri];
+                    int rand = this.rng.Next(this.Priorities.Count);
+                    int priority = this.Priorities[rand];
+                    int ttlForMessage = this.Ttls[rand];
 
-                    await this.SendEventAsync(messageIdCounter, "pri" + output);
+                    await this.SendEventAsync(messageIdCounter, "pri" + priority);
+                    this.Logger.LogInformation($"Sent message {messageIdCounter} with pri {priority} and ttl {ttlForMessage}");
 
                     // We need to set the first message because of the way priority queue logic works
-                    // When edgeHub cannot send a message, it will retry on that message until it sends
-                    // So even though it may not be highest priority, this message will still be the first
-                    // to send when the receiver comes online
+                    // When edgeHub cannot send a message, it will retry on that message until it sends, regardless
+                    // of priority and TTL. So even though it may not be highest priority or may be expired (or both),
+                    // this message will still be the first to send when the receiver comes online.
                     if (firstMessageWhileOffline)
                     {
                         firstMessageWhileOffline = false;
                     }
-                    else
+                    else if (ttlForMessage <= 0 || ttlForMessage > this.TtlThresholdSecs)
                     {
-                        int priority = 2000000000; // Default priority
-                        if (!output.Contains(TestConstants.PriorityQueues.Default))
-                        {
-                            priority = int.Parse(output);
-                        }
+                        priority = (priority < 0) ? 2000000000 : priority;
 
                         if (!priorityAndSequence.TryGetValue(priority, out List<long> sequenceNums))
                         {
@@ -97,19 +102,15 @@ namespace LoadGen
 
             this.Logger.LogInformation($"Sending finished. Now sending expected results to {Settings.Current.TestResultCoordinatorUrl}");
 
-            if (priorityAndSequence.Keys.Count <= 1)
-            {
-                throw new InvalidOperationException($"Must send more than 1 priority for valid test results. Priorities sent: {priorityAndSequence.Keys.Count}");
-            }
-
             // Sort priority by sequence number
             List<long> expectedSequenceNumberList = priorityAndSequence
                 .SelectMany(t => t.Value)
                 .ToList();
 
-            this.resultsSent = expectedSequenceNumberList.Count;
+            // Need to add 1 for the first sequence number, since it is a special case that we omitted in the expectedSequenceNumberList.
+            this.resultsSent = expectedSequenceNumberList.Count + 1;
 
-            // See explanation above why we need to send sequence number 1 first
+            // See explanation above why we need to send sequence number 1 as the first expected value.
             await this.ReportResult(1);
 
             foreach (int sequenceNumber in expectedSequenceNumberList)

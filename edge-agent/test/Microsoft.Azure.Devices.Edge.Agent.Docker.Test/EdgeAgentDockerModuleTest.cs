@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 {
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
@@ -33,8 +34,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             yield return new object[]
             {
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{}"), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["Env1"] = new EnvVal("EnvVal1") }, "version1"),
-                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}],\"443/tcp\":[{\"HostPort\":\"443\"}]}}}"), ImagePullPolicy.OnCreate, new ConfigurationInfo("c2"), new Dictionary<string, EnvVal> { ["Env2"] = new EnvVal("EnvVal2") }, "version2"),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{}",  Option.None<NotaryContentTrust>()), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["Env1"] = new EnvVal("EnvVal1") }, "version1"),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}],\"443/tcp\":[{\"HostPort\":\"443\"}]}}}", Option.None<NotaryContentTrust>()), ImagePullPolicy.OnCreate, new ConfigurationInfo("c2"), new Dictionary<string, EnvVal> { ["Env2"] = new EnvVal("EnvVal2") }, "version2"),
+                true
+            };
+
+            yield return new object[]
+            {
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{}",  Option.Maybe(new NotaryContentTrust { RootCertificatePath = "/path/to/rootjson", RootID = "54633324" })), ImagePullPolicy.OnCreate, new ConfigurationInfo("c1"), new Dictionary<string, EnvVal> { ["Env1"] = new EnvVal("EnvVal1") }, "version1"),
+                new EdgeAgentDockerModule("docker", new DockerConfig("Foo", "{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}],\"443/tcp\":[{\"HostPort\":\"443\"}]}}}", Option.Maybe(new NotaryContentTrust { RootCertificatePath = "/path/to/rootjson", RootID = "54633324" })), ImagePullPolicy.OnCreate, new ConfigurationInfo("c2"), new Dictionary<string, EnvVal> { ["Env2"] = new EnvVal("EnvVal2") }, "version2"),
                 true
             };
 

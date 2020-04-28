@@ -24,10 +24,5 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
         {
             public const string RunProfilePropertyName = "NetworkControllerRunProfile";
         }
-
-        public static class PriorityQueues
-        {
-            public const string Default = "Default";
-        }
     }
 }
