@@ -38,14 +38,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         readonly long messageCount = 0;
         TimeSpan timeToLive;
 
-        public MessageStore(IStoreProvider storeProvider, ICheckpointStore checkpointStore, TimeSpan timeToLive, bool cleanUpEntireQueue = false)
+        public MessageStore(IStoreProvider storeProvider, ICheckpointStore checkpointStore, TimeSpan timeToLive, bool checkEntireQueueOnCleanup = false)
         {
             this.storeProvider = Preconditions.CheckNotNull(storeProvider);
             this.messageEntityStore = this.storeProvider.GetEntityStore<string, MessageWrapper>(Constants.MessageStorePartitionKey);
             this.endpointSequentialStores = new ConcurrentDictionary<string, ISequentialStore<MessageRef>>();
             this.timeToLive = timeToLive;
             this.checkpointStore = Preconditions.CheckNotNull(checkpointStore, nameof(checkpointStore));
-            this.messagesCleaner = new CleanupProcessor(this, cleanUpEntireQueue);
+            this.messagesCleaner = new CleanupProcessor(this, checkEntireQueueOnCleanup);
             Events.MessageStoreCreated();
         }
 
@@ -196,15 +196,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             readonly MessageStore messageStore;
             readonly Timer ensureCleanupTaskTimer;
             readonly CancellationTokenSource cancellationTokenSource;
-            readonly bool cleanUpEntireQueue;
+            readonly bool checkEntireQueueOnCleanup;
             Task cleanupTask;
 
-            public CleanupProcessor(MessageStore messageStore, bool cleanUpEntireQueue)
+            public CleanupProcessor(MessageStore messageStore, bool checkEntireQueueOnCleanup)
             {
                 this.messageStore = messageStore;
                 this.ensureCleanupTaskTimer = new Timer(this.EnsureCleanupTask, null, TimeSpan.Zero, CleanupTaskFrequency);
                 this.cancellationTokenSource = new CancellationTokenSource();
-                this.cleanUpEntireQueue = cleanUpEntireQueue;
+                this.checkEntireQueueOnCleanup = checkEntireQueueOnCleanup;
             }
 
             public void Dispose()
@@ -237,7 +237,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             {
                 try
                 {
-                    await this.CleanQueue(this.cleanUpEntireQueue);
+                    await this.CleanQueue(this.checkEntireQueueOnCleanup);
                 }
                 catch (Exception ex)
                 {

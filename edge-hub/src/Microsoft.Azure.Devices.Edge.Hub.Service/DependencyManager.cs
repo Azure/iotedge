@@ -155,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool encryptTwinStore = this.configuration.GetValue("EncryptTwinStore", false);
             int configUpdateFrequencySecs = this.configuration.GetValue("ConfigRefreshFrequencySecs", 3600);
             TimeSpan configUpdateFrequency = TimeSpan.FromSeconds(configUpdateFrequencySecs);
-            bool cleanUpEntireQueue = this.configuration.GetValue("CleanUpEntireQueue", false);
+            bool checkEntireQueueOnCleanup = this.configuration.GetValue("CheckEntireQueueOnCleanup", false);
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -184,7 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     upstreamFanOutFactor,
                     encryptTwinStore,
                     configUpdateFrequency,
-                    cleanUpEntireQueue,
+                    checkEntireQueueOnCleanup,
                     experimentalFeatures));
         }
 

@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly int upstreamFanOutFactor;
         readonly bool encryptTwinStore;
         readonly TimeSpan configUpdateFrequency;
-        readonly bool cleanUpEntireQueue;
+        readonly bool checkEntireQueueOnCleanup;
         readonly ExperimentalFeatures experimentalFeatures;
 
         public RoutingModule(
@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             int upstreamFanOutFactor,
             bool encryptTwinStore,
             TimeSpan configUpdateFrequency,
-            bool cleanUpEntireQueue,
+            bool checkEntireQueueOnCleanup,
             ExperimentalFeatures experimentalFeatures)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
@@ -109,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.upstreamFanOutFactor = upstreamFanOutFactor;
             this.encryptTwinStore = encryptTwinStore;
             this.configUpdateFrequency = configUpdateFrequency;
-            this.cleanUpEntireQueue = cleanUpEntireQueue;
+            this.checkEntireQueueOnCleanup = checkEntireQueueOnCleanup;
             this.experimentalFeatures = experimentalFeatures;
         }
 
@@ -382,7 +382,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var checkpointStore = await c.Resolve<Task<ICheckpointStore>>();
                             var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
                             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-                            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, this.storeAndForwardConfiguration.TimeToLive, cleanUpEntireQueue);
+                            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, this.storeAndForwardConfiguration.TimeToLive, checkEntireQueueOnCleanup);
                             return messageStore;
                         })
                     .As<Task<IMessageStore>>()
