@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Configuration;
     using Moq;
+    using Newtonsoft.Json;
     using Xunit;
 
     [Unit]
@@ -251,5 +252,52 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
                     reserializedHostConfig);
             }
         }
+
+        (IDictionary<string, EnvVal>, string) CreateEnv(params (string key, string value)[] pairs)
+        {
+            var dict = new Dictionary<string, EnvVal>();
+            foreach (var (key, value) in pairs)
+            {
+                dict.Add(key, new EnvVal(value));
+            }
+
+            return (dict, JsonConvert.SerializeObject(dict));
+        }
+
+        [Fact]
+        public void TestEdgeAgentLabels()
+        {
+            (IDictionary<string, EnvVal> dictEnv, string jsonEnv) = CreateEnv(("a", "one"), ("b", "two"));
+            string createOptions = "{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}]}}}";
+
+            // Arrange
+            var runtimeInfo = Mock.Of<IRuntimeInfo<DockerRuntimeConfig>>(ri =>
+                ri.Config == new DockerRuntimeConfig("1.24", string.Empty));
+
+            var module = Mock.Of<IModule<DockerConfig>>(m => m.Config == new DockerConfig("some-image:latest", createOptions)
+                && m.Name == Constants.EdgeAgentModuleName
+                && m.Env == dictEnv);
+
+            IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
+                new Dictionary<string, string>
+                {
+                    { Constants.EdgeletWorkloadUriVariableName, "http://blah" },
+                    { Constants.EdgeletManagementUriVariableName, "http://blah" }
+                }).Build();
+            var configSource = Mock.Of<IConfigSource>(s => s.Configuration == configRoot);
+            ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedEdgeletConfigProvider(
+                new[] { new AuthConfig() },
+                configSource);
+
+            // Act
+            CombinedDockerConfig config = provider.GetCombinedConfig(module, runtimeInfo);
+
+            // Assert
+            Assert.NotNull(config.CreateOptions?.Labels);
+            Assert.Equal(2, config.CreateOptions.Labels.Count);
+            Assert.Equal(createOptions, config.CreateOptions.Labels[Constants.Labels.CreateOptions]);
+            Assert.Equal(jsonEnv, config.CreateOptions.Labels[Constants.Labels.Env]);
+        }
+
     }
 }

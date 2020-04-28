@@ -31,7 +31,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
 
             CreateContainerParameters createOptions = CloneOrCreateParams(combinedConfig.CreateOptions);
 
-            // save edge agent's createOptions + env as container labels so they're available as soon as it loads
+            // before making any other modifications to createOptions, save edge agent's createOptions + env as
+            // container labels so they're available as soon as it loads
             InjectEdgeAgentLabels(module, createOptions);
 
             // if the workload URI is a Unix domain socket then volume mount it into the container
@@ -77,10 +78,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             // it ever starts.
             if (module.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase))
             {
+                // get createOptions JSON before making any updates to labels
+                string createOptionsJson = JsonConvert.SerializeObject(createOptions);
+
                 var moduleWithDockerConfig = (IModule<DockerConfig>)module; // cast is safe; base impl already checked it
+                var env = moduleWithDockerConfig.Env ?? new Dictionary<string, EnvVal>();
+
                 var labels = createOptions.Labels ?? new Dictionary<string, string>();
-                labels.Add(Constants.Labels.CreateOptions, JsonConvert.SerializeObject(createOptions));
-                labels.Add(Constants.Labels.Env, JsonConvert.SerializeObject(moduleWithDockerConfig.Env));
+                labels.Add(Constants.Labels.CreateOptions, createOptionsJson);
+                labels.Add(Constants.Labels.Env, JsonConvert.SerializeObject(env));
                 createOptions.Labels = labels;
             }
         }
