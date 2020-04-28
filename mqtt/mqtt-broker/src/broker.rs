@@ -2181,6 +2181,53 @@ pub(crate) mod tests {
         check_notify_recieved(&mut a_rx, &["client_a", "client_b", "client_d"]).await;
     }
 
+    #[tokio::test]
+    async fn test_add_remove_subscription() {
+        let broker = BrokerBuilder::default()
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authorizer(|_| Ok(true))
+            .build();
+
+        let mut broker_handle = broker.handle();
+        tokio::spawn(broker.run().map(drop));
+
+        let (a_id, mut a_rx) = connect_client("client_a", &mut broker_handle)
+            .await
+            .unwrap();
+
+        let (b_id, mut b_rx) = connect_client("client_b", &mut broker_handle)
+            .await
+            .unwrap();
+
+        send_subscribe(
+            &mut broker_handle,
+            &mut a_rx,
+            a_id.clone(),
+            "$sys/subscriptions/client_b".to_owned(),
+        )
+        .await;
+
+        send_subscribe(
+            &mut broker_handle,
+            &mut b_rx,
+            b_id.clone(),
+            "foo".to_owned(),
+        )
+        .await;
+
+        check_notify_recieved(&mut a_rx, &["foo"]).await;
+
+        send_subscribe(
+            &mut broker_handle,
+            &mut b_rx,
+            b_id.clone(),
+            "bar".to_owned(),
+        )
+        .await;
+
+        check_notify_recieved(&mut a_rx, &["foo", "bar"]).await;
+    }
+
     async fn connect_client(
         client_id: &str,
         broker_handle: &mut BrokerHandle,
