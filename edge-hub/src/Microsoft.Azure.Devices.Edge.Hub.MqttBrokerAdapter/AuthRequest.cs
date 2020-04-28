@@ -3,7 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 {
     using System.Linq;
     using Newtonsoft.Json;
-    
+
     public class AuthRequest
     {
         [JsonConstructor]

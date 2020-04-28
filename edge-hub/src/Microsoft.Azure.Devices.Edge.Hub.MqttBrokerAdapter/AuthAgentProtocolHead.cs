@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft. All rights reserve.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 {
     using System;
@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System.Threading.Tasks;
 
     using Microsoft.AspNetCore.Hosting;
-
 
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;

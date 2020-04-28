@@ -11,29 +11,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System.Threading.Tasks;
 
     using Microsoft.AspNetCore;
+    using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Http;
-    using Microsoft.AspNetCore.Builder;
-    using Microsoft.Extensions.DependencyInjection.Extensions;
 
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
 
+    using Microsoft.Extensions.DependencyInjection.Extensions;
     using Microsoft.Extensions.Logging;
-    using Newtonsoft.Json;
-     
     using Microsoft.Net.Http.Headers;
 
-    public class AuthAgentRequestHandler 
-    {
-        static readonly TimeSpan requestTimeout = TimeSpan.FromSeconds(5);
+    using Newtonsoft.Json;
 
+    public class AuthAgentRequestHandler
+    {
         // The maximum allowed request size. The biggest item in a request the certificate chain,
         // 32k for the certificates and other data should me more than enough. Bigger requests are
         // refused.
-        const int maxInBufferSize = 32 * 1024;
-        const string post = "POST";
+        const int MaxInBufferSize = 32 * 1024;
+        const string Post = "POST";
+
+        static readonly TimeSpan requestTimeout = TimeSpan.FromSeconds(5);
 
         readonly IAuthenticator authenticator;
         readonly IUsernameParser usernameParser;
@@ -65,8 +65,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                           .Build();
         }
 
-        public void Configure(IApplicationBuilder app) => app.Use(CallFilter).Run(Handler);
-        
+        public void Configure(IApplicationBuilder app) => app.Use(this.CallFilter).Run(this.Handler);
+
         async Task Handler(HttpContext context)
         {
             try
@@ -78,8 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
                 await requestRecord.Match(
                     async r => await this.SendResponseAsync(r, context),
-                    async () => await SendErrorAsync(context)
-                );
+                    async () => await SendErrorAsync(context));
             }
             catch (Exception e)
             {
@@ -141,8 +140,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             try
             {
-                var isPasswordPresent = !String.IsNullOrWhiteSpace(request.Password);
-                var isCertificatePresent = !String.IsNullOrWhiteSpace(request.EncodedCertificate);
+                var isPasswordPresent = !string.IsNullOrWhiteSpace(request.Password);
+                var isCertificatePresent = !string.IsNullOrWhiteSpace(request.EncodedCertificate);
 
                 if (isPasswordPresent && isCertificatePresent)
                 {
@@ -161,7 +160,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 }
                 else
                 {
-                    Events.NoCredentialsSpecified();                    
+                    Events.NoCredentialsSpecified();
                 }
             }
             catch (Exception e)
@@ -176,11 +175,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             try
             {
-                return await this.authenticator.AuthenticateAsync(credentials);                
+                return await this.authenticator.AuthenticateAsync(credentials);
             }
             catch (Exception e)
             {
-                Events.InvalidCredentials(e);                               
+                Events.InvalidCredentials(e);
             }
 
             return false;
@@ -198,12 +197,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             {
                 Events.AuthSucceeded(id);
                 return SendAsync(context, $@"{{""result"":200,""identity"":""{iotHubName}/{id}"",""version"":""2020-04-20""}}");
-                
             }
             else
             {
                 Events.AuthFailed(id);
-                return SendErrorAsync(context);                
+                return SendErrorAsync(context);
             }
         }
 
@@ -236,7 +234,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             {
                 var startTime = DateTime.Now;
                 do
-                {                        
+                {
                     bytesRead += await request.Body.ReadAsync(requestBodyBuffer, 0 + bytesRead, requestBodyBuffer.Length - bytesRead, GetTimeoutToken());
                 }
                 while (NoRequestTimeout(startTime) && IsKnownPayloadSize(request) && bytesRead < requestBodyBuffer.Length);
@@ -244,13 +242,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 if (IsKnownPayloadSize(request) && bytesRead < requestBodyBuffer.Length)
                 {
                     Events.CouldNotReadFull();
-                    return Option.None<String>();
+                    return Option.None<string>();
                 }
             }
             catch (Exception e)
             {
                 Events.ErrorReadingStream(e);
-                return Option.None<String>();
+                return Option.None<string>();
             }
 
             try
@@ -260,17 +258,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             catch (Exception e)
             {
                 Events.ErrorDecodingStream(e);
-                return Option.None<String>();
+                return Option.None<string>();
             }
 
-            return Option.Some<String>(result);
+            return Option.Some<string>(result);
         }
 
         static byte[] GetRequestBodyBuffer(HttpRequest request)
         {
             // the request may contain the content-length in the header - or not
-            var requestSize = IsKnownPayloadSize(request) ? request.ContentLength.Value : maxInBufferSize;
-            
+            var requestSize = IsKnownPayloadSize(request) ? request.ContentLength.Value : MaxInBufferSize;
+
             return new byte[requestSize];
         }
 
@@ -278,7 +276,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             // if the client sends too big number in the header - don't believe it
             // in that case use a maximum and treat the size as unknown
-            return request.ContentLength.HasValue && request.ContentLength.Value < maxInBufferSize;
+            return request.ContentLength.HasValue && request.ContentLength.Value < MaxInBufferSize;
         }
 
         static bool NoRequestTimeout(DateTime startTime)
@@ -294,13 +292,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return cts.Token;
         }
 
-        static bool IsPost(string verb) => String.Equals(verb, post, StringComparison.OrdinalIgnoreCase);
+        static bool IsPost(string verb) => string.Equals(verb, Post, StringComparison.OrdinalIgnoreCase);
 
         static Option<AuthRequest> Decode(Option<string> request)
-        {            
+        {
             try
             {
-                return request.Map(s => JsonConvert.DeserializeObject<AuthRequest>(s));                
+                return request.Map(s => JsonConvert.DeserializeObject<AuthRequest>(s));
             }
             catch (Exception e)
             {
@@ -310,7 +308,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         }
 
         static X509Certificate2 DecodeCertificate(string encodedCertificate)
-        {            
+        {
             try
             {
                 var certificateContent = Convert.FromBase64String(encodedCertificate);
@@ -334,7 +332,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             else
             {
                 return new List<X509Certificate2>();
-            }                
+            }
         }
 
         static void SetupTimeouts(HttpListener listener)
