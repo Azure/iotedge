@@ -2336,7 +2336,7 @@ pub(crate) mod tests {
             subscribe_to: topics
                 .iter()
                 .map(|t| proto::SubscribeTo {
-                    topic_filter: t.to_string(),
+                    topic_filter: (*t).to_owned(),
                     qos: proto::QoS::AtLeastOnce,
                 })
                 .collect(),
@@ -2359,7 +2359,7 @@ pub(crate) mod tests {
     ) {
         let unsubscribe = proto::Unsubscribe {
             packet_identifier: proto::PacketIdentifier::new(1).unwrap(),
-            unsubscribe_from: topics.iter().map(|s| s.to_string()).collect(),
+            unsubscribe_from: topics.iter().map(|t| (*t).to_owned()).collect(),
         };
 
         let message = Message::Client(client_id, ClientEvent::Unsubscribe(unsubscribe));
@@ -2377,13 +2377,13 @@ pub(crate) mod tests {
             ClientEvent::PublishTo(Publish::QoS0(_, proto::Publish { payload, .. })),
         )) = rx.recv().await
         {
-            is_notify_equal(payload, expected);
+            is_notify_equal(&payload, expected);
         } else {
             panic!("Expected to recieve a PublishTo");
         }
     }
 
-    fn is_notify_equal(payload: Bytes, expected: &[&str]) {
+    fn is_notify_equal(payload: &Bytes, expected: &[&str]) {
         let payload: String = String::from_utf8(payload.to_vec()).unwrap();
         let mut payload: Vec<&str> = payload.split("\\u{0000}").collect();
         payload.sort();
