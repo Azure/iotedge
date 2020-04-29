@@ -129,14 +129,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 "version1");
 
             var runtimeModuleWithLabels = new EdgeAgentDockerRuntimeModule(
-                new DockerConfig("Foo", JsonConvert.SerializeObject(new
-                {
-                    Labels = new Dictionary<string, object>
+                new DockerConfig(
+                    "Foo",
+                    JsonConvert.SerializeObject(new
                     {
-                        [Constants.Labels.CreateOptions] = CreateOptions,
-                        [Constants.Labels.Env] = Env
-                    }
-                }), Option.None<NotaryContentTrust>()),
+                        Labels = new Dictionary<string, object>
+                        {
+                            [Constants.Labels.CreateOptions] = CreateOptions,
+                            [Constants.Labels.Env] = Env
+                        }
+                    }),
+                    Option.None<NotaryContentTrust>()),
                 ModuleStatus.Running,
                 0,
                 "desc",

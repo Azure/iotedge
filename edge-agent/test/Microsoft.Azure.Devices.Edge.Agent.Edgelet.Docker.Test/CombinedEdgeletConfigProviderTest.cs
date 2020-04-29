@@ -254,7 +254,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             }
         }
 
-        (IDictionary<string, EnvVal>, string) CreateEnv(params (string key, string value)[] pairs)
+        static (IDictionary<string, EnvVal>, string) CreateEnv(params (string key, string value)[] pairs)
         {
             var dict = new Dictionary<string, EnvVal>();
             foreach (var (key, value) in pairs)
@@ -278,7 +278,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             var runtimeInfo = Mock.Of<IRuntimeInfo<DockerRuntimeConfig>>(ri =>
                 ri.Config == new DockerRuntimeConfig("1.24", string.Empty));
 
-            var module = Mock.Of<IModule<DockerConfig>>(m => m.Config == new DockerConfig("some-image:latest", createOptions)
+            var module = Mock.Of<IModule<DockerConfig>>(m => m.Config == new DockerConfig("some-image:latest", createOptions, Option.None<NotaryContentTrust>())
                 && m.Name == Constants.EdgeAgentModuleName
                 && m.Env == dictEnv);
 
