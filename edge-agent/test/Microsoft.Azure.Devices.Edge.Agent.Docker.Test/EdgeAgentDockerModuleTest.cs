@@ -89,6 +89,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(areEqual, result);
         }
 
+        public static EdgeAgentDockerRuntimeModule CreateEdgeAgentDockerRuntimeModule(DockerConfig config) =>
+            new EdgeAgentDockerRuntimeModule(
+                config,
+                ModuleStatus.Running,
+                0,
+                "desc",
+                DateTime.Now,
+                DateTime.Now,
+                ImagePullPolicy.Never,
+                new ConfigurationInfo(),
+                new Dictionary<string, EnvVal> { ["hello"] = new EnvVal("world") },
+                "version2");
+
         [Fact]
         [Unit]
         public void MixedIModuleImplEqualsTest()
@@ -104,55 +117,55 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 JsonConvert.DeserializeObject<IDictionary<string, EnvVal>>(Env),
                 "version1");
 
-            var simpleRuntimeModule = new EdgeAgentDockerRuntimeModule(
-                new DockerConfig("Foo"),
-                ModuleStatus.Running,
-                0,
-                "desc",
-                DateTime.Now,
-                DateTime.Now,
-                ImagePullPolicy.Never,
-                new ConfigurationInfo(),
-                null,
-                string.Empty);
+            var simpleRuntimeModule = CreateEdgeAgentDockerRuntimeModule(new DockerConfig("Foo"));
 
-            var fullRuntimeModule = new EdgeAgentDockerRuntimeModule(
-                new DockerConfig("Foo", createOptions: "{\"ignore\": \"me\"}", Option.None<NotaryContentTrust>()),
-                ModuleStatus.Running,
-                0,
-                "desc",
-                DateTime.Now,
-                DateTime.Now,
-                ImagePullPolicy.OnCreate,
-                new ConfigurationInfo(),
-                new Dictionary<string, EnvVal> { ["hello"] = new EnvVal("world") },
-                "version1");
+            var fullRuntimeModule = CreateEdgeAgentDockerRuntimeModule(new DockerConfig(
+                "Foo",
+                createOptions: "{\"ignore\": \"me\"}",
+                Option.None<NotaryContentTrust>()));
 
-            var runtimeModuleWithLabels = new EdgeAgentDockerRuntimeModule(
-                new DockerConfig(
-                    "Foo",
-                    JsonConvert.SerializeObject(new
+            var runtimeModuleWithLabels = CreateEdgeAgentDockerRuntimeModule(new DockerConfig(
+                "Foo",
+                JsonConvert.SerializeObject(new
+                {
+                    Labels = new Dictionary<string, object>
                     {
-                        Labels = new Dictionary<string, object>
-                        {
-                            [Constants.Labels.CreateOptions] = CreateOptions,
-                            [Constants.Labels.Env] = Env
-                        }
-                    }),
-                    Option.None<NotaryContentTrust>()),
-                ModuleStatus.Running,
-                0,
-                "desc",
-                DateTime.Now,
-                DateTime.Now,
-                ImagePullPolicy.OnCreate,
-                new ConfigurationInfo(),
-                new Dictionary<string, EnvVal> { ["hello"] = new EnvVal("world") },
-                "version1");
+                        [Constants.Labels.CreateOptions] = CreateOptions,
+                        [Constants.Labels.Env] = Env
+                    }
+                }),
+                Option.None<NotaryContentTrust>()));
+
+            var runtimeModuleWithMismatchedCreateOptionsLabel = CreateEdgeAgentDockerRuntimeModule(new DockerConfig(
+                "Foo",
+                JsonConvert.SerializeObject(new
+                {
+                    Labels = new Dictionary<string, object>
+                    {
+                        [Constants.Labels.CreateOptions] = "{\"a\":\"b\"}",
+                        [Constants.Labels.Env] = Env
+                    }
+                }),
+                Option.None<NotaryContentTrust>()));
+
+            var runtimeModuleWithMismatchedEnvLabel = CreateEdgeAgentDockerRuntimeModule(new DockerConfig(
+                "Foo",
+                JsonConvert.SerializeObject(new
+                {
+                    Labels = new Dictionary<string, object>
+                    {
+                        [Constants.Labels.CreateOptions] = CreateOptions,
+                        [Constants.Labels.Env] = "{\"a\":{\"value\":\"b\"}}"
+                    }
+                }),
+                Option.None<NotaryContentTrust>()));
 
             Assert.True(fullModule.Equals(simpleRuntimeModule));
             Assert.True(fullModule.Equals(fullRuntimeModule));
             Assert.True(fullModule.Equals(runtimeModuleWithLabels));
+
+            Assert.False(fullModule.Equals(runtimeModuleWithMismatchedCreateOptionsLabel));
+            Assert.False(fullModule.Equals(runtimeModuleWithMismatchedEnvLabel));
         }
     }
 }
