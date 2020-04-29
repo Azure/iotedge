@@ -32,7 +32,7 @@ fn one_to_one(c: &mut Criterion) {
     let qoses = vec![proto::QoS::AtMostOnce, proto::QoS::AtLeastOnce];
 
     let mut group = c.benchmark_group("1-to-1");
-    for (qos, sub_count, payload_size) in iproduct!(qoses, subscribers, sizes).take(1) {
+    for (qos, sub_count, payload_size) in iproduct!(qoses, subscribers, sizes) {
         dispatch_messages(&mut group, sub_count, payload_size, qos);
     }
     group.finish();
@@ -46,15 +46,19 @@ fn dispatch_messages(
 ) {
     let mut runtime = Runtime::new().expect("runtime");
 
-    let broker = BrokerBuilder::default()
+    let mut broker = BrokerBuilder::default()
         .authenticator(|_| Ok(Some(AuthId::Anonymous)))
         .authorizer(|_| Ok(true))
         .build();
+
+    let (on_publish_tx, mut on_publish_rx) = mpsc::channel(1024);
+    broker.on_publish = Some(on_publish_tx);
+
     let mut broker_handle = broker.handle();
 
     let broker_task = runtime.spawn(broker.run());
 
-    let client_tasks: Vec<_> = (0..sub_count)
+    let subscriber_tasks: Vec<_> = (0..sub_count)
         .map(|sub_id| {
             let broker_handle = broker_handle.clone();
 
@@ -94,12 +98,17 @@ fn dispatch_messages(
                     ClientEvent::PublishFrom(publish),
                 )
             },
-            |message| runtime.block_on(broker_handle.send(message)),
+            |message| {
+                runtime.block_on(async {
+                    broker_handle.send(message).await.expect("publish");
+                    on_publish_rx.recv().await.expect("publish processed");
+                });
+            },
             BatchSize::SmallInput,
         )
     });
 
-    let tasks: Vec<_> = client_tasks
+    let tasks: Vec<_> = subscriber_tasks
         .into_iter()
         .chain(publisher_tasks.into_iter())
         .collect();
@@ -128,7 +137,6 @@ struct Client {
     client_id: ClientId,
     broker_handle: BrokerHandle,
     rx: Receiver<Message>,
-
     pubs_to_be_acked: Arc<Mutex<HashSet<proto::PacketIdentifier>>>,
 }
 

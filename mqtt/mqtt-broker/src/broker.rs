@@ -38,6 +38,8 @@ where
     retained: HashMap<String, proto::Publication>,
     authenticator: N,
     authorizer: Z,
+
+    pub on_publish: Option<Sender<()>>,
 }
 
 impl<N, Z> Broker<N, Z>
@@ -479,6 +481,10 @@ where
             }
         } else {
             debug!("no session for {}", client_id);
+        }
+
+        if let Some(on_publish) = &mut self.on_publish {
+            on_publish.send(()).await.expect("on_publish");
         }
 
         Ok(())
@@ -981,6 +987,8 @@ where
             retained,
             authenticator: self.authenticator,
             authorizer: self.authorizer,
+
+            on_publish: None,
         }
     }
 }
