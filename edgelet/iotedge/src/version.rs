@@ -2,7 +2,6 @@
 
 use clap::crate_name;
 
-use edgelet_core;
 use futures::future::{self, FutureResult};
 
 use crate::error::Error;
