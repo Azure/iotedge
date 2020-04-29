@@ -9,18 +9,21 @@ ARG EXE_DIR=.
 RUN apk update && \
     apk add --no-cache snappy libcap
 
-ENV MODULE_NAME "TwinTester.dll"
+ENV MODULE_NAME "TestResultCoordinator.dll"
 
 WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-# Install RocksDB
-COPY --from=builder publish/* /usr/local/lib/
+# Expose HTTP port
+EXPOSE 5001/tcp
 
 # Add an unprivileged user account for running the module
 RUN adduser -Ds /bin/sh moduleuser 
 USER moduleuser
 
+# Install RocksDB
+COPY --from=builder publish/* /usr/local/lib/
+
 CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Module" && \
-    exec /usr/bin/dotnet TwinTester.dll
+    exec /usr/bin/dotnet TestResultCoordinator.dll
