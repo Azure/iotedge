@@ -129,7 +129,7 @@ if ($CreateTemplate) {
             'https://edgebuild.blob.core.windows.net/iotedge-win-arm32v7-tools/dockerd.exe'
         }
         else {
-            'https://mby.blob.core.windows.net/mby-win-amd64/dockerd-3.0.5.exe'
+            'https://tempmby.blob.core.windows.net/master/dockerd.exe'
         }
     $docker_engine_license_uri = 'https://mby.blob.core.windows.net/mby/LICENSE-engine'
     $docker_engine_tpn_uri = 'https://mby.blob.core.windows.net/mby/ThirdPartyNotices-engine'
