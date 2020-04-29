@@ -26,6 +26,7 @@ mod server;
 mod session;
 mod snapshot;
 mod subscription;
+mod sys_topic;
 mod transport;
 
 pub use crate::auth::{AuthId, Authenticator, Authorizer, Certificate};
@@ -39,6 +40,7 @@ pub use crate::persist::{
 pub use crate::server::Server;
 pub use crate::session::SessionState;
 pub use crate::snapshot::{Snapshotter, StateSnapshotHandle};
+pub use crate::sys_topic::*;
 pub use crate::transport::TransportBuilder;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]

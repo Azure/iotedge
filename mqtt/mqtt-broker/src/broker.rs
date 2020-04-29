@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use bytes::Bytes;
 use futures_util::future;
 use mqtt3::proto;
 use serde::{Deserialize, Serialize};
@@ -13,6 +12,7 @@ use crate::auth::{
     Operation,
 };
 use crate::session::{ConnectedSession, Session, SessionState};
+use crate::sys_topic::{get_sys_message, StateChange, SysMessage};
 use crate::{
     subscription::Subscription, AuthId, ClientEvent, ClientId, ConnReq, Error, Message, SystemEvent,
 };
@@ -324,7 +324,8 @@ where
 
         debug!("connect handled.");
 
-        self.notify_connection_change().await;
+        self.send_sys_message(get_sys_message(&StateChange::AddConnection(&self.sessions)))
+            .await?;
 
         Ok(())
     }
@@ -332,7 +333,11 @@ where
     async fn process_disconnect(&mut self, client_id: ClientId) -> Result<(), Error> {
         debug!("handling disconnect...");
         if let Some(mut session) = self.close_session(&client_id) {
-            self.notify_disconnect(&client_id).await;
+            self.send_sys_message(get_sys_message(&StateChange::RemoveConnection(
+                &self.sessions,
+                &client_id,
+            )))
+            .await?;
             session
                 .send(ClientEvent::Disconnect(proto::Disconnect))
                 .await?;
@@ -351,7 +356,11 @@ where
     async fn drop_connection(&mut self, client_id: ClientId) -> Result<(), Error> {
         debug!("handling drop connection...");
         if let Some(mut session) = self.close_session(&client_id) {
-            self.notify_disconnect(&client_id).await;
+            self.send_sys_message(get_sys_message(&StateChange::RemoveConnection(
+                &self.sessions,
+                &client_id,
+            )))
+            .await?;
             session.send(ClientEvent::DropConnection).await?;
 
             // Ungraceful disconnect - send the will
@@ -370,7 +379,11 @@ where
         debug!("handling close session...");
         if let Some(session) = self.close_session(&client_id) {
             debug!("session removed");
-            self.notify_disconnect(&client_id).await;
+            self.send_sys_message(get_sys_message(&StateChange::RemoveConnection(
+                &self.sessions,
+                &client_id,
+            )))
+            .await?;
 
             // Ungraceful disconnect - send the will
             if let Some(will) = session.into_will() {
@@ -425,16 +438,19 @@ where
             .cloned()
             .collect::<Vec<proto::Publication>>();
 
+        let mut sys_message = SysMessage::None;
         if let Some(session) = self.sessions.get_mut(&client_id) {
             for mut publication in publications {
                 publication.retain = true;
                 publish_to(&self.authorizer, session, &publication).await?;
+
+                sys_message = get_sys_message(&StateChange::Subscriptions(&session));
             }
         } else {
             debug!("no session for {}", client_id);
         }
 
-        self.notify_subscription_change(&client_id).await;
+        self.send_sys_message(sys_message).await?;
 
         Ok(())
     }
@@ -448,7 +464,10 @@ where
             Ok(session) => {
                 let unsuback = session.unsubscribe(&unsubscribe)?;
                 session.send(ClientEvent::UnsubAck(unsuback)).await?;
-                self.notify_subscription_change(&client_id).await;
+
+                let sys_message = get_sys_message(&StateChange::Subscriptions(&session));
+                self.send_sys_message(sys_message).await?;
+
                 Ok(())
             }
             Err(NoSessionError) => {
@@ -812,96 +831,22 @@ where
         Ok(())
     }
 
-    async fn notify_subscription_change(&mut self, client_id: &ClientId) {
-        let topics: String = self
-            .sessions
-            .get(client_id) // find session that changed
-            .and_then(|session| match session {
-                // get session state
-                Session::Transient(connected) => Some(connected.state()),
-                Session::Persistent(connected) => Some(connected.state()),
-                Session::Offline(offline) => Some(offline.state()),
-                _ => None,
-            })
-            .map(|state| state.subscriptions().keys()) // get topic filters
-            .map(|topics| {
-                topics
-                    .map(|t| t.as_ref())
-                    .collect::<Vec<&str>>()
-                    .join(r"\u{0000}")
-            }) // join to string for payload
-            .unwrap_or_default(); // no subscriptions is default
+    // async fn send_sys_message(get_sys_message(&mut self, change: &StateChange<'_>) {
+    //     send_sys_message(get_sys_message(change)).await;
+    // }
 
-        let publication = proto::Publication {
-            topic_name: format!("$sys/subscriptions/{}", client_id),
-            qos: proto::QoS::AtMostOnce, //no ack
-            retain: true,
-            payload: Bytes::from(topics),
+    async fn send_sys_message(&mut self, message: SysMessage) -> Result<(), Error> {
+        match message {
+            SysMessage::Single(publication) => self.publish_all(publication).await?,
+            SysMessage::Multiple(publications) => {
+                for publication in publications {
+                    self.publish_all(publication).await?;
+                }
+            }
+            SysMessage::None => (),
         };
 
-        handle_notify_error(self.publish_all(publication).await);
-    }
-
-    async fn notify_disconnect(&mut self, client_id: &ClientId) {
-        if self.sessions.get(client_id).is_none() {
-            // If transient session is closed, remove its subscriptions
-            let publication = proto::Publication {
-                topic_name: format!("$sys/subscriptions/{}", client_id),
-                qos: proto::QoS::AtMostOnce, //no ack
-                retain: true,
-                payload: Bytes::from("".to_owned()),
-            };
-
-            handle_notify_error(self.publish_all(publication).await);
-        }
-
-        self.notify_connection_change().await;
-    }
-
-    async fn notify_connection_change(&mut self) {
-        let connected: String = self
-            .sessions
-            .iter()
-            .filter_map(|(client_id, session)| match session {
-                Session::Transient(_) => Some(client_id.as_str()),
-                Session::Persistent(_) => Some(client_id.as_str()),
-                _ => None,
-            })
-            .collect::<Vec<&str>>()
-            .join(r"\u{0000}");
-
-        let publication = proto::Publication {
-            topic_name: "$sys/connected".to_owned(),
-            qos: proto::QoS::AtMostOnce, //no ack
-            retain: true,
-            payload: Bytes::from(connected),
-        };
-
-        handle_notify_error(self.publish_all(publication).await);
-        self.notify_session_change().await;
-    }
-
-    async fn notify_session_change(&mut self) {
-        let sessions: String = self
-            .sessions
-            .iter()
-            .filter_map(|(client_id, session)| match session {
-                Session::Transient(_) => Some(client_id.as_str()),
-                Session::Persistent(_) => Some(client_id.as_str()),
-                Session::Offline(_) => Some(client_id.as_str()),
-                _ => None,
-            })
-            .collect::<Vec<&str>>()
-            .join(r"\u{0000}");
-
-        let publication = proto::Publication {
-            topic_name: "$sys/sessions".to_owned(),
-            qos: proto::QoS::AtMostOnce, //no ack
-            retain: true,
-            payload: Bytes::from(sessions),
-        };
-
-        handle_notify_error(self.publish_all(publication).await);
+        Ok(())
     }
 }
 
@@ -999,12 +944,6 @@ where
         }
     }
     Ok(())
-}
-
-fn handle_notify_error(result: Result<(), Error>) {
-    if let Err(error) = result {
-        warn!("Error when notifying: {:#?}", error);
-    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Deserialize, Serialize)]
