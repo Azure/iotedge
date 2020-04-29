@@ -128,13 +128,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         async Task ReceiveEventsFromIotHub(DateTime startTime, ConcurrentQueue<MessageTestResult> messages, PriorityQueueTestStatus loadGenTestStatus, CancellationToken token)
         {
-            int results = 0;
+            // Use a set to account for duplicates
+            HashSet<int> results = new HashSet<int>();
             await this.iotHub.ReceiveEventsAsync(
                 this.runtime.DeviceId,
                 startTime,
                 data =>
                 {
-                    Log.Information($"Received message from IoTHub with sequence number: {data.Properties["sequenceNumber"]}");
+                    int sequenceNumber = int.Parse(data.Properties["sequenceNumber"].ToString());
+                    Log.Information($"Received message from IoTHub with sequence number: {sequenceNumber}");
 
                     messages.Enqueue(new MessageTestResult("hubtest.receive", DateTime.UtcNow)
                     {
@@ -143,9 +145,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         SequenceNumber = data.Properties["sequenceNumber"].ToString()
                     });
 
-                    // TODO account for duplicates
-                    results++;
-                    return results == loadGenTestStatus.ResultCount;
+                    results.Add(sequenceNumber);
+                    return results.Count == loadGenTestStatus.ResultCount;
                 },
                 token);
         }
