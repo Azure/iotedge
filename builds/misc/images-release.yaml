@@ -356,13 +356,13 @@ jobs:
       registry.address: edgerelease.azurecr.io
       registry.user: EdgeRelease
   - job: windows
-    demands: 
-      - "Build-Image -equals true"
-      - win-rs5
-      - DotNetFramework
     displayName: Windows
-    name: Azure-IoT-Edge-Core
-    pool: ~
+    pool:
+      name: Azure-IoT-Edge-Core
+      demands: 
+        - "Build-Image -equals true"
+        - win-rs5
+        - DotNetFramework
     steps: 
       - task: DotNetCoreInstaller@0
         displayName: "Install .NET Core - 3.1.3"
