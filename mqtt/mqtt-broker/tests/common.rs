@@ -10,17 +10,18 @@ use futures_util::{FutureExt, StreamExt};
 use lazy_static::lazy_static;
 use tokio::{
     net::ToSocketAddrs,
+    stream::Stream,
     sync::{
         mpsc::{self, UnboundedReceiver},
         oneshot::{self, Sender},
     },
-    task::{JoinError, JoinHandle},
+    task::JoinHandle,
 };
 
 use mqtt3::{
-    proto::{Publication, SubscribeTo},
-    Client, Event, PublishError, PublishHandle, ShutdownError, ShutdownHandle,
-    UpdateSubscriptionError, UpdateSubscriptionHandle,
+    proto::{Publication, QoS, SubscribeTo},
+    Client, Event, PublishError, PublishHandle, ShutdownHandle, UpdateSubscriptionError,
+    UpdateSubscriptionHandle,
 };
 use mqtt_broker::{Authenticator, Authorizer, Broker, BrokerState, Error, Server};
 
@@ -44,6 +45,39 @@ impl TestClient {
         self.publish_handle.publish(publication).await
     }
 
+    pub async fn publish_qos0(&mut self, topic: &str, payload: &str, retain: bool) {
+        self.publish(Publication {
+            topic_name: topic.into(),
+            qos: QoS::AtMostOnce,
+            retain,
+            payload: payload.to_owned().into(),
+        })
+        .await
+        .expect("couldn't publish")
+    }
+
+    pub async fn publish_qos1(&mut self, topic: &str, payload: &str, retain: bool) {
+        self.publish(Publication {
+            topic_name: topic.into(),
+            qos: QoS::AtLeastOnce,
+            retain,
+            payload: payload.to_owned().into(),
+        })
+        .await
+        .expect("couldn't publish")
+    }
+
+    pub async fn publish_qos2(&mut self, topic: &str, payload: &str, retain: bool) {
+        self.publish(Publication {
+            topic_name: topic.into(),
+            qos: QoS::ExactlyOnce,
+            retain,
+            payload: payload.to_owned().into(),
+        })
+        .await
+        .expect("couldn't publish")
+    }
+
     pub async fn subscribe(
         &mut self,
         subscribe_to: SubscribeTo,
@@ -51,9 +85,21 @@ impl TestClient {
         self.subscription_handle.subscribe(subscribe_to).await
     }
 
+    pub async fn subscribe_qos2(&mut self, topic_filter: &str) {
+        self.subscribe(SubscribeTo {
+            topic_filter: topic_filter.into(),
+            qos: QoS::ExactlyOnce,
+        })
+        .await
+        .expect("couldn't subscribe to a topic")
+    }
+
     /// Initiates sending Disconnect packet and proper client shutdown.
-    pub async fn shutdown(&mut self) -> Result<(), ShutdownError> {
-        self.shutdown_handle.shutdown().await
+    pub async fn shutdown(&mut self) {
+        self.shutdown_handle
+            .shutdown()
+            .await
+            .expect("couldn't shutdown")
     }
 
     pub fn shutdown_handle(&mut self) -> ShutdownHandle {
@@ -61,20 +107,28 @@ impl TestClient {
     }
 
     /// Terminates client w/o sending Disconnect packet.
-    pub async fn terminate(self) -> Result<(), JoinError> {
+    pub async fn terminate(self) {
         self.termination_handle
             .send(())
             .expect("unable to send termination signal");
-        self.event_loop_handle.await
+        self.event_loop_handle
+            .await
+            .expect("couldn't terminate a client")
     }
 
-    /// Watis until client's event loop is finished.
-    pub async fn join(self) -> Result<(), JoinError> {
-        self.event_loop_handle.await
+    /// Waits until client's event loop is finished.
+    pub async fn join(self) {
+        self.event_loop_handle
+            .await
+            .expect("couldn't wait for client event loop to finish")
+    }
+
+    pub async fn try_recv(&mut self) -> Option<Event> {
+        self.events_receiver.try_recv().ok()
     }
 }
 
-impl tokio::stream::Stream for TestClient
+impl Stream for TestClient
 where
     Self: Unpin,
 {
