@@ -87,26 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.ToggleConnectivity(true, NetworkControllerModuleName, token);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
             ConcurrentQueue<MessageTestResult> messages = new ConcurrentQueue<MessageTestResult>();
-            int results = 0;
-            await this.iotHub.ReceiveEventsAsync(
-                this.runtime.DeviceId,
-                deployment.StartTime,
-                data =>
-                {
-                    Log.Information($"Received message from IoTHub with sequence number: {data.Properties["sequenceNumber"]}");
-
-                    messages.Enqueue(new MessageTestResult("hubtest.receive", DateTime.UtcNow)
-                    {
-                        TrackingId = data.Properties["trackingId"].ToString(),
-                        BatchId = data.Properties["batchId"].ToString(),
-                        SequenceNumber = data.Properties["sequenceNumber"].ToString()
-                    });
-
-                    // TODO account for duplicates
-                    results++;
-                    return results == loadGenTestStatus.ResultCount;
-                },
-                token);
+            await this.ReceiveEventsFromIotHub(deployment.StartTime, messages, loadGenTestStatus, token);
             while (messages.TryDequeue(out MessageTestResult messageTestResult))
             {
                 await testResultReportingClient.ReportResultAsync(messageTestResult.ToTestOperationResultDto());
@@ -143,6 +124,30 @@ namespace Microsoft.Azure.Devices.Edge.Test
             deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token, false);
             await this.PollUntilFinishedAsync(RelayerModuleName, token);
             await this.ValidateResultsAsync();
+        }
+
+        async Task ReceiveEventsFromIotHub(DateTime startTime, ConcurrentQueue<MessageTestResult> messages, PriorityQueueTestStatus loadGenTestStatus, CancellationToken token)
+        {
+            int results = 0;
+            await this.iotHub.ReceiveEventsAsync(
+                this.runtime.DeviceId,
+                startTime,
+                data =>
+                {
+                    Log.Information($"Received message from IoTHub with sequence number: {data.Properties["sequenceNumber"]}");
+
+                    messages.Enqueue(new MessageTestResult("hubtest.receive", DateTime.UtcNow)
+                    {
+                        TrackingId = data.Properties["trackingId"].ToString(),
+                        BatchId = data.Properties["batchId"].ToString(),
+                        SequenceNumber = data.Properties["sequenceNumber"].ToString()
+                    });
+
+                    // TODO account for duplicates
+                    results++;
+                    return results == loadGenTestStatus.ResultCount;
+                },
+                token);
         }
 
         private async Task ValidateResultsAsync()
