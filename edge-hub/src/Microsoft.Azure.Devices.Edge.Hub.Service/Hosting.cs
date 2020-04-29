@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                                     port,
                                     listenOptions =>
                                     {
-                                        listenOptions.UseHttpsExtensions(
+                                        listenOptions.UseHttps(
                                             new HttpsConnectionAdapterOptions()
                                             {
                                                 ServerCertificate = serverCertificate,
