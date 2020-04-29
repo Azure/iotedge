@@ -212,8 +212,8 @@ jobs:
         name: build
         displayName: Build ($(Build.Configuration))
 
-      - powershell: edgelet/build/windows/build-diagnostics.ps1 -BuildConfiguration $(Build.Configuration)
-        displayName: Build iotedge-diagnostics
+      # - powershell: edgelet/build/windows/build-diagnostics.ps1 -BuildConfiguration $(Build.Configuration)
+      #   displayName: Build iotedge-diagnostics
 
       - powershell: scripts/windows/build/Create-ArtifactInfo.ps1 -outputFolder '$(Build.BinariesDirectory)/publish' -buildNumber $(Build.BuildNumber)
         displayName: 'Create Artifact Info File'
@@ -224,12 +224,12 @@ jobs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'core-windows'
 
-      # azureiotedge-diagnostics
-      - template: templates/image-windows.yaml
-        parameters:
-          name: azureiotedge-diagnostics
-          imageName: azureiotedge-diagnostics
-          project: azureiotedge-diagnostics
+      # # azureiotedge-diagnostics
+      # - template: templates/image-windows.yaml
+      #   parameters:
+      #     name: azureiotedge-diagnostics
+      #     imageName: azureiotedge-diagnostics
+      #     project: azureiotedge-diagnostics
 
       # Edge Agent
       - template: templates/image-windows.yaml
@@ -383,7 +383,7 @@ jobs:
       displayName: 'Publish Temperature Sensor Manifest'
     - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edgelet/iotedged/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish azureiotedge-iotedged Manifest'
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edgelet/iotedge-diagnostics/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
-      displayName: 'Publish azureiotedge-diagnostics Manifest'
+    # - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edgelet/iotedge-diagnostics/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+    #   displayName: 'Publish azureiotedge-diagnostics Manifest'
     - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edgelet/iotedge-proxy/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish azureiotedge-proxy Manifest'
