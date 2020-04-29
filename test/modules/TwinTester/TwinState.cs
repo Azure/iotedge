@@ -12,5 +12,7 @@ namespace TwinTester
         public string TwinETag { get; set; }
 
         public DateTime LastTimeOffline { get; set; }
+
+        public DateTime LastTimeOfEdgeRestart { get; set; }
     }
 }

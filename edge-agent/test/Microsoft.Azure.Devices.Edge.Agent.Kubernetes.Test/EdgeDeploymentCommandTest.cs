@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             IModule dockerModule = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
             var dockerConfigProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
             dockerConfigProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
-                .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(DockerAuth)));
+                .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.None<NotaryContentTrust>(), Option.Maybe(DockerAuth)));
             var configProvider = new Mock<ICombinedConfigProvider<CombinedKubernetesConfig>>();
             configProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
                 .Returns(() => new CombinedKubernetesConfig("test-image:1", CreatePodParameters.Create(image: "test-image:1"), Option.Maybe(ImagePullSecret)));
@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             IModule dockerModule = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
             var dockerConfigProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
             dockerConfigProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
-                .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(DockerAuth)));
+                .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.None<NotaryContentTrust>(), Option.Maybe(DockerAuth)));
             var configProvider = new Mock<ICombinedConfigProvider<CombinedKubernetesConfig>>();
             configProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
                 .Returns(() => new CombinedKubernetesConfig("test-image:1", CreatePodParameters.Create(image: "test-image:1"), Option.Maybe(ImagePullSecret)));
@@ -130,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             IModule dockerModule = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
             var dockerConfigProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
             dockerConfigProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
-                .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(DockerAuth)));
+                .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.None<NotaryContentTrust>(), Option.Maybe(DockerAuth)));
             var configProvider = new Mock<ICombinedConfigProvider<CombinedKubernetesConfig>>();
             configProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
                 .Returns(() => new CombinedKubernetesConfig("test-image:1", CreatePodParameters.Create(image: "test-image:1"), Option.Maybe(ImagePullSecret)));
@@ -154,7 +154,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             IModule dockerModule2 = new DockerModule("module2", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config2, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
             var dockerConfigProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
             dockerConfigProvider.Setup(cp => cp.GetCombinedConfig(It.IsAny<DockerModule>(), Runtime))
-                .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(DockerAuth)));
+                .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.None<NotaryContentTrust>(), Option.Maybe(DockerAuth)));
             var configProvider = new Mock<ICombinedConfigProvider<CombinedKubernetesConfig>>();
             configProvider.Setup(cp => cp.GetCombinedConfig(It.IsAny<DockerModule>(), Runtime))
                 .Returns(() => new CombinedKubernetesConfig("test-image:1", CreatePodParameters.Create(image: "test-image:1"), Option.Maybe(ImagePullSecret)));
@@ -178,7 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             IModule dockerModule = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, moduleEnvVars);
             var dockerConfigProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
             dockerConfigProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
-                .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(DockerAuth)));
+                .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.None<NotaryContentTrust>(), Option.Maybe(DockerAuth)));
             var configProvider = new Mock<ICombinedConfigProvider<CombinedKubernetesConfig>>();
             configProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
                 .Returns(() => new CombinedKubernetesConfig("test-image:1", CreatePodParameters.Create(image: "test-image:1"), Option.Maybe(ImagePullSecret)));
@@ -216,7 +216,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             IModule dockerModule = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
             var dockerConfigProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
             dockerConfigProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
-                .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(DockerAuth)));
+                .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.None<NotaryContentTrust>(), Option.Maybe(DockerAuth)));
             var configProvider = new Mock<ICombinedConfigProvider<CombinedKubernetesConfig>>();
             configProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
                 .Returns(() => new CombinedKubernetesConfig("test-image:1", CreatePodParameters.Create(image: "test-image:1"), Option.Maybe(ImagePullSecret)));
