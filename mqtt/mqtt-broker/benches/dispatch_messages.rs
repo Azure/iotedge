@@ -10,16 +10,15 @@ use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
 };
 use itertools::iproduct;
+use tokio::{runtime::Runtime, sync::mpsc};
+use tracing::{info, warn};
+
+use mpsc::UnboundedReceiver;
 use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
 use mqtt_broker::{
     AuthId, BrokerBuilder, BrokerHandle, ClientEvent, ClientId, ConnReq, ConnectionHandle, Message,
     Publish, SystemEvent,
 };
-use tokio::{
-    runtime::Runtime,
-    sync::mpsc::{self, Receiver},
-};
-use tracing::{info, warn};
 
 criterion_group!(basic, one_to_one);
 criterion_main!(basic);
@@ -51,7 +50,7 @@ fn dispatch_messages(
         .authorizer(|_| Ok(true))
         .build();
 
-    let (on_publish_tx, mut on_publish_rx) = mpsc::channel(1024);
+    let (on_publish_tx, on_publish_rx) = crossbeam_channel::bounded(1024);
     broker.on_publish = Some(on_publish_tx);
 
     let mut broker_handle = broker.handle();
@@ -100,8 +99,8 @@ fn dispatch_messages(
             },
             |message| {
                 runtime.block_on(async {
-                    broker_handle.send(message).await.expect("publish");
-                    on_publish_rx.recv().await.expect("publish processed");
+                    broker_handle.send(message).expect("publish");
+                    on_publish_rx.recv().expect("publish processed");
                 });
             },
             BatchSize::SmallInput,
@@ -116,11 +115,10 @@ fn dispatch_messages(
     runtime.block_on(async move {
         broker_handle
             .send(Message::System(SystemEvent::Shutdown))
-            .await
             .expect("broker shutdown event");
 
         futures_util::future::join_all(tasks).await;
-        broker_task.await.expect("broker task");
+        broker_task.await.expect("join broker").expect("broker");
     });
 }
 
@@ -136,13 +134,13 @@ fn init_logging() {
 struct Client {
     client_id: ClientId,
     broker_handle: BrokerHandle,
-    rx: Receiver<Message>,
+    rx: UnboundedReceiver<Message>,
     pubs_to_be_acked: Arc<Mutex<HashSet<proto::PacketIdentifier>>>,
 }
 
 impl Client {
     async fn connect(client_id: String, broker_handle: BrokerHandle) -> Self {
-        let (tx, rx) = mpsc::channel(1024);
+        let (tx, rx) = mpsc::unbounded_channel();
 
         let mut client = Self {
             client_id: client_id.into(),
@@ -163,7 +161,7 @@ impl Client {
         };
         let connreq = ConnReq::new(client.client_id.clone(), connect, None, connection_handle);
         let message = Message::Client(client.client_id.clone(), ClientEvent::ConnReq(connreq));
-        client.broker_handle.send(message).await.expect("connect");
+        client.broker_handle.send(message).expect("connect");
 
         client
     }
@@ -177,7 +175,7 @@ impl Client {
             }],
         };
         let message = Message::Client(self.client_id.clone(), ClientEvent::Subscribe(subscribe));
-        self.broker_handle.send(message).await.unwrap();
+        self.broker_handle.send(message).expect("subscribe");
     }
 
     fn publish_handle(&self) -> PublishHandle {
@@ -238,8 +236,8 @@ impl Client {
                             stop = true;
                             None
                         }
-                        ClientEvent::PingReq(_) => Some(ClientEvent::PingResp(proto::PingResp)),
-                        ClientEvent::PingResp(_) => Some(ClientEvent::PingReq(proto::PingReq)),
+                        ClientEvent::PingReq(_) => None,
+                        ClientEvent::PingResp(_) => None,
                         ClientEvent::ConnReq(_) => None,
                         ClientEvent::ConnAck(_) => None,
                         ClientEvent::Subscribe(_) => None,
@@ -250,7 +248,7 @@ impl Client {
 
                     if let Some(event) = event_out {
                         let message = Message::Client(client_id.clone(), event);
-                        if let Err(e) = self.broker_handle.send(message).await {
+                        if let Err(e) = self.broker_handle.send(message) {
                             warn!("{}: Broker closed connection. {:?}", client_id, e);
                             stop = true;
                         }
@@ -305,12 +303,12 @@ impl PublishHandle {
 
 #[derive(Debug, Clone, Copy)]
 enum Size {
-    B(u64),
-    Kb(u64),
-    Mb(u64),
+    B(usize),
+    Kb(usize),
+    Mb(usize),
 }
 
-impl From<Size> for u64 {
+impl From<Size> for usize {
     fn from(size: Size) -> Self {
         match size {
             Size::B(value) => value,
