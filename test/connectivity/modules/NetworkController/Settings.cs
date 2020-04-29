@@ -71,8 +71,6 @@ namespace NetworkController
                 .AddEnvironmentVariables()
                 .Build();
 
-            Environment.SetEnvironmentVariable("IOTEDGE_GATEWAYHOSTNAME", string.Empty);
-
             var frequencies = new List<Frequency>();
             configuration.GetSection(FrequencyPropertyName).Bind(frequencies);
 
