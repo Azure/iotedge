@@ -20,19 +20,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         readonly CreateContainerParameters createOptions;
 
         public DockerConfig(string image)
-            : this(image, string.Empty)
+            : this(image, string.Empty, Option.None<NotaryContentTrust>())
         {
         }
 
-        public DockerConfig(string image, string createOptions)
-            : this(ValidateAndGetImage(image), GetCreateOptions(createOptions))
+        public DockerConfig(string image, string createOptions, Option<NotaryContentTrust> notaryContentTrust)
+            : this(ValidateAndGetImage(image), GetCreateOptions(createOptions), notaryContentTrust)
         {
         }
 
-        public DockerConfig(string image, CreateContainerParameters createOptions)
+        public DockerConfig(string image, CreateContainerParameters createOptions, Option<NotaryContentTrust> notaryContentTrust)
         {
             this.Image = image;
             this.createOptions = Preconditions.CheckNotNull(createOptions, nameof(createOptions));
+            this.NotaryContentTrust = notaryContentTrust;
         }
 
         public string Image { get; }
@@ -40,6 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         // Do a serialization roundtrip to clone the createOptions
         // https://docs.docker.com/engine/api/v1.25/#operation/ContainerCreate
         public CreateContainerParameters CreateOptions => JsonConvert.DeserializeObject<CreateContainerParameters>(JsonConvert.SerializeObject(this.createOptions));
+
+        public Option<NotaryContentTrust> NotaryContentTrust { get; }
 
         public override bool Equals(object obj) => this.Equals(obj as DockerConfig);
 
@@ -66,7 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             }
 
             return string.Equals(this.Image, other.Image) &&
-                   CompareCreateOptions(this.CreateOptions, other.CreateOptions);
+                   CompareCreateOptions(this.CreateOptions, other.CreateOptions) &&
+                   Equals(this.NotaryContentTrust, other.NotaryContentTrust);
         }
 
         internal static CreateContainerParameters GetCreateOptions(string createOptions)
@@ -166,6 +170,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     writer.WriteValue(chunk);
                 }
 
+                dockerconfig.NotaryContentTrust.ForEach(ct =>
+                {
+                    writer.WritePropertyName("notaryContentTrust");
+                    serializer.Serialize(writer, ct);
+                });
                 writer.WriteEndObject();
             }
 
@@ -181,7 +190,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     .Select(token => token?.ToString() ?? string.Empty)
                     .Join();
 
-                return new DockerConfig(jTokenImage?.ToString(), options);
+                if (obj.TryGetValue("notaryContentTrust", StringComparison.OrdinalIgnoreCase, out JToken jTokenNotaryContentTrust))
+                {
+                    return new DockerConfig(jTokenImage?.ToString(), options, Option.Maybe(jTokenNotaryContentTrust.ToObject<NotaryContentTrust>()));
+                }
+                else
+                {
+                    return new DockerConfig(jTokenImage?.ToString(), options, Option.None<NotaryContentTrust>());
+                }
             }
 
             public override bool CanConvert(Type objectType) => objectType == typeof(DockerConfig);
