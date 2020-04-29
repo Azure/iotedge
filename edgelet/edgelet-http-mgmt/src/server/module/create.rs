@@ -125,10 +125,14 @@ mod tests {
     use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::crypto::TestHsm;
-    use edgelet_test_utils::module::*;
+    use edgelet_test_utils::module::{
+        TestConfig, TestModule, TestProvisioningResult, TestRuntime, TestSettings,
+    };
     use management::models::{Config, ErrorResponse, ModuleDetails};
 
-    use super::*;
+    use super::{
+        CreateModule, Future, Handler, ModuleSpec, StatusCode, Stream, CONTENT_LENGTH, CONTENT_TYPE,
+    };
     use crate::server::module::tests::Error;
 
     lazy_static! {

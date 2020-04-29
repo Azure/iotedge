@@ -227,7 +227,7 @@ mod tests {
 
     use super::super::{ManageTpmKeys, SignWithTpm};
     use super::{Tpm, TpmKey};
-    use hsm_sys::*;
+    use hsm_sys::{HSM_CLIENT_HANDLE, HSM_CLIENT_TPM_INTERFACE};
 
     extern "C" {
         pub fn malloc(size: usize) -> *mut c_void;

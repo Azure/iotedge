@@ -101,11 +101,13 @@ mod tests {
     use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::crypto::TestHsm;
-    use edgelet_test_utils::module::*;
+    use edgelet_test_utils::module::{
+        TestConfig, TestModule, TestProvisioningResult, TestRuntime, TestSettings,
+    };
     use futures::Stream;
     use management::models::{ErrorResponse, ModuleList};
 
-    use super::*;
+    use super::{Body, Future, Handler, ListModules, Request};
     use crate::server::module::tests::Error;
 
     #[test]

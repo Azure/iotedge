@@ -123,7 +123,7 @@ mod tests {
     use chrono::offset::Utc;
     use chrono::Duration;
 
-    use super::*;
+    use super::{Body, Future, Handler, Parameters, Request, Response, ServerCertHandler, Stream};
     use edgelet_core::{
         CertificateProperties, CertificateType, CreateCertificate, Error as CoreError,
         ErrorKind as CoreErrorKind, KeyBytes, PrivateKey, WorkloadConfig,

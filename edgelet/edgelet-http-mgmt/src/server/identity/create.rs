@@ -104,7 +104,9 @@ mod tests {
     use management::models::ErrorResponse;
     use serde_json::{json, Value};
 
-    use super::*;
+    use super::{
+        Body, CoreIdentity, CreateIdentity, Future, Handler, Parameters, Request, StatusCode,
+    };
 
     #[test]
     fn create_succeeds() {

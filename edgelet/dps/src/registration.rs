@@ -591,13 +591,14 @@ mod tests {
     use std::sync::Mutex;
 
     use edgelet_core::crypto::{MemoryKey, MemoryKeyStore};
-    use http;
     use hyper::{self, Body, Request, Response, StatusCode};
-    use serde_json;
-    use tokio;
     use url::Url;
 
-    use super::*;
+    use super::{
+        future, get_device_info, stream, Activate, Arc, Async, Bytes, Client,
+        DeviceRegistrationResult, DpsAuthKind, DpsClient, DpsTokenSource, Error, ErrorKind, Future,
+        KeyIdentity, Method, RegistrationOperationStatus, RwLock, Stream, TpmRegistrationResult,
+    };
     use crate::DPS_API_VERSION;
 
     #[test]

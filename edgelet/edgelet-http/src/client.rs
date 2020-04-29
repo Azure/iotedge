@@ -250,14 +250,15 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{
+        hyper, Body, Client, Error, Future, HeaderMapExt, Method, Stream, TokenSource, Url,
+    };
     use std::collections::HashMap;
     use std::str;
 
     use chrono::{DateTime, Utc};
     use futures::future;
     use hyper::{Client as HyperClient, Request, Response};
-    use tokio;
     use typed_headers::{mime, ContentType};
     use url::form_urlencoded::parse as parse_query;
 

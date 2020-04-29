@@ -257,7 +257,9 @@ mod tests {
 
     use super::super::GetDeviceIdentityCertificate;
     use super::{X509Data, X509};
-    use hsm_sys::*;
+    use hsm_sys::{
+        certificate_info_create, CERT_INFO_HANDLE, HSM_CLIENT_HANDLE, HSM_CLIENT_X509_INTERFACE,
+    };
 
     extern "C" {
         pub fn malloc(size: usize) -> *mut c_void;

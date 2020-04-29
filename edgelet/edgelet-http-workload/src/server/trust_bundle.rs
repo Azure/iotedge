@@ -81,7 +81,10 @@ mod tests {
     use edgelet_test_utils::cert::TestCert;
     use edgelet_test_utils::crypto::TestHsm;
 
-    use super::*;
+    use super::{
+        Handler, Parameters, Request, StatusCode, TrustBundleHandler, TrustBundleResponse,
+        CONTENT_LENGTH, CONTENT_TYPE,
+    };
 
     #[test]
     fn get_fail() {

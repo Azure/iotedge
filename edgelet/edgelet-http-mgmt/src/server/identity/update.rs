@@ -118,7 +118,10 @@ mod tests {
     use management::models::ErrorResponse;
     use serde_json::{json, Value};
 
-    use super::*;
+    use super::{
+        Body, CoreIdentity, Future, Handler, Parameters, Request, StatusCode, Stream,
+        UpdateIdentity, UpdateIdentityRequest, CONTENT_LENGTH, CONTENT_TYPE,
+    };
 
     #[test]
     fn update() {

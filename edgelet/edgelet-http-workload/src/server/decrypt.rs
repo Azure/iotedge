@@ -91,7 +91,7 @@ mod tests {
     use workload::models::DecryptResponse;
     use workload::models::ErrorResponse;
 
-    use super::*;
+    use super::{Body, DecryptHandler, DecryptRequest, Handler, Response, Stream};
 
     #[derive(Clone, Debug, Default)]
     struct TestHsm {}

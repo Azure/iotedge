@@ -87,7 +87,7 @@ mod tests {
     use serde_derive::{Deserialize, Serialize};
     use serde_json::json;
 
-    use super::*;
+    use super::{serde_clone, serialize_ordered, string_or_struct, HashMap, StdResult};
 
     #[derive(Debug, Deserialize)]
     struct Options {

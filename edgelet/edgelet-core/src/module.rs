@@ -622,7 +622,7 @@ impl FromStr for ImagePullPolicy {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{Default, HashMap, ImagePullPolicy, ModuleSpec, SystemInfo};
 
     use std::str::FromStr;
     use std::string::ToString;

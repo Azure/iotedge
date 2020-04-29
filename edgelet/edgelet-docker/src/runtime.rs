@@ -1010,7 +1010,13 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{
+        authenticate, future, list_with_details, parse_get_response, AuthId, Authenticator, Body,
+        CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop, Duration, Error,
+        ErrorKind, Future, GetTrustBundle, HashMap, InlineResponse200, LogOptions,
+        MakeModuleRuntime, Module, ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid,
+        ProvisioningResult, Request, Settings, Stream, SystemResources,
+    };
 
     use std::path::Path;
 

@@ -759,7 +759,7 @@ where
 mod tests {
     use test_case::test_case;
 
-    use super::*;
+    use super::{convert_to_path, convert_to_uri, FromStr, Protocol, Url};
 
     #[test]
     fn test_convert_to_path() {

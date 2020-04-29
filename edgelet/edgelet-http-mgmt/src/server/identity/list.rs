@@ -80,7 +80,7 @@ mod tests {
     use futures::Stream;
     use management::models::ErrorResponse;
 
-    use super::*;
+    use super::{Body, Future, Handler, IdentityList, ListIdentities, Parameters, Request};
 
     #[test]
     fn list_succeeds() {

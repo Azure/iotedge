@@ -66,10 +66,9 @@ pub fn pod_to_module(pod: &api_core::Pod) -> Option<Result<KubeModule>> {
 #[cfg(test)]
 mod tests {
 
-    use super::*;
+    use super::pod_to_module;
     use edgelet_core::Module;
     use k8s_openapi::api::core::v1 as api_core;
-    use serde_json;
 
     const POD_SUCCESS: &str = r###"
     {

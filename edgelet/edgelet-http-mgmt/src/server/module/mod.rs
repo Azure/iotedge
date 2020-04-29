@@ -97,7 +97,6 @@ pub mod tests {
     use failure::Fail;
     use futures::{Future, Stream};
     use hyper::{Body, Response, StatusCode};
-    use serde_json;
 
     use edgelet_core::RuntimeOperation;
     use edgelet_docker::{Error as DockerError, ErrorKind as DockerErrorKind};

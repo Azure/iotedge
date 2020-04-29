@@ -49,7 +49,7 @@ impl cmp::PartialEq for Pid {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::Pid;
 
     #[test]
     fn test_eq() {

@@ -629,7 +629,10 @@ struct CheckOutputSerializable {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{
+        Check, CheckResult, Checker, ContainerEngineIsMoby, Hostname, WellFormedConfig,
+        WellFormedConnectionString,
+    };
 
     #[test]
     fn config_file_checks_ok() {

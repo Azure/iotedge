@@ -106,7 +106,10 @@ mod tests {
     use edgelet_http::route::Parameters;
     use workload::models::ErrorResponse;
 
-    use super::*;
+    use super::{
+        Future, Handler, KeyIdentity, Request, SignHandler, SignRequest, SignResponse, StatusCode,
+        Stream,
+    };
 
     #[derive(Debug)]
     struct State {
