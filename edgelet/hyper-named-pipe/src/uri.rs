@@ -110,7 +110,7 @@ impl Into<HyperUri> for Uri {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{HyperUri, Uri};
 
     #[test]
     fn empty_base_path() {
