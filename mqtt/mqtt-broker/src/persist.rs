@@ -9,7 +9,6 @@ use std::os::unix::fs::symlink;
 use std::os::windows::fs::symlink_file;
 use std::path::PathBuf;
 
-use async_trait::async_trait;
 use bytes::Bytes;
 use fail::fail_point;
 use flate2::read::GzDecoder;
@@ -30,28 +29,26 @@ const STATE_DEFAULT_PREVIOUS_COUNT: usize = 2;
 static STATE_DEFAULT_STEM: &str = "state";
 static STATE_EXTENSION: &str = "dat";
 
-#[async_trait]
 pub trait Persist {
     type Error: std::error::Error;
 
-    async fn load(&mut self) -> Result<Option<BrokerState>, Self::Error>;
+    fn load(&mut self) -> Result<Option<BrokerState>, Self::Error>;
 
-    async fn store(&mut self, state: BrokerState) -> Result<(), Self::Error>;
+    fn store(&mut self, state: BrokerState) -> Result<(), Self::Error>;
 }
 
 /// A persistor that does nothing.
 #[derive(Debug)]
 pub struct NullPersistor;
 
-#[async_trait]
 impl Persist for NullPersistor {
     type Error = PersistError;
 
-    async fn load(&mut self) -> Result<Option<BrokerState>, Self::Error> {
+    fn load(&mut self) -> Result<Option<BrokerState>, Self::Error> {
         Ok(None)
     }
 
-    async fn store(&mut self, _: BrokerState) -> Result<(), Self::Error> {
+    fn store(&mut self, _: BrokerState) -> Result<(), Self::Error> {
         Ok(())
     }
 }
@@ -287,199 +284,182 @@ where
     Ok(payloads)
 }
 
-#[async_trait]
 impl<F> Persist for FilePersistor<F>
 where
     F: FileFormat<Error = PersistError> + Clone + Send + 'static,
 {
     type Error = PersistError;
 
-    async fn load(&mut self) -> Result<Option<BrokerState>, Self::Error> {
-        let dir = self.dir.clone();
-        let format = self.format.clone();
+    fn load(&mut self) -> Result<Option<BrokerState>, Self::Error> {
+        let path = self
+            .dir
+            .join(format!("{}.{}", STATE_DEFAULT_STEM, STATE_EXTENSION));
+        let state = if path.exists() {
+            info!("loading state from file {}.", path.display());
 
-        let res = tokio::task::spawn_blocking(move || {
-            let path = dir.join(format!("{}.{}", STATE_DEFAULT_STEM, STATE_EXTENSION));
-            if path.exists() {
-                info!("loading state from file {}.", path.display());
+            fail_point!("filepersistor.load.fileopen", |_| {
+                Err(PersistError::FileOpen(path.clone(), None))
+            });
+            let file = OpenOptions::new()
+                .read(true)
+                .open(&path)
+                .map_err(|e| PersistError::FileOpen(path.clone(), Some(e)))?;
 
-                fail_point!("filepersistor.load.fileopen", |_| {
-                    Err(PersistError::FileOpen(path.clone(), None))
-                });
-                let file = OpenOptions::new()
-                    .read(true)
-                    .open(&path)
-                    .map_err(|e| PersistError::FileOpen(path.clone(), Some(e)))?;
-
-                fail_point!("filepersistor.load.format", |_| {
-                    Err(PersistError::Deserialize(None))
-                });
-                let state = format.load(file)?;
-                Ok(Some(state))
-            } else {
-                info!("no state file found at {}.", path.display());
-                Ok(None)
-            }
-        })
-        .await;
-
-        fail_point!("filepersistor.load.spawn_blocking", |_| {
-            Err(PersistError::TaskJoin(None))
-        });
-        res.map_err(|e| PersistError::TaskJoin(Some(e)))?
+            fail_point!("filepersistor.load.format", |_| {
+                Err(PersistError::Deserialize(None))
+            });
+            let state = self.format.load(file)?;
+            Some(state)
+        } else {
+            info!("no state file found at {}.", path.display());
+            None
+        };
+        Ok(state)
     }
 
     #[allow(clippy::too_many_lines)]
-    async fn store(&mut self, state: BrokerState) -> Result<(), Self::Error> {
-        let dir = self.dir.clone();
-        let format = self.format.clone();
+    fn store(&mut self, state: BrokerState) -> Result<(), Self::Error> {
         let previous_count = self.previous_count;
 
         self.seq = self.seq.wrapping_add(1);
         let seq = self.seq;
 
-        let res = tokio::task::spawn_blocking(move || {
-            let span = span!(Level::INFO, "persistor", dir = %dir.display());
-            let _guard = span.enter();
+        let span = span!(Level::INFO, "persistor", dir = %self.dir.display());
+        let _guard = span.enter();
 
-            if !dir.exists() {
-                fail_point!("filepersistor.store.createdir", |_| {
-                    Err(PersistError::CreateDir(dir.clone(), None))
-                });
-                fs::create_dir_all(&dir)
-                    .map_err(|e| PersistError::CreateDir(dir.clone(), Some(e)))?;
-            }
-
-            let link_path = dir.join(format!("{}.{}", STATE_DEFAULT_STEM, STATE_EXTENSION));
-            let temp_link_path =
-                dir.join(format!("{}.{}.tmp", STATE_DEFAULT_STEM, STATE_EXTENSION));
-
-            let path = dir.join(format!(
-                "{}.{}-{:05}.{}",
-                STATE_DEFAULT_STEM,
-                chrono::Utc::now().format("%Y%m%d%H%M%S%3f"),
-                seq,
-                STATE_EXTENSION
-            ));
-
-            info!(message="persisting state...", file=%path.display());
-            debug!("opening {} for writing state...", path.display());
-            fail_point!("filepersistor.store.fileopen", |_| {
-                Err(PersistError::FileOpen(path.clone(), None))
+        if !self.dir.exists() {
+            fail_point!("filepersistor.store.createdir", |_| {
+                Err(PersistError::CreateDir(self.dir.clone(), None))
             });
-            let file = OpenOptions::new()
-                .create(true)
-                .write(true)
-                .open(&path)
-                .map_err(|e| PersistError::FileOpen(path.clone(), Some(e)))?;
-            debug!("{} opened.", path.display());
+            fs::create_dir_all(&self.dir)
+                .map_err(|e| PersistError::CreateDir(self.dir.clone(), Some(e)))?;
+        }
 
-            debug!("persisting state to {}...", path.display());
-            match format.store(file, state) {
-                Ok(_) => {
-                    debug!("state persisted to {}.", path.display());
+        let link_path = self
+            .dir
+            .join(format!("{}.{}", STATE_DEFAULT_STEM, STATE_EXTENSION));
+        let temp_link_path = self
+            .dir
+            .join(format!("{}.{}.tmp", STATE_DEFAULT_STEM, STATE_EXTENSION));
 
-                    // Swap the symlink
-                    //   - remove the old link if it exists
-                    //   - link the new file
-                    if temp_link_path.exists() {
-                        fail_point!("filepersistor.store.symlink_unlink", |_| {
-                            Err(PersistError::SymlinkUnlink(temp_link_path.clone(), None))
-                        });
-                        fs::remove_file(&temp_link_path).map_err(|e| {
-                            PersistError::SymlinkUnlink(temp_link_path.clone(), Some(e))
-                        })?;
-                    }
+        let path = self.dir.join(format!(
+            "{}.{}-{:05}.{}",
+            STATE_DEFAULT_STEM,
+            chrono::Utc::now().format("%Y%m%d%H%M%S%3f"),
+            seq,
+            STATE_EXTENSION
+        ));
 
-                    debug!("linking {} to {}", temp_link_path.display(), path.display());
+        info!(message="persisting state...", file=%path.display());
+        debug!("opening {} for writing state...", path.display());
+        fail_point!("filepersistor.store.fileopen", |_| {
+            Err(PersistError::FileOpen(path.clone(), None))
+        });
+        let file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .open(&path)
+            .map_err(|e| PersistError::FileOpen(path.clone(), Some(e)))?;
+        debug!("{} opened.", path.display());
 
-                    fail_point!("filepersistor.store.symlink", |_| {
-                        Err(PersistError::Symlink(
-                            temp_link_path.clone(),
-                            path.clone(),
-                            None,
-                        ))
+        debug!("persisting state to {}...", path.display());
+        match self.format.store(file, state) {
+            Ok(_) => {
+                debug!("state persisted to {}.", path.display());
+
+                // Swap the symlink
+                //   - remove the old link if it exists
+                //   - link the new file
+                if temp_link_path.exists() {
+                    fail_point!("filepersistor.store.symlink_unlink", |_| {
+                        Err(PersistError::SymlinkUnlink(temp_link_path.clone(), None))
                     });
-
-                    #[cfg(unix)]
-                    symlink(&path, &temp_link_path).map_err(|e| {
-                        PersistError::Symlink(temp_link_path.clone(), path.clone(), Some(e))
+                    fs::remove_file(&temp_link_path).map_err(|e| {
+                        PersistError::SymlinkUnlink(temp_link_path.clone(), Some(e))
                     })?;
-
-                    #[cfg(windows)]
-                    symlink_file(&path, &temp_link_path).map_err(|e| {
-                        PersistError::Symlink(temp_link_path.clone(), path.clone(), Some(e))
-                    })?;
-
-                    // Commit the updated link by renaming the temp link.
-                    // This is the so-called "capistrano" trick for atomically updating links
-                    // https://github.com/capistrano/capistrano/blob/d04c1e3ea33e84b183d056b71c7cacf7744ce7ad/lib/capistrano/tasks/deploy.rake
-                    fail_point!("filepersistor.store.filerename", |_| {
-                        Err(PersistError::FileRename(
-                            temp_link_path.clone(),
-                            path.clone(),
-                            None,
-                        ))
-                    });
-                    fs::rename(&temp_link_path, &link_path).map_err(|e| {
-                        PersistError::Symlink(temp_link_path.clone(), path.clone(), Some(e))
-                    })?;
-
-                    // Prune old states
-                    fail_point!("filepersistor.store.readdir", |_| {
-                        Err(PersistError::ReadDir(dir.clone(), None))
-                    });
-
-                    let mut entries = fs::read_dir(&dir)
-                        .map_err(|e| (PersistError::ReadDir(dir.clone(), Some(e))))?
-                        .filter_map(Result::ok)
-                        .filter(|entry| entry.file_type().ok().map_or(false, |f| f.is_file()))
-                        .filter(|entry| {
-                            entry
-                                .file_name()
-                                .to_string_lossy()
-                                .starts_with(STATE_DEFAULT_STEM)
-                        })
-                        .collect::<Vec<fs::DirEntry>>();
-
-                    entries.sort_unstable_by(|a, b| {
-                        b.file_name()
-                            .partial_cmp(&a.file_name())
-                            .unwrap_or(cmp::Ordering::Equal)
-                    });
-
-                    for entry in entries.iter().skip(previous_count) {
-                        debug!(
-                            "pruning old state file {}...",
-                            entry.file_name().to_string_lossy()
-                        );
-
-                        fail_point!("filepersistor.store.entry_unlink", |_| {
-                            Err(PersistError::FileUnlink(entry.path(), None))
-                        });
-                        fs::remove_file(&entry.path())
-                            .map_err(|e| PersistError::FileUnlink(entry.path(), Some(e)))?;
-                        debug!("{} pruned.", entry.file_name().to_string_lossy());
-                    }
                 }
-                Err(e) => {
-                    fail_point!("filepersistor.store.new_file_unlink", |_| {
-                        Err(PersistError::FileUnlink(path.clone(), None))
+
+                debug!("linking {} to {}", temp_link_path.display(), path.display());
+
+                fail_point!("filepersistor.store.symlink", |_| {
+                    Err(PersistError::Symlink(
+                        temp_link_path.clone(),
+                        path.clone(),
+                        None,
+                    ))
+                });
+
+                #[cfg(unix)]
+                symlink(&path, &temp_link_path).map_err(|e| {
+                    PersistError::Symlink(temp_link_path.clone(), path.clone(), Some(e))
+                })?;
+
+                #[cfg(windows)]
+                symlink_file(&path, &temp_link_path).map_err(|e| {
+                    PersistError::Symlink(temp_link_path.clone(), path.clone(), Some(e))
+                })?;
+
+                // Commit the updated link by renaming the temp link.
+                // This is the so-called "capistrano" trick for atomically updating links
+                // https://github.com/capistrano/capistrano/blob/d04c1e3ea33e84b183d056b71c7cacf7744ce7ad/lib/capistrano/tasks/deploy.rake
+                fail_point!("filepersistor.store.filerename", |_| {
+                    Err(PersistError::FileRename(
+                        temp_link_path.clone(),
+                        path.clone(),
+                        None,
+                    ))
+                });
+                fs::rename(&temp_link_path, &link_path).map_err(|e| {
+                    PersistError::Symlink(temp_link_path.clone(), path.clone(), Some(e))
+                })?;
+
+                // Prune old states
+                fail_point!("filepersistor.store.readdir", |_| {
+                    Err(PersistError::ReadDir(self.dir.clone(), None))
+                });
+
+                let mut entries = fs::read_dir(&self.dir)
+                    .map_err(|e| (PersistError::ReadDir(self.dir.clone(), Some(e))))?
+                    .filter_map(Result::ok)
+                    .filter(|entry| entry.file_type().ok().map_or(false, |f| f.is_file()))
+                    .filter(|entry| {
+                        entry
+                            .file_name()
+                            .to_string_lossy()
+                            .starts_with(STATE_DEFAULT_STEM)
+                    })
+                    .collect::<Vec<fs::DirEntry>>();
+
+                entries.sort_unstable_by(|a, b| {
+                    b.file_name()
+                        .partial_cmp(&a.file_name())
+                        .unwrap_or(cmp::Ordering::Equal)
+                });
+
+                for entry in entries.iter().skip(previous_count) {
+                    debug!(
+                        "pruning old state file {}...",
+                        entry.file_name().to_string_lossy()
+                    );
+
+                    fail_point!("filepersistor.store.entry_unlink", |_| {
+                        Err(PersistError::FileUnlink(entry.path(), None))
                     });
-                    fs::remove_file(&path)
-                        .map_err(|e| (PersistError::FileUnlink(path, Some(e))))?;
-                    return Err(e);
+                    fs::remove_file(&entry.path())
+                        .map_err(|e| PersistError::FileUnlink(entry.path(), Some(e)))?;
+                    debug!("{} pruned.", entry.file_name().to_string_lossy());
                 }
             }
-            info!(message="persisted state.", file=%path.display());
-            Ok(())
-        })
-        .await;
-
-        fail_point!("filepersistor.load.spawn_blocking", |_| {
-            Err(PersistError::TaskJoin(None))
-        });
-        res.map_err(|e| PersistError::TaskJoin(Some(e)))?
+            Err(e) => {
+                fail_point!("filepersistor.store.new_file_unlink", |_| {
+                    Err(PersistError::FileUnlink(path.clone(), None))
+                });
+                fs::remove_file(&path).map_err(|e| (PersistError::FileUnlink(path, Some(e))))?;
+                return Err(e);
+            }
+        }
+        info!(message="persisted state.", file=%path.display());
+        Ok(())
     }
 }
 
@@ -573,8 +553,8 @@ pub(crate) mod tests {
         let path = tmp_dir.path().to_owned();
         let mut persistor = FilePersistor::new(path, ConsolidatedStateFormat::default());
 
-        persistor.store(BrokerState::default()).await.unwrap();
-        let state = persistor.load().await.unwrap().unwrap();
+        persistor.store(BrokerState::default()).unwrap();
+        let state = persistor.load().unwrap().unwrap();
         assert_eq!(BrokerState::default(), state);
     }
 }
