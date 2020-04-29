@@ -5,6 +5,7 @@ use std::{
     time::Duration,
 };
 
+use bytes::Bytes;
 use futures::{future::select, pin_mut};
 use futures_util::{FutureExt, StreamExt};
 use lazy_static::lazy_static;
@@ -19,8 +20,8 @@ use tokio::{
 };
 
 use mqtt3::{
-    proto::{Publication, QoS, SubscribeTo},
-    Client, Event, PublishError, PublishHandle, ShutdownHandle, UpdateSubscriptionError,
+    proto::{ClientId, Publication, QoS, SubscribeTo},
+    Client, Event, PublishError, PublishHandle, ShutdownHandle,
     UpdateSubscriptionHandle,
 };
 use mqtt_broker::{Authenticator, Authorizer, Broker, BrokerState, Error, Server};
@@ -45,53 +46,62 @@ impl TestClient {
         self.publish_handle.publish(publication).await
     }
 
-    pub async fn publish_qos0(&mut self, topic: &str, payload: &str, retain: bool) {
+    pub async fn publish_qos0(
+        &mut self,
+        topic: impl Into<String>,
+        payload: impl Into<Bytes>,
+        retain: bool,
+    ) {
         self.publish(Publication {
             topic_name: topic.into(),
             qos: QoS::AtMostOnce,
             retain,
-            payload: payload.to_owned().into(),
+            payload: payload.into(),
         })
         .await
         .expect("couldn't publish")
     }
 
-    pub async fn publish_qos1(&mut self, topic: &str, payload: &str, retain: bool) {
+    pub async fn publish_qos1(
+        &mut self,
+        topic: impl Into<String>,
+        payload: impl Into<Bytes>,
+        retain: bool,
+    ) {
         self.publish(Publication {
             topic_name: topic.into(),
             qos: QoS::AtLeastOnce,
             retain,
-            payload: payload.to_owned().into(),
+            payload: payload.into(),
         })
         .await
         .expect("couldn't publish")
     }
 
-    pub async fn publish_qos2(&mut self, topic: &str, payload: &str, retain: bool) {
+    pub async fn publish_qos2(
+        &mut self,
+        topic: impl Into<String>,
+        payload: impl Into<Bytes>,
+        retain: bool,
+    ) {
         self.publish(Publication {
             topic_name: topic.into(),
             qos: QoS::ExactlyOnce,
             retain,
-            payload: payload.to_owned().into(),
+            payload: payload.into(),
         })
         .await
         .expect("couldn't publish")
     }
 
-    pub async fn subscribe(
-        &mut self,
-        subscribe_to: SubscribeTo,
-    ) -> Result<(), UpdateSubscriptionError> {
-        self.subscription_handle.subscribe(subscribe_to).await
-    }
-
-    pub async fn subscribe_qos2(&mut self, topic_filter: &str) {
-        self.subscribe(SubscribeTo {
-            topic_filter: topic_filter.into(),
-            qos: QoS::ExactlyOnce,
-        })
-        .await
-        .expect("couldn't subscribe to a topic")
+    pub async fn subscribe(&mut self, topic_filter: &str, qos: QoS) {
+        self.subscription_handle
+            .subscribe(SubscribeTo {
+                topic_filter: topic_filter.into(),
+                qos,
+            })
+            .await
+            .expect("couldn't subscribe to a topic")
     }
 
     /// Initiates sending Disconnect packet and proper client shutdown.
@@ -144,10 +154,11 @@ where
     T: ToSocketAddrs + Clone + Send + Sync + Unpin + 'static,
 {
     address: T,
-    client_id: Option<String>,
+    client_id: ClientId,
     username: Option<String>,
     password: Option<String>,
     will: Option<Publication>,
+    max_reconnect_back_off: Duration,
     keep_alive: Duration,
 }
 
@@ -159,16 +170,17 @@ where
     pub fn new(address: T) -> Self {
         Self {
             address,
-            client_id: None,
+            client_id: ClientId::ServerGenerated,
             username: None,
             password: None,
             will: None,
+            max_reconnect_back_off: Duration::from_secs(1),
             keep_alive: Duration::from_secs(60),
         }
     }
 
-    pub fn client_id(mut self, client_id: &str) -> Self {
-        self.client_id = Some(client_id.into());
+    pub fn client_id(mut self, client_id: ClientId) -> Self {
+        self.client_id = client_id;
         self
     }
 
@@ -196,21 +208,41 @@ where
         let address = self.address;
         let password = self.password;
 
-        let mut client = Client::new(
-            self.client_id,
-            self.username,
-            self.will,
-            move || {
-                let address = address.clone();
-                let password = password.clone();
-                Box::pin(async move {
-                    let io = tokio::net::TcpStream::connect(&address).await;
-                    io.map(|io| (io, password))
-                })
-            },
-            Duration::from_secs(1),
-            self.keep_alive,
-        );
+        let io_source = move || {
+            let address = address.clone();
+            let password = password.clone();
+            Box::pin(async move {
+                let io = tokio::net::TcpStream::connect(&address).await;
+                io.map(|io| (io, password))
+            })
+        };
+
+        let mut client = match self.client_id {
+            ClientId::IdWithCleanSession(client_id) => Client::new(
+                Some(client_id),
+                self.username,
+                self.will,
+                io_source,
+                self.max_reconnect_back_off,
+                self.keep_alive,
+            ),
+            ClientId::IdWithExistingSession(client_id) => Client::from_state(
+                client_id,
+                self.username,
+                self.will,
+                io_source,
+                self.max_reconnect_back_off,
+                self.keep_alive,
+            ),
+            ClientId::ServerGenerated => Client::new(
+                None,
+                self.username,
+                self.will,
+                io_source,
+                self.max_reconnect_back_off,
+                self.keep_alive,
+            ),
+        };
 
         let publish_handle = client
             .publish_handle()
