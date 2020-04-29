@@ -50,9 +50,9 @@ tracing-subscriber = "0.1"
 name = "persist_failpoints"
 required-features = ["fail/failpoints"]
 
-# [[bench]]
-# name = "persist_broker_state"
-# harness = false
+[[bench]]
+name = "persist_broker_state"
+harness = false
 
 [[bench]]
 name = "dispatch_messages"

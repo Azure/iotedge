@@ -1,9 +1,10 @@
-use std::any::type_name;
 use std::collections::HashMap;
 use std::iter::FromIterator;
 
 use bytes::Bytes;
-use criterion::*;
+use criterion::{
+    criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
+};
 use mqtt3::proto::{Publication, QoS};
 use mqtt_broker::{
     BrokerState, ClientId, ConsolidatedStateFormat, FileFormat, FilePersistor, Persist,
@@ -13,7 +14,7 @@ use tempfile::TempDir;
 use tokio::runtime::Runtime;
 
 fn test_write<F>(
-    c: &mut Criterion,
+    group: &mut BenchmarkGroup<WallTime>,
     num_clients: u32,
     num_unique_messages: u32,
     num_shared_messages: u32,
@@ -23,15 +24,11 @@ fn test_write<F>(
     F: FileFormat<Error = PersistError> + Clone + Send + 'static,
 {
     let name = format!(
-        "{}: Write {} unique and {} shared messages for {} sessions with {} retained messages",
-        type_name::<F>(),
-        num_unique_messages,
-        num_shared_messages,
-        num_clients,
-        num_retained
+        "w/uniq_p/{}/shr_p/{}/ses/{}/ret/{}",
+        num_unique_messages, num_shared_messages, num_clients, num_retained
     );
 
-    c.bench_function(&name, |b| {
+    group.bench_function(&name, |b| {
         b.iter_batched(
             || {
                 let state = make_fake_state(
@@ -57,7 +54,7 @@ fn test_write<F>(
 }
 
 fn test_read<F>(
-    c: &mut Criterion,
+    group: &mut BenchmarkGroup<WallTime>,
     num_clients: u32,
     num_unique_messages: u32,
     num_shared_messages: u32,
@@ -67,15 +64,11 @@ fn test_read<F>(
     F: FileFormat<Error = PersistError> + Clone + Send + 'static,
 {
     let name = format!(
-        "{}: Read {} unique and {} shared messages for {} sessions with {} retained messages",
-        type_name::<F>(),
-        num_unique_messages,
-        num_shared_messages,
-        num_clients,
-        num_retained
+        "r/uniq_p/{}/shr_p/{}/ses/{}/ret/{}",
+        num_unique_messages, num_shared_messages, num_clients, num_retained
     );
 
-    c.bench_function(&name, |b| {
+    group.bench_function(&name, |b| {
         b.iter_batched(
             || {
                 let state = make_fake_state(
@@ -158,9 +151,10 @@ fn bench(c: &mut Criterion) {
         (10, 0, 100, 0),
     ];
 
+    let mut group = c.benchmark_group("persist");
     for (clients, unique, shared, retained) in tests {
         test_write(
-            c,
+            &mut group,
             clients,
             unique,
             shared,
@@ -168,7 +162,7 @@ fn bench(c: &mut Criterion) {
             ConsolidatedStateFormat::default(),
         );
         test_read(
-            c,
+            &mut group,
             clients,
             unique,
             shared,
@@ -176,6 +170,7 @@ fn bench(c: &mut Criterion) {
             ConsolidatedStateFormat::default(),
         );
     }
+    group.finish();
 }
 
 criterion_group!(basic, bench);
