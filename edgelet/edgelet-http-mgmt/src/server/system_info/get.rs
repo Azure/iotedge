@@ -148,7 +148,7 @@ mod tests {
             .into_body()
             .concat2()
             .and_then(|b| {
-                let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
+                let error: management::models::ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!(
                     "Could not query system info\n\tcaused by: General error",
                     error.message()

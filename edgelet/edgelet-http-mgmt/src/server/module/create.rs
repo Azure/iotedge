@@ -126,7 +126,7 @@ mod tests {
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::crypto::TestHsm;
     use edgelet_test_utils::module::*;
-    use management::models::{Config, ErrorResponse};
+    use management::models::{Config, ErrorResponse, ModuleDetails};
 
     use super::*;
     use crate::server::module::tests::Error;

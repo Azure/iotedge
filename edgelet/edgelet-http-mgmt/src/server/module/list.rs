@@ -103,7 +103,7 @@ mod tests {
     use edgelet_test_utils::crypto::TestHsm;
     use edgelet_test_utils::module::*;
     use futures::Stream;
-    use management::models::ModuleList;
+    use management::models::{ErrorResponse, ModuleList};
 
     use super::*;
     use crate::server::module::tests::Error;

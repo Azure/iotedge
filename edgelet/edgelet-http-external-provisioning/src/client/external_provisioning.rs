@@ -111,8 +111,7 @@ mod tests {
 
     use super::{
         Arc, DeviceProvisioningInfo, Error, ErrorKind, ExternalProvisioningApi,
-        ExternalProvisioningClient, ExternalProvisioningInterface, GetApi, IntoFuture, Sink,
-        Stream, Url,
+        ExternalProvisioningClient, ExternalProvisioningInterface, GetApi, IntoFuture, Url,
     };
     use external_provisioning::apis::ApiError as ExternalProvisioningApiError;
     use external_provisioning::apis::Error as ExternalProvisioningError;
