@@ -149,17 +149,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.ValidateResultsAsync();
         }
 
-        private async Task ReportResult(TestResultReportingClient testResultReportingClient, string sourceName, string trackingId, string batchId, string sequenceNumber)
-        {
-            // var testResultReceived = new MessageTestResult(sourceName + ".receive", DateTime.UtcNow)
-            // {
-            //    TrackingId = trackingId,
-            //    BatchId = batchId,
-            //    SequenceNumber = sequenceNumber
-            // };
-            // await testResultReportingClient.ReportResultAsync(testResultReceived.ToTestOperationResultDto());
-        }
-
+        // private async Task ReportResult(TestResultReportingClient testResultReportingClient, string sourceName, string trackingId, string batchId, string sequenceNumber)
+        // {
+        //    // var testResultReceived = new MessageTestResult(sourceName + ".receive", DateTime.UtcNow)
+        //    // {
+        //    //    TrackingId = trackingId,
+        //    //    BatchId = batchId,
+        //    //    SequenceNumber = sequenceNumber
+        //    // };
+        //    // await testResultReportingClient.ReportResultAsync(testResultReceived.ToTestOperationResultDto());
+        // }
         private async Task ValidateResultsAsync()
         {
             HttpClient client = new HttpClient();
