@@ -466,7 +466,7 @@ where
                 publication.retain = true;
                 publish_to(&self.authorizer, session, &publication)?;
             }
-            
+
             let sys_message = get_sys_message(&StateChange::Subscriptions(&session));
             self.send_sys_message(sys_message)?;
         } else {
