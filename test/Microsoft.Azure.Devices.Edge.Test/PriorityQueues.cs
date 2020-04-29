@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
@@ -85,6 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Log.Information("Toggling connectivity on");
             await this.ToggleConnectivity(true, NetworkControllerModuleName, token);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
+            ConcurrentQueue<MessageTestResult> messages = new ConcurrentQueue<MessageTestResult>();
             int results = 0;
             await this.iotHub.ReceiveEventsAsync(
                 this.runtime.DeviceId,
@@ -97,17 +99,23 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         Log.Information($"prop {prop.Key}, val: {prop.Value}");
                     }
 
-                    this.ReportResult(
-                        testResultReportingClient,
-                        "hubtest",
-                        data.Properties["trackingId"].ToString(),
-                        data.Properties["batchId"].ToString(),
-                        data.Properties["sequenceNumber"].ToString());
+                    messages.Enqueue(new MessageTestResult("hubtest.receive", DateTime.UtcNow)
+                    {
+                        TrackingId = data.Properties["trackingId"].ToString(),
+                        BatchId = data.Properties["batchId"].ToString(),
+                        SequenceNumber = data.Properties["sequenceNumber"].ToString()
+                    });
+
                     // TODO account for duplicates
                     results++;
                     return results == loadGenTestStatus.ResultCount;
                 },
                 token);
+            while (messages.TryDequeue(out MessageTestResult messageTestResult))
+            {
+                await testResultReportingClient.ReportResultAsync(messageTestResult.ToTestOperationResultDto());
+            }
+
             await this.ValidateResultsAsync();
         }
 
@@ -141,16 +149,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.ValidateResultsAsync();
         }
 
-        private async void ReportResult(TestResultReportingClient testResultReportingClient, string sourceName, string trackingId, string batchId, string sequenceNumber)
+        private async Task ReportResult(TestResultReportingClient testResultReportingClient, string sourceName, string trackingId, string batchId, string sequenceNumber)
         {
-            var testResultReceived = new MessageTestResult(sourceName + ".receive", DateTime.UtcNow)
-            {
-                TrackingId = trackingId,
-                BatchId = batchId,
-                SequenceNumber = sequenceNumber
-            };
-
-            await testResultReportingClient.ReportResultAsync(testResultReceived.ToTestOperationResultDto());
+            // var testResultReceived = new MessageTestResult(sourceName + ".receive", DateTime.UtcNow)
+            // {
+            //    TrackingId = trackingId,
+            //    BatchId = batchId,
+            //    SequenceNumber = sequenceNumber
+            // };
+            // await testResultReportingClient.ReportResultAsync(testResultReceived.ToTestOperationResultDto());
         }
 
         private async Task ValidateResultsAsync()
