@@ -5,13 +5,13 @@ use bytes::Bytes;
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
 };
+use tempfile::TempDir;
+
 use mqtt3::proto::{Publication, QoS};
 use mqtt_broker::{
     BrokerState, ClientId, ConsolidatedStateFormat, FileFormat, FilePersistor, Persist,
     PersistError, SessionState,
 };
-use tempfile::TempDir;
-use tokio::runtime::Runtime;
 
 fn test_write<F>(
     group: &mut BenchmarkGroup<WallTime>,
@@ -41,13 +41,10 @@ fn test_write<F>(
                 let tmp_dir = TempDir::new().unwrap();
                 let path = tmp_dir.path().to_owned();
                 let persistor = FilePersistor::new(path, format.clone());
-                let rt = Runtime::new().unwrap();
 
-                (state, persistor, rt, tmp_dir)
+                (state, persistor, tmp_dir)
             },
-            |(state, mut persistor, mut rt, _tmp_dir)| {
-                rt.block_on(async { persistor.store(state).await })
-            },
+            |(state, mut persistor, _tmp_dir)| persistor.store(state).expect("store"),
             BatchSize::SmallInput,
         );
     });
@@ -81,15 +78,11 @@ fn test_read<F>(
                 let tmp_dir = TempDir::new().unwrap();
                 let path = tmp_dir.path().to_owned();
                 let mut persistor = FilePersistor::new(path, format.clone());
+                persistor.store(state).expect("store");
 
-                Runtime::new()
-                    .unwrap()
-                    .block_on(async { persistor.store(state).await })
-                    .unwrap();
-                let rt = Runtime::new().unwrap();
-                (persistor, rt, tmp_dir)
+                (persistor, tmp_dir)
             },
-            |(mut persistor, mut rt, _tmp_dir)| rt.block_on(async { persistor.load().await }),
+            |(mut persistor, _tmp_dir)| persistor.load().expect("load"),
             BatchSize::SmallInput,
         );
     });
@@ -143,16 +136,9 @@ fn make_random_payload(size: u32) -> Bytes {
     Bytes::from_iter((0..size).map(|_| rand::random::<u8>()))
 }
 
-fn bench(c: &mut Criterion) {
-    let tests = vec![
-        (1, 1, 0, 0),
-        (10, 10, 10, 10),
-        (10, 100, 0, 0),
-        (10, 0, 100, 0),
-    ];
-
-    let mut group = c.benchmark_group("persist");
-    for (clients, unique, shared, retained) in tests {
+fn write_state(c: &mut Criterion) {
+    let mut group = c.benchmark_group("write_state");
+    for (clients, unique, shared, retained) in scenarios() {
         test_write(
             &mut group,
             clients,
@@ -161,6 +147,13 @@ fn bench(c: &mut Criterion) {
             retained,
             ConsolidatedStateFormat::default(),
         );
+    }
+    group.finish();
+}
+
+fn read_state(c: &mut Criterion) {
+    let mut group = c.benchmark_group("read_state");
+    for (clients, unique, shared, retained) in scenarios() {
         test_read(
             &mut group,
             clients,
@@ -173,5 +166,14 @@ fn bench(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(basic, bench);
+fn scenarios() -> Vec<(u32, u32, u32, u32)> {
+    vec![
+        (1, 1, 0, 0),
+        (10, 10, 10, 10),
+        (10, 100, 0, 0),
+        (10, 0, 100, 0),
+    ]
+}
+
+criterion_group!(basic, write_state, read_state);
 criterion_main!(basic);
