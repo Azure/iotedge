@@ -373,7 +373,6 @@ where
             debug!("no session for {}", client_id);
         }
         debug!("disconnect handled.");
-
         Ok(())
     }
 
@@ -398,7 +397,6 @@ where
             debug!("no session for {}", client_id);
         }
         debug!("drop connection handled.");
-
         Ok(())
     }
 
@@ -419,7 +417,6 @@ where
             debug!("no session for {}", client_id);
         }
         debug!("close session handled.");
-
         Ok(())
     }
 
@@ -464,19 +461,17 @@ where
             .cloned()
             .collect::<Vec<proto::Publication>>();
 
-        let mut sys_message = SysMessage::None;
         if let Some(session) = self.sessions.get_mut(&client_id) {
             for mut publication in publications {
                 publication.retain = true;
                 publish_to(&self.authorizer, session, &publication)?;
-
-                sys_message = get_sys_message(&StateChange::Subscriptions(&session));
             }
+            
+            let sys_message = get_sys_message(&StateChange::Subscriptions(&session));
+            self.send_sys_message(sys_message)?;
         } else {
             debug!("no session for {}", client_id);
         }
-
-        self.send_sys_message(sys_message)?;
 
         Ok(())
     }

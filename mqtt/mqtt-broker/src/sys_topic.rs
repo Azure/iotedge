@@ -69,7 +69,7 @@ fn get_disconnect(sessions: &HashMap<ClientId, Session>, client_id: &ClientId) -
             topic_name: format!("$sys/subscriptions/{}", client_id),
             qos: proto::QoS::AtMostOnce, //no ack
             retain: true,
-            payload: Bytes::from("".to_owned()),
+            payload: "".into(),
         });
     }
 
