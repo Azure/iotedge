@@ -31,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string NetworkControllerModuleName = "networkController";
         const string TrcUrl = "http://" + TrcModuleName + ":5001";
         const string LoadGenTestDuration = "00:00:20";
+        const string LoadGenTestStartDelay = "00:00:20";
 
         [Test]
         public async Task PriorityQueueModuleToModuleMessages()
@@ -81,8 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addNetworkControllerConfig, token);
             Log.Information("Toggling connectivity off");
             await this.ToggleConnectivity(false, NetworkControllerModuleName, token);
-            Log.Information("Waiting for 30 seconds");
-            await Task.Delay(40000);
+            await Task.Delay(TimeSpan.Parse(LoadGenTestDuration) + TimeSpan.Parse(LoadGenTestStartDelay) + TimeSpan.FromSeconds(10));
             Log.Information("Toggling connectivity on");
             await this.ToggleConnectivity(true, NetworkControllerModuleName, token);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
@@ -93,11 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 deployment.StartTime,
                 data =>
                 {
-                    Log.Information("RECEIVED MESSAGE");
-                    foreach (var prop in data.Properties)
-                    {
-                        Log.Information($"prop {prop.Key}, val: {prop.Value}");
-                    }
+                    Log.Information($"Received message from IoTHub with sequence number: {data.Properties["sequenceNumber"]}");
 
                     messages.Enqueue(new MessageTestResult("hubtest.receive", DateTime.UtcNow)
                     {
@@ -149,16 +145,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.ValidateResultsAsync();
         }
 
-        // private async Task ReportResult(TestResultReportingClient testResultReportingClient, string sourceName, string trackingId, string batchId, string sequenceNumber)
-        // {
-        //    // var testResultReceived = new MessageTestResult(sourceName + ".receive", DateTime.UtcNow)
-        //    // {
-        //    //    TrackingId = trackingId,
-        //    //    BatchId = batchId,
-        //    //    SequenceNumber = sequenceNumber
-        //    // };
-        //    // await testResultReportingClient.ReportResultAsync(testResultReceived.ToTestOperationResultDto());
-        // }
         private async Task ValidateResultsAsync()
         {
             HttpClient client = new HttpClient();
@@ -260,7 +246,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         {
                             ("testResultCoordinatorUrl", TrcUrl),
                             ("senderType", "PriorityMessageSender"),
-                            ("testStartDelay", "00:00:20"),
+                            ("testStartDelay", LoadGenTestStartDelay),
                             ("trackingId", trackingId),
                             ("testDuration", LoadGenTestDuration),
                             ("messageFrequency", "00:00:00.5"),
