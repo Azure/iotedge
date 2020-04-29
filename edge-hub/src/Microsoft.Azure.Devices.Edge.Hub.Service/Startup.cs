@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
 
-    public class Startup : IStartup
+    public class Startup
     {
         readonly IDependencyManager dependencyManager;
         readonly IConfigurationRoot configuration;
@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             var builder = new ContainerBuilder();
             builder.Populate(services);
             this.dependencyManager.Register(builder);
-            builder.RegisterInstance<IStartup>(this);
+            builder.RegisterInstance<Startup>(this);
 
             return builder.Build();
         }

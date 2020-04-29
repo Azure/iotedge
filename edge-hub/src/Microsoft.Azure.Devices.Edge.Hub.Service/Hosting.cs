@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                         .UseStartup<Startup>();
                 }).Build();
 
-            IContainer container = host.Services.GetService(typeof(IStartup)) is Startup startup ? startup.Container : null;
+            IContainer container = host.Services.GetService(typeof(Startup)) is Startup startup ? startup.Container : null;
             return new Hosting(host, container);
         }
     }
