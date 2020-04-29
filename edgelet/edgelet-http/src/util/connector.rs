@@ -170,7 +170,7 @@ mod tests {
     use tempfile::NamedTempFile;
     use url::Url;
 
-    use super::*;
+    use super::UrlConnector;
 
     #[test]
     fn invalid_url_scheme() {

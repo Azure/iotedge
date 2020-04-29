@@ -2,7 +2,6 @@
 
 use external_provisioning::apis::Error as ExternalProvisioningError;
 use failure::{Backtrace, Context, Fail};
-use serde_json;
 use std::fmt::{self, Display};
 
 pub type Result<T> = ::std::result::Result<T, Error>;

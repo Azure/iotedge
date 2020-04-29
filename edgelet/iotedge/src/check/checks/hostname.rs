@@ -193,7 +193,7 @@ fn is_rfc_1035_valid(name: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::is_rfc_1035_valid;
 
     #[test]
     fn test_is_rfc_1035_valid() {

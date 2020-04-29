@@ -4,7 +4,6 @@ use super::{compute_validity, refresh_cert};
 use failure::ResultExt;
 use futures::{Future, IntoFuture, Stream};
 use hyper::{Body, Request, Response};
-use serde_json;
 
 use edgelet_core::{
     Certificate, CertificateProperties, CertificateType, CreateCertificate, WorkloadConfig,
@@ -116,7 +115,10 @@ mod tests {
     use edgelet_test_utils::cert::TestCert;
     use workload::models::{CertificateResponse, ErrorResponse, IdentityCertificateRequest};
 
-    use super::*;
+    use super::{
+        prepare_cert_uri_module, Body, Future, Handler, IdentityCertHandler, Parameters, Request,
+        Response, Stream,
+    };
     use hyper::StatusCode;
 
     const MAX_DURATION_SEC: u64 = 7200;
