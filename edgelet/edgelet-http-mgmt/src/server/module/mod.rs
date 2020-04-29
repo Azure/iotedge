@@ -5,12 +5,11 @@ use std::collections::HashMap;
 use failure::Fail;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use serde_json;
 
 use edgelet_core::{
     ImagePullPolicy, Module, ModuleRuntime, ModuleSpec as CoreModuleSpec, ModuleStatus,
 };
-use management::models::*;
+use management::models::{Config, EnvVar, ModuleDetails, ModuleSpec, RuntimeStatus, Status};
 
 use crate::error::{Error, ErrorKind};
 

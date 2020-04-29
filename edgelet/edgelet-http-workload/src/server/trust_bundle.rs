@@ -6,7 +6,6 @@ use failure::ResultExt;
 use futures::{Future, IntoFuture};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
-use serde_json;
 
 use edgelet_core::{Certificate, GetTrustBundle};
 use edgelet_http::route::{Handler, Parameters};

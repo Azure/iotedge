@@ -7,7 +7,6 @@ use hyper::{Body, Request, Response, StatusCode};
 use log::debug;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use serde_json;
 
 use edgelet_core::{ImagePullPolicy, Module, ModuleRegistry, ModuleRuntime};
 use edgelet_http::route::{Handler, Parameters};

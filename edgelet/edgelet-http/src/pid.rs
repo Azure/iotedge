@@ -117,7 +117,7 @@ mod impl_linux {
     use libc::{c_void, getsockopt, ucred, SOL_SOCKET, SO_PEERCRED};
     use tokio_uds::UnixStream;
 
-    use super::*;
+    use super::Pid;
 
     pub fn get_pid(sock: &UnixStream) -> io::Result<Pid> {
         let raw_fd = sock.as_raw_fd();

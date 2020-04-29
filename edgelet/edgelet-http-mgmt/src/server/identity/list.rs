@@ -5,7 +5,6 @@ use futures::Future;
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
 use serde::Serialize;
-use serde_json;
 
 use edgelet_core::{Identity as CoreIdentity, IdentityManager, IdentityOperation};
 use edgelet_http::route::{Handler, Parameters};

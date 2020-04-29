@@ -4,7 +4,6 @@ use super::{compute_validity, refresh_cert};
 use failure::ResultExt;
 use futures::{Future, IntoFuture, Stream};
 use hyper::{Body, Request, Response};
-use serde_json;
 
 use edgelet_core::{
     Certificate, CertificateProperties, CertificateType, CreateCertificate, WorkloadConfig,

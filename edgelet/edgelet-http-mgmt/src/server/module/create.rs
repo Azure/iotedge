@@ -8,14 +8,13 @@ use hyper::{Body, Request, Response, StatusCode};
 use log::debug;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use serde_json;
 
 use edgelet_core::{
     ImagePullPolicy, Module, ModuleRegistry, ModuleRuntime, ModuleStatus, RuntimeOperation,
 };
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
-use management::models::*;
+use management::models::ModuleSpec;
 
 use super::{spec_to_core, spec_to_details};
 use crate::error::{Error, ErrorKind};

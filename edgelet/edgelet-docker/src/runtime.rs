@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::time::Duration;
 
-use base64;
 use failure::{Fail, ResultExt};
 use futures::future::Either;
 use futures::prelude::*;
@@ -12,7 +11,6 @@ use futures::{future, stream, Async, Stream};
 use hyper::{Body, Chunk as HyperChunk, Client, Request};
 use lazy_static::lazy_static;
 use log::{debug, info, Level};
-use serde_json;
 use url::Url;
 
 use docker::apis::client::APIClient;

@@ -9,7 +9,6 @@ use log::debug;
 use log::info;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use serde_json;
 use url::form_urlencoded::parse as parse_query;
 
 use edgelet_core::{ImagePullPolicy, Module, ModuleRegistry, ModuleRuntime, ModuleStatus};

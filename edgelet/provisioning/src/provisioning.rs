@@ -12,7 +12,6 @@ use futures::future::Either;
 use futures::{future, Future, IntoFuture};
 use log::info;
 use serde_derive::{Deserialize, Serialize};
-use serde_json;
 use url::Url;
 
 use dps::registration::{DpsAuthKind, DpsClient, DpsTokenSource};

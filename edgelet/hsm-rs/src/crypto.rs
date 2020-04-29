@@ -8,7 +8,21 @@ use std::os::raw::{c_char, c_uchar, c_void};
 use std::slice;
 use std::str;
 
-use super::*;
+use super::{
+    cert_properties_create, cert_properties_destroy, certificate_info_destroy,
+    certificate_info_get_certificate, certificate_info_get_common_name,
+    certificate_info_get_private_key, certificate_info_get_valid_to,
+    certificate_info_private_key_type, hsm_client_crypto_deinit, hsm_client_crypto_init,
+    hsm_client_crypto_interface, hsm_get_device_ca_alias, hsm_get_version, set_alias,
+    set_certificate_type, set_common_name, set_issuer_alias, set_san_entries, set_validity_seconds,
+    CreateCertificate, CreateMasterEncryptionKey, Decrypt, DestroyMasterEncryptionKey, Encrypt,
+    GetCertificate, GetTrustBundle, MakeRandom, CERTIFICATE_TYPE_CERTIFICATE_TYPE_CA,
+    CERTIFICATE_TYPE_CERTIFICATE_TYPE_CLIENT, CERTIFICATE_TYPE_CERTIFICATE_TYPE_SERVER,
+    CERTIFICATE_TYPE_CERTIFICATE_TYPE_UNKNOWN, CERT_INFO_HANDLE, CERT_PROPS_HANDLE,
+    HSM_CLIENT_CRYPTO_INTERFACE, HSM_CLIENT_HANDLE, PRIVATE_KEY_TYPE_PRIVATE_KEY_TYPE_PAYLOAD,
+    PRIVATE_KEY_TYPE_PRIVATE_KEY_TYPE_REFERENCE, PRIVATE_KEY_TYPE_PRIVATE_KEY_TYPE_UNKNOWN,
+    SIZED_BUFFER,
+};
 use crate::error::{Error, ErrorKind};
 
 /// Enumerator for [`CERTIFICATE_TYPE`]
