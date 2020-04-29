@@ -343,7 +343,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         static class Events
         {
-            const int IdStart = AuthAgentEventIds.AuthAgentProtocolHead + 100;
+            const int IdStart = AuthAgentEventIds.AuthAgentRequestHandler;
             static readonly ILogger Log = Logger.Factory.CreateLogger<AuthAgentRequestHandler>();
 
             enum EventIds

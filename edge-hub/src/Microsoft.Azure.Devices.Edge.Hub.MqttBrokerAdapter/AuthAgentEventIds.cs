@@ -5,5 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     {
         const int EventIdStart = 7000;
         public const int AuthAgentProtocolHead = EventIdStart;
+        public const int AuthAgentRequestHandler = EventIdStart + 100;
     }
 }
