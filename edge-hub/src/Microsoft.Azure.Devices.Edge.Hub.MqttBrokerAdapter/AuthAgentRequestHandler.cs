@@ -27,8 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
     public class AuthAgentRequestHandler
     {
-        // The maximum allowed request size. The biggest item in a request the certificate chain,
-        // 32k for the certificates and other data should me more than enough. Bigger requests are
+        // The maximum allowed request size. The biggest item in a request is the certificate chain,
+        // 32k for the certificates and other data should be more than enough. Bigger requests are
         // refused.
         const int MaxInBufferSize = 32 * 1024;
         const string Post = "POST";
@@ -333,12 +333,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             {
                 return new List<X509Certificate2>();
             }
-        }
-
-        static void SetupTimeouts(HttpListener listener)
-        {
-            listener.TimeoutManager.EntityBody = requestTimeout;
-            listener.TimeoutManager.HeaderWait = requestTimeout;
         }
 
         static class Events
