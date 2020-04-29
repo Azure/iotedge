@@ -291,7 +291,7 @@ async fn will_message() {
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-b".into()))
         .build();
 
-    client_a.subscribe(topic, QoS::ExactlyOnce).await;
+    client_b.subscribe(topic, QoS::ExactlyOnce).await;
 
     client_b.next().await; //skip connect event
     client_b.next().await; //skip subscribe event
