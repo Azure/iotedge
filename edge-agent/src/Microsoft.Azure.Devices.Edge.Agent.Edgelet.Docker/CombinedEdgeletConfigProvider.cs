@@ -85,8 +85,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
                 var env = moduleWithDockerConfig.Env ?? new Dictionary<string, EnvVal>();
 
                 var labels = createOptions.Labels ?? new Dictionary<string, string>();
-                labels.Add(Constants.Labels.CreateOptions, createOptionsJson);
-                labels.Add(Constants.Labels.Env, JsonConvert.SerializeObject(env));
+                // if these labels already existed (e.g. specified in the deployment), just overwrite them
+                labels[Constants.Labels.CreateOptions] = createOptionsJson;
+                labels[Constants.Labels.Env] = JsonConvert.SerializeObject(env);
                 createOptions.Labels = labels;
             }
         }

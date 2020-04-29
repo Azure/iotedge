@@ -264,11 +264,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             return (dict, JsonConvert.SerializeObject(dict));
         }
 
-        [Fact]
-        public void TestEdgeAgentLabels()
+        [Theory]
+        // standard data in createOptions
+        [InlineData("{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}]}}}")]
+        // createOptions with pre-existing reserved labels (shouldn't happen, but we need to be resilient)
+        [InlineData("{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}]}},\"Labels\":{\"net.azure-devices.edge.create-options\":\"one\",\"net.azure-devices.edge.env\":\"two\"}}")]
+        public void TestEdgeAgentLabels(string createOptions)
         {
             (IDictionary<string, EnvVal> dictEnv, string jsonEnv) = CreateEnv(("a", "one"), ("b", "two"));
-            string createOptions = "{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}]}}}";
 
             // Arrange
             var runtimeInfo = Mock.Of<IRuntimeInfo<DockerRuntimeConfig>>(ri =>
@@ -298,6 +301,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             Assert.Equal(createOptions, config.CreateOptions.Labels[Constants.Labels.CreateOptions]);
             Assert.Equal(jsonEnv, config.CreateOptions.Labels[Constants.Labels.Env]);
         }
-
     }
 }
