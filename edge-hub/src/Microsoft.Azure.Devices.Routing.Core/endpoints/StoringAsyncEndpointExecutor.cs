@@ -153,9 +153,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             // We don't ever remove stale priorities, otherwise stored messages
             // pending for a removed priority will never get sent.
             ImmutableDictionary<uint, EndpointExecutorFsm> snapshot = this.prioritiesToFsms;
+            Dictionary<uint, EndpointExecutorFsm> updatedSnapshot = new Dictionary<uint, EndpointExecutorFsm>(snapshot);
+
             foreach (uint priority in priorities)
             {
-                if (!snapshot.ContainsKey(priority))
+                if (!updatedSnapshot.ContainsKey(priority))
                 {
                     string id = GetMessageQueueId(this.Endpoint.Id, priority);
 
@@ -167,7 +169,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                     EndpointExecutorFsm fsm = new EndpointExecutorFsm(this.Endpoint, checkpointer, this.config);
 
                     // Add it to our dictionary
-                    snapshot.Add(priority, fsm);
+                    updatedSnapshot.Add(priority, fsm);
                 }
                 else
                 {
@@ -177,12 +179,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 }
             }
 
-            this.prioritiesToFsms.Value = snapshot;
-            Events.UpdatePrioritiesSuccess(this, snapshot.Keys.ToList());
+            this.prioritiesToFsms.CompareAndSet(snapshot, updatedSnapshot.ToImmutableDictionary());
+            Events.UpdatePrioritiesSuccess(this, updatedSnapshot.Keys.ToList());
 
             // Update the lastUsedFsm to be the initial one, we always
             // have at least one priority->FSM pair at this point.
-            this.lastUsedFsm = snapshot.Values.First();
+            this.lastUsedFsm = updatedSnapshot.Values.First();
         }
 
         static string GetMessageQueueId(string endpointId, uint priority)
