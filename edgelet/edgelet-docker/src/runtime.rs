@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::time::Duration;
 
-use base64;
 use failure::{Fail, ResultExt};
 use futures::future::Either;
 use futures::prelude::*;
@@ -12,7 +11,6 @@ use futures::{future, stream, Async, Stream};
 use hyper::{Body, Chunk as HyperChunk, Client, Request};
 use lazy_static::lazy_static;
 use log::{debug, info, Level};
-use serde_json;
 use url::Url;
 
 use docker::apis::client::APIClient;
@@ -631,6 +629,9 @@ impl ModuleRuntime for DockerModuleRuntime {
                 })
             });
 
+        #[cfg(not(any(windows, target_os = "linux")))]
+        let uptime: u64 = 0;
+
         #[cfg(target_os = "linux")]
         let uptime: u64 = {
             let mut info: libc::sysinfo = unsafe { mem::zeroed() };
@@ -641,6 +642,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                 0
             }
         };
+
         #[cfg(windows)]
         let uptime: u64 = unsafe { winapi::um::sysinfoapi::GetTickCount64() / 1000 };
 
@@ -1012,7 +1014,13 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{
+        authenticate, future, list_with_details, parse_get_response, AuthId, Authenticator, Body,
+        CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop, Duration, Error,
+        ErrorKind, Future, GetTrustBundle, HashMap, InlineResponse200, LogOptions,
+        MakeModuleRuntime, Module, ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid,
+        ProvisioningResult, Request, Settings, Stream, SystemResources,
+    };
 
     use std::path::Path;
 
