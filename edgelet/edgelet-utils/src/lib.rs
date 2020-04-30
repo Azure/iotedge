@@ -105,7 +105,10 @@ pub fn append_dns_san_entries(sans: &str, names: &[&str]) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{
+        append_dns_san_entries, parse_query, prepare_cert_uri_module, prepare_dns_san_entries,
+        sanitize_dns_label, DNS_MAX_SIZE,
+    };
 
     #[test]
     fn parse_query_empty_input() {

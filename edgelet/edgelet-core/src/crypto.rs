@@ -384,8 +384,10 @@ impl<K: Sign> KeyStore for DerivedKeyStore<K> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use base64;
+    use super::{
+        AsRef, DerivedKeyStore, Digest, From, KeyIdentity, KeyStore, MemoryKey, MemoryKeyStore,
+        Sign, Signature, SignatureAlgorithm, ToString,
+    };
     use bytes::Bytes;
 
     #[test]

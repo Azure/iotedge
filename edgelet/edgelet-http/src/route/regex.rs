@@ -161,7 +161,7 @@ fn normalize_pattern(pattern: &str) -> Cow<'_, str> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{match_route, Regex};
 
     #[test]
     fn params_name() {

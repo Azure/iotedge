@@ -1,4 +1,3 @@
-use std;
 use std::fs::File;
 
 use failure::{self, Fail};

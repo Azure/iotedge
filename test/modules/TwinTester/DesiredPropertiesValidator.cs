@@ -27,6 +27,15 @@ namespace TwinTester
             this.storage = storage;
             this.resultHandler = resultHandler;
             this.twinState = twinState;
+
+            moduleClient.SetConnectionStatusChangesHandler((status, reason) =>
+            {
+                Logger.LogInformation($"Detected change in connection status:{Environment.NewLine}Changed Status: {status} Reason: {reason}");
+                if (status == ConnectionStatus.Disconnected_Retrying)
+                {
+                    this.twinState.LastTimeOfEdgeRestart = DateTime.UtcNow;
+                }
+            });
         }
 
         public async Task ValidateAsync()
@@ -56,20 +65,20 @@ namespace TwinTester
             foreach (KeyValuePair<string, DateTime> desiredPropertyUpdate in desiredPropertiesUpdated)
             {
                 bool hasTwinUpdate = propertyUpdatesFromTwin.Contains(desiredPropertyUpdate.Key);
-                bool hasModuleReceivedCallback = desiredPropertiesReceived.ContainsKey(desiredPropertyUpdate.Key);
+                bool hasReceivedPotentialCallback = desiredPropertiesReceived.ContainsKey(desiredPropertyUpdate.Key) || !this.ShouldExpectDesiredPropertyCallback(this.twinState, desiredPropertyUpdate.Value);
                 string status;
-                if (hasTwinUpdate && hasModuleReceivedCallback)
+                if (hasTwinUpdate && hasReceivedPotentialCallback)
                 {
                     status = $"{(int)StatusCode.ValidationSuccess}: Successfully validated desired property update";
                     Logger.LogInformation(status + $" {desiredPropertyUpdate.Key}");
                 }
                 else if (this.ExceedFailureThreshold(this.twinState, desiredPropertyUpdate.Value))
                 {
-                    if (hasTwinUpdate && !hasModuleReceivedCallback)
+                    if (hasTwinUpdate && !hasReceivedPotentialCallback)
                     {
                         status = $"{(int)StatusCode.DesiredPropertyUpdateNoCallbackReceived}: Failure receiving desired property update in callback";
                     }
-                    else if (!hasTwinUpdate && hasModuleReceivedCallback)
+                    else if (!hasTwinUpdate && hasReceivedPotentialCallback)
                     {
                         status = $"{(int)StatusCode.DesiredPropertyUpdateNotInEdgeTwin}: Failure receiving desired property update in twin";
                     }
@@ -126,6 +135,11 @@ namespace TwinTester
         {
             DateTime comparisonPoint = twinUpdateTime > twinState.LastTimeOffline ? twinUpdateTime : twinState.LastTimeOffline;
             return DateTime.UtcNow - comparisonPoint > Settings.Current.TwinUpdateFailureThreshold;
+        }
+
+        bool ShouldExpectDesiredPropertyCallback(TwinState twinState, DateTime twinUpdateTime)
+        {
+            return (twinUpdateTime - twinState.LastTimeOfEdgeRestart).Duration() > Settings.Current.EdgeHubRestartFailureTolerance;
         }
 
         async Task HandleReportStatusAsync(string status)

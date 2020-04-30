@@ -1,11 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use base64;
 use failure::ResultExt;
 use futures::{Future, IntoFuture, Stream};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
-use serde_json;
 use workload::models::{SignRequest, SignResponse};
 
 use edgelet_core::crypto::{KeyIdentity, KeyStore, Sign, Signature, SignatureAlgorithm};
@@ -108,7 +106,10 @@ mod tests {
     use edgelet_http::route::Parameters;
     use workload::models::ErrorResponse;
 
-    use super::*;
+    use super::{
+        Future, Handler, KeyIdentity, Request, SignHandler, SignRequest, SignResponse, StatusCode,
+        Stream,
+    };
 
     #[derive(Debug)]
     struct State {
