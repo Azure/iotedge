@@ -15,7 +15,7 @@ use edgelet_core::{
 };
 use edgelet_http::authentication::Authentication;
 use edgelet_http::authorization::Authorization;
-use edgelet_http::route::*;
+use edgelet_http::route::{Builder, RegexRecognizer, Router, RouterService};
 use edgelet_http::router;
 use edgelet_http::Version;
 
@@ -24,10 +24,10 @@ mod identity;
 mod module;
 mod system_info;
 
-use self::device_actions::*;
-use self::identity::*;
+use self::device_actions::ReprovisionDevice;
+use self::identity::{CreateIdentity, DeleteIdentity, ListIdentities, UpdateIdentity};
 pub use self::module::*;
-use self::system_info::*;
+use self::system_info::{GetSystemInfo, GetSystemResources};
 use crate::error::{Error, ErrorKind};
 
 lazy_static! {

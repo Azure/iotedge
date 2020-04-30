@@ -7,7 +7,6 @@ use clap::{crate_authors, crate_description, crate_name, App, Arg};
 use failure::ResultExt;
 use log::info;
 
-use edgelet_core;
 #[cfg(feature = "runtime-docker")]
 use edgelet_docker::Settings;
 #[cfg(feature = "runtime-kubernetes")]

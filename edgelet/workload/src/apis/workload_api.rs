@@ -12,8 +12,6 @@ use std::borrow::Borrow;
 use std::sync::Arc;
 
 use futures::{Future, Stream};
-use hyper;
-use serde_json;
 use typed_headers::{self, http, mime, HeaderMapExt};
 use url::percent_encoding::{percent_encode, PATH_SEGMENT_ENCODE_SET};
 
