@@ -187,7 +187,7 @@ jobs:
         displayName: 'Install cross (fork with docker fix)'
 
       - bash: 'docker system prune -af --volumes'
-        displayName: 'Clean up existing docker images'
+        displayName: 'Clean up cached docker images'
 
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
         name: build
