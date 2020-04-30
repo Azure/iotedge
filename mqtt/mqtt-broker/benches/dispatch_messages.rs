@@ -10,6 +10,7 @@ use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
 };
 use itertools::iproduct;
+use rand::Rng;
 use tokio::{runtime::Runtime, sync::mpsc};
 use tracing::{info, warn};
 
@@ -20,26 +21,54 @@ use mqtt_broker::{
     Publish, SystemEvent,
 };
 
-criterion_group!(basic, one_to_one);
+criterion_group!(basic, one_to_one, fan_in, fan_out);
 criterion_main!(basic);
 
 fn one_to_one(c: &mut Criterion) {
     init_logging();
 
-    let sizes = vec![Size::B(32), Size::Kb(128), Size::Mb(1)];
-    let subscribers = vec![1, 10, 100];
-    let qoses = vec![proto::QoS::AtMostOnce, proto::QoS::AtLeastOnce];
-
     let mut group = c.benchmark_group("1-to-1");
-    for (qos, sub_count, payload_size) in iproduct!(qoses, subscribers, sizes) {
-        dispatch_messages(&mut group, sub_count, payload_size, qos);
+    for (qos, count, payload_size) in scenarios() {
+        let strategy = Strategy::new_one_to_one(count, count);
+        dispatch_messages(&mut group, strategy, count, payload_size, qos);
     }
     group.finish();
 }
 
+fn fan_in(c: &mut Criterion) {
+    init_logging();
+
+    let mut group = c.benchmark_group("fan_in");
+    for (qos, count, payload_size) in scenarios() {
+        let strategy = Strategy::new_fan_in(count, count);
+        dispatch_messages(&mut group, strategy, count, payload_size, qos);
+    }
+    group.finish();
+}
+
+fn fan_out(c: &mut Criterion) {
+    init_logging();
+
+    let mut group = c.benchmark_group("fan_out");
+    for (qos, count, payload_size) in scenarios() {
+        let strategy = Strategy::new_fan_out(count, count);
+        dispatch_messages(&mut group, strategy, count, payload_size, qos);
+    }
+    group.finish();
+}
+
+fn scenarios() -> impl IntoIterator<Item = (proto::QoS, usize, Size)> {
+    let sizes = vec![Size::B(32), Size::Kb(128), Size::Mb(1)];
+    let clients = vec![1, 10, 100];
+    let qoses = vec![proto::QoS::AtMostOnce, proto::QoS::AtLeastOnce];
+
+    iproduct!(qoses, clients, sizes)
+}
+
 fn dispatch_messages(
     group: &mut BenchmarkGroup<WallTime>,
-    sub_count: usize,
+    strategy: Strategy,
+    client_count: usize,
     size: Size,
     qos: proto::QoS,
 ) {
@@ -57,14 +86,15 @@ fn dispatch_messages(
 
     let broker_task = runtime.spawn(broker.run());
 
-    let subscriber_tasks: Vec<_> = (0..sub_count)
+    let subscriber_tasks: Vec<_> = (0..client_count)
         .map(|sub_id| {
             let broker_handle = broker_handle.clone();
 
+            let id = Id::new_subscriber(sub_id);
+            let topic = strategy.sub_topic(&id);
+
             let client = runtime.block_on(async move {
-                let client_id = format!("subscriber/{}", sub_id);
-                let mut client = Client::connect(client_id.clone(), broker_handle.clone()).await;
-                let topic = client_id.replace("subscriber", "topic");
+                let mut client = Client::connect(id, broker_handle.clone()).await;
                 client.subscribe(topic, qos).await;
 
                 client
@@ -74,10 +104,10 @@ fn dispatch_messages(
         })
         .collect();
 
-    let (publisher_handles, publisher_tasks): (Vec<_>, Vec<_>) = (0..1)
+    let (publisher_handles, publisher_tasks): (Vec<_>, Vec<_>) = (0..client_count)
         .map(|pub_id| {
-            let client_id = format!("publisher/{}", pub_id);
-            let client = runtime.block_on(Client::connect(client_id, broker_handle.clone()));
+            let id = Id::new_publisher(pub_id);
+            let client = runtime.block_on(Client::connect(id, broker_handle.clone()));
 
             let publish_handle = client.publish_handle();
             let task = runtime.spawn(client.run());
@@ -85,15 +115,17 @@ fn dispatch_messages(
         })
         .unzip();
 
-    let bench_name = format!("q{}/sub/{}/msg/{}", u8::from(qos), sub_count, size);
+    let bench_name = format!("q{}/c/{}/msg/{}", u8::from(qos), client_count, size);
     group.bench_function(bench_name, |b| {
         b.iter_batched(
             || {
-                let publisher = publisher_handles.get(0).expect("publisher");
-                let publish = publisher.publish(qos, "topic/0".into(), size);
+                let pub_index = rand::thread_rng().gen_range(0, client_count);
+                let publisher = publisher_handles.get(pub_index).expect("publisher");
+                let topic = strategy.pub_topic(&publisher.id);
+                let publish = publisher.publish(qos, topic, size);
 
                 Message::Client(
-                    publisher.client_id.clone(),
+                    publisher.id.as_client_id(),
                     ClientEvent::PublishFrom(publish),
                 )
             },
@@ -127,23 +159,24 @@ fn init_logging() {
         .with_ansi(atty::is(atty::Stream::Stderr))
         .with_max_level(tracing::Level::INFO)
         .with_writer(std::io::stderr)
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .finish();
     let _ = tracing::subscriber::set_global_default(subscriber);
 }
 
 struct Client {
-    client_id: ClientId,
+    id: Id,
     broker_handle: BrokerHandle,
     rx: UnboundedReceiver<Message>,
     pubs_to_be_acked: Arc<Mutex<HashSet<proto::PacketIdentifier>>>,
 }
 
 impl Client {
-    async fn connect(client_id: String, broker_handle: BrokerHandle) -> Self {
+    async fn connect(client_id: Id, broker_handle: BrokerHandle) -> Self {
         let (tx, rx) = mpsc::unbounded_channel();
 
         let mut client = Self {
-            client_id: client_id.into(),
+            id: client_id,
             broker_handle,
             rx,
             pubs_to_be_acked: Arc::new(Mutex::new(HashSet::default())),
@@ -154,13 +187,13 @@ impl Client {
             username: None,
             password: None,
             will: None,
-            client_id: proto::ClientId::IdWithCleanSession(client.client_id.to_string()),
+            client_id: proto::ClientId::IdWithCleanSession(client.id.to_string()),
             keep_alive: Duration::from_secs(10),
             protocol_name: PROTOCOL_NAME.into(),
             protocol_level: PROTOCOL_LEVEL,
         };
-        let connreq = ConnReq::new(client.client_id.clone(), connect, None, connection_handle);
-        let message = Message::Client(client.client_id.clone(), ClientEvent::ConnReq(connreq));
+        let connreq = ConnReq::new(client.id.as_client_id(), connect, None, connection_handle);
+        let message = Message::Client(client.id.as_client_id(), ClientEvent::ConnReq(connreq));
         client.broker_handle.send(message).expect("connect");
 
         client
@@ -174,13 +207,13 @@ impl Client {
                 qos: max_qos,
             }],
         };
-        let message = Message::Client(self.client_id.clone(), ClientEvent::Subscribe(subscribe));
+        let message = Message::Client(self.id.as_client_id(), ClientEvent::Subscribe(subscribe));
         self.broker_handle.send(message).expect("subscribe");
     }
 
     fn publish_handle(&self) -> PublishHandle {
         PublishHandle {
-            client_id: self.client_id.clone(),
+            id: self.id.clone(),
             pubs_to_be_acked: self.pubs_to_be_acked.clone(),
         }
     }
@@ -222,7 +255,7 @@ impl Client {
                             if !acks.remove(&puback.packet_identifier) {
                                 warn!(
                                     "{}: cannot find packet identifier {}",
-                                    self.client_id, puback.packet_identifier,
+                                    self.id, puback.packet_identifier,
                                 );
                             }
                             None
@@ -258,20 +291,17 @@ impl Client {
             };
 
             if stop {
-                info!("{}: disconnect requested", self.client_id);
+                info!("{}: disconnect requested", self.id);
                 break;
             }
         }
 
-        info!(
-            "{}: received {} messages",
-            self.client_id, messages_received
-        );
+        info!("{}: received {} messages", self.id, messages_received);
     }
 }
 
 struct PublishHandle {
-    client_id: ClientId,
+    id: Id,
     pubs_to_be_acked: Arc<Mutex<HashSet<proto::PacketIdentifier>>>,
 }
 
@@ -324,6 +354,87 @@ impl std::fmt::Display for Size {
             Size::B(value) => write!(f, "{}b", value),
             Size::Kb(value) => write!(f, "{}kb", value),
             Size::Mb(value) => write!(f, "{}mb", value),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Id(usize, ClientId);
+
+impl Id {
+    fn new_subscriber(id: usize) -> Self {
+        Self::new(id, format!("subscriber/{}", id))
+    }
+
+    fn new_publisher(id: usize) -> Self {
+        Self::new(id, format!("publisher/{}", id))
+    }
+
+    fn new(id: usize, client_id: impl Into<ClientId>) -> Self {
+        Id(id, client_id.into())
+    }
+
+    fn as_number(&self) -> usize {
+        self.0
+    }
+
+    fn as_client_id(&self) -> ClientId {
+        self.1.clone()
+    }
+}
+
+impl std::fmt::Display for Id {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.1)
+    }
+}
+
+const PREFIX: &str = "topic";
+
+enum Strategy {
+    OneToOne {
+        subs: usize,
+        pubs: usize,
+    },
+    FanIn {
+        subs: usize,
+        pubs: usize,
+        topic: String,
+    },
+    FanOut {
+        subs: usize,
+        pubs: usize,
+    },
+}
+
+impl Strategy {
+    fn new_one_to_one(pubs: usize, subs: usize) -> Self {
+        Self::OneToOne { subs, pubs }
+    }
+
+    fn new_fan_in(pubs: usize, subs: usize) -> Self {
+        let sub_id = rand::thread_rng().gen_range(0, subs);
+        let topic = format!("{}/{}", PREFIX, sub_id);
+        Self::FanIn { subs, pubs, topic }
+    }
+
+    fn new_fan_out(pubs: usize, subs: usize) -> Self {
+        Self::FanOut { subs, pubs }
+    }
+
+    fn sub_topic(&self, client_id: &Id) -> String {
+        match self {
+            Self::OneToOne { .. } => format!("{}/{}", PREFIX, client_id.as_number()),
+            Self::FanIn { .. } => format!("{}/{}", PREFIX, client_id.as_number()),
+            Self::FanOut { .. } => PREFIX.into(),
+        }
+    }
+
+    fn pub_topic(&self, client_id: &Id) -> String {
+        match self {
+            Self::OneToOne { .. } => format!("{}/{}", PREFIX, client_id.as_number()),
+            Self::FanIn { topic, .. } => topic.into(),
+            Self::FanOut { .. } => PREFIX.into(),
         }
     }
 }
