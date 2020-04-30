@@ -25,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             IConfigurationRoot configuration,
             IDependencyManager dependencyManager)
         {
+            Console.WriteLine("---------IN CONSTRUCTOR--------------");
             this.configuration = Preconditions.CheckNotNull(configuration, nameof(configuration));
             this.dependencyManager = Preconditions.CheckNotNull(dependencyManager, nameof(dependencyManager));
         }
@@ -34,6 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         // This method gets called by the runtime. Use this method to add services to the container.
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
+            Console.WriteLine("---------IN CONFIGURE SERVICES ABOUT TO BUILD CONTAINER--------------");
             services.AddMemoryCache();
             services.AddMvc(options => options.Filters.Add(typeof(ExceptionFilter)));
             services.Configure<MvcOptions>(options => { options.Filters.Add(new RequireHttpsAttribute()); });
@@ -44,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         public void Configure(IApplicationBuilder app)
         {
+            Console.WriteLine("---------IN CONFIGURE--------------");
             app.UseWebSockets();
 
             var webSocketListenerRegistry = app.ApplicationServices.GetService(typeof(IWebSocketListenerRegistry)) as IWebSocketListenerRegistry;
@@ -79,6 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         IContainer BuildContainer(IServiceCollection services)
         {
+            Console.WriteLine("---------IN BUILD CONTAINER--------------");
             var builder = new ContainerBuilder();
             builder.Populate(services);
             this.dependencyManager.Register(builder);
