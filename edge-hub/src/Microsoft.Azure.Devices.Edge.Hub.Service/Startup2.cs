@@ -17,10 +17,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
     public class Startup2
     {
-        readonly IConfigurationRoot configuration;
+        readonly IConfiguration configuration;
 
         // ReSharper disable once UnusedParameter.Local
-        public Startup2(IConfigurationRoot configuration)
+        public Startup2(IConfiguration configuration)
         {
             this.configuration = Preconditions.CheckNotNull(configuration, nameof(configuration));
         }
