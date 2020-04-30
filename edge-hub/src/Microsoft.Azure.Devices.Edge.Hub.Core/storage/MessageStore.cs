@@ -191,6 +191,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
         class CleanupProcessor : IDisposable
         {
+            const int CleanupBatchSize = 10;
             static readonly TimeSpan CleanupTaskFrequency = TimeSpan.FromMinutes(30); // Run once every 30 mins.
             static readonly TimeSpan MinCleanupSleepTime = TimeSpan.FromSeconds(30); // Sleep for 30 secs
             readonly MessageStore messageStore;
@@ -250,7 +251,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             {
                 long totalCleanupCount = 0;
                 long totalCleanupStoreCount = 0;
-                int batchSize = 10;
                 while (true)
                 {
                     foreach (KeyValuePair<string, ISequentialStore<MessageRef>> endpointSequentialStore in this.messageStore.endpointSequentialStores)
@@ -319,7 +319,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                 long offset = sequentialStore.GetHeadOffset(this.cancellationTokenSource.Token);
                                 do
                                 {
-                                    batch = await sequentialStore.GetBatch(offset, batchSize);
+                                    batch = await sequentialStore.GetBatch(offset, CleanupBatchSize);
                                     foreach ((long, MessageRef) messageWithOffset in batch)
                                     {
                                         if (await sequentialStore.RemoveOffset(DeleteMessageCallback, messageWithOffset.Item1, this.cancellationTokenSource.Token))
@@ -328,7 +328,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                         }
                                     }
 
-                                    offset = offset + batchSize;
+                                    offset = offset + CleanupBatchSize;
                                 }
                                 while (batch.Any());
                             }
