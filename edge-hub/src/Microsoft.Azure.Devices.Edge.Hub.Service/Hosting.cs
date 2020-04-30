@@ -64,10 +64,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                                 serviceCollection.AddSingleton(configuration);
                                 serviceCollection.AddSingleton(dependencyManager);
                             })
-                        .UseStartup<Startup>();
+                        .UseStartup<Startup2>();
                 }).Build();
 
-            IContainer container = host.Services.GetService(typeof(Startup)) is Startup startup ? startup.Container : null;
+            IContainer container = host.Services.GetService(typeof(Startup2)) is Startup2 startup ? startup.Container : null;
             return new Hosting(host, container);
         }
     }

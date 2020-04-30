@@ -15,13 +15,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
 
-    public class Startup
+    public class StartupDeprecated
     {
         readonly IDependencyManager dependencyManager;
         readonly IConfigurationRoot configuration;
 
         // ReSharper disable once UnusedParameter.Local
-        public Startup(
+        public StartupDeprecated(
             IConfigurationRoot configuration,
             IDependencyManager dependencyManager)
         {
@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             var builder = new ContainerBuilder();
             builder.Populate(services);
             this.dependencyManager.Register(builder);
-            builder.RegisterInstance<Startup>(this);
+            builder.RegisterInstance<StartupDeprecated>(this);
 
             return builder.Build();
         }
