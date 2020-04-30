@@ -38,7 +38,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             Console.WriteLine("---------IN CONFIGURE SERVICES ABOUT TO BUILD CONTAINER--------------");
             services.AddMemoryCache();
             services.AddMvc(options => options.Filters.Add(typeof(ExceptionFilter)));
-            services.Configure<MvcOptions>(options => { options.Filters.Add(new RequireHttpsAttribute()); });
+            services.Configure<MvcOptions>(options =>
+            {
+                options.Filters.Add(new RequireHttpsAttribute());
+                options.EnableEndpointRouting = false;
+            });
             this.Container = this.BuildContainer(services);
 
             return new AutofacServiceProvider(this.Container);
