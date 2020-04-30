@@ -3,7 +3,6 @@
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
-use base64;
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use failure::{Fail, ResultExt};
@@ -12,7 +11,6 @@ use futures::{future, Future};
 use hyper::{Method, StatusCode};
 use log::{debug, info};
 use percent_encoding::{define_encode_set, percent_encode, PATH_SEGMENT_ENCODE_SET};
-use serde_json;
 use tokio::prelude::*;
 use tokio::timer::Interval;
 use url::form_urlencoded::Serializer as UrlSerializer;
@@ -593,13 +591,14 @@ mod tests {
     use std::sync::Mutex;
 
     use edgelet_core::crypto::{MemoryKey, MemoryKeyStore};
-    use http;
     use hyper::{self, Body, Request, Response, StatusCode};
-    use serde_json;
-    use tokio;
     use url::Url;
 
-    use super::*;
+    use super::{
+        future, get_device_info, stream, Activate, Arc, Async, Bytes, Client,
+        DeviceRegistrationResult, DpsAuthKind, DpsClient, DpsTokenSource, Error, ErrorKind, Future,
+        KeyIdentity, Method, RegistrationOperationStatus, RwLock, Stream, TpmRegistrationResult,
+    };
     use crate::DPS_API_VERSION;
 
     #[test]

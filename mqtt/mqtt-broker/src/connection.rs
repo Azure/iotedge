@@ -9,7 +9,7 @@ use futures_util::stream::{Stream, StreamExt};
 use lazy_static::lazy_static;
 use mqtt3::proto::{self, DecodeError, EncodeError, Packet, PacketCodec};
 use tokio::io::{AsyncRead, AsyncWrite};
-use tokio::sync::mpsc::{self, Receiver, Sender};
+use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tokio_io_timeout::TimeoutStream;
 use tokio_util::codec::Framed;
 use tracing::{debug, info, span, trace, warn, Level};
@@ -34,22 +34,21 @@ const KEEPALIVE_MULT: f32 = 1.5;
 #[derive(Debug)]
 pub struct ConnectionHandle {
     id: Uuid,
-    sender: Sender<Message>,
+    sender: UnboundedSender<Message>,
 }
 
 impl ConnectionHandle {
-    pub(crate) fn new(id: Uuid, sender: Sender<Message>) -> Self {
+    pub(crate) fn new(id: Uuid, sender: UnboundedSender<Message>) -> Self {
         Self { id, sender }
     }
 
-    pub fn from_sender(sender: Sender<Message>) -> Self {
+    pub fn from_sender(sender: UnboundedSender<Message>) -> Self {
         Self::new(Uuid::new_v4(), sender)
     }
 
-    pub async fn send(&mut self, message: Message) -> Result<(), Error> {
+    pub fn send(&mut self, message: Message) -> Result<(), Error> {
         self.sender
             .send(message)
-            .await
             .map_err(Error::SendConnectionMessage)
     }
 }
@@ -97,7 +96,7 @@ where
     match codec.next().await {
         Some(Ok(Packet::Connect(connect))) => {
             let client_id = client_id(&connect.client_id);
-            let (sender, events) = mpsc::channel(128);
+            let (sender, events) = mpsc::unbounded_channel();
             let connection_handle = ConnectionHandle::from_sender(sender);
             let span = span!(Level::INFO, "connection", client_id=%client_id, remote_addr=%remote_addr, connection=%connection_handle);
 
@@ -123,7 +122,7 @@ where
                 let req = ConnReq::new(client_id.clone(), connect, certificate, connection_handle);
                 let event = ClientEvent::ConnReq(req);
                 let message = Message::Client(client_id.clone(), event);
-                broker_handle.send(message).await?;
+                broker_handle.send(message)?;
 
                 // Start up the processing tasks
                 let (outgoing, incoming) = codec.split();
@@ -152,7 +151,7 @@ where
                         // task to drain
                         debug!(message = "incoming_task finished with an error. sending drop connection request to broker", error=%e);
                         let msg = Message::Client(client_id.clone(), ClientEvent::DropConnection);
-                        broker_handle.send(msg).await?;
+                        broker_handle.send(msg)?;
 
                         debug!("waiting for outgoing_task to complete...");
                         if let Err((mut recv, e)) = out.await {
@@ -178,7 +177,7 @@ where
 
                         debug!(message = "outgoing_task finished with an error. notifying the broker to remove the connection", %e);
                         let msg = Message::Client(client_id.clone(), ClientEvent::CloseSession);
-                        broker_handle.send(msg).await?;
+                        broker_handle.send(msg)?;
 
                         debug!("draining message receiver for connection...");
                         while let Some(message) = recv.recv().await {
@@ -224,7 +223,7 @@ where
                     Packet::Disconnect(disconnect) => {
                         let event = ClientEvent::Disconnect(disconnect);
                         let message = Message::Client(client_id.clone(), event);
-                        broker.send(message).await?;
+                        broker.send(message)?;
                         debug!("disconnect received. shutting down receive side of connection");
                         return Ok(());
                     }
@@ -242,7 +241,7 @@ where
                 };
 
                 let message = Message::Client(client_id.clone(), event);
-                broker.send(message).await?;
+                broker.send(message)?;
             }
             Err(e) => {
                 warn!(message="error occurred while reading from connection", error=%e);
@@ -253,17 +252,17 @@ where
 
     debug!("no more packets. sending DropConnection to broker.");
     let message = Message::Client(client_id.clone(), ClientEvent::DropConnection);
-    broker.send(message).await?;
+    broker.send(message)?;
     debug!("incoming_task completing...");
     Ok(())
 }
 
 async fn outgoing_task<S>(
     client_id: ClientId,
-    mut messages: Receiver<Message>,
+    mut messages: UnboundedReceiver<Message>,
     mut outgoing: S,
     mut broker: BrokerHandle,
-) -> Result<(), (Receiver<Message>, Error)>
+) -> Result<(), (UnboundedReceiver<Message>, Error)>
 where
     S: Sink<Packet, Error = EncodeError> + Unpin,
 {
@@ -299,7 +298,7 @@ where
                         return Err((messages, e.into()));
                     } else {
                         let message = Message::Client(client_id.clone(), ClientEvent::PubAck0(id));
-                        if let Err(e) = broker.send(message).await {
+                        if let Err(e) = broker.send(message) {
                             warn!(message = "error occurred while sending QoS ack to broker", error=%e);
                             return Err((messages, e));
                         }

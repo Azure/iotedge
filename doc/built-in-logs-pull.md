@@ -157,4 +157,10 @@ The response is in the same format as `UploadLogs`.
 
 >Available in release 1.0.9
 
-This method accepts a JSON payload very similar to **UploadLogs** except it doesn't have the "sasUrl" key since the matching logs are returned inline in the response of the direct method. The logs content is truncated to the response size limit of direct methods which is currently 4KB.
+To enable this feature, an additional environment needs to be set for the edgeAgent:
+
+| Environment Variable Name                | value  |
+|------------------------------------------|--------|
+| `ExperimentalFeatures__EnableGetLogs`    | `true` |
+
+This method accepts a JSON payload very similar to **UploadLogs** except it doesn't have the "sasUrl" key since the matching logs are returned inline in the response of the direct method. The logs content is truncated to the response size limit of direct methods which is currently 128KB.

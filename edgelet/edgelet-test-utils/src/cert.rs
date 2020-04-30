@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 use edgelet_core::{Certificate, Error as CoreError, ErrorKind as CoreErrorKind, PrivateKey};
 
 #[derive(Clone, Debug, Default)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct TestCert {
     cert: Vec<u8>,
     fail_pem: bool,
