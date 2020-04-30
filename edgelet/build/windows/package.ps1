@@ -203,7 +203,7 @@ if ($CreateTemplate) {
 
     Write-Host "IoTEdge using version '$version'"
 
-    New-Package -Name "iotedge" -Version $version    
+    New-Package -Name "iotedge" -Version $version
 }
 elseif ($CreateCab) {
     $TemplateDirLength = ((Get-Item -Path $EdgeTemplate).FullName.Length + 1)
