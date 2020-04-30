@@ -140,8 +140,8 @@ jobs:
           } else {
             $version = $base_version
           }
-          echo "base_version=$base_version"
-          echo "version=$version"
+          Write-Host "base_version=$base_version"
+          Write-Host "version=$version"
           Write-Host ("##vso[task.setvariable variable=VERSION;]$version")
           Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
         displayName: Set Version
