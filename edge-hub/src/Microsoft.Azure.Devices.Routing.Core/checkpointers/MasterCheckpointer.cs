@@ -64,11 +64,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
             return masterCheckpointer;
         }
 
-        public async Task<ICheckpointer> CreateAsync(string id)
+        public Task<ICheckpointer> CreateAsync(string id) => this.CreateAsync(id, string.Empty, RouteFactory.DefaultPriority);
+
+        public async Task<ICheckpointer> CreateAsync(string id, string endpointId, uint priority)
         {
             Events.CreateChildStart(this, id);
 
-            Checkpointer checkpointer = await Checkpointer.CreateAsync(id, this.store);
+            Checkpointer checkpointer = await Checkpointer.CreateAsync(id, this.store, endpointId, priority);
             var child = new ChildCheckpointer(this, checkpointer);
             await this.AddChild(child);
 
