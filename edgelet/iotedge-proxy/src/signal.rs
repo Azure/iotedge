@@ -56,7 +56,6 @@ mod imp {
 mod imp {
     use futures::{Future, Stream};
     use log::info;
-    use tokio_signal;
 
     use super::ShutdownSignal;
 

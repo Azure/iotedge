@@ -4,7 +4,6 @@ use super::{compute_validity, refresh_cert};
 use failure::ResultExt;
 use futures::{future, Future, IntoFuture, Stream};
 use hyper::{Body, Request, Response};
-use serde_json;
 
 use edgelet_core::{
     Certificate, CertificateProperties, CertificateType, CreateCertificate, WorkloadConfig,
@@ -124,7 +123,7 @@ mod tests {
     use chrono::offset::Utc;
     use chrono::Duration;
 
-    use super::*;
+    use super::{Body, Future, Handler, Parameters, Request, Response, ServerCertHandler, Stream};
     use edgelet_core::{
         CertificateProperties, CertificateType, CreateCertificate, Error as CoreError,
         ErrorKind as CoreErrorKind, KeyBytes, PrivateKey, WorkloadConfig,
