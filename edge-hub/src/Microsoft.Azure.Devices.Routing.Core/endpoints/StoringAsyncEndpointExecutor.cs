@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 {
     using System;
-    using System.Collections;
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Linq;
@@ -92,7 +91,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             {
                 if (!this.closed.GetAndSet(true))
                 {
+                    Events.CustomMessage("StoringAsyncEndpointExecutor.CloseAsync: getandset is done");
                     this.cts.Cancel();
+                    Events.CustomMessage("StoringAsyncEndpointExecutor.CloseAsync: cancel is done");
                     // Require to close FSM to complete any currently executing command if any to unblock sendMessageTask.
                     ImmutableDictionary<uint, EndpointExecutorFsm> snapshot = this.prioritiesToFsms;
                     foreach (EndpointExecutorFsm fsm in snapshot.Values)
@@ -100,8 +101,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                         await fsm.CloseAsync();
                     }
 
+                    Events.CustomMessage("StoringAsyncEndpointExecutor.CloseAsync: closeAsync for all fsm is done");
                     await (this.messageStore?.RemoveEndpoint(this.Endpoint.Id) ?? Task.CompletedTask);
+                    Events.CustomMessage("StoringAsyncEndpointExecutor.CloseAsync: messagestore remove endpoint is done");
                     await (this.sendMessageTask ?? Task.CompletedTask);
+                    Events.CustomMessage("StoringAsyncEndpointExecutor.CloseAsync: all done");
                 }
 
                 Events.CloseSuccess(this);
@@ -296,9 +300,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
         async Task ProcessMessages(IMessage[] messages, EndpointExecutorFsm fsm)
         {
+            Events.CustomMessage("StoringAsyncEndpointExecutor.ProcessMessages: started");
             SendMessage command = Commands.SendMessage(messages);
+            Events.CustomMessage("StoringAsyncEndpointExecutor.ProcessMessages: step 1 done");
             await fsm.RunAsync(command);
+            Events.CustomMessage("StoringAsyncEndpointExecutor.ProcessMessages: step 2 done");
             await command.Completion;
+            Events.CustomMessage("StoringAsyncEndpointExecutor.ProcessMessages: finished");
         }
 
         void Dispose(bool disposing)
@@ -391,7 +399,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 Close,
                 CloseSuccess,
                 CloseFailure,
-                ErrorInPopulatePump
+                ErrorInPopulatePump,
+                CustomMessage
             }
 
             public static void AddMessageSuccess(StoringAsyncEndpointExecutor executor, long offset, uint priority, uint timeToLiveSecs)
@@ -478,6 +487,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             public static void ErrorInPopulatePump(Exception ex)
             {
                 Log.LogWarning((int)EventIds.ErrorInPopulatePump, ex, "Error in populate messages pump");
+            }
+
+            public static void CustomMessage(string message)
+            {
+                Log.LogDebug((int)EventIds.CustomMessage, message);
             }
         }
 

@@ -94,6 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
         async Task UpdateConfig(Option<EdgeHubConfig> edgeHubConfig)
         {
+            Events.CustomMessage("ConfigUpdater.UpdateConfig: started.");
             using (await this.updateLock.LockAsync())
             {
                 await edgeHubConfig.ForEachAsync(
@@ -106,9 +107,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                             await this.UpdateRoutes(ehc.Routes, this.currentConfig.HasValue);
                             this.UpdateStoreAndForwardConfig(ehc.StoreAndForwardConfiguration);
                             this.currentConfig = Option.Some(ehc);
+                            Events.CustomMessage("ConfigUpdater.UpdateConfig: successfully updated.");
                         }
                     });
             }
+
+            Events.CustomMessage("ConfigUpdater.UpdateConfig: finished.");
         }
 
         async Task HandleUpdateConfig(EdgeHubConfig edgeHubConfig)
@@ -129,6 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         {
             if (routes != null)
             {
+                Events.CustomMessage($"ConfigUpdater.UpdateRoutes: replaceExisting={replaceExisting}");
                 ISet<Route> routeSet = new HashSet<Route>(routes.Select(r => r.Value.Route));
                 if (replaceExisting)
                 {
@@ -182,7 +187,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 ErrorPullingConfig,
                 ConfigReceived,
                 GettingConfig,
-                InitializedWithPrefechedConfig
+                InitializedWithPrefechedConfig,
+                CustomMessage
             }
 
             public static void ErrorPullingConfig(Exception ex)
@@ -214,6 +220,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             internal static void UpdatingConfig()
             {
                 Log.LogInformation((int)EventIds.UpdatingConfig, "Updating edge hub configuration");
+            }
+
+            internal static void CustomMessage(string message)
+            {
+                Log.LogDebug((int)EventIds.CustomMessage, message);
             }
 
             internal static void RoutesUpdated(IReadOnlyDictionary<string, RouteConfig> routes)
