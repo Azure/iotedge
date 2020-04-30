@@ -1,27 +1,25 @@
 #![allow(dead_code)]
-use async_trait::async_trait;
+
 use mqtt3::proto;
 
 use crate::{AuthId, ClientId};
 
 /// A trait to check a MQTT client permissions to perform some actions.
-#[async_trait]
 pub trait Authorizer {
     /// Authentication error.
     type Error: std::error::Error + Send;
 
     /// Authorizes a MQTT client to perform some action.
-    async fn authorize(&self, activity: Activity) -> Result<bool, Self::Error>;
+    fn authorize(&self, activity: Activity) -> Result<bool, Self::Error>;
 }
 
-#[async_trait]
 impl<F> Authorizer for F
 where
     F: Fn(Activity) -> Result<bool, AuthorizeError> + Sync,
 {
     type Error = AuthorizeError;
 
-    async fn authorize(&self, activity: Activity) -> Result<bool, Self::Error> {
+    fn authorize(&self, activity: Activity) -> Result<bool, Self::Error> {
         self(activity)
     }
 }
@@ -35,11 +33,10 @@ pub struct AuthorizeError;
 /// This implementation will be used if custom authorization mechanism was not provided.
 pub struct DefaultAuthorizer;
 
-#[async_trait]
 impl Authorizer for DefaultAuthorizer {
     type Error = AuthorizeError;
 
-    async fn authorize(&self, _: Activity) -> Result<bool, Self::Error> {
+    fn authorize(&self, _: Activity) -> Result<bool, Self::Error> {
         Ok(false)
     }
 }
@@ -209,8 +206,7 @@ mod tests {
         }
     }
 
-    #[tokio::test]
-    async fn default_auth_always_deny_any_action() {
+    fn default_auth_always_deny_any_action() {
         let auth = DefaultAuthorizer;
         let activity = Activity::new(
             "client-auth-id",
@@ -218,13 +214,12 @@ mod tests {
             Operation::new_connect(connect()),
         );
 
-        let res = auth.authorize(activity).await;
+        let res = auth.authorize(activity);
 
         assert_matches!(res, Ok(false));
     }
 
-    #[tokio::test]
-    async fn authorizer_wrapper_around_function() {
+    fn authorizer_wrapper_around_function() {
         let auth = |_| Ok(true);
         let activity = Activity::new(
             "client-auth-id",
@@ -232,7 +227,7 @@ mod tests {
             Operation::new_connect(connect()),
         );
 
-        let res = auth.authorize(activity).await;
+        let res = auth.authorize(activity);
 
         assert_matches!(res, Ok(true));
     }
