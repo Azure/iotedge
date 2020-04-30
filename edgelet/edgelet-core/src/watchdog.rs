@@ -281,7 +281,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{update_identity, Fail, Future};
     use std::cell::RefCell;
     use std::rc::Rc;
 
