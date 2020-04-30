@@ -143,7 +143,7 @@ jobs:
           if ($base_version -like '*~*') {
             $version = ("{0}{1}" -f $base_version, $(Build.BuildNumber))
           } else {
-              $version = $base_version
+            $version = $base_version
           }
           echo "base_version=$base_version"
           echo "version=$version"
@@ -207,7 +207,7 @@ jobs:
           if ($base_version -like '*~*') {
             $version = ("{0}{1}" -f $base_version, $(Build.BuildNumber))
           } else {
-              $version = $base_version
+            $version = $base_version
           }
           echo "base_version=$base_version"
           echo "version=$version"
