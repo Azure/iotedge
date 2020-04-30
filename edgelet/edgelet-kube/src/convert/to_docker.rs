@@ -7,7 +7,7 @@ use log::debug;
 use docker::models::ContainerCreateBody;
 use edgelet_docker::DockerConfig;
 
-use crate::constants::*;
+use crate::constants::{EDGE_MODULE_LABEL, EDGE_ORIGINAL_MODULEID};
 use crate::error::{Error, ErrorKind, Result};
 use crate::KubeModule;
 
@@ -66,10 +66,9 @@ pub fn pod_to_module(pod: &api_core::Pod) -> Option<Result<KubeModule>> {
 #[cfg(test)]
 mod tests {
 
-    use super::*;
+    use super::pod_to_module;
     use edgelet_core::Module;
     use k8s_openapi::api::core::v1 as api_core;
-    use serde_json;
 
     const POD_SUCCESS: &str = r###"
     {

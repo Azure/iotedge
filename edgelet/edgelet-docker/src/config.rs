@@ -89,7 +89,7 @@ mod tests {
     use docker::models::{ContainerCreateBody, HostConfig, HostConfigPortBindings};
     use serde_json::json;
 
-    use super::*;
+    use super::{AuthConfig, DockerConfig};
 
     #[test]
     fn empty_image_fails() {

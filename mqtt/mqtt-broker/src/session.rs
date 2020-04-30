@@ -143,9 +143,9 @@ impl ConnectedSession {
         Ok(unsuback)
     }
 
-    async fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
+    fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
         let message = Message::Client(self.state.client_id.clone(), event);
-        self.handle.send(message).await
+        self.handle.send(message)
     }
 }
 
@@ -270,9 +270,9 @@ impl DisconnectingSession {
         self.will
     }
 
-    async fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
+    fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
         let message = Message::Client(self.client_id.clone(), event);
-        self.handle.send(message).await
+        self.handle.send(message)
     }
 }
 
@@ -721,11 +721,11 @@ impl Session {
         }
     }
 
-    pub async fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
+    pub fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
         match self {
-            Self::Transient(ref mut connected) => connected.send(event).await,
-            Self::Persistent(ref mut connected) => connected.send(event).await,
-            Self::Disconnecting(ref mut disconnecting) => disconnecting.send(event).await,
+            Self::Transient(ref mut connected) => connected.send(event),
+            Self::Persistent(ref mut connected) => connected.send(event),
+            Self::Disconnecting(ref mut disconnecting) => disconnecting.send(event),
             _ => Err(Error::SessionOffline),
         }
     }
@@ -932,7 +932,7 @@ pub(crate) mod tests {
 
     fn connection_handle() -> ConnectionHandle {
         let id = Uuid::new_v4();
-        let (tx1, _rx1) = mpsc::channel(128);
+        let (tx1, _rx1) = mpsc::unbounded_channel();
         ConnectionHandle::new(id, tx1)
     }
 

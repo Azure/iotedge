@@ -8,7 +8,7 @@ use crate::Message;
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("An error occurred sending a message to the broker.")]
-    SendBrokerMessage(#[source] tokio::sync::mpsc::error::SendError<Message>),
+    SendBrokerMessage(#[source] crossbeam_channel::TrySendError<Message>),
 
     #[error("An error occurred sending a message to a connection.")]
     SendConnectionMessage(#[source] tokio::sync::mpsc::error::SendError<Message>),
@@ -42,6 +42,9 @@ pub enum Error {
 
     #[error("An error occurred joining a task.")]
     TaskJoin(#[from] tokio::task::JoinError),
+
+    #[error("An error occurred signaling the event loop of a thread shutdown.")]
+    ThreadShutdown(#[from] tokio::sync::oneshot::error::RecvError),
 
     #[error("An error occurred persisting state")]
     Persist(#[from] crate::persist::PersistError),
