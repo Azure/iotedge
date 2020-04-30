@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
 
-    public class Startup
+    public class Startup : IStartup
     {
         readonly IDependencyManager dependencyManager;
         readonly IConfigurationRoot configuration;
@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
             services.AddMemoryCache();
-            services.AddControllers(options => options.Filters.Add(typeof(ExceptionFilter)));
+            services.AddMvc(options => options.Filters.Add(typeof(ExceptionFilter)));
             services.Configure<MvcOptions>(options => { options.Filters.Add(new RequireHttpsAttribute()); });
             this.Container = this.BuildContainer(services);
 
@@ -44,8 +44,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         public void Configure(IApplicationBuilder app)
         {
-            app.UseRouting();
-
             app.UseWebSockets();
 
             var webSocketListenerRegistry = app.ApplicationServices.GetService(typeof(IWebSocketListenerRegistry)) as IWebSocketListenerRegistry;
@@ -76,10 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     await next();
                 });
 
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllers();
-            });
+            app.UseMvc();
         }
 
         IContainer BuildContainer(IServiceCollection services)
@@ -87,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             var builder = new ContainerBuilder();
             builder.Populate(services);
             this.dependencyManager.Register(builder);
-            builder.RegisterInstance<Startup>(this);
+            builder.RegisterInstance<IStartup>(this);
 
             return builder.Build();
         }
