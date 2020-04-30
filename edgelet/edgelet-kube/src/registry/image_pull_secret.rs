@@ -3,11 +3,9 @@
 use std::collections::BTreeMap;
 use std::str;
 
-use base64;
 use docker::models::AuthConfig;
 use failure::ResultExt;
 use k8s_openapi::ByteString;
-use serde_json;
 
 use crate::error::{ErrorKind, PullImageErrorReason, Result};
 

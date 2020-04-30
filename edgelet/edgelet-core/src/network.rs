@@ -132,7 +132,7 @@ impl MobyNetwork {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{Ipam, IpamConfig, MobyNetwork, Network, DEFAULT_NETWORKID};
 
     #[test]
     fn test_ipam_config_with_values() {

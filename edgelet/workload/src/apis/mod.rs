@@ -1,7 +1,3 @@
-use hyper;
-use serde;
-use serde_json;
-
 #[derive(Debug)]
 pub enum Error<T> {
     Hyper(hyper::Error),
