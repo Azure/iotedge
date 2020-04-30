@@ -15,29 +15,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
 
-    public class Startup2
+    public class Startup
     {
-        readonly IConfiguration configuration;
+        readonly IDependencyManager dependencyManager;
+        readonly IConfigurationRoot configuration;
 
         // ReSharper disable once UnusedParameter.Local
-        public Startup2(IConfiguration configuration)
+        public Startup(
+            IConfigurationRoot configuration,
+            IDependencyManager dependencyManager)
         {
             this.configuration = Preconditions.CheckNotNull(configuration, nameof(configuration));
+            this.dependencyManager = Preconditions.CheckNotNull(dependencyManager, nameof(dependencyManager));
         }
 
         internal IContainer Container { get; private set; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
-        public void ConfigureServices(IServiceCollection services)
+        public IServiceProvider ConfigureServices(IServiceCollection services)
         {
             services.AddMemoryCache();
             services.AddControllers(options => options.Filters.Add(typeof(ExceptionFilter)));
             services.Configure<MvcOptions>(options => { options.Filters.Add(new RequireHttpsAttribute()); });
-        }
+            this.Container = this.BuildContainer(services);
 
-        public void ConfigureContainer(ContainerBuilder builder)
-        {
-            builder.RegisterInstance<Startup2>(this);
+            return new AutofacServiceProvider(this.Container);
         }
 
         public void Configure(IApplicationBuilder app)
@@ -78,6 +80,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             {
                 endpoints.MapControllers();
             });
+        }
+
+        IContainer BuildContainer(IServiceCollection services)
+        {
+            var builder = new ContainerBuilder();
+            builder.Populate(services);
+            this.dependencyManager.Register(builder);
+            builder.RegisterInstance<Startup>(this);
+
+            return builder.Build();
         }
     }
 }

@@ -6,25 +6,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
     using Autofac;
-    using Autofac.Extensions.DependencyInjection;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Server.Kestrel.Https;
-    using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.Extensions.Hosting;
 
     public class Hosting
     {
-        Hosting(IHost host, IContainer container)
+        Hosting(IWebHost webHost, IContainer container)
         {
-            this.Host = host;
+            this.WebHost = webHost;
             this.Container = container;
         }
 
         public IContainer Container { get; }
 
-        public IHost Host { get; }
+        public IWebHost WebHost { get; }
 
         public static Hosting Initialize(
             IConfigurationRoot configuration,
@@ -35,46 +32,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             int port = configuration.GetValue("httpSettings:port", 443);
             var certificateMode = clientCertAuthEnabled ? ClientCertificateMode.AllowCertificate : ClientCertificateMode.NoCertificate;
-
-            IHost host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
-                .UseServiceProviderFactory(new AutofacServiceProviderFactory())
-                .ConfigureContainer<ContainerBuilder>(builder =>
-                {
-                    dependencyManager.Register(builder);
-                })
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder
-                        .UseKestrel(
-                            options =>
+            IWebHostBuilder webHostBuilder = new WebHostBuilder()
+                .UseKestrel(
+                    options =>
+                    {
+                        options.Listen(
+                            !Socket.OSSupportsIPv6 ? IPAddress.Any : IPAddress.IPv6Any,
+                            port,
+                            listenOptions =>
                             {
-                                options.Listen(
-                                    !Socket.OSSupportsIPv6 ? IPAddress.Any : IPAddress.IPv6Any,
-                                    port,
-                                    listenOptions =>
+                                listenOptions.UseHttps(
+                                    new HttpsConnectionAdapterOptions()
                                     {
-                                        listenOptions.UseHttps(
-                                            new HttpsConnectionAdapterOptions()
-                                            {
-                                                ServerCertificate = serverCertificate,
-                                                ClientCertificateValidation = (clientCert, chain, policyErrors) => true,
-                                                ClientCertificateMode = certificateMode,
-                                                SslProtocols = sslProtocols
-                                            });
+                                        ServerCertificate = serverCertificate,
+                                        ClientCertificateValidation = (clientCert, chain, policyErrors) => true,
+                                        ClientCertificateMode = certificateMode,
+                                        SslProtocols = sslProtocols
                                     });
-                            })
-                        .UseSockets()
-                        .ConfigureServices(
-                            serviceCollection =>
-                            {
-                                serviceCollection.AddSingleton(configuration);
-                                serviceCollection.AddSingleton(dependencyManager);
-                            })
-                        .UseStartup<Startup2>();
-                }).Build();
-
-            IContainer container = host.Services.GetService(typeof(Startup2)) is Startup2 startup ? startup.Container : null;
-            return new Hosting(host, container);
+                            });
+                    })
+                .UseSockets()
+                .ConfigureServices(
+                    serviceCollection =>
+                    {
+                        serviceCollection.AddSingleton(configuration);
+                        serviceCollection.AddSingleton(dependencyManager);
+                    })
+                .UseStartup<Startup>();
+            IWebHost webHost = webHostBuilder.Build();
+            IContainer container = webHost.Services.GetService(typeof(IStartup)) is Startup startup ? startup.Container : null;
+            return new Hosting(webHost, container);
         }
     }
 }
