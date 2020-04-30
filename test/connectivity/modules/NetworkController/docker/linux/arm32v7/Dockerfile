@@ -1,5 +1,5 @@
 ARG base_tag=1.0.0-linux-arm32v7
-FROM azureiotedge/azureiotedge-networkcontroller-module-base:${base_tag}
+FROM azureiotedge/azureiotedge-module-base-full:${base_tag}
 
 ARG EXE_DIR=.
 

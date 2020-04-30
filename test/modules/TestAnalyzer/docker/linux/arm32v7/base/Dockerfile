@@ -8,6 +8,8 @@ RUN apt-get update && apt-get install -y libcap2-bin libsnappy1v5 && \
 
 COPY librocksdb.so /usr/lib/
 
+RUN apt-get update && apt-get install -y --no-install-recommends iproute2 net-tools
+
 # Add an unprivileged user account for running the module
 RUN useradd -ms /bin/bash moduleuser
 USER moduleuser
