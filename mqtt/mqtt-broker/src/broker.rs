@@ -34,6 +34,7 @@ pub struct Broker<N, Z> {
     authenticator: N,
     authorizer: Z,
 
+    #[cfg(feature = "__internal_broker_callbacks")]
     pub on_publish: Option<Sender<()>>,
 }
 
@@ -513,8 +514,11 @@ where
             debug!("no session for {}", client_id);
         }
 
-        if let Some(on_publish) = &mut self.on_publish {
-            on_publish.send(()).expect("on_publish");
+        #[cfg(feature = "__internal_broker_callbacks")]
+        {
+            if let Some(on_publish) = &mut self.on_publish {
+                on_publish.send(()).expect("on_publish");
+            }
         }
 
         Ok(())
@@ -1015,6 +1019,7 @@ where
             authenticator: self.authenticator,
             authorizer: self.authorizer,
 
+            #[cfg(feature = "__internal_broker_callbacks")]
             on_publish: None,
         }
     }

@@ -391,6 +391,8 @@ impl std::fmt::Display for Id {
 
 const PREFIX: &str = "topic";
 
+// NOTE Disabled due to incorrect lint warning. All variants are used in the benches
+#[allow(dead_code)]
 enum Strategy {
     OneToOne {
         subs: usize,
