@@ -224,13 +224,13 @@ fn url_encode(value: &str) -> PercentEncode<'_, IOTHUB_ENCODE_SET> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{
+        AuthMechanism, Client, DeviceClient, Error, Future, Module, StatusCode, TokenSource,
+    };
 
     use chrono::{DateTime, Utc};
     use futures::Stream;
     use hyper::{self, Body, Client as HyperClient, Method, Request, Response};
-    use serde_json;
-    use tokio;
     use typed_headers::{mime, ContentType, HeaderMapExt};
     use url::Url;
 

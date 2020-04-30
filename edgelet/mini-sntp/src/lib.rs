@@ -319,7 +319,7 @@ fn deserialize_timestamp(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{query, Error, SntpTimeQueryResult};
 
     #[test]
     fn it_works() -> Result<(), Error> {

@@ -64,7 +64,9 @@ namespace Relayer
 
         static async Task<MessageResponse> ProcessAndSendMessageAsync(Message message, object userContext)
         {
-            Uri testResultCoordinatorUrl = Settings.Current.TestResultCoordinatorUrl;
+            var builder = new UriBuilder(Settings.Current.TestResultCoordinatorUrl);
+            builder.Host = Dns.GetHostEntry(Settings.Current.TestResultCoordinatorUrl.Host).AddressList[0].ToString();
+            Uri testResultCoordinatorUrl = builder.Uri;
             try
             {
                 if (!(userContext is ModuleClient moduleClient))

@@ -171,7 +171,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{io, Bytes, Chunked, Future, LogChunk, LogDecode, Stream};
 
     use std::io::Read;
 

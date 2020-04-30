@@ -73,9 +73,10 @@ mod tests {
     use edgelet_test_utils::identity::{TestIdentity, TestIdentityManager};
     use futures::Stream;
     use management::models::ErrorResponse;
-    use serde_json;
 
-    use super::*;
+    use super::{
+        Body, DeleteIdentity, Future, Handler, IdentityManager, Parameters, Request, StatusCode,
+    };
 
     #[test]
     fn delete_succeeds() {
