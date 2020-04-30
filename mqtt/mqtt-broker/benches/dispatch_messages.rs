@@ -11,10 +11,12 @@ use criterion::{
 };
 use itertools::iproduct;
 use rand::Rng;
-use tokio::{runtime::Runtime, sync::mpsc};
+use tokio::{
+    runtime::Runtime,
+    sync::mpsc::{self, UnboundedReceiver},
+};
 use tracing::{info, warn};
 
-use mpsc::UnboundedReceiver;
 use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
 use mqtt_broker::{
     AuthId, BrokerBuilder, BrokerHandle, ClientEvent, ClientId, ConnReq, ConnectionHandle, Message,

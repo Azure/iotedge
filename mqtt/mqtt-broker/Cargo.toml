@@ -57,7 +57,7 @@ harness = false
 [[bench]]
 name = "dispatch_messages"
 harness = false
-required-features = ["__internal_broker_callbacks"]
+required-features = ["__internal_broker_callbacks", "tokio/rt-threaded"]
 
 [features]
 default = []
