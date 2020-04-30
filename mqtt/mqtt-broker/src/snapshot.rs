@@ -88,7 +88,7 @@ where
         // We don't really care about the error here ---
         //   we just want to join the thread handle to get the result
         //   or deal with the panic
-        rx.await.map_or_else(drop, drop);
+        let _ = rx.await;
 
         // propagate any panics onto the event loop thread
         match handle.join() {
