@@ -32,6 +32,8 @@ jobs:
       - bash: 'cargo install --git https://github.com/arsing/cross.git --branch set-path'
         displayName: 'Install cross (fork with docker fix)'
 
+      # Remove pre-installed cached images to free up more memory
+      # https://github.com/actions/virtual-environments/blob/master/images/linux/Ubuntu1604-README.md
       - bash: 'docker system prune -af --volumes'
         displayName: 'Clean up cached docker images'
 
@@ -186,6 +188,8 @@ jobs:
       - bash: 'cargo install --git https://github.com/arsing/cross.git --branch set-path'
         displayName: 'Install cross (fork with docker fix)'
 
+      # Remove pre-installed cached images to free up more memory
+      # https://github.com/actions/virtual-environments/blob/master/images/linux/Ubuntu1804-README.md
       - bash: 'docker system prune -af --volumes'
         displayName: 'Clean up cached docker images'
 
