@@ -49,7 +49,7 @@ impl cmp::PartialEq for Pid {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::Pid;
 
     #[test]
     fn test_eq() {
@@ -117,7 +117,7 @@ mod impl_linux {
     use libc::{c_void, getsockopt, ucred, SOL_SOCKET, SO_PEERCRED};
     use tokio_uds::UnixStream;
 
-    use super::*;
+    use super::Pid;
 
     pub fn get_pid(sock: &UnixStream) -> io::Result<Pid> {
         let raw_fd = sock.as_raw_fd();
@@ -198,7 +198,7 @@ mod impl_windows {
     use winapi::ctypes::c_long;
     use winapi::um::winsock2::{ioctlsocket, WSAGetLastError, SOCKET_ERROR};
 
-    use super::*;
+    use super::{Pid, UnixStream};
 
     // SIO_AF_UNIX_GETPEERPID is defined in the Windows header afunix.h.
     const SIO_AF_UNIX_GETPEERPID: c_long = 0x5800_0100;

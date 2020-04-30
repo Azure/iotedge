@@ -11,7 +11,6 @@ use std::time::Duration;
 use chrono::prelude::*;
 use failure::{Fail, ResultExt};
 use futures::{Future, Stream};
-use serde_json;
 
 use edgelet_utils::{ensure_not_empty_with_context, serialize_ordered};
 
@@ -623,7 +622,7 @@ impl FromStr for ImagePullPolicy {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{Default, HashMap, ImagePullPolicy, ModuleSpec, SystemInfo};
 
     use std::str::FromStr;
     use std::string::ToString;

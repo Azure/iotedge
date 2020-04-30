@@ -5,7 +5,7 @@ use std::sync::Arc;
 use external_provisioning::apis::client::APIClient;
 use external_provisioning::apis::configuration::Configuration;
 use external_provisioning::apis::ExternalProvisioningApi;
-use external_provisioning::models::*;
+use external_provisioning::models::DeviceProvisioningInfo;
 use failure::{Fail, ResultExt};
 use futures::prelude::*;
 use hyper::Client;
@@ -109,9 +109,13 @@ impl ExternalProvisioningInterface for ExternalProvisioningClient {
 mod tests {
     use std::mem::discriminant;
 
-    use super::*;
+    use super::{
+        Arc, DeviceProvisioningInfo, Error, ErrorKind, ExternalProvisioningApi,
+        ExternalProvisioningClient, ExternalProvisioningInterface, GetApi, IntoFuture, Url,
+    };
     use external_provisioning::apis::ApiError as ExternalProvisioningApiError;
     use external_provisioning::apis::Error as ExternalProvisioningError;
+    use external_provisioning::models::Credentials;
     use futures::Future;
 
     #[test]

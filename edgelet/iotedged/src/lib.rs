@@ -2172,14 +2172,23 @@ mod tests {
     use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings};
     use edgelet_test_utils::cert::TestCert;
     use edgelet_test_utils::crypto::TestHsm;
-    use edgelet_test_utils::module::*;
+    use edgelet_test_utils::module::{TestModule, TestProvisioningResult, TestRuntime};
 
     use provisioning::provisioning::{
         AuthType, CredentialSource, Credentials, ProvisioningResult, ReprovisioningStatus,
         SymmetricKeyCredential, X509Credential,
     };
 
-    use super::*;
+    use super::{
+        check_settings_state, compute_settings_digest, diff_with_cached, env,
+        get_provisioning_auth_method, get_proxy_uri, prepare_master_hybrid_identity_key, signal,
+        CertificateIssuer, CertificateProperties, CreateCertificate, Decrypt, Digest, Encrypt,
+        ErrorKind, ExternalProvisioningErrorReason, Fail, File, Future, GetIssuerAlias,
+        InitializeErrorReason, Main, MakeModuleRuntime, MakeRandom, MasterEncryptionKey,
+        ProvisioningAuthMethod, RuntimeSettings, Sha256, Uri, Write,
+        EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+        IDENTITY_MASTER_KEY_LEN_BYTES, IOTEDGED_CRYPTO_IV_LEN_BYTES,
+    };
     use docker::models::ContainerCreateBody;
 
     #[cfg(unix)]
@@ -2243,6 +2252,7 @@ mod tests {
         }
     }
 
+    #[allow(clippy::struct_excessive_bools)]
     struct TestCrypto {
         use_expired_ca: bool,
         fail_device_ca_alias: bool,
