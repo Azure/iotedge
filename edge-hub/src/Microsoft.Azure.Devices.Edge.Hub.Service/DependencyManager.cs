@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Extensions.Logging;
     using StorageLogLevel = Microsoft.Azure.Devices.Edge.Storage.StorageLogLevel;
 
-    public class DependencyManager : IDependencyManager
+    class DependencyManager : IDependencyManager
     {
         readonly IConfigurationRoot configuration;
         readonly X509Certificate2 serverCertificate;
