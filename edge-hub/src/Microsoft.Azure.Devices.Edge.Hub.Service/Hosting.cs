@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
     using Autofac;
+    using Autofac.Extensions.DependencyInjection;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Server.Kestrel.Https;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
@@ -36,6 +37,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             var certificateMode = clientCertAuthEnabled ? ClientCertificateMode.AllowCertificate : ClientCertificateMode.NoCertificate;
 
             IHost host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
+                .UseServiceProviderFactory(new AutofacServiceProviderFactory())
+                .ConfigureContainer<ContainerBuilder>(builder =>
+                {
+                    dependencyManager.Register(builder);
+                })
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder

@@ -35,9 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             services.Configure<MvcOptions>(options => { options.Filters.Add(new RequireHttpsAttribute()); });
         }
 
-        public void ConfigureContainer(ContainerBuilder builder, DependencyManager dependencyManager)
+        public void ConfigureContainer(ContainerBuilder builder)
         {
-            dependencyManager.Register(builder);
             builder.RegisterInstance<Startup2>(this);
         }
 
