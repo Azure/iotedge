@@ -56,7 +56,7 @@ foreach($Registry in $DockerRegistries)
 foreach($ImageTag in $DockerImageTags)
 {
     Write-Host "Docker build image tag [$ImageTag]"
-    
+    # With the current Window IoT Core setup, the docker requires -H to be used
     $docker_build_cmd = "docker -H npipe:////./pipe/iotedge_moby_engine build --no-cache"
     $docker_build_cmd += " --tag $ImageTag"
     $docker_build_cmd +=" --file $DockerFile"
