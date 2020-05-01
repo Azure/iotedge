@@ -11,7 +11,6 @@ use futures_util::{FutureExt, StreamExt};
 use lazy_static::lazy_static;
 use tokio::{
     net::ToSocketAddrs,
-    stream::Stream,
     sync::{
         mpsc::{self, UnboundedReceiver},
         oneshot::{self, Sender},
@@ -21,7 +20,8 @@ use tokio::{
 
 use mqtt3::{
     proto::{ClientId, Publication, QoS, SubscribeTo},
-    Client, Event, PublishError, PublishHandle, ShutdownHandle, UpdateSubscriptionHandle,
+    Client, Event, PublishError, PublishHandle, ReceivedPublication, ShutdownHandle,
+    UpdateSubscriptionHandle,
 };
 use mqtt_broker::{Authenticator, Authorizer, Broker, BrokerState, Error, Server};
 
@@ -36,7 +36,9 @@ pub struct TestClient {
 
     /// Used to simulate unexpected shutdown.
     termination_handle: Sender<()>,
-    events_receiver: UnboundedReceiver<Event>,
+    pub_receiver: UnboundedReceiver<ReceivedPublication>,
+    sub_receiver: UnboundedReceiver<Event>,
+    conn_receiver: UnboundedReceiver<Event>,
     event_loop_handle: JoinHandle<()>,
 }
 
@@ -93,7 +95,7 @@ impl TestClient {
         .expect("couldn't publish")
     }
 
-    pub async fn subscribe(&mut self, topic_filter: &str, qos: QoS) {
+    pub async fn subscribe(&mut self, topic_filter: impl Into<String>, qos: QoS) {
         self.subscription_handle
             .subscribe(SubscribeTo {
                 topic_filter: topic_filter.into(),
@@ -132,19 +134,16 @@ impl TestClient {
             .expect("couldn't wait for client event loop to finish")
     }
 
-    pub fn try_recv(&mut self) -> Option<Event> {
-        self.events_receiver.try_recv().ok()
+    pub fn connections(&mut self) -> &mut UnboundedReceiver<Event> {
+        &mut self.conn_receiver
     }
-}
 
-impl Stream for TestClient
-where
-    Self: Unpin,
-{
-    type Item = Event;
+    pub fn publications(&mut self) -> &mut UnboundedReceiver<ReceivedPublication> {
+        &mut self.pub_receiver
+    }
 
-    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        self.events_receiver.poll_recv(cx)
+    pub fn subscriptions(&mut self) -> &mut UnboundedReceiver<Event> {
+        &mut self.sub_receiver
     }
 }
 
@@ -255,7 +254,9 @@ where
             .shutdown_handle()
             .expect("couldn't get shutdown handle");
 
-        let (events_sender, events_receiver) = mpsc::unbounded_channel();
+        let (pub_sender, pub_receiver) = mpsc::unbounded_channel();
+        let (sub_sender, sub_receiver) = mpsc::unbounded_channel();
+        let (conn_sender, conn_receiver) = mpsc::unbounded_channel();
 
         let (termination_handle, tx) = oneshot::channel::<()>();
 
@@ -263,9 +264,17 @@ where
             let event_loop = async {
                 while let Some(event) = client.next().await {
                     let event = event.expect("event expected");
-                    events_sender
-                        .send(event)
-                        .expect("can't send an event to a channel");
+                    match event {
+                        Event::NewConnection { .. } => conn_sender
+                            .send(event)
+                            .expect("can't send an event to a conn channel"),
+                        Event::Publication(publication) => pub_sender
+                            .send(publication)
+                            .expect("can't send an event to a pub channel"),
+                        Event::SubscriptionUpdates(_) => sub_sender
+                            .send(event)
+                            .expect("can't send an event to a sub channel"),
+                    };
                 }
             };
             pin_mut!(event_loop);
@@ -277,7 +286,9 @@ where
             subscription_handle,
             shutdown_handle,
             termination_handle,
-            events_receiver,
+            pub_receiver,
+            sub_receiver,
+            conn_receiver,
             event_loop_handle,
         }
     }

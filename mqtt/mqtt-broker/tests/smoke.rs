@@ -27,7 +27,7 @@ async fn basic_connect_clean_session() {
         .build();
 
     assert_matches!(
-        client.next().await,
+        client.connections().recv().await,
         Some(Event::NewConnection {
             reset_session: true
         })
@@ -54,7 +54,7 @@ async fn basic_connect_existing_session() {
         .build();
 
     assert_matches!(
-        client.next().await,
+        client.connections().recv().await,
         Some(Event::NewConnection {
             reset_session: true
         })
@@ -62,14 +62,12 @@ async fn basic_connect_existing_session() {
 
     client.shutdown().await;
 
-    assert_eq!(client.next().await, None); //drain event queue.
-
     let mut client = TestClientBuilder::new(address.clone())
         .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests".into()))
         .build();
 
     assert_matches!(
-        client.next().await,
+        client.connections().recv().await,
         Some(Event::NewConnection {
             reset_session: false
         })
@@ -110,20 +108,21 @@ async fn basic_pub_sub() {
     client.publish_qos1(topic, "qos 1", false).await;
     client.publish_qos2(topic, "qos 2", false).await;
 
-    client.next().await; //skip connect event
-
-    assert_matches!(client.next().await, Some(Event::SubscriptionUpdates(_)));
     assert_matches!(
-        client.next().await,
-        Some(Event::Publication(ReceivedPublication{payload, ..})) if payload == Bytes::from("qos 0")
+        client.subscriptions().recv().await,
+        Some(Event::SubscriptionUpdates(_))
     );
     assert_matches!(
-        client.next().await,
-        Some(Event::Publication(ReceivedPublication{payload, ..})) if payload == Bytes::from("qos 1")
+        client.publications().recv().await,
+        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("qos 0")
     );
     assert_matches!(
-        client.next().await,
-        Some(Event::Publication(ReceivedPublication{payload, ..})) if payload == Bytes::from("qos 2")
+        client.publications().recv().await,
+        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("qos 1")
+    );
+    assert_matches!(
+        client.publications().recv().await,
+        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("qos 2")
     );
 
     client.shutdown().await;
@@ -166,25 +165,19 @@ async fn retained_messages() {
 
     client.subscribe("topic/+", QoS::ExactlyOnce).await;
 
-    client.next().await; //skip connect event
-
     assert_matches!(
-        client.next().await,
+        client.subscriptions().recv().await,
         Some(Event::SubscriptionUpdates(_))
     );
 
     let mut shutdown_handle = client.shutdown_handle();
 
     // read and map 3 expected events from the stream
-    let mut events = client
+    let mut events: Vec<_> = client
+        .publications()
         .take(3)
-        .filter_map(|e| async {
-            match e {
-                Event::Publication(publication) => Some((publication.payload, publication.retain)),
-                _ => None,
-            }
-        })
-        .collect::<Vec<_>>()
+        .map(|p| (p.payload, p.retain))
+        .collect()
         .await;
 
     // sort by payload for ease of comparison.
@@ -203,7 +196,7 @@ async fn retained_messages() {
         .expect("can't wait for the broker");
 
     // inspect broker state after shutdown to
-    // deterministically verify presense of retained messages.
+    // deterministically verify presence of retained messages.
     let (retained, _) = state.into_parts();
     assert_eq!(retained.len(), 3);
 }
@@ -236,8 +229,6 @@ async fn retained_messages_zero_payload() {
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
         .build();
 
-    client.next().await; //skip connect event
-
     client.publish_qos0(topic_a, "r qos 0", true).await;
     client.publish_qos0(topic_a, "", true).await;
 
@@ -249,7 +240,7 @@ async fn retained_messages_zero_payload() {
 
     client.subscribe("topic/+", QoS::ExactlyOnce).await;
 
-    assert_eq!(client.try_recv(), None); // no new message expected.
+    assert_eq!(client.publications().try_recv().ok(), None); // no new message expected.
 
     client.shutdown().await;
     broker_shutdown.send(()).expect("couldn't shutdown broker");
@@ -280,7 +271,7 @@ async fn will_message() {
 
     let (broker_shutdown, broker_task, address) = common::start_server(broker);
 
-    let mut client_a = TestClientBuilder::new(address.clone())
+    let client_a = TestClientBuilder::new(address.clone())
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-a".into()))
         .will(Publication {
             topic_name: topic.into(),
@@ -291,23 +282,18 @@ async fn will_message() {
         .keep_alive(Duration::from_secs(1))
         .build();
 
-    client_a.next().await; //skip connect event
-
     let mut client_b = TestClientBuilder::new(address.clone())
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-b".into()))
         .build();
 
-    client_b.subscribe(topic, QoS::ExactlyOnce).await;
-
-    client_b.next().await; //skip connect event
-    client_b.next().await; //skip subscribe event
+    client_b.subscribe(topic, QoS::AtLeastOnce).await;
 
     client_a.terminate().await;
 
     // expect will message
     assert_matches!(
-        client_b.next().await,
-        Some(Event::Publication(ReceivedPublication{payload, ..})) if payload == Bytes::from("will_msg_a")
+        client_b.publications().recv().await,
+        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("will_msg_a")
     );
 
     client_b.shutdown().await;
@@ -348,11 +334,9 @@ async fn offline_messages() {
 
     client_a.subscribe("topic/+", QoS::ExactlyOnce).await;
 
-    client_a.next().await; //skip connect event
-
     client_a.shutdown().await;
 
-    assert_eq!(client_a.next().await, None); //drain event queue.
+    assert_eq!(client_a.publications().try_recv().ok(), None); // drain event queue.
 
     let mut client_b = TestClientBuilder::new(address.clone())
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-b".into()))
@@ -368,21 +352,17 @@ async fn offline_messages() {
 
     // expects existing session.
     assert_matches!(
-        client_a.next().await,
+        client_a.connections().recv().await,
         Some(Event::NewConnection {
             reset_session: false
         })
     );
 
-    // read and map 3 expected events from the stream
+    // read and map 3 expected publications from the stream
     let mut events = client_a
+        .publications()
         .take(3)
-        .filter_map(|e| async {
-            match e {
-                Event::Publication(publication) => Some(publication.payload),
-                _ => None,
-            }
-        })
+        .map(|p| (p.payload))
         .collect::<Vec<_>>()
         .await;
 
@@ -448,15 +428,7 @@ async fn overlapping_subscriptions() {
 
     client_a.shutdown().await;
 
-    let mut events: Vec<_> = client_a
-        .filter_map(|e| async {
-            match e {
-                Event::Publication(publication) => Some(publication.payload),
-                _ => None,
-            }
-        })
-        .collect()
-        .await;
+    let mut events: Vec<_> = client_a.publications().map(|p| (p.payload)).collect().await;
 
     events.sort();
 
