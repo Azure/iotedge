@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models
         public EnvVar(string key, string value)
         {
             this.Key = Preconditions.CheckNonWhiteSpace(key, nameof(key));
-            this.Value = Preconditions.CheckNonWhiteSpace(value, nameof(value));
+            this.Value = value ?? string.Empty;
         }
 
         public string Key { get; }

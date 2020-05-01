@@ -13,10 +13,11 @@ use hyper::{Body, Chunk as HyperChunk, Client};
 use management::apis::client::APIClient;
 use management::apis::configuration::Configuration;
 use management::models::{Config, ModuleDetails as HttpModuleDetails};
-use serde_json;
 use url::Url;
 
-use edgelet_core::*;
+use edgelet_core::{
+    LogOptions, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, ModuleStatus,
+};
 use edgelet_core::{
     ModuleOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
 };

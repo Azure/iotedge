@@ -27,7 +27,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
         }
 
         public CaCertificates(string deviceId, string scriptPath)
-            : base()
         {
             var location = this.GetEdgeCertFileLocation(deviceId);
             var files = OsPlatform.NormalizeFiles(location, scriptPath);
@@ -37,7 +36,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
         }
 
         public CaCertificates(string certificatePath, string keyPath, string trustedCertsPath)
-            : base()
         {
             Preconditions.CheckArgument(File.Exists(certificatePath));
             Preconditions.CheckArgument(File.Exists(keyPath));

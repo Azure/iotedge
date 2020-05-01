@@ -1,6 +1,5 @@
 use std::future::Future;
 
-use failure::ResultExt;
 use futures_util::future::{self, Either, FutureExt};
 use futures_util::pin_mut;
 use futures_util::stream::StreamExt;
@@ -11,7 +10,7 @@ use tracing_futures::Instrument;
 use crate::auth::{Authenticator, Authorizer};
 use crate::broker::{Broker, BrokerHandle, BrokerState};
 use crate::transport::TransportBuilder;
-use crate::{connection, Error, ErrorKind, Message, SystemEvent};
+use crate::{connection, Error, InitializeBrokerError, Message, SystemEvent};
 
 pub struct Server<N, Z>
 where
@@ -62,7 +61,7 @@ where
         let main_task = future::select(broker_task, incoming_tasks);
 
         // Handle shutdown
-        let state = match future::select(shutdown_signal, main_task).await {
+        match future::select(shutdown_signal, main_task).await {
             Either::Left((_, tasks)) => {
                 info!("server received shutdown signal");
 
@@ -83,8 +82,8 @@ where
                         }
 
                         debug!("sending Shutdown message to broker");
-                        handle.send(Message::System(SystemEvent::Shutdown)).await?;
-                        broker_task.await.context(ErrorKind::TaskJoin)?
+                        handle.send(Message::System(SystemEvent::Shutdown))?;
+                        broker_task.await?
                     }
                     Either::Left((broker_state, incoming_tasks)) => {
                         warn!("broker exited before accept loop");
@@ -100,7 +99,7 @@ where
                             warn!(message = "failed to shutdown protocol head", error=%e);
                         }
 
-                        broker_state.context(ErrorKind::TaskJoin)?
+                        broker_state?
                     }
                 }
             }
@@ -119,7 +118,7 @@ where
                     let mut results = vec![result];
                     results.extend(future::join_all(unfinished_incoming_tasks).await);
 
-                    handle.send(Message::System(SystemEvent::Shutdown)).await?;
+                    handle.send(Message::System(SystemEvent::Shutdown))?;
 
                     let broker_state = broker_task.await;
 
@@ -127,7 +126,7 @@ where
                         warn!(message = "failed to shutdown protocol head", error=%e);
                     }
 
-                    broker_state.context(ErrorKind::TaskJoin)?
+                    broker_state?
                 }
                 Either::Left((broker_state, incoming_tasks)) => {
                     warn!("broker exited before accept loop");
@@ -146,11 +145,10 @@ where
                         warn!(message = "failed to shutdown protocol head", error=%e);
                     }
 
-                    broker_state.context(ErrorKind::TaskJoin)?
+                    broker_state?
                 }
             },
-        };
-        Ok(state)
+        }
     }
 }
 
@@ -174,7 +172,7 @@ where
     A: ToSocketAddrs,
     F: Future<Output = ()> + Unpin,
 {
-    let mut io = transport.build().await?;
+    let io = transport.build().await?;
     let addr = io.local_addr()?;
     let span = span!(Level::INFO, "server", listener=%addr);
     let _enter = span.enter();
@@ -188,7 +186,7 @@ where
             Either::Right((Some(Ok(stream)), _)) => {
                 let peer = stream
                     .peer_addr()
-                    .context(ErrorKind::ConnectionPeerAddress)?;
+                    .map_err(InitializeBrokerError::ConnectionPeerAddress)?;
 
                 let broker_handle = handle.clone();
                 let span = span.clone();

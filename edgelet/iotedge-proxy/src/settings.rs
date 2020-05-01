@@ -7,7 +7,6 @@ use failure::ResultExt;
 use log::info;
 use serde_derive::Deserialize;
 use url::Url;
-use url_serde;
 
 use crate::{Error, ErrorKind, InitializeErrorReason};
 

@@ -1,4 +1,5 @@
 use std::{
+    convert::TryFrom,
     future::Future,
     net::SocketAddr,
     pin::Pin,
@@ -7,7 +8,6 @@ use std::{
 
 use bytes::{Buf, BufMut};
 use core::mem::MaybeUninit;
-use failure::{Fail, ResultExt};
 use futures::stream::FuturesUnordered;
 use native_tls::Identity;
 use tokio::{
@@ -16,9 +16,10 @@ use tokio::{
     stream::Stream,
 };
 use tokio_native_tls::{TlsAcceptor, TlsStream};
-use tracing::{debug, error, warn};
+use tracing::{debug, error, info, warn};
 
-use crate::{Certificate, Error, ErrorKind};
+use crate::configuration::Transport as TransportConfig;
+use crate::{Certificate, Error, InitializeBrokerError};
 
 pub enum TransportBuilder<A> {
     Tcp(A),
@@ -29,7 +30,7 @@ impl<A> TransportBuilder<A>
 where
     A: ToSocketAddrs,
 {
-    pub async fn build(self) -> Result<Transport, Error> {
+    pub async fn build(self) -> Result<Transport, InitializeBrokerError> {
         match self {
             TransportBuilder::Tcp(addr) => Transport::new_tcp(addr).await,
             TransportBuilder::Tls(addr, identity) => Transport::new_tls(addr, identity).await,
@@ -37,21 +38,27 @@ where
     }
 }
 
-impl<A> From<A> for TransportBuilder<A>
-where
-    A: ToSocketAddrs,
-{
-    fn from(addr: A) -> Self {
-        Self::Tcp(addr)
-    }
-}
+impl TryFrom<TransportConfig> for TransportBuilder<String> {
+    type Error = InitializeBrokerError;
 
-impl<A> From<(A, Identity)> for TransportBuilder<A>
-where
-    A: ToSocketAddrs,
-{
-    fn from((addrs, identity): (A, Identity)) -> Self {
-        Self::Tls(addrs, identity)
+    fn try_from(transport: TransportConfig) -> Result<Self, Self::Error> {
+        match transport {
+            TransportConfig::Tcp { address } => Ok(Self::Tcp(address)),
+            TransportConfig::Tls {
+                address,
+                certificate,
+            } => {
+                info!("Loading identity from {}", certificate.display());
+                let cert_buffer = std::fs::read(&certificate).map_err(|e| {
+                    InitializeBrokerError::LoadIdentity(certificate.to_path_buf(), e)
+                })?;
+
+                let cert = Identity::from_pkcs12(cert_buffer.as_slice(), "")
+                    .map_err(InitializeBrokerError::DecodeIdentity)?;
+
+                Ok(Self::Tls(address, cert))
+            }
+        }
     }
 }
 
@@ -61,57 +68,58 @@ pub enum Transport {
 }
 
 impl Transport {
-    pub async fn new_tcp<A>(addr: A) -> Result<Self, Error>
+    async fn new_tcp<A>(addr: A) -> Result<Self, InitializeBrokerError>
     where
         A: ToSocketAddrs,
     {
         let tcp = TcpListener::bind(addr)
             .await
-            .context(ErrorKind::BindServer)?;
+            .map_err(InitializeBrokerError::BindServer)?;
+
         Ok(Transport::Tcp(tcp))
     }
 
-    pub async fn new_tls<A>(addr: A, identity: Identity) -> Result<Self, Error>
+    async fn new_tls<A>(addr: A, identity: Identity) -> Result<Self, InitializeBrokerError>
     where
         A: ToSocketAddrs,
     {
         let acceptor = TlsAcceptor::from(
             native_tls::TlsAcceptor::builder(identity)
                 .build()
-                .context(ErrorKind::DecodeIdentity)?,
+                .map_err(InitializeBrokerError::Tls)?,
         );
         let tcp = TcpListener::bind(addr)
             .await
-            .context(ErrorKind::BindServer)?;
+            .map_err(InitializeBrokerError::BindServer)?;
+
         Ok(Transport::Tls(tcp, acceptor))
     }
 
-    pub fn incoming(&mut self) -> Incoming<'_> {
+    pub fn incoming(self) -> Incoming {
         match self {
             Self::Tcp(listener) => Incoming::Tcp(IncomingTcp::new(listener)),
             Self::Tls(listener, acceptor) => Incoming::Tls(IncomingTls::new(listener, acceptor)),
         }
     }
 
-    pub fn local_addr(&self) -> Result<SocketAddr, Error> {
+    pub fn local_addr(&self) -> Result<SocketAddr, InitializeBrokerError> {
         let addr = match self {
             Self::Tcp(listener) => listener.local_addr(),
             Self::Tls(listener, _) => listener.local_addr(),
         };
-        let addr = addr.context(ErrorKind::ConnectionLocalAddress)?;
-        Ok(addr)
+        addr.map_err(InitializeBrokerError::ConnectionLocalAddress)
     }
 }
 
 type HandshakeFuture =
-    Pin<Box<dyn Future<Output = Result<TlsStream<TcpStream>, native_tls::Error>>>>;
+    Pin<Box<dyn Future<Output = Result<TlsStream<TcpStream>, native_tls::Error>> + Send>>;
 
-pub enum Incoming<'a> {
-    Tcp(IncomingTcp<'a>),
-    Tls(IncomingTls<'a>),
+pub enum Incoming {
+    Tcp(IncomingTcp),
+    Tls(IncomingTls),
 }
 
-impl Stream for Incoming<'_> {
+impl Stream for Incoming {
     type Item = std::io::Result<StreamSelector>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
@@ -122,17 +130,17 @@ impl Stream for Incoming<'_> {
     }
 }
 
-pub struct IncomingTcp<'a> {
-    listener: &'a mut TcpListener,
+pub struct IncomingTcp {
+    listener: TcpListener,
 }
 
-impl<'a> IncomingTcp<'a> {
-    fn new(listener: &'a mut TcpListener) -> Self {
+impl IncomingTcp {
+    fn new(listener: TcpListener) -> Self {
         Self { listener }
     }
 }
 
-impl Stream for IncomingTcp<'_> {
+impl Stream for IncomingTcp {
     type Item = std::io::Result<StreamSelector>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
@@ -162,14 +170,14 @@ impl Stream for IncomingTcp<'_> {
     }
 }
 
-pub struct IncomingTls<'a> {
-    listener: &'a mut TcpListener,
-    acceptor: &'a TlsAcceptor,
+pub struct IncomingTls {
+    listener: TcpListener,
+    acceptor: TlsAcceptor,
     connections: FuturesUnordered<HandshakeFuture>,
 }
 
-impl<'a> IncomingTls<'a> {
-    fn new(listener: &'a mut TcpListener, acceptor: &'a TlsAcceptor) -> Self {
+impl IncomingTls {
+    fn new(listener: TcpListener, acceptor: TlsAcceptor) -> Self {
         Self {
             listener,
             acceptor,
@@ -178,7 +186,7 @@ impl<'a> IncomingTls<'a> {
     }
 }
 
-impl Stream for IncomingTls<'_> {
+impl Stream for IncomingTls {
     type Item = std::io::Result<StreamSelector>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
@@ -263,7 +271,7 @@ impl GetPeerCertificate for StreamSelector {
                     cert.map(|cert| cert.to_der().map(Certificate::from))
                         .transpose()
                 })
-                .map_err(|e| e.context(ErrorKind::PeerCertificate).into()),
+                .map_err(Error::PeerCertificate),
         }
     }
 }

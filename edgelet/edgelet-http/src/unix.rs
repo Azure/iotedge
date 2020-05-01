@@ -78,7 +78,7 @@ fn set_umask(metadata: &fs::Metadata, path: &Path) -> Mode {
 #[cfg(test)]
 #[cfg(unix)]
 mod tests {
-    use super::*;
+    use super::{listener, MetadataExt};
 
     use std::fs::OpenOptions;
     use std::os::unix::fs::OpenOptionsExt;
