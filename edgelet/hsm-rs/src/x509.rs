@@ -8,7 +8,10 @@ use std::slice;
 use std::string::String;
 
 use super::GetDeviceIdentityCertificate;
-use super::*;
+use super::{
+    hsm_client_x509_deinit, hsm_client_x509_init, hsm_client_x509_interface, hsm_get_version,
+    HsmCertificate, HSM_CLIENT_HANDLE, HSM_CLIENT_X509_INTERFACE,
+};
 use crate::error::{Error, ErrorKind};
 
 // Handles don't have thread-affinity
@@ -254,7 +257,9 @@ mod tests {
 
     use super::super::GetDeviceIdentityCertificate;
     use super::{X509Data, X509};
-    use hsm_sys::*;
+    use hsm_sys::{
+        certificate_info_create, CERT_INFO_HANDLE, HSM_CLIENT_HANDLE, HSM_CLIENT_X509_INTERFACE,
+    };
 
     extern "C" {
         pub fn malloc(size: usize) -> *mut c_void;

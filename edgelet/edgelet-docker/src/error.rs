@@ -5,7 +5,6 @@ use std::fmt::Display;
 
 use failure::{Backtrace, Context, Fail};
 use hyper::StatusCode;
-use serde_json;
 
 use docker::apis::{ApiError as DockerApiError, Error as DockerError};
 use edgelet_core::{

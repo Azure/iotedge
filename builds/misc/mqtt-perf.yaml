@@ -21,7 +21,7 @@ schedules:
     displayName: Daily at 11 PM
     branches:
       include:
-      - master
+      - iiot
     always: true
 
 # github repo for our fork of mqtt-benchmark tool.
