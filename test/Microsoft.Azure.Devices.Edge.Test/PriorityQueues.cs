@@ -149,7 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         },
                         token);
                 },
-                $"Received {ResultCount} unique results from IoTHub",
+                "Received {ResultCount} unique results from IoTHub",
                 loadGenTestStatus.ResultCount);
         }
 
