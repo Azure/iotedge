@@ -1,3 +1,33 @@
+//! `dispatch_message` benches start broker with empty state and no network connections.
+//! Firstly, each bench test creates a given number of publishers, subscribers and connects
+//! them to a broker. Then it makes a series of exercises to send messages to a broker and
+//! measures the time between a message successfully sent to a broker and broker processed
+//! this message. For this case broker extended with a `on_publish` "callback" which has to
+//! be exposed only for benchmark tests.
+//!
+//! Scenarios supported:
+//! * 1-to-1
+//! * fan-in
+//! * fan-out
+//!
+//! How to run benches
+//! ```bash
+//! cd mqtt
+//! cargo bench --bench dispatch_messages \
+//!   --features="benches" \
+//!   --manifest-path mqtt-broker/Cargo.toml
+//! ```
+//! or
+//! ```bash
+//! cd mqtt/mqtt-broker
+//! cargo bench --bench dispatch_messages --features="benches"
+//! ```
+//! to run all benches
+//! ```bash
+//! cd mqtt/mqtt-broker
+//! cargo bench --all --features="benches"
+//! ```
+
 use std::{
     collections::HashSet,
     iter::FromIterator,
@@ -26,6 +56,12 @@ use mqtt_broker::{
 criterion_group!(basic, one_to_one, fan_in, fan_out);
 criterion_main!(basic);
 
+/// Each publisher sends messages to one corresponding subscriber
+/// ```
+/// pub1 pub topic/1            sub1 sub topic/1
+/// pub2 pub topic/2            sub2 sub topic/2
+/// pub2 pub topic/N            sub2 sub topic/N
+/// ```
 fn one_to_one(c: &mut Criterion) {
     init_logging();
 
@@ -37,6 +73,12 @@ fn one_to_one(c: &mut Criterion) {
     group.finish();
 }
 
+/// All publishers send message to a randomly chose topic
+/// ```
+/// pub1 pub topic/2            sub1 sub topic/1
+/// pub2 pub topic/2            sub2 sub topic/2
+/// pubN pub topic/2            sub2 sub topic/N
+/// ```
 fn fan_in(c: &mut Criterion) {
     init_logging();
 
@@ -48,6 +90,12 @@ fn fan_in(c: &mut Criterion) {
     group.finish();
 }
 
+/// Multiple publishers sends messages to a topic all subscribers subscribed to
+/// ```
+/// pub1 pub topic/foo            sub1 sub topic/foo
+/// pub2 pub topic/foo            sub2 sub topic/foo
+/// pubN pub topic/foo            sub2 sub topic/foo
+/// ```
 fn fan_out(c: &mut Criterion) {
     init_logging();
 
@@ -117,7 +165,7 @@ fn dispatch_messages(
         })
         .unzip();
 
-    let bench_name = format!("q{}/c/{}/msg/{}", u8::from(qos), client_count, size);
+    let bench_name = format!("sub_{}/msg_{}_q{}", client_count, size, u8::from(qos));
     group.bench_function(bench_name, |b| {
         b.iter_batched(
             || {
