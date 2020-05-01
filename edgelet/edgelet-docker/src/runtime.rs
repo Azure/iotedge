@@ -629,6 +629,9 @@ impl ModuleRuntime for DockerModuleRuntime {
                 })
             });
 
+        #[cfg(not(any(windows, target_os = "linux")))]
+        let uptime: u64 = 0;
+
         #[cfg(target_os = "linux")]
         let uptime: u64 = {
             let mut info: libc::sysinfo = unsafe { mem::zeroed() };
@@ -639,6 +642,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                 0
             }
         };
+
         #[cfg(windows)]
         let uptime: u64 = unsafe { winapi::um::sysinfoapi::GetTickCount64() / 1000 };
 
