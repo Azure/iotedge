@@ -585,9 +585,14 @@ mod tests {
 
     use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState};
     use edgelet_test_utils::crypto::TestHsm;
-    use edgelet_test_utils::module::*;
+    use edgelet_test_utils::module::{
+        TestConfig, TestModule, TestProvisioningResult, TestRuntime, TestSettings,
+    };
 
-    use super::*;
+    use super::{
+        pull_logs, Command, Fail, File, Future, LogOptions, LogTail, OsString, OutputLocation,
+        SupportBundle,
+    };
 
     #[allow(dead_code)]
     #[derive(Clone, Copy, Debug, Fail)]

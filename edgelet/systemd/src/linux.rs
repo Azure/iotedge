@@ -242,7 +242,10 @@ fn is_socket_unix(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{
+        env, listen_fds, listen_fds_with_names, socket, AddressFamily, ErrorKind, Fd, Pid,
+        SockType, Socket, ENV_FDS, ENV_NAMES, ENV_PID, LISTEN_FDS_START,
+    };
 
     use std::panic;
     use std::sync::{Mutex, MutexGuard};

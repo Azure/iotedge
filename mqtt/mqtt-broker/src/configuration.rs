@@ -154,6 +154,7 @@ impl BrokerConfig {
 
 #[cfg(test)]
 mod tests {
+    use std::convert::From;
     use std::path::Path;
     use std::time::Duration;
 
@@ -163,7 +164,7 @@ mod tests {
     use serde_json::json;
     use test_case::test_case;
 
-    use super::*;
+    use crate::configuration::{humansize, BrokerConfig};
 
     #[test]
     fn it_loads_defaults() {

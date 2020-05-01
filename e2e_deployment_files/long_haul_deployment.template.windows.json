@@ -114,6 +114,9 @@
                 "TwinUpdateFailureThreshold": {
                     "value": "<TwinUpdateFailureThreshold>"
                 },
+                "EdgeHubRestartFailureTolerance": {
+                    "value": "<EdgeHubRestartFailureTolerance>"
+                },
                 "testStartDelay": {
                   "value": "<TestStartDelay>"
                 }
@@ -143,6 +146,9 @@
                 },
                 "TwinUpdateFailureThreshold": {
                     "value": "<TwinUpdateFailureThreshold>"
+                },
+                "EdgeHubRestartFailureTolerance": {
+                    "value": "<EdgeHubRestartFailureTolerance>"
                 },
                 "testStartDelay": {
                   "value": "<TestStartDelay>"

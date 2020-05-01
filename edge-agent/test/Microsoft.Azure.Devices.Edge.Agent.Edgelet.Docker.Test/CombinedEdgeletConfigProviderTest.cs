@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Configuration;
     using Moq;
@@ -175,7 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
 
             string hostNetworkCreateOptions = "{\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}},\"HostConfig\":{\"NetworkMode\":\"host\"}}";
             var module = new Mock<IModule<DockerConfig>>();
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", hostNetworkCreateOptions));
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", hostNetworkCreateOptions, Option.None<NotaryContentTrust>()));
             module.SetupGet(m => m.Name).Returns("mod1");
 
             IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
@@ -212,7 +213,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
 
             string createOptions = "{\"HostConfig\":{\"Devices\":[],\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"Capabilities\":[[\"gpu\"]],\"Options\":{}}]}}";
             var module = new Mock<IModule<DockerConfig>>();
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", createOptions));
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", createOptions, Option.None<NotaryContentTrust>()));
             module.SetupGet(m => m.Name).Returns("mod1");
 
             IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
