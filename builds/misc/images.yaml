@@ -32,6 +32,11 @@ jobs:
       - bash: 'cargo install --git https://github.com/arsing/cross.git --branch set-path'
         displayName: 'Install cross (fork with docker fix)'
 
+      # Remove pre-installed cached images to free up more memory
+      # https://github.com/actions/virtual-environments/blob/master/images/linux/Ubuntu1604-README.md
+      - bash: 'docker system prune -af --volumes'
+        displayName: 'Clean up cached docker images'
+
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin --os Unix --dotnet_runtime netcoreapp3.0
         name: build
         displayName: Build ($(Build.Configuration))
@@ -182,6 +187,11 @@ jobs:
 
       - bash: 'cargo install --git https://github.com/arsing/cross.git --branch set-path'
         displayName: 'Install cross (fork with docker fix)'
+
+      # Remove pre-installed cached images to free up more memory
+      # https://github.com/actions/virtual-environments/blob/master/images/linux/Ubuntu1804-README.md
+      - bash: 'docker system prune -af --volumes'
+        displayName: 'Clean up cached docker images'
 
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
         name: build
