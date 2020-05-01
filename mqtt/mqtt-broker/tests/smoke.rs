@@ -28,7 +28,9 @@ async fn basic_connect_clean_session() {
 
     assert_matches!(
         client.next().await,
-        Some(Event::NewConnection { reset_session }) if reset_session
+        Some(Event::NewConnection {
+            reset_session: true
+        })
     );
 
     broker_shutdown.send(()).expect("can't stop the broker");
@@ -53,7 +55,9 @@ async fn basic_connect_existing_session() {
 
     assert_matches!(
         client.next().await,
-        Some(Event::NewConnection { reset_session }) if reset_session
+        Some(Event::NewConnection {
+            reset_session: true
+        })
     );
 
     client.shutdown().await;
@@ -66,7 +70,9 @@ async fn basic_connect_existing_session() {
 
     assert_matches!(
         client.next().await,
-        Some(Event::NewConnection { reset_session }) if !reset_session
+        Some(Event::NewConnection {
+            reset_session: false
+        })
     );
 
     broker_shutdown.send(()).expect("can't stop the broker");
@@ -243,7 +249,7 @@ async fn retained_messages_zero_payload() {
 
     client.subscribe("topic/+", QoS::ExactlyOnce).await;
 
-    assert_eq!(client.try_recv().await, None); // no new message expected.
+    assert_eq!(client.try_recv(), None); // no new message expected.
 
     client.shutdown().await;
     broker_shutdown.send(()).expect("couldn't shutdown broker");
@@ -338,7 +344,6 @@ async fn offline_messages() {
 
     let mut client_a = TestClientBuilder::new(address.clone())
         .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests-a".into()))
-        .keep_alive(Duration::from_secs(1))
         .build();
 
     client_a.subscribe("topic/+", QoS::ExactlyOnce).await;
@@ -359,13 +364,14 @@ async fn offline_messages() {
 
     let mut client_a = TestClientBuilder::new(address.clone())
         .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests-a".into()))
-        .keep_alive(Duration::from_secs(10))
         .build();
 
     // expects existing session.
     assert_matches!(
         client_a.next().await,
-        Some(Event::NewConnection { reset_session }) if !reset_session
+        Some(Event::NewConnection {
+            reset_session: false
+        })
     );
 
     // read and map 3 expected events from the stream
@@ -389,6 +395,76 @@ async fn offline_messages() {
     assert_eq!(events[2], Bytes::from("o qos 2"));
 
     client_b.shutdown().await;
+    broker_shutdown.send(()).expect("couldn't shutdown broker");
+    broker_task
+        .await
+        .unwrap()
+        .expect("can't wait for the broker");
+}
+
+/// Scenario:
+/// - Client A connects with clean session.
+/// - Client A subscribes to Topic/A
+/// - Client A subscribes to Topic/+
+/// - Client A subscribes to Topic/#
+/// - Client B connects with clean session
+/// - Client B publishes to a Topic/A three messages with QoS 0, QoS 1, QoS 2
+/// - Client A Expects to receive ONLY three messages.
+#[tokio::test]
+async fn overlapping_subscriptions() {
+    let topic = "topic/A";
+    let topic_filter_pound = "topic/#";
+    let topic_filter_plus = "topic/+";
+
+    let broker = BrokerBuilder::default()
+        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+        .authorizer(|_| Ok(true))
+        .build();
+
+    let (broker_shutdown, broker_task, address) = common::start_server(broker);
+
+    let mut client_a = TestClientBuilder::new(address.clone())
+        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-a".into()))
+        .build();
+
+    client_a.subscribe(topic, QoS::AtMostOnce).await;
+    client_a
+        .subscribe(topic_filter_pound, QoS::AtLeastOnce)
+        .await;
+    client_a
+        .subscribe(topic_filter_plus, QoS::ExactlyOnce)
+        .await;
+
+    let mut client_b = TestClientBuilder::new(address.clone())
+        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-b".into()))
+        .build();
+
+    client_b.publish_qos0(topic, "overlap qos 0", false).await;
+    client_b.publish_qos1(topic, "overlap qos 1", false).await;
+    client_b.publish_qos2(topic, "overlap qos 2", false).await;
+
+    // need to wait till all messages are processed.
+    tokio::time::delay_for(Duration::from_secs(1)).await;
+
+    client_a.shutdown().await;
+
+    let mut events: Vec<_> = client_a
+        .filter_map(|e| async {
+            match e {
+                Event::Publication(publication) => Some(publication.payload),
+                _ => None,
+            }
+        })
+        .collect()
+        .await;
+
+    events.sort();
+
+    assert_eq!(3, events.len());
+    assert_eq!(events[0], Bytes::from("overlap qos 0"));
+    assert_eq!(events[1], Bytes::from("overlap qos 1"));
+    assert_eq!(events[2], Bytes::from("overlap qos 2"));
+
     broker_shutdown.send(()).expect("couldn't shutdown broker");
     broker_task
         .await

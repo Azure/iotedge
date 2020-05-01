@@ -21,8 +21,7 @@ use tokio::{
 
 use mqtt3::{
     proto::{ClientId, Publication, QoS, SubscribeTo},
-    Client, Event, PublishError, PublishHandle, ShutdownHandle,
-    UpdateSubscriptionHandle,
+    Client, Event, PublishError, PublishHandle, ShutdownHandle, UpdateSubscriptionHandle,
 };
 use mqtt_broker::{Authenticator, Authorizer, Broker, BrokerState, Error, Server};
 
@@ -133,7 +132,7 @@ impl TestClient {
             .expect("couldn't wait for client event loop to finish")
     }
 
-    pub async fn try_recv(&mut self) -> Option<Event> {
+    pub fn try_recv(&mut self) -> Option<Event> {
         self.events_receiver.try_recv().ok()
     }
 }
