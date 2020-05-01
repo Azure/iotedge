@@ -80,10 +80,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, "hubtest", trcImage, loadGenImage, testInfo, true);
             Action<EdgeConfigBuilder> addNetworkControllerConfig = this.BuildAddNetworkControllerConfig(trackingId, networkControllerImage);
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addNetworkControllerConfig, token);
-            Log.Information("Toggling connectivity off");
             await this.ToggleConnectivity(false, NetworkControllerModuleName, token);
             await Task.Delay(TimeSpan.Parse(LoadGenTestDuration) + TimeSpan.Parse(LoadGenTestStartDelay) + TimeSpan.FromSeconds(10));
-            Log.Information("Toggling connectivity on");
             await this.ToggleConnectivity(true, NetworkControllerModuleName, token);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
             ConcurrentQueue<MessageTestResult> messages = new ConcurrentQueue<MessageTestResult>();
@@ -128,27 +126,31 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         async Task ReceiveEventsFromIotHub(DateTime startTime, ConcurrentQueue<MessageTestResult> messages, PriorityQueueTestStatus loadGenTestStatus, CancellationToken token)
         {
-            // Use a set to account for duplicates
-            HashSet<int> results = new HashSet<int>();
-            await this.iotHub.ReceiveEventsAsync(
-                this.runtime.DeviceId,
-                startTime,
-                data =>
+            await Profiler.Run(
+                async () =>
                 {
-                    int sequenceNumber = int.Parse(data.Properties["sequenceNumber"].ToString());
-                    Log.Information($"Received message from IoTHub with sequence number: {sequenceNumber}");
+                    HashSet<int> results = new HashSet<int>();
+                    await this.iotHub.ReceiveEventsAsync(
+                        this.runtime.DeviceId,
+                        startTime,
+                        data =>
+                        {
+                            int sequenceNumber = int.Parse(data.Properties["sequenceNumber"].ToString());
+                            Log.Verbose($"Received message from IoTHub with sequence number: {sequenceNumber}");
+                            messages.Enqueue(new MessageTestResult("hubtest.receive", DateTime.UtcNow)
+                            {
+                                TrackingId = data.Properties["trackingId"].ToString(),
+                                BatchId = data.Properties["batchId"].ToString(),
+                                SequenceNumber = data.Properties["sequenceNumber"].ToString()
+                            });
 
-                    messages.Enqueue(new MessageTestResult("hubtest.receive", DateTime.UtcNow)
-                    {
-                        TrackingId = data.Properties["trackingId"].ToString(),
-                        BatchId = data.Properties["batchId"].ToString(),
-                        SequenceNumber = data.Properties["sequenceNumber"].ToString()
-                    });
-
-                    results.Add(sequenceNumber);
-                    return results.Count == loadGenTestStatus.ResultCount;
+                            results.Add(sequenceNumber);
+                            return results.Count == loadGenTestStatus.ResultCount;
+                        },
+                        token);
                 },
-                token);
+                $"Received {ResultCount} unique results from IoTHub",
+                loadGenTestStatus.ResultCount);
         }
 
         private async Task ValidateResultsAsync()
@@ -337,14 +339,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
             return priorities;
         }
 
-        private async Task ToggleConnectivity(bool connectivityOn, string moduleName, CancellationToken token)
-        {
-            await this.iotHub.InvokeMethodAsync(
-                this.runtime.DeviceId,
-                moduleName,
-                new CloudToDeviceMethod("toggleConnectivity", TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(20)).SetPayloadJson($"{{\"networkOnValue\": \"{connectivityOn}\"}}"),
-                token);
-        }
+        private async Task ToggleConnectivity(bool connectivityOn, string moduleName, CancellationToken token) =>
+            await Profiler.Run(
+                async () =>
+                    await this.iotHub.InvokeMethodAsync(
+                        this.runtime.DeviceId,
+                        moduleName,
+                        new CloudToDeviceMethod("toggleConnectivity", TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(20)).SetPayloadJson($"{{\"networkOnValue\": \"{connectivityOn}\"}}"),
+                        token),
+                "Toggled connectivity to {Connectivity}",
+                connectivityOn ? "on" : "off");
 
         private async Task<PriorityQueueTestStatus> PollUntilFinishedAsync(string moduleName, CancellationToken token)
         {
