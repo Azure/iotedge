@@ -53,8 +53,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 hashCode = (hashCode * 397) ^ (this.Version != null ? this.Version.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (this.Type != null ? this.Type.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (this.Config?.Image != null ? this.Config.Image.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.Config?.CreateOptions != null ? this.Config.CreateOptions.GetHashCode() : 0);
-                hashCode = (hashCode * 397) ^ (this.Env != null ? this.Env.GetHashCode() : 0);
                 return hashCode;
             }
         }
