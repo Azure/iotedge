@@ -5,12 +5,11 @@ use std::collections::HashMap;
 use failure::Fail;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use serde_json;
 
 use edgelet_core::{
     ImagePullPolicy, Module, ModuleRuntime, ModuleSpec as CoreModuleSpec, ModuleStatus,
 };
-use management::models::*;
+use management::models::{Config, EnvVar, ModuleDetails, ModuleSpec, RuntimeStatus, Status};
 
 use crate::error::{Error, ErrorKind};
 
@@ -98,7 +97,6 @@ pub mod tests {
     use failure::Fail;
     use futures::{Future, Stream};
     use hyper::{Body, Response, StatusCode};
-    use serde_json;
 
     use edgelet_core::RuntimeOperation;
     use edgelet_docker::{Error as DockerError, ErrorKind as DockerErrorKind};
