@@ -126,6 +126,7 @@ jobs:
       rust.toolchain: nightly-2019-11-06
     pool:
       vmImage: 'ubuntu-16.04'
+    condition: false
     steps:
       - script: |
           echo "##vso[task.setvariable variable=NO_VALGRIND;]true"

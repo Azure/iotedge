@@ -56,8 +56,8 @@ foreach($Registry in $DockerRegistries)
 foreach($ImageTag in $DockerImageTags)
 {
     Write-Host "Docker build image tag [$ImageTag]"
-    
-    $docker_build_cmd = "docker build --no-cache"
+    # With the current Window IoT Core setup, the docker requires -H to be used
+    $docker_build_cmd = "docker -H npipe:////./pipe/iotedge_moby_engine build --no-cache"
     $docker_build_cmd += " --tag $ImageTag"
     $docker_build_cmd +=" --file $DockerFile"
     $docker_build_cmd +=" $ProjectDirectory"
@@ -70,7 +70,7 @@ if (-Not $NoPush)
 {
     foreach($ImageTag in $DockerImageTags)
     {
-        Write-Host "Command: docker push $ImageTag"
-        docker push $ImageTag
+        Write-Host "Command: docker -H npipe:////./pipe/iotedge_moby_engine push $ImageTag"
+        docker -H npipe:////./pipe/iotedge_moby_engine push $ImageTag
     }
 }
