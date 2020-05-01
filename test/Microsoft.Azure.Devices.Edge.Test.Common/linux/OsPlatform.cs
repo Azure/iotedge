@@ -4,14 +4,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Serilog;
 
     public class OsPlatform : Common.OsPlatform, IOsPlatform
     {
@@ -45,18 +43,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         public CaCertificates GetEdgeQuickstartCertificates() =>
             this.GetEdgeQuickstartCertificates("/var/lib/iotedge/hsm");
 
-        public void InstallCaCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings transportSettings)
-        {
-            if (transportSettings.GetTransportType() == TransportType.Amqp_WebSocket_Only ||
-                transportSettings.GetTransportType() == TransportType.Amqp_Tcp_Only)
-            {
-                transportSettings.SetupCertificateValidation(certs.First());
-            }
-            else
-            {
-                this.InstallTrustedCertificates(certs, StoreName.Root);
-            }
-        }
+        public void InstallCaCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings transportSettings) =>
+            this.InstallTrustedCertificates(certs, StoreName.Root);
 
         public Task InstallRootCertificateAsync(string certPath, string keyPath, string password, string scriptPath, CancellationToken token)
         {
