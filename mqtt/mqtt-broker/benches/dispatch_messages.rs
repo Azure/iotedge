@@ -298,8 +298,6 @@ impl Client {
                                 }
                             }
                         }
-                        ClientEvent::PublishFrom(_) => None,
-                        ClientEvent::PubAck0(_) => None,
                         ClientEvent::PubAck(puback) => {
                             let mut acks = self.pubs_to_be_acked.lock().expect("pubs_to_be_acked");
                             if !acks.remove(&puback.packet_identifier) {
@@ -310,23 +308,13 @@ impl Client {
                             }
                             None
                         }
-                        ClientEvent::PubRec(_) => None,
-                        ClientEvent::PubRel(_) => None,
-                        ClientEvent::PubComp(_) => None,
                         ClientEvent::DropConnection
                         | ClientEvent::CloseSession
                         | ClientEvent::Disconnect(_) => {
                             stop = true;
                             None
                         }
-                        ClientEvent::PingReq(_) => None,
-                        ClientEvent::PingResp(_) => None,
-                        ClientEvent::ConnReq(_) => None,
-                        ClientEvent::ConnAck(_) => None,
-                        ClientEvent::Subscribe(_) => None,
-                        ClientEvent::SubAck(_) => None,
-                        ClientEvent::Unsubscribe(_) => None,
-                        ClientEvent::UnsubAck(_) => None,
+                        _ => None,
                     };
 
                     if let Some(event) = event_out {
