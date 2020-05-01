@@ -4,13 +4,12 @@ version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 bincode = "1.2"
 bytes = "0.5"
 chrono = "0.4"
 config = { version = "0.10", default-features = false, features = ["json"] }
+criterion = { version = "0.3", optional = true }
 crossbeam-channel = "0.4"
 fail = "0.3"
 flate2 = "1.0"
@@ -20,6 +19,7 @@ humantime = "2.0"
 humantime-serde = "1.0"
 lazy_static = "1.4"
 native-tls = "0.2"
+rand = { version = "0.7", optional = true }
 regex = "1"
 serde = { version = "1.0", features = ["derive", "rc"] }
 thiserror = "1.0"
@@ -36,11 +36,10 @@ mqtt3 = { path = "../mqtt3", features = ["serde1"] }
 [dev-dependencies]
 atty = "0.2"
 bytes = "0.5"
-criterion = "0.3"
 fail = { version = "0.3", features = ["failpoints"] }
+itertools = "0.9"
 matches = "0.1"
 proptest = "0.9"
-rand = "0.3"
 serde_json = "1.0"
 tempfile = "3"
 test-case = "1.0"
@@ -52,5 +51,21 @@ name = "persist_failpoints"
 required-features = ["fail/failpoints"]
 
 [[bench]]
-name = "file_persist_bench"
+name = "persist_broker_state"
 harness = false
+required-features = ["tokio/rt-threaded"]
+
+[[bench]]
+name = "dispatch_messages"
+harness = false
+required-features = ["__internal_broker_callbacks", "tokio/rt-threaded"]
+
+[features]
+default = []
+
+benches = ["rand", "criterion", "__internal_broker_callbacks", "tokio/rt-threaded"]
+# Internal (PRIVATE!) features used to aid testing.
+# Don't rely on these whatsoever. They may disappear at anytime.
+
+# When enabled, adds additional broker callback to measure processing time
+__internal_broker_callbacks = []

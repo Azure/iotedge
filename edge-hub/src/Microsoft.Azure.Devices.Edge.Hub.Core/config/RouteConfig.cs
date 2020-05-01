@@ -31,7 +31,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             }
 
             return string.Equals(this.Name, other.Name)
-                   && string.Equals(this.Value, other.Value);
+                   && string.Equals(this.Value, other.Value)
+                   && this.Route.Equals(other.Route);
         }
 
         public override bool Equals(object obj)
