@@ -96,12 +96,15 @@ mod tests {
     use chrono::prelude::*;
     use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState, ModuleStatus};
     use edgelet_test_utils::crypto::TestHsm;
-    use edgelet_test_utils::module::*;
+    use edgelet_test_utils::module::{
+        TestConfig, TestModule, TestProvisioningResult, TestRuntime, TestSettings,
+    };
     use futures::Stream;
-    use management::models::*;
-    use serde_json;
+    use management::models::ErrorResponse;
 
-    use super::*;
+    use super::{
+        parse_options, Body, Future, Handler, LogTail, ModuleLogs, Parameters, Request, StatusCode,
+    };
     use crate::server::module::tests::Error;
 
     #[test]

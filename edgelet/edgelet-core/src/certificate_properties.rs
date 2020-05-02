@@ -101,7 +101,7 @@ impl CertificateProperties {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{CertificateIssuer, CertificateProperties, CertificateType};
 
     #[test]
     fn test_default() {

@@ -19,7 +19,6 @@ use edgelet_http::{Run, Version};
 use futures::{future, Future};
 use hyper::server::conn::Http;
 use hyper::{Body, Request, Response, StatusCode};
-use hyper_tls;
 use native_tls::TlsConnector;
 use tempdir::TempDir;
 use url::Url;

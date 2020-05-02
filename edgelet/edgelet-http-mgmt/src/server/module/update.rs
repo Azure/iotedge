@@ -9,7 +9,6 @@ use log::debug;
 use log::info;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use serde_json;
 use url::form_urlencoded::parse as parse_query;
 
 use edgelet_core::{ImagePullPolicy, Module, ModuleRegistry, ModuleRuntime, ModuleStatus};
@@ -142,12 +141,16 @@ mod tests {
     use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::crypto::TestHsm;
-    use edgelet_test_utils::module::*;
+    use edgelet_test_utils::module::{
+        TestConfig, TestModule, TestProvisioningResult, TestRuntime, TestSettings,
+    };
     use lazy_static::lazy_static;
     use management::models::{Config, ErrorResponse, ModuleDetails, ModuleSpec};
     use serde_json::json;
 
-    use super::*;
+    use super::{
+        Future, Handler, Request, StatusCode, Stream, UpdateModule, CONTENT_LENGTH, CONTENT_TYPE,
+    };
     use crate::server::module::tests::Error;
 
     lazy_static! {

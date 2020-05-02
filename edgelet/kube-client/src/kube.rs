@@ -508,8 +508,7 @@ impl Context {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use serde_yaml;
+    use super::{AuthInfoEntry, ClusterEntry, Config, ContextEntry, Lookup, NameValue};
 
     struct TestNameValue {
         name: String,
