@@ -1,8 +1,8 @@
-use failure::ResultExt;
+use std::{convert::TryInto, env, io};
+
+use clap::{crate_description, crate_name, crate_version, App, Arg};
 use futures_util::pin_mut;
 use mqtt_broker::*;
-use native_tls::Identity;
-use std::{env, io};
 use tokio::time::{Duration, Instant};
 use tracing::{info, warn, Level};
 use tracing_subscriber::{fmt, EnvFilter};
@@ -19,33 +19,16 @@ async fn main() -> Result<(), Terminate> {
         .finish();
     let _ = tracing::subscriber::set_global_default(subscriber);
 
-    // TODO pass it to broker
-    // TODO make it an argument to override defaul config
-    let path: Option<String> = None;
-    let config = path
+    run().await?;
+    Ok(())
+}
+
+async fn run() -> Result<(), Error> {
+    let config = create_app()
+        .get_matches()
+        .value_of("config")
         .map_or(BrokerConfig::new(), BrokerConfig::from_file)
-        .context(ErrorKind::InitializeBroker(
-            InitializeBrokerReason::LoadConfiguration,
-        ))?;
-
-    // TODO pass it to persistence
-    let _persistence = config.persistence();
-
-    let addr_tcp = env::args()
-        .nth(1)
-        .unwrap_or_else(|| "0.0.0.0:1883".to_string());
-
-    let addr_tls = env::args()
-        .nth(2)
-        .unwrap_or_else(|| "0.0.0.0:8883".to_string());
-
-    let cert_path = env::args()
-        .nth(3)
-        .unwrap_or_else(|| "broker.pfx".to_string());
-
-    let identity = load_identity(cert_path).context(ErrorKind::InitializeBroker(
-        InitializeBrokerReason::IdentityConfiguration,
-    ))?;
+        .map_err(InitializeBrokerError::LoadConfiguration)?;
 
     // Setup the shutdown handle
     let shutdown = shutdown::shutdown();
@@ -57,10 +40,10 @@ async fn main() -> Result<(), Terminate> {
         ConsolidatedStateFormat::default(),
     );
     info!("Loading state...");
-    let state = persistor.load().await?.unwrap_or_else(BrokerState::default);
+    let state = persistor.load()?.unwrap_or_else(BrokerState::default);
     let broker = BrokerBuilder::default()
         .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(false))
+        .authorizer(|_| Ok(true))
         .state(state)
         .build();
     info!("state loaded.");
@@ -82,7 +65,12 @@ async fn main() -> Result<(), Terminate> {
     let snapshot = snapshot::snapshot(broker.handle(), snapshot_handle.clone());
     tokio::spawn(snapshot);
 
-    let transports = vec![(addr_tcp).into(), (addr_tls, identity).into()];
+    // Create configured transports
+    let transports = config
+        .transports()
+        .iter()
+        .map(|transport| transport.clone().try_into())
+        .collect::<Result<Vec<_>, _>>()?;
 
     info!("Starting server...");
     let state = Server::from_broker(broker)
@@ -90,29 +78,16 @@ async fn main() -> Result<(), Terminate> {
         .await?;
 
     // Stop snapshotting
-    shutdown_handle.shutdown().await?;
-    let mut persistor = join_handle.await.context(ErrorKind::TaskJoin)?;
+    shutdown_handle.try_shutdown()?;
+    let mut persistor = join_handle.await??;
     info!("state snapshotter shutdown.");
 
     info!("persisting state before exiting...");
-    persistor.store(state).await?;
+    persistor.store(state)?;
     info!("state persisted.");
     info!("exiting... goodbye");
 
     Ok(())
-}
-
-fn load_identity(path: String) -> Result<Identity, Error> {
-    let cert_buffer = std::fs::read(&path).context(ErrorKind::InitializeBroker(
-        InitializeBrokerReason::LoadIdentity,
-    ))?;
-
-    let cert_pwd = "";
-    let cert = Identity::from_pkcs12(cert_buffer.as_slice(), &cert_pwd).context(
-        ErrorKind::InitializeBroker(InitializeBrokerReason::DecodeIdentity),
-    )?;
-
-    Ok(cert)
 }
 
 async fn tick_snapshot(
@@ -125,13 +100,24 @@ async fn tick_snapshot(
     let mut interval = tokio::time::interval_at(start, period);
     loop {
         interval.tick().await;
-        if let Err(e) = broker_handle
-            .send(Message::System(SystemEvent::StateSnapshot(
-                snapshot_handle.clone(),
-            )))
-            .await
-        {
+        if let Err(e) = broker_handle.try_send(Message::System(SystemEvent::StateSnapshot(
+            snapshot_handle.clone(),
+        ))) {
             warn!(message = "failed to tick the snapshotter", error=%e);
         }
     }
+}
+
+fn create_app() -> App<'static, 'static> {
+    App::new(crate_name!())
+        .version(crate_version!())
+        .about(crate_description!())
+        .arg(
+            Arg::with_name("config")
+                .short("c")
+                .long("config")
+                .value_name("FILE")
+                .help("Sets a custom config file")
+                .takes_value(true),
+        )
 }

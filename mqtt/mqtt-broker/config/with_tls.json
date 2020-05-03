@@ -1,0 +1,15 @@
+{
+    "transports": [
+        { 
+            "tcp": {
+                "address": "0.0.0.0:1883"
+            } 
+        },
+        { 
+            "tls": { 
+                "address": "0.0.0.0:8883", 
+                "certificate": "identity.pfx" 
+            } 
+        }
+    ]
+}

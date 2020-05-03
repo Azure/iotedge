@@ -361,7 +361,7 @@ impl Default for State {
 }
 
 /// Used to publish messages to the server
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PublishHandle(futures_channel::mpsc::Sender<PublishRequest>);
 
 impl PublishHandle {

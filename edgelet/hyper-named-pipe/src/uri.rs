@@ -10,7 +10,7 @@ use url::Url;
 
 use edgelet_utils::ensure_not_empty_with_context;
 
-use super::*;
+use super::NAMED_PIPE_SCHEME;
 use crate::error::{Error, ErrorKind, InvalidUrlReason, Result};
 
 #[derive(Debug)]
@@ -110,7 +110,7 @@ impl Into<HyperUri> for Uri {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{HyperUri, Uri};
 
     #[test]
     fn empty_base_path() {

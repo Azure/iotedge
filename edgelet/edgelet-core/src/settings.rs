@@ -8,7 +8,6 @@ use std::str::FromStr;
 use regex::Regex;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use url::Url;
-use url_serde;
 
 use crate::crypto::MemoryKey;
 use crate::error::{Error, ErrorKind};
@@ -760,7 +759,7 @@ where
 mod tests {
     use test_case::test_case;
 
-    use super::*;
+    use super::{convert_to_path, convert_to_uri, FromStr, Protocol, Url};
 
     #[test]
     fn test_convert_to_path() {

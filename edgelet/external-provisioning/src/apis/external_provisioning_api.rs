@@ -11,10 +11,7 @@
 use std::borrow::Borrow;
 use std::sync::Arc;
 
-use futures;
 use futures::{Future, Stream};
-use hyper;
-use serde_json;
 
 use typed_headers::{self, http};
 

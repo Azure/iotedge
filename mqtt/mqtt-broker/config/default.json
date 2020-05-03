@@ -1,4 +1,11 @@
 {
+    "transports": [
+        { 
+            "tcp": {
+                 "address": "0.0.0.0:1883"
+            } 
+        }
+    ],
     "inflight_messages": {
         "max_count": 10
     },
