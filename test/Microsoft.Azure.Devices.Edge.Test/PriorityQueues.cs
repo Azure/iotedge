@@ -32,12 +32,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task PriorityQueueModuleToModuleMessages()
         {
-            // TODO: Fix PriorityQueue E2E tests for Windows and ARM32
-            if (OsPlatform.IsWindows() || !OsPlatform.Is64Bit() )
-            {
-                Assert.Ignore("Priority Queue module to module messages test has been disabled for Windows and Arm32 until we can fix it.");
-            }
-
             CancellationToken token = this.TestToken;
             string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
