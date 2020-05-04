@@ -1,3 +1,23 @@
+# 1.0.9.1 (2020-05-04)
+## Edge Agent
+### Bug Fixes
+* Hotfix [Window IoT Core ARM32 security vulnerability](https://support.microsoft.com/en-us/help/4542617/you-might-encounter-issues-when-using-windows-server-containers-with-t) by updating the base operating system images to version 10.0.17763.1158 ([3f42583](https://github.com/Azure/iotedge/commit/3f425836720c07b522da19bf582351e1afba4bf6))
+* Hotfix [Linux AMD64 security vulnerability](https://people.canonical.com/~ubuntu-security/cve/2020/CVE-2020-1967.html) by updating the dotnet core runtime image to use 2.1.17-alpine3.11 ([9c3d240](https://github.com/Azure/iotedge/commit/9c3d240eb733ae5d6b3fc3dd1a5a6b2b94275b96))
+
+## Edge Hub
+### Bug Fixes
+* Hotfix [Window IoT Core ARM32 security vulnerability](https://support.microsoft.com/en-us/help/4542617/you-might-encounter-issues-when-using-windows-server-containers-with-t) by updating the base operating system images to version 10.0.17763.1158 ([3f42583](https://github.com/Azure/iotedge/commit/3f425836720c07b522da19bf582351e1afba4bf6))
+* Hotfix [Linux AMD64 security vulnerability](https://people.canonical.com/~ubuntu-security/cve/2020/CVE-2020-1967.html) by updating the dotnet core runtime image to use 2.1.17-alpine3.11 ([9c3d240](https://github.com/Azure/iotedge/commit/9c3d240eb733ae5d6b3fc3dd1a5a6b2b94275b96))
+
+## Other Module Images
+### Bug Fixes
+* Hotfix [Window IoT Core ARM32 security vulnerability](https://support.microsoft.com/en-us/help/4542617/you-might-encounter-issues-when-using-windows-server-containers-with-t) by updating the base operating system images to version 10.0.17763.1158 ([3f42583](https://github.com/Azure/iotedge/commit/3f425836720c07b522da19bf582351e1afba4bf6))
+* Hotfix [Linux AMD64 security vulnerability](https://people.canonical.com/~ubuntu-security/cve/2020/CVE-2020-1967.html) by updating the dotnet core runtime image to use 2.1.17-alpine3.11 ([9c3d240](https://github.com/Azure/iotedge/commit/9c3d240eb733ae5d6b3fc3dd1a5a6b2b94275b96))
+
+## iotedged
+### Bug fixes
+* Update Support Bundle timestamp ([a8f0f62](https://github.com/Azure/iotedge/commit/a8f0f6241223def4a82aaaec01a98102cecca1b7))
+
 # 1.0.9 (2020-03-18)
 ## Edge Hub
 ### Bug fixes
