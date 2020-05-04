@@ -24,6 +24,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public const string SecurityMessageIoTHubInterfaceId = "urn:azureiot:Security:SecurityAgent:1";
 
-        public static readonly Version ConfigSchemaVersion = new Version("1.0");
+        public static readonly Version ConfigSchemaVersion = new Version("1.1.0");
     }
 }

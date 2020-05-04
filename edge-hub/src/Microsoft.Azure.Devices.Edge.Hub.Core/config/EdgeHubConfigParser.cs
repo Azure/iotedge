@@ -16,8 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         {
             Preconditions.CheckNotNull(desiredProperties, nameof(desiredProperties));
 
-            ValidateSchemaVersion(desiredProperties.SchemaVersion);
-
             var routes = new Dictionary<string, RouteConfig>();
             if (desiredProperties.Routes != null)
             {
@@ -36,16 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             }
 
             return new EdgeHubConfig(desiredProperties.SchemaVersion, new ReadOnlyDictionary<string, RouteConfig>(routes), desiredProperties.StoreAndForwardConfiguration);
-        }
-
-        internal static void ValidateSchemaVersion(string schemaVersion)
-        {
-            if (Core.Constants.ConfigSchemaVersion.CompareMajorVersion(schemaVersion, "desired properties schema") != 0)
-            {
-                Log.LogWarning(
-                    HubCoreEventIds.EdgeHubConfigParser,
-                    $"Desired properties schema version {schemaVersion} does not match expected schema version {Core.Constants.ConfigSchemaVersion}. Some settings may not be supported.");
-            }
         }
     }
 }
