@@ -4,13 +4,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System;
     using System.Threading;
     using System.Threading.Tasks;
-
+    using Microsoft.AspNetCore;
     using Microsoft.AspNetCore.Hosting;
-
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
-
+    using Microsoft.Extensions.DependencyInjection.Extensions;
     using Microsoft.Extensions.Logging;
 
     public class AuthAgentProtocolHead : IProtocolHead
@@ -20,7 +20,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly AuthAgentProtocolHeadConfig config;
 
-        private IWebHost host;
+        Option<IWebHost> host;
+        object guard = new object();
 
         public string Name => "AUTH";
 
@@ -36,15 +37,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             Events.Starting();
 
-            var newHost = AuthAgentRequestHandler.CreateWebHostBuilder(this.authenticator, this.usernameParser, this.clientCredentialsFactory, this.config);
-            if (Interlocked.CompareExchange(ref this.host, newHost, null) != null)
+            lock (this.guard)
             {
-                newHost.Dispose();
-                Events.StartedWhenAlreadyRunning();
-                throw new InvalidOperationException("Cannot start AuthAgentProtocolHead twice");
+                if (this.host.HasValue)
+                {
+                    Events.StartedWhenAlreadyRunning();
+                    throw new InvalidOperationException("Cannot start AuthAgentProtocolHead twice");
+                }
+                else
+                {
+                    this.host = Option.Some(
+                                    CreateWebHostBuilder(
+                                        this.authenticator,
+                                        this.usernameParser,
+                                        this.clientCredentialsFactory,
+                                        this.config));
+                }
             }
 
-            await this.host.StartAsync();
+            await this.host.Expect(() => new Exception("No AUTH host instance found to start"))
+                           .StartAsync();
 
             Events.Started();
         }
@@ -53,19 +65,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             Events.Closing();
 
-            var currentHost = Interlocked.Exchange(ref this.host, null);
-            if (currentHost == null)
+            Option<IWebHost> hostToStop;
+            lock (this.guard)
             {
-                Events.ClosedWhenNotRunning();
-                return;
+                hostToStop = this.host;
+                this.host = Option.None<IWebHost>();
             }
 
-            await currentHost.StopAsync();
+            await hostToStop.Match(
+                async h => await h.StopAsync(),
+                () =>
+                {
+                    Events.ClosedWhenNotRunning();
+                    throw new InvalidOperationException("Cannot stop AuthAgentProtocolHead when not running");
+                });
 
             Events.Closed();
         }
 
         public void Dispose() => this.CloseAsync(CancellationToken.None).Wait();
+
+        public static IWebHost CreateWebHostBuilder(
+                            IAuthenticator authenticator,
+                            IUsernameParser usernameParser,
+                            IClientCredentialsFactory clientCredentialsFactory,
+                            AuthAgentProtocolHeadConfig config)
+        {
+            return WebHost.CreateDefaultBuilder()
+                          .UseStartup<AuthAgentRequestHandler>()
+                          .UseUrls($"http://*:{config.Port}")
+                          .ConfigureServices(s => s.TryAddSingleton(authenticator))
+                          .ConfigureServices(s => s.TryAddSingleton(usernameParser))
+                          .ConfigureServices(s => s.TryAddSingleton(clientCredentialsFactory))
+                          .ConfigureServices(s => s.TryAddSingleton(config))
+                          .ConfigureLogging(c => c.ClearProviders())
+                          .Build();
+        }
 
         static class Events
         {

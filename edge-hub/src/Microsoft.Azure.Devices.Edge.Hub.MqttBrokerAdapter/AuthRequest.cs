@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         }
 
         [JsonProperty("version", Required = Required.Always)]
-        public string Version { get; private set; }
+        public string Version { get; }
 
         [JsonProperty("username", Required = Required.Always)]
         public string Username { get; }

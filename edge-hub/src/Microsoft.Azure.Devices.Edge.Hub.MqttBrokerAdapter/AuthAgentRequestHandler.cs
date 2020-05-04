@@ -9,20 +9,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-
-    using Microsoft.AspNetCore;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Http;
-
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
-
-    using Microsoft.Extensions.DependencyInjection.Extensions;
     using Microsoft.Extensions.Logging;
     using Microsoft.Net.Http.Headers;
-
     using Newtonsoft.Json;
 
     public class AuthAgentRequestHandler
@@ -48,23 +43,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             this.config = Preconditions.CheckNotNull(config, nameof(config));
         }
 
-        public static IWebHost CreateWebHostBuilder(
-                                    IAuthenticator authenticator,
-                                    IUsernameParser usernameParser,
-                                    IClientCredentialsFactory clientCredentialsFactory,
-                                    AuthAgentProtocolHeadConfig config)
-        {
-            return WebHost.CreateDefaultBuilder()
-                          .UseStartup<AuthAgentRequestHandler>()
-                          .UseUrls($"http://*:{config.Port}")
-                          .ConfigureServices(s => s.TryAddSingleton(authenticator))
-                          .ConfigureServices(s => s.TryAddSingleton(usernameParser))
-                          .ConfigureServices(s => s.TryAddSingleton(clientCredentialsFactory))
-                          .ConfigureServices(s => s.TryAddSingleton(config))
-                          .ConfigureLogging(c => c.ClearProviders())
-                          .Build();
-        }
-
         public void Configure(IApplicationBuilder app) => app.Use(this.CallFilter).Run(this.Handler);
 
         async Task Handler(HttpContext context)
@@ -73,8 +51,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             {
                 Events.AuthRequestReceived();
 
-                var requestString = await ReadRequestBodyAsStringAsync(context.Request);
-                var requestRecord = Decode(requestString);
+                Option<string> requestString = await ReadRequestBodyAsStringAsync(context.Request);
+                Option<AuthRequest> requestRecord = Decode(requestString);
 
                 await requestRecord.Match(
                     async r => await this.SendResponseAsync(r, context),
