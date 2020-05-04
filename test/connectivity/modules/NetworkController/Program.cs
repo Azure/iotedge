@@ -3,17 +3,14 @@ namespace NetworkController
 {
     using System;
     using System.Collections.Generic;
-    using System.Configuration;
     using System.Diagnostics;
     using System.Net;
-    using System.Runtime.CompilerServices;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json.Linq;
 
@@ -27,6 +24,8 @@ namespace NetworkController
 
             Log.LogInformation($"Starting with {Settings.Current.NetworkRunProfile.ProfileType} Settings: {Settings.Current.NetworkRunProfile.ProfileSetting}");
 
+            var controllers = new List<INetworkController>();
+
             try
             {
                 var networkInterfaceName = DockerHelper.GetDockerInterfaceName();
@@ -38,7 +37,7 @@ namespace NetworkController
                         var offline = new OfflineController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
                         var satellite = new SatelliteController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
                         var cellular = new CellularController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
-                        var controllers = new List<INetworkController>() { offline, satellite, cellular };
+                        controllers = new List<INetworkController>() { offline, satellite, cellular };
 
                         // Reset network status before start delay to ensure network status is in designed state before test starts.
                         var sw = new Stopwatch();
@@ -81,6 +80,7 @@ namespace NetworkController
             }
 
             await cts.Token.WhenCanceled();
+            await CleanupControllingRulesOnShutdown(controllers, CancellationToken.None);
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
         }
@@ -165,6 +165,27 @@ namespace NetworkController
 
             Log.LogInformation($"Network is online");
             await reporter.ReportNetworkStatusAsync(NetworkControllerOperation.RuleSet, NetworkControllerStatus.Disabled, NetworkControllerType.All, true);
+        }
+
+        static async Task CleanupControllingRulesOnShutdown(IList<INetworkController> controllerList, CancellationToken cancellationToken)
+        {
+            foreach (var controller in controllerList)
+            {
+                NetworkControllerStatus networkControllerStatus = await controller.GetNetworkControllerStatusAsync(cancellationToken);
+                if (networkControllerStatus != NetworkControllerStatus.Disabled)
+                {
+                    Log.LogInformation($"Network restriction is enabled for {controller.NetworkControllerType}. Setting default");
+                    bool online = await controller.SetNetworkControllerStatusAsync(NetworkControllerStatus.Disabled, cancellationToken);
+                    online = await CheckSetNetworkControllerStatusAsyncResult(online, NetworkControllerStatus.Disabled, controller, cancellationToken);
+                    if (!online)
+                    {
+                        Log.LogError($"Failed to ensure that NetworkController shuts down with default values.");
+                        throw new TestShutdownException();
+                    }
+                }
+            }
+
+            Log.LogInformation($"Network is online");
         }
 
         static async Task<bool> CheckSetNetworkControllerStatusAsyncResult(bool success, NetworkControllerStatus networkControllerStatus, INetworkController controller, CancellationToken cs)
