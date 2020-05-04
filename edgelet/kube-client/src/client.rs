@@ -855,7 +855,6 @@ mod tests {
     use k8s_openapi::api::apps::v1 as api_apps;
     use k8s_openapi::api::core::v1 as api_core;
     use native_tls::TlsConnector;
-    use serde_json;
     use tokio::runtime::Runtime;
     use url::percent_encoding::{utf8_percent_encode, USERINFO_ENCODE_SET};
     use url::Url;

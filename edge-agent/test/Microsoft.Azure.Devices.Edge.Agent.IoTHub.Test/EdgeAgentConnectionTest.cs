@@ -1275,12 +1275,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
 
             var runtimeInfo = new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.0", null));
-            var edgeAgentDockerModule = new EdgeAgentDockerModule("docker", new DockerConfig("image", string.Empty), ImagePullPolicy.OnCreate, null, null);
+            var edgeAgentDockerModule = new EdgeAgentDockerModule("docker", new DockerConfig("image", string.Empty, Option.None<NotaryContentTrust>()), ImagePullPolicy.OnCreate, null, null);
             var edgeHubDockerModule = new EdgeHubDockerModule(
                 "docker",
                 ModuleStatus.Running,
                 RestartPolicy.Always,
-                new DockerConfig("image", string.Empty),
+                new DockerConfig("image", string.Empty, Option.None<NotaryContentTrust>()),
                 ImagePullPolicy.OnCreate,
                 Constants.DefaultPriority,
                 null,
@@ -1350,12 +1350,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
 
             var runtimeInfo = new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.0", null));
-            var edgeAgentDockerModule = new EdgeAgentDockerModule("docker", new DockerConfig("image", string.Empty), ImagePullPolicy.OnCreate, null, null);
+            var edgeAgentDockerModule = new EdgeAgentDockerModule("docker", new DockerConfig("image", string.Empty, Option.None<NotaryContentTrust>()), ImagePullPolicy.OnCreate, null, null);
             var edgeHubDockerModule = new EdgeHubDockerModule(
                 "docker",
                 ModuleStatus.Running,
                 RestartPolicy.Always,
-                new DockerConfig("image", string.Empty),
+                new DockerConfig("image", string.Empty, Option.None<NotaryContentTrust>()),
                 ImagePullPolicy.OnCreate,
                 Constants.DefaultPriority,
                 null,
@@ -1444,12 +1444,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
 
             var runtimeInfo = new DockerRuntimeInfo("docker", new DockerRuntimeConfig("1.0", null));
-            var edgeAgentDockerModule = new EdgeAgentDockerModule("docker", new DockerConfig("image", string.Empty), ImagePullPolicy.OnCreate, null, null);
+            var edgeAgentDockerModule = new EdgeAgentDockerModule("docker", new DockerConfig("image", string.Empty, Option.None<NotaryContentTrust>()), ImagePullPolicy.OnCreate, null, null);
             var edgeHubDockerModule = new EdgeHubDockerModule(
                 "docker",
                 ModuleStatus.Running,
                 RestartPolicy.Always,
-                new DockerConfig("image", string.Empty),
+                new DockerConfig("image", string.Empty, Option.None<NotaryContentTrust>()),
                 ImagePullPolicy.OnCreate,
                 Constants.DefaultPriority,
                 null,
@@ -1466,7 +1466,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 "docker",
                 ModuleStatus.Running,
                 RestartPolicy.Always,
-                new DockerConfig("image2", string.Empty),
+                new DockerConfig("image2", string.Empty, Option.None<NotaryContentTrust>()),
                 ImagePullPolicy.OnCreate,
                 Constants.DefaultPriority,
                 null,

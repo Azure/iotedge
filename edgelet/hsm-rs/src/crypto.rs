@@ -8,7 +8,21 @@ use std::os::raw::{c_char, c_uchar, c_void};
 use std::slice;
 use std::str;
 
-use super::*;
+use super::{
+    cert_properties_create, cert_properties_destroy, certificate_info_destroy,
+    certificate_info_get_certificate, certificate_info_get_common_name,
+    certificate_info_get_private_key, certificate_info_get_valid_to,
+    certificate_info_private_key_type, hsm_client_crypto_deinit, hsm_client_crypto_init,
+    hsm_client_crypto_interface, hsm_get_device_ca_alias, hsm_get_version, set_alias,
+    set_certificate_type, set_common_name, set_issuer_alias, set_san_entries, set_validity_seconds,
+    CreateCertificate, CreateMasterEncryptionKey, Decrypt, DestroyMasterEncryptionKey, Encrypt,
+    GetCertificate, GetTrustBundle, MakeRandom, CERTIFICATE_TYPE_CERTIFICATE_TYPE_CA,
+    CERTIFICATE_TYPE_CERTIFICATE_TYPE_CLIENT, CERTIFICATE_TYPE_CERTIFICATE_TYPE_SERVER,
+    CERTIFICATE_TYPE_CERTIFICATE_TYPE_UNKNOWN, CERT_INFO_HANDLE, CERT_PROPS_HANDLE,
+    HSM_CLIENT_CRYPTO_INTERFACE, HSM_CLIENT_HANDLE, PRIVATE_KEY_TYPE_PRIVATE_KEY_TYPE_PAYLOAD,
+    PRIVATE_KEY_TYPE_PRIVATE_KEY_TYPE_REFERENCE, PRIVATE_KEY_TYPE_PRIVATE_KEY_TYPE_UNKNOWN,
+    SIZED_BUFFER,
+};
 use crate::error::{Error, ErrorKind};
 
 /// Enumerator for [`CERTIFICATE_TYPE`]
@@ -678,7 +692,16 @@ mod tests {
         GetTrustBundle, MakeRandom,
     };
     use super::{Buffer, CertificateProperties, Crypto};
-    use hsm_sys::*;
+    use hsm_sys::{
+        cert_properties_create, cert_properties_destroy, certificate_info_create, get_alias,
+        get_certificate_type, get_common_name, get_country_name, get_issuer_alias, get_locality,
+        get_organization_name, get_organization_unit, get_san_entries, get_state_name,
+        get_validity_seconds, set_alias, set_certificate_type, set_common_name, set_country_name,
+        set_issuer_alias, set_locality, set_organization_name, set_organization_unit,
+        set_san_entries, set_state_name, set_validity_seconds, CERTIFICATE_TYPE,
+        CERTIFICATE_TYPE_CERTIFICATE_TYPE_SERVER, CERT_INFO_HANDLE, CERT_PROPS_HANDLE,
+        HSM_CLIENT_CRYPTO_INTERFACE, HSM_CLIENT_HANDLE, SIZED_BUFFER,
+    };
 
     static TEST_RSA_CERT: &str = "-----BEGIN CERTIFICATE-----\nMIICpDCCAYwCCQCgAJQdOd6dNzANBgkqhkiG9w0BAQsFADAUMRIwEAYDVQQDDAlsb2NhbGhvc3QwHhcNMTcwMTIwMTkyNTMzWhcNMjcwMTE4MTkyNTMzWjAUMRIwEAYDVQQDDAlsb2NhbGhvc3QwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDlJ3fRNWm05BRAhgUY7cpzaxHZIORomZaOp2Uua5yv+psdkpv35ExLhKGrUIK1AJLZylnue0ohZfKPFTnoxMHOecnaaXZ9RA25M7XGQvw85ePlGOZKKf3zXw3Ds58GFY6Sr1SqtDopcDuMmDSg/afYVvGHDjb2Fc4hZFip350AADcmjH5SfWuxgptCY2Jl6ImJoOpxt+imWsJCJEmwZaXw+eZBb87e/9PH4DMXjIUFZebShowAfTh/sinfwRkaLVQ7uJI82Ka/icm6Hmr56j7U81gDaF0DhC03ds5lhN7nMp5aqaKeEJiSGdiyyHAescfxLO/SMunNc/eG7iAirY7BAgMBAAEwDQYJKoZIhvcNAQELBQADggEBACU7TRogb8sEbv+SGzxKSgWKKbw+FNgC4Zi6Fz59t+4jORZkoZ8W87NM946wvkIpxbLKuc4F+7nTGHHksyHIiGC3qPpi4vWpqVeNAP+kfQptFoWEOzxD7jQTWIcqYhvssKZGwDk06c/WtvVnhZOZW+zzJKXA7mbwJrfp8VekOnN5zPwrOCumDiRX7BnEtMjqFDgdMgs9ohR5aFsI7tsqp+dToLKaZqBLTvYwCgCJCxdg3QvMhVD8OxcEIFJtDEwm3h9WFFO3ocabCmcMDyXUL354yaZ7RphCBLd06XXdaUU/eV6fOjY6T5ka4ZRJcYDJtjxSG04XPtxswQfrPGGoFhk=\n-----END CERTIFICATE-----";
 
