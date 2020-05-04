@@ -2050,7 +2050,7 @@ pub(crate) mod tests {
                     packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtMostOnce,
                     retain: true,
                     topic_name: "$sys/connected".to_owned(),
-                    payload: "client_a".into(),
+                    payload: "[\"client_a\"]".into(),
                 }
             );
         } else {
@@ -2330,7 +2330,7 @@ pub(crate) mod tests {
 
     fn is_notify_equal(payload: &Bytes, expected: &[&str]) {
         let payload: String = String::from_utf8(payload.to_vec()).unwrap();
-        let mut payload: Vec<&str> = payload.split("\\u{0000}").collect();
+        let mut payload: Vec<&str> = serde_json::from_str(&payload).unwrap();
         payload.sort();
 
         let mut expected: Vec<&str> = expected.into();

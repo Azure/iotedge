@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use bytes::Bytes;
 use mqtt3::proto;
+use tracing::error;
 
 use crate::session::Session;
 use crate::ClientId;
@@ -35,12 +36,12 @@ fn get_subscription(session: &Session) -> SysMessage {
         _ => return SysMessage::None,
     };
 
-    let topics = state
-        .subscriptions()
-        .keys() // get topic filters
-        .map(|t| t.as_ref())
-        .collect::<Vec<&str>>()
-        .join(r"\u{0000}"); // join to string for payload
+    let topics = get_message_body(
+        state
+            .subscriptions()
+            .keys() // get topic filters
+            .map(|t| t.as_ref()),
+    );
 
     let client_id = state.client_id();
 
@@ -80,15 +81,16 @@ fn get_disconnect(sessions: &HashMap<ClientId, Session>, client_id: &ClientId) -
 }
 
 fn get_connection_change(sessions: &HashMap<ClientId, Session>) -> proto::Publication {
-    let connected: String = sessions
-        .iter()
-        .filter_map(|(client_id, session)| match session {
-            Session::Transient(_) => Some(client_id.as_str()),
-            Session::Persistent(_) => Some(client_id.as_str()),
-            _ => None,
-        })
-        .collect::<Vec<&str>>()
-        .join(r"\u{0000}");
+    let connected: String =
+        get_message_body(
+            sessions
+                .iter()
+                .filter_map(|(client_id, session)| match session {
+                    Session::Transient(_) => Some(client_id.as_str()),
+                    Session::Persistent(_) => Some(client_id.as_str()),
+                    _ => None,
+                }),
+        );
 
     proto::Publication {
         topic_name: "$sys/connected".to_owned(),
@@ -99,16 +101,14 @@ fn get_connection_change(sessions: &HashMap<ClientId, Session>) -> proto::Public
 }
 
 fn get_session_change(sessions: &HashMap<ClientId, Session>) -> proto::Publication {
-    let existing_sessions: String = sessions
-        .iter()
-        .filter_map(|(client_id, session)| match session {
+    let existing_sessions: String = get_message_body(sessions.iter().filter_map(
+        |(client_id, session)| match session {
             Session::Transient(_) => Some(client_id.as_str()),
             Session::Persistent(_) => Some(client_id.as_str()),
             Session::Offline(_) => Some(client_id.as_str()),
             _ => None,
-        })
-        .collect::<Vec<&str>>()
-        .join(r"\u{0000}");
+        },
+    ));
 
     proto::Publication {
         topic_name: "$sys/sessions".to_owned(),
@@ -116,4 +116,14 @@ fn get_session_change(sessions: &HashMap<ClientId, Session>) -> proto::Publicati
         retain: true,
         payload: existing_sessions.into(),
     }
+}
+
+fn get_message_body<'a, I>(payload: I) -> String
+where
+    I: Iterator<Item = &'a str>,
+{
+    serde_json::to_string(&payload.collect::<Vec<&'a str>>()).unwrap_or_else(|e| {
+        error!("Json Error: {}", e);
+        "".to_owned()
+    })
 }
