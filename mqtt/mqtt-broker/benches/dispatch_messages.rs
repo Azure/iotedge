@@ -6,9 +6,8 @@
 //! be exposed only for benchmark tests.
 //!
 //! Scenarios supported:
-//! * 1-to-1
-//! * fan-in
-//! * fan-out
+//! * all subscribers receive messages on their own topic
+//! * all subscribers receive messages on shared topic
 //!
 //! How to run benches
 //! ```bash
@@ -37,7 +36,7 @@ use std::{
 
 use bytes::Bytes;
 use criterion::{
-    criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
+    criterion_group, criterion_main, measurement::WallTime, BenchmarkGroup, Criterion,
 };
 use itertools::iproduct;
 use rand::Rng;
@@ -53,66 +52,73 @@ use mqtt_broker::{
     Publish, SystemEvent,
 };
 
-criterion_group!(basic, one_to_one, fan_in, fan_out);
+criterion_group!(
+    basic,
+    subscribe_to_separate_topic,
+    subscribe_to_common_topic
+);
 criterion_main!(basic);
 
-/// Each publisher sends messages to one corresponding subscriber
+/// All subscribers subscribe to its own topic.
+/// Publisher randomly selects a one of topics and publishes message to it.
 /// ```
-/// pub1 pub topic/1            sub1 sub topic/1
-/// pub2 pub topic/2            sub2 sub topic/2
-/// pub2 pub topic/N            sub2 sub topic/N
+/// publisher  pub topic/{random: 1..N}
+///
+/// subscriber1 sub topic/1
+/// subscriber2 sub topic/2
+/// subscriberN sub topic/N
 /// ```
-fn one_to_one(c: &mut Criterion) {
+fn subscribe_to_separate_topic(c: &mut Criterion) {
     init_logging();
 
-    let mut group = c.benchmark_group("1-to-1");
-    for (qos, count, payload_size) in scenarios() {
-        let strategy = Strategy::new_one_to_one(count, count);
-        dispatch_messages(&mut group, strategy, count, payload_size, qos);
+    let (messages, subscribers) = scenarios();
+
+    for (qos, payload_size) in messages {
+        let name = format!("sub_separate_{}_q{}", payload_size, u8::from(qos));
+        let mut group = c.benchmark_group(&name);
+
+        for count in &subscribers {
+            let strategy = Strategy::SeparateTopic(*count);
+            dispatch_messages(&mut group, strategy, *count, payload_size, qos);
+        }
+
+        group.finish();
     }
-    group.finish();
 }
 
-/// All publishers send message to a randomly chose topic
+/// All subscribers subscribe to the same topic.
+/// Publisher always publishes messages to this topic.
 /// ```
-/// pub1 pub topic/2            sub1 sub topic/1
-/// pub2 pub topic/2            sub2 sub topic/2
-/// pubN pub topic/2            sub2 sub topic/N
+/// publisher  pub topic
+///
+/// subscriber1 sub topic
+/// subscriber2 sub topic
+/// subscriberN sub topic
 /// ```
-fn fan_in(c: &mut Criterion) {
+fn subscribe_to_common_topic(c: &mut Criterion) {
     init_logging();
 
-    let mut group = c.benchmark_group("fan_in");
-    for (qos, count, payload_size) in scenarios() {
-        let strategy = Strategy::new_fan_in(count, count);
-        dispatch_messages(&mut group, strategy, count, payload_size, qos);
+    let (messages, subscribers) = scenarios();
+
+    for (qos, payload_size) in messages {
+        let name = format!("sub_shared_{}_q{}", payload_size, u8::from(qos));
+        let mut group = c.benchmark_group(&name);
+
+        for count in &subscribers {
+            let strategy = Strategy::SharedTopic;
+            dispatch_messages(&mut group, strategy, *count, payload_size, qos);
+        }
+
+        group.finish();
     }
-    group.finish();
 }
 
-/// Multiple publishers sends messages to a topic all subscribers subscribed to
-/// ```
-/// pub1 pub topic/foo            sub1 sub topic/foo
-/// pub2 pub topic/foo            sub2 sub topic/foo
-/// pubN pub topic/foo            sub2 sub topic/foo
-/// ```
-fn fan_out(c: &mut Criterion) {
-    init_logging();
-
-    let mut group = c.benchmark_group("fan_out");
-    for (qos, count, payload_size) in scenarios() {
-        let strategy = Strategy::new_fan_out(count, count);
-        dispatch_messages(&mut group, strategy, count, payload_size, qos);
-    }
-    group.finish();
-}
-
-fn scenarios() -> impl IntoIterator<Item = (proto::QoS, usize, Size)> {
-    let sizes = vec![Size::B(32), Size::Kb(128), Size::Mb(1)];
-    let clients = vec![1, 10, 100];
+fn scenarios() -> (Vec<(proto::QoS, Size)>, Vec<usize>) {
+    let sizes = vec![Size::B(32), Size::Kb(1), Size::Kb(128), Size::Mb(1)];
     let qoses = vec![proto::QoS::AtMostOnce, proto::QoS::AtLeastOnce];
+    let clients = vec![1, 10, 50, 100];
 
-    iproduct!(qoses, clients, sizes)
+    (Vec::from_iter(iproduct!(qoses, sizes)), clients)
 }
 
 fn dispatch_messages(
@@ -154,52 +160,44 @@ fn dispatch_messages(
         })
         .collect();
 
-    let (publisher_handles, publisher_tasks): (Vec<_>, Vec<_>) = (0..client_count)
-        .map(|pub_id| {
-            let id = Id::new_publisher(pub_id);
-            let client = runtime.block_on(Client::connect(id, broker_handle.clone()));
+    let id = Id::new_publisher(0);
+    let publisher = runtime.block_on(Client::connect(id, broker_handle.clone()));
 
-            let publish_handle = client.publish_handle();
-            let task = runtime.spawn(client.run());
-            (publish_handle, task)
-        })
-        .unzip();
+    let publish_handle = publisher.publish_handle();
+    let publisher_task = runtime.spawn(publisher.run());
 
-    let bench_name = format!("sub_{}/msg_{}_q{}", client_count, size, u8::from(qos));
+    let bench_name = format!("sub_{:03}", client_count);
     group.bench_function(bench_name, |b| {
-        b.iter_batched(
-            || {
-                let pub_index = rand::thread_rng().gen_range(0, client_count);
-                let publisher = publisher_handles.get(pub_index).expect("publisher");
-                let topic = strategy.pub_topic(&publisher.id);
-                let publish = publisher.publish(qos, topic, size);
+        b.iter_custom(|iters| {
+            let mut total_execution_time = Duration::from_millis(0);
 
-                Message::Client(
-                    publisher.id.as_client_id(),
-                    ClientEvent::PublishFrom(publish),
-                )
-            },
-            |message| {
-                runtime.block_on(async {
+            for _i in 0..iters {
+                criterion::black_box({
+                    let topic = strategy.pub_topic(&publish_handle.id);
+                    let publish = publish_handle.publish(qos, topic, size);
+
+                    let message = Message::Client(
+                        publish_handle.id.as_client_id(),
+                        ClientEvent::PublishFrom(publish),
+                    );
                     broker_handle.send(message).expect("publish");
-                    on_publish_rx.recv().expect("publish processed");
                 });
-            },
-            BatchSize::SmallInput,
-        )
-    });
 
-    let tasks: Vec<_> = subscriber_tasks
-        .into_iter()
-        .chain(publisher_tasks.into_iter())
-        .collect();
+                let execution_time = on_publish_rx.recv().expect("publish processed");
+                total_execution_time += execution_time;
+            }
+
+            total_execution_time
+        })
+    });
 
     runtime.block_on(async move {
         broker_handle
             .send(Message::System(SystemEvent::Shutdown))
             .expect("broker shutdown event");
 
-        futures_util::future::join_all(tasks).await;
+        futures_util::future::join_all(subscriber_tasks).await;
+        publisher_task.await.expect("join publisher");
         broker_task.await.expect("join broker").expect("broker");
     });
 }
@@ -432,49 +430,25 @@ const PREFIX: &str = "topic";
 // NOTE Disabled due to incorrect lint warning. All variants are used in the benches
 #[allow(dead_code)]
 enum Strategy {
-    OneToOne {
-        subs: usize,
-        pubs: usize,
-    },
-    FanIn {
-        subs: usize,
-        pubs: usize,
-        topic: String,
-    },
-    FanOut {
-        subs: usize,
-        pubs: usize,
-    },
+    SeparateTopic(usize),
+    SharedTopic,
 }
 
 impl Strategy {
-    fn new_one_to_one(pubs: usize, subs: usize) -> Self {
-        Self::OneToOne { subs, pubs }
-    }
-
-    fn new_fan_in(pubs: usize, subs: usize) -> Self {
-        let sub_id = rand::thread_rng().gen_range(0, subs);
-        let topic = format!("{}/{}", PREFIX, sub_id);
-        Self::FanIn { subs, pubs, topic }
-    }
-
-    fn new_fan_out(pubs: usize, subs: usize) -> Self {
-        Self::FanOut { subs, pubs }
-    }
-
     fn sub_topic(&self, client_id: &Id) -> String {
         match self {
-            Self::OneToOne { .. } => format!("{}/{}", PREFIX, client_id.as_number()),
-            Self::FanIn { .. } => format!("{}/{}", PREFIX, client_id.as_number()),
-            Self::FanOut { .. } => PREFIX.into(),
+            Self::SeparateTopic(_) => format!("{}/{}", PREFIX, client_id.as_number()),
+            Self::SharedTopic => PREFIX.into(),
         }
     }
 
-    fn pub_topic(&self, client_id: &Id) -> String {
+    fn pub_topic(&self, _client_id: &Id) -> String {
         match self {
-            Self::OneToOne { .. } => format!("{}/{}", PREFIX, client_id.as_number()),
-            Self::FanIn { topic, .. } => topic.into(),
-            Self::FanOut { .. } => PREFIX.into(),
+            Self::SeparateTopic(subscribers) => {
+                let sub_id = rand::thread_rng().gen_range(0, subscribers);
+                format!("{}/{}", PREFIX, sub_id)
+            }
+            Self::SharedTopic => PREFIX.into(),
         }
     }
 }
