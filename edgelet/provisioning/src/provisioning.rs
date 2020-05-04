@@ -12,7 +12,6 @@ use futures::future::Either;
 use futures::{future, Future, IntoFuture};
 use log::info;
 use serde_derive::{Deserialize, Serialize};
-use serde_json;
 use url::Url;
 
 use dps::registration::{DpsAuthKind, DpsClient, DpsTokenSource};
@@ -860,14 +859,18 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{
+        future, AuthType, BackupProvisioning, CoreProvisioningResult, CredentialSource, Error,
+        ExternalProvisioning, ExternalProvisioningErrorReason, ExternalProvisioningInterface,
+        Future, IntoFuture, ManualProvisioning, MemoryKeyStore, Provision, ProvisioningResult,
+        ReprovisioningStatus,
+    };
 
     use edgelet_core::{Error as CoreError, ManualDeviceConnectionString};
     use external_provisioning::models::{Credentials, DeviceProvisioningInfo};
     use failure::Fail;
     use std::fmt::{self, Display};
     use tempdir::TempDir;
-    use tokio;
 
     use crate::error::ErrorKind;
 

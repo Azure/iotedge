@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std;
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
 use std::path::PathBuf;
@@ -9,7 +8,6 @@ use failure::Fail;
 use failure::{self, ResultExt};
 use futures::future::{self, FutureResult};
 use futures::{Future, IntoFuture, Stream};
-use serde_json;
 
 use edgelet_docker::Settings;
 use edgelet_http::client::ClientImpl;
@@ -30,7 +28,14 @@ mod checker;
 use checker::Checker;
 
 mod checks;
-use checks::*;
+use checks::{
+    get_host_connect_iothub_tests, get_host_container_iothub_tests, CertificatesQuickstart,
+    ConnectManagementUri, ContainerEngineDns, ContainerEngineIPv6, ContainerEngineInstalled,
+    ContainerEngineIsMoby, ContainerEngineLogrotate, ContainerLocalTime, EdgeAgentStorageMounted,
+    EdgeHubStorageMounted, HostConnectDpsEndpoint, HostLocalTime, Hostname,
+    IdentityCertificateExpiry, IotedgedVersion, WellFormedConfig, WellFormedConnectionString,
+    WindowsHostVersion,
+};
 
 pub struct Check {
     config_file: PathBuf,
@@ -624,7 +629,10 @@ struct CheckOutputSerializable {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{
+        Check, CheckResult, Checker, ContainerEngineIsMoby, Hostname, WellFormedConfig,
+        WellFormedConnectionString,
+    };
 
     #[test]
     fn config_file_checks_ok() {

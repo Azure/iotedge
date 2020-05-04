@@ -13,7 +13,7 @@ $ErrorActionPreference = 'Continue'
 
 . (Join-Path $PSScriptRoot 'util.ps1')
 
-$targetArchs = @('amd64', 'arm32v7')
+$targetArchs = @('amd64')
 
 for ($i = 0; $i -lt $targetArchs.Length; $i++) {
     $Arm = ($targetArchs[$i] -eq "arm32v7")
@@ -81,8 +81,8 @@ Copy-Item -Verbose `
     ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'target', $BuildConfiguration, 'iotedge-diagnostics.exe')) `
     ([IO.Path]::Combine($publishFolder, 'docker', 'windows', 'amd64'))
 
-Copy-Item -Verbose `
-    ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'target', 'thumbv7a-pc-windows-msvc', $BuildConfiguration, 'iotedge-diagnostics.exe')) `
-    ([IO.Path]::Combine($publishFolder, 'docker', 'windows', 'arm32v7'))
+# Copy-Item -Verbose `
+#     ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'target', 'thumbv7a-pc-windows-msvc', $BuildConfiguration, 'iotedge-diagnostics.exe')) `
+#     ([IO.Path]::Combine($publishFolder, 'docker', 'windows', 'arm32v7'))
     
 $ErrorActionPreference = 'Stop'
