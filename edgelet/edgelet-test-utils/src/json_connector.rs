@@ -5,7 +5,6 @@ use std::io::{self, Cursor, Read, Write};
 use futures::{future, task, Future, Poll};
 use hyper::client::connect::{Connect, Connected, Destination};
 use serde::Serialize;
-use serde_json;
 use tokio::io::{AsyncRead, AsyncWrite};
 
 pub struct StaticStream {

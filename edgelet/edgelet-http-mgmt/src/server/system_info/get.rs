@@ -6,12 +6,11 @@ use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
 use log::debug;
 use serde::Serialize;
-use serde_json;
 
 use edgelet_core::{Module, ModuleRuntime, RuntimeOperation};
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
-use management::models::*;
+use management::models::SystemInfo;
 
 use crate::error::{Error, ErrorKind};
 use crate::IntoResponse;
@@ -73,11 +72,13 @@ mod tests {
     use edgelet_core::{self, MakeModuleRuntime, ModuleRuntimeState};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::crypto::TestHsm;
-    use edgelet_test_utils::module::*;
+    use edgelet_test_utils::module::{
+        TestConfig, TestModule, TestProvisioningResult, TestRuntime, TestSettings,
+    };
     use futures::Stream;
     use management::models::SystemInfo;
 
-    use super::*;
+    use super::{Body, Future, GetSystemInfo, Handler, Request};
     use crate::server::module::tests::Error;
 
     #[test]
@@ -149,7 +150,7 @@ mod tests {
             .into_body()
             .concat2()
             .and_then(|b| {
-                let error: ErrorResponse = serde_json::from_slice(&b).unwrap();
+                let error: management::models::ErrorResponse = serde_json::from_slice(&b).unwrap();
                 assert_eq!(
                     "Could not query system info\n\tcaused by: General error",
                     error.message()

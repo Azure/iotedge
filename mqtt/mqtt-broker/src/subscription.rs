@@ -93,7 +93,7 @@ enum Segment {
 impl Segment {
     pub fn matches(&self, segment: &str) -> bool {
         match self {
-            Segment::Level(ref s) => s == segment,
+            Segment::Level(s) => s == segment,
             Segment::SingleLevelWildcard => true,
             Segment::MultiLevelWildcard => true,
         }
@@ -105,7 +105,7 @@ impl fmt::Display for TopicFilter {
         let len = self.segments.len();
         for (i, segment) in self.segments.iter().enumerate() {
             match segment {
-                Segment::Level(ref s) => write!(f, "{}", s)?,
+                Segment::Level(s) => write!(f, "{}", s)?,
                 Segment::SingleLevelWildcard => write!(f, "{}", SINGLELEVEL_WILDCARD)?,
                 Segment::MultiLevelWildcard => write!(f, "{}", MULTILEVEL_WILDCARD)?,
             }

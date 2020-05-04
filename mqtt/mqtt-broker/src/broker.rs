@@ -33,6 +33,9 @@ pub struct Broker<N, Z> {
     retained: HashMap<String, proto::Publication>,
     authenticator: N,
     authorizer: Z,
+
+    #[cfg(feature = "__internal_broker_callbacks")]
+    pub on_publish: Option<Sender<std::time::Duration>>,
 }
 
 impl<N, Z> Broker<N, Z>
@@ -82,7 +85,7 @@ where
         // We don't really care about the error here ---
         //   we just want to join the thread handle to get the result
         //   or deal with the panic
-        rx.await.map_or_else(drop, drop);
+        let _ = rx.await;
 
         // propagate any panics onto the event loop thread
         match handle.join() {
@@ -138,8 +141,8 @@ where
             .sessions
             .values()
             .filter_map(|session| match session {
-                Session::Persistent(ref c) => Some(c.state().clone()),
-                Session::Offline(ref o) => Some(o.state().clone()),
+                Session::Persistent(c) => Some(c.state().clone()),
+                Session::Offline(o) => Some(o.state().clone()),
                 _ => None,
             })
             .collect::<Vec<SessionState>>();
@@ -158,7 +161,7 @@ where
             ClientEvent::Disconnect(_) => self.process_disconnect(&client_id),
             ClientEvent::DropConnection => self.process_drop_connection(&client_id),
             ClientEvent::CloseSession => self.process_close_session(&client_id),
-            ClientEvent::PingReq(ref ping) => self.process_ping_req(&client_id, ping),
+            ClientEvent::PingReq(ping) => self.process_ping_req(&client_id, &ping),
             ClientEvent::PingResp(_) => {
                 info!("broker received PINGRESP, ignoring");
                 Ok(())
@@ -168,8 +171,8 @@ where
                 info!("broker received SUBACK, ignoring");
                 Ok(())
             }
-            ClientEvent::Unsubscribe(ref unsubscribe) => {
-                self.process_unsubscribe(&client_id, unsubscribe)
+            ClientEvent::Unsubscribe(unsubscribe) => {
+                self.process_unsubscribe(&client_id, &unsubscribe)
             }
             ClientEvent::UnsubAck(_) => {
                 info!("broker received UNSUBACK, ignoring");
@@ -181,10 +184,10 @@ where
                 Ok(())
             }
             ClientEvent::PubAck0(id) => self.process_puback0(&client_id, id),
-            ClientEvent::PubAck(ref puback) => self.process_puback(&client_id, puback),
-            ClientEvent::PubRec(ref pubrec) => self.process_pubrec(&client_id, pubrec),
-            ClientEvent::PubRel(ref pubrel) => self.process_pubrel(&client_id, pubrel),
-            ClientEvent::PubComp(ref pubcomp) => self.process_pubcomp(&client_id, pubcomp),
+            ClientEvent::PubAck(puback) => self.process_puback(&client_id, &puback),
+            ClientEvent::PubRec(pubrec) => self.process_pubrec(&client_id, &pubrec),
+            ClientEvent::PubRel(pubrel) => self.process_pubrel(&client_id, &pubrel),
+            ClientEvent::PubComp(pubcomp) => self.process_pubcomp(&client_id, &pubcomp),
         };
 
         if let Err(e) = result {
@@ -475,6 +478,30 @@ where
     }
 
     fn process_publish(
+        &mut self,
+        client_id: &ClientId,
+        publish: proto::Publish,
+    ) -> Result<(), Error> {
+        #[cfg(feature = "__internal_broker_callbacks")]
+        {
+            use std::time::Instant;
+
+            let now = Instant::now();
+            let res = self.process_publish_inner(client_id, publish);
+            let execution_time = now.elapsed();
+            if let Some(on_publish) = &mut self.on_publish {
+                on_publish.send(execution_time).expect("on_publish");
+            }
+            res
+        }
+
+        #[cfg(not(feature = "__internal_broker_callbacks"))]
+        {
+            self.process_publish_inner(client_id, publish)
+        }
+    }
+
+    fn process_publish_inner(
         &mut self,
         client_id: &ClientId,
         publish: proto::Publish,
@@ -1008,6 +1035,9 @@ where
             retained,
             authenticator: self.authenticator,
             authorizer: self.authorizer,
+
+            #[cfg(feature = "__internal_broker_callbacks")]
+            on_publish: None,
         }
     }
 }
