@@ -2,14 +2,18 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
+    using System.Threading.Tasks;
     using Autofac;
     using Autofac.Extensions.DependencyInjection;
+    using Microsoft.AspNetCore.Authentication.Certificate;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
+    using Microsoft.AspNetCore.Http.Features;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
+    using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Middleware;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
@@ -75,6 +79,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 {
                     // Response header is added to prevent MIME type sniffing
                     context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
+                    context.Features.Set<TlsConnectionFeature>(CertContext.TlsConnectionFeature);
+                    context.Features.Set<TlsConnectionFeatureExtended>(CertContext.TlsConnectionFeatureExtended);
                     await next();
                 });
 
