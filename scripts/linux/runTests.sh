@@ -20,10 +20,6 @@ BUILD_CONFIG="$2"
 SUFFIX='Microsoft.Azure*test.dll'
 OUTPUT_FOLDER=$BUILD_BINARIESDIRECTORY
 
-echo 'dotnet version:' 
-dotnet --version
-/opt/hostedtoolcache/dotnet/dotnet --version
-
 if [ ! -f "$DOTNET_ROOT_PATH" ]; then
     dotnet_path=$(command -v dotnet)
     if [ $? -eq 0 ]; then
