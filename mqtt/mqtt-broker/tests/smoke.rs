@@ -33,6 +33,7 @@ async fn basic_connect_clean_session() {
         })
     );
 
+    client.shutdown().await;
     broker_shutdown.send(()).expect("can't stop the broker");
     broker_task
         .await
@@ -73,6 +74,7 @@ async fn basic_connect_existing_session() {
         })
     );
 
+    client.shutdown().await;
     broker_shutdown.send(()).expect("can't stop the broker");
     broker_task
         .await
@@ -127,7 +129,6 @@ async fn basic_pub_sub() {
 
     client.shutdown().await;
     broker_shutdown.send(()).expect("couldn't shutdown broker");
-    client.join().await;
     broker_task
         .await
         .unwrap()
@@ -170,8 +171,6 @@ async fn retained_messages() {
         Some(Event::SubscriptionUpdates(_))
     );
 
-    let mut shutdown_handle = client.shutdown_handle();
-
     // read and map 3 expected events from the stream
     let mut events: Vec<_> = client
         .publications()
@@ -188,7 +187,7 @@ async fn retained_messages() {
     assert_eq!(events[1], (Bytes::from("r qos 1"), true));
     assert_eq!(events[2], (Bytes::from("r qos 2"), true));
 
-    shutdown_handle.shutdown().await.expect("couldn't shutdown");
+    client.shutdown().await;
     broker_shutdown.send(()).expect("couldn't shutdown broker");
     let state = broker_task
         .await
@@ -336,8 +335,6 @@ async fn offline_messages() {
 
     client_a.shutdown().await;
 
-    assert_eq!(client_a.publications().try_recv().ok(), None); // drain event queue.
-
     let mut client_b = TestClientBuilder::new(address.clone())
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-b".into()))
         .build();
@@ -374,6 +371,7 @@ async fn offline_messages() {
     assert_eq!(events[1], Bytes::from("o qos 1"));
     assert_eq!(events[2], Bytes::from("o qos 2"));
 
+    client_a.shutdown().await;
     client_b.shutdown().await;
     broker_shutdown.send(()).expect("couldn't shutdown broker");
     broker_task
@@ -423,12 +421,17 @@ async fn overlapping_subscriptions() {
     client_b.publish_qos1(topic, "overlap qos 1", false).await;
     client_b.publish_qos2(topic, "overlap qos 2", false).await;
 
+    let mut events: Vec<_> = client_a
+        .publications()
+        .take(3)
+        .map(|p| (p.payload))
+        .collect()
+        .await;
+
     // need to wait till all messages are processed.
     tokio::time::delay_for(Duration::from_secs(1)).await;
 
-    client_a.shutdown().await;
-
-    let mut events: Vec<_> = client_a.publications().map(|p| (p.payload)).collect().await;
+    assert_eq!(client_a.publications().try_recv().ok(), None); // no new message expected.
 
     events.sort();
 
@@ -437,6 +440,8 @@ async fn overlapping_subscriptions() {
     assert_eq!(events[1], Bytes::from("overlap qos 1"));
     assert_eq!(events[2], Bytes::from("overlap qos 2"));
 
+    client_a.shutdown().await;
+    client_b.shutdown().await;
     broker_shutdown.send(()).expect("couldn't shutdown broker");
     broker_task
         .await

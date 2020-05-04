@@ -1,7 +1,5 @@
 use std::{
-    pin::Pin,
     sync::atomic::{AtomicU32, Ordering},
-    task::{Context, Poll},
     time::Duration,
 };
 
@@ -105,16 +103,15 @@ impl TestClient {
             .expect("couldn't subscribe to a topic")
     }
 
-    /// Initiates sending Disconnect packet and proper client shutdown.
-    pub async fn shutdown(&mut self) {
+    /// Send the Disconnect packet and shutdown the client properly.
+    pub async fn shutdown(mut self) {
         self.shutdown_handle
             .shutdown()
             .await
-            .expect("couldn't shutdown")
-    }
-
-    pub fn shutdown_handle(&mut self) -> ShutdownHandle {
-        self.shutdown_handle.clone()
+            .expect("couldn't shutdown");
+        self.event_loop_handle
+            .await
+            .expect("couldn't terminate a client");
     }
 
     /// Terminates client w/o sending Disconnect packet.
@@ -125,13 +122,6 @@ impl TestClient {
         self.event_loop_handle
             .await
             .expect("couldn't terminate a client")
-    }
-
-    /// Waits until client's event loop is finished.
-    pub async fn join(self) {
-        self.event_loop_handle
-            .await
-            .expect("couldn't wait for client event loop to finish")
     }
 
     pub fn connections(&mut self) -> &mut UnboundedReceiver<Event> {
