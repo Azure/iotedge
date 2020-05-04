@@ -255,7 +255,7 @@ impl From<ErrorKind> for LoadSettingsError {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{MobyNetwork, MobyRuntime, Path, RuntimeSettings, Settings, Url};
 
     use std::cmp::Ordering;
     use std::fs::File;

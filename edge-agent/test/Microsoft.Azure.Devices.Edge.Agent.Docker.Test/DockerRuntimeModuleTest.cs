@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
@@ -22,8 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
         static readonly ConfigurationInfo DefaultConfigurationInfo = null;
         static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
-        static readonly DockerConfig Config1 = new DockerReportedConfig("image1:42", @"{""HostConfig"": {""PortBinding"": {""42/tcp"": [{""HostPort"": ""42""}], ""43/udp"": [{""HostPort"": ""43""}]}}}", "foo");
-        static readonly DockerConfig Config2 = new DockerReportedConfig("image2:42", @"{""HostConfig"": {""PortBinding"": {""42/tcp"": [{""HostPort"": ""42""}], ""43/udp"": [{""HostPort"": ""43""}]}}}", "foo");
+        static readonly DockerConfig Config1 = new DockerReportedConfig("image1:42", @"{""HostConfig"": {""PortBinding"": {""42/tcp"": [{""HostPort"": ""42""}], ""43/udp"": [{""HostPort"": ""43""}]}}}", "foo", Option.None<NotaryContentTrust>());
+        static readonly DockerConfig Config2 = new DockerReportedConfig("image2:42", @"{""HostConfig"": {""PortBinding"": {""42/tcp"": [{""HostPort"": ""42""}], ""43/udp"": [{""HostPort"": ""43""}]}}}", "foo", Option.None<NotaryContentTrust>());
 
         static readonly IModule Module1 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, null, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
         static readonly IModule Module1A = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, null, DateTime.MinValue, DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
@@ -42,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly IModule Module13 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.Never, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
         static readonly IModule Module14 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.HighestPriority, DefaultConfigurationInfo, EnvVars);
 
-        static readonly DockerConfig ValidConfig = new DockerReportedConfig("image1:42", (string)null, "sha256:75");
+        static readonly DockerConfig ValidConfig = new DockerReportedConfig("image1:42", (string)null, "sha256:75", Option.None<NotaryContentTrust>());
         static readonly DockerRuntimeModule ValidJsonModule = new DockerRuntimeModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, RestartPolicy.OnFailure, ValidConfig, 0, "<status description>", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.Parse("2017-08-05T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), 1, DateTime.Parse("2017-08-06T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
         static readonly DockerRuntimeModule ValidJsonModuleWithPriority = new DockerRuntimeModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, RestartPolicy.OnFailure, ValidConfig, 0, "<status description>", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.Parse("2017-08-05T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), 1, DateTime.Parse("2017-08-06T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.HighestPriority, DefaultConfigurationInfo, EnvVars);
 

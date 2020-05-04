@@ -13,8 +13,18 @@ use k8s_openapi::api::rbac::v1 as api_rbac;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
 use log::warn;
 
-use crate::constants::env::*;
-use crate::constants::*;
+use crate::constants::env::{
+    EDGE_NETWORK_ID_KEY, EDGE_OBJECT_OWNER_API_VERSION_KEY, EDGE_OBJECT_OWNER_KIND_KEY,
+    EDGE_OBJECT_OWNER_NAME_KEY, EDGE_OBJECT_OWNER_UID_KEY, NAMESPACE_KEY,
+    PROXY_CONFIG_MAP_NAME_KEY, PROXY_CONFIG_PATH_KEY, PROXY_CONFIG_VOLUME_KEY, PROXY_IMAGE_KEY,
+    PROXY_IMAGE_PULL_SECRET_NAME_KEY, PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY,
+    PROXY_TRUST_BUNDLE_PATH_KEY, PROXY_TRUST_BUNDLE_VOLUME_KEY,
+};
+use crate::constants::{
+    EDGE_DEVICE_LABEL, EDGE_EDGE_AGENT_NAME, EDGE_HUBNAME_LABEL, EDGE_MODULE_LABEL,
+    EDGE_ORIGINAL_MODULEID, PROXY_CONFIG_VOLUME_NAME, PROXY_CONTAINER_NAME,
+    PROXY_TRUST_BUNDLE_FILENAME, PROXY_TRUST_BUNDLE_VOLUME_NAME,
+};
 use crate::convert::{sanitize_dns_value, sanitize_label_value};
 use crate::error::{ErrorKind, Result};
 use crate::registry::ImagePullSecret;
@@ -540,8 +550,17 @@ mod tests {
     use edgelet_docker::DockerConfig;
     use edgelet_test_utils::cert::TestCert;
 
-    use crate::constants::env::*;
-    use crate::constants::*;
+    use crate::constants::env::{
+        EDGE_OBJECT_OWNER_API_VERSION_KEY, EDGE_OBJECT_OWNER_KIND_KEY, EDGE_OBJECT_OWNER_NAME_KEY,
+        EDGE_OBJECT_OWNER_UID_KEY, NAMESPACE_KEY, PROXY_CONFIG_MAP_NAME_KEY, PROXY_CONFIG_PATH_KEY,
+        PROXY_CONFIG_VOLUME_KEY, PROXY_IMAGE_KEY, PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY,
+        PROXY_TRUST_BUNDLE_PATH_KEY, PROXY_TRUST_BUNDLE_VOLUME_KEY,
+    };
+    use crate::constants::{
+        EDGE_DEVICE_LABEL, EDGE_HUBNAME_LABEL, EDGE_MODULE_LABEL, EDGE_ORIGINAL_MODULEID,
+        PROXY_CONFIG_VOLUME_NAME, PROXY_CONTAINER_NAME, PROXY_TRUST_BUNDLE_FILENAME,
+        PROXY_TRUST_BUNDLE_VOLUME_NAME,
+    };
     use crate::convert::{
         spec_to_deployment, spec_to_role_binding, spec_to_service_account,
         trust_bundle_to_config_map,

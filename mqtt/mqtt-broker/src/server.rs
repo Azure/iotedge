@@ -61,7 +61,7 @@ where
         let main_task = future::select(broker_task, incoming_tasks);
 
         // Handle shutdown
-        let state = match future::select(shutdown_signal, main_task).await {
+        match future::select(shutdown_signal, main_task).await {
             Either::Left((_, tasks)) => {
                 info!("server received shutdown signal");
 
@@ -82,7 +82,7 @@ where
                         }
 
                         debug!("sending Shutdown message to broker");
-                        handle.send(Message::System(SystemEvent::Shutdown)).await?;
+                        handle.send(Message::System(SystemEvent::Shutdown))?;
                         broker_task.await?
                     }
                     Either::Left((broker_state, incoming_tasks)) => {
@@ -118,7 +118,7 @@ where
                     let mut results = vec![result];
                     results.extend(future::join_all(unfinished_incoming_tasks).await);
 
-                    handle.send(Message::System(SystemEvent::Shutdown)).await?;
+                    handle.send(Message::System(SystemEvent::Shutdown))?;
 
                     let broker_state = broker_task.await;
 
@@ -148,8 +148,7 @@ where
                     broker_state?
                 }
             },
-        };
-        Ok(state)
+        }
     }
 }
 

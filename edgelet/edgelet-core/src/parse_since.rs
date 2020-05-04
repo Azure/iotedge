@@ -26,7 +26,7 @@ pub fn parse_since(since: &str) -> Result<i32, Error> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{parse_since, Duration, Local, TryInto};
 
     #[test]
     fn parse_rfc3339() {

@@ -152,4 +152,4 @@ Note that these checks do not perform a TLS handshake with the IoT Hub. They onl
 
 Edge Hub can bind to ports on the host so that it can be used as a gateway for leaf devices. For example, the default `createOptions` for Edge Hub set it to bind to ports 443, 5671 and 8883. If any of these ports are already in use on the host device by other services, the Edge Hub container will be unable to start up. The tool validates that Edge Hub is already running (in which case it has successfully bound to any ports it wanted to bind to), or that the ports are available for it to bind to when it does start.
 
-The tool can only detect which ports to test for if the IoT Edge daemon has tried to start the Edge Hub container at least once.
+On a new device, the IoT Edge daemon doesn't try to start the Edge Hub container until a deployment is applied to that device. Until then, this check will return an error because the tool can only detect which ports to test for if the IoT Edge daemon has tried to start the Edge Hub container at least once.

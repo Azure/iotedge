@@ -7,7 +7,6 @@ use futures::{Future, Stream};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
 use serde::Serialize;
-use serde_json;
 
 use edgelet_core::{Identity as CoreIdentity, IdentityManager, IdentityOperation, IdentitySpec};
 use edgelet_http::route::{Handler, Parameters};
@@ -105,7 +104,9 @@ mod tests {
     use management::models::ErrorResponse;
     use serde_json::{json, Value};
 
-    use super::*;
+    use super::{
+        Body, CoreIdentity, CreateIdentity, Future, Handler, Parameters, Request, StatusCode,
+    };
 
     #[test]
     fn create_succeeds() {
