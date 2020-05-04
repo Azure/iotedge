@@ -41,6 +41,12 @@ async fn basic_connect_clean_session() {
         .expect("can't wait for the broker");
 }
 
+/// Scenario:
+///	- Client connects with clean session flag = false.
+///	- Expects to see `reset_session` flag = true (brand new session on the server).
+///	- Client disconnects.
+///	- Client connects with clean session flag = false.
+///	- Expects to see `reset_session` flag = false (existing session on the server).
 #[tokio::test]
 async fn basic_connect_existing_session() {
     let broker = BrokerBuilder::default()
