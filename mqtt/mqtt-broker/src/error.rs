@@ -9,6 +9,18 @@ pub struct Error {
 
 #[derive(Debug, Fail, PartialEq)]
 pub enum ErrorKind {
+    #[fail(display = "Authentication: failed to execute.")]
+    AuthExecution,
+
+    #[fail(display = "Authentication: failed to send request.")]
+    AuthSendRequest,
+
+    #[fail(display = "Authentication: failed to process response.")]
+    AuthProcessResponse,
+
+    #[fail(display = "Authentication: not supported response version {}", _0)]
+    AuthApiVersion(String),
+
     #[fail(display = "An error occurred sending a message to the broker.")]
     SendBrokerMessage,
 

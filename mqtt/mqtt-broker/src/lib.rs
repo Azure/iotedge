@@ -14,13 +14,14 @@
 use std::sync::Arc;
 
 use derive_more::Display;
-use mqtt3::*;
+use mqtt3::proto;
 use serde::{Deserialize, Serialize};
 
 mod auth;
 mod broker;
 mod configuration;
 mod connection;
+mod edgehub_auth;
 mod error;
 mod persist;
 mod server;

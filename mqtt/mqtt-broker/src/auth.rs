@@ -20,8 +20,8 @@ pub type Identity = String;
 
 /// Describes a MQTT client credentials.
 pub enum Credentials {
-    /// Basic username and password credentials.
-    Basic(Option<String>, Option<String>),
+    /// Password credentials.
+    Password(Option<String>),
 
     /// Client certificate credentials.
     ClientCertificate(Certificate),
@@ -30,6 +30,12 @@ pub enum Credentials {
 /// Represents a client certificate.
 #[derive(Clone, Debug, From)]
 pub struct Certificate(Vec<u8>);
+
+impl AsRef<[u8]> for Certificate {
+    fn as_ref(&self) -> &[u8] {
+        self.0.as_ref()
+    }
+}
 
 /// A trait to authenticate a MQTT client with given credentials.
 #[async_trait]
@@ -40,16 +46,24 @@ pub trait Authenticator {
     /// * `Ok(Some(auth_id))` - authenticator is able to identify a client with given credentials.
     /// * `Ok(None)` - authenticator is not able to identify a client with given credentials.
     /// * `Err(e)` - an error occurred when authenticating a client.
-    async fn authenticate(&self, credentials: Credentials) -> Result<Option<AuthId>, Error>;
+    async fn authenticate(
+        &self,
+        username: Option<String>,
+        credentials: Credentials,
+    ) -> Result<Option<AuthId>, Error>;
 }
 
 #[async_trait]
 impl<F> Authenticator for F
 where
-    F: Fn(Credentials) -> Result<Option<AuthId>, Error> + Sync,
+    F: Fn(Option<String>, Credentials) -> Result<Option<AuthId>, Error> + Sync,
 {
-    async fn authenticate(&self, credentials: Credentials) -> Result<Option<AuthId>, Error> {
-        self(credentials)
+    async fn authenticate(
+        &self,
+        username: Option<String>,
+        credentials: Credentials,
+    ) -> Result<Option<AuthId>, Error> {
+        self(username, credentials)
     }
 }
 
@@ -59,7 +73,11 @@ pub struct DefaultAuthenticator;
 
 #[async_trait]
 impl Authenticator for DefaultAuthenticator {
-    async fn authenticate(&self, _: Credentials) -> Result<Option<AuthId>, Error> {
+    async fn authenticate(
+        &self,
+        _: Option<String>,
+        _: Credentials,
+    ) -> Result<Option<AuthId>, Error> {
         Ok(None)
     }
 }
