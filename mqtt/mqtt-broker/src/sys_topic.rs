@@ -46,7 +46,7 @@ fn get_subscription(session: &Session) -> SysMessage {
     let client_id = state.client_id();
 
     let publication = proto::Publication {
-        topic_name: format!("$sys/subscriptions/{}", client_id),
+        topic_name: format!("$edgehub/subscriptions/{}", client_id),
         qos: proto::QoS::AtMostOnce, //no ack
         retain: true,
         payload: Bytes::from(topics),
@@ -67,7 +67,7 @@ fn get_disconnect(sessions: &HashMap<ClientId, Session>, client_id: &ClientId) -
     if sessions.get(client_id).is_none() {
         // If transient session is closed, remove its subscriptions
         result.push(proto::Publication {
-            topic_name: format!("$sys/subscriptions/{}", client_id),
+            topic_name: format!("$edgehub/subscriptions/{}", client_id),
             qos: proto::QoS::AtMostOnce, //no ack
             retain: true,
             payload: "".into(),
@@ -93,7 +93,7 @@ fn get_connection_change(sessions: &HashMap<ClientId, Session>) -> proto::Public
         );
 
     proto::Publication {
-        topic_name: "$sys/connected".to_owned(),
+        topic_name: "$edgehub/connected".to_owned(),
         qos: proto::QoS::AtMostOnce, //no ack
         retain: true,
         payload: connected.into(),
@@ -111,7 +111,7 @@ fn get_session_change(sessions: &HashMap<ClientId, Session>) -> proto::Publicati
     ));
 
     proto::Publication {
-        topic_name: "$sys/sessions".to_owned(),
+        topic_name: "$edgehub/sessions".to_owned(),
         qos: proto::QoS::AtMostOnce, //no ack
         retain: true,
         payload: existing_sessions.into(),

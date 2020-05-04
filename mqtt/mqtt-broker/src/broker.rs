@@ -2037,7 +2037,7 @@ pub(crate) mod tests {
             &mut broker_handle,
             &mut a_rx,
             a_id.clone(),
-            &["$sys/connected"],
+            &["$edgehub/connected"],
         )
         .await;
 
@@ -2049,7 +2049,7 @@ pub(crate) mod tests {
                 proto::Publish {
                     packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtMostOnce,
                     retain: true,
-                    topic_name: "$sys/connected".to_owned(),
+                    topic_name: "$edgehub/connected".to_owned(),
                     payload: "[\"client_a\"]".into(),
                 }
             );
@@ -2083,7 +2083,7 @@ pub(crate) mod tests {
             &mut broker_handle,
             &mut a_rx,
             a_id.clone(),
-            &["$sys/connected"],
+            &["$edgehub/connected"],
         )
         .await;
 
@@ -2115,7 +2115,7 @@ pub(crate) mod tests {
             &mut broker_handle,
             &mut a_rx,
             a_id.clone(),
-            &["$sys/connected"],
+            &["$edgehub/connected"],
         )
         .await;
         check_notify_recieved(&mut a_rx, &["client_a", "client_b", "client_c"]).await;
@@ -2151,7 +2151,7 @@ pub(crate) mod tests {
             &mut broker_handle,
             &mut a_rx,
             a_id.clone(),
-            &["$sys/subscriptions/client_b"],
+            &["$edgehub/subscriptions/client_b"],
         )
         .await;
 
@@ -2187,7 +2187,7 @@ pub(crate) mod tests {
             &mut broker_handle,
             &mut a_rx,
             a_id.clone(),
-            &["$sys/subscriptions/client_b"],
+            &["$edgehub/subscriptions/client_b"],
         )
         .await;
 
@@ -2228,7 +2228,7 @@ pub(crate) mod tests {
             &mut broker_handle,
             &mut a_rx,
             a_id.clone(),
-            &["$sys/subscriptions/client_b"],
+            &["$edgehub/subscriptions/client_b"],
         )
         .await;
 
