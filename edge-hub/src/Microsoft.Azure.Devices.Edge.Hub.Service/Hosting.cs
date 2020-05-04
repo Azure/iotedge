@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
+    using System;
     using System.Collections.Generic;
     using System.Net;
     using System.Net.Security;
@@ -51,21 +52,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                                         ServerCertificate = serverCertificate,
                                         ClientCertificateValidation = (clientCert, chain, policyErrors) => // TODO: Store cert and add to context in startup. Inject TlsFeatures into Startup class. Eliminate hacky POC.
                                         {
-                                            CertContext.TlsConnectionFeature = new TlsConnectionFeature
-                                            {
-                                                ClientCertificate = clientCert
-                                            };
-
+                                            Console.WriteLine("---------------Setting map entry for tls feature----------------------");
                                             IList<X509Certificate2> chainElements = new List<X509Certificate2>();
                                             foreach (X509ChainElement element in chain.ChainElements)
                                             {
                                                 chainElements.Add(element.Certificate);
                                             }
 
-                                            CertContext.TlsConnectionFeatureExtended = new TlsConnectionFeatureExtended
+                                            CertContext.CertsToChain.Add(clientCert, new TlsConnectionFeatureExtended
                                             {
                                                 ChainElements = chainElements
-                                            };
+                                            });
+
+                                            Console.WriteLine($"---------------Count of chain elements: {chainElements.Count}----------------------");
 
                                             return true;
                                         },

@@ -54,6 +54,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             app.UseWebSockets();
 
+            // TODO: eliminate hacky POC and consolidate with the below response headers
+            app.Use(
+                async (context, next) =>
+                {
+                    Console.WriteLine($"---------------Retrieving tls feature from map----------------------");
+                    TlsConnectionFeatureExtended tlsConnectionFeatureExtended = CertContext.CertsToChain[context.Connection.ClientCertificate]; // TODO: remove from dict
+                    context.Features.Set<ITlsConnectionFeatureExtended>(tlsConnectionFeatureExtended);
+                    Console.WriteLine($"---------------Retrieve successful----------------------");
+                    await next();
+                });
+
             var webSocketListenerRegistry = app.ApplicationServices.GetService(typeof(IWebSocketListenerRegistry)) as IWebSocketListenerRegistry;
             app.UseWebSocketHandlingMiddleware(webSocketListenerRegistry);
 
@@ -79,8 +90,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 {
                     // Response header is added to prevent MIME type sniffing
                     context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
-                    context.Features.Set<TlsConnectionFeature>(CertContext.TlsConnectionFeature);
-                    context.Features.Set<TlsConnectionFeatureExtended>(CertContext.TlsConnectionFeatureExtended);
                     await next();
                 });
 
