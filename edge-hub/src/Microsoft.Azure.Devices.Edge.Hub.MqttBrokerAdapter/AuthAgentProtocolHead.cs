@@ -22,7 +22,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         readonly object guard = new object();
 
         Option<IWebHost> host;
-        
 
         public string Name => "AUTH";
 
