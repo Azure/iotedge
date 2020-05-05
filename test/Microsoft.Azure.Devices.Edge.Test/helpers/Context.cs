@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.TestResultCoordinatorImage = Option.Maybe(Get("testResultCoordinatorImage"));
             this.LoadGenImage = Option.Maybe(Get("loadGenImage"));
             this.RelayerImage = Option.Maybe(Get("relayerImage"));
-            this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 8));
+            this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5));
             this.Verbose = context.GetValue<bool>("verbose");
         }
 
