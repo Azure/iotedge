@@ -82,6 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
                 {
                     Console.WriteLine($"------------------Chain cert: {chainedCert.RawData.ToString()}------------------");
                 }
+
                 await listener.ProcessWebSocketRequestAsync(webSocket, localEndPoint, remoteEndPoint, correlationId, cert, certChain);
             }
             else

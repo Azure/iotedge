@@ -54,10 +54,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                                         ClientCertificateValidation = (clientCert, chain, policyErrors) => // TODO: Store cert and add to context in startup. Inject TlsFeatures into Startup class. Eliminate hacky POC.
                                         {
                                             Console.WriteLine("---------------Setting map entry for tls feature----------------------");
+                                            Console.WriteLine(clientCert.RawData.ToString());
                                             IList<X509Certificate2> chainElements = new List<X509Certificate2>();
                                             foreach (X509ChainElement element in chain.ChainElements)
                                             {
                                                 chainElements.Add(element.Certificate);
+                                                Console.WriteLine(element.Certificate.RawData.ToString());
                                             }
 
                                             Console.WriteLine($"---------------------{JsonConvert.SerializeObject(chainElements)}-----------------------");
