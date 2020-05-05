@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
+    using Newtonsoft.Json;
 
     public class Hosting
     {
@@ -58,6 +59,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                                             {
                                                 chainElements.Add(element.Certificate);
                                             }
+
+                                            Console.WriteLine($"---------------------{JsonConvert.SerializeObject(chainElements)}-----------------------");
+                                            Console.WriteLine($"---------------------------{clientCert.Thumbprint}----------------------------------");
 
                                             CertContext.CertsToChain.Add(clientCert, new TlsConnectionFeatureExtended
                                             {
