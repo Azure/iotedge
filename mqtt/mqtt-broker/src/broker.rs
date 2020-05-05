@@ -334,7 +334,7 @@ where
                     session.send(event)?;
                 }
 
-                self.publish_all(StateChange::get_connections(&self.sessions).into())?;
+                self.publish_all(StateChange::new_connection(&self.sessions).into())?;
             }
             Err(SessionError::DuplicateSession(mut old_session, ack)) => {
                 // Drop the old connection
@@ -457,7 +457,7 @@ where
                 publish_to(&self.authorizer, session, &publication)?;
             }
 
-            let message = StateChange::get_subscriptions(client_id, &session).into();
+            let message = StateChange::new_subscription(client_id, &session).into();
             self.publish_all(message)?;
         } else {
             debug!("no session for {}", client_id);
@@ -476,7 +476,7 @@ where
                 let unsuback = session.unsubscribe(unsubscribe)?;
                 session.send(ClientEvent::UnsubAck(unsuback))?;
 
-                let notify_message = StateChange::get_subscriptions(client_id, &session).into();
+                let notify_message = StateChange::new_subscription(client_id, &session).into();
                 self.publish_all(notify_message)?;
 
                 Ok(())
@@ -716,6 +716,8 @@ where
                     Session::new_transient(auth_id, connreq)
                 };
 
+                let subscription_change =
+                    StateChange::new_subscription(&client_id, &new_session).into();
                 self.sessions.insert(client_id.clone(), new_session);
 
                 let ack = proto::ConnAck {
@@ -724,9 +726,10 @@ where
                 };
                 let events = vec![];
 
-                self.publish_all(StateChange::get_sessions(&self.sessions).into())
+                self.publish_all(StateChange::new_session(&self.sessions).into())
                     .unwrap();
-
+                self.publish_all(subscription_change).unwrap();
+                
                 Ok((ack, events))
             }
         }
@@ -791,9 +794,9 @@ where
         match self.sessions.remove(client_id) {
             Some(Session::Transient(connected)) => {
                 info!("closing transient session for {}", client_id);
-                self.publish_all(StateChange::get_connections(&self.sessions).into())
+                self.publish_all(StateChange::new_connection(&self.sessions).into())
                     .unwrap();
-                self.publish_all(StateChange::get_sessions(&self.sessions).into())
+                self.publish_all(StateChange::new_session(&self.sessions).into())
                     .unwrap();
                 self.publish_all(StateChange::clear_subscriptions(client_id).into())
                     .unwrap();
@@ -812,7 +815,7 @@ where
                 // to be sent on the connection
 
                 info!("moving persistent session to offline for {}", client_id);
-                self.publish_all(StateChange::get_connections(&self.sessions).into())
+                self.publish_all(StateChange::new_connection(&self.sessions).into())
                     .unwrap();
 
                 let (auth_id, state, will, handle) = connected.into_parts();
@@ -2173,6 +2176,7 @@ pub(crate) mod tests {
             &["$edgehub/subscriptions/client_b"],
         )
         .await;
+        check_notify_recieved(&mut a_rx, &[]).await;
 
         send_subscribe(&mut broker_handle, &mut b_rx, b_id.clone(), &["foo"]).await;
         check_notify_recieved(&mut a_rx, &["foo"]).await;
@@ -2209,6 +2213,7 @@ pub(crate) mod tests {
             &["$edgehub/subscriptions/client_b"],
         )
         .await;
+        check_notify_recieved(&mut a_rx, &[]).await;
 
         send_subscribe(
             &mut broker_handle,
