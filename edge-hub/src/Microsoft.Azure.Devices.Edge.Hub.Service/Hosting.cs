@@ -55,22 +55,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                                         {
                                             Console.WriteLine("---------------Setting map entry for tls feature----------------------");
                                             Console.WriteLine(clientCert.RawData.ToString());
-                                            IList<X509Certificate2> chainElements = new List<X509Certificate2>();
-                                            foreach (X509ChainElement element in chain.ChainElements)
-                                            {
-                                                chainElements.Add(new X509Certificate2(element.Certificate));
-                                                Console.WriteLine(element.Certificate.RawData.ToString());
-                                            }
 
-                                            Console.WriteLine($"---------------------{JsonConvert.SerializeObject(chainElements)}-----------------------");
+                                            Console.WriteLine($"---------------------{JsonConvert.SerializeObject(chain.ChainElements)}-----------------------");
                                             Console.WriteLine($"---------------------------{clientCert.Thumbprint}----------------------------------");
 
-                                            CertContext.CertsToChain[clientCert.Thumbprint] = new TlsConnectionFeatureExtended
-                                            {
-                                                ChainElements = chainElements
-                                            };
+                                            CertChainMapper.ImportCertChain(clientCert.Thumbprint, chain.ChainElements);
 
-                                            Console.WriteLine($"---------------Count of chain elements: {chainElements.Count}----------------------");
+                                            Console.WriteLine($"---------------Count of chain elements: {chain.ChainElements.Count}----------------------");
 
                                             return true;
                                         },

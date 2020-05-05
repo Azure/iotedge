@@ -2,6 +2,8 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
+    using System.Collections.Generic;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Autofac;
     using Autofac.Extensions.DependencyInjection;
@@ -59,7 +61,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 async (context, next) =>
                 {
                     Console.WriteLine($"---------------Retrieving tls feature from map----------------------");
-                    TlsConnectionFeatureExtended tlsConnectionFeatureExtended = CertContext.CertsToChain[context.Connection.ClientCertificate.Thumbprint]; // TODO: remove from dict
+                    IList<X509Certificate2> certChain = CertChainMapper.ExtractCertChain(context.Connection.ClientCertificate.Thumbprint);
+                    TlsConnectionFeatureExtended tlsConnectionFeatureExtended = new TlsConnectionFeatureExtended
+                    {
+                        ChainElements = certChain
+                    };
                     context.Features.Set<ITlsConnectionFeatureExtended>(tlsConnectionFeatureExtended);
                     Console.WriteLine($"---------------Retrieve successful----------------------");
                     await next();
