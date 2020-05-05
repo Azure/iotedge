@@ -13,7 +13,6 @@ use crate::session::{ConnectedSession, Session, SessionState};
 use crate::{
     subscription::Subscription, AuthId, ClientEvent, ClientId, ConnReq, Error, Message, SystemEvent,
 };
-use futures::StreamExt;
 use tokio::sync::mpsc::{self, Receiver, Sender};
 
 static EXPECTED_PROTOCOL_NAME: &str = mqtt3::PROTOCOL_NAME;
@@ -49,7 +48,7 @@ where
     }
 
     pub async fn run(mut self) -> Result<BrokerState, Error> {
-        while let Some(message) = self.messages.next().await {
+        while let Some(message) = self.messages.recv().await {
             match message {
                 Message::Client(client_id, event) => {
                     let span = span!(Level::INFO, "broker", client_id = %client_id, event="client");

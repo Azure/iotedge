@@ -42,7 +42,7 @@ pub struct Snapshotter<P> {
 
 impl<P> Snapshotter<P> {
     pub fn new(persistor: P) -> Self {
-        let (sender, events) = mpsc::channel(1024);
+        let (sender, events) = mpsc::channel(5);
         Snapshotter {
             persistor,
             sender,
