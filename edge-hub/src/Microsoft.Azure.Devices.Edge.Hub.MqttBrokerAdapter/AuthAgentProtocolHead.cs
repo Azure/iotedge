@@ -19,9 +19,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         readonly IUsernameParser usernameParser;
         readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly AuthAgentProtocolHeadConfig config;
+        readonly object guard = new object();
 
         Option<IWebHost> host;
-        object guard = new object();
+        
 
         public string Name => "AUTH";
 
