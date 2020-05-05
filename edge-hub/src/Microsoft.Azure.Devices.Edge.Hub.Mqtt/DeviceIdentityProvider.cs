@@ -117,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.remoteCertificateChain = Preconditions.CheckNotNull(chain, nameof(chain));
 
             Console.WriteLine($"------------------Remote cert: {certificate.RawData.ToString()}------------------");
-            foreach (X509Certificate2 cert in remoteCertificateChain)
+            foreach (X509Certificate2 cert in this.remoteCertificateChain)
             {
                 Console.WriteLine($"------------------Chain cert: {cert.RawData.ToString()}------------------");
             }
