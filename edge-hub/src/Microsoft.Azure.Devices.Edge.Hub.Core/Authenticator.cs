@@ -78,10 +78,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void AuthResult(IClientCredentials clientCredentials, bool reAuthenticating, bool result)
             {
-                string operation = reAuthenticating ? "re-authenticated" : "authenticated";
+                string operation = reAuthenticating ? "re-authenticate" : "authenticate";
                 if (result)
                 {
-                    Log.LogDebug((int)EventIds.AuthResult, Invariant($"Client {clientCredentials.Identity.Id} {operation} successfully"));
+                    Log.LogDebug((int)EventIds.AuthResult, Invariant($"Client {clientCredentials.Identity.Id} {operation}d successfully"));
                 }
                 else
                 {

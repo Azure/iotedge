@@ -79,6 +79,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 }
 
                 Console.WriteLine($"------------Device credential error: {deviceCredentials.ToString()} | Client id error: {!clientId.Equals(deviceCredentials.Identity.Id, StringComparison.Ordinal)}--------------");
+                if (deviceCredentials is ICertificateCredentials)
+                {
+                    ICertificateCredentials tmpCredentials = (ICertificateCredentials)deviceCredentials;
+                    X509Certificate2 remoteCertificate = tmpCredentials.ClientCertificate;
+                    IList<X509Certificate2> remoteCertificateChain = tmpCredentials.ClientCertificateChain;
+
+                    Console.WriteLine($"------------------Remote cert: {remoteCertificate.RawData.ToString()}------------------");
+                    foreach (X509Certificate2 cert in remoteCertificateChain)
+                    {
+                        Console.WriteLine($"------------------Chain cert: {remoteCertificate.RawData.ToString()}------------------");
+                    }
+                }
 
                 if (deviceCredentials == null
                     || !clientId.Equals(deviceCredentials.Identity.Id, StringComparison.Ordinal)

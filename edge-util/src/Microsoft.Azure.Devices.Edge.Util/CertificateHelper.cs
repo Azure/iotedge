@@ -89,6 +89,13 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Preconditions.CheckNotNull(remoteCertificateChain);
             Preconditions.CheckNotNull(trustedCACerts);
 
+            // TODO: remove
+            Console.WriteLine($"------------------Remote cert: {remoteCertificate.RawData.ToString()}------------------");
+            foreach (X509Certificate2 cert in remoteCertificateChain)
+            {
+                Console.WriteLine($"------------------Chain cert: {remoteCertificate.RawData.ToString()}------------------");
+            }
+
             (IList<X509Certificate2> remoteCerts, Option<string> errors) = BuildCertificateList(remoteCertificate, Option.Some(remoteCertificateChain));
             if (errors.HasValue)
             {
