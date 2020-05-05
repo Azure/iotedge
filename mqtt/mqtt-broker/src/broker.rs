@@ -36,7 +36,7 @@ pub struct Broker<N, Z> {
     authorizer: Z,
 
     #[cfg(feature = "__internal_broker_callbacks")]
-    pub on_publish: Option<Sender<std::time::Duration>>,
+    pub on_publish: Option<tokio::sync::mpsc::UnboundedSender<std::time::Duration>>,
 }
 
 impl<N, Z> Broker<N, Z>
@@ -1001,10 +1001,7 @@ pub struct BrokerHandle(Sender<Message>);
 
 impl BrokerHandle {
     pub async fn send(&mut self, message: Message) -> Result<(), Error> {
-        self.0
-            .send(message)
-            .await
-            .map_err(|e| Error::SendBrokerMessage(e.into()))
+        self.0.send(message).await.map_err(Error::SendBrokerMessage)
     }
 }
 
@@ -1128,12 +1125,14 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
+            .await
             .unwrap();
         broker_handle
             .send(Message::Client(
                 client_id.clone(),
                 ClientEvent::ConnReq(req2),
             ))
+            .await
             .unwrap();
 
         assert_matches!(
@@ -1189,12 +1188,14 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
+            .await
             .unwrap();
         broker_handle
             .send(Message::Client(
                 client_id.clone(),
                 ClientEvent::ConnReq(req2),
             ))
+            .await
             .unwrap();
 
         assert_matches!(
@@ -1242,6 +1243,7 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
+            .await
             .unwrap();
 
         assert_matches!(
@@ -1280,6 +1282,7 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
+            .await
             .unwrap();
 
         assert_matches!(
@@ -1329,6 +1332,7 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
+            .await
             .unwrap();
 
         assert_matches!(
@@ -1371,6 +1375,7 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
+            .await
             .unwrap();
 
         assert_matches!(
@@ -1420,6 +1425,7 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
+            .await
             .unwrap();
 
         assert_matches!(
@@ -1469,6 +1475,7 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
+            .await
             .unwrap();
 
         assert_matches!(
@@ -1518,6 +1525,7 @@ pub(crate) mod tests {
                 client_id.clone(),
                 ClientEvent::ConnReq(req1),
             ))
+            .await
             .unwrap();
 
         assert_matches!(
@@ -1847,7 +1855,7 @@ pub(crate) mod tests {
         };
 
         let message = Message::Client(client_id.clone(), ClientEvent::PublishFrom(publish));
-        broker_handle.send(message).unwrap();
+        broker_handle.send(message).await.unwrap();
 
         assert_matches!(
             rx.recv().await,
@@ -1894,7 +1902,7 @@ pub(crate) mod tests {
         };
 
         let message = Message::Client(client_id.clone(), ClientEvent::Subscribe(subscribe));
-        broker_handle.send(message).unwrap();
+        broker_handle.send(message).await.unwrap();
 
         let expected_qos = vec![
             proto::SubAckQos::Success(proto::QoS::AtLeastOnce),
@@ -1933,7 +1941,7 @@ pub(crate) mod tests {
         };
 
         let message = Message::Client(sub_id.clone(), ClientEvent::Subscribe(subscribe));
-        broker_handle.send(message).unwrap();
+        broker_handle.send(message).await.unwrap();
 
         let (pub_id, mut pub_rx) = connect_client("pub", &mut broker_handle).await.unwrap();
 
@@ -1948,7 +1956,7 @@ pub(crate) mod tests {
         };
 
         let message = Message::Client(pub_id.clone(), ClientEvent::PublishFrom(publish));
-        broker_handle.send(message).unwrap();
+        broker_handle.send(message).await.unwrap();
 
         assert_matches!(
             pub_rx.recv().await,
@@ -1972,10 +1980,12 @@ pub(crate) mod tests {
         let conn = ConnectionHandle::from_sender(tx);
         let client_id = ClientId::from(client_id);
         let req = ConnReq::new(client_id.clone(), connect, None, conn);
-        broker_handle.send(Message::Client(
-            client_id.clone(),
-            ClientEvent::ConnReq(req),
-        ))?;
+        broker_handle
+            .send(Message::Client(
+                client_id.clone(),
+                ClientEvent::ConnReq(req),
+            ))
+            .await?;
 
         assert_matches!(
             rx.recv().await,

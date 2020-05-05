@@ -40,7 +40,7 @@ async fn run() -> Result<(), Error> {
         ConsolidatedStateFormat::default(),
     );
     info!("Loading state...");
-    let state = persistor.load()?.unwrap_or_else(BrokerState::default);
+    let state = persistor.load().await?.unwrap_or_else(BrokerState::default);
     let broker = BrokerBuilder::default()
         .authenticator(|_| Ok(Some(AuthId::Anonymous)))
         .authorizer(|_| Ok(true))
@@ -78,12 +78,12 @@ async fn run() -> Result<(), Error> {
         .await?;
 
     // Stop snapshotting
-    shutdown_handle.try_shutdown()?;
-    let mut persistor = join_handle.await??;
+    shutdown_handle.shutdown().await?;
+    let mut persistor = join_handle.await?;
     info!("state snapshotter shutdown.");
 
     info!("persisting state before exiting...");
-    persistor.store(state)?;
+    persistor.store(state).await?;
     info!("state persisted.");
     info!("exiting... goodbye");
 

@@ -10,7 +10,6 @@ bytes = "0.5"
 chrono = "0.4"
 config = { version = "0.10", default-features = false, features = ["json"] }
 criterion = { version = "0.3", optional = true }
-crossbeam-channel = "0.4"
 fail = "0.3"
 flate2 = "1.0"
 futures = "0.3"
@@ -32,6 +31,7 @@ tracing-futures = "0.2"
 uuid = { version = "0.8", features = ["v4"] }
 
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
+async-trait = "0.1"
 
 [dev-dependencies]
 atty = "0.2"
