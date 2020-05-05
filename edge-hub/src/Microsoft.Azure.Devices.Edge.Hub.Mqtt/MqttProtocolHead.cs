@@ -203,11 +203,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         {
             if (this.clientCertAuthAllowed && certificate != null)
             {
-                IList<X509Certificate2> certChain = chain?.ChainElements?
-                        .Cast<X509ChainElement>()
-                        .Select(element => element.Certificate)
-                        .ToList()
-                    ?? new List<X509Certificate2>();
+                IList<X509Certificate2> certChain = new List<X509Certificate2>();
+                foreach (X509ChainElement chainElement in chain.ChainElements)
+                {
+                    certChain.Add(new X509Certificate2(chainElement.Certificate));
+                }
+
                 identityProvider.RegisterConnectionCertificate(new X509Certificate2(certificate), certChain);
             }
 
