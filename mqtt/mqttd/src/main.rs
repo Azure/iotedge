@@ -100,9 +100,12 @@ async fn tick_snapshot(
     let mut interval = tokio::time::interval_at(start, period);
     loop {
         interval.tick().await;
-        if let Err(e) = broker_handle.try_send(Message::System(SystemEvent::StateSnapshot(
-            snapshot_handle.clone(),
-        ))) {
+        if let Err(e) = broker_handle
+            .send(Message::System(SystemEvent::StateSnapshot(
+                snapshot_handle.clone(),
+            )))
+            .await
+        {
             warn!(message = "failed to tick the snapshotter", error=%e);
         }
     }

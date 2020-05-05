@@ -1,7 +1,6 @@
 use std::collections::HashMap;
-use std::{panic, thread};
+use std::panic;
 
-use crossbeam_channel::{Receiver, Sender};
 use mqtt3::proto;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info, span, warn, Level};
@@ -14,6 +13,8 @@ use crate::session::{ConnectedSession, Session, SessionState};
 use crate::{
     subscription::Subscription, AuthId, ClientEvent, ClientId, ConnReq, Error, Message, SystemEvent,
 };
+use futures::StreamExt;
+use tokio::sync::mpsc::{self, Receiver, Sender};
 
 static EXPECTED_PROTOCOL_NAME: &str = mqtt3::PROTOCOL_NAME;
 const EXPECTED_PROTOCOL_LEVEL: u8 = mqtt3::PROTOCOL_LEVEL;
@@ -47,55 +48,8 @@ where
         BrokerHandle(self.sender.clone())
     }
 
-    pub async fn run(self) -> Result<BrokerState, Error> {
-        // There is a dance here between a `oneshot` and a thread join.
-        //
-        // This `run` function needs to do two things:
-        //   1. Be `async` so that it can be joined with the other tasks in the `server`
-        //   2. Handle and propagate any panics on the thread to the event loop thread
-        //      so that the process exits/crashes properly. We don't want this thread
-        //      to die and have the process still running, not able to do anything.
-        //
-        // The `oneshot` is used to make this function `async`. It is used by the thread
-        // to signal that it has exited, so that the `run` function will return.
-        // The nice thing about a `oneshot` is that the receiver will complete if the sender
-        // is dropped. This allows a panic in the broker loop to gracefully signal the event
-        // loop that it has exited.
-        //
-        // The `handle.join()` is used to propagate the panic from the broker thread
-        // to the thread that is handling the async task.
-
-        let (tx, rx) = tokio::sync::oneshot::channel::<()>();
-        let handle = thread::Builder::new()
-            .name("mqtt::broker".to_string())
-            .spawn(|| {
-                let state = self.broker_loop();
-                if let Err(_e) = tx.send(()) {
-                    error!("failed to signal the event loop that the broker thread is exiting");
-                }
-                state
-            })
-            .expect("failed to spawn broker thread");
-
-        // Wait for the thread to exit
-        // This rx will complete for two reasons:
-        //   1. The thread gracefully shutdown and sent on the tx.
-        //   2. The thread panicked and the tx was dropped.
-        //
-        // We don't really care about the error here ---
-        //   we just want to join the thread handle to get the result
-        //   or deal with the panic
-        let _ = rx.await;
-
-        // propagate any panics onto the event loop thread
-        match handle.join() {
-            Ok(state) => Ok(state),
-            Err(e) => panic::resume_unwind(e),
-        }
-    }
-
-    fn broker_loop(mut self) -> BrokerState {
-        while let Ok(message) = self.messages.recv() {
+    pub async fn run(mut self) -> Result<BrokerState, Error> {
+        while let Some(message) = self.messages.next().await {
             match message {
                 Message::Client(client_id, event) => {
                     let span = span!(Level::INFO, "broker", client_id = %client_id, event="client");
@@ -132,7 +86,7 @@ where
         }
 
         info!("broker is shutdown.");
-        self.snapshot()
+        Ok(self.snapshot())
     }
 
     fn snapshot(&self) -> BrokerState {
@@ -1026,7 +980,7 @@ where
             None => (HashMap::default(), HashMap::default()),
         };
 
-        let (sender, messages) = crossbeam_channel::bounded(1024);
+        let (sender, messages) = mpsc::channel(1024);
 
         Broker {
             sender,
@@ -1046,14 +1000,11 @@ where
 pub struct BrokerHandle(Sender<Message>);
 
 impl BrokerHandle {
-    pub fn send(&mut self, message: Message) -> Result<(), Error> {
+    pub async fn send(&mut self, message: Message) -> Result<(), Error> {
         self.0
             .send(message)
+            .await
             .map_err(|e| Error::SendBrokerMessage(e.into()))
-    }
-
-    pub fn try_send(&mut self, message: Message) -> Result<(), Error> {
-        self.0.try_send(message).map_err(Error::SendBrokerMessage)
     }
 }
 
