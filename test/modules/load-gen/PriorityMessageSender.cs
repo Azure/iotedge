@@ -11,6 +11,8 @@ namespace LoadGen
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
+    using Microsoft.Azure.Devices.Edge.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
@@ -110,6 +112,13 @@ namespace LoadGen
             // Need to add 1 for the first sequence number, since it is a special case that we omitted in the expectedSequenceNumberList.
             this.resultsSent = expectedSequenceNumberList.Count + 1;
 
+            // For Windows, module to module direct communication doesn't work unless we ping from inside the docker container first
+            // TODO: Investigate why this is happening and remove this workaround. It could be a DNS caching issue
+            if (OsPlatform.IsWindows())
+            {
+                this.SendPing();
+            }
+
             // See explanation above why we need to send sequence number 1 as the first expected value.
             await this.ReportResult(1);
 
@@ -121,6 +130,30 @@ namespace LoadGen
             }
 
             this.isFinished = true;
+        }
+
+        void SendPing()
+        {
+            Ping ping = new Ping();
+            Settings.Current.TestResultCoordinatorUrl.ForEach(
+                url =>
+                {
+                    string pingMe = url.Substring(url.LastIndexOf('/') + 1).Split(':')[0];
+                    this.Logger.LogInformation($"Sending ping to this: {pingMe}");
+                    ExecuteWithRetry(() => ping.Send(pingMe), RetryingPing, this.Logger);
+                });
+        }
+
+        static void ExecuteWithRetry(Action act, Action<RetryingEventArgs, ILogger> onRetry, ILogger logger)
+        {
+            var transientRetryPolicy = RetryPolicy.DefaultExponential;
+            transientRetryPolicy.Retrying += (_, args) => onRetry(args, logger);
+            transientRetryPolicy.ExecuteAction(act);
+        }
+
+        static void RetryingPing(RetryingEventArgs retryingEventArgs, ILogger logger)
+        {
+            logger.LogDebug($"Retrying Ping {retryingEventArgs.CurrentRetryCount} times because of error - {retryingEventArgs.LastException}");
         }
 
         private async Task SetIsFinishedDirectMethodAsync()

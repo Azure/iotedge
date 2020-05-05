@@ -6,6 +6,7 @@ namespace Relayer
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
+    using System.Net.NetworkInformation;
     using System.Runtime.CompilerServices;
     using System.Text;
     using System.Threading;
@@ -13,7 +14,9 @@ namespace Relayer
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
+    using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
@@ -42,9 +45,18 @@ namespace Relayer
                 (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
                 await SetIsFinishedDirectMethodAsync(moduleClient);
+                Logger.LogInformation("Set direct method IsFinished successfully");
+
+                // For Windows, module to module direct communication doesn't work unless we ping from inside the docker container first
+                // TODO: Investigate why this is happening and remove this workaround. It could be a DNS caching issue
+                if (OsPlatform.IsWindows())
+                {
+                    SendPing();
+                }
 
                 // Receive a message and call ProcessAndSendMessageAsync to send it on its way
                 await moduleClient.SetInputMessageHandlerAsync(Settings.Current.InputName, ProcessAndSendMessageAsync, moduleClient);
+                Logger.LogInformation($"Set input message handler for input {Settings.Current.InputName} successfully");
 
                 await cts.Token.WhenCanceled();
                 completed.Set();
@@ -64,9 +76,6 @@ namespace Relayer
 
         static async Task<MessageResponse> ProcessAndSendMessageAsync(Message message, object userContext)
         {
-            var builder = new UriBuilder(Settings.Current.TestResultCoordinatorUrl);
-            builder.Host = Dns.GetHostEntry(Settings.Current.TestResultCoordinatorUrl.Host).AddressList[0].ToString();
-            Uri testResultCoordinatorUrl = builder.Uri;
             try
             {
                 if (!(userContext is ModuleClient moduleClient))
@@ -105,13 +114,17 @@ namespace Relayer
                 }
 
                 // Report receiving message successfully to Test Result Coordinator
+                var testResultCoordinatorUrl = new Uri(Settings.Current.TestResultCoordinatorUrl, UriKind.Absolute);
                 var testResultReportingClient = new TestResultReportingClient { BaseUrl = testResultCoordinatorUrl.AbsoluteUri };
+
                 var testResultReceived = new MessageTestResult(Settings.Current.ModuleId + ".receive", DateTime.UtcNow)
                 {
                     TrackingId = trackingId,
                     BatchId = batchId,
                     SequenceNumber = sequenceNumber
                 };
+
+                Logger.LogInformation("Reporting to TRC");
 
                 await ModuleUtil.ReportTestResultAsync(testResultReportingClient, Logger, testResultReceived);
 
@@ -153,6 +166,27 @@ namespace Relayer
             }
 
             return MessageResponse.Completed;
+        }
+
+        static void SendPing()
+        {
+            Ping ping = new Ping();
+            string uri = Settings.Current.TestResultCoordinatorUrl;
+            string pingMe = uri.Substring(uri.LastIndexOf('/') + 1).Split(':')[0];
+            Logger.LogInformation($"Sending ping to this: {pingMe}");
+            ExecuteWithRetry(() => ping.Send(pingMe), RetryingPing);
+        }
+
+        static void ExecuteWithRetry(Action act, Action<RetryingEventArgs> onRetry)
+        {
+            var transientRetryPolicy = RetryPolicy.DefaultExponential;
+            transientRetryPolicy.Retrying += (_, args) => onRetry(args);
+            transientRetryPolicy.ExecuteAction(act);
+        }
+
+        static void RetryingPing(RetryingEventArgs retryingEventArgs)
+        {
+            Logger.LogDebug($"Retrying Ping {retryingEventArgs.CurrentRetryCount} times because of error - {retryingEventArgs.LastException}");
         }
 
         private static async Task SetIsFinishedDirectMethodAsync(ModuleClient client)
