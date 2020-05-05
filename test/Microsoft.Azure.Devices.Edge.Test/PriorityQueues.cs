@@ -80,9 +80,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, "hubtest", trcImage, loadGenImage, testInfo, true);
             Action<EdgeConfigBuilder> addNetworkControllerConfig = this.BuildAddNetworkControllerConfig(trackingId, networkControllerImage);
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addNetworkControllerConfig, token);
-            await this.ToggleConnectivity(false, NetworkControllerModuleName, token);
+            bool networkOn = true;
+            await this.ToggleConnectivity(!networkOn, NetworkControllerModuleName, token);
             await Task.Delay(TimeSpan.Parse(LoadGenTestDuration) + TimeSpan.Parse(LoadGenTestStartDelay) + TimeSpan.FromSeconds(10));
-            await this.ToggleConnectivity(true, NetworkControllerModuleName, token);
+            await this.ToggleConnectivity(networkOn, NetworkControllerModuleName, token);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
             ConcurrentQueue<MessageTestResult> messages = new ConcurrentQueue<MessageTestResult>();
             await this.ReceiveEventsFromIotHub(deployment.StartTime, messages, loadGenTestStatus, token);

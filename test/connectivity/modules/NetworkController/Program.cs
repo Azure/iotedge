@@ -5,8 +5,10 @@ namespace NetworkController
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Net;
+    using System.Net.NetworkInformation;
     using System.Threading;
     using System.Threading.Tasks;
+    using Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
@@ -34,10 +36,10 @@ namespace NetworkController
                 {
                     await networkInterfaceName.ForEachAsync(async name =>
                     {
-                        var offline = new OfflineController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
-                        var satellite = new SatelliteController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
-                        var cellular = new CellularController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
-                        controllers = new List<INetworkController>() { offline, satellite, cellular };
+                    var offline = new OfflineController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
+                    var satellite = new SatelliteController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
+                    var cellular = new CellularController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
+                    controllers.AddRange(new List<INetworkController>{ offline, satellite, cellular });
 
                         // Reset network status before start delay to ensure network status is in designed state before test starts.
                         var sw = new Stopwatch();
@@ -87,25 +89,31 @@ namespace NetworkController
 
         private static async Task SetToggleConnectivityMethod(string networkInterfaceName, CancellationToken token)
         {
+            // Setting GatewayHostname to empty, since the module will be talking directly to IoTHub, bypassing edge
+            // NetworkController is on the host, so it should always have connection
             Environment.SetEnvironmentVariable("IOTEDGE_GATEWAYHOSTNAME", string.Empty);
-            ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(TransportType.Amqp_Tcp_Only, ModuleUtil.DefaultTimeoutErrorDetectionStrategy, ModuleUtil.DefaultTransientRetryStrategy);
+            ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(Settings.Current.TransportType, ModuleUtil.DefaultTimeoutErrorDetectionStrategy, ModuleUtil.DefaultTransientRetryStrategy);
             await moduleClient.SetMethodHandlerAsync("toggleConnectivity", ToggleConnectivity, new Tuple<string, CancellationToken>(networkInterfaceName, token));
         }
 
         private static async Task<MethodResponse> ToggleConnectivity(MethodRequest methodRequest, object userContext)
         {
             Log.LogInformation("Direct method toggleConnectivity has been invoked.");
-            var networkInterfaceNameAndToken = (Tuple<string, CancellationToken>)userContext;
+            (string networkInterfaceName, CancellationToken token) = (Tuple<string, CancellationToken>)userContext;
 
             // true for network on (restriction disabled), false for network off (restriction enabled)
-            bool networkOnValue = (bool)JObject.Parse(methodRequest.DataAsJson)["networkOnValue"];
-            Log.LogInformation($"Toggling network {networkInterfaceNameAndToken.Item1} {(networkOnValue ? "on" : "off")}");
+            if (!bool.TryParse(JObject.Parse(methodRequest.DataAsJson)["networkOnValue"].ToString(), out bool networkOnValue))
+            {
+                throw new ArgumentException($"Unable to parse methodRequest. JsonData: {methodRequest.DataAsJson}");
+            }
+
+            Log.LogInformation($"Toggling network {networkInterfaceName} {(networkOnValue ? "on" : "off")}");
             INetworkStatusReporter reporter = new NetworkStatusReporter(Settings.Current.TestResultCoordinatorEndpoint, Settings.Current.ModuleId, Settings.Current.TrackingId);
             NetworkProfileSetting customNetworkProfileSetting = Settings.Current.NetworkRunProfile.ProfileSetting;
             customNetworkProfileSetting.PackageLoss = 100;
-            var controller = new OfflineController(networkInterfaceNameAndToken.Item1, Settings.Current.IotHubHostname, customNetworkProfileSetting);
+            var controller = new OfflineController(networkInterfaceName, Settings.Current.IotHubHostname, customNetworkProfileSetting);
             NetworkControllerStatus networkControllerStatus = networkOnValue ? NetworkControllerStatus.Disabled : NetworkControllerStatus.Enabled;
-            await SetNetworkControllerStatus(controller, networkControllerStatus, reporter, networkInterfaceNameAndToken.Item2);
+            await SetNetworkControllerStatus(controller, networkControllerStatus, reporter, token);
             return new MethodResponse((int)HttpStatusCode.OK);
         }
 
