@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                                             IList<X509Certificate2> chainElements = new List<X509Certificate2>();
                                             foreach (X509ChainElement element in chain.ChainElements)
                                             {
-                                                chainElements.Add(element.Certificate);
+                                                chainElements.Add(new X509Certificate2(element.Certificate));
                                                 Console.WriteLine(element.Certificate.RawData.ToString());
                                             }
 
