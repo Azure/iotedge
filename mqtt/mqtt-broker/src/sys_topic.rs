@@ -60,22 +60,24 @@ impl<'a> StateChange<'a> {
 
 impl<'a> From<StateChange<'a>> for proto::Publication {
     fn from(state: StateChange<'a>) -> Self {
+        const QOS: proto::QoS = proto::QoS::AtLeastOnce;
+
         match state {
             StateChange::Subscriptions(client_id, subscriptions) => proto::Publication {
                 topic_name: format!("$edgehub/subscriptions/{}", client_id),
-                qos: proto::QoS::AtMostOnce, //no ack
+                qos: QOS,
                 retain: true,
                 payload: get_message_body(subscriptions.into_iter()).into(),
             },
             StateChange::Connections(connections) => proto::Publication {
                 topic_name: "$edgehub/connected".to_owned(),
-                qos: proto::QoS::AtMostOnce, //no ack
+                qos: QOS,
                 retain: true,
                 payload: get_message_body(connections.iter().map(|c| c.as_str())).into(),
             },
             StateChange::Sessions(sessions) => proto::Publication {
                 topic_name: "$edgehub/sessions".to_owned(),
-                qos: proto::QoS::AtMostOnce, //no ack
+                qos: QOS,
                 retain: true,
                 payload: get_message_body(sessions.iter().map(|c| c.as_str())).into(),
             },

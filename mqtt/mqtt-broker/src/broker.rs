@@ -698,7 +698,8 @@ where
                 };
                 let events = vec![];
 
-                self.publish_all(StateChange::get_sessions(&self.sessions).into()).unwrap();
+                self.publish_all(StateChange::get_sessions(&self.sessions).into())
+                    .unwrap();
 
                 Ok((ack, events))
             }
@@ -764,9 +765,12 @@ where
         match self.sessions.remove(client_id) {
             Some(Session::Transient(connected)) => {
                 info!("closing transient session for {}", client_id);
-                self.publish_all(StateChange::get_connections(&self.sessions).into()).unwrap();
-                self.publish_all(StateChange::get_sessions(&self.sessions).into()).unwrap();
-                self.publish_all(StateChange::clear_subscriptions(client_id).into()).unwrap();
+                self.publish_all(StateChange::get_connections(&self.sessions).into())
+                    .unwrap();
+                self.publish_all(StateChange::get_sessions(&self.sessions).into())
+                    .unwrap();
+                self.publish_all(StateChange::clear_subscriptions(client_id).into())
+                    .unwrap();
 
                 let (auth_id, _state, will, handle) = connected.into_parts();
 
@@ -783,7 +787,8 @@ where
                 // to be sent on the connection
 
                 info!("moving persistent session to offline for {}", client_id);
-                self.publish_all(StateChange::get_connections(&self.sessions).into()).unwrap();
+                self.publish_all(StateChange::get_connections(&self.sessions).into())
+                    .unwrap();
 
                 let (auth_id, state, will, handle) = connected.into_parts();
                 let new_session = Session::new_offline(state);
@@ -2024,13 +2029,16 @@ pub(crate) mod tests {
         )
         .await;
 
-        if let Some(Message::Client(_, ClientEvent::PublishTo(Publish::QoS0(_, message)))) =
+        if let Some(Message::Client(_, ClientEvent::PublishTo(Publish::QoS12(_, message)))) =
             a_rx.recv().await
         {
             assert_eq!(
                 message,
                 proto::Publish {
-                    packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtMostOnce,
+                    packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtLeastOnce(
+                        proto::PacketIdentifier::new(1).unwrap(),
+                        false
+                    ),
                     retain: true,
                     topic_name: "$edgehub/connected".to_owned(),
                     payload: "[\"client_a\"]".into(),
@@ -2302,7 +2310,7 @@ pub(crate) mod tests {
     async fn check_notify_recieved(rx: &mut UnboundedReceiver<Message>, expected: &[&str]) {
         if let Some(Message::Client(
             _,
-            ClientEvent::PublishTo(Publish::QoS0(_, proto::Publish { payload, .. })),
+            ClientEvent::PublishTo(Publish::QoS12(_, proto::Publish { payload, .. })),
         )) = rx.recv().await
         {
             is_notify_equal(&payload, expected);
