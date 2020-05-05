@@ -6,7 +6,6 @@ use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
 use log::debug;
 use serde::Serialize;
-use serde_json;
 
 use edgelet_core::{Module, ModuleRuntime, RuntimeOperation};
 use edgelet_http::route::{Handler, Parameters};

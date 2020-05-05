@@ -981,8 +981,8 @@ pub(crate) mod tests {
 
         assert_eq!(ack, proto::SubAckQos::Success(proto::QoS::AtMostOnce));
         assert_matches!(subscription, Some(_));
-        match session {
-            Session::Transient(ref connected) => {
+        match &session {
+            Session::Transient(connected) => {
                 assert_eq!(1, connected.state.subscriptions.len());
                 assert_eq!(
                     proto::QoS::AtMostOnce,
@@ -1001,8 +1001,8 @@ pub(crate) mod tests {
 
         assert_eq!(ack, proto::SubAckQos::Success(proto::QoS::AtLeastOnce));
         assert_matches!(subscription, Some(_));
-        match session {
-            Session::Transient(ref connected) => {
+        match &session {
+            Session::Transient(connected) => {
                 assert_eq!(1, connected.state.subscriptions.len());
                 assert_eq!(
                     proto::QoS::AtLeastOnce,
@@ -1058,8 +1058,8 @@ pub(crate) mod tests {
         };
         session.unsubscribe(&unsubscribe).unwrap();
 
-        match session {
-            Session::Transient(ref connected) => {
+        match &session {
+            Session::Transient(connected) => {
                 assert_eq!(1, connected.state.subscriptions.len());
                 assert_eq!(
                     proto::QoS::AtMostOnce,
@@ -1079,8 +1079,8 @@ pub(crate) mod tests {
             unsuback.packet_identifier
         );
 
-        match session {
-            Session::Transient(ref connected) => {
+        match &session {
+            Session::Transient(connected) => {
                 assert_eq!(0, connected.state.subscriptions.len());
             }
             _ => panic!("not transient"),
