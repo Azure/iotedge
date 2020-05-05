@@ -115,6 +115,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         {
             this.remoteCertificate = Option.Some(Preconditions.CheckNotNull(certificate, nameof(certificate)));
             this.remoteCertificateChain = Preconditions.CheckNotNull(chain, nameof(chain));
+
+            Console.WriteLine($"------------------Remote cert: {certificate.RawData.ToString()}------------------");
+            foreach (X509Certificate2 cert in remoteCertificateChain)
+            {
+                Console.WriteLine($"------------------Chain cert: {cert.RawData.ToString()}------------------");
+            }
         }
 
         internal static (string deviceId, string moduleId, string deviceClientType) ParseUserName(string username)
