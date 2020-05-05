@@ -5,6 +5,7 @@ authors = ["Azure IoT Edge Devs"]
 edition = "2018"
 
 [dependencies]
+async-trait = "0.1"
 bincode = "1.2"
 bytes = "0.5"
 chrono = "0.4"
@@ -31,7 +32,6 @@ tracing-futures = "0.2"
 uuid = { version = "0.8", features = ["v4"] }
 
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
-async-trait = "0.1"
 
 [dev-dependencies]
 atty = "0.2"
