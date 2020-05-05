@@ -1,6 +1,6 @@
 use std::collections::HashMap;
+use std::iter::FromIterator;
 
-use bytes::Bytes;
 use mqtt3::proto;
 use tracing::error;
 
@@ -8,122 +8,93 @@ use crate::session::Session;
 use crate::ClientId;
 
 pub enum StateChange<'a> {
-    Subscriptions(&'a Session),
-    AddConnection(&'a HashMap<ClientId, Session>),
-    RemoveConnection(&'a HashMap<ClientId, Session>, &'a ClientId),
+    Subscriptions(&'a ClientId, Vec<&'a str>),
+    Connections(Vec<&'a ClientId>),
+    Sessions(Vec<&'a ClientId>),
 }
 
-pub enum SysMessage {
-    Single(proto::Publication),
-    Multiple(Vec<proto::Publication>),
-    None,
-}
-
-pub fn get_sys_message(change: &StateChange<'_>) -> SysMessage {
-    match change {
-        StateChange::Subscriptions(session) => get_subscription(session),
-        StateChange::AddConnection(sessions) => get_connect(sessions),
-        StateChange::RemoveConnection(sessions, client_id) => get_disconnect(sessions, client_id),
-    }
-}
-
-fn get_subscription(session: &Session) -> SysMessage {
-    let state = match session {
-        // get session state
-        Session::Transient(connected) => connected.state(),
-        Session::Persistent(connected) => connected.state(),
-        Session::Offline(offline) => offline.state(),
-        _ => return SysMessage::None,
-    };
-
-    let topics = get_message_body(
-        state
-            .subscriptions()
-            .keys() // get topic filters
-            .map(|t| t.as_ref()),
-    );
-
-    let client_id = state.client_id();
-
-    let publication = proto::Publication {
-        topic_name: format!("$edgehub/subscriptions/{}", client_id),
-        qos: proto::QoS::AtMostOnce, //no ack
-        retain: true,
-        payload: Bytes::from(topics),
-    };
-
-    SysMessage::Single(publication)
-}
-
-fn get_connect(sessions: &HashMap<ClientId, Session>) -> SysMessage {
-    SysMessage::Multiple(vec![
-        get_connection_change(sessions),
-        get_session_change(sessions),
-    ])
-}
-
-fn get_disconnect(sessions: &HashMap<ClientId, Session>, client_id: &ClientId) -> SysMessage {
-    let mut result = Vec::new();
-    if sessions.get(client_id).is_none() {
-        // If transient session is closed, remove its subscriptions
-        result.push(proto::Publication {
-            topic_name: format!("$edgehub/subscriptions/{}", client_id),
-            qos: proto::QoS::AtMostOnce, //no ack
-            retain: true,
-            payload: "".into(),
-        });
+impl<'a> StateChange<'a> {
+    pub fn get_subscriptions(client_id: &'a ClientId, session: &'a Session) -> Self {
+        Self::Subscriptions(
+            client_id,
+            session
+                .subscriptions()
+                .unwrap()
+                .keys()
+                .map(String::as_str)
+                .collect(),
+        )
     }
 
-    result.push(get_connection_change(sessions));
-    result.push(get_session_change(sessions));
+    pub fn clear_subscriptions(client_id: &'a ClientId) -> Self {
+        Self::Subscriptions(client_id, vec![])
+    }
 
-    SysMessage::Multiple(result)
-}
-
-fn get_connection_change(sessions: &HashMap<ClientId, Session>) -> proto::Publication {
-    let connected: String =
-        get_message_body(
+    pub fn get_connections(sessions: &'a HashMap<ClientId, Session>) -> Self {
+        Self::Connections(
             sessions
                 .iter()
                 .filter_map(|(client_id, session)| match session {
-                    Session::Transient(_) => Some(client_id.as_str()),
-                    Session::Persistent(_) => Some(client_id.as_str()),
+                    Session::Transient(_) => Some(client_id),
+                    Session::Persistent(_) => Some(client_id),
                     _ => None,
-                }),
-        );
+                })
+                .collect(),
+        )
+    }
 
-    proto::Publication {
-        topic_name: "$edgehub/connected".to_owned(),
-        qos: proto::QoS::AtMostOnce, //no ack
-        retain: true,
-        payload: connected.into(),
+    pub fn get_sessions(sessions: &'a HashMap<ClientId, Session>) -> Self {
+        Self::Sessions(
+            sessions
+                .iter()
+                .filter_map(|(client_id, session)| match session {
+                    Session::Transient(_) => Some(client_id),
+                    Session::Persistent(_) => Some(client_id),
+                    Session::Offline(_) => Some(client_id),
+                    _ => None,
+                })
+                .collect(),
+        )
     }
 }
 
-fn get_session_change(sessions: &HashMap<ClientId, Session>) -> proto::Publication {
-    let existing_sessions: String = get_message_body(sessions.iter().filter_map(
-        |(client_id, session)| match session {
-            Session::Transient(_) => Some(client_id.as_str()),
-            Session::Persistent(_) => Some(client_id.as_str()),
-            Session::Offline(_) => Some(client_id.as_str()),
-            _ => None,
-        },
-    ));
-
-    proto::Publication {
-        topic_name: "$edgehub/sessions".to_owned(),
-        qos: proto::QoS::AtMostOnce, //no ack
-        retain: true,
-        payload: existing_sessions.into(),
+impl<'a> From<StateChange<'a>> for proto::Publication {
+    fn from(state: StateChange<'a>) -> Self {
+        match state {
+            StateChange::Subscriptions(client_id, subscriptions) => proto::Publication {
+                topic_name: format!("$edgehub/subscriptions/{}", client_id),
+                qos: proto::QoS::AtMostOnce, //no ack
+                retain: true,
+                payload: get_message_body(subscriptions.into_iter()).into(),
+            },
+            StateChange::Connections(connections) => proto::Publication {
+                topic_name: "$edgehub/connected".to_owned(),
+                qos: proto::QoS::AtMostOnce, //no ack
+                retain: true,
+                payload: get_message_body(connections.iter().map(|c| c.as_str())).into(),
+            },
+            StateChange::Sessions(sessions) => proto::Publication {
+                topic_name: "$edgehub/sessions".to_owned(),
+                qos: proto::QoS::AtMostOnce, //no ack
+                retain: true,
+                payload: get_message_body(sessions.iter().map(|c| c.as_str())).into(),
+            },
+        }
     }
 }
 
-fn get_message_body<'a, I>(payload: I) -> String
+fn get_message_body<'a, P>(payload: P) -> String
 where
-    I: Iterator<Item = &'a str>,
+    P: IntoIterator<Item = &'a str>,
 {
-    serde_json::to_string(&payload.collect::<Vec<&'a str>>()).unwrap_or_else(|e| {
-        error!("Json Error: {}", e);
+    let payload: Vec<&str> = Vec::from_iter(payload);
+
+    if payload.is_empty() {
         "".to_owned()
-    })
+    } else {
+        serde_json::to_string(&payload).unwrap_or_else(|e| {
+            error!("Json Error: {}", e);
+            "".to_owned()
+        })
+    }
 }

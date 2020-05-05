@@ -11,7 +11,7 @@ use crate::auth::{
     Operation,
 };
 use crate::session::{ConnectedSession, Session, SessionState};
-use crate::sys_topic::{get_sys_message, StateChange, SysMessage};
+use crate::sys_topic::StateChange;
 use crate::{
     subscription::Subscription, AuthId, ClientEvent, ClientId, ConnReq, Error, Message, SystemEvent,
 };
@@ -330,6 +330,8 @@ where
                 for event in events {
                     session.send(event)?;
                 }
+
+                self.publish_all(StateChange::get_connections(&self.sessions).into())?;
             }
             Err(SessionError::DuplicateSession(mut old_session, ack)) => {
                 // Drop the old connection
@@ -356,18 +358,12 @@ where
 
         debug!("connect handled.");
 
-        self.send_sys_message(get_sys_message(&StateChange::AddConnection(&self.sessions)))?;
-
         Ok(())
     }
 
     fn process_disconnect(&mut self, client_id: &ClientId) -> Result<(), Error> {
         debug!("handling disconnect...");
         if let Some(mut session) = self.close_session(&client_id) {
-            self.send_sys_message(get_sys_message(&StateChange::RemoveConnection(
-                &self.sessions,
-                &client_id,
-            )))?;
             session.send(ClientEvent::Disconnect(proto::Disconnect))?;
         } else {
             debug!("no session for {}", client_id);
@@ -383,10 +379,6 @@ where
     fn drop_connection(&mut self, client_id: &ClientId) -> Result<(), Error> {
         debug!("handling drop connection...");
         if let Some(mut session) = self.close_session(&client_id) {
-            self.send_sys_message(get_sys_message(&StateChange::RemoveConnection(
-                &self.sessions,
-                &client_id,
-            )))?;
             session.send(ClientEvent::DropConnection)?;
 
             // Ungraceful disconnect - send the will
@@ -404,10 +396,6 @@ where
         debug!("handling close session...");
         if let Some(session) = self.close_session(client_id) {
             debug!("session removed");
-            self.send_sys_message(get_sys_message(&StateChange::RemoveConnection(
-                &self.sessions,
-                &client_id,
-            )))?;
 
             // Ungraceful disconnect - send the will
             if let Some(will) = session.into_will() {
@@ -467,8 +455,8 @@ where
                 publish_to(&self.authorizer, session, &publication)?;
             }
 
-            let sys_message = get_sys_message(&StateChange::Subscriptions(&session));
-            self.send_sys_message(sys_message)?;
+            let message = StateChange::get_subscriptions(client_id, &session).into();
+            self.publish_all(message)?;
         } else {
             debug!("no session for {}", client_id);
         }
@@ -486,8 +474,8 @@ where
                 let unsuback = session.unsubscribe(&unsubscribe)?;
                 session.send(ClientEvent::UnsubAck(unsuback))?;
 
-                let sys_message = get_sys_message(&StateChange::Subscriptions(&session));
-                self.send_sys_message(sys_message)?;
+                let notify_message = StateChange::get_subscriptions(client_id, &session).into();
+                self.publish_all(notify_message)?;
 
                 Ok(())
             }
@@ -710,6 +698,8 @@ where
                 };
                 let events = vec![];
 
+                self.publish_all(StateChange::get_sessions(&self.sessions).into()).unwrap();
+
                 Ok((ack, events))
             }
         }
@@ -774,7 +764,12 @@ where
         match self.sessions.remove(client_id) {
             Some(Session::Transient(connected)) => {
                 info!("closing transient session for {}", client_id);
+                self.publish_all(StateChange::get_connections(&self.sessions).into()).unwrap();
+                self.publish_all(StateChange::get_sessions(&self.sessions).into()).unwrap();
+                self.publish_all(StateChange::clear_subscriptions(client_id).into()).unwrap();
+
                 let (auth_id, _state, will, handle) = connected.into_parts();
+
                 Some(Session::new_disconnecting(
                     auth_id,
                     client_id.clone(),
@@ -788,6 +783,8 @@ where
                 // to be sent on the connection
 
                 info!("moving persistent session to offline for {}", client_id);
+                self.publish_all(StateChange::get_connections(&self.sessions).into()).unwrap();
+
                 let (auth_id, state, will, handle) = connected.into_parts();
                 let new_session = Session::new_offline(state);
                 self.sessions.insert(client_id.clone(), new_session);
@@ -848,20 +845,6 @@ where
                 warn!(message = "error processing message", error = %e);
             }
         }
-
-        Ok(())
-    }
-
-    fn send_sys_message(&mut self, message: SysMessage) -> Result<(), Error> {
-        match message {
-            SysMessage::Single(publication) => self.publish_all(publication)?,
-            SysMessage::Multiple(publications) => {
-                for publication in publications {
-                    self.publish_all(publication)?;
-                }
-            }
-            SysMessage::None => (),
-        };
 
         Ok(())
     }
@@ -1903,8 +1886,8 @@ pub(crate) mod tests {
             payload: Bytes::new(),
         };
 
-        let message = Message::Client(client_id.clone(), ClientEvent::PublishFrom(publish));
-        broker_handle.send(message).unwrap();
+        let notify_message = Message::Client(client_id.clone(), ClientEvent::PublishFrom(publish));
+        broker_handle.send(notify_message).unwrap();
 
         assert_matches!(
             rx.recv().await,

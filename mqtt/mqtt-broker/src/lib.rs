@@ -40,7 +40,7 @@ pub use crate::persist::{
 pub use crate::server::Server;
 pub use crate::session::SessionState;
 pub use crate::snapshot::{Snapshotter, StateSnapshotHandle};
-pub use crate::sys_topic::{get_sys_message, StateChange, SysMessage};
+pub use crate::sys_topic::StateChange;
 pub use crate::transport::TransportBuilder;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]

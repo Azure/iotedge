@@ -623,6 +623,17 @@ impl Session {
         }
     }
 
+    pub fn subscriptions(&self) -> Option<&HashMap<String, Subscription>> {
+        let state = match self {
+            Self::Transient(connected) => Some(connected.state()),
+            Self::Persistent(connected) => Some(connected.state()),
+            Self::Offline(offline) => Some(offline.state()),
+            Self::Disconnecting(_) => None,
+        };
+
+        state.map(SessionState::subscriptions)
+    }
+
     pub fn handle_publish(
         &mut self,
         publish: proto::Publish,
