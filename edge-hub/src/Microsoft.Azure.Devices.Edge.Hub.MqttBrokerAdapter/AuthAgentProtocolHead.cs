@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public void Dispose() => this.CloseAsync(CancellationToken.None).Wait();
 
-        public static IWebHost CreateWebHostBuilder(
+        static IWebHost CreateWebHostBuilder(
                             IAuthenticator authenticator,
                             IUsernameParser usernameParser,
                             IClientCredentialsFactory clientCredentialsFactory,
