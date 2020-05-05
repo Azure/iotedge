@@ -12,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Microsoft.Extensions.Logging;
-    using Newtonsoft.Json;
     using static System.FormattableString;
 
     public class DeviceIdentityProvider : IDeviceIdentityProvider
@@ -79,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     return UnauthenticatedDeviceIdentity.Instance;
                 }
 
-                Console.WriteLine($"------------Device credential error: {JsonConvert.SerializeObject(deviceCredentials)} | Client id error: {!clientId.Equals(deviceCredentials.Identity.Id, StringComparison.Ordinal)}--------------");
+                Console.WriteLine($"------------Device credential error: {deviceCredentials.ToString()} | Client id error: {!clientId.Equals(deviceCredentials.Identity.Id, StringComparison.Ordinal)}--------------");
 
                 if (deviceCredentials == null
                     || !clientId.Equals(deviceCredentials.Identity.Id, StringComparison.Ordinal)

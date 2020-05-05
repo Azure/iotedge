@@ -63,10 +63,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                                             Console.WriteLine($"---------------------{JsonConvert.SerializeObject(chainElements)}-----------------------");
                                             Console.WriteLine($"---------------------------{clientCert.Thumbprint}----------------------------------");
 
-                                            CertContext.CertsToChain.Add(clientCert.Thumbprint, new TlsConnectionFeatureExtended
+                                            CertContext.CertsToChain[clientCert.Thumbprint] = new TlsConnectionFeatureExtended
                                             {
                                                 ChainElements = chainElements
-                                            });
+                                            };
 
                                             Console.WriteLine($"---------------Count of chain elements: {chainElements.Count}----------------------");
 
