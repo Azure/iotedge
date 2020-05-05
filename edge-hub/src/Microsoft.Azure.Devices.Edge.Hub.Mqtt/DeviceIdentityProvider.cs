@@ -79,8 +79,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 }
 
                 Console.WriteLine($"------------Device credential error: {deviceCredentials.ToString()} | Client id error: {!clientId.Equals(deviceCredentials.Identity.Id, StringComparison.Ordinal)}--------------");
+
                 if (deviceCredentials is ICertificateCredentials)
                 {
+                    foreach (X509Certificate2 cert in this.remoteCertificateChain)
+                    {
+                        Console.WriteLine($"------------------GetAsync() owned chain cert: {cert.RawData.ToString()}------------------");
+                    }
+
                     ICertificateCredentials tmpCredentials = (ICertificateCredentials)deviceCredentials;
                     X509Certificate2 remoteCertificate = tmpCredentials.ClientCertificate;
                     IList<X509Certificate2> remoteCertificateChain = tmpCredentials.ClientCertificateChain;
@@ -117,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.remoteCertificateChain = Preconditions.CheckNotNull(chain, nameof(chain));
 
             Console.WriteLine($"------------------Remote cert: {certificate.RawData.ToString()}------------------");
-            foreach (X509Certificate2 cert in this.remoteCertificateChain)
+            foreach (X509Certificate2 cert in chain)
             {
                 Console.WriteLine($"------------------Chain cert: {cert.RawData.ToString()}------------------");
             }
