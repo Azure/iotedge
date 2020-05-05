@@ -3,6 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     public interface IUsernameParser
     {
-        (string deviceId, string moduleId, string deviceClientType) Parse(string username);
+        ClientInfo Parse(string username);
     }
 }

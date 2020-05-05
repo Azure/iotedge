@@ -41,10 +41,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             var usernameParser = new MqttUsernameParser();
 
-            (string deviceId, string moduleId, string deviceClientType) = usernameParser.Parse(username);
-            Assert.Equal(expectedDeviceId, deviceId);
-            Assert.Equal(expectedModuleId, moduleId);
-            Assert.Equal(expectedDeviceClientType, deviceClientType);
+            ClientInfo clientInfo = usernameParser.Parse(username);
+            Assert.Equal(expectedDeviceId, clientInfo.DeviceId);
+            Assert.Equal(expectedModuleId, clientInfo.ModuleId);
+            Assert.Equal(expectedDeviceClientType, clientInfo.DeviceClientType);
         }
 
         [Theory]

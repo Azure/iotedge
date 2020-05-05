@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         const string ApiVersionKey = "api-version";
         const string DeviceClientTypeKey = "DeviceClientType";
 
-        public (string deviceId, string moduleId, string deviceClientType) Parse(string username)
+        public ClientInfo Parse(string username)
         {
             // Username is of one of the 2 forms:
             //   username   = edgeHubHostName "/" deviceId [ "/" moduleId ] "/?" properties
@@ -107,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 deviceClientType = string.Empty;
             }
 
-            return (deviceId, moduleId, deviceClientType);
+            return new ClientInfo(deviceId, moduleId, deviceClientType);
         }
 
         static IDictionary<string, string> ParseDeviceClientType(string queryParameterString)

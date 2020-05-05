@@ -46,18 +46,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 Preconditions.CheckNonWhiteSpace(username, nameof(username));
                 Preconditions.CheckNonWhiteSpace(clientId, nameof(clientId));
 
-                (string deviceId, string moduleId, string deviceClientType) = this.usernameParser.Parse(username);
+                ClientInfo clientInfo = this.usernameParser.Parse(username);
                 IClientCredentials deviceCredentials = null;
 
                 if (!string.IsNullOrEmpty(password))
                 {
-                    deviceCredentials = this.clientCredentialsFactory.GetWithSasToken(deviceId, moduleId, deviceClientType, password, false);
+                    deviceCredentials = this.clientCredentialsFactory.GetWithSasToken(clientInfo.DeviceId, clientInfo.ModuleId, clientInfo.DeviceClientType, password, false);
                 }
                 else if (this.remoteCertificate.HasValue)
                 {
                     if (!this.clientCertAuthAllowed)
                     {
-                        Events.CertAuthNotEnabled(deviceId, moduleId);
+                        Events.CertAuthNotEnabled(clientInfo.DeviceId, clientInfo.ModuleId);
                         return UnauthenticatedDeviceIdentity.Instance;
                     }
 
@@ -65,16 +65,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                         cert =>
                         {
                             deviceCredentials = this.clientCredentialsFactory.GetWithX509Cert(
-                                deviceId,
-                                moduleId,
-                                deviceClientType,
+                                clientInfo.DeviceId,
+                                clientInfo.ModuleId,
+                                clientInfo.DeviceClientType,
                                 cert,
                                 this.remoteCertificateChain);
                         });
                 }
                 else
                 {
-                    Events.AuthNotFound(deviceId, moduleId);
+                    Events.AuthNotFound(clientInfo.DeviceId, clientInfo.ModuleId);
                     return UnauthenticatedDeviceIdentity.Instance;
                 }
 
@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     return UnauthenticatedDeviceIdentity.Instance;
                 }
 
-                await this.productInfoStore.SetProductInfo(deviceCredentials.Identity.Id, deviceClientType);
+                await this.productInfoStore.SetProductInfo(deviceCredentials.Identity.Id, clientInfo.DeviceClientType);
                 Events.Success(clientId, username);
                 return new ProtocolGatewayIdentity(deviceCredentials);
             }

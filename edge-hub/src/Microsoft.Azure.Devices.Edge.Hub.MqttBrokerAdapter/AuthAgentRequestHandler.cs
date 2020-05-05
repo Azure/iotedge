@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
                 (isAuthenticated, credentials) =
                     await this.GetIdsFromUsername(request)
-                                .FlatMap(ids => this.GetCredentials(request, ids.deviceId, ids.moduleId, ids.deviceClientType))
+                                .FlatMap(ids => this.GetCredentials(request, ids.DeviceId, ids.ModuleId, ids.DeviceClientType))
                                 .Match(
                                     async creds => (await this.AuthenticateAsync(creds), Option.Some(creds)),
                                     () => Task.FromResult((false, Option.None<IClientCredentials>())));
@@ -99,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
         }
 
-        Option<(string deviceId, string moduleId, string deviceClientType)> GetIdsFromUsername(AuthRequest request)
+        Option<ClientInfo> GetIdsFromUsername(AuthRequest request)
         {
             try
             {
@@ -108,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             catch (Exception e)
             {
                 Events.InvalidUsernameFormat(e);
-                return Option.None<(string, string, string)>();
+                return Option.None<ClientInfo>();
             }
         }
 
