@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Extensions
         {
             var feature = context.Features.Get<ITlsConnectionFeatureExtended>();
 
-            Console.WriteLine($"-------------CLIENT CERT CHAIN NULL CHECK: {feature == null}---------------");
+            Console.WriteLine($"-------------CLIENT CERT CHAIN NULL CHECK: {feature == null} {feature.ChainElements.Count == 0}---------------");
 
             return (feature == null) ? new List<X509Certificate2>() : feature.ChainElements;
         }
