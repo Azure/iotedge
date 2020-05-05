@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 async (context, next) =>
                 {
                     Console.WriteLine($"---------------Retrieving tls feature from map----------------------");
-                    TlsConnectionFeatureExtended tlsConnectionFeatureExtended = CertContext.CertsToChain[context.Connection.ClientCertificate]; // TODO: remove from dict
+                    TlsConnectionFeatureExtended tlsConnectionFeatureExtended = CertContext.CertsToChain[context.Connection.ClientCertificate.Thumbprint]; // TODO: remove from dict
                     context.Features.Set<ITlsConnectionFeatureExtended>(tlsConnectionFeatureExtended);
                     Console.WriteLine($"---------------Retrieve successful----------------------");
                     await next();

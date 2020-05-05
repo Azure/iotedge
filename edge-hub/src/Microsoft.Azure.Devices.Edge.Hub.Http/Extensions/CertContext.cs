@@ -6,6 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Extensions
 
     public static class CertContext // TODO: Replace hacky POC
     {
-        public static Dictionary<X509Certificate2, TlsConnectionFeatureExtended> CertsToChain = new Dictionary<X509Certificate2, TlsConnectionFeatureExtended>();
+        public static Dictionary<string, TlsConnectionFeatureExtended> CertsToChain = new Dictionary<string, TlsConnectionFeatureExtended>();
     }
 }
