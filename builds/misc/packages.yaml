@@ -135,7 +135,13 @@ jobs:
     steps:
       - powershell: |
           $base_version = Get-Content -Path "$(Build.SourcesDirectory)\edgelet\version.txt"
-          $version = ("{0}{1}" -f $base_version, $(Build.BuildNumber))
+          if ($base_version -like '*~*') {
+            $version = ("{0}{1}" -f $base_version, $(Build.BuildNumber))
+          } else {
+            $version = $base_version
+          }
+          Write-Host "base_version=$base_version"
+          Write-Host "version=$version"
           Write-Host ("##vso[task.setvariable variable=VERSION;]$version")
           Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
         displayName: Set Version

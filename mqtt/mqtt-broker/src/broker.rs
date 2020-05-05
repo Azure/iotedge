@@ -35,7 +35,7 @@ pub struct Broker<N, Z> {
     authorizer: Z,
 
     #[cfg(feature = "__internal_broker_callbacks")]
-    pub on_publish: Option<Sender<()>>,
+    pub on_publish: Option<Sender<std::time::Duration>>,
 }
 
 impl<N, Z> Broker<N, Z>
@@ -482,6 +482,30 @@ where
         client_id: &ClientId,
         publish: proto::Publish,
     ) -> Result<(), Error> {
+        #[cfg(feature = "__internal_broker_callbacks")]
+        {
+            use std::time::Instant;
+
+            let now = Instant::now();
+            let res = self.process_publish_inner(client_id, publish);
+            let execution_time = now.elapsed();
+            if let Some(on_publish) = &mut self.on_publish {
+                on_publish.send(execution_time).expect("on_publish");
+            }
+            res
+        }
+
+        #[cfg(not(feature = "__internal_broker_callbacks"))]
+        {
+            self.process_publish_inner(client_id, publish)
+        }
+    }
+
+    fn process_publish_inner(
+        &mut self,
+        client_id: &ClientId,
+        publish: proto::Publish,
+    ) -> Result<(), Error> {
         let operation = Operation::new_publish(publish.clone());
         if let Some(session) = self.sessions.get_mut(client_id) {
             let activity = Activity::new(session.auth_id()?.clone(), client_id.clone(), operation);
@@ -512,13 +536,6 @@ where
             }
         } else {
             debug!("no session for {}", client_id);
-        }
-
-        #[cfg(feature = "__internal_broker_callbacks")]
-        {
-            if let Some(on_publish) = &mut self.on_publish {
-                on_publish.send(()).expect("on_publish");
-            }
         }
 
         Ok(())
