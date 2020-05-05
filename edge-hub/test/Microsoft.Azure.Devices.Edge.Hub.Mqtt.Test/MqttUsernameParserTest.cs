@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using Xunit;
 
     [Unit]
-    public class UsernameParserTest
+    public class MqttUsernameParserTest
     {
         public static IEnumerable<object[]> GetUsernames()
         {
