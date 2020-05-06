@@ -61,12 +61,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 async (context, next) =>
                 {
                     Console.WriteLine($"---------------Retrieving tls feature from map----------------------");
-                    IList<X509Certificate2> certChain = CertChainMapper.ExtractCertChain(context.Connection.ClientCertificate.Thumbprint);
-                    TlsConnectionFeatureExtended tlsConnectionFeatureExtended = new TlsConnectionFeatureExtended
+                    Option<IList<X509Certificate2>> certChainOption = CertChainMapper.ExtractCertChain(context.Connection);
+                    certChainOption.ForEach(certChain =>
                     {
-                        ChainElements = certChain
-                    };
-                    context.Features.Set<ITlsConnectionFeatureExtended>(tlsConnectionFeatureExtended);
+                        TlsConnectionFeatureExtended tlsConnectionFeatureExtended = new TlsConnectionFeatureExtended
+                        {
+                            ChainElements = certChain
+                        };
+                        context.Features.Set<ITlsConnectionFeatureExtended>(tlsConnectionFeatureExtended);
+                    });
                     Console.WriteLine($"---------------Retrieve successful----------------------");
                     await next();
                 });

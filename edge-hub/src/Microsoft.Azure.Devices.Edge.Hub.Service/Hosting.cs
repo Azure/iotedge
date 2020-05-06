@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                                     new HttpsConnectionAdapterOptions()
                                     {
                                         ServerCertificate = serverCertificate,
-                                        ClientCertificateValidation = (clientCert, chain, policyErrors) => // TODO: Store cert and add to context in startup. Inject TlsFeatures into Startup class. Eliminate hacky POC.
+                                        ClientCertificateValidation = (clientCert, chain, policyErrors) => // TODO: verify that this runs only if certificate provided
                                         {
                                             Console.WriteLine("---------------Setting map entry for tls feature----------------------");
                                             Console.WriteLine(clientCert.RawData.ToString());
@@ -82,10 +82,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             IContainer container = webHost.Services.GetService(typeof(IStartup)) is Startup startup ? startup.Container : null;
             return new Hosting(webHost, container);
         }
-
-        // static void ClientCertificateValidation(X509Certificate2 clientCert, X509Chain chain, SslPolicyErrors policyErrors)
-        // {
-
-        // }
     }
 }
