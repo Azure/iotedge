@@ -1135,7 +1135,7 @@ pub(crate) mod tests {
         }
     }
 
-    fn connection_handle() -> ConnectionHandle {
+    pub fn connection_handle() -> ConnectionHandle {
         let id = Uuid::new_v4();
         let (tx1, _rx1) = mpsc::unbounded_channel();
         ConnectionHandle::new(id, tx1)
@@ -1153,7 +1153,7 @@ pub(crate) mod tests {
         }
     }
 
-    fn persistent_connect(id: String) -> proto::Connect {
+    pub fn persistent_connect(id: String) -> proto::Connect {
         proto::Connect {
             username: None,
             password: None,
@@ -2352,11 +2352,11 @@ pub(crate) mod tests {
         {
             is_notify_equal(&payload, expected);
         } else {
-            panic!("Expected to recieve a PublishTo");
+            panic!("Expected to recieve a QOS12 PublishTo");
         }
     }
 
-    fn is_notify_equal(payload: &Bytes, expected: &[&str]) {
+    pub fn is_notify_equal(payload: &Bytes, expected: &[&str]) {
         let payload: String = String::from_utf8(payload.to_vec()).unwrap();
         let mut payload: Vec<&str> = serde_json::from_str(&payload).unwrap();
         payload.sort();
