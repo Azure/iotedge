@@ -117,6 +117,7 @@ pub(crate) mod tests {
         // Session with no subscriptions
         let session = make_session(expected_id.as_str(), Vec::<&str>::new());
         let no_subs = StateChange::new_subscription(&expected_id, &session);
+
         if let StateChange::Subscriptions(stored_id, stored_subs) = &no_subs {
             assert_eq!(&&expected_id, stored_id);
             assert_eq!(&Vec::<&str>::new(), stored_subs.as_ref().unwrap());
@@ -125,29 +126,88 @@ pub(crate) mod tests {
         let message: proto::Publication = no_subs.try_into().unwrap();
         matches_subscription_publication(message, expected_id.as_str(), &[]);
 
-        // Session with some subscriptions
+        // Session with 1 subscription
+        let session = make_session(expected_id.as_str(), &["Sub"]);
+        let one_sub = StateChange::new_subscription(&expected_id, &session);
+
+        if let StateChange::Subscriptions(stored_id, stored_subs) = &one_sub {
+            assert_eq!(&&expected_id, stored_id);
+            assert_eq!(&vec!["Sub"], stored_subs.as_ref().unwrap());
+        }
+
+        let message: proto::Publication = one_sub.try_into().unwrap();
+        matches_subscription_publication(message, expected_id.as_str(), &["Sub"]);
+
+        // Session with many subscriptions
         let session = make_session(expected_id.as_str(), (1..4).map(|i| format!("Sub{}", i)));
-        let some_subs = StateChange::new_subscription(&expected_id, &session);
-        if let StateChange::Subscriptions(stored_id, stored_subs) = &some_subs {
+        let many_subs = StateChange::new_subscription(&expected_id, &session);
+
+        if let StateChange::Subscriptions(stored_id, stored_subs) = &many_subs {
             assert_eq!(&&expected_id, stored_id);
             assert_eq!(&vec!["Sub1", "Sub2", "Sub3"], stored_subs.as_ref().unwrap());
         }
 
-        let message: proto::Publication = some_subs.try_into().unwrap();
+        let message: proto::Publication = many_subs.try_into().unwrap();
         matches_subscription_publication(message, expected_id.as_str(), &["Sub1", "Sub2", "Sub3"]);
 
-        // let single_session = make_session(
-        //     "Session".to_owned(),
-        //     (1..5).map(|i| format!("Subscription {}", i)),
-        // );
+        // Clear subscriptions
+        let clear_subs = StateChange::clear_subscriptions(&expected_id);
 
-        // let sessions: HashMap<ClientId, Session> = HashMap::from_iter((1..5).map(|i| {
-        //     let id = format!("Session {}", i);
-        //     let session = make_session(&id, (1..i).map(|j| format!("Subscription {}", j)));
+        if let StateChange::Subscriptions(stored_id, stored_subs) = &clear_subs {
+            assert_eq!(&&expected_id, stored_id);
+            assert!(stored_subs.is_none());
+        }
 
-        //     (id.into(), session)
-        // }));
-        // assert_eq!(true, false);
+        let message: proto::Publication = clear_subs.try_into().unwrap();
+        let expected: bytes::Bytes = "".into();
+        assert_eq!(expected, message.payload);
+    }
+
+    #[test]
+    fn test_connections() {
+        // No sessions
+        let sessions: HashMap<ClientId, Session> = HashMap::new();
+        let no_connections = StateChange::new_connection(&sessions);
+        if let StateChange::Connections(no_connections) = &no_connections {
+            assert_eq!(&Vec::<&ClientId>::new(), no_connections);
+        }
+
+        let message: proto::Publication = no_connections.try_into().unwrap();
+        matches_connection_publication(message, &[]);
+
+        // One session
+        let sessions: HashMap<ClientId, Session> = HashMap::from_iter((1..2).map(|i| {
+            let id = format!("Session {}", i);
+            let session = make_session(&id, (1..i).map(|j| format!("Subscription {}", j)));
+
+            (id.into(), session)
+        }));
+        let one_connection = StateChange::new_connection(&sessions);
+        if let StateChange::Connections(one_connection) = &one_connection {
+            let expected: ClientId = "Session 1".into();
+            assert_eq!(&vec![&expected], one_connection);
+        }
+
+        let message: proto::Publication = one_connection.try_into().unwrap();
+        matches_connection_publication(message, &["Session 1"]);
+
+        // One multiple sessions
+        let sessions: HashMap<ClientId, Session> = HashMap::from_iter((1..4).map(|i| {
+            let id = format!("Session {}", i);
+            let session = make_session(&id, (1..i).map(|j| format!("Subscription {}", j)));
+
+            (id.into(), session)
+        }));
+        let one_connection = StateChange::new_connection(&sessions);
+        if let StateChange::Connections(one_connection) = &one_connection {
+            let expected1: ClientId = "Session 1".into();
+            let expected2: ClientId = "Session 2".into();
+            let expected3: ClientId = "Session 3".into();
+            assert_eq!(&vec![&expected1, &expected2, &expected3], one_connection);
+        }
+
+        let message: proto::Publication = one_connection.try_into().unwrap();
+        matches_connection_publication(message, &["Session 1", "Session 2", "Session 3"]);
     }
 
     fn make_session<I, S>(id: &str, subscriptions: I) -> Session
@@ -181,6 +241,18 @@ pub(crate) mod tests {
         client_id: &str,
         body: &[&str],
     ) {
+        matches_publication(
+            publication,
+            format!("$edgehub/subscriptions/{}", client_id),
+            body,
+        );
+    }
+
+    fn matches_connection_publication(publication: proto::Publication, body: &[&str]) {
+        matches_publication(publication, "$edgehub/connected".to_owned(), body);
+    }
+
+    fn matches_publication(publication: proto::Publication, topic: String, body: &[&str]) {
         let proto::Publication {
             topic_name,
             qos,
@@ -188,7 +260,7 @@ pub(crate) mod tests {
             payload,
         } = publication;
 
-        assert_eq!(topic_name, format!("$edgehub/subscriptions/{}", client_id));
+        assert_eq!(topic_name, topic);
         assert_eq!(qos, STATE_CHANGE_QOS);
         assert_eq!(retain, true);
         is_notify_equal(&payload, body);
