@@ -113,7 +113,9 @@ pub(crate) mod tests {
     #[test]
     fn test_subscriptions() {
         let expected_id: ClientId = "Session".into();
-        let session = make_session(expected_id.as_str(), vec![]);
+
+        // Session with no subscriptions
+        let session = make_session(expected_id.as_str(), Vec::<&str>::new());
         let no_subs = StateChange::new_subscription(&expected_id, &session);
         if let StateChange::Subscriptions(stored_id, stored_subs) = &no_subs {
             assert_eq!(&&expected_id, stored_id);
@@ -122,6 +124,17 @@ pub(crate) mod tests {
 
         let message: proto::Publication = no_subs.try_into().unwrap();
         matches_subscription_publication(message, expected_id.as_str(), &[]);
+
+        // Session with some subscriptions
+        let session = make_session(expected_id.as_str(), (1..4).map(|i| format!("Sub{}", i)));
+        let some_subs = StateChange::new_subscription(&expected_id, &session);
+        if let StateChange::Subscriptions(stored_id, stored_subs) = &some_subs {
+            assert_eq!(&&expected_id, stored_id);
+            assert_eq!(&vec!["Sub1", "Sub2", "Sub3"], stored_subs.as_ref().unwrap());
+        }
+
+        let message: proto::Publication = some_subs.try_into().unwrap();
+        matches_subscription_publication(message, expected_id.as_str(), &["Sub1", "Sub2", "Sub3"]);
 
         // let single_session = make_session(
         //     "Session".to_owned(),
@@ -137,14 +150,16 @@ pub(crate) mod tests {
         // assert_eq!(true, false);
     }
 
-    fn make_session<S>(id: &str, subscriptions: S) -> Session
+    fn make_session<I, S>(id: &str, subscriptions: I) -> Session
     where
-        S: IntoIterator<Item = String>,
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
     {
         let subscriptions = HashMap::from_iter(subscriptions.into_iter().map(|s| {
+            let s = s.as_ref();
             (
-                s.clone(),
-                Subscription::new(TopicFilter::from_str(&s).unwrap(), proto::QoS::AtLeastOnce),
+                s.to_owned(),
+                Subscription::new(TopicFilter::from_str(s).unwrap(), proto::QoS::AtLeastOnce),
             )
         }));
         let state = SessionState::from_parts(id.into(), subscriptions, VecDeque::new());
