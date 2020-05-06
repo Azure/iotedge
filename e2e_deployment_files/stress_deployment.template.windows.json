@@ -21,7 +21,7 @@
           "edgeAgent": {
             "type": "docker",
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-windows-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-agent:20200506.10-windows-<Architecture>",
               "createOptions": ""
             },
             "env": {
@@ -36,7 +36,7 @@
           "edgeHub": {
             "type": "docker",
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-hub:<Build.BuildNumber>-windows-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-hub:20200506.10-windows-<Architecture>",
               "createOptions": "{\"User\": \"ContainerAdministrator\",\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
@@ -323,36 +323,6 @@
               "image": "<Container_Registry>/microsoft/azureiotedge-analyzer:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"15000/tcp\":[{\"HostPort\":\"15000\"}]}}}"
             }
-          },
-          "metricsCollector": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-                "LogAnalyticsWorkspaceId": {
-                    "value": "<LogAnalyticsWorkspaceId>"
-                },
-                "LogAnalyticsSharedKey": {
-                    "value": "<LogAnalyticsSharedKey>"
-                },
-                "LogAnalyticsLogType": {
-                  "value": "testMetricsV2"
-                },
-                "MetricsEndpointsCSV": {
-                  "value": "<MetricsCollector.MetricsEndpointsCSV>"
-                },
-                "ScrapeFrequencyInSecs": {
-                    "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
-                },
-                "UploadTarget": {
-                  "value": "<MetricsCollector.UploadTarget>"
-                }
-            },
-            "settings": {
-                "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-windows-<Architecture>",
-                "createOptions": ""
-            }
           }
         }
       }
@@ -369,11 +339,6 @@
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
         }
-      }
-    },
-    "metricsCollector": {
-      "properties.desired": {
-        "additionalTags": "<TestInfo>"
       }
     }
   }

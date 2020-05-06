@@ -21,7 +21,7 @@
           "edgeAgent": {
             "type": "docker",
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-agent:20200506.10-linux-<Architecture>",
               "createOptions": ""
             },
             "env": {
@@ -36,7 +36,7 @@
           "edgeHub": {
             "type": "docker",
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-hub:20200506.10-linux-<Architecture>",
               "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
@@ -402,36 +402,6 @@
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-module-restarter:<Build.BuildNumber>-linux-<Architecture>"
             }
-          },
-          "metricsCollector": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-                "LogAnalyticsWorkspaceId": {
-                    "value": "<LogAnalyticsWorkspaceId>"
-                },
-                "LogAnalyticsSharedKey": {
-                    "value": "<LogAnalyticsSharedKey>"
-                },
-                "LogAnalyticsLogType": {
-                  "value": "testMetricsV2"
-                },
-                "MetricsEndpointsCSV": {
-                  "value": "<MetricsCollector.MetricsEndpointsCSV>"
-                },
-                "ScrapeFrequencyInSecs": {
-                    "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
-                },
-                "UploadTarget": {
-                  "value": "<MetricsCollector.UploadTarget>"
-                }
-            },
-            "settings": {
-                "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
-                "createOptions": ""
-            }
           }
         }
       }
@@ -452,11 +422,6 @@
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
         }
-      }
-    },
-    "metricsCollector": {
-      "properties.desired": {
-        "additionalTags": "<TestInfo>"
       }
     }
   }
