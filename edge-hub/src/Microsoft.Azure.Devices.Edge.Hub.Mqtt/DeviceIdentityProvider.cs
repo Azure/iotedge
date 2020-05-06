@@ -78,13 +78,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     return UnauthenticatedDeviceIdentity.Instance;
                 }
 
-                if (deviceCredentials is ICertificateCredentials)
-                {
-                    ICertificateCredentials tmpCredentials = (ICertificateCredentials)deviceCredentials;
-                    X509Certificate2 remoteCertificate = tmpCredentials.ClientCertificate;
-                    IList<X509Certificate2> remoteCertificateChain = tmpCredentials.ClientCertificateChain;
-                }
-
                 if (deviceCredentials == null
                     || !clientId.Equals(deviceCredentials.Identity.Id, StringComparison.Ordinal)
                     || !await this.authenticator.AuthenticateAsync(deviceCredentials))

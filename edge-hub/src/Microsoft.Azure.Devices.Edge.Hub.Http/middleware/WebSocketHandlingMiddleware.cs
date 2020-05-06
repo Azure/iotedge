@@ -72,7 +72,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             var remoteEndPoint = new IPEndPoint(context.Connection.RemoteIpAddress, context.Connection.RemotePort);
 
             X509Certificate2 cert = await context.Connection.GetClientCertificateAsync();
-
             if (cert != null)
             {
                 IList<X509Certificate2> certChain = context.GetClientCertificateChain();
