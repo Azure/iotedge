@@ -83,13 +83,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 
             if (clientCertificate != null)
             {
-                Console.WriteLine("------------------CLIENT CERT DEFINED-----------------------");
                 IList<X509Certificate2> certChain = context.GetClientCertificateChain();
                 clientCredentials = this.identityFactory.GetWithX509Cert(deviceId, moduleId, string.Empty, clientCertificate, certChain);
             }
             else
             {
-                Console.WriteLine("------------------CLIENT CERT NULL-----------------------");
                 // Authorization header may be present in the QueryNameValuePairs as per Azure standards,
                 // So check in the query parameters first.
                 List<string> authorizationQueryParameters = context.Request.Query

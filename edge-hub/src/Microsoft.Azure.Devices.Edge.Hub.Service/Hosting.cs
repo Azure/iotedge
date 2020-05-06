@@ -53,16 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                                         ServerCertificate = serverCertificate,
                                         ClientCertificateValidation = (clientCert, chain, policyErrors) => // TODO: verify that this runs only if certificate provided
                                         {
-                                            Console.WriteLine("---------------Setting map entry for tls feature----------------------");
-                                            Console.WriteLine(clientCert.RawData.ToString());
-
-                                            Console.WriteLine($"---------------------{JsonConvert.SerializeObject(chain.ChainElements)}-----------------------");
-                                            Console.WriteLine($"---------------------------{clientCert.Thumbprint}----------------------------------");
-
                                             CertChainMapper.ImportCertChain(clientCert.Thumbprint, chain.ChainElements);
-
-                                            Console.WriteLine($"---------------Count of chain elements: {chain.ChainElements.Count}----------------------");
-
                                             return true;
                                         },
                                         ClientCertificateMode = certificateMode,

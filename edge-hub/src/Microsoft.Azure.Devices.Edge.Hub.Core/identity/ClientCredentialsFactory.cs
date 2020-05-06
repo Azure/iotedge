@@ -31,12 +31,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 
         public IClientCredentials GetWithX509Cert(string deviceId, string moduleId, string deviceClientType, X509Certificate2 clientCertificate, IList<X509Certificate2> clientChainCertificate)
         {
-            Console.WriteLine($"------------------Remote cert: {clientCertificate.RawData.ToString()}------------------");
-            foreach (X509Certificate2 cert in clientChainCertificate)
-            {
-                Console.WriteLine($"------------------Chain cert: {cert.RawData.ToString()}------------------");
-            }
-
             string productInfo = string.Join(" ", deviceClientType, this.callerProductInfo).Trim();
             IIdentity identity = this.identityProvider.Create(deviceId, moduleId);
             return new X509CertCredentials(identity, productInfo, clientCertificate, clientChainCertificate);

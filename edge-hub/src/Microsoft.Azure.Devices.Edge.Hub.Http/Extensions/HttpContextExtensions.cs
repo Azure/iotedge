@@ -11,13 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Extensions
         public static IList<X509Certificate2> GetClientCertificateChain(this HttpContext context)
         {
             var feature = context.Features.Get<ITlsConnectionFeatureExtended>();
-
-            Console.WriteLine($"-------------CLIENT CERT CHAIN NULL CHECK: {feature == null} {feature.ChainElements.Count == 0}---------------");
-            foreach (X509Certificate2 chainedCert in feature.ChainElements)
-            {
-                Console.WriteLine($"------------------Chain cert: {chainedCert.RawData.ToString()}------------------");
-            }
-
             return (feature == null) ? new List<X509Certificate2>() : feature.ChainElements;
         }
     }

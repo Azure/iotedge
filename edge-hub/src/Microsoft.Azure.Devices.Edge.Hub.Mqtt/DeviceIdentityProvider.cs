@@ -78,24 +78,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     return UnauthenticatedDeviceIdentity.Instance;
                 }
 
-                Console.WriteLine($"------------Device credential error: {deviceCredentials.ToString()} | Client id error: {!clientId.Equals(deviceCredentials.Identity.Id, StringComparison.Ordinal)}--------------");
-
                 if (deviceCredentials is ICertificateCredentials)
                 {
-                    foreach (X509Certificate2 cert in this.remoteCertificateChain)
-                    {
-                        Console.WriteLine($"------------------GetAsync() owned chain cert: {cert.RawData.ToString()}------------------");
-                    }
-
                     ICertificateCredentials tmpCredentials = (ICertificateCredentials)deviceCredentials;
                     X509Certificate2 remoteCertificate = tmpCredentials.ClientCertificate;
                     IList<X509Certificate2> remoteCertificateChain = tmpCredentials.ClientCertificateChain;
-
-                    Console.WriteLine($"------------------Remote cert: {remoteCertificate.RawData.ToString()}------------------");
-                    foreach (X509Certificate2 cert in remoteCertificateChain)
-                    {
-                        Console.WriteLine($"------------------Chain cert: {cert.RawData.ToString()}------------------");
-                    }
                 }
 
                 if (deviceCredentials == null
@@ -121,12 +108,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         {
             this.remoteCertificate = Option.Some(Preconditions.CheckNotNull(certificate, nameof(certificate)));
             this.remoteCertificateChain = Preconditions.CheckNotNull(chain, nameof(chain));
-
-            Console.WriteLine($"------------------RegisterConnectionCertificate() remote cert: {certificate.RawData.ToString()}------------------");
-            foreach (X509Certificate2 cert in chain)
-            {
-                Console.WriteLine($"------------------RegisterConnectionCertificate() chain cert: {cert.RawData.ToString()}------------------");
-            }
         }
 
         internal static (string deviceId, string moduleId, string deviceClientType) ParseUserName(string username)
