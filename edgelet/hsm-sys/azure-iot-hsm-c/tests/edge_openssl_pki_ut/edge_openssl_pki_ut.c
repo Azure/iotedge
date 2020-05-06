@@ -1399,7 +1399,7 @@ static void test_helper_cert_create_with_subject
 
     if (!is_self_signed)
     {
-        STRICT_EXPECTED_CALL(BIO_new_file(TEST_ISSUER_CERT_FILE, "r"));
+        STRICT_EXPECTED_CALL(BIO_new_file(TEST_ISSUER_CERT_FILE, "rb"));
         ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
 
@@ -1411,7 +1411,7 @@ static void test_helper_cert_create_with_subject
         ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         i++;
 
-        STRICT_EXPECTED_CALL(BIO_new_file(TEST_ISSUER_KEY_FILE, "r"));
+        STRICT_EXPECTED_CALL(BIO_new_file(TEST_ISSUER_KEY_FILE, "rb"));
         ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
 
@@ -1450,7 +1450,7 @@ static void test_helper_cert_create_with_subject
 
     if (test_helper_is_windows())
     {
-        STRICT_EXPECTED_CALL(BIO_new_file(TEST_KEY_FILE, "w")).SetReturn(TEST_BIO_WRITE_KEY);
+        STRICT_EXPECTED_CALL(BIO_new_file(TEST_KEY_FILE, "wb")).SetReturn(TEST_BIO_WRITE_KEY);
         ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
     }
@@ -1829,7 +1829,7 @@ static void test_helper_cert_create_with_subject
 
     if (test_helper_is_windows())
     {
-        STRICT_EXPECTED_CALL(BIO_new_file(TEST_CERT_FILE, "w")).SetReturn(TEST_BIO_WRITE_CERT);
+        STRICT_EXPECTED_CALL(BIO_new_file(TEST_CERT_FILE, "wb")).SetReturn(TEST_BIO_WRITE_CERT);
         ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
         failed_function_list[i++] = 1;
     }
@@ -1920,7 +1920,7 @@ static void test_helper_load_cert_file
 {
     size_t i = *index;
 
-    STRICT_EXPECTED_CALL(BIO_new_file(file, "r"));
+    STRICT_EXPECTED_CALL(BIO_new_file(file, "rb"));
     ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
@@ -2070,7 +2070,7 @@ static void test_helper_create_cert_key
     ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     i++;
 
-    STRICT_EXPECTED_CALL(BIO_new_file(TEST_KEY_FILE, "r"));
+    STRICT_EXPECTED_CALL(BIO_new_file(TEST_KEY_FILE, "rb"));
     ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 

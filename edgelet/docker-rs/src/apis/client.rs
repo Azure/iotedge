@@ -24,7 +24,7 @@ impl<C: hyper::client::connect::Connect + 'static> APIClient<C> {
             image_api: Box::new(crate::apis::ImageApiClient::new(configuration.clone())),
             network_api: Box::new(crate::apis::NetworkApiClient::new(configuration.clone())),
             system_api: Box::new(crate::apis::SystemApiClient::new(configuration.clone())),
-            volume_api: Box::new(crate::apis::VolumeApiClient::new(configuration.clone())),
+            volume_api: Box::new(crate::apis::VolumeApiClient::new(configuration)),
         }
     }
 

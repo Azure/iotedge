@@ -28,6 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 DateTime.MinValue,
                 ModuleStatus.Running,
                 ImagePullPolicy.Never,
+                Constants.DefaultPriority,
                 new ConfigurationInfo("1"),
                 new Dictionary<string, EnvVal>());
 
@@ -62,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
         [Fact]
         [Unit]
-        public void TestJsonDeerialize()
+        public void TestJsonDeserialize()
         {
             // Arrange
             string json = @"
@@ -100,6 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 DateTime.MinValue,
                 ModuleStatus.Running,
                 ImagePullPolicy.Never,
+                Constants.DefaultPriority,
                 null,
                 new Dictionary<string, EnvVal>());
 
@@ -118,6 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 RestartPolicy.Always,
                 new DockerConfig(image),
                 ImagePullPolicy.OnCreate,
+                Constants.DefaultPriority,
                 new ConfigurationInfo("1"),
                 new Dictionary<string, EnvVal>());
 
@@ -133,6 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 DateTime.MinValue,
                 ModuleStatus.Running,
                 ImagePullPolicy.OnCreate,
+                Constants.DefaultPriority,
                 new ConfigurationInfo("1"),
                 new Dictionary<string, EnvVal>());
 
@@ -159,6 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 DateTime.MinValue,
                 ModuleStatus.Running,
                 ImagePullPolicy.OnCreate,
+                Constants.DefaultPriority,
                 new ConfigurationInfo("1"),
                 new Dictionary<string, EnvVal>());
             var updatedModule1 = (EdgeHubDockerRuntimeModule)module.WithRuntimeStatus(ModuleStatus.Running);
@@ -167,6 +172,105 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(module, updatedModule1);
             Assert.NotEqual(module, updatedModule2);
             Assert.Equal(ModuleStatus.Unknown, updatedModule2.RuntimeStatus);
+        }
+
+        [Fact]
+        [Unit]
+        public void TestJsonSerializeWithNonDefaultPriority()
+        {
+            // Arrange
+            var module = new EdgeHubDockerRuntimeModule(
+                ModuleStatus.Running,
+                RestartPolicy.Always,
+                new DockerConfig("edg0eHubImage:latest"),
+                0,
+                string.Empty,
+                DateTime.MinValue,
+                DateTime.MinValue,
+                0,
+                DateTime.MinValue,
+                ModuleStatus.Running,
+                ImagePullPolicy.Never,
+                10,
+                new ConfigurationInfo("1"),
+                new Dictionary<string, EnvVal>());
+
+            // Act
+            JToken json = JToken.Parse(JsonConvert.SerializeObject(module));
+
+            // Assert
+            JToken expected = JToken.Parse(
+                @"
+{
+  ""status"": ""running"",
+  ""restartPolicy"": ""always"",
+  ""imagePullPolicy"": ""never"",
+  ""priority"": 10,
+  ""exitCode"": 0,
+  ""statusDescription"": """",
+  ""lastStartTimeUtc"": ""0001-01-01T00:00:00"",
+  ""lastExitTimeUtc"": ""0001-01-01T00:00:00"",
+  ""restartCount"": 0,
+  ""lastRestartTimeUtc"": ""0001-01-01T00:00:00"",
+  ""runtimeStatus"": ""running"",
+  ""type"": ""docker"",
+  ""settings"": {
+    ""image"": ""edg0eHubImage:latest"",
+    ""createOptions"": ""{}""
+  },
+  ""env"": {}
+}
+            ");
+
+            Assert.True(JToken.DeepEquals(expected, json));
+        }
+
+        [Fact]
+        [Unit]
+        public void TestJsonDeserializeWithNonDefaultPriority()
+        {
+            // Arrange
+            string json = @"
+{
+  ""status"": ""running"",
+  ""restartPolicy"": ""always"",
+  ""imagePullPolicy"": ""never"",
+  ""priority"": 10,
+  ""exitCode"": 0,
+  ""statusDescription"": """",
+  ""lastStartTimeUtc"": ""0001-01-01T00:00:00"",
+  ""lastExitTimeUtc"": ""0001-01-01T00:00:00"",
+  ""restartCount"": 0,
+  ""lastRestartTimeUtc"": ""0001-01-01T00:00:00"",
+  ""runtimeStatus"": ""running"",
+  ""type"": ""docker"",
+  ""settings"": {
+    ""image"": ""edg0eHubImage"",
+    ""createOptions"": ""{}""
+  }
+}";
+
+            // Act
+            var actual = JsonConvert.DeserializeObject<EdgeHubDockerRuntimeModule>(json);
+
+            // Assert
+            var expected = new EdgeHubDockerRuntimeModule(
+                ModuleStatus.Running,
+                RestartPolicy.Always,
+                new DockerConfig("edg0eHubImage"),
+                0,
+                string.Empty,
+                DateTime.MinValue,
+                DateTime.MinValue,
+                0,
+                DateTime.MinValue,
+                ModuleStatus.Running,
+                ImagePullPolicy.Never,
+                10,
+                null,
+                new Dictionary<string, EnvVal>());
+
+            Assert.Equal(expected, actual);
         }
     }
 }

@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Shared;
 
@@ -23,9 +24,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task AbandonAsync(string messageId) => this.underlyingModuleClient.AbandonAsync(messageId);
 
-        public Task CloseAsync() => this.isActive.GetAndSet(false)
-            ? this.underlyingModuleClient.CloseAsync()
-            : Task.CompletedTask;
+        public Task CloseAsync()
+        {
+            if (this.isActive.GetAndSet(false))
+            {
+                this.underlyingModuleClient?.Dispose();
+            }
+
+            return Task.CompletedTask;
+        }
 
         public Task RejectAsync(string messageId) => throw new InvalidOperationException("Reject is not supported for modules.");
 
@@ -45,11 +52,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             try
             {
-                await this.underlyingModuleClient.OpenAsync();
+                await this.underlyingModuleClient.OpenAsync().TimeoutAfter(TimeSpan.FromMinutes(2));
             }
             catch (Exception)
             {
                 this.isActive.Set(false);
+                this.underlyingModuleClient?.Dispose();
                 throw;
             }
         }

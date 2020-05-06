@@ -30,6 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     [Integration]
     public class RoutingTest
     {
+        static readonly TimeSpan DefaultMessageAckTimeout = TimeSpan.FromSeconds(30);
         static readonly Random Rand = new Random();
 
         [Fact]
@@ -429,11 +430,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var cloudConnectionProvider = new Mock<ICloudConnectionProvider>();
             cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>())).ReturnsAsync(Try.Success(cloudConnection));
 
-            IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider.Object, Mock.Of<ICredentialsCache>(), new IdentityProvider(iotHubName));
+            var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
+            IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider.Object, Mock.Of<ICredentialsCache>(), new IdentityProvider(iotHubName), deviceConnectivityManager);
             var routingMessageConverter = new RoutingMessageConverter();
             RouteFactory routeFactory = new EdgeRouteFactory(new EndpointFactory(connectionManager, routingMessageConverter, edgeDeviceId, 10, 10));
             IEnumerable<Route> routesList = routeFactory.Create(routes).ToList();
-            IEnumerable<Endpoint> endpoints = routesList.SelectMany(r => r.Endpoints);
+            IEnumerable<Endpoint> endpoints = routesList.Select(r => r.Endpoint);
             var routerConfig = new RouterConfig(endpoints, routesList);
             IDbStoreProvider dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
@@ -442,7 +444,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Router router = await Router.CreateAsync(Guid.NewGuid().ToString(), iotHubName, routerConfig, endpointExecutorFactory);
             ITwinManager twinManager = new TwinManager(connectionManager, new TwinCollectionMessageConverter(), new TwinMessageConverter(), Option.None<IEntityStore<string, TwinInfo>>());
             var invokeMethodHandler = Mock.Of<IInvokeMethodHandler>();
-            var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             var subscriptionProcessor = new SubscriptionProcessor(connectionManager, invokeMethodHandler, deviceConnectivityManager);
             IEdgeHub edgeHub = new RoutingEdgeHub(router, routingMessageConverter, connectionManager, twinManager, edgeDeviceId, invokeMethodHandler, subscriptionProcessor);
             return (edgeHub, connectionManager);
@@ -522,7 +523,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 Try<ICloudProxy> cloudProxy = await connectionManager.CreateCloudConnectionAsync(deviceCredentials);
                 Assert.True(cloudProxy.Success);
                 var deviceProxy = Mock.Of<IDeviceProxy>();
-                var deviceListener = new DeviceMessageHandler(deviceCredentials.Identity, edgeHub, connectionManager);
+                var deviceListener = new DeviceMessageHandler(deviceCredentials.Identity, edgeHub, connectionManager, DefaultMessageAckTimeout);
+
                 deviceListener.BindDeviceProxy(deviceProxy);
                 return new TestDevice(deviceCredentials.Identity as IDeviceIdentity, deviceListener);
             }
@@ -562,7 +564,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 IClientCredentials moduleCredentials = SetupModuleCredentials(moduleId, deviceId);
                 Try<ICloudProxy> cloudProxy = await connectionManager.CreateCloudConnectionAsync(moduleCredentials);
                 Assert.True(cloudProxy.Success);
-                var deviceListener = new DeviceMessageHandler(moduleCredentials.Identity, edgeHub, connectionManager);
+                var deviceListener = new DeviceMessageHandler(moduleCredentials.Identity, edgeHub, connectionManager, DefaultMessageAckTimeout);
+
                 var receivedMessages = new List<IMessage>();
                 var deviceProxy = new Mock<IDeviceProxy>();
                 deviceProxy.Setup(d => d.SendMessageAsync(It.IsAny<IMessage>(), It.Is<string>(e => inputEndpointIds.Contains(e))))

@@ -1,4 +1,3 @@
-
 # Configures the provisioning mode
 provisioning:
   source: "dps"
@@ -8,6 +7,7 @@ provisioning:
     method: "symmetric_key"
     registration_id: "register me fool"
     symmetric_key: "key"
+  dynamic_reprovisioning: true
 
 agent:
   name: "edgeAgent"

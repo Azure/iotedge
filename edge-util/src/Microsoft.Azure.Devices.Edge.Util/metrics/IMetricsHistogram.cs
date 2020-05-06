@@ -3,6 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
 {
     public interface IMetricsHistogram
     {
-        void Update(long value, string[] labelValues);
+        void Update(double value, string[] labelValues);
     }
 }

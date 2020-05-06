@@ -2,19 +2,31 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 {
     using System;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
 
     public class StoreAndForwardConfiguration : IEquatable<StoreAndForwardConfiguration>
     {
-        [JsonConstructor]
         public StoreAndForwardConfiguration(int timeToLiveSecs)
+            : this(timeToLiveSecs, null)
+        {
+        }
+
+        [JsonConstructor]
+        public StoreAndForwardConfiguration(int timeToLiveSecs, StoreLimits storeLimits)
         {
             this.TimeToLiveSecs = timeToLiveSecs;
             this.TimeToLive = timeToLiveSecs < 0 ? TimeSpan.MaxValue : TimeSpan.FromSeconds(timeToLiveSecs);
+            this.StoreLimits = Option.Maybe(storeLimits);
         }
 
         [JsonProperty(PropertyName = "timeToLiveSecs")]
         public int TimeToLiveSecs { get; }
+
+        [JsonProperty(PropertyName = "storeLimits")]
+        [JsonConverter(typeof(OptionConverter<StoreLimits>), true)]
+        public Option<StoreLimits> StoreLimits { get;  }
 
         [JsonIgnore]
         public TimeSpan TimeToLive { get; }
@@ -31,7 +43,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 return true;
             }
 
-            return this.TimeToLiveSecs == other.TimeToLiveSecs;
+            return this.TimeToLiveSecs == other.TimeToLiveSecs &&
+                this.StoreLimits.Equals(other.StoreLimits);
         }
 
         public override bool Equals(object obj)
@@ -41,7 +54,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         {
             unchecked
             {
-                return (this.TimeToLiveSecs * 397) ^ this.TimeToLive.GetHashCode();
+                int hashCode = (this.TimeToLiveSecs * 397) ^ this.TimeToLive.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.StoreLimits.GetHashCode();
+                return hashCode;
             }
         }
 

@@ -11,7 +11,6 @@ use std::time::Duration;
 use chrono::prelude::*;
 use failure::{Fail, ResultExt};
 use futures::{Future, Stream};
-use serde_json;
 
 use edgelet_utils::{ensure_not_empty_with_context, serialize_ordered};
 
@@ -379,6 +378,66 @@ impl SystemInfo {
     }
 }
 
+#[derive(Debug, serde_derive::Serialize)]
+pub struct SystemResources {
+    host_uptime: u64,
+    process_uptime: u64,
+    used_cpu: f64,
+    used_ram: u64,
+    total_ram: u64,
+    disks: Vec<DiskInfo>,
+    docker_stats: String,
+}
+
+impl SystemResources {
+    pub fn new(
+        host_uptime: u64,
+        process_uptime: u64,
+        used_cpu: f64,
+        used_ram: u64,
+        total_ram: u64,
+        disks: Vec<DiskInfo>,
+        docker_stats: String,
+    ) -> Self {
+        SystemResources {
+            host_uptime,
+            process_uptime,
+            used_cpu,
+            used_ram,
+            total_ram,
+            disks,
+            docker_stats,
+        }
+    }
+}
+
+#[derive(Debug, serde_derive::Serialize)]
+pub struct DiskInfo {
+    name: String,
+    available_space: u64,
+    total_space: u64,
+    file_system: String,
+    file_type: String,
+}
+
+impl DiskInfo {
+    pub fn new(
+        name: String,
+        available_space: u64,
+        total_space: u64,
+        file_system: String,
+        file_type: String,
+    ) -> Self {
+        DiskInfo {
+            name,
+            available_space,
+            total_space,
+            file_system,
+            file_type,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct ModuleTop {
     /// Name of the module. Example: tempSensor
@@ -417,7 +476,7 @@ pub trait MakeModuleRuntime {
     fn make_runtime(
         settings: Self::Settings,
         provisioning_result: Self::ProvisioningResult,
-        crypto: impl GetTrustBundle + 'static,
+        crypto: impl GetTrustBundle + Send + 'static,
     ) -> Self::Future;
 }
 
@@ -433,16 +492,15 @@ pub trait ModuleRuntime: Sized {
     type CreateFuture: Future<Item = (), Error = Self::Error> + Send;
     type GetFuture: Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send;
     type ListFuture: Future<Item = Vec<Self::Module>, Error = Self::Error> + Send;
-    type ListWithDetailsStream: Stream<
-            Item = (Self::Module, ModuleRuntimeState),
-            Error = Self::Error,
-        > + Send;
+    type ListWithDetailsStream: Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error>
+        + Send;
     type LogsFuture: Future<Item = Self::Logs, Error = Self::Error> + Send;
     type RemoveFuture: Future<Item = (), Error = Self::Error> + Send;
     type RestartFuture: Future<Item = (), Error = Self::Error> + Send;
     type StartFuture: Future<Item = (), Error = Self::Error> + Send;
     type StopFuture: Future<Item = (), Error = Self::Error> + Send;
     type SystemInfoFuture: Future<Item = SystemInfo, Error = Self::Error> + Send;
+    type SystemResourcesFuture: Future<Item = SystemResources, Error = Self::Error> + Send;
     type RemoveAllFuture: Future<Item = (), Error = Self::Error> + Send;
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture;
@@ -452,6 +510,7 @@ pub trait ModuleRuntime: Sized {
     fn restart(&self, id: &str) -> Self::RestartFuture;
     fn remove(&self, id: &str) -> Self::RemoveFuture;
     fn system_info(&self) -> Self::SystemInfoFuture;
+    fn system_resources(&self) -> Self::SystemResourcesFuture;
     fn list(&self) -> Self::ListFuture;
     fn list_with_details(&self) -> Self::ListWithDetailsStream;
     fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture;
@@ -508,6 +567,7 @@ pub enum RuntimeOperation {
     StartModule(String),
     StopModule(String),
     SystemInfo,
+    SystemResources,
     TopModule(String),
 }
 
@@ -526,6 +586,7 @@ impl fmt::Display for RuntimeOperation {
             RuntimeOperation::StartModule(name) => write!(f, "Could not start module {}", name),
             RuntimeOperation::StopModule(name) => write!(f, "Could not stop module {}", name),
             RuntimeOperation::SystemInfo => write!(f, "Could not query system info"),
+            RuntimeOperation::SystemResources => write!(f, "Could not query system resources"),
             RuntimeOperation::TopModule(name) => write!(f, "Could not top module {}", name),
         }
     }
@@ -561,7 +622,7 @@ impl FromStr for ImagePullPolicy {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{Default, HashMap, ImagePullPolicy, ModuleSpec, SystemInfo};
 
     use std::str::FromStr;
     use std::string::ToString;

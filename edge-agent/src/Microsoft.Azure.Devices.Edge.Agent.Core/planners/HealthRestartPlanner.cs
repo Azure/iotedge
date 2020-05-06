@@ -4,7 +4,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.Diagnostics;
     using System.Linq;
+    using System.Runtime.CompilerServices;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
     using Microsoft.Azure.Devices.Edge.Storage;
@@ -12,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Nito.AsyncEx;
+    using Org.BouncyCastle.Math.EC.Rfc7748;
     using DiffState = System.ValueTuple<
         // added modules
         System.Collections.Generic.IList<Microsoft.Azure.Devices.Edge.Agent.Core.IModule>,
@@ -70,6 +73,49 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
         {
             Events.LogDesired(desired);
             Events.LogCurrent(current);
+
+            List<ICommand> commands = new List<ICommand>();
+
+            // Create a grouping of desired and current modules based on their priority.
+            // We want to process all the modules in the deployment (desired modules) and also include the modules
+            // that are not specified in the deployment but are currently running on the device. This is so that
+            // their processing is done in the right priority order.
+            ILookup<uint, KeyValuePair<string, IModule>> desiredPriorityGroups = desired.Modules.ToLookup(x => x.Value.Priority);
+            ILookup<uint, KeyValuePair<string, IModule>> currentPriorityGroups = current.Modules.ToLookup(x => x.Value.Priority);
+            ImmutableSortedSet<uint> orderedPriorities = desiredPriorityGroups.Select(x => x.Key).Union(currentPriorityGroups.Select(x => x.Key)).ToImmutableSortedSet();
+            var processedDesiredMatchingCurrentModules = new HashSet<string>();
+
+            foreach (uint priority in orderedPriorities)
+            {
+                // The desired set is all the desired modules that have the priority of the current priority group being evaluated.
+                ModuleSet priorityBasedDesiredSet = ModuleSet.Create(desiredPriorityGroups[priority].Select(x => x.Value).ToArray());
+
+                // The current set is:
+                // - All the current modules that correspond to the desired modules present in the current priority group.
+                // - All the current modules that have the priority of the current priority group being evaluated which were not specified in the desired deployment config
+                //   -and- have not already been processed yet.
+                //   These are included so that they can be stopped and removed in the right priority order.
+                IEnumerable<KeyValuePair<string, IModule>> desiredMatchingCurrentModules = current.Modules.Where(x => priorityBasedDesiredSet.Modules.ContainsKey(x.Key));
+                ModuleSet priorityBasedCurrentSet = ModuleSet.Create(
+                    desiredMatchingCurrentModules
+                    .Union(currentPriorityGroups[priority].Where(x => !processedDesiredMatchingCurrentModules.Contains(x.Key)))
+                    .Select(y => y.Value)
+                    .ToArray());
+                processedDesiredMatchingCurrentModules.UnionWith(desiredMatchingCurrentModules.Select(x => x.Key));
+
+                commands.AddRange(await this.ProcessDesiredAndCurrentSets(priorityBasedDesiredSet, priorityBasedCurrentSet, runtimeInfo, moduleIdentities));
+            }
+
+            Events.PlanCreated(commands);
+            return new Plan(commands);
+        }
+
+        async Task<IEnumerable<ICommand>> ProcessDesiredAndCurrentSets(
+            ModuleSet desired,
+            ModuleSet current,
+            IRuntimeInfo runtimeInfo,
+            IImmutableDictionary<string, IModuleIdentity> moduleIdentities)
+        {
             // extract list of modules that need attention
             (IList<IModule> added, IList<IModule> updateDeployed, IList<IModule> desiredStatusChanged, IList<IRuntimeModule> updateStateChanged, IList<IRuntimeModule> removed, IList<IRuntimeModule> runningGreat) = this.ProcessDiff(desired, current);
 
@@ -121,7 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             // for more than "IntensiveCareTime" & still have an entry for them in the store
             IEnumerable<ICommand> resetHealthStatus = await this.ResetStatsForHealthyModulesAsync(runningGreat);
 
-            IList<ICommand> commands = updateRuntimeCommands
+            return updateRuntimeCommands
                 .Concat(stop)
                 .Concat(remove)
                 .Concat(removeState)
@@ -129,11 +175,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                 .Concat(updatedCommands)
                 .Concat(stateChangedCommands)
                 .Concat(desiredStatedChangedCommands.Select(d => d.command))
-                .Concat(resetHealthStatus)
-                .ToList();
-
-            Events.PlanCreated(commands);
-            return new Plan(commands);
+                .Concat(resetHealthStatus);
         }
 
         async Task<IList<(ICommand command, string module)>> ProcessDesiredStatusChangedModules(IList<IModule> desiredStatusChanged, ModuleSet current)
@@ -262,12 +304,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             {
                 if (await this.store.Contains(module.Name))
                 {
-                    // this value comes from docker; if this is equal to DateTime.MinValue then the container
-                    // never exited before; if it is anything else then we check if it has been up for "IntensiveCareTime"
-                    // and if yes, then we clear the health stats on it;
+                    // this value comes from docker; if this is equal to DateTime.MinValue then the container was
+                    // created but never started (which shouldn't happen); if it is anything else then we check if
+                    // it has been up for "IntensiveCareTime" and if yes, then we clear the health stats on it;
                     //
                     // the time returned by docker is in UTC timezone
-                    if (module.LastExitTimeUtc != DateTime.MinValue && DateTime.UtcNow - module.LastExitTimeUtc > this.intensiveCareTime)
+                    if (module.LastStartTimeUtc != DateTime.MinValue && DateTime.UtcNow - module.LastStartTimeUtc > this.intensiveCareTime)
                     {
                         // NOTE: This is a "special" command in that it doesn't come from an "ICommandFactory". This
                         // command clears the health stats from the store.

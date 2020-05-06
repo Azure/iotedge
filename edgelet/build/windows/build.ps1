@@ -23,12 +23,10 @@ if ($Arm) {
     PatchRustForArm -OpenSSL
 }
 
-# Run cargo build by specifying the manifest file
+cd (Get-EdgeletFolder)
 
-$ManifestPath = Get-Manifest
-
-Write-Host "$cargo build --all $(if ($Arm) { '--target thumbv7a-pc-windows-msvc' }) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
-Invoke-Expression "$cargo build --all $(if ($Arm) { '--target thumbv7a-pc-windows-msvc' }) $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
+Write-Host "$cargo build --all $(if ($Arm) { '--target thumbv7a-pc-windows-msvc' }) $(if ($Release) { '--release' })"
+Invoke-Expression "$cargo build --all $(if ($Arm) { '--target thumbv7a-pc-windows-msvc' }) $(if ($Release) { '--release' })"
 
 if ($LastExitCode -ne 0) {
     Throw "cargo build failed with exit code $LastExitCode"

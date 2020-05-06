@@ -7,6 +7,11 @@
 set -e
 
 ###############################################################################
+# These are the packages this script will build.
+###############################################################################
+packages=(iotedge iotedged iotedge-diagnostics iotedge-proxy)
+
+###############################################################################
 # Define Environment Variables
 ###############################################################################
 # Get directory of running script
@@ -16,7 +21,6 @@ BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
 PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
 SCRIPT_NAME=$(basename "$0")
 CARGO="${CARGO_HOME:-"$HOME/.cargo"}/bin/cargo"
-TOOLCHAIN="stable-x86_64-unknown-linux-gnu"
 RELEASE=
 
 ###############################################################################
@@ -28,7 +32,6 @@ usage()
     echo ""
     echo "options"
     echo " -h, --help          Print this help and exit."
-    echo " -t, --toolchain     Toolchain (default: stable-x86_64-unknown-linux-gnu)"
     echo " -r, --release       Release build? (flag, default: false)"
     exit 1;
 }
@@ -42,16 +45,12 @@ process_args()
     for arg in "$@"
     do
         if [ $save_next_arg -eq 1 ]; then
-            TOOLCHAIN="$arg"
-            save_next_arg=0
-        elif [ $save_next_arg -eq 2 ]; then
             RELEASE="true"
             save_next_arg=0
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
-                "-t" | "--toolchain" ) save_next_arg=1;;
-                "-r" | "--release" ) save_next_arg=2;;
+                "-r" | "--release" ) save_next_arg=1;;
                 * ) usage;;
             esac
         fi
@@ -78,8 +77,14 @@ codegen-units = 1
 incremental = false
 EOF
 
+PACKAGES=
+for p in "${packages[@]}"
+do
+    PACKAGES="${PACKAGES} -p ${p}"
+done
+
 if [[ -z ${RELEASE} ]]; then
-    cd "$PROJECT_ROOT" && $CARGO "+$TOOLCHAIN" build --all
+    cd "$PROJECT_ROOT" && $CARGO build ${PACKAGES}
 else
-    cd "$PROJECT_ROOT" && $CARGO "+$TOOLCHAIN" build --all --release
+    cd "$PROJECT_ROOT" && $CARGO build ${PACKAGES} --release
 fi

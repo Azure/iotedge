@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -18,6 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     public class Agent
     {
         const string StoreConfigKey = "CurrentConfig";
+
         readonly IPlanner planner;
         readonly IPlanRunner planRunner;
         readonly IReporter reporter;
@@ -28,6 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         readonly AsyncLock reconcileLock = new AsyncLock();
         readonly ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde;
         readonly IEncryptionProvider encryptionProvider;
+        readonly IAvailabilityMetric availabilityMetric;
         IEnvironment environment;
         DeploymentConfigInfo currentConfig;
 
@@ -41,7 +44,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             IEntityStore<string, string> configStore,
             DeploymentConfigInfo initialDeployedConfigInfo,
             ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde,
-            IEncryptionProvider encryptionProvider)
+            IEncryptionProvider encryptionProvider,
+            IAvailabilityMetric availabilityMetric)
         {
             this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
             this.planner = Preconditions.CheckNotNull(planner, nameof(planner));
@@ -54,6 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.deploymentConfigInfoSerde = Preconditions.CheckNotNull(deploymentConfigInfoSerde, nameof(deploymentConfigInfoSerde));
             this.environment = this.environmentProvider.Create(this.currentConfig.DeploymentConfig);
             this.encryptionProvider = Preconditions.CheckNotNull(encryptionProvider, nameof(encryptionProvider));
+            this.availabilityMetric = Preconditions.CheckNotNull(availabilityMetric, nameof(availabilityMetric));
             Events.AgentCreated();
         }
 
@@ -66,7 +71,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             IEnvironmentProvider environmentProvider,
             IEntityStore<string, string> configStore,
             ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde,
-            IEncryptionProvider encryptionProvider)
+            IEncryptionProvider encryptionProvider,
+            IAvailabilityMetric availabilityMetric)
         {
             Preconditions.CheckNotNull(deploymentConfigInfoSerde, nameof(deploymentConfigInfoSerde));
             Preconditions.CheckNotNull(configStore, nameof(configStore));
@@ -97,13 +103,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 configStore,
                 deploymentConfigInfo.GetOrElse(DeploymentConfigInfo.Empty),
                 deploymentConfigInfoSerde,
-                encryptionProvider);
+                encryptionProvider,
+                availabilityMetric);
             return agent;
         }
 
         public async Task ReconcileAsync(CancellationToken token)
         {
-            Option<DeploymentStatus> status = Option.None<DeploymentStatus>();
+            DeploymentStatus status = DeploymentStatus.Unknown;
             ModuleSet moduleSetToReport = null;
             using (await this.reconcileLock.LockAsync(token))
             {
@@ -118,16 +125,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     }
 
                     DeploymentConfig deploymentConfig = deploymentConfigInfo.DeploymentConfig;
-                    if (deploymentConfig != DeploymentConfig.Empty)
+                    if (deploymentConfig.Equals(DeploymentConfig.Empty))
+                    {
+                        status = DeploymentStatus.Success;
+                    }
+                    else
                     {
                         ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
+                        _ = Task.Run(() => this.availabilityMetric.ComputeAvailability(desiredModuleSet, current))
+                            .ContinueWith(t => Events.UnknownFailure(t.Exception), TaskContinuationOptions.OnlyOnFaulted)
+                            .ConfigureAwait(false);
+
                         // TODO - Update this logic to create identities only when needed, in the Command factory, instead of creating all the identities
                         // up front here. That will allow handling the case when only the state of the system has changed (say one module crashes), and
                         // no new identities need to be created. This will simplify the logic to allow EdgeAgent to work when offline.
                         // But that required ModuleSet.Diff to be updated to include modules updated by deployment, and modules updated by state change.
                         IImmutableDictionary<string, IModuleIdentity> identities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModuleSet, current);
                         Plan plan = await this.planner.PlanAsync(desiredModuleSet, current, deploymentConfig.Runtime, identities);
-                        if (!plan.IsEmpty)
+
+                        if (plan.IsEmpty)
+                        {
+                            status = DeploymentStatus.Success;
+                        }
+                        else
                         {
                             try
                             {
@@ -135,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                                 await this.UpdateCurrentConfig(deploymentConfigInfo);
                                 if (result)
                                 {
-                                    status = Option.Some(DeploymentStatus.Success);
+                                    status = DeploymentStatus.Success;
                                 }
                             }
                             catch (Exception ex) when (!ex.IsFatal())
@@ -146,32 +166,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                             }
                         }
                     }
-                    else
-                    {
-                        status = Option.Some(DeploymentStatus.Success);
-                    }
                 }
                 catch (Exception ex) when (!ex.IsFatal())
                 {
                     switch (ex)
                     {
                         case ConfigEmptyException _:
-                            status = Option.Some(new DeploymentStatus(DeploymentStatusCode.ConfigEmptyError, ex.Message));
+                            status = new DeploymentStatus(DeploymentStatusCode.ConfigEmptyError, ex.Message);
                             Events.EmptyConfig(ex);
                             break;
 
                         case InvalidSchemaVersionException _:
-                            status = Option.Some(new DeploymentStatus(DeploymentStatusCode.InvalidSchemaVersion, ex.Message));
+                            status = new DeploymentStatus(DeploymentStatusCode.InvalidSchemaVersion, ex.Message);
                             Events.InvalidSchemaVersion(ex);
                             break;
 
                         case ConfigFormatException _:
-                            status = Option.Some(new DeploymentStatus(DeploymentStatusCode.ConfigFormatError, ex.Message));
+                            status = new DeploymentStatus(DeploymentStatusCode.ConfigFormatError, ex.Message);
                             Events.InvalidConfigFormat(ex);
                             break;
 
                         default:
-                            status = Option.Some(new DeploymentStatus(DeploymentStatusCode.Failed, ex.Message));
+                            status = new DeploymentStatus(DeploymentStatusCode.Failed, ex.Message);
                             Events.UnknownFailure(ex);
                             break;
                     }

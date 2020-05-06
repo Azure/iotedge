@@ -3,7 +3,7 @@
 #![cfg(windows)]
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-#![allow(clippy::use_self)]
+#![allow(clippy::missing_errors_doc, clippy::too_many_lines, clippy::use_self)]
 
 use std::convert::AsRef;
 use std::fs::OpenOptions;
@@ -19,7 +19,7 @@ use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::reactor::PollEvented2;
 use winapi::shared::winerror::ERROR_PIPE_BUSY;
 use winapi::um::namedpipeapi::WaitNamedPipeW;
-use winapi::um::winbase::*;
+use winapi::um::winbase::FILE_FLAG_OVERLAPPED;
 
 const PIPE_WAIT_TIMEOUT_MS: u32 = 10 * 1000;
 

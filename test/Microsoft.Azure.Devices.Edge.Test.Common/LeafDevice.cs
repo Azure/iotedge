@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 async () =>
                 {
                     ITransportSettings transport = protocol.ToTransportSettings();
-                    OsPlatform.Current.InstallEdgeCertificates(ca.Certificates.TrustedCertificates, transport);
+                    OsPlatform.Current.InstallCaCertificates(ca.EdgeCertificates.TrustedCertificates, transport);
 
                     string edgeHostname = Dns.GetHostName().ToLower();
 
@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
                         case AuthenticationType.CertificateAuthority:
                             {
-                                string p = parentId.Expect(() => new ArgumentException());
+                                string p = parentId.Expect(() => new ArgumentException("Missing parent ID"));
                                 return await CreateWithCaCertAsync(
                                     leafDeviceId,
                                     p,
@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
                         case AuthenticationType.SelfSigned:
                             {
-                                string p = parentId.Expect(() => new ArgumentException());
+                                string p = parentId.Expect(() => new ArgumentException("Missing parent ID"));
                                 return await CreateWithSelfSignedCertAsync(
                                     leafDeviceId,
                                     p,
@@ -171,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 token,
                 async () =>
                 {
-                    LeafCertificates certFiles = await ca.GenerateLeafCertificatesAsync(leafDeviceId, token);
+                    IdCertificates certFiles = await ca.GenerateIdentityCertificatesAsync(leafDeviceId, token);
 
                     (X509Certificate2 leafCert, IEnumerable<X509Certificate2> trustedCerts) =
                         CertificateHelper.GetServerCertificateAndChainFromFile(certFiles.CertificatePath, certFiles.KeyPath);
@@ -201,8 +201,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string edgeHostname,
             CancellationToken token)
         {
-            LeafCertificates primary = await ca.GenerateLeafCertificatesAsync($"{leafDeviceId}-1", token);
-            LeafCertificates secondary = await ca.GenerateLeafCertificatesAsync($"{leafDeviceId}-2", token);
+            IdCertificates primary = await ca.GenerateIdentityCertificatesAsync($"{leafDeviceId}-1", token);
+            IdCertificates secondary = await ca.GenerateIdentityCertificatesAsync($"{leafDeviceId}-2", token);
 
             string[] streams = await Task.WhenAll(
                 new[]
@@ -246,7 +246,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 token,
                 () =>
                 {
-                    LeafCertificates certFiles = useSecondaryCertificate ? secondary : primary;
+                    IdCertificates certFiles = useSecondaryCertificate ? secondary : primary;
 
                     (X509Certificate2 leafCert, _) =
                         CertificateHelper.GetServerCertificateAndChainFromFile(certFiles.CertificatePath, certFiles.KeyPath);
@@ -268,7 +268,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             Device edge = await iotHub.GetDeviceIdentityAsync(parentId, token);
             if (edge == null)
             {
-                throw new ArgumentException($"Device '{parentId}' not found in '{iotHub.Hostname}'");
+                throw new InvalidOperationException($"Device '{parentId}' not found in '{iotHub.Hostname}'");
             }
 
             return edge;
@@ -339,7 +339,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         static Task DeleteIdentityAsync(Device device, IotHub iotHub, CancellationToken token) =>
             Profiler.Run(
                 () => iotHub.DeleteDeviceIdentityAsync(device, token),
-                "Deleted device '{Device}'",
+                "Deleted leaf device '{Device}'",
                 device.Id);
 
         static Task<MethodResponse> DirectMethod(MethodRequest request, object context)

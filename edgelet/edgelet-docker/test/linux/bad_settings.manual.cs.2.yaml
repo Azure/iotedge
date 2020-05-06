@@ -1,0 +1,39 @@
+
+# Configures the provisioning mode
+
+# invalid connection string specifed
+provisioning:
+  source: "manual"
+  authentication:
+    method: "device_connection_string"
+    device_connection_string: "blah"
+
+agent:
+  name: "edgeAgent"
+  type: "docker"
+  env:
+    abc: "value1"
+    acd: "value2"
+  config:
+    image: "microsoft/azureiotedge-agent:1.0"
+    auth: {}
+hostname: "localhost"
+
+watchdog:
+  max_retries: 3
+
+# Sets the connection uris for clients
+connect:
+  workload_uri: "http://localhost:8081"
+  management_uri: "http://localhost:8080"
+
+# Sets the uris to listen on
+# These can be different than the connect uris.
+# For instance, when using the fd:// scheme for systemd
+listen:
+  workload_uri: "http://0.0.0.0:8081"
+  management_uri: "http://0.0.0.0:8080"
+homedir: "/tmp"
+moby_runtime:
+  uri: "http://localhost:2375"
+  network: "azure-iot-edge"

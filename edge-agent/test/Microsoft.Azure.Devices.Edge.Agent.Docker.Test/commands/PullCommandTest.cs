@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
+    using CreateContainerParameters = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.CreateContainerParameters;
 
     [ExcludeFromCodeCoverage]
     [Collection("Docker")]
@@ -61,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 .Returns(TaskEx.Done);
             client.SetupGet(c => c.Images).Returns(images.Object);
 
-            var config = new CombinedDockerConfig(testFullImage, new CreateContainerParameters(), Option.Some(auth));
+            var config = new CombinedDockerConfig(testFullImage, new CreateContainerParameters(), Option.Maybe(new NotaryContentTrust { RootCertificatePath = "/path/to/rootjson", RootID = "54633324" }), Option.Some(auth));
 
             // Act
             var command = new PullCommand(client.Object, config);
@@ -88,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 {
                     await DockerHelper.Client.CleanupContainerAsync(Name, Image);
 
-                    var config = new CombinedDockerConfig(Image, new CreateContainerParameters(), NoAuth);
+                    var config = new CombinedDockerConfig(Image, new CreateContainerParameters(), Option.None<NotaryContentTrust>(), NoAuth);
 
                     ICommand pullCommand = new PullCommand(DockerHelper.Client, config);
                     await Assert.ThrowsAsync<ImageNotFoundException>(() => pullCommand.ExecuteAsync(cts.Token));
@@ -120,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 var dockerClient = new Mock<IDockerClient>();
                 dockerClient.SetupGet(c => c.Images).Returns(images.Object);
 
-                var config = new CombinedDockerConfig(Name, new CreateContainerParameters(), NoAuth);
+                var config = new CombinedDockerConfig(Name, new CreateContainerParameters(), Option.None<NotaryContentTrust>(), NoAuth);
                 ICommand pullCommand = new PullCommand(dockerClient.Object, config);
 
                 await Assert.ThrowsAsync<ImageNotFoundException>(() => pullCommand.ExecuteAsync(cts.Token));
@@ -147,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 var dockerClient = new Mock<IDockerClient>();
                 dockerClient.SetupGet(c => c.Images).Returns(images.Object);
 
-                var config = new CombinedDockerConfig(Name, new CreateContainerParameters(), NoAuth);
+                var config = new CombinedDockerConfig(Name, new CreateContainerParameters(), Option.None<NotaryContentTrust>(), NoAuth);
                 ICommand pullCommand = new PullCommand(dockerClient.Object, config);
 
                 await Assert.ThrowsAsync<InternalServerErrorException>(() => pullCommand.ExecuteAsync(cts.Token));
@@ -174,7 +175,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                 var dockerClient = new Mock<IDockerClient>();
                 dockerClient.SetupGet(c => c.Images).Returns(images.Object);
 
-                var config = new CombinedDockerConfig(Name, new CreateContainerParameters(), NoAuth);
+                var config = new CombinedDockerConfig(Name, new CreateContainerParameters(), Option.None<NotaryContentTrust>(), NoAuth);
                 ICommand pullCommand = new PullCommand(dockerClient.Object, config);
 
                 await Assert.ThrowsAsync<DockerApiException>(() => pullCommand.ExecuteAsync(cts.Token));

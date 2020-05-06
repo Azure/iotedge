@@ -17,6 +17,9 @@ hostname: "localhost"
 watchdog:
   max_retries: 3
 
+certificates:
+  auto_generated_ca_lifetime_days: 1
+
 # Sets the connection uris for clients
 connect:
   workload_uri: "http://localhost:8081"

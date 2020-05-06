@@ -21,7 +21,7 @@ fn crypto_random_bytes() {
     let _setup_home_dir = TestHSMEnvSetup::new(&LOCK, None);
 
     let hsm_lock = HsmLock::new();
-    let crypto = Crypto::new(hsm_lock).unwrap();
+    let crypto = Crypto::new(hsm_lock, 1000).unwrap();
 
     // act
     let smz: [u8; 16] = [0; 16];

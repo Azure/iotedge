@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -33,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly PeriodicTask refreshTwinTask;
         readonly IModuleConnection moduleConnection;
         readonly bool pullOnReconnect;
+        readonly IDeviceManager deviceManager;
 
         Option<TwinCollection> desiredProperties;
         Option<TwinCollection> reportedProperties;
@@ -41,8 +43,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         public EdgeAgentConnection(
             IModuleClientProvider moduleClientProvider,
             ISerde<DeploymentConfig> desiredPropertiesSerDe,
-            IRequestManager requestManager)
-            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, true, DefaultConfigRefreshFrequency, TransientRetryStrategy)
+            IRequestManager requestManager,
+            IDeviceManager deviceManager)
+            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, true, DefaultConfigRefreshFrequency, TransientRetryStrategy)
         {
         }
 
@@ -50,9 +53,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IModuleClientProvider moduleClientProvider,
             ISerde<DeploymentConfig> desiredPropertiesSerDe,
             IRequestManager requestManager,
+            IDeviceManager deviceManager,
             bool enableSubscriptions,
             TimeSpan configRefreshFrequency)
-            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, enableSubscriptions, configRefreshFrequency, TransientRetryStrategy)
+            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, enableSubscriptions, configRefreshFrequency, TransientRetryStrategy)
         {
         }
 
@@ -60,6 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IModuleClientProvider moduleClientProvider,
             ISerde<DeploymentConfig> desiredPropertiesSerDe,
             IRequestManager requestManager,
+            IDeviceManager deviceManager,
             bool enableSubscriptions,
             TimeSpan refreshConfigFrequency,
             RetryStrategy retryStrategy)
@@ -72,6 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.refreshTwinTask = new PeriodicTask(this.ForceRefreshTwin, refreshConfigFrequency, refreshConfigFrequency, Events.Log, "refresh twin config");
             this.initTask = this.ForceRefreshTwin();
             this.pullOnReconnect = enableSubscriptions;
+            this.deviceManager = Preconditions.CheckNotNull(deviceManager, nameof(deviceManager));
             Events.TwinRefreshInit(refreshConfigFrequency);
         }
 
@@ -113,6 +119,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
+        public async Task SendEventAsync(Message message)
+        {
+            Events.UpdatingReportedProperties();
+            try
+            {
+                Option<IModuleClient> moduleClient = this.moduleConnection.GetModuleClient();
+                if (!moduleClient.HasValue)
+                {
+                    Events.SendEventClientEmpty();
+                    return;
+                }
+
+                await moduleClient.ForEachAsync(d => d.SendEventAsync(message));
+                Events.SendEvent();
+            }
+            catch (Exception e)
+            {
+                Events.ErrorSendingEvent(e);
+                throw;
+            }
+        }
+
         internal static void ValidateSchemaVersion(string schemaVersion)
         {
             if (ExpectedSchemaVersion.CompareMajorVersion(schemaVersion, "desired properties schema") != 0)
@@ -133,7 +161,30 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             try
             {
+                UpstreamProtocol protocol =
+                    this.ModuleConnection.GetModuleClient().Map(x => x.UpstreamProtocol).GetOrElse(UpstreamProtocol.Amqp);
                 Events.ConnectionStatusChanged(status, reason);
+
+                // We want to notify the IoT Edge daemon in the following two cases -
+                // 1. The device has been deprovisioned and might have been reprovisioned on another IoT hub.
+                // 2. The IoT Hub that the device belongs to is no longer in existence and the device might have been
+                // moved to a different IoT hub.
+                //
+                // When the Amqp or AmqpWs protocol is used, the SDK returns a connection status change reason of
+                // Device_Disabled when a device is either disabled or deleted in IoT hub.
+                // For the Mqtt and MqttWs protocol however, the SDK returns a Bad_Credential status as it's not
+                // possible for IoT hub to distinguish between 'device does not exist', 'device is disabled' and
+                // 'device exists but wrong credentials were supplied' cases.
+                //
+                // When an IoT hub is no longer in existence (i.e., it has been deleted), the SDK returns the
+                // connection status change reason of Bad_Credential for all the Amqp and Mqtt protocols.
+                if ((reason == ConnectionStatusChangeReason.Device_Disabled &&
+                    (protocol == UpstreamProtocol.Amqp || protocol == UpstreamProtocol.AmqpWs)) ||
+                    reason == ConnectionStatusChangeReason.Bad_Credential)
+                {
+                    await this.deviceManager.ReprovisionDeviceAsync();
+                }
+
                 if (this.pullOnReconnect && this.initTask.IsCompleted && status == ConnectionStatus.Connected)
                 {
                     using (await this.twinLock.LockAsync())
@@ -307,7 +358,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 UpdatedReportedProperties,
                 ErrorUpdatingReportedProperties,
                 GotModuleClient,
-                GettingModuleClient
+                GettingModuleClient,
+                SendEvent,
+                SendEventClientEmpty,
+                ErrorSendingEvent,
             }
 
             public static void DesiredPropertiesPatchFailed(Exception exception)
@@ -422,6 +476,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             internal static void RetryingGetTwin(RetryingEventArgs args)
             {
                 Log.LogDebug((int)EventIds.RetryingGetTwin, $"Edge agent is retrying GetTwinAsync. Attempt #{args.CurrentRetryCount}. Last error: {args.LastException?.Message}");
+            }
+
+            internal static void SendEvent()
+            {
+                Log.LogDebug((int)EventIds.SendEvent, $"Edge agent is sending a diagnostic message.");
+            }
+
+            public static void SendEventClientEmpty()
+            {
+                Log.LogDebug((int)EventIds.SendEventClientEmpty, "Client empty.");
+            }
+
+            public static void ErrorSendingEvent(Exception ex)
+            {
+                Log.LogDebug((int)EventIds.ErrorSendingEvent, ex, "Error sending event");
             }
         }
     }

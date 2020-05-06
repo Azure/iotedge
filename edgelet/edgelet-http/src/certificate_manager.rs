@@ -1,5 +1,4 @@
-#![deny(rust_2018_idioms, warnings)]
-#![deny(clippy::all, clippy::pedantic)]
+// Copyright (c) Microsoft. All rights reserved.
 
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
@@ -211,7 +210,7 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{CertificateManager, ErrorKind, Future};
     use edgelet_core::crypto::{KeyBytes, PrivateKey};
     use edgelet_core::{CertificateProperties, CertificateType};
 
@@ -234,7 +233,7 @@ mod tests {
             "iotedge-tls".to_string(),
         );
 
-        let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).unwrap();
+        let manager = CertificateManager::new(crypto, edgelet_cert_props).unwrap();
 
         let cert = manager.get_certificate().unwrap();
 
@@ -254,7 +253,7 @@ mod tests {
             "iotedge-tls".to_string(),
         );
 
-        let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).unwrap();
+        let manager = CertificateManager::new(crypto, edgelet_cert_props).unwrap();
         let _timer = manager.schedule_expiration_timer(|| Ok(()));
     }
 
@@ -269,7 +268,7 @@ mod tests {
             "iotedge-tls".to_string(),
         );
 
-        let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).unwrap();
+        let manager = CertificateManager::new(crypto, edgelet_cert_props).unwrap();
 
         let timer = manager.schedule_expiration_timer(|| Ok(())).wait();
         match timer {

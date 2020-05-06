@@ -6,8 +6,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
@@ -61,7 +61,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
                 if (!moduleSet.Modules.TryGetValue(dockerRuntimeInfo.Name, out IModule configModule) || !(configModule is DockerModule dockerModule))
                 {
-                    dockerModule = new DockerModule(dockerRuntimeInfo.Name, string.Empty, ModuleStatus.Unknown, Core.RestartPolicy.Unknown, new DockerConfig(Constants.UnknownImage, new CreateContainerParameters()), ImagePullPolicy.OnCreate, new ConfigurationInfo(), null);
+                    // This is given the highest priority so that it's removal is prioritized first before other known modules are processed.
+                    dockerModule = new DockerModule(dockerRuntimeInfo.Name, string.Empty, ModuleStatus.Unknown, Core.RestartPolicy.Unknown, new DockerConfig(Constants.UnknownImage, new CreateContainerParameters(), Option.None<NotaryContentTrust>()), ImagePullPolicy.OnCreate, Core.Constants.HighestPriority, new ConfigurationInfo(), null);
                 }
 
                 Option<ModuleState> moduleStateOption = await this.moduleStateStore.Get(moduleRuntimeInfo.Name);
@@ -73,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     : moduleRuntimeInfo.ModuleStatus;
 
                 string image = !string.IsNullOrWhiteSpace(dockerRuntimeInfo.Config.Image) ? dockerRuntimeInfo.Config.Image : dockerModule.Config.Image;
-                var dockerReportedConfig = new DockerReportedConfig(image, dockerModule.Config.CreateOptions, dockerRuntimeInfo.Config.ImageHash);
+                var dockerReportedConfig = new DockerReportedConfig(image, dockerModule.Config.CreateOptions, dockerRuntimeInfo.Config.ImageHash, dockerModule.Config.NotaryContentTrust);
                 IModule module;
                 switch (moduleRuntimeInfo.Name)
                 {
@@ -90,6 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                             moduleState.LastRestartTimeUtc,
                             moduleRuntimeStatus,
                             dockerModule.ImagePullPolicy,
+                            dockerModule.Priority,
                             dockerModule.ConfigurationInfo,
                             dockerModule.Env);
                         break;
@@ -122,6 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                             moduleState.LastRestartTimeUtc,
                             moduleRuntimeStatus,
                             dockerModule.ImagePullPolicy,
+                            dockerModule.Priority,
                             dockerModule.ConfigurationInfo,
                             dockerModule.Env);
                         break;

@@ -9,7 +9,6 @@ use failure::{Backtrace, Context, Fail};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Response, StatusCode};
 use log::error;
-use serde_json;
 
 use management::apis::Error as MgmtError;
 use management::models::ErrorResponse;
@@ -56,6 +55,9 @@ pub enum ErrorKind {
 
     #[fail(display = "Could not prepare update for module {:?}", _0)]
     PrepareUpdateModule(String),
+
+    #[fail(display = "Could not reprovision device")]
+    ReprovisionDevice,
 
     #[fail(display = "{}", _0)]
     RuntimeOperation(RuntimeOperation),

@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Concurrency
 
             public void Dispose()
             {
-                if (0 == Interlocked.Exchange(ref this.disposed, 1))
+                if (Interlocked.Exchange(ref this.disposed, 1) == 0)
                 {
                     this.toRelease.semaphore.Release();
                 }

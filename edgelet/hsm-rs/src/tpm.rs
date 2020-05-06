@@ -7,7 +7,10 @@ use std::os::raw::{c_uchar, c_void};
 use std::ptr;
 use std::slice;
 
-use super::*;
+use super::{
+    hsm_client_tpm_deinit, hsm_client_tpm_init, hsm_client_tpm_interface, hsm_get_version,
+    HSM_CLIENT_HANDLE, HSM_CLIENT_TPM_INTERFACE,
+};
 use super::{ManageTpmKeys, SignWithTpm};
 use crate::error::{Error, ErrorKind};
 
@@ -42,27 +45,30 @@ impl Tpm {
     pub fn new() -> Result<Tpm, Error> {
         let result = unsafe { hsm_client_tpm_init() as isize };
         if result != 0 {
-            Err(result)?
+            return Err(result.into());
         }
         let if_ptr = unsafe { hsm_client_tpm_interface() };
         if if_ptr.is_null() {
             unsafe { hsm_client_tpm_deinit() };
-            Err(ErrorKind::NullResponse)?
+            return Err(ErrorKind::NullResponse.into());
         }
         let interface = unsafe { *if_ptr };
         if let Some(handle) = interface.hsm_client_tpm_create.map(|f| unsafe { f() }) {
             if handle.is_null() {
                 unsafe { hsm_client_tpm_deinit() };
-                Err(ErrorKind::NullResponse)?
+                return Err(ErrorKind::NullResponse.into());
             }
             Ok(Tpm { handle, interface })
         } else {
             unsafe { hsm_client_tpm_deinit() };
-            Err(ErrorKind::NullResponse)?
+            Err(ErrorKind::NullResponse.into())
         }
     }
 
     pub fn get_version(&self) -> Result<String, Error> {
+        // We want to enforce Crypto::new is called before this, since ::new() initializes the libiothsm. So silence the allow_unused clippy lint.
+        let _ = self;
+
         let version = unsafe {
             CStr::from_ptr(hsm_get_version())
                 .to_string_lossy()
@@ -83,7 +89,7 @@ impl ManageTpmKeys for Tpm {
         let result = unsafe { key_fn(self.handle, key.as_ptr(), key.len()) };
         match result {
             0 => Ok(()),
-            r => Err(r)?,
+            r => Err(r.into()),
         }
     }
 
@@ -96,7 +102,7 @@ impl ManageTpmKeys for Tpm {
         let result = unsafe { key_fn(self.handle, &mut ptr, &mut key_ln) };
         match result {
             0 => Ok(TpmKey::new(self.interface, ptr as *const _, key_ln)),
-            r => Err(r)?,
+            r => Err(r.into()),
         }
     }
 
@@ -109,7 +115,7 @@ impl ManageTpmKeys for Tpm {
         let result = unsafe { key_fn(self.handle, &mut ptr, &mut key_ln) };
         match result {
             0 => Ok(TpmKey::new(self.interface, ptr as *const _, key_ln)),
-            r => Err(r)?,
+            r => Err(r.into()),
         }
     }
 }
@@ -135,7 +141,7 @@ impl SignWithTpm for Tpm {
         };
         match result {
             0 => Ok(TpmDigest::new(self.interface, ptr as *const _, key_ln)),
-            r => Err(r)?,
+            r => Err(r.into()),
         }
     }
 
@@ -164,7 +170,7 @@ impl SignWithTpm for Tpm {
         if result == 0 {
             Ok(TpmDigest::new(self.interface, ptr as *const _, key_ln))
         } else {
-            Err(result)?
+            Err(result.into())
         }
     }
 }
@@ -221,7 +227,7 @@ mod tests {
 
     use super::super::{ManageTpmKeys, SignWithTpm};
     use super::{Tpm, TpmKey};
-    use hsm_sys::*;
+    use hsm_sys::{HSM_CLIENT_HANDLE, HSM_CLIENT_TPM_INTERFACE};
 
     extern "C" {
         pub fn malloc(size: usize) -> *mut c_void;
@@ -233,10 +239,10 @@ mod tests {
         free(b);
     }
 
-    fn fake_good_tpm_buffer_free() -> HSM_CLIENT_TPM_INTERFACE_TAG {
-        HSM_CLIENT_TPM_INTERFACE_TAG {
+    fn fake_good_tpm_buffer_free() -> HSM_CLIENT_TPM_INTERFACE {
+        HSM_CLIENT_TPM_INTERFACE {
             hsm_client_free_buffer: Some(real_buffer_destroy),
-            ..HSM_CLIENT_TPM_INTERFACE_TAG::default()
+            ..HSM_CLIENT_TPM_INTERFACE::default()
         }
     }
 
@@ -264,7 +270,7 @@ mod tests {
         let len = key.len();
 
         let key2 = TpmKey::new(
-            HSM_CLIENT_TPM_INTERFACE_TAG::default(),
+            HSM_CLIENT_TPM_INTERFACE::default(),
             key.as_ptr() as *const c_uchar,
             len,
         );
@@ -370,10 +376,10 @@ mod tests {
     fn fake_no_if_tpm_hsm() -> Tpm {
         Tpm {
             handle: unsafe { fake_handle_create_good() },
-            interface: HSM_CLIENT_TPM_INTERFACE_TAG {
+            interface: HSM_CLIENT_TPM_INTERFACE {
                 hsm_client_tpm_create: Some(fake_handle_create_good),
                 hsm_client_tpm_destroy: Some(fake_handle_destroy),
-                ..HSM_CLIENT_TPM_INTERFACE_TAG::default()
+                ..HSM_CLIENT_TPM_INTERFACE::default()
             },
         }
     }
@@ -427,7 +433,7 @@ mod tests {
     fn fake_good_tpm_hsm() -> Tpm {
         Tpm {
             handle: unsafe { fake_handle_create_good() },
-            interface: HSM_CLIENT_TPM_INTERFACE_TAG {
+            interface: HSM_CLIENT_TPM_INTERFACE {
                 hsm_client_tpm_create: Some(fake_handle_create_good),
                 hsm_client_tpm_destroy: Some(fake_handle_destroy),
                 hsm_client_activate_identity_key: Some(fake_activate_id_key),
@@ -470,7 +476,7 @@ mod tests {
     fn fake_bad_tpm_hsm() -> Tpm {
         Tpm {
             handle: unsafe { fake_handle_create_bad() },
-            interface: HSM_CLIENT_TPM_INTERFACE_TAG {
+            interface: HSM_CLIENT_TPM_INTERFACE {
                 hsm_client_tpm_create: Some(fake_handle_create_good),
                 hsm_client_tpm_destroy: Some(fake_handle_destroy),
                 hsm_client_activate_identity_key: Some(fake_activate_id_key),

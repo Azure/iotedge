@@ -11,40 +11,66 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
+// DEVNOTE: Why is most of this type commented out?
+//
+// We do not want to restrict the properties that the user can set in their create options, because future versions of Docker can add new properties
+// that we don't define here.
+//
+// So this type has a `#[serde(flatten)] HashMap` field to collect all the extra properties that we don't have a struct field for.
+//
+// But if an existing field references another type under `crate::models::`, then that would still be parsed lossily, so we would have to also add
+// a `#[serde(flatten)] HashMap` field there. And if that type has fields that reference types under `crate::models::` ...
+//
+// To avoid having to do this for effectively the whole crate, instead we've just commented out the fields we don't use in our code.
+//
+// ---
+//
+// If you need to access a commented out field, uncomment it.
+//
+// - If it's a simple built-in type, then that is all you need to do.
+//
+// - Otherwise if it references another type under `crate::models::`, then ensure that that type also has a `#[serde(flatten)] HashMap` property
+//   and is commented out as much as possible. Also copy this devnote there for future readers.
+
 #[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 pub struct HostConfigPortBindings {
-    /// The host IP address
-    #[serde(rename = "HostIp", skip_serializing_if = "Option::is_none")]
-    host_ip: Option<String>,
+    // /// The host IP address
+    // #[serde(rename = "HostIp", skip_serializing_if = "Option::is_none")]
+    // host_ip: Option<String>,
     /// The host port number, as a string
     #[serde(rename = "HostPort", skip_serializing_if = "Option::is_none")]
     host_port: Option<String>,
+
+    #[serde(flatten)]
+    other_properties: std::collections::HashMap<String, serde_json::Value>,
 }
 
 impl HostConfigPortBindings {
     pub fn new() -> Self {
         HostConfigPortBindings {
-            host_ip: None,
+            // host_ip: None,
             host_port: None,
+
+            other_properties: Default::default(),
         }
     }
 
-    pub fn set_host_ip(&mut self, host_ip: String) {
-        self.host_ip = Some(host_ip);
-    }
+    // pub fn set_host_ip(&mut self, host_ip: String) {
+    //     self.host_ip = Some(host_ip);
+    // }
 
-    pub fn with_host_ip(mut self, host_ip: String) -> Self {
-        self.host_ip = Some(host_ip);
-        self
-    }
+    // pub fn with_host_ip(mut self, host_ip: String) -> Self {
+    //     self.host_ip = Some(host_ip);
+    //     self
+    // }
 
-    pub fn host_ip(&self) -> Option<&str> {
-        self.host_ip.as_ref().map(AsRef::as_ref)
-    }
+    // pub fn host_ip(&self) -> Option<&str> {
+    //     self.host_ip.as_ref().map(AsRef::as_ref)
+    // }
 
-    pub fn reset_host_ip(&mut self) {
-        self.host_ip = None;
-    }
+    // pub fn reset_host_ip(&mut self) {
+    //     self.host_ip = None;
+    // }
 
     pub fn set_host_port(&mut self, host_port: String) {
         self.host_port = Some(host_port);

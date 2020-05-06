@@ -140,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     Metrics.MessageProcessingLatency(this.clientId, inputMessage);
                     await this.client.SendEventAsync(message);
                     Events.SendMessage(this);
-                    Metrics.AddSentMessages(this.clientId, 1);
+                    Metrics.AddSentMessages(this.clientId, 1, inputMessage.GetOutput(), inputMessage.ProcessedPriority);
                 }
             }
             catch (Exception ex)
@@ -154,21 +154,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public async Task SendMessageBatchAsync(IEnumerable<IMessage> inputMessages)
         {
             IMessageConverter<Message> converter = this.messageConverterProvider.Get<Message>();
+            string metricOutputRoute = null;
             IList<Message> messages = Preconditions.CheckNotNull(inputMessages, nameof(inputMessages))
                 .Select(inputMessage =>
                 {
+                    metricOutputRoute = metricOutputRoute ?? inputMessage.GetOutput();
                     Metrics.MessageProcessingLatency(this.clientId, inputMessage);
                     return converter.FromMessage(inputMessage);
                 })
                 .ToList();
             this.timer.Reset();
+
             try
             {
                 using (Metrics.TimeMessageSend(this.clientId))
                 {
                     await this.client.SendEventBatchAsync(messages);
                     Events.SendMessage(this);
-                    Metrics.AddSentMessages(this.clientId, messages.Count);
+
+                    if (messages.Count > 0)
+                    {
+                        // Priority for messages in any given batch is the same, so we can
+                        // just use the priority from the first message in the collection
+                        Metrics.AddSentMessages(this.clientId, messages.Count, metricOutputRoute, inputMessages.First().ProcessedPriority);
+                    }
                 }
             }
             catch (Exception ex)
@@ -368,9 +377,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
                 Events.MethodCallReceived(this.cloudProxy.clientId);
                 var direceMethodRequest = new DirectMethodRequest(this.cloudProxy.clientId, methodrequest.Name, methodrequest.Data, DeviceMethodMaxResponseTimeout);
-                DirectMethodResponse directMethodResponse = await this.cloudListener.CallMethodAsync(direceMethodRequest);
-                MethodResponse methodResponse = directMethodResponse.Data == null ? new MethodResponse(directMethodResponse.Status) : new MethodResponse(directMethodResponse.Data, directMethodResponse.Status);
-                return methodResponse;
+
+                using (Metrics.TimeDirectMethod(this.cloudProxy.clientId))
+                {
+                    DirectMethodResponse directMethodResponse = await this.cloudListener.CallMethodAsync(direceMethodRequest);
+                    MethodResponse methodResponse = directMethodResponse.Data == null ? new MethodResponse(directMethodResponse.Status) : new MethodResponse(directMethodResponse.Data, directMethodResponse.Status);
+                    return methodResponse;
+                }
             }
 
             static Task OnDesiredPropertyUpdates(TwinCollection desiredProperties, object userContext)
@@ -486,42 +499,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void ErrorClosing(CloudProxy cloudProxy, Exception ex)
             {
-                Log.LogError((int)EventIds.CloseError, ex, Invariant($"Error closing cloud proxy {cloudProxy.id} for device {cloudProxy.clientId}"));
+                Log.LogError((int)EventIds.CloseError, ex, Invariant($"Error closing cloud proxy {cloudProxy.id} for {cloudProxy.clientId}"));
             }
 
             public static void GetTwin(CloudProxy cloudProxy)
             {
-                Log.LogDebug((int)EventIds.GetTwin, Invariant($"Getting twin for device {cloudProxy.clientId}"));
+                Log.LogDebug((int)EventIds.GetTwin, Invariant($"Getting twin for {cloudProxy.clientId}"));
             }
 
             public static void SendMessage(CloudProxy cloudProxy)
             {
-                Log.LogDebug((int)EventIds.SendMessage, Invariant($"Sending message for device {cloudProxy.clientId}"));
+                Log.LogDebug((int)EventIds.SendMessage, Invariant($"Sending message for {cloudProxy.clientId}"));
             }
 
             public static void ErrorSendingMessage(CloudProxy cloudProxy, Exception ex)
             {
-                Log.LogDebug((int)EventIds.SendMessageError, ex, Invariant($"Error sending message for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+                Log.LogDebug((int)EventIds.SendMessageError, ex, Invariant($"Error sending message for {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
             }
 
             public static void ErrorSendingBatchMessage(CloudProxy cloudProxy, Exception ex)
             {
-                Log.LogDebug((int)EventIds.SendMessageBatchError, ex, Invariant($"Error sending message batch for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+                Log.LogDebug((int)EventIds.SendMessageBatchError, ex, Invariant($"Error sending message batch for {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
             }
 
             public static void UpdateReportedProperties(CloudProxy cloudProxy)
             {
-                Log.LogDebug((int)EventIds.UpdateReportedProperties, Invariant($"Updating reported properties for device {cloudProxy.clientId}"));
+                Log.LogDebug((int)EventIds.UpdateReportedProperties, Invariant($"Updating reported properties for {cloudProxy.clientId}"));
             }
 
             public static void SendFeedbackMessage(CloudProxy cloudProxy, string messageId)
             {
-                Log.LogDebug((int)EventIds.SendFeedbackMessage, Invariant($"Sending feedback message with id {messageId} for device {cloudProxy.clientId}"));
+                Log.LogDebug((int)EventIds.SendFeedbackMessage, Invariant($"Sending feedback message with id {messageId} for {cloudProxy.clientId}"));
             }
 
             public static void MessageReceived(string clientId)
             {
-                Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received message from cloud for device {clientId}"));
+                Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received message from cloud for {clientId}"));
             }
 
             public static void Closing(CloudProxy cloudProxy)
@@ -531,27 +544,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void ErrorReceivingMessage(CloudProxy cloudProxy, Exception ex)
             {
-                Log.LogDebug((int)EventIds.ReceiveError, ex, Invariant($"Error receiving message for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+                Log.LogDebug((int)EventIds.ReceiveError, ex, Invariant($"Error receiving message for {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
             }
 
             public static void ReceiverStopped(CloudProxy cloudProxy)
             {
-                Log.LogInformation((int)EventIds.ReceiverStopped, Invariant($"Cloud message receiver stopped for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+                Log.LogInformation((int)EventIds.ReceiverStopped, Invariant($"Cloud message receiver stopped for {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
             }
 
             public static void MethodCallReceived(string clientId)
             {
-                Log.LogDebug((int)EventIds.MethodReceived, Invariant($"Received call method from cloud for device {clientId}"));
+                Log.LogDebug((int)EventIds.MethodReceived, Invariant($"Received call method from cloud for {clientId}"));
             }
 
             public static void StartListening(string clientId)
             {
-                Log.LogInformation((int)EventIds.StartListening, Invariant($"Start listening for C2D messages for device {clientId}"));
+                Log.LogInformation((int)EventIds.StartListening, Invariant($"Start listening for C2D messages for {clientId}"));
             }
 
             public static void ErrorOpening(string clientId, Exception ex)
             {
-                Log.LogWarning((int)EventIds.ErrorOpening, ex, Invariant($"Error opening IotHub connection for device {clientId}"));
+                Log.LogWarning((int)EventIds.ErrorOpening, ex, Invariant($"Error opening IotHub connection for {clientId}"));
             }
 
             public static void TimedOutClosing(CloudProxy cloudProxy)
@@ -596,12 +609,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             internal static void TerminatingErrorReceivingMessage(CloudProxy cloudProxy, Exception e)
             {
-                Log.LogInformation((int)EventIds.ReceiveError, e, Invariant($"Error receiving C2D messages for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}. Closing receive loop."));
+                Log.LogInformation((int)EventIds.ReceiveError, e, Invariant($"Error receiving C2D messages for {cloudProxy.clientId} in cloud proxy {cloudProxy.id}. Closing receive loop."));
             }
 
             internal static void CloudReceiverNull(string clientId, string operation)
             {
-                Log.LogWarning((int)EventIds.CloudReceiverNull, Invariant($"Cannot complete operation {operation} for device {clientId} because cloud receiver is null"));
+                Log.LogWarning((int)EventIds.CloudReceiverNull, Invariant($"Cannot complete operation {operation} for {clientId} because cloud receiver is null"));
             }
         }
 
@@ -615,7 +628,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             static readonly IMetricsCounter SentMessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "messages_sent",
                 "Messages sent from edge hub",
-                new List<string> { "from", "to" });
+                new List<string> { "from", "to", "from_route_output", "to_route_input", "priority" });
 
             static readonly IMetricsTimer GetTwinTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "gettwin_duration_seconds",
@@ -637,14 +650,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 "Reported properties update calls",
                 new List<string> { "target", "id" });
 
+            static readonly IMetricsTimer DirectMethodsTimer = Util.Metrics.Metrics.Instance.CreateTimer(
+                "direct_method_duration_seconds",
+                "Time taken to call direct method",
+                new List<string> { "from", "to" });
+
             static readonly IMetricsDuration MessagesProcessLatency = Util.Metrics.Metrics.Instance.CreateDuration(
                 "message_process_duration",
                 "Time taken to process message in EdgeHub",
-                new List<string> { "from", "to" });
+                new List<string> { "from", "to", "priority" });
 
             public static IDisposable TimeMessageSend(string id) => MessagesTimer.GetTimer(new[] { id, "upstream" });
 
-            public static void AddSentMessages(string id, int count) => SentMessagesCounter.Increment(count, new[] { id, "upstream" });
+            public static void AddSentMessages(string id, int count, string fromRoute, uint priority) =>
+                SentMessagesCounter.Increment(count, new[] { id, "upstream", fromRoute, string.Empty, priority.ToString() });
 
             public static IDisposable TimeGetTwin(string id) => GetTwinTimer.GetTimer(new[] { "upstream", id });
 
@@ -654,6 +673,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void AddUpdateReportedProperties(string id) => ReportedPropertiesCounter.Increment(1, new[] { "upstream", id });
 
+            public static IDisposable TimeDirectMethod(string id) => DirectMethodsTimer.GetTimer(new[] { "upstream", id });
+
             public static void MessageProcessingLatency(string id, IMessage message)
             {
                 if (message.SystemProperties != null
@@ -661,9 +682,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     && DateTime.TryParse(enqueuedTimeString, out DateTime enqueuedTime))
                 {
                     TimeSpan duration = DateTime.UtcNow - enqueuedTime.ToUniversalTime();
+                    string priority = message.ProcessedPriority.ToString();
                     MessagesProcessLatency.Set(
                         duration.TotalSeconds,
-                        new[] { id, "upstream" });
+                        new[] { id, "upstream", priority });
                 }
             }
         }

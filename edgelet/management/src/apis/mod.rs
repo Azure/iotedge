@@ -1,7 +1,3 @@
-use hyper;
-use serde;
-use serde_json;
-
 #[derive(Debug)]
 pub enum Error<T> {
     Hyper(hyper::Error),
@@ -48,6 +44,8 @@ impl<T> From<serde_json::Error> for Error<T> {
     }
 }
 
+mod device_actions_api;
+pub use self::device_actions_api::{DeviceActionsApi, DeviceActionsApiClient};
 mod identity_api;
 pub use self::identity_api::{IdentityApi, IdentityApiClient};
 mod module_api;

@@ -8,7 +8,10 @@ use std::slice;
 use std::string::String;
 
 use super::GetDeviceIdentityCertificate;
-use super::*;
+use super::{
+    hsm_client_x509_deinit, hsm_client_x509_init, hsm_client_x509_interface, hsm_get_version,
+    HsmCertificate, HSM_CLIENT_HANDLE, HSM_CLIENT_X509_INTERFACE,
+};
 use crate::error::{Error, ErrorKind};
 
 // Handles don't have thread-affinity
@@ -37,27 +40,30 @@ impl Drop for X509 {
 
 impl X509 {
     /// Create a new x509 implementation for the HSM API.
-    pub fn new() -> Result<Self, Error> {
-        let result = unsafe { hsm_client_x509_init() as isize };
+    pub fn new(auto_generated_cert_lifetime: u64) -> Result<Self, Error> {
+        let result = unsafe { hsm_client_x509_init(auto_generated_cert_lifetime) as isize };
         if result != 0 {
-            Err(result)?
+            return Err(result.into());
         }
         let if_ptr = unsafe { hsm_client_x509_interface() };
         if if_ptr.is_null() {
-            Err(ErrorKind::NullResponse)?
+            return Err(ErrorKind::NullResponse.into());
         }
         let interface = unsafe { *if_ptr };
         if let Some(handle) = interface.hsm_client_x509_create.map(|f| unsafe { f() }) {
             if handle.is_null() {
-                Err(ErrorKind::NullResponse)?
+                return Err(ErrorKind::NullResponse.into());
             }
             Ok(X509 { handle, interface })
         } else {
-            Err(ErrorKind::NullResponse)?
+            Err(ErrorKind::NullResponse.into())
         }
     }
 
     pub fn get_version(&self) -> Result<String, Error> {
+        // We want to enforce Crypto::new is called before this, since ::new() initializes the libiothsm. So silence the allow_unused clippy lint.
+        let _ = self;
+
         let version = unsafe {
             CStr::from_ptr(hsm_get_version())
                 .to_string_lossy()
@@ -76,7 +82,7 @@ impl GetDeviceIdentityCertificate for X509 {
             .ok_or(ErrorKind::NoneFn)?;
         let result = unsafe { key_fn(self.handle) };
         if result.is_null() {
-            Err(ErrorKind::NullResponse)?
+            Err(ErrorKind::NullResponse.into())
         } else {
             Ok(X509Data::new(self.interface, result))
         }
@@ -87,7 +93,7 @@ impl GetDeviceIdentityCertificate for X509 {
         let key_fn = self.interface.hsm_client_get_key.ok_or(ErrorKind::NoneFn)?;
         let result = unsafe { key_fn(self.handle) };
         if result.is_null() {
-            Err(ErrorKind::NullResponse)?
+            Err(ErrorKind::NullResponse.into())
         } else {
             Ok(X509Data::new(self.interface, result))
         }
@@ -136,7 +142,7 @@ impl GetDeviceIdentityCertificate for X509 {
                 ptr as *const _,
                 key_ln,
             )),
-            _ => Err(ErrorKind::PrivateKeySignFn)?,
+            _ => Err(ErrorKind::PrivateKeySignFn.into()),
         }
     }
 
@@ -148,12 +154,12 @@ impl GetDeviceIdentityCertificate for X509 {
             .ok_or(ErrorKind::NoneFn)?;
         let cert_info_handle = unsafe { if_fn(self.handle) };
         if cert_info_handle.is_null() {
-            Err(ErrorKind::HsmCertificateFailure)?
+            Err(ErrorKind::HsmCertificateFailure.into())
         } else {
             let handle = HsmCertificate::from(cert_info_handle);
             match handle {
                 Ok(h) => Ok(h),
-                Err(_) => Err(ErrorKind::HsmCertificateFailure)?,
+                Err(_) => Err(ErrorKind::HsmCertificateFailure.into()),
             }
         }
     }
@@ -251,7 +257,9 @@ mod tests {
 
     use super::super::GetDeviceIdentityCertificate;
     use super::{X509Data, X509};
-    use hsm_sys::*;
+    use hsm_sys::{
+        certificate_info_create, CERT_INFO_HANDLE, HSM_CLIENT_HANDLE, HSM_CLIENT_X509_INTERFACE,
+    };
 
     extern "C" {
         pub fn malloc(size: usize) -> *mut c_void;
@@ -264,10 +272,10 @@ mod tests {
         free(b);
     }
 
-    fn fake_good_x509_buffer_free() -> HSM_CLIENT_X509_INTERFACE_TAG {
-        HSM_CLIENT_X509_INTERFACE_TAG {
+    fn fake_good_x509_buffer_free() -> HSM_CLIENT_X509_INTERFACE {
+        HSM_CLIENT_X509_INTERFACE {
             hsm_client_free_buffer: Some(real_buffer_destroy),
-            ..HSM_CLIENT_X509_INTERFACE_TAG::default()
+            ..HSM_CLIENT_X509_INTERFACE::default()
         }
     }
 
@@ -294,7 +302,7 @@ mod tests {
         let len = key.len();
 
         let key2 = X509Data::new(
-            HSM_CLIENT_X509_INTERFACE_TAG::default(),
+            HSM_CLIENT_X509_INTERFACE::default(),
             key.as_ptr() as *mut c_char,
         );
 

@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var store = Mock.Of<IEntityStore<string, ModuleState>>();
             var restartPolicyManager = Mock.Of<IRestartPolicyManager>();
 
-            var runtimeInfoProvider = Mock.Of<IRuntimeInfoProvider>(r => r.GetSystemInfo() == Task.FromResult(systemInfo));
+            var runtimeInfoProvider = Mock.Of<IRuntimeInfoProvider>(r => r.GetSystemInfo(CancellationToken.None) == Task.FromResult(systemInfo));
             var moduleStateStore = Mock.Of<IEntityStore<string, ModuleState>>();
             string minDockerVersion = "20";
             string dockerLoggingOptions = "dummy logging options";
@@ -107,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     0,
                     Option.Some(new DateTime(2017, 10, 10)),
                     Option.None<DateTime>(),
-                    new DockerReportedConfig("mod1:v1", string.Empty, module1Hash)));
+                    new DockerReportedConfig("mod1:v1", string.Empty, module1Hash, Option.None<NotaryContentTrust>())));
             moduleRuntimeInfoList.Add(
                 new ModuleRuntimeInfo<DockerReportedConfig>(
                     "module2",
@@ -117,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     5,
                     Option.Some(new DateTime(2017, 10, 12)),
                     Option.Some(new DateTime(2017, 10, 14)),
-                    new DockerReportedConfig("mod2:v2", string.Empty, module2Hash)));
+                    new DockerReportedConfig("mod2:v2", string.Empty, module2Hash, Option.None<NotaryContentTrust>())));
             moduleRuntimeInfoList.Add(
                 new ModuleRuntimeInfo<DockerReportedConfig>(
                     "edgeHub",
@@ -127,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     0,
                     Option.Some(new DateTime(2017, 10, 10)),
                     Option.None<DateTime>(),
-                    new DockerReportedConfig("edgehub:v1", string.Empty, edgeHubHash)));
+                    new DockerReportedConfig("edgehub:v1", string.Empty, edgeHubHash, Option.None<NotaryContentTrust>())));
             moduleRuntimeInfoList.Add(
                 new ModuleRuntimeInfo<DockerReportedConfig>(
                     "edgeAgent",
@@ -137,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     0,
                     Option.Some(new DateTime(2017, 10, 10)),
                     Option.None<DateTime>(),
-                    new DockerReportedConfig("edgeAgent:v1", string.Empty, edgeAgentHash)));
+                    new DockerReportedConfig("edgeAgent:v1", string.Empty, edgeAgentHash, Option.None<NotaryContentTrust>())));
 
             var runtimeInfoProvider = Mock.Of<IRuntimeInfoProvider>(r => r.GetModules(CancellationToken.None) == Task.FromResult(moduleRuntimeInfoList.AsEnumerable()));
             var moduleStateStore = new Mock<IEntityStore<string, ModuleState>>();
@@ -149,10 +149,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             string minDockerVersion = "20";
             string dockerLoggingOptions = "dummy logging options";
 
-            var module1 = new DockerModule("module1", "v1", ModuleStatus.Stopped, RestartPolicy.Always, new DockerConfig("mod1:v1", "{\"Env\":[\"foo=bar\"]}"), ImagePullPolicy.OnCreate, new ConfigurationInfo(), null);
-            var module2 = new DockerModule("module2", "v2", ModuleStatus.Running, RestartPolicy.OnUnhealthy, new DockerConfig("mod2:v2", "{\"Env\":[\"foo2=bar2\"]}"), ImagePullPolicy.Never, new ConfigurationInfo(), null);
-            var edgeHubModule = new EdgeHubDockerModule("docker", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig("edgehub:v1", "{\"Env\":[\"foo3=bar3\"]}"), ImagePullPolicy.OnCreate, new ConfigurationInfo(), null);
-            var edgeAgentModule = new EdgeAgentDockerModule("docker", new DockerConfig("edgeAgent:v1", string.Empty), ImagePullPolicy.OnCreate, new ConfigurationInfo(), null);
+            var module1 = new DockerModule("module1", "v1", ModuleStatus.Stopped, RestartPolicy.Always, new DockerConfig("mod1:v1", "{\"Env\":[\"foo=bar\"]}", Option.None<NotaryContentTrust>()), ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo(), null);
+            var module2 = new DockerModule("module2", "v2", ModuleStatus.Running, RestartPolicy.OnUnhealthy, new DockerConfig("mod2:v2", "{\"Env\":[\"foo2=bar2\"]}", Option.None<NotaryContentTrust>()), ImagePullPolicy.Never, Constants.DefaultPriority, new ConfigurationInfo(), null);
+            var edgeHubModule = new EdgeHubDockerModule("docker", ModuleStatus.Running, RestartPolicy.Always, new DockerConfig("edgehub:v1", "{\"Env\":[\"foo3=bar3\"]}", Option.None<NotaryContentTrust>()), ImagePullPolicy.OnCreate, Constants.HighestPriority, new ConfigurationInfo(), null);
+            var edgeAgentModule = new EdgeAgentDockerModule("docker", new DockerConfig("edgeAgent:v1", string.Empty, Option.None<NotaryContentTrust>()), ImagePullPolicy.OnCreate, new ConfigurationInfo(), null);
             var deploymentConfig = new DeploymentConfig(
                 "1.0",
                 new DockerRuntimeInfo("docker", new DockerRuntimeConfig(minDockerVersion, dockerLoggingOptions)),
@@ -178,6 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(ModuleStatus.Stopped, receivedDockerModule1.DesiredStatus);
             Assert.Equal(RestartPolicy.Always, receivedDockerModule1.RestartPolicy);
             Assert.Equal(ImagePullPolicy.OnCreate, receivedDockerModule1.ImagePullPolicy);
+            Assert.Equal(Constants.DefaultPriority, receivedDockerModule1.Priority);
             Assert.Equal("mod1:v1", receivedDockerModule1.Config.Image);
             Assert.Equal("{\"Env\":[\"foo=bar\"]}", JsonConvert.SerializeObject(receivedDockerModule1.Config.CreateOptions));
             Assert.Equal(ModuleStatus.Stopped, receivedDockerModule1.RuntimeStatus);
@@ -196,6 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(ModuleStatus.Running, receivedDockerModule2.DesiredStatus);
             Assert.Equal(RestartPolicy.OnUnhealthy, receivedDockerModule2.RestartPolicy);
             Assert.Equal(ImagePullPolicy.Never, receivedDockerModule2.ImagePullPolicy);
+            Assert.Equal(Constants.DefaultPriority, receivedDockerModule2.Priority);
             Assert.Equal("mod2:v2", receivedDockerModule2.Config.Image);
             Assert.Equal("{\"Env\":[\"foo2=bar2\"]}", JsonConvert.SerializeObject(receivedDockerModule2.Config.CreateOptions));
             Assert.Equal(ModuleStatus.Failed, receivedDockerModule2.RuntimeStatus);
@@ -214,6 +216,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(ModuleStatus.Running, receivedDockerEdgeHub.DesiredStatus);
             Assert.Equal(RestartPolicy.Always, receivedDockerEdgeHub.RestartPolicy);
             Assert.Equal(ImagePullPolicy.OnCreate, receivedDockerEdgeHub.ImagePullPolicy);
+            Assert.Equal(Constants.HighestPriority, receivedDockerEdgeHub.Priority);
             Assert.Equal("edgehub:v1", receivedDockerEdgeHub.Config.Image);
             Assert.Equal("{\"Env\":[\"foo3=bar3\"]}", JsonConvert.SerializeObject(receivedDockerEdgeHub.Config.CreateOptions));
             Assert.Equal(ModuleStatus.Running, receivedDockerEdgeHub.RuntimeStatus);
@@ -231,6 +234,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(string.Empty, receivedDockerEdgeAgent.Version);
             Assert.Equal(ModuleStatus.Running, receivedDockerEdgeAgent.RuntimeStatus);
             Assert.Equal(ImagePullPolicy.OnCreate, receivedDockerEdgeAgent.ImagePullPolicy);
+            Assert.Equal(Constants.HighestPriority, receivedDockerEdgeAgent.Priority);
             Assert.Equal("edgeAgent:v1", receivedDockerEdgeAgent.Config.Image);
             Assert.Equal("{}", JsonConvert.SerializeObject(receivedDockerEdgeAgent.Config.CreateOptions));
             Assert.Equal(new DateTime(2017, 10, 10), receivedDockerEdgeAgent.LastStartTimeUtc);

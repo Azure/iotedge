@@ -3,8 +3,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
+    [Unit]
     public class DeploymentConfigInfoTest
     {
         static readonly IEdgeAgentModule TestEdgeAgent1 = new TestAgentModule(
@@ -30,6 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("microsoft/edgeHub:1.0"),
             RestartPolicy.Always,
             ImagePullPolicy.OnCreate,
+            Constants.DefaultPriority,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -40,6 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("microsoft/edgeHub:1.0"),
             RestartPolicy.Always,
             ImagePullPolicy.OnCreate,
+            Constants.DefaultPriority,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -51,6 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("mod1:v0"),
             RestartPolicy.Always,
             ImagePullPolicy.OnCreate,
+            Constants.DefaultPriority,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -62,6 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("mod1:v0"),
             RestartPolicy.Always,
             ImagePullPolicy.OnCreate,
+            Constants.DefaultPriority,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -73,6 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("mod2:v0"),
             RestartPolicy.Always,
             ImagePullPolicy.Never,
+            Constants.HighestPriority,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -84,6 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("mod2:v0"),
             RestartPolicy.Always,
             ImagePullPolicy.Never,
+            Constants.HighestPriority,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 

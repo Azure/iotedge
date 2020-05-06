@@ -8,7 +8,21 @@ use std::os::raw::{c_char, c_uchar, c_void};
 use std::slice;
 use std::str;
 
-use super::*;
+use super::{
+    cert_properties_create, cert_properties_destroy, certificate_info_destroy,
+    certificate_info_get_certificate, certificate_info_get_common_name,
+    certificate_info_get_private_key, certificate_info_get_valid_to,
+    certificate_info_private_key_type, hsm_client_crypto_deinit, hsm_client_crypto_init,
+    hsm_client_crypto_interface, hsm_get_device_ca_alias, hsm_get_version, set_alias,
+    set_certificate_type, set_common_name, set_issuer_alias, set_san_entries, set_validity_seconds,
+    CreateCertificate, CreateMasterEncryptionKey, Decrypt, DestroyMasterEncryptionKey, Encrypt,
+    GetCertificate, GetTrustBundle, MakeRandom, CERTIFICATE_TYPE_CERTIFICATE_TYPE_CA,
+    CERTIFICATE_TYPE_CERTIFICATE_TYPE_CLIENT, CERTIFICATE_TYPE_CERTIFICATE_TYPE_SERVER,
+    CERTIFICATE_TYPE_CERTIFICATE_TYPE_UNKNOWN, CERT_INFO_HANDLE, CERT_PROPS_HANDLE,
+    HSM_CLIENT_CRYPTO_INTERFACE, HSM_CLIENT_HANDLE, PRIVATE_KEY_TYPE_PRIVATE_KEY_TYPE_PAYLOAD,
+    PRIVATE_KEY_TYPE_PRIVATE_KEY_TYPE_REFERENCE, PRIVATE_KEY_TYPE_PRIVATE_KEY_TYPE_UNKNOWN,
+    SIZED_BUFFER,
+};
 use crate::error::{Error, ErrorKind};
 
 /// Enumerator for [`CERTIFICATE_TYPE`]
@@ -34,7 +48,7 @@ pub enum CertificateType {
 #[derive(Clone, Debug)]
 pub struct Crypto {
     handle: HSM_CLIENT_HANDLE,
-    interface: HSM_CLIENT_CRYPTO_INTERFACE_TAG,
+    interface: HSM_CLIENT_CRYPTO_INTERFACE,
 }
 
 // Handles don't have thread-affinity
@@ -53,30 +67,33 @@ impl Drop for Crypto {
 
 impl Crypto {
     /// Create a new Cryptography implementation for the HSM API.
-    pub fn new() -> Result<Self, Error> {
-        let result = unsafe { hsm_client_crypto_init() as isize };
+    pub fn new(auto_generated_ca_lifetime_seconds: u64) -> Result<Self, Error> {
+        let result = unsafe { hsm_client_crypto_init(auto_generated_ca_lifetime_seconds) as isize };
         if result != 0 {
-            Err(result)?
+            return Err(result.into());
         }
         let if_ptr = unsafe { hsm_client_crypto_interface() };
         if if_ptr.is_null() {
             unsafe { hsm_client_crypto_deinit() };
-            Err(ErrorKind::NullResponse)?
+            return Err(ErrorKind::NullResponse.into());
         }
         let interface = unsafe { *if_ptr };
         if let Some(handle) = interface.hsm_client_crypto_create.map(|f| unsafe { f() }) {
             if handle.is_null() {
                 unsafe { hsm_client_crypto_deinit() };
-                Err(ErrorKind::NullResponse)?
+                return Err(ErrorKind::NullResponse.into());
             }
             Ok(Crypto { handle, interface })
         } else {
             unsafe { hsm_client_crypto_deinit() };
-            Err(ErrorKind::NullResponse)?
+            Err(ErrorKind::NullResponse.into())
         }
     }
 
     pub fn get_device_ca_alias(&self) -> String {
+        // We want to enforce Crypto::new is called before this, since ::new() initializes the libiothsm. So silence the allow_unused clippy lint.
+        let _ = self;
+
         unsafe {
             CStr::from_ptr(hsm_get_device_ca_alias())
                 .to_string_lossy()
@@ -85,6 +102,9 @@ impl Crypto {
     }
 
     pub fn get_version(&self) -> Result<String, Error> {
+        // We want to enforce Crypto::new is called before this, since ::new() initializes the libiothsm. So silence the allow_unused clippy lint.
+        let _ = self;
+
         let version = unsafe {
             CStr::from_ptr(hsm_get_version())
                 .to_string_lossy()
@@ -109,7 +129,7 @@ impl MakeRandom for Crypto {
         };
         match result {
             0 => Ok(()),
-            r => Err(ErrorKind::Api(r))?,
+            r => Err(ErrorKind::Api(r).into()),
         }
     }
 }
@@ -123,7 +143,7 @@ impl CreateMasterEncryptionKey for Crypto {
         let result = unsafe { if_fn(self.handle) };
         match result {
             0 => Ok(()),
-            r => Err(ErrorKind::Api(r))?,
+            r => Err(ErrorKind::Api(r).into()),
         }
     }
 }
@@ -137,7 +157,7 @@ impl DestroyMasterEncryptionKey for Crypto {
         let result = unsafe { if_fn(self.handle) };
         match result {
             0 => Ok(()),
-            r => Err(ErrorKind::Api(r))?,
+            r => Err(ErrorKind::Api(r).into()),
         }
     }
 }
@@ -145,11 +165,11 @@ impl DestroyMasterEncryptionKey for Crypto {
 fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_HANDLE, Error> {
     let handle = unsafe { cert_properties_create() };
     if handle.is_null() {
-        return Err(ErrorKind::CertProps)?;
+        return Err(ErrorKind::CertProps.into());
     }
     if unsafe { set_validity_seconds(handle, *props.validity_in_secs()) } != 0 {
         unsafe { cert_properties_destroy(handle) };
-        return Err(ErrorKind::CertProps)?;
+        return Err(ErrorKind::CertProps.into());
     }
     CString::new(props.common_name.clone())
         .ok()
@@ -166,10 +186,10 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
         })?;
 
     let c_cert_type = match *props.certificate_type() {
-        CertificateType::Client => CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_CLIENT,
-        CertificateType::Server => CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_SERVER,
-        CertificateType::Ca => CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_CA,
-        _ => CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_UNKNOWN,
+        CertificateType::Client => CERTIFICATE_TYPE_CERTIFICATE_TYPE_CLIENT,
+        CertificateType::Server => CERTIFICATE_TYPE_CERTIFICATE_TYPE_SERVER,
+        CertificateType::Ca => CERTIFICATE_TYPE_CERTIFICATE_TYPE_CA,
+        _ => CERTIFICATE_TYPE_CERTIFICATE_TYPE_UNKNOWN,
     };
     let result = unsafe { set_certificate_type(handle, c_cert_type) };
     match result {
@@ -226,7 +246,7 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
         let result = unsafe { set_san_entries(handle, result.as_ptr(), result.len()) };
         if result != 0 {
             unsafe { cert_properties_destroy(handle) };
-            return Err(ErrorKind::CertProps)?;
+            return Err(ErrorKind::CertProps.into());
         }
     }
 
@@ -247,7 +267,7 @@ impl CreateCertificate for Crypto {
         unsafe { cert_properties_destroy(property_handle) };
 
         if cert_info_handle.is_null() {
-            Err(ErrorKind::NullResponse)?
+            Err(ErrorKind::NullResponse.into())
         } else {
             Ok(HsmCertificate { cert_info_handle })
         }
@@ -259,7 +279,7 @@ impl CreateCertificate for Crypto {
             .hsm_client_destroy_certificate
             .ok_or(ErrorKind::NoneFn)?;
 
-        CString::new(alias.clone())
+        CString::new(alias)
             .ok()
             .and_then(|c_alias| {
                 unsafe { if_fn(self.handle, c_alias.as_ptr()) };
@@ -277,12 +297,10 @@ impl GetCertificate for Crypto {
             .hsm_client_crypto_get_certificate
             .ok_or(ErrorKind::NoneFn)?;
 
-        let c_alias = CString::new(alias.clone())
-            .ok()
-            .ok_or_else(|| ErrorKind::ToCStr)?;
+        let c_alias = CString::new(alias).ok().ok_or_else(|| ErrorKind::ToCStr)?;
         let cert_info_handle = unsafe { if_fn(self.handle, c_alias.as_ptr()) };
         if cert_info_handle.is_null() {
-            Err(ErrorKind::NullResponse)?
+            Err(ErrorKind::NullResponse.into())
         } else {
             Ok(HsmCertificate { cert_info_handle })
         }
@@ -297,7 +315,7 @@ impl GetTrustBundle for Crypto {
             .ok_or(ErrorKind::NoneFn)?;
         let cert_info_handle = unsafe { if_fn(self.handle) };
         if cert_info_handle.is_null() {
-            Err(ErrorKind::NullResponse)?
+            Err(ErrorKind::NullResponse.into())
         } else {
             Ok(HsmCertificate { cert_info_handle })
         }
@@ -343,7 +361,7 @@ impl Encrypt for Crypto {
         };
         match result {
             0 => Ok(Buffer::new(self.interface, encrypted)),
-            r => Err(r)?,
+            r => Err(r.into()),
         }
     }
 }
@@ -387,7 +405,7 @@ impl Decrypt for Crypto {
         };
         match result {
             0 => Ok(Buffer::new(self.interface, decrypted)),
-            r => Err(r)?,
+            r => Err(r.into()),
         }
     }
 }
@@ -576,7 +594,7 @@ impl HsmCertificate {
                 .into_owned()
         };
         if cert.is_empty() {
-            Err(ErrorKind::NullResponse)?
+            return Err(ErrorKind::NullResponse.into());
         }
         Ok(cert)
     }
@@ -587,11 +605,11 @@ impl HsmCertificate {
         let private_key = unsafe { slice::from_raw_parts(pk as *const c_uchar, pk_size).to_vec() };
         let pk_type = unsafe { certificate_info_private_key_type(self.cert_info_handle) };
         let private_key = match pk_type {
-            PRIVATE_KEY_TYPE_TAG_PRIVATE_KEY_TYPE_UNKNOWN => Ok(None),
-            PRIVATE_KEY_TYPE_TAG_PRIVATE_KEY_TYPE_PAYLOAD => {
+            PRIVATE_KEY_TYPE_PRIVATE_KEY_TYPE_UNKNOWN => Ok(None),
+            PRIVATE_KEY_TYPE_PRIVATE_KEY_TYPE_PAYLOAD => {
                 Ok(Some(PrivateKey::Key(KeyBytes::Pem(private_key))))
             }
-            PRIVATE_KEY_TYPE_TAG_PRIVATE_KEY_TYPE_REFERENCE => {
+            PRIVATE_KEY_TYPE_PRIVATE_KEY_TYPE_REFERENCE => {
                 Ok(Some(PrivateKey::Ref(String::from_utf8(private_key)?)))
             }
             e => Err(Error::from(ErrorKind::PrivateKeyType(e))),
@@ -603,7 +621,7 @@ impl HsmCertificate {
         let ts: i64 = unsafe { certificate_info_get_valid_to(self.cert_info_handle) };
         let naive_ts = NaiveDateTime::from_timestamp_opt(ts, 0);
         if naive_ts.is_none() {
-            Err(ErrorKind::NullResponse)?
+            return Err(ErrorKind::NullResponse.into());
         }
         Ok(DateTime::<Utc>::from_utc(naive_ts.unwrap(), Utc))
     }
@@ -615,7 +633,7 @@ impl HsmCertificate {
                 .into_owned()
         };
         if cn.is_empty() {
-            Err(ErrorKind::NullResponse)?
+            return Err(ErrorKind::NullResponse.into());
         }
         Ok(cn)
     }
@@ -674,7 +692,16 @@ mod tests {
         GetTrustBundle, MakeRandom,
     };
     use super::{Buffer, CertificateProperties, Crypto};
-    use hsm_sys::*;
+    use hsm_sys::{
+        cert_properties_create, cert_properties_destroy, certificate_info_create, get_alias,
+        get_certificate_type, get_common_name, get_country_name, get_issuer_alias, get_locality,
+        get_organization_name, get_organization_unit, get_san_entries, get_state_name,
+        get_validity_seconds, set_alias, set_certificate_type, set_common_name, set_country_name,
+        set_issuer_alias, set_locality, set_organization_name, set_organization_unit,
+        set_san_entries, set_state_name, set_validity_seconds, CERTIFICATE_TYPE,
+        CERTIFICATE_TYPE_CERTIFICATE_TYPE_SERVER, CERT_INFO_HANDLE, CERT_PROPS_HANDLE,
+        HSM_CLIENT_CRYPTO_INTERFACE, HSM_CLIENT_HANDLE, SIZED_BUFFER,
+    };
 
     static TEST_RSA_CERT: &str = "-----BEGIN CERTIFICATE-----\nMIICpDCCAYwCCQCgAJQdOd6dNzANBgkqhkiG9w0BAQsFADAUMRIwEAYDVQQDDAlsb2NhbGhvc3QwHhcNMTcwMTIwMTkyNTMzWhcNMjcwMTE4MTkyNTMzWjAUMRIwEAYDVQQDDAlsb2NhbGhvc3QwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDlJ3fRNWm05BRAhgUY7cpzaxHZIORomZaOp2Uua5yv+psdkpv35ExLhKGrUIK1AJLZylnue0ohZfKPFTnoxMHOecnaaXZ9RA25M7XGQvw85ePlGOZKKf3zXw3Ds58GFY6Sr1SqtDopcDuMmDSg/afYVvGHDjb2Fc4hZFip350AADcmjH5SfWuxgptCY2Jl6ImJoOpxt+imWsJCJEmwZaXw+eZBb87e/9PH4DMXjIUFZebShowAfTh/sinfwRkaLVQ7uJI82Ka/icm6Hmr56j7U81gDaF0DhC03ds5lhN7nMp5aqaKeEJiSGdiyyHAescfxLO/SMunNc/eG7iAirY7BAgMBAAEwDQYJKoZIhvcNAQELBQADggEBACU7TRogb8sEbv+SGzxKSgWKKbw+FNgC4Zi6Fz59t+4jORZkoZ8W87NM946wvkIpxbLKuc4F+7nTGHHksyHIiGC3qPpi4vWpqVeNAP+kfQptFoWEOzxD7jQTWIcqYhvssKZGwDk06c/WtvVnhZOZW+zzJKXA7mbwJrfp8VekOnN5zPwrOCumDiRX7BnEtMjqFDgdMgs9ohR5aFsI7tsqp+dToLKaZqBLTvYwCgCJCxdg3QvMhVD8OxcEIFJtDEwm3h9WFFO3ocabCmcMDyXUL354yaZ7RphCBLd06XXdaUU/eV6fOjY6T5ka4ZRJcYDJtjxSG04XPtxswQfrPGGoFhk=\n-----END CERTIFICATE-----";
 
@@ -711,7 +738,7 @@ mod tests {
         };
 
         // cert type get/set test
-        let test_input: CERTIFICATE_TYPE = CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_SERVER;
+        let test_input: CERTIFICATE_TYPE = CERTIFICATE_TYPE_CERTIFICATE_TYPE_SERVER;
         let set_result = unsafe { set_certificate_type(handle, test_input) };
         assert_eq!(0, set_result);
         unsafe {
@@ -1260,5 +1287,4 @@ mod tests {
         assert_eq!(plain1.len(), DEFAULT_BUF_LEN);
         assert_eq!(plain2.len(), DEFAULT_BUF_LEN);
     }
-
 }

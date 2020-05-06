@@ -23,9 +23,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             DateTime lastRestartTime,
             ModuleStatus runtimeStatus,
             ImagePullPolicy imagePullPolicy,
+            uint priority,
             ConfigurationInfo configuration,
             IDictionary<string, EnvVal> env)
-            : base(name, version, desiredStatus, restartPolicy, config, imagePullPolicy, configuration, env)
+            : base(name, version, desiredStatus, restartPolicy, config, imagePullPolicy, priority, configuration, env)
         {
             this.ExitCode = exitCode;
             this.StatusDescription = statusDescription;
@@ -52,6 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             DateTime lastRestartTimeUtc,
             ModuleStatus runtimeStatus,
             ImagePullPolicy imagePullPolicy,
+            uint priority,
             ConfigurationInfo configurationInfo,
             IDictionary<string, EnvVal> env)
             : this(
@@ -68,6 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 lastRestartTimeUtc,
                 runtimeStatus,
                 imagePullPolicy,
+                priority,
                 configurationInfo,
                 env)
         {
@@ -157,6 +160,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.LastRestartTimeUtc,
             newStatus,
             this.ImagePullPolicy,
+            this.Priority,
             this.ConfigurationInfo,
             this.Env);
     }

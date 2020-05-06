@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
     using System.Collections.Generic;
+    using System.Security.Authentication;
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
@@ -14,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Routing.Core;
@@ -22,7 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
     public class Program
     {
-        static readonly TimeSpan ShutdownWaitPeriod = TimeSpan.FromSeconds(20);
+        const int DefaultShutdownWaitPeriod = 60;
+        const SslProtocols DefaultSslProtocols = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12;
 
         public static int Main()
         {
@@ -46,21 +49,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 Routing.LoggerFactory = Logger.Factory;
             }
 
-            EdgeHubCertificates certificates = await EdgeHubCertificates.LoadAsync(configuration);
+            ILogger logger = Logger.Factory.CreateLogger("EdgeHub");
+
+            EdgeHubCertificates certificates = await EdgeHubCertificates.LoadAsync(configuration, logger);
             bool clientCertAuthEnabled = configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);
-            Hosting hosting = Hosting.Initialize(configuration, certificates.ServerCertificate, new DependencyManager(configuration, certificates.ServerCertificate, certificates.TrustBundle), clientCertAuthEnabled);
+
+            string sslProtocolsConfig = configuration.GetValue(Constants.ConfigKey.SslProtocols, string.Empty);
+            SslProtocols sslProtocols = SslProtocolsHelper.Parse(sslProtocolsConfig, DefaultSslProtocols, logger);
+            logger.LogInformation($"Enabling SSL protocols: {sslProtocols.Print()}");
+
+            IDependencyManager dependencyManager = new DependencyManager(configuration, certificates.ServerCertificate, certificates.TrustBundle, sslProtocols);
+            Hosting hosting = Hosting.Initialize(configuration, certificates.ServerCertificate, dependencyManager, clientCertAuthEnabled, sslProtocols);
             IContainer container = hosting.Container;
 
-            ILogger logger = container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
             logger.LogInformation("Initializing Edge Hub");
             LogLogo(logger);
             LogVersionInfo(logger);
             logger.LogInformation($"OptimizeForPerformance={configuration.GetValue("OptimizeForPerformance", true)}");
+            logger.LogInformation($"MessageAckTimeoutSecs={configuration.GetValue("MessageAckTimeoutSecs", 30)}");
             logger.LogInformation("Loaded server certificate with expiration date of {0}", certificates.ServerCertificate.NotAfter.ToString("o"));
 
             var metricsListener = container.Resolve<IMetricsListener>();
             var metricsProvider = container.Resolve<IMetricsProvider>();
             Metrics.Init(metricsProvider, metricsListener, logger);
+
+            // Init V0 Metrics
+            MetricsV0.BuildMetricsCollector(configuration);
 
             // EdgeHub and CloudConnectionProvider have a circular dependency. So need to Bind the EdgeHub to the CloudConnectionProvider.
             IEdgeHub edgeHub = await container.Resolve<Task<IEdgeHub>>();
@@ -91,7 +105,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 connectionReauthenticator.Init();
             }
 
-            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(ShutdownWaitPeriod, logger);
+            TimeSpan shutdownWaitPeriod = TimeSpan.FromSeconds(configuration.GetValue("ShutdownWaitPeriod", DefaultShutdownWaitPeriod));
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(shutdownWaitPeriod, logger);
 
             using (IProtocolHead protocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, container, hosting))
             using (var renewal = new CertificateRenewal(certificates, logger))
@@ -99,8 +114,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 await protocolHead.StartAsync();
                 await Task.WhenAny(cts.Token.WhenCanceled(), renewal.Token.WhenCanceled());
                 logger.LogInformation("Stopping the protocol heads...");
-                await Task.WhenAny(protocolHead.CloseAsync(CancellationToken.None), Task.Delay(TimeSpan.FromSeconds(10), CancellationToken.None));
+                await protocolHead.CloseAsync(CancellationToken.None);
                 logger.LogInformation("Protocol heads stopped.");
+
+                await CloseDbStoreProviderAsync(container);
             }
 
             completed.Set();
@@ -137,6 +154,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
 
             return new EdgeHubProtocolHead(protocolHeads, logger);
+        }
+
+        static async Task CloseDbStoreProviderAsync(IContainer container)
+        {
+            IDbStoreProvider dbStoreProvider = await container.Resolve<Task<IDbStoreProvider>>();
+            await dbStoreProvider.CloseAsync();
         }
 
         static void LogLogo(ILogger logger)

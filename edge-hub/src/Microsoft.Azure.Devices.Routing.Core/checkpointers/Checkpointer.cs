@@ -10,8 +10,10 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
+    using EdgeMetrics = Microsoft.Azure.Devices.Edge.Util.Metrics.Metrics;
 
     public class Checkpointer : ICheckpointer
     {
@@ -21,7 +23,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
         readonly AtomicBoolean closed;
         readonly ICheckpointStore store;
 
-        Checkpointer(string id, ICheckpointStore store, CheckpointData checkpointData)
+        Checkpointer(string id, ICheckpointStore store, CheckpointData checkpointData, string endpointId, uint priority)
         {
             this.Id = Preconditions.CheckNotNull(id);
             this.store = Preconditions.CheckNotNull(store);
@@ -30,9 +32,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
             this.UnhealthySince = checkpointData.UnhealthySince;
             this.Proposed = checkpointData.Offset;
             this.closed = new AtomicBoolean(false);
+            this.EndpointId = endpointId;
+            this.Priority = priority.ToString();
         }
 
         public string Id { get; }
+
+        public string EndpointId { get; }
+
+        public string Priority { get; }
 
         public long Offset { get; private set; }
 
@@ -44,7 +52,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
 
         public bool HasOutstanding => this.Offset < this.Proposed;
 
-        public static async Task<Checkpointer> CreateAsync(string id, ICheckpointStore store)
+        public static Task<Checkpointer> CreateAsync(string id, ICheckpointStore store) => CreateAsync(id, store, string.Empty, RouteFactory.DefaultPriority);
+
+        public static async Task<Checkpointer> CreateAsync(string id, ICheckpointStore store, string endpointId, uint priority)
         {
             Preconditions.CheckNotNull(id);
             Preconditions.CheckNotNull(store);
@@ -52,7 +62,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
             Events.CreateStart(id);
             CheckpointData checkpointData = await store.GetCheckpointDataAsync(id, CancellationToken.None);
 
-            var checkpointer = new Checkpointer(id, store, checkpointData);
+            var checkpointer = new Checkpointer(id, store, checkpointData, endpointId, priority);
 
             Events.CreateFinished(checkpointer);
             return checkpointer;
@@ -61,6 +71,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
         public void Propose(IMessage message)
         {
             this.Proposed = Math.Max(message.Offset, this.Proposed);
+            Metrics.SetQueueLength(this);
         }
 
         public bool Admit(IMessage message)
@@ -100,6 +111,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
                 this.LastFailedRevivalTime = lastFailedRevivalTime;
                 this.UnhealthySince = unhealthySince;
                 await this.store.SetCheckpointDataAsync(this.Id, new CheckpointData(offset, this.LastFailedRevivalTime, this.UnhealthySince), token);
+                Metrics.SetQueueLength(this);
             }
 
             Events.CommitFinished(this);
@@ -182,6 +194,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
             {
                 return Invariant($"CheckpointerId: {checkpointer.Id}, Offset: {checkpointer.Offset}, Proposed: {checkpointer.Proposed}");
             }
+        }
+
+        static class Metrics
+        {
+            static readonly IMetricsGauge QueueLength = EdgeMetrics.Instance.CreateGauge(
+                "queue_length",
+                "Number of messages pending to be processed for the endpoint",
+                new List<string> { "endpoint", "priority" });
+
+            public static void SetQueueLength(Checkpointer checkpointer) => QueueLength.Set(checkpointer.Proposed - checkpointer.Offset, new[] { checkpointer.EndpointId, checkpointer.Priority });
         }
     }
 }

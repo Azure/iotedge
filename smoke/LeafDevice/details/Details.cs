@@ -120,8 +120,10 @@ namespace LeafDeviceTest
         {
             if (!string.IsNullOrEmpty(this.trustedCACertificateFileName))
             {
-                // Since Windows will pop up security warning when add certificate to current user store location;
+                // Windows will pop up security warning when add certificate to current user store location, so the tests won't run automatically;
                 // Therefore we will use CustomCertificateValidator instead.
+                // Since Microsoft.Azure.Devices.Client v1.23.0 release, the only e2e test that fails on Windows if the
+                // CustomCertificateValidator workaround is removed is Quickstart Certs test
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     Console.WriteLine("Hook up callback on device transport settings to validate with given certificate");
@@ -143,29 +145,56 @@ namespace LeafDeviceTest
 
         protected async Task ConnectToEdgeAndSendDataAsync()
         {
-            var builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
-            DeviceClient deviceClient;
-            if (this.authType == AuthenticationType.Sas)
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(600))) // Long timeout is needed because registry manager takes a while for the device identity to be usable
             {
-                string leafDeviceConnectionString = $"HostName={builder.HostName};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.edgeHostName}";
-                deviceClient = DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, this.deviceTransportSettings);
+                Exception savedException = null;
+
+                try
+                {
+                    var builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
+                    DeviceClient deviceClient;
+                    if (this.authType == AuthenticationType.Sas)
+                    {
+                        string leafDeviceConnectionString = $"HostName={builder.HostName};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.edgeHostName}";
+                        deviceClient = DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, this.deviceTransportSettings);
+                    }
+                    else
+                    {
+                        var auth = new DeviceAuthenticationWithX509Certificate(this.deviceId, this.clientCertificate.Expect(() => new InvalidOperationException("Missing client certificate")));
+                        deviceClient = DeviceClient.Create(builder.HostName, this.edgeHostName, auth, this.deviceTransportSettings);
+                    }
+
+                    this.context.DeviceClientInstance = Option.Some(deviceClient);
+                    Console.WriteLine("Leaf Device client created.");
+
+                    var message = new Message(Encoding.ASCII.GetBytes($"Message from Leaf Device. Msg GUID: {this.context.MessageGuid}"));
+                    Console.WriteLine($"Trying to send the message to '{this.edgeHostName}'");
+
+                    while (!cts.IsCancellationRequested) // Retries are needed as the DeviceClient timeouts are not long enough
+                    {
+                        try
+                        {
+                            await deviceClient.SendEventAsync(message);
+                            Console.WriteLine("Message Sent.");
+                            await deviceClient.SetMethodHandlerAsync("DirectMethod", DirectMethod, null);
+                            Console.WriteLine("Direct method callback is set.");
+                            break;
+                        }
+                        catch (Exception e)
+                        {
+                            savedException = e;
+                        }
+                    }
+                }
+                catch (OperationCanceledException e)
+                {
+                    throw new InvalidOperationException("Failed to connect to edge and send data", savedException ?? e);
+                }
+                catch (Exception e)
+                {
+                    throw new InvalidOperationException("Failed to connect to edge and send data", e);
+                }
             }
-            else
-            {
-                var auth = new DeviceAuthenticationWithX509Certificate(this.deviceId, this.clientCertificate.Expect(() => new InvalidOperationException("Missing client certificate")));
-                deviceClient = DeviceClient.Create(builder.HostName, this.edgeHostName, auth, this.deviceTransportSettings);
-            }
-
-            this.context.DeviceClientInstance = Option.Some(deviceClient);
-            Console.WriteLine("Leaf Device client created.");
-
-            var message = new Message(Encoding.ASCII.GetBytes($"Message from Leaf Device. Msg GUID: {this.context.MessageGuid}"));
-            Console.WriteLine($"Trying to send the message to '{this.edgeHostName}'");
-
-            await deviceClient.SendEventAsync(message);
-            Console.WriteLine("Message Sent.");
-            await deviceClient.SetMethodHandlerAsync("DirectMethod", DirectMethod, null);
-            Console.WriteLine("Direct method callback is set.");
         }
 
         protected async Task GetOrCreateDeviceIdentityAsync()
@@ -272,25 +301,66 @@ namespace LeafDeviceTest
                 ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString, this.serviceClientTransportType, settings);
 
             // Call a direct method
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(300)))
+            TimeSpan testDuration = TimeSpan.FromSeconds(300);
+            DateTime endTime = DateTime.UtcNow + testDuration;
+
+            CloudToDeviceMethod cloudToDeviceMethod = new CloudToDeviceMethod("DirectMethod").SetPayloadJson("{\"TestKey\" : \"TestValue\"}");
+
+            CloudToDeviceMethodResult result = null;
+            // To reduce log size and make troubleshooting easier, log last exception only.
+            Exception lastException = null;
+            bool isRetrying = true;
+
+            Console.WriteLine("Starting Direct method test.");
+            while (isRetrying && DateTime.UtcNow <= endTime)
             {
-                CloudToDeviceMethod cloudToDeviceMethod = new CloudToDeviceMethod("DirectMethod").SetPayloadJson("{\"TestKey\" : \"TestValue\"}");
-
-                CloudToDeviceMethodResult result = await serviceClient.InvokeDeviceMethodAsync(
-                    this.context.Device.Id,
-                    cloudToDeviceMethod,
-                    cts.Token);
-
-                if (result.Status != 200)
+                try
                 {
-                    throw new Exception($"Could not invoke Direct Method on Device with result status {result.Status}.");
+                    using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
+                    {
+                        result = await serviceClient.InvokeDeviceMethodAsync(
+                            this.context.Device.Id,
+                            cloudToDeviceMethod,
+                            cts.Token);
+
+                        if (result?.Status == 200)
+                        {
+                            isRetrying = false;
+                        }
+
+                        // Don't retry too fast
+                        await Task.Delay(1000, cts.Token);
+                    }
                 }
-
-                if (!result.GetPayloadAsJson().Equals("{\"TestKey\":\"TestValue\"}", StringComparison.Ordinal))
+                catch (OperationCanceledException ex)
                 {
-                    throw new Exception($"Payload doesn't match with Sent Payload. Received payload: {result.GetPayloadAsJson()}. Expected: {{\"TestKey\":\"TestValue\"}}");
+                    if (lastException == null)
+                    {
+                        lastException = ex;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    lastException = ex;
                 }
             }
+
+            if (result?.Status != 200)
+            {
+                if (lastException != null)
+                {
+                    Console.WriteLine($"Failed to send direct method from device '{this.context.Device.Id}' with payload '{cloudToDeviceMethod}: {lastException}'");
+                }
+
+                throw new Exception($"Could not invoke Direct Method on Device with result status {result?.Status}.");
+            }
+
+            if (!result.GetPayloadAsJson().Equals("{\"TestKey\":\"TestValue\"}", StringComparison.Ordinal))
+            {
+                throw new Exception($"Payload doesn't match with Sent Payload. Received payload: {result.GetPayloadAsJson()}. Expected: {{\"TestKey\":\"TestValue\"}}");
+            }
+
+            Console.WriteLine("Direct method test passed.");
         }
 
         protected void KeepDeviceIdentity()
@@ -414,7 +484,11 @@ namespace LeafDeviceTest
                     Option.None<IEnumerable<X509Certificate2>>(),
                     Option.None<List<string>>()));
 
-        X509Certificate2 GetTrustedCertificate() => new X509Certificate2(X509Certificate.CreateFromCertFile(this.trustedCACertificateFileName));
+        X509Certificate2 GetTrustedCertificate()
+        {
+            Console.WriteLine($"GetTrustedCertificate from: {this.trustedCACertificateFileName}");
+            return new X509Certificate2(X509Certificate.CreateFromCertFile(this.trustedCACertificateFileName));
+        }
 
         async Task CreateDeviceIdentityAsync(RegistryManager rm, Option<string> edgeDeviceScope)
         {

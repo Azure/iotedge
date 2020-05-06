@@ -13,7 +13,7 @@ $ErrorActionPreference = 'Continue'
 
 . (Join-Path $PSScriptRoot 'util.ps1')
 
-$targetArchs = @('amd64', 'arm32v7')
+$targetArchs = @('amd64')
 
 for ($i = 0; $i -lt $targetArchs.Length; $i++) {
     $Arm = ($targetArchs[$i] -eq "arm32v7")
@@ -43,7 +43,8 @@ for ($i = 0; $i -lt $targetArchs.Length; $i++) {
     }
 
     $cargo = Get-CargoCommand -Arm:$Arm
-    $ManifestPath = Get-Manifest
+
+    cd (Get-EdgeletFolder)
 
     $versionInfoFilePath = Join-Path $env:BUILD_REPOSITORY_LOCALPATH 'versionInfo.json'
     $env:VERSION = Get-Content $versionInfoFilePath | ConvertFrom-JSON | % version
@@ -51,8 +52,8 @@ for ($i = 0; $i -lt $targetArchs.Length; $i++) {
 
     $originalRustflags = $env:RUSTFLAGS
     $env:RUSTFLAGS += ' -C target-feature=+crt-static'
-    Write-Host "$cargo build -p iotedge-diagnostics $(if ($Arm) { '--target thumbv7a-pc-windows-msvc' }) $BuildConfigOption --manifest-path $ManifestPath"
-    Invoke-Expression "$cargo build -p iotedge-diagnostics $(if ($Arm) { '--target thumbv7a-pc-windows-msvc' }) $BuildConfigOption --manifest-path $ManifestPath"
+    Write-Host "$cargo build -p iotedge-diagnostics $(if ($Arm) { '--target thumbv7a-pc-windows-msvc' }) $BuildConfigOption"
+    Invoke-Expression "$cargo build -p iotedge-diagnostics $(if ($Arm) { '--target thumbv7a-pc-windows-msvc' }) $BuildConfigOption"
     if ($originalRustflags -eq '') {
         Remove-Item Env:\RUSTFLAGS
     }
@@ -80,8 +81,8 @@ Copy-Item -Verbose `
     ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'target', $BuildConfiguration, 'iotedge-diagnostics.exe')) `
     ([IO.Path]::Combine($publishFolder, 'docker', 'windows', 'amd64'))
 
-Copy-Item -Verbose `
-    ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'target', 'thumbv7a-pc-windows-msvc', $BuildConfiguration, 'iotedge-diagnostics.exe')) `
-    ([IO.Path]::Combine($publishFolder, 'docker', 'windows', 'arm32v7'))
+# Copy-Item -Verbose `
+#     ([IO.Path]::Combine($env:BUILD_REPOSITORY_LOCALPATH, 'edgelet', 'target', 'thumbv7a-pc-windows-msvc', $BuildConfiguration, 'iotedge-diagnostics.exe')) `
+#     ([IO.Path]::Combine($publishFolder, 'docker', 'windows', 'arm32v7'))
     
 $ErrorActionPreference = 'Stop'

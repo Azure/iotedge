@@ -13,30 +13,35 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     public class EdgeRuntime
     {
         readonly Option<string> agentImage;
-        readonly string deviceId;
         readonly Option<string> hubImage;
         readonly IotHub iotHub;
         readonly bool optimizeForPerformance;
         readonly Option<Uri> proxy;
         readonly Registries registries;
 
+        public string DeviceId { get; }
+
         public EdgeRuntime(string deviceId, Option<string> agentImage, Option<string> hubImage, Option<Uri> proxy, Registries registries, bool optimizeForPerformance, IotHub iotHub)
         {
             this.agentImage = agentImage;
-            this.deviceId = deviceId;
             this.hubImage = hubImage;
             this.iotHub = iotHub;
             this.optimizeForPerformance = optimizeForPerformance;
             this.proxy = proxy;
             this.registries = registries;
+
+            this.DeviceId = deviceId;
         }
 
         // DeployConfigurationAsync builds a configuration that includes Edge Agent, Edge Hub, and
         // anything added by addConfig(). It deploys the config and waits for the edge device to
         // receive it and start up all the modules.
-        public async Task<EdgeDeployment> DeployConfigurationAsync(Action<EdgeConfigBuilder> addConfig, CancellationToken token)
+        public async Task<EdgeDeployment> DeployConfigurationAsync(
+            Action<EdgeConfigBuilder> addConfig,
+            CancellationToken token,
+            bool stageSystemModules = true)
         {
-            var builder = new EdgeConfigBuilder(this.deviceId);
+            var builder = new EdgeConfigBuilder(this.DeviceId);
             builder.AddRegistryCredentials(this.registries);
             builder.AddEdgeAgent(this.agentImage.OrDefault())
                 .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
@@ -48,16 +53,20 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             addConfig(builder);
 
             DateTime deployTime = DateTime.Now;
-            EdgeConfiguration config = builder.Build();
+            var finalModules = new EdgeModule[] { };
+            IEnumerable<EdgeConfiguration> configs = builder.Build(stageSystemModules).ToArray();
+            foreach (EdgeConfiguration edgeConfiguration in configs)
+            {
+                await edgeConfiguration.DeployAsync(this.iotHub, token);
+                EdgeModule[] modules = edgeConfiguration.ModuleNames
+                    .Select(id => new EdgeModule(id, this.DeviceId, this.iotHub))
+                    .ToArray();
+                await EdgeModule.WaitForStatusAsync(modules, EdgeModuleStatus.Running, token);
+                await edgeConfiguration.VerifyAsync(this.iotHub, token);
+                finalModules = modules;
+            }
 
-            await config.DeployAsync(this.iotHub, token);
-
-            IEnumerable<EdgeModule> modules = config.ModuleNames
-                .Select(id => new EdgeModule(id, this.deviceId, this.iotHub))
-                .ToArray();
-            await EdgeModule.WaitForStatusAsync(modules, EdgeModuleStatus.Running, token);
-
-            return new EdgeDeployment(deployTime, modules);
+            return new EdgeDeployment(deployTime, finalModules);
         }
 
         public Task<EdgeDeployment> DeployConfigurationAsync(CancellationToken token) =>

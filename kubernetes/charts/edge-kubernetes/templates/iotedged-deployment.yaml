@@ -26,17 +26,40 @@ spec:
           imagePullPolicy: {{ .Values.iotedged.image.pullPolicy }}
           command: ["/app/iotedged"]
           args: ["-c", "/etc/iotedged/config.yaml"]
+          env:
+          - name: "IOTEDGE_LOG"
+            value: "info"
+          {{- if .Values.iotedged.data.httpsProxy }}
+          - name: "https_proxy"
+            value: {{ .Values.iotedged.data.httpsProxy | quote}}
+          {{end}}
           volumeMounts:
           - name: config
             mountPath: "/etc/iotedged"
             readOnly: true
           - name: edge-home
             mountPath: {{ .Values.iotedged.data.targetPath | quote }}
-          {{- if .Values.iotedged.certificates }}
+          {{- with .Values.iotedged.certificates }}
+          {{- if .secret }}
           - name: edge-certs
             mountPath: "/etc/edgecerts"
             readOnly: true
-          {{end}}
+          {{- end}}
+          {{- end}}
+          {{- with .Values.provisioning.authentication }}
+          {{- if .identitySecret }}
+          - name: edge-authentication
+            mountPath: "/etc/edge-authentication"
+            readOnly: true
+          {{- end}}
+          {{- end}}
+          {{- with .Values.provisioning.attestation }}
+          {{- if .identitySecret }}
+          - name: edge-attestation
+            mountPath: "/etc/edge-attestation"
+            readOnly: true
+          {{- end}}
+          {{- end}}
           ports:
             - name: management
               containerPort: {{ .Values.iotedged.ports.management }}
@@ -46,36 +69,87 @@ spec:
               protocol: TCP
           livenessProbe:
             httpGet:
+              scheme: HTTPS
               path: "/systeminfo?api-version={{ .Values.iotedged.apiVersion }}"
               port: {{ .Values.iotedged.ports.management }}
           readinessProbe:
             httpGet:
+              scheme: HTTPS
               path: "/systeminfo?api-version={{ .Values.iotedged.apiVersion }}"
               port: {{ .Values.iotedged.ports.management }}
       serviceAccount: "iotedged"
       {{- /* Render image pull secrets if they have been provided. */ -}}
       {{- if .Values.registryCredentials }}
       imagePullSecrets:
-        - name: {{ include "edge-kubernetes.fullname" . }}-regcreds
+        - name: regcreds
       {{ end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      {{- if .Values.iotedged.fsGroup }}
+        fsGroup: {{ .Values.iotedged.fsGroup }}
+      {{ end }}
+{{- if .Values.iotedged.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.iotedged.nodeSelector | indent 8 }}
+{{- end }}
       volumes:
       - name: config
         secret:
-          secretName: {{ include "edge-kubernetes.fullname" . }}-iotedged-config
-      {{- if .Values.iotedged.certificates }}
+          secretName: iotedged-config
+      {{- with .Values.provisioning.authentication }}
+      {{- if .identitySecret }}
+      {{- /*
+      NOTE: This sets up iotedged with a volume "/etc/edge-authentication" populated with authentication certs.
+    */}}
+      - name: edge-authentication
+        secret:
+          secretName: {{ .identitySecret }}
+          items:
+          - key: {{ .identityCert | default "identity_certificate.pem" }}
+            path: identity_cert
+          - key: {{ .identityPk | default "identity_key.pem" }}
+            path: identity_pk
+      {{- end}}
+      {{- end}}
+      {{- with .Values.provisioning.attestation }}
+      {{- if .identitySecret }}
+      {{- /*
+      NOTE: This sets up iotedged with a volume "/etc/edge-attestation" populated with the attestation certs.
+    */}}
+      - name: edge-attestation
+        secret:
+          secretName: {{ .identitySecret }}
+          items:
+          - key: {{ .identityCert | default "identity_certificate.pem" }}
+            path: identity_cert
+          - key: {{ .identityPk | default "identity_key.pem" }}
+            path: identity_pk
+      {{- end}}
+      {{- end}}
+      {{- with .Values.iotedged.certificates }}
+      {{- if .secret }}
       {{- /*
         NOTE: This sets up iotedged with a volume "/etc/edgecerts" populated with the given CA certs.
       */}}
       - name: edge-certs
         secret:
-          secretName: {{ include "edge-kubernetes.fullname" . }}-edgecerts
-      {{else}}
+          secretName: {{ .secret }}
+          items:
+          - key: {{ .device_ca_cert | default "device_ca_cert" }}
+            path: device_ca_cert
+          - key: {{ .device_ca_pk | default "device_ca_pk" }}
+            path: device_ca_pk
+          - key: {{ .trusted_ca_certs | default "trusted_ca_certs" }}
+            path: trusted_ca_certs
+      {{- end}}
+      {{- else}}
       {{- /*
         NOTE: This sets up iotedged in the "quickstart" mode which is NOT meant
         for production use. For PoCs though, its wonderful! For production, this
         volume should probably be populated with proper CA certs.
       */}}
-      {{end}}
+      {{- end}}
       - name: edge-home
         {{- if .Values.iotedged.data.persistentVolumeClaim }}
         persistentVolumeClaim:

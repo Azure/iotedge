@@ -285,11 +285,11 @@ impl MemoryKeyStore {
         }
     }
 
-    /// Inserts a key-value pair into the KeyStore.
+    /// Inserts a key-value pair into the `KeyStore`.
     ///
     /// If the store did not have this key present, None is returned.
     ///
-    /// If the store did have this key (by KeyIdentity and Key_name) present, the value (Key) is updated and the old value is returned.
+    /// If the store did have this key (by `KeyIdentity` and key name) present, the value (Key) is updated and the old value is returned.
     pub fn insert(
         &mut self,
         identity: &KeyIdentity,
@@ -384,8 +384,10 @@ impl<K: Sign> KeyStore for DerivedKeyStore<K> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use base64;
+    use super::{
+        AsRef, DerivedKeyStore, Digest, From, KeyIdentity, KeyStore, MemoryKey, MemoryKeyStore,
+        Sign, Signature, SignatureAlgorithm, ToString,
+    };
     use bytes::Bytes;
 
     #[test]

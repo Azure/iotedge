@@ -3,6 +3,7 @@ passthrough = [
     "BUILD_SOURCEVERSION",
     "VERSION",
     "IOTEDGE_HOMEDIR",
+    "FORCE_NO_UNITTEST",
 ]
 
 [target.x86_64-unknown-linux-gnu]

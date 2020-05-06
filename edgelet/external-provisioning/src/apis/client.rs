@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use super::configuration::Configuration;
-use hyper;
 
 pub struct APIClient {
     external_provisioning_api: Box<dyn crate::apis::ExternalProvisioningApi>,
@@ -16,7 +15,7 @@ impl APIClient {
 
         APIClient {
             external_provisioning_api: Box::new(crate::apis::ExternalProvisioningApiClient::new(
-                configuration.clone(),
+                configuration,
             )),
         }
     }

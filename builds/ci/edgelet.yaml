@@ -4,6 +4,7 @@ trigger:
     include:
       - master
       - release/*
+      - iiot
 pr: none
 jobs:
 
@@ -37,6 +38,7 @@ jobs:
   - job: linux_arm32v7
 ################################################################################
     displayName: Linux arm32v7
+    timeoutInMinutes: 90
     pool:
       vmImage: 'ubuntu-16.04'
     steps:
@@ -55,12 +57,12 @@ jobs:
         displayName: armv7-unknown-linux-gnueabihf build
         inputs:
           filePath: edgelet/build/linux/cross.sh
-          arguments: --toolchain armv7-unknown-linux-gnueabihf --release true
+          arguments: --target armv7-unknown-linux-gnueabihf --release true
       - task: Bash@3
         displayName: armv7-unknown-linux-gnueabihf test
         inputs:
           filePath: edgelet/build/linux/cross-test.sh
-          arguments: --toolchain armv7-unknown-linux-gnueabihf --release true
+          arguments: --target armv7-unknown-linux-gnueabihf --release true
 
 ################################################################################
   - job: windows_amd64

@@ -12,9 +12,8 @@ use std::borrow::Borrow;
 use std::sync::Arc;
 
 use futures::{Future, Stream};
-use hyper;
-use serde_json;
 use typed_headers::{self, http, mime, HeaderMapExt};
+use url::percent_encoding::{percent_encode, PATH_SEGMENT_ENCODE_SET};
 
 use super::{configuration, Error};
 
@@ -92,7 +91,7 @@ where
         let uri_str = format!(
             "/modules/{name}/certificate/identity?{}",
             query,
-            name = name,
+            name = percent_encode(name.as_bytes(), PATH_SEGMENT_ENCODE_SET)
         );
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
@@ -161,8 +160,8 @@ where
         let uri_str = format!(
             "/modules/{name}/genid/{genid}/certificate/server?{}",
             query,
-            name = name,
-            genid = genid
+            name = percent_encode(name.as_bytes(), PATH_SEGMENT_ENCODE_SET),
+            genid = percent_encode(genid.as_bytes(), PATH_SEGMENT_ENCODE_SET),
         );
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
@@ -231,8 +230,8 @@ where
         let uri_str = format!(
             "/modules/{name}/genid/{genid}/decrypt?{}",
             query,
-            name = name,
-            genid = genid
+            name = percent_encode(name.as_bytes(), PATH_SEGMENT_ENCODE_SET),
+            genid = percent_encode(genid.as_bytes(), PATH_SEGMENT_ENCODE_SET),
         );
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
@@ -301,8 +300,8 @@ where
         let uri_str = format!(
             "/modules/{name}/genid/{genid}/encrypt?{}",
             query,
-            name = name,
-            genid = genid
+            name = percent_encode(name.as_bytes(), PATH_SEGMENT_ENCODE_SET),
+            genid = percent_encode(genid.as_bytes(), PATH_SEGMENT_ENCODE_SET),
         );
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
@@ -370,8 +369,8 @@ where
         let uri_str = format!(
             "/modules/{name}/genid/{genid}/sign?{}",
             query,
-            name = name,
-            genid = genid
+            name = percent_encode(name.as_bytes(), PATH_SEGMENT_ENCODE_SET),
+            genid = percent_encode(genid.as_bytes(), PATH_SEGMENT_ENCODE_SET),
         );
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);

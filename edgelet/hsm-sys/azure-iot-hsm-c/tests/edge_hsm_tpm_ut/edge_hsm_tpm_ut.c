@@ -33,6 +33,7 @@ static void test_hook_gballoc_free(void* ptr)
 #include "umock_c/umock_c.h"
 #include "umock_c/umock_c_negative_tests.h"
 #include "umock_c/umocktypes_charptr.h"
+#include "umock_c/umocktypes_stdint.h"
 
 //#############################################################################
 // Declare and enable MOCK definitions
@@ -43,7 +44,7 @@ static void test_hook_gballoc_free(void* ptr)
 #include "azure_c_shared_utility/gballoc.h"
 
 // store mocks
-MOCKABLE_FUNCTION(, int, mocked_hsm_client_store_create, const char*, store_name);
+MOCKABLE_FUNCTION(, int, mocked_hsm_client_store_create, const char*, store_name, uint64_t, auto_generated_ca_lifetime);
 MOCKABLE_FUNCTION(, int, mocked_hsm_client_store_destroy, const char*, store_name);
 MOCKABLE_FUNCTION(, HSM_CLIENT_STORE_HANDLE, mocked_hsm_client_store_open, const char*, store_name);
 MOCKABLE_FUNCTION(, int, mocked_hsm_client_store_close, HSM_CLIENT_STORE_HANDLE, handle);
@@ -100,6 +101,9 @@ static TEST_MUTEX_HANDLE g_testByTest;
 static TEST_MUTEX_HANDLE g_dllByDll;
 static unsigned char TEST_EDGE_MODULE_IDENTITY[] = {'s', 'a', 'm', 'p', 'l', 'e'};
 
+// 90 days.
+static const uint64_t TEST_CA_VALIDITY =  90 * 24 * 3600;
+
 static const HSM_CLIENT_STORE_INTERFACE mocked_hsm_client_store_interface =
 {
     mocked_hsm_client_store_create,
@@ -150,9 +154,10 @@ const HSM_CLIENT_KEY_INTERFACE* test_hook_hsm_client_key_interface(void)
     return &mocked_hsm_client_key_interface;
 }
 
-static int test_hook_hsm_client_store_create(const char* store_name)
+static int test_hook_hsm_client_store_create(const char* store_name, uint64_t auto_generated_ca_lifetime)
 {
     (void)store_name;
+    (void)auto_generated_ca_lifetime;
     return 0;
 }
 
@@ -441,6 +446,8 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
             REGISTER_GLOBAL_MOCK_HOOK(mocked_hsm_client_key_decrypt, test_hook_hsm_client_key_decrypt);
             REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_hsm_client_key_decrypt, 1);
+
+            (void)umocktypes_stdint_register_types();
         }
 
         TEST_SUITE_CLEANUP(TestClassCleanup)
@@ -476,7 +483,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
             int status;
             EXPECTED_CALL(hsm_client_store_interface());
             EXPECTED_CALL(hsm_client_key_interface());
-            STRICT_EXPECTED_CALL(mocked_hsm_client_store_create(TEST_EDGE_STORE_NAME));
+            STRICT_EXPECTED_CALL(mocked_hsm_client_store_create(TEST_EDGE_STORE_NAME, TEST_CA_VALIDITY));
 
             // act
             status = hsm_client_tpm_store_init();
@@ -501,7 +508,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
             EXPECTED_CALL(hsm_client_store_interface());
             EXPECTED_CALL(hsm_client_key_interface());
-            STRICT_EXPECTED_CALL(mocked_hsm_client_store_create(TEST_EDGE_STORE_NAME));
+            STRICT_EXPECTED_CALL(mocked_hsm_client_store_create(TEST_EDGE_STORE_NAME, TEST_CA_VALIDITY));
 
             umock_c_negative_tests_snapshot();
 
@@ -578,7 +585,7 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
             EXPECTED_CALL(hsm_client_store_interface());
             EXPECTED_CALL(hsm_client_key_interface());
-            STRICT_EXPECTED_CALL(mocked_hsm_client_store_create(TEST_EDGE_STORE_NAME));
+            STRICT_EXPECTED_CALL(mocked_hsm_client_store_create(TEST_EDGE_STORE_NAME, TEST_CA_VALIDITY));
 
             // act
             status = hsm_client_tpm_store_init();

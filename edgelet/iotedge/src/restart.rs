@@ -34,7 +34,7 @@ where
 {
     type Future = Box<dyn Future<Item = (), Error = Error> + Send>;
 
-    fn execute(&mut self) -> Self::Future {
+    fn execute(self) -> Self::Future {
         let id = self.id.clone();
         let write = self.output.clone();
         let result = self

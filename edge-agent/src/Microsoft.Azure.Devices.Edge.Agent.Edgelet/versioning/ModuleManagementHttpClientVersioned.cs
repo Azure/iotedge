@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
@@ -60,7 +61,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
 
         public abstract Task RestartModuleAsync(string name);
 
-        public abstract Task<SystemInfo> GetSystemInfoAsync();
+        public abstract Task<SystemInfo> GetSystemInfoAsync(CancellationToken cancellationToken);
+
+        public abstract Task<SystemResources> GetSystemResourcesAsync();
 
         public abstract Task<IEnumerable<ModuleRuntimeInfo>> GetModules<T>(CancellationToken cancellationToken);
 
@@ -74,7 +77,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
 
         public abstract Task PrepareUpdateAsync(ModuleSpec moduleSpec);
 
-        public virtual async Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<int> since, CancellationToken cancellationToken)
+        public abstract Task ReprovisionDeviceAsync();
+
+        public virtual async Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<string> since, CancellationToken cancellationToken)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
@@ -82,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 var logsUrl = new StringBuilder();
                 logsUrl.AppendFormat(CultureInfo.InvariantCulture, LogsUrlTemplate, baseUrl, module, this.Version.Name, follow.ToString().ToLowerInvariant());
                 tail.ForEach(t => logsUrl.AppendFormat($"&{LogsUrlTailParameter}={t}"));
-                since.ForEach(t => logsUrl.AppendFormat($"&{LogsUrlSinceParameter}={t}"));
+                since.ForEach(s => logsUrl.AppendFormat($"&{LogsUrlSinceParameter}={Uri.EscapeUriString(s)}"));
                 var logsUri = new Uri(logsUrl.ToString());
                 var httpRequest = new HttpRequestMessage(HttpMethod.Get, logsUri);
                 Stream stream = await this.Execute(

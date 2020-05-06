@@ -1,4 +1,3 @@
-
 # Configures the provisioning mode
 provisioning:
   source: "dps"
@@ -7,6 +6,7 @@ provisioning:
   attestation:
     method: "tpm"
     registration_id: "register me fool"
+  dynamic_reprovisioning: false
 
 agent:
   name: "edgeAgent"

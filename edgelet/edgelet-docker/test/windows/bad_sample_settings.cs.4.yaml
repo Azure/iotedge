@@ -1,0 +1,31 @@
+# default (boilerplate) connection string provided
+provisioning:
+  source: "manual"
+  device_connection_string: "<ADD DEVICE CONNECTION STRING HERE>"
+
+agent:
+  name: "edgeAgent"
+  type: "docker"
+  env: {}
+  config:
+    image: "microsoft/azureiotedge-agent:1.0"
+    auth: {}
+
+hostname: "localhost"
+
+watchdog:
+  max_retries: 3
+
+connect:
+  workload_uri: "http://localhost:8081"
+  management_uri: "http://localhost:8080"
+
+listen:
+  workload_uri: "http://0.0.0.0:8081"
+  management_uri: "http://0.0.0.0:8080"
+
+homedir: "C:\\Temp"
+
+moby_runtime:
+  uri: "npipe://./pipe/iotedge_moby_engine"
+  network: "azure-iot-edge"

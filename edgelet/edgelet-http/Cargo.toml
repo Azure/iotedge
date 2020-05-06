@@ -27,7 +27,6 @@ native-tls = "0.2"
 tokio-tls = "0.2"
 
 edgelet-core = { path = "../edgelet-core" }
-edgelet-hsm = { path = "../edgelet-hsm" }
 edgelet-utils = { path = "../edgelet-utils" }
 systemd = { path = "../systemd" }
 
@@ -51,6 +50,7 @@ lazy_static = "1.0"
 tempfile = "3"
 tempdir = "0.3.7"
 
+edgelet-hsm = { path = "../edgelet-hsm" }
 edgelet-test-utils = { path = "../edgelet-test-utils" }
 
 [target.'cfg(windows)'.dev-dependencies]

@@ -206,14 +206,13 @@ impl<C: 'static + Connect> Module for DockerModule<C> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{parse_top_response, Deserializer, InlineResponse2001, Utc, MIN_DATE};
 
     use std::string::ToString;
 
     use hyper::Client;
     use serde::Serialize;
     use time::Duration;
-    use tokio;
 
     use docker::apis::client::APIClient;
     use docker::apis::configuration::Configuration;
@@ -397,8 +396,8 @@ mod tests {
                         InlineResponse200State::new()
                             .with_exit_code(10)
                             .with_status("running".to_string())
-                            .with_started_at(started_at.clone())
-                            .with_finished_at(finished_at.clone()),
+                            .with_started_at(started_at)
+                            .with_finished_at(finished_at),
                     )
                     .with_id("mod1".to_string()),
             ),
@@ -426,8 +425,8 @@ mod tests {
                         InlineResponse200State::new()
                             .with_exit_code(10)
                             .with_status("running".to_string())
-                            .with_started_at(started_at.clone())
-                            .with_finished_at(finished_at.clone()),
+                            .with_started_at(started_at)
+                            .with_finished_at(finished_at),
                     )
                     .with_id("mod1".to_string()),
             ),
@@ -455,8 +454,8 @@ mod tests {
                         InlineResponse200State::new()
                             .with_exit_code(10)
                             .with_status("stopped".to_string())
-                            .with_started_at(started_at.clone())
-                            .with_finished_at(finished_at.clone()),
+                            .with_started_at(started_at)
+                            .with_finished_at(finished_at),
                     )
                     .with_id("mod1".to_string()),
             ),

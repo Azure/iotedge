@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
 
             foreach (IMessage msg in expected)
             {
-                await executor.Invoke(msg);
+                await executor.Invoke(msg, 0, 3600);
             }
 
             await Task.Delay(TimeSpan.FromSeconds(2));
@@ -69,8 +69,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
         public async Task TestClose()
         {
             var endpoint = new TestEndpoint("id");
-            IEndpointExecutor executor = await Factory.CreateAsync(endpoint);
-            Task running = executor.Invoke(Default);
+            IEndpointExecutor executor = await Factory.CreateAsync(endpoint, null);
+            Task running = executor.Invoke(Default, 0, 3600);
 
             await executor.CloseAsync();
             await running;
@@ -85,8 +85,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
         public async Task TestCancellation()
         {
             var endpoint = new StalledEndpoint("id");
-            IEndpointExecutor executor = await Factory.CreateAsync(endpoint);
-            Task running = executor.Invoke(Default);
+            IEndpointExecutor executor = await Factory.CreateAsync(endpoint, null);
+            Task running = executor.Invoke(Default, 0, 3600);
 
             await executor.CloseAsync();
             await running;
@@ -100,17 +100,17 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             var endpoint1 = new TestEndpoint("id");
             var endpoint2 = new NullEndpoint("id");
             var endpoint3 = new TestEndpoint("id1");
-            IEndpointExecutor executor = await Factory.CreateAsync(endpoint1);
+            IEndpointExecutor executor = await Factory.CreateAsync(endpoint1, null);
 
             Assert.Equal(endpoint1, executor.Endpoint);
-            await Assert.ThrowsAsync<ArgumentNullException>(() => executor.SetEndpoint(null));
-            await Assert.ThrowsAsync<ArgumentException>(() => executor.SetEndpoint(endpoint3));
+            await Assert.ThrowsAsync<ArgumentNullException>(() => executor.SetEndpoint(null, null));
+            await Assert.ThrowsAsync<ArgumentException>(() => executor.SetEndpoint(endpoint3, null));
 
-            await executor.SetEndpoint(endpoint2);
+            await executor.SetEndpoint(endpoint2, null);
             Assert.Equal(endpoint2, executor.Endpoint);
 
             await executor.CloseAsync();
-            await Assert.ThrowsAsync<InvalidOperationException>(() => executor.SetEndpoint(endpoint1));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => executor.SetEndpoint(endpoint1, null));
         }
 
         [Fact]
@@ -120,21 +120,21 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             var endpoint1 = new TestEndpoint("id1");
             var executor = new AsyncEndpointExecutor(endpoint1, new NullCheckpointer(), MaxConfig, new AsyncEndpointExecutorOptions(100, TimeSpan.FromMilliseconds(50)));
 
-            await executor.Invoke(Message1);
-            await executor.Invoke(Message1);
+            await executor.Invoke(Message1, 0, 3600);
+            await executor.Invoke(Message1, 0, 3600);
 
             await Task.Delay(TimeSpan.FromMilliseconds(500));
 
             var expected = new List<IMessage> { Message1, Message1 };
             Assert.Equal(expected, endpoint1.Processed);
 
-            await executor.Invoke(Message2);
+            await executor.Invoke(Message2, 0, 3600);
             expected.Add(Message2);
 
             await Task.Delay(TimeSpan.FromMilliseconds(500));
             Assert.Equal(expected, endpoint1.Processed);
 
-            await executor.Invoke(Message2);
+            await executor.Invoke(Message2, 0, 3600);
             expected.Add(Message2);
 
             await Task.Delay(TimeSpan.FromMilliseconds(500));
@@ -156,7 +156,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
 
             using (var executor = new AsyncEndpointExecutor(endpoint, checkpointer, MaxConfig, new AsyncEndpointExecutorOptions(1)))
             {
-                await executor.Invoke(Message1);
+                await executor.Invoke(Message1, 0, 3600);
                 await Task.Delay(TimeSpan.FromSeconds(2));
                 await executor.CloseAsync();
 

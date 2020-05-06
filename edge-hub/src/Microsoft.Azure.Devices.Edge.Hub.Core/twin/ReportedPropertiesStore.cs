@@ -4,12 +4,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
-    using Nito.AsyncEx;
 
     class ReportedPropertiesStore : IReportedPropertiesStore
     {
@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
         readonly IEntityStore<string, TwinStoreEntity> twinStore;
         readonly ICloudSync cloudSync;
         readonly AsyncLockProvider<string> lockProvider = new AsyncLockProvider<string>(10);
-        readonly AsyncAutoResetEvent syncToCloudSignal = new AsyncAutoResetEvent(false);
+        readonly SemaphoreSlim syncToCloudSemaphore = new SemaphoreSlim(1);
         readonly HashSet<string> syncToCloudClients = new HashSet<string>(StringComparer.Ordinal);
         readonly object syncToCloudSetLock = new object();
         readonly Task syncToCloudTask;
@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                 this.syncToCloudClients.Add(id);
             }
 
-            this.syncToCloudSignal.Set();
+            this.syncToCloudSemaphore.Release();
         }
 
         public async Task SyncToCloud(string id)
@@ -127,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                 // Wait for syncfrequency to avoid looping too fast,
                 // then wait for the signal indicating more work is ready
                 await Task.Delay(this.syncFrequency);
-                await this.syncToCloudSignal.WaitAsync();
+                await this.syncToCloudSemaphore.WaitAsync();
             }
         }
 

@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 {
-    extern alias akka;
     using System;
     using System.Collections.Generic;
     using System.Linq;

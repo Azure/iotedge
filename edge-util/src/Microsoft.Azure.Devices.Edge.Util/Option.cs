@@ -140,7 +140,21 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
+        public void ForEach(Action<T> action, Action none)
+        {
+            if (this.HasValue)
+            {
+                action(this.Value);
+            }
+            else
+            {
+                none();
+            }
+        }
+
         public Task ForEachAsync(Func<T, Task> action) => this.HasValue ? action(this.Value) : Task.CompletedTask;
+
+        public Task ForEachAsync(Func<T, Task> action, Func<Task> none) => this.HasValue ? action(this.Value) : none();
 
         /// <summary>
         /// If this option has a value then it transforms it into a new option instance by
@@ -202,6 +216,33 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
     public static class Option
     {
+        public static IEnumerable<T> FilterMap<T>(this IEnumerable<Option<T>> source, Func<T, bool> predicate)
+        {
+            Preconditions.CheckNotNull(source, nameof(source));
+            Preconditions.CheckNotNull(predicate, nameof(predicate));
+
+            foreach (var item in source)
+            {
+                if (item.Filter(predicate).HasValue)
+                {
+                    yield return item.OrDefault();
+                }
+            }
+        }
+
+        public static IEnumerable<T> FilterMap<T>(this IEnumerable<Option<T>> source)
+        {
+            Preconditions.CheckNotNull(source, nameof(source));
+
+            foreach (var item in source)
+            {
+                if (item.HasValue)
+                {
+                    yield return item.OrDefault();
+                }
+            }
+        }
+
         /// <summary>
         /// Creates an <c>Option &lt;T&gt;</c> with <paramref name="value"/> and marks
         /// the option object as having a value, i.e., <c>Option&lt;T&gt;.HasValue == true</c>.

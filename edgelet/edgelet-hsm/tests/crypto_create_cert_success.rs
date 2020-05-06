@@ -25,7 +25,7 @@ fn crypto_create_cert_success() {
     let _setup_home_dir = TestHSMEnvSetup::new(&LOCK, None);
 
     let hsm_lock = HsmLock::new();
-    let crypto = Crypto::new(hsm_lock).unwrap();
+    let crypto = Crypto::new(hsm_lock, 1000).unwrap();
 
     // tests to ensure that the Device CA alias exists and is valid
     assert!(crypto

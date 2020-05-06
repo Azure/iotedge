@@ -18,56 +18,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public static bool IsWindows() => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
-        protected async Task<EdgeCertificates> GenerateEdgeCertificatesAsync(
-            string deviceId,
-            string basePath,
-            (string name, string args) command,
-            CancellationToken token)
-        {
-            await Profiler.Run(
-                async () =>
-                {
-                    string[] output = await Process.RunAsync(command.name, command.args, token);
-                    Log.Verbose(string.Join("\n", output));
-                },
-                "Created certificates for edge device");
+        public static bool Is64Bit() => RuntimeInformation.OSArchitecture == Architecture.X64 || RuntimeInformation.OSArchitecture == Architecture.Arm64;
 
-            var files = new[]
-            {
-                $"certs/iot-edge-device-{deviceId}-full-chain.cert.pem",
-                $"private/iot-edge-device-{deviceId}.key.pem",
-                "certs/azure-iot-test-only.root.ca.cert.pem"
-            };
-
-            files = NormalizeFiles(files, basePath);
-
-            return new EdgeCertificates(files[0], files[1], files[2]);
-        }
-
-        protected async Task<LeafCertificates> GenerateLeafCertificatesAsync(
-            string leafDeviceId,
-            string basePath,
-            (string name, string args) command,
-            CancellationToken token)
-        {
-            await Profiler.Run(
-                async () =>
-                {
-                    string[] output = await Process.RunAsync(command.name, command.args, token);
-                    Log.Verbose(string.Join("\n", output));
-                },
-                "Created certificates for leaf device");
-
-            var files = new[]
-            {
-                $"certs/iot-device-{leafDeviceId}-full-chain.cert.pem",
-                $"private/iot-device-{leafDeviceId}.key.pem"
-            };
-
-            files = NormalizeFiles(files, basePath);
-
-            return new LeafCertificates(files[0], files[1]);
-        }
+        protected CaCertificates GetEdgeQuickstartCertificates(string basePath) =>
+            new CaCertificates(
+                    FixedPaths.QuickStartCaCert.Cert(basePath),
+                    FixedPaths.QuickStartCaCert.Key(basePath),
+                    FixedPaths.QuickStartCaCert.TrustCert(basePath));
 
         protected async Task InstallRootCertificateAsync(
             string basePath,
@@ -79,8 +36,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             var files = new[]
             {
-                "certs/azure-iot-test-only.root.ca.cert.pem",
-                "private/azure-iot-test-only.root.ca.key.pem"
+                FixedPaths.RootCaCert.Cert,
+                FixedPaths.RootCaCert.Key
             };
 
             CheckFiles(files, basePath);
@@ -98,15 +55,24 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
         }
 
+        protected async Task RunScriptAsync(
+            (string name, string args) command,
+            CancellationToken token)
+        {
+            Log.Verbose("Executing: " + command.name + ' ' + command.args);
+            string[] output = await Process.RunAsync(command.name, command.args, token);
+            Log.Verbose(string.Join("\n", output));
+        }
+
         static void CheckFiles(IEnumerable<string> paths, string basePath) => NormalizeFiles(paths, basePath);
 
-        static string[] NormalizeFiles(IEnumerable<string> paths, string basePath)
+        public static string[] NormalizeFiles(IEnumerable<string> paths, string basePath)
         {
             return paths.Select(
                 path =>
                 {
                     var file = new FileInfo(Path.Combine(basePath, path));
-                    Preconditions.CheckArgument(file.Exists);
+                    Preconditions.CheckArgument(file.Exists, $"File Not Found: {file.FullName}");
                     return file.FullName;
                 }).ToArray();
         }

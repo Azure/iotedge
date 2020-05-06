@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     using System.Collections.Generic;
     using System.Globalization;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
@@ -20,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             DateTime lastStartTimeUtc = DateTime.Parse("2017-11-13T23:44:35.127381Z", null, DateTimeStyles.RoundtripKind);
             DateTime lastExitTimeUtc = DateTime.Parse("2017-11-13T23:49:35.127381Z", null, DateTimeStyles.RoundtripKind);
             var module = new EdgeAgentDockerRuntimeModule(
-                new DockerReportedConfig("booyah:latest", string.Empty, "someSha"),
+                new DockerReportedConfig("booyah:latest", string.Empty, "someSha", Option.None<NotaryContentTrust>()),
                 ModuleStatus.Running,
                 0,
                 string.Empty,
@@ -44,6 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     statusDescription = string.Empty,
                     type = "docker",
                     imagePullPolicy = "on-create",
+                    priority = Constants.HighestPriority,
                     settings = new
                     {
                         image = "booyah:latest",
@@ -89,6 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             // TODO - Change Config for Runtime to DockerReportedConfig.
             // Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig)?.ImageHash);
             Assert.Equal(lastStartTimeUtc, edgeAgent.LastStartTimeUtc);
+            Assert.Equal(Constants.HighestPriority, edgeAgent.Priority);
         }
 
         [Fact]
@@ -123,6 +126,43 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             // TODO - Change Config for Runtime to DockerReportedConfig.
             // Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig)?.ImageHash);
             Assert.Equal("bing", edgeAgent.ConfigurationInfo.Id);
+            Assert.Equal(Constants.HighestPriority, edgeAgent.Priority);
+        }
+
+        [Fact]
+        [Unit]
+        public void TestJsonDeserializeWithNonHighestPriority()
+        {
+            // Arrange
+            string json = JsonConvert.SerializeObject(
+                new
+                {
+                    type = "docker",
+                    runtimeStatus = "running",
+                    settings = new
+                    {
+                        image = "someImage",
+                        createOptions = "{}",
+                        imageHash = "someSha"
+                    },
+                    configuration = new
+                    {
+                        id = "bing"
+                    },
+                    priority = 10
+                });
+
+            // Act
+            var edgeAgent = JsonConvert.DeserializeObject<EdgeAgentDockerRuntimeModule>(json);
+
+            // Assert
+            Assert.Equal("docker", edgeAgent.Type);
+            Assert.Equal(ModuleStatus.Running, edgeAgent.RuntimeStatus);
+            Assert.Equal("someImage:latest", edgeAgent.Config.Image);
+            // TODO - Change Config for Runtime to DockerReportedConfig.
+            // Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig)?.ImageHash);
+            Assert.Equal("bing", edgeAgent.ConfigurationInfo.Id);
+            Assert.Equal(Constants.HighestPriority, edgeAgent.Priority);
         }
 
         [Fact]
@@ -132,7 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             DateTime lastStartTimeUtc = DateTime.Parse("2017-11-13T23:44:35.127381Z", null, DateTimeStyles.RoundtripKind);
             DateTime lastExitTimeUtc = DateTime.Parse("2017-11-13T23:49:35.127381Z", null, DateTimeStyles.RoundtripKind);
             var module = new EdgeAgentDockerRuntimeModule(
-                new DockerReportedConfig("booyah", string.Empty, "someSha"),
+                new DockerReportedConfig("booyah", string.Empty, "someSha", Option.None<NotaryContentTrust>()),
                 ModuleStatus.Running,
                 0,
                 string.Empty,

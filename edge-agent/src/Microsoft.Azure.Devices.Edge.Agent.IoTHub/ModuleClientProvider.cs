@@ -25,6 +25,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(int.MaxValue, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
 
+        static readonly TimeSpan HeartbeatTimeout = TimeSpan.FromSeconds(60);
+
         readonly Option<string> connectionString;
         readonly Option<UpstreamProtocol> upstreamProtocol;
         readonly Option<IWebProxy> proxy;
@@ -32,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
         readonly ISdkModuleClientProvider sdkModuleClientProvider;
+        readonly bool useServerHeartbeat;
 
         public ModuleClientProvider(
             string connectionString,
@@ -40,8 +43,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             Option<IWebProxy> proxy,
             string productInfo,
             bool closeOnIdleTimeout,
-            TimeSpan idleTimeout)
-            : this(Option.Maybe(connectionString), sdkModuleClientProvider, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout)
+            TimeSpan idleTimeout,
+            bool useServerHeartbeat)
+            : this(Option.Maybe(connectionString), sdkModuleClientProvider, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat)
         {
         }
 
@@ -51,8 +55,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             Option<IWebProxy> proxy,
             string productInfo,
             bool closeOnIdleTimeout,
-            TimeSpan idleTimeout)
-            : this(Option.None<string>(), sdkModuleClientProvider, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout)
+            TimeSpan idleTimeout,
+            bool useServerHeartbeat)
+            : this(Option.None<string>(), sdkModuleClientProvider, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout, useServerHeartbeat)
         {
         }
 
@@ -63,7 +68,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             Option<IWebProxy> proxy,
             string productInfo,
             bool closeOnIdleTimeout,
-            TimeSpan idleTimeout)
+            TimeSpan idleTimeout,
+            bool useServerHeartbeat)
         {
             this.connectionString = connectionString;
             this.sdkModuleClientProvider = sdkModuleClientProvider;
@@ -72,51 +78,62 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.proxy = proxy;
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
+            this.useServerHeartbeat = useServerHeartbeat;
         }
 
         public async Task<IModuleClient> Create(ConnectionStatusChangesHandler statusChangedHandler)
         {
-            ISdkModuleClient sdkModuleClient = await this.CreateSdkModuleClientWithRetry(statusChangedHandler);
-            IModuleClient moduleClient = new ModuleClient(sdkModuleClient, this.idleTimeout, this.closeOnIdleTimeout);
+            (ISdkModuleClient sdkModuleClient, UpstreamProtocol protocol) = await this.CreateSdkModuleClientWithRetry(statusChangedHandler);
+            IModuleClient moduleClient = new ModuleClient(sdkModuleClient, this.idleTimeout, this.closeOnIdleTimeout, protocol);
             return moduleClient;
         }
 
-        static ITransportSettings GetTransportSettings(UpstreamProtocol protocol, Option<IWebProxy> proxy)
+        static ITransportSettings GetTransportSettings(UpstreamProtocol protocol, Option<IWebProxy> proxy, bool useServerHeartbeat)
         {
             switch (protocol)
             {
                 case UpstreamProtocol.Amqp:
-                {
-                    var settings = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
-                    proxy.ForEach(p => settings.Proxy = p);
-                    return settings;
-                }
+                    {
+                        var settings = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
+                        if (useServerHeartbeat)
+                        {
+                            settings.IdleTimeout = HeartbeatTimeout;
+                        }
+
+                        proxy.ForEach(p => settings.Proxy = p);
+                        return settings;
+                    }
 
                 case UpstreamProtocol.AmqpWs:
-                {
-                    var settings = new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only);
-                    proxy.ForEach(p => settings.Proxy = p);
-                    return settings;
-                }
+                    {
+                        var settings = new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only);
+                        if (useServerHeartbeat)
+                        {
+                            settings.IdleTimeout = HeartbeatTimeout;
+                        }
+
+                        proxy.ForEach(p => settings.Proxy = p);
+                        return settings;
+                    }
 
                 case UpstreamProtocol.Mqtt:
-                {
-                    var settings = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
-                    proxy.ForEach(p => settings.Proxy = p);
-                    return settings;
-                }
+                    {
+                        var settings = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
+                        proxy.ForEach(p => settings.Proxy = p);
+                        return settings;
+                    }
 
                 case UpstreamProtocol.MqttWs:
-                {
-                    var settings = new MqttTransportSettings(TransportType.Mqtt_WebSocket_Only);
-                    proxy.ForEach(p => settings.Proxy = p);
-                    return settings;
-                }
+                    {
+                        var settings = new MqttTransportSettings(TransportType.Mqtt_WebSocket_Only);
+                        proxy.ForEach(p => settings.Proxy = p);
+                        return settings;
+                    }
 
                 default:
-                {
-                    throw new InvalidEnumArgumentException();
-                }
+                    {
+                        throw new InvalidEnumArgumentException();
+                    }
             }
         }
 
@@ -127,35 +144,50 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             return transientRetryPolicy.ExecuteAsync(func);
         }
 
-        async Task<ISdkModuleClient> CreateSdkModuleClientWithRetry(ConnectionStatusChangesHandler statusChangedHandler)
+        async Task<(ISdkModuleClient sdkModuleClient, UpstreamProtocol upstreamProtocol)> CreateSdkModuleClientWithRetry(ConnectionStatusChangesHandler statusChangedHandler)
         {
             try
             {
-                ISdkModuleClient moduleClient = await ExecuteWithRetry(
+                (ISdkModuleClient moduleClient, UpstreamProtocol protocol) = await ExecuteWithRetry(
                     () => this.CreateSdkModuleClient(statusChangedHandler),
                     Events.RetryingDeviceClientConnection);
                 Events.DeviceClientCreated();
-                return moduleClient;
+                return (moduleClient, protocol);
             }
             catch (Exception e)
             {
                 Events.DeviceClientSetupFailed(e);
                 Environment.Exit(1);
-                return null;
+                return (null, UpstreamProtocol.Amqp);
             }
         }
 
-        Task<ISdkModuleClient> CreateSdkModuleClient(ConnectionStatusChangesHandler statusChangedHandler)
+        Task<(ISdkModuleClient sdkModuleClient, UpstreamProtocol upstreamProtocol)> CreateSdkModuleClient(ConnectionStatusChangesHandler statusChangedHandler)
             => this.upstreamProtocol
-                .Map(u => this.CreateAndOpenSdkModuleClient(u, statusChangedHandler))
+                .Map(async u =>
+                {
+                    ISdkModuleClient sdkModuleClient = await this.CreateAndOpenSdkModuleClient(u, statusChangedHandler);
+                    return (sdkModuleClient, u);
+                })
                 .GetOrElse(
                     async () =>
                     {
                         // The device SDK doesn't appear to be falling back to WebSocket from TCP,
                         // so we'll do it explicitly until we can get the SDK sorted out.
-                        Try<ISdkModuleClient> result = await Fallback.ExecuteAsync(
-                            () => this.CreateAndOpenSdkModuleClient(UpstreamProtocol.Amqp, statusChangedHandler),
-                            () => this.CreateAndOpenSdkModuleClient(UpstreamProtocol.AmqpWs, statusChangedHandler));
+                        UpstreamProtocol protocol;
+                        Try<(ISdkModuleClient, UpstreamProtocol)> result = await Fallback.ExecuteAsync(
+                            async () =>
+                            {
+                                protocol = UpstreamProtocol.Amqp;
+                                ISdkModuleClient sdkModuleClient = await this.CreateAndOpenSdkModuleClient(protocol, statusChangedHandler);
+                                return (sdkModuleClient, protocol);
+                            },
+                            async () =>
+                            {
+                                protocol = UpstreamProtocol.AmqpWs;
+                                ISdkModuleClient sdkModuleClient = await this.CreateAndOpenSdkModuleClient(protocol, statusChangedHandler);
+                                return (sdkModuleClient, protocol);
+                            });
 
                         if (!result.Success)
                         {
@@ -168,7 +200,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         async Task<ISdkModuleClient> CreateAndOpenSdkModuleClient(UpstreamProtocol upstreamProtocol, ConnectionStatusChangesHandler statusChangedHandler)
         {
-            ITransportSettings settings = GetTransportSettings(upstreamProtocol, this.proxy);
+            ITransportSettings settings = GetTransportSettings(upstreamProtocol, this.proxy, this.useServerHeartbeat);
             Events.AttemptingConnectionWithTransport(settings.GetTransportType());
 
             ISdkModuleClient moduleClient = await this.connectionString

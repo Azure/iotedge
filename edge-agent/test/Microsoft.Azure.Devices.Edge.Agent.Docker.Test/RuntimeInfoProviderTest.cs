@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 RuntimeInfoProvider runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(Client);
 
                 // Act
-                SystemInfo recivedSystemInfo = await runtimeInfoProvider.GetSystemInfo();
+                SystemInfo recivedSystemInfo = await runtimeInfoProvider.GetSystemInfo(CancellationToken.None);
 
                 // Assert
                 Assert.Equal(systemInfo.OSType, recivedSystemInfo.OperatingSystemType);
@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
                     var loggingConfig = new DockerLoggingConfig("json-file");
                     var config = new DockerConfig(Image);
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, null, null);
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, Constants.DefaultPriority, null, null);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
                         new Dictionary<string, string>
@@ -143,9 +143,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     await Client.CleanupContainerAsync(Name, Image);
 
                     string createOptions = @"{""Env"": [ ""k1=v1"", ""k2=v2""]}";
-                    var config = new DockerConfig(Image, createOptions);
+                    var config = new DockerConfig(Image, createOptions, Option.None<NotaryContentTrust>());
                     var loggingConfig = new DockerLoggingConfig("json-file");
-                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, null, null);
+                    var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, Constants.DefaultPriority, null, null);
 
                     IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
                         new Dictionary<string, string>
@@ -249,7 +249,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             // Act
             var runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(dockerClient);
-            SystemInfo systemInfo = await runtimeInfoProvider.GetSystemInfo();
+            SystemInfo systemInfo = await runtimeInfoProvider.GetSystemInfo(CancellationToken.None);
 
             // Assert
             Assert.NotNull(systemInfo);
@@ -285,7 +285,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(dockerClient);
 
             // Act
-            Stream receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, false, Option.None<int>(), Option.None<int>(), CancellationToken.None);
+            Stream receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, false, Option.None<int>(), Option.None<string>(), CancellationToken.None);
 
             // Assert
             Assert.NotNull(receivedContainerLogsParameters);
@@ -301,7 +301,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(dummyLogs, receivedLogs);
 
             // Act
-            receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, true, Option.Some(1000), Option.None<int>(), CancellationToken.None);
+            receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, true, Option.Some(1000), Option.None<string>(), CancellationToken.None);
 
             // Assert
             Assert.NotNull(receivedContainerLogsParameters);
@@ -317,7 +317,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(dummyLogs, receivedLogs);
 
             // Act
-            receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, true, Option.None<int>(), Option.Some(1552887267), CancellationToken.None);
+            receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, true, Option.None<int>(), Option.Some("1552887267"), CancellationToken.None);
 
             // Assert
             Assert.NotNull(receivedContainerLogsParameters);
@@ -331,6 +331,87 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(1000, readBytes);
             receivedLogs = Encoding.UTF8.GetString(buffer, 0, readBytes);
             Assert.Equal(dummyLogs, receivedLogs);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task GetModules_Handles_NotFoundException()
+        {
+            var missingContainerName = "container2";
+            var containersToReturn = new[] { "container1", "container2", "container3" };
+
+            var dockerClient = this.SetupDockerClient(missingContainerName, containersToReturn);
+            var provider = await RuntimeInfoProvider.CreateAsync(dockerClient);
+
+            var moduleInfo = await provider.GetModules(CancellationToken.None);
+
+            var actualContainerNames = moduleInfo
+                                            .Select(m => m.Name);
+
+            var expectedContainerNames = containersToReturn
+                                            .Where(c => !c.Equals(missingContainerName))
+                                            .Concat(new[] { "edgeAgent" });
+
+            Assert.Equal(expectedContainerNames, actualContainerNames);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task GetModules_Handles_MissingEdgeAgent()
+        {
+            var missingContainerName = "edgeAgent";
+            var expectedContainerNames = new[] { "container1", "container2", "container3" };
+
+            var dockerClient = this.SetupDockerClient(missingContainerName, expectedContainerNames);
+            var provider = await RuntimeInfoProvider.CreateAsync(dockerClient);
+
+            var moduleInfo = await provider.GetModules(CancellationToken.None);
+
+            var actualContainerNames = moduleInfo.Select(m => m.Name);
+
+            Assert.Equal(expectedContainerNames, actualContainerNames);
+        }
+
+        private IDockerClient SetupDockerClient(string nonExistingContainer, params string[] containers)
+        {
+            var dockerClient = new Mock<IDockerClient>();
+            var dockerContainer = new Mock<IContainerOperations>();
+            var dockerSystem = new Mock<ISystemOperations>();
+            var containerList = containers.Select(c => new ContainerListResponse { ID = c }).ToList();
+            var systemInfoResponse = new SystemInfoResponse() { OSType = OperatingSystemType, Architecture = Architecture, ServerVersion = "42" };
+
+            dockerClient.Setup(call => call.Containers).Returns(dockerContainer.Object);
+            dockerClient.Setup(call => call.System).Returns(dockerSystem.Object);
+
+            dockerContainer.Setup(
+                call => call.ListContainersAsync(It.IsAny<ContainersListParameters>(), It.IsAny<CancellationToken>()))
+                            .Returns(() => Task.FromResult(containerList as IList<ContainerListResponse>));
+
+            dockerContainer.Setup(
+                call => call.InspectContainerAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                            .Returns(
+                                (string a, CancellationToken b) =>
+                                {
+                                    if (a.Equals(nonExistingContainer))
+                                    {
+                                        return Task.FromException<ContainerInspectResponse>(new DockerContainerNotFoundException(0, null));
+                                    }
+                                    else
+                                    {
+                                        return Task.FromResult(new ContainerInspectResponse()
+                                        {
+                                            Name = "/" + a,
+                                            Config = new Config() { Image = "dummy:latest" },
+                                            State = new ContainerState() { Status = "running" }
+                                        });
+                                    }
+                                });
+
+            dockerSystem.Setup(
+                call => call.GetSystemInfoAsync(It.IsAny<CancellationToken>()))
+                            .Returns(() => Task.FromResult(systemInfoResponse));
+
+            return dockerClient.Object;
         }
     }
 }

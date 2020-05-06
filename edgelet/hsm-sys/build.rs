@@ -177,8 +177,8 @@ fn build_libiothsm() {
             "cargo:rustc-link-search=native={}/lib",
             env::var("OPENSSL_ROOT_DIR").unwrap()
         );
-        println!("cargo:rustc-link-lib=libeay32");
-        println!("cargo:rustc-link-lib=ssleay32");
+        println!("cargo:rustc-link-lib=libssl");
+        println!("cargo:rustc-link-lib=libcrypto");
     }
 
     #[cfg(target_os = "macos")]

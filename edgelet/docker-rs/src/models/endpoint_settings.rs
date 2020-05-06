@@ -13,119 +13,143 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
+// DEVNOTE: Why is most of this type commented out?
+//
+// We do not want to restrict the properties that the user can set in their create options, because future versions of Docker can add new properties
+// that we don't define here.
+//
+// So this type has a `#[serde(flatten)] HashMap` field to collect all the extra properties that we don't have a struct field for.
+//
+// But if an existing field references another type under `crate::models::`, then that would still be parsed lossily, so we would have to also add
+// a `#[serde(flatten)] HashMap` field there. And if that type has fields that reference types under `crate::models::` ...
+//
+// To avoid having to do this for effectively the whole crate, instead we've just commented out the fields we don't use in our code.
+//
+// ---
+//
+// If you need to access a commented out field, uncomment it.
+//
+// - If it's a simple built-in type, then that is all you need to do.
+//
+// - Otherwise if it references another type under `crate::models::`, then ensure that that type also has a `#[serde(flatten)] HashMap` property
+//   and is commented out as much as possible. Also copy this devnote there for future readers.
+
 #[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 pub struct EndpointSettings {
-    #[serde(rename = "IPAMConfig", skip_serializing_if = "Option::is_none")]
-    ipam_config: Option<crate::models::EndpointIpamConfig>,
-    #[serde(rename = "Links", skip_serializing_if = "Option::is_none")]
-    links: Option<Vec<String>>,
-    #[serde(rename = "Aliases", skip_serializing_if = "Option::is_none")]
-    aliases: Option<Vec<String>>,
+    // #[serde(rename = "IPAMConfig", skip_serializing_if = "Option::is_none")]
+    // ipam_config: Option<crate::models::EndpointIpamConfig>,
+    // #[serde(rename = "Links", skip_serializing_if = "Option::is_none")]
+    // links: Option<Vec<String>>,
+    // #[serde(rename = "Aliases", skip_serializing_if = "Option::is_none")]
+    // aliases: Option<Vec<String>>,
     /// Unique ID of the network.
     #[serde(rename = "NetworkID", skip_serializing_if = "Option::is_none")]
     network_id: Option<String>,
-    /// Unique ID for the service endpoint in a Sandbox.
-    #[serde(rename = "EndpointID", skip_serializing_if = "Option::is_none")]
-    endpoint_id: Option<String>,
-    /// Gateway address for this network.
-    #[serde(rename = "Gateway", skip_serializing_if = "Option::is_none")]
-    gateway: Option<String>,
-    /// IPv4 address.
-    #[serde(rename = "IPAddress", skip_serializing_if = "Option::is_none")]
-    ip_address: Option<String>,
-    /// Mask length of the IPv4 address.
-    #[serde(rename = "IPPrefixLen", skip_serializing_if = "Option::is_none")]
-    ip_prefix_len: Option<i32>,
-    /// IPv6 gateway address.
-    #[serde(rename = "IPv6Gateway", skip_serializing_if = "Option::is_none")]
-    i_pv6_gateway: Option<String>,
-    /// Global IPv6 address.
-    #[serde(rename = "GlobalIPv6Address", skip_serializing_if = "Option::is_none")]
-    global_i_pv6_address: Option<String>,
-    /// Mask length of the global IPv6 address.
-    #[serde(
-        rename = "GlobalIPv6PrefixLen",
-        skip_serializing_if = "Option::is_none"
-    )]
-    global_i_pv6_prefix_len: Option<i64>,
-    /// MAC address for the endpoint on this network.
-    #[serde(rename = "MacAddress", skip_serializing_if = "Option::is_none")]
-    mac_address: Option<String>,
-    /// DriverOpts is a mapping of driver options and values. These options are passed directly to the driver and are driver specific.
-    #[serde(rename = "DriverOpts", skip_serializing_if = "Option::is_none")]
-    driver_opts: Option<::std::collections::HashMap<String, String>>,
+    // /// Unique ID for the service endpoint in a Sandbox.
+    // #[serde(rename = "EndpointID", skip_serializing_if = "Option::is_none")]
+    // endpoint_id: Option<String>,
+    // /// Gateway address for this network.
+    // #[serde(rename = "Gateway", skip_serializing_if = "Option::is_none")]
+    // gateway: Option<String>,
+    // /// IPv4 address.
+    // #[serde(rename = "IPAddress", skip_serializing_if = "Option::is_none")]
+    // ip_address: Option<String>,
+    // /// Mask length of the IPv4 address.
+    // #[serde(rename = "IPPrefixLen", skip_serializing_if = "Option::is_none")]
+    // ip_prefix_len: Option<i32>,
+    // /// IPv6 gateway address.
+    // #[serde(rename = "IPv6Gateway", skip_serializing_if = "Option::is_none")]
+    // i_pv6_gateway: Option<String>,
+    // /// Global IPv6 address.
+    // #[serde(rename = "GlobalIPv6Address", skip_serializing_if = "Option::is_none")]
+    // global_i_pv6_address: Option<String>,
+    // /// Mask length of the global IPv6 address.
+    // #[serde(
+    //     rename = "GlobalIPv6PrefixLen",
+    //     skip_serializing_if = "Option::is_none"
+    // )]
+    // global_i_pv6_prefix_len: Option<i64>,
+    // /// MAC address for the endpoint on this network.
+    // #[serde(rename = "MacAddress", skip_serializing_if = "Option::is_none")]
+    // mac_address: Option<String>,
+    // /// DriverOpts is a mapping of driver options and values. These options are passed directly to the driver and are driver specific.
+    // #[serde(rename = "DriverOpts", skip_serializing_if = "Option::is_none")]
+    // driver_opts: Option<::std::collections::HashMap<String, String>>,
+    #[serde(flatten)]
+    other_properties: std::collections::HashMap<String, serde_json::Value>,
 }
 
 impl EndpointSettings {
     /// Configuration for a network endpoint.
     pub fn new() -> Self {
         EndpointSettings {
-            ipam_config: None,
-            links: None,
-            aliases: None,
+            // ipam_config: None,
+            // links: None,
+            // aliases: None,
             network_id: None,
-            endpoint_id: None,
-            gateway: None,
-            ip_address: None,
-            ip_prefix_len: None,
-            i_pv6_gateway: None,
-            global_i_pv6_address: None,
-            global_i_pv6_prefix_len: None,
-            mac_address: None,
-            driver_opts: None,
+            // endpoint_id: None,
+            // gateway: None,
+            // ip_address: None,
+            // ip_prefix_len: None,
+            // i_pv6_gateway: None,
+            // global_i_pv6_address: None,
+            // global_i_pv6_prefix_len: None,
+            // mac_address: None,
+            // driver_opts: None,
+            other_properties: Default::default(),
         }
     }
 
-    pub fn set_ipam_config(&mut self, ipam_config: crate::models::EndpointIpamConfig) {
-        self.ipam_config = Some(ipam_config);
-    }
+    // pub fn set_ipam_config(&mut self, ipam_config: crate::models::EndpointIpamConfig) {
+    //     self.ipam_config = Some(ipam_config);
+    // }
 
-    pub fn with_ipam_config(mut self, ipam_config: crate::models::EndpointIpamConfig) -> Self {
-        self.ipam_config = Some(ipam_config);
-        self
-    }
+    // pub fn with_ipam_config(mut self, ipam_config: crate::models::EndpointIpamConfig) -> Self {
+    //     self.ipam_config = Some(ipam_config);
+    //     self
+    // }
 
-    pub fn ipam_config(&self) -> Option<&crate::models::EndpointIpamConfig> {
-        self.ipam_config.as_ref()
-    }
+    // pub fn ipam_config(&self) -> Option<&crate::models::EndpointIpamConfig> {
+    //     self.ipam_config.as_ref()
+    // }
 
-    pub fn reset_ipam_config(&mut self) {
-        self.ipam_config = None;
-    }
+    // pub fn reset_ipam_config(&mut self) {
+    //     self.ipam_config = None;
+    // }
 
-    pub fn set_links(&mut self, links: Vec<String>) {
-        self.links = Some(links);
-    }
+    // pub fn set_links(&mut self, links: Vec<String>) {
+    //     self.links = Some(links);
+    // }
 
-    pub fn with_links(mut self, links: Vec<String>) -> Self {
-        self.links = Some(links);
-        self
-    }
+    // pub fn with_links(mut self, links: Vec<String>) -> Self {
+    //     self.links = Some(links);
+    //     self
+    // }
 
-    pub fn links(&self) -> Option<&[String]> {
-        self.links.as_ref().map(AsRef::as_ref)
-    }
+    // pub fn links(&self) -> Option<&[String]> {
+    //     self.links.as_ref().map(AsRef::as_ref)
+    // }
 
-    pub fn reset_links(&mut self) {
-        self.links = None;
-    }
+    // pub fn reset_links(&mut self) {
+    //     self.links = None;
+    // }
 
-    pub fn set_aliases(&mut self, aliases: Vec<String>) {
-        self.aliases = Some(aliases);
-    }
+    // pub fn set_aliases(&mut self, aliases: Vec<String>) {
+    //     self.aliases = Some(aliases);
+    // }
 
-    pub fn with_aliases(mut self, aliases: Vec<String>) -> Self {
-        self.aliases = Some(aliases);
-        self
-    }
+    // pub fn with_aliases(mut self, aliases: Vec<String>) -> Self {
+    //     self.aliases = Some(aliases);
+    //     self
+    // }
 
-    pub fn aliases(&self) -> Option<&[String]> {
-        self.aliases.as_ref().map(AsRef::as_ref)
-    }
+    // pub fn aliases(&self) -> Option<&[String]> {
+    //     self.aliases.as_ref().map(AsRef::as_ref)
+    // }
 
-    pub fn reset_aliases(&mut self) {
-        self.aliases = None;
-    }
+    // pub fn reset_aliases(&mut self) {
+    //     self.aliases = None;
+    // }
 
     pub fn set_network_id(&mut self, network_id: String) {
         self.network_id = Some(network_id);
@@ -144,159 +168,159 @@ impl EndpointSettings {
         self.network_id = None;
     }
 
-    pub fn set_endpoint_id(&mut self, endpoint_id: String) {
-        self.endpoint_id = Some(endpoint_id);
-    }
+    // pub fn set_endpoint_id(&mut self, endpoint_id: String) {
+    //     self.endpoint_id = Some(endpoint_id);
+    // }
 
-    pub fn with_endpoint_id(mut self, endpoint_id: String) -> Self {
-        self.endpoint_id = Some(endpoint_id);
-        self
-    }
+    // pub fn with_endpoint_id(mut self, endpoint_id: String) -> Self {
+    //     self.endpoint_id = Some(endpoint_id);
+    //     self
+    // }
 
-    pub fn endpoint_id(&self) -> Option<&str> {
-        self.endpoint_id.as_ref().map(AsRef::as_ref)
-    }
+    // pub fn endpoint_id(&self) -> Option<&str> {
+    //     self.endpoint_id.as_ref().map(AsRef::as_ref)
+    // }
 
-    pub fn reset_endpoint_id(&mut self) {
-        self.endpoint_id = None;
-    }
+    // pub fn reset_endpoint_id(&mut self) {
+    //     self.endpoint_id = None;
+    // }
 
-    pub fn set_gateway(&mut self, gateway: String) {
-        self.gateway = Some(gateway);
-    }
+    // pub fn set_gateway(&mut self, gateway: String) {
+    //     self.gateway = Some(gateway);
+    // }
 
-    pub fn with_gateway(mut self, gateway: String) -> Self {
-        self.gateway = Some(gateway);
-        self
-    }
+    // pub fn with_gateway(mut self, gateway: String) -> Self {
+    //     self.gateway = Some(gateway);
+    //     self
+    // }
 
-    pub fn gateway(&self) -> Option<&str> {
-        self.gateway.as_ref().map(AsRef::as_ref)
-    }
+    // pub fn gateway(&self) -> Option<&str> {
+    //     self.gateway.as_ref().map(AsRef::as_ref)
+    // }
 
-    pub fn reset_gateway(&mut self) {
-        self.gateway = None;
-    }
+    // pub fn reset_gateway(&mut self) {
+    //     self.gateway = None;
+    // }
 
-    pub fn set_ip_address(&mut self, ip_address: String) {
-        self.ip_address = Some(ip_address);
-    }
+    // pub fn set_ip_address(&mut self, ip_address: String) {
+    //     self.ip_address = Some(ip_address);
+    // }
 
-    pub fn with_ip_address(mut self, ip_address: String) -> Self {
-        self.ip_address = Some(ip_address);
-        self
-    }
+    // pub fn with_ip_address(mut self, ip_address: String) -> Self {
+    //     self.ip_address = Some(ip_address);
+    //     self
+    // }
 
-    pub fn ip_address(&self) -> Option<&str> {
-        self.ip_address.as_ref().map(AsRef::as_ref)
-    }
+    // pub fn ip_address(&self) -> Option<&str> {
+    //     self.ip_address.as_ref().map(AsRef::as_ref)
+    // }
 
-    pub fn reset_ip_address(&mut self) {
-        self.ip_address = None;
-    }
+    // pub fn reset_ip_address(&mut self) {
+    //     self.ip_address = None;
+    // }
 
-    pub fn set_ip_prefix_len(&mut self, ip_prefix_len: i32) {
-        self.ip_prefix_len = Some(ip_prefix_len);
-    }
+    // pub fn set_ip_prefix_len(&mut self, ip_prefix_len: i32) {
+    //     self.ip_prefix_len = Some(ip_prefix_len);
+    // }
 
-    pub fn with_ip_prefix_len(mut self, ip_prefix_len: i32) -> Self {
-        self.ip_prefix_len = Some(ip_prefix_len);
-        self
-    }
+    // pub fn with_ip_prefix_len(mut self, ip_prefix_len: i32) -> Self {
+    //     self.ip_prefix_len = Some(ip_prefix_len);
+    //     self
+    // }
 
-    pub fn ip_prefix_len(&self) -> Option<i32> {
-        self.ip_prefix_len
-    }
+    // pub fn ip_prefix_len(&self) -> Option<i32> {
+    //     self.ip_prefix_len
+    // }
 
-    pub fn reset_ip_prefix_len(&mut self) {
-        self.ip_prefix_len = None;
-    }
+    // pub fn reset_ip_prefix_len(&mut self) {
+    //     self.ip_prefix_len = None;
+    // }
 
-    pub fn set_i_pv6_gateway(&mut self, i_pv6_gateway: String) {
-        self.i_pv6_gateway = Some(i_pv6_gateway);
-    }
+    // pub fn set_i_pv6_gateway(&mut self, i_pv6_gateway: String) {
+    //     self.i_pv6_gateway = Some(i_pv6_gateway);
+    // }
 
-    pub fn with_i_pv6_gateway(mut self, i_pv6_gateway: String) -> Self {
-        self.i_pv6_gateway = Some(i_pv6_gateway);
-        self
-    }
+    // pub fn with_i_pv6_gateway(mut self, i_pv6_gateway: String) -> Self {
+    //     self.i_pv6_gateway = Some(i_pv6_gateway);
+    //     self
+    // }
 
-    pub fn i_pv6_gateway(&self) -> Option<&str> {
-        self.i_pv6_gateway.as_ref().map(AsRef::as_ref)
-    }
+    // pub fn i_pv6_gateway(&self) -> Option<&str> {
+    //     self.i_pv6_gateway.as_ref().map(AsRef::as_ref)
+    // }
 
-    pub fn reset_i_pv6_gateway(&mut self) {
-        self.i_pv6_gateway = None;
-    }
+    // pub fn reset_i_pv6_gateway(&mut self) {
+    //     self.i_pv6_gateway = None;
+    // }
 
-    pub fn set_global_i_pv6_address(&mut self, global_i_pv6_address: String) {
-        self.global_i_pv6_address = Some(global_i_pv6_address);
-    }
+    // pub fn set_global_i_pv6_address(&mut self, global_i_pv6_address: String) {
+    //     self.global_i_pv6_address = Some(global_i_pv6_address);
+    // }
 
-    pub fn with_global_i_pv6_address(mut self, global_i_pv6_address: String) -> Self {
-        self.global_i_pv6_address = Some(global_i_pv6_address);
-        self
-    }
+    // pub fn with_global_i_pv6_address(mut self, global_i_pv6_address: String) -> Self {
+    //     self.global_i_pv6_address = Some(global_i_pv6_address);
+    //     self
+    // }
 
-    pub fn global_i_pv6_address(&self) -> Option<&str> {
-        self.global_i_pv6_address.as_ref().map(AsRef::as_ref)
-    }
+    // pub fn global_i_pv6_address(&self) -> Option<&str> {
+    //     self.global_i_pv6_address.as_ref().map(AsRef::as_ref)
+    // }
 
-    pub fn reset_global_i_pv6_address(&mut self) {
-        self.global_i_pv6_address = None;
-    }
+    // pub fn reset_global_i_pv6_address(&mut self) {
+    //     self.global_i_pv6_address = None;
+    // }
 
-    pub fn set_global_i_pv6_prefix_len(&mut self, global_i_pv6_prefix_len: i64) {
-        self.global_i_pv6_prefix_len = Some(global_i_pv6_prefix_len);
-    }
+    // pub fn set_global_i_pv6_prefix_len(&mut self, global_i_pv6_prefix_len: i64) {
+    //     self.global_i_pv6_prefix_len = Some(global_i_pv6_prefix_len);
+    // }
 
-    pub fn with_global_i_pv6_prefix_len(mut self, global_i_pv6_prefix_len: i64) -> Self {
-        self.global_i_pv6_prefix_len = Some(global_i_pv6_prefix_len);
-        self
-    }
+    // pub fn with_global_i_pv6_prefix_len(mut self, global_i_pv6_prefix_len: i64) -> Self {
+    //     self.global_i_pv6_prefix_len = Some(global_i_pv6_prefix_len);
+    //     self
+    // }
 
-    pub fn global_i_pv6_prefix_len(&self) -> Option<i64> {
-        self.global_i_pv6_prefix_len
-    }
+    // pub fn global_i_pv6_prefix_len(&self) -> Option<i64> {
+    //     self.global_i_pv6_prefix_len
+    // }
 
-    pub fn reset_global_i_pv6_prefix_len(&mut self) {
-        self.global_i_pv6_prefix_len = None;
-    }
+    // pub fn reset_global_i_pv6_prefix_len(&mut self) {
+    //     self.global_i_pv6_prefix_len = None;
+    // }
 
-    pub fn set_mac_address(&mut self, mac_address: String) {
-        self.mac_address = Some(mac_address);
-    }
+    // pub fn set_mac_address(&mut self, mac_address: String) {
+    //     self.mac_address = Some(mac_address);
+    // }
 
-    pub fn with_mac_address(mut self, mac_address: String) -> Self {
-        self.mac_address = Some(mac_address);
-        self
-    }
+    // pub fn with_mac_address(mut self, mac_address: String) -> Self {
+    //     self.mac_address = Some(mac_address);
+    //     self
+    // }
 
-    pub fn mac_address(&self) -> Option<&str> {
-        self.mac_address.as_ref().map(AsRef::as_ref)
-    }
+    // pub fn mac_address(&self) -> Option<&str> {
+    //     self.mac_address.as_ref().map(AsRef::as_ref)
+    // }
 
-    pub fn reset_mac_address(&mut self) {
-        self.mac_address = None;
-    }
+    // pub fn reset_mac_address(&mut self) {
+    //     self.mac_address = None;
+    // }
 
-    pub fn set_driver_opts(&mut self, driver_opts: ::std::collections::HashMap<String, String>) {
-        self.driver_opts = Some(driver_opts);
-    }
+    // pub fn set_driver_opts(&mut self, driver_opts: ::std::collections::HashMap<String, String>) {
+    //     self.driver_opts = Some(driver_opts);
+    // }
 
-    pub fn with_driver_opts(
-        mut self,
-        driver_opts: ::std::collections::HashMap<String, String>,
-    ) -> Self {
-        self.driver_opts = Some(driver_opts);
-        self
-    }
+    // pub fn with_driver_opts(
+    //     mut self,
+    //     driver_opts: ::std::collections::HashMap<String, String>,
+    // ) -> Self {
+    //     self.driver_opts = Some(driver_opts);
+    //     self
+    // }
 
-    pub fn driver_opts(&self) -> Option<&::std::collections::HashMap<String, String>> {
-        self.driver_opts.as_ref()
-    }
+    // pub fn driver_opts(&self) -> Option<&::std::collections::HashMap<String, String>> {
+    //     self.driver_opts.as_ref()
+    // }
 
-    pub fn reset_driver_opts(&mut self) {
-        self.driver_opts = None;
-    }
+    // pub fn reset_driver_opts(&mut self) {
+    //     self.driver_opts = None;
+    // }
 }

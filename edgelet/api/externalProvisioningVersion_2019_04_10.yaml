@@ -31,6 +31,25 @@ paths:
           description: Error
           schema:
             $ref: '#/definitions/ErrorResponse'
+  '/device/reprovision':
+    post:
+      tags:
+        - ExternalProvisioning
+      summary: Trigger to reprovision the Edge device.
+      produces:
+        - application/json
+      description: |
+        This triggers the reprovisioning of the Edge device.
+      operationId: ReprovisionDevice
+      parameters:
+        - $ref: '#/parameters/api-version'
+      responses:
+        '200':
+          description: Ok
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
 
 definitions:
   DeviceProvisioningInfo:
@@ -46,6 +65,23 @@ definitions:
         example: device01
       credentials:
         $ref: '#/definitions/Credentials'
+      status:
+        type: string
+        description: The registration/provisioning status of the device in IoT hub.
+        enum:
+          - assigned
+          - assigning
+          - disabled
+          - failed
+          - unassigned
+      substatus:
+        type: string
+        description: The registration/provisioning sub-status of 'assigned' devices in IoT hub.
+        enum:
+          - deviceDataMigrated
+          - deviceDataReset
+          - initialAssignment
+          - deviceDataUpdated
     required:
       - hubName
       - deviceId

@@ -4,6 +4,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.Tracing;
+    using System.IO;
+    using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
     using Autofac;
     using DotNetty.Common.Internal.Logging;
@@ -20,13 +22,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Moq;
-    using Constants = Microsoft.Azure.Devices.Edge.Hub.Service.Constants;
+    using Newtonsoft.Json;
+    using EdgeHubConstants = Microsoft.Azure.Devices.Edge.Hub.Service.Constants;
+    using StorageLogLevel = Microsoft.Azure.Devices.Edge.Storage.StorageLogLevel;
 
     class DependencyManager : IDependencyManager
     {
         readonly IConfigurationRoot configuration;
         readonly X509Certificate2 serverCertificate;
         readonly IList<X509Certificate2> trustBundle;
+        readonly SslProtocols sslProtocols;
 
         readonly IList<string> inboundTemplates = new List<string>()
         {
@@ -65,18 +70,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             ["r15"] = "FROM /messages/modules/sender11/outputs/output2 INTO BrokeredEndpoint(\"/modules/receiver11/inputs/input2\")",
         };
 
-        public DependencyManager(IConfigurationRoot configuration, X509Certificate2 serverCertificate, IList<X509Certificate2> trustBundle)
+        public DependencyManager(IConfigurationRoot configuration, X509Certificate2 serverCertificate, IList<X509Certificate2> trustBundle, SslProtocols sslProtocols)
         {
             this.configuration = configuration;
             this.serverCertificate = serverCertificate;
             this.trustBundle = trustBundle;
+            this.sslProtocols = sslProtocols;
         }
 
         public void Register(ContainerBuilder builder)
         {
             const int ConnectionPoolSize = 10;
 
-            string edgeHubConnectionString = $"{this.configuration[Constants.ConfigKey.IotHubConnectionString]};ModuleId=$edgeHub";
+            string edgeHubConnectionString = $"{this.configuration[EdgeHubConstants.ConfigKey.IotHubConnectionString]};ModuleId=$edgeHub";
             IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeHubConnectionString);
             var topics = new MessageAddressConversionConfiguration(this.inboundTemplates, this.outboundTemplates);
 
@@ -99,8 +105,45 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 });
 
             var versionInfo = new VersionInfo("v1", "b1", "c1");
-            var storeAndForwardConfiguration = new StoreAndForwardConfiguration(-1);
-            var metricsConfig = new MetricsConfig(false, new MetricsListenerConfig());
+            var metricsConfig = new MetricsConfig(mqttSettingsConfiguration.Object);
+            var backupFolder = Option.None<string>();
+
+            string storageFolder = string.Empty;
+            StoreLimits storeLimits = null;
+
+            if (!int.TryParse(this.configuration["TimeToLiveSecs"], out int timeToLiveSecs))
+            {
+                timeToLiveSecs = -1;
+            }
+
+            if (long.TryParse(this.configuration["MaxStorageBytes"], out long maxStorageBytes))
+            {
+                storeLimits = new StoreLimits(maxStorageBytes);
+            }
+
+            var storeAndForwardConfiguration = new StoreAndForwardConfiguration(timeToLiveSecs, storeLimits);
+
+            if (bool.TryParse(this.configuration["UsePersistentStorage"], out bool usePersistentStorage) && usePersistentStorage)
+            {
+                storageFolder = GetOrCreateDirectoryPath(this.configuration["StorageFolder"], EdgeHubConstants.EdgeHubStorageFolder);
+            }
+
+            if (bool.TryParse(this.configuration["EnableNonPersistentStorageBackup"], out bool enableNonPersistentStorageBackup))
+            {
+                backupFolder = Option.Some(this.configuration["BackupFolder"]);
+            }
+
+            var testRoutes = this.routes;
+            string customRoutes = this.configuration["Routes"];
+            if (!string.IsNullOrWhiteSpace(customRoutes))
+            {
+                testRoutes = JsonConvert.DeserializeObject<IDictionary<string, string>>(customRoutes);
+            }
+
+            if (!bool.TryParse(this.configuration["CheckEntireQueueOnCleanup"], out bool checkEntireQueueOnCleanup))
+            {
+                checkEntireQueueOnCleanup = false;
+            }
 
             builder.RegisterModule(
                 new CommonModule(
@@ -113,15 +156,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     AuthenticationMode.CloudAndScope,
                     Option.Some(edgeHubConnectionString),
                     false,
-                    false,
-                    string.Empty,
+                    usePersistentStorage,
+                    storageFolder,
                     Option.None<string>(),
                     Option.None<string>(),
                     TimeSpan.FromHours(1),
                     false,
                     this.trustBundle,
                     string.Empty,
-                    metricsConfig));
+                    metricsConfig,
+                    enableNonPersistentStorageBackup,
+                    backupFolder,
+                    Option.None<ulong>(),
+                    Option.None<StorageLogLevel>()));
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -129,7 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     iotHubConnectionStringBuilder.DeviceId,
                     iotHubConnectionStringBuilder.ModuleId,
                     Option.Some(edgeHubConnectionString),
-                    this.routes,
+                    testRoutes,
                     true,
                     storeAndForwardConfiguration,
                     ConnectionPoolSize,
@@ -138,9 +185,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Option.Some(UpstreamProtocol.Amqp),
                     TimeSpan.FromSeconds(5),
                     101,
+                    TimeSpan.FromSeconds(30),
                     TimeSpan.FromSeconds(3600),
                     true,
                     TimeSpan.FromSeconds(20),
+                    false,
                     Option.None<TimeSpan>(),
                     Option.None<TimeSpan>(),
                     false,
@@ -148,11 +197,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     10,
                     false,
                     TimeSpan.FromHours(1),
+                    checkEntireQueueOnCleanup,
                     experimentalFeatures));
 
             builder.RegisterModule(new HttpModule());
-            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, this.serverCertificate, false, false, false));
-            builder.RegisterModule(new AmqpModule("amqps", 5671, this.serverCertificate, iotHubConnectionStringBuilder.HostName, true));
+            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, this.serverCertificate, false, false, false, this.sslProtocols));
+            builder.RegisterModule(new AmqpModule("amqps", 5671, this.serverCertificate, iotHubConnectionStringBuilder.HostName, true, this.sslProtocols));
+        }
+
+        static string GetOrCreateDirectoryPath(string baseDirectoryPath, string directoryName)
+        {
+            if (string.IsNullOrWhiteSpace(baseDirectoryPath) || !Directory.Exists(baseDirectoryPath))
+            {
+                baseDirectoryPath = Path.GetTempPath();
+            }
+
+            string directoryPath = Path.Combine(baseDirectoryPath, directoryName);
+            if (!Directory.Exists(directoryPath))
+            {
+                Directory.CreateDirectory(directoryPath);
+            }
+
+            return directoryPath;
         }
     }
 }

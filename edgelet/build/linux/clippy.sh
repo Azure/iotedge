@@ -15,7 +15,6 @@ DIR=$(cd "$(dirname "$0")" && pwd)
 BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
 PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
 SCRIPT_NAME=$(basename "$0")
-TOOLCHAIN='stable'
 RUSTUP="${CARGO_HOME:-"$HOME/.cargo"}/bin/rustup"
 CARGO="${CARGO_HOME:-"$HOME/.cargo"}/bin/cargo"
 
@@ -37,41 +36,28 @@ function print_help_and_exit()
     exit 1
 }
 
-function run_clippy()
-{
-    echo "Running clippy..."
-    (cd $PROJECT_ROOT && $CARGO "+$TOOLCHAIN" clippy --all)
-    (cd $PROJECT_ROOT && $CARGO "+$TOOLCHAIN" clippy --all --tests)
-    (cd $PROJECT_ROOT && $CARGO "+$TOOLCHAIN" clippy --all --examples)
-}
-
 ###############################################################################
 # Obtain and validate the options supported by this script
 ###############################################################################
 function process_args()
 {
-    save_next_arg=0
     for arg in "$@"
     do
-        if [ $save_next_arg -eq 1 ]; then
-            save_next_arg=0
-        else
-            case "$arg" in
-                "-h" | "--help" ) usage;;
-                * ) usage;;
-            esac
-        fi
+        case "$arg" in
+            "-h" | "--help" ) usage;;
+            * ) usage;;
+        esac
     done
 }
 
 process_args "$@"
 
-if [[ $USE_DOCKER -eq 1 ]]; then
-    run_clippy_via_docker
-else
-    echo "Installing $TOOLCHAIN toolchain"
-    $RUSTUP install "$TOOLCHAIN"
-    echo "Installing clippy..."
-    $RUSTUP component add clippy "--toolchain=$TOOLCHAIN"
-    run_clippy
-fi
+cd $PROJECT_ROOT
+
+echo "Installing clippy..."
+$RUSTUP component add clippy
+
+echo "Running clippy..."
+$CARGO clippy --all
+$CARGO clippy --all --tests
+$CARGO clippy --all --examples

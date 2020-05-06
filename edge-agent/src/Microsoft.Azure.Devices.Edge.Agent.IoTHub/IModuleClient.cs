@@ -2,9 +2,9 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
     using System;
-    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Shared;
 
     public interface IModuleClient
@@ -12,6 +12,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         event EventHandler Closed;
 
         bool IsActive { get; }
+
+        UpstreamProtocol UpstreamProtocol { get; }
 
         Task SetDesiredPropertyUpdateCallbackAsync(DesiredPropertyUpdateCallback onDesiredPropertyChanged);
 
@@ -22,6 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         Task<Twin> GetTwinAsync();
 
         Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties);
+
+        Task SendEventAsync(Message message);
 
         ////Task<DeviceStreamRequest> WaitForDeviceStreamRequestAsync(CancellationToken cancellationToken);
 

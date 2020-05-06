@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
             Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             Preconditions.CheckNonWhiteSpace(generationId, nameof(generationId));
 
-            this.workloadClient = new WorkloadClient(new Uri(providerUri), clientApiVersion, apiVersion, moduleId, generationId);
+            this.workloadClient = new WorkloadClient(new Uri(providerUri), apiVersion, clientApiVersion, moduleId, generationId);
         }
 
         public Task<string> SignAsync(string data)
@@ -33,7 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
                 switch (ex)
                 {
                     case WorkloadCommunicationException errorResponseException:
-                        throw new HttpHsmCommunicationException(errorResponseException.Message, errorResponseException.StatusCode);
+                        throw new SignatureProviderException(
+                            new HttpHsmCommunicationException(errorResponseException.Message, errorResponseException.StatusCode));
                     default:
                         throw;
                 }

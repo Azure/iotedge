@@ -202,7 +202,7 @@ impl ClientImpl for Client {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{uri_to_proxy, Client};
     use hyper::Uri;
 
     // test that the client builder (Config) is wired up correctly to create the

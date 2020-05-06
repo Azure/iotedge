@@ -141,6 +141,9 @@ static void extract_first_cert_and_chain
     }
 }
 
+// Convert a tm with components in UTC to a time_t in UTC
+//
+// This is similar to `mktime`, except that `mktime` assumes the components of the tm are in local time.
 static time_t tm_to_utc(const struct tm *tm)
 {
     // Most of the calculation is easy; leap years are the main difficulty.
@@ -156,15 +159,26 @@ static time_t tm_to_utc(const struct tm *tm)
     const int year_for_leap = (month > 1) ? year + 1 : year;
 
     // Construct the UTC value
-    time_t result = tm->tm_sec                      // Seconds
-        + 60 * (tm->tm_min                          // Minute = 60 seconds
-            + 60 * (tm->tm_hour                         // Hour = 60 minutes
-                + 24 * (month_day[month] + tm->tm_mday - 1  // Day = 24 hours
-                    + 365 * (year - 70)                         // Year = 365 days
-                    + (year_for_leap - 69) / 4                  // Every 4 years is     leap...
-                    - (year_for_leap - 1) / 100                 // Except centuries...
-                    + (year_for_leap + 299) / 400)));           // Except 400s.
-    return result < 0 ? -1 : result;
+    //
+    // Ensure as much of the calculation is done using `time_t` rather than `int` (the type of the individual fields of `tm`).
+    // If the calculation is done in 32-bit `int`, it can overflow and cause a Y2038 issue.
+    // Doing the calculation in `time_t` avoids that problem, at least for platforms with 64-bit `time_t`.
+    time_t days =
+          365 * (year - 70)                         // Year = 365 days
+        + (year_for_leap - 69) / 4                  // Every 4 years is     leap...
+        - (year_for_leap - 1) / 100                 // Except centuries...
+        + (year_for_leap + 299) / 400               // Except 400s.
+        + month_day[month] + tm->tm_mday - 1;
+    time_t hours =
+          days * 24                                 // Day = 24 hours
+        + tm->tm_hour;
+    time_t minutes =
+          hours * 60                                // Hour = 60 minutes
+        + tm->tm_min;
+    time_t seconds =
+          minutes * 60                              // Minute = 60 seconds
+        + tm->tm_sec;
+    return seconds < 0 ? 0 : seconds;
 }
 
 time_t get_utc_time_from_asn_string(const unsigned char *time_value, size_t length)

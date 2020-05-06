@@ -17,6 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         readonly ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder;
         readonly Uri workloadUri;
 
+        protected virtual bool ShouldAlwaysReturnIdentities => false;
+
         public ModuleIdentityLifecycleManager(IIdentityManager identityManager, ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder, Uri workloadUri)
         {
             this.identityManager = Preconditions.CheckNotNull(identityManager, nameof(identityManager));
@@ -27,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current)
         {
             Diff diff = desired.Diff(current);
-            if (diff.IsEmpty)
+            if (diff.IsEmpty && !this.ShouldAlwaysReturnIdentities)
             {
                 return ImmutableDictionary<string, IModuleIdentity>.Empty;
             }
@@ -47,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(Diff diff)
         {
             IList<string> addedOrUpdatedModuleNames = diff.AddedOrUpdated.Select(m => ModuleIdentityHelper.GetModuleIdentityName(m.Name)).ToList();
-            IEnumerable<string> removedModuleNames = diff.Removed.Select(ModuleIdentityHelper.GetModuleIdentityName);
+            List<string> removedModuleNames = diff.Removed.Select(ModuleIdentityHelper.GetModuleIdentityName).ToList();
 
             IImmutableDictionary<string, Identity> identities = (await this.identityManager.GetIdentities()).ToImmutableDictionary(i => i.ModuleId);
 
@@ -57,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             // Update identities for all modules that are in the deployment and are in iotedged (except for Edge Agent which gets special
             // treatment in iotedged).
             //
-            // NOTE: This update can potentiatlly be made more efficient by checking that an update is actually needed, i.e. if auth type
+            // NOTE: This update can potentially be made more efficient by checking that an update is actually needed, i.e. if auth type
             // is not SAS and/or if the credentials are not what iotedged expects it to be.
             IEnumerable<Identity> updateIdentities = addedOrUpdatedModuleNames
                 .Where(m => identities.ContainsKey(m) && m != Constants.EdgeAgentModuleIdentityName)
@@ -77,9 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             IEnumerable<Task<Identity>> updateTasks = updateIdentities.Select(i => this.identityManager.UpdateIdentityAsync(i.ModuleId, i.GenerationId, i.ManagedBy));
             Identity[] upsertedIdentities = await Task.WhenAll(createTasks.Concat(updateTasks));
 
-            List<IModuleIdentity> moduleIdentities;
-
-            moduleIdentities = upsertedIdentities.Select(m => this.GetModuleIdentity(m)).ToList();
+            List<IModuleIdentity> moduleIdentities = upsertedIdentities.Select(this.GetModuleIdentity).ToList();
 
             // Add back the unchanged identities (including Edge Agent).
             var upsertedIdentityList = moduleIdentities.Select(i => i.ModuleId).ToList();

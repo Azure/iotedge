@@ -6,7 +6,6 @@ use chrono::{DateTime, Utc};
 use failure::{Fail, ResultExt};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Response, StatusCode};
-use serde_json;
 
 use edgelet_core::{Certificate, CertificateProperties, CreateCertificate, KeyBytes, PrivateKey};
 use edgelet_utils::ensure_not_empty_with_context;
@@ -39,7 +38,7 @@ fn cert_to_response<T: Certificate>(cert: &T, context: ErrorKind) -> Result<Cert
             PrivateKeyResponse::new("key".to_string())
                 .with_bytes(String::from_utf8_lossy(buffer.as_ref()).to_string())
         }
-        Ok(None) => Err(ErrorKind::BadPrivateKey)?,
+        Ok(None) => return Err(ErrorKind::BadPrivateKey.into()),
         Err(err) => return Err(Error::from(err.context(context))),
     };
 

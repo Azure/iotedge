@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -246,6 +247,24 @@ namespace Microsoft.Azure.Devices.Edge.Util
             catch (AggregateException ae)
             {
                 throw ae.GetBaseException();
+            }
+        }
+
+        public static Task<Option<T>> MayThrow<T>(this Task<T> source, params Type[] allowedExceptions)
+        {
+            return MayThrow(source, _ => Option.None<T>(), allowedExceptions);
+        }
+
+        public static async Task<Option<T>> MayThrow<T>(this Task<T> source, Func<Exception, Option<T>> alternativeMaker, params Type[] allowedExceptions)
+        {
+            try
+            {
+                var result = await source;
+                return Option.Some(result);
+            }
+            catch (Exception e) when (allowedExceptions.Contains(e.GetType()))
+            {
+                return alternativeMaker(e);
             }
         }
 

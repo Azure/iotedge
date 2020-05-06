@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
             this.reportedState = Option.None<AgentState>();
         }
 
-        public async Task ReportAsync(CancellationToken token, ModuleSet moduleSet, IRuntimeInfo runtimeInfo, long version, Option<DeploymentStatus> updatedStatus)
+        public async Task ReportAsync(CancellationToken token, ModuleSet moduleSet, IRuntimeInfo runtimeInfo, long version, DeploymentStatus updatedStatus)
         {
             Option<AgentState> agentState = Option.None<AgentState>();
             using (await this.sync.LockAsync(token))
@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Reporters
                     await agentState.ForEachAsync(
                         async rs =>
                         {
-                            AgentState currentState = this.BuildCurrentState(moduleSet, runtimeInfo, version > 0 ? version : rs.LastDesiredVersion, updatedStatus.GetOrElse(rs.LastDesiredStatus));
+                            AgentState currentState = this.BuildCurrentState(moduleSet, runtimeInfo, version > 0 ? version : rs.LastDesiredVersion, updatedStatus);
                             // diff, prepare patch and report
                             await this.DiffAndReportAsync(currentState, rs);
                         });

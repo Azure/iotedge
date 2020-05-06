@@ -39,17 +39,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         public static IList<object[]> TransportSettings => TransportSettingsLazy.Value;
 
+        static readonly Lazy<IList<object[]>> AmqpTransportTestSettingsLazy = new Lazy<IList<object[]>>(() => GetAmqpTransportSettings(false), true);
+
+        public static IList<object[]> AmqpTransportTestSettings => AmqpTransportTestSettingsLazy.Value;
+
         static IList<object[]> GetTransportSettings()
+        {
+            bool.TryParse(ConfigHelper.TestConfig["enableWebSocketsTests"], out bool enableWebSocketsTests);
+            IList<object[]> transportSettings = GetAmqpTransportSettings(enableWebSocketsTests);
+
+            transportSettings.Add(new object[] { MqttTransportSettings });
+            if (enableWebSocketsTests)
+            {
+                transportSettings.Add(new object[] { MqttWebSocketsTransportSettings });
+            }
+
+            return transportSettings;
+        }
+
+        static IList<object[]> GetAmqpTransportSettings(bool webSockets = false)
         {
             IList<object[]> transportSettings = new List<object[]>
             {
                 new object[] { AmqpTransportSettings },
-                new object[] { MqttTransportSettings },
             };
 
-            if (bool.TryParse(ConfigHelper.TestConfig["enableWebSocketsTests"], out bool enableWebSocketsTests) && enableWebSocketsTests)
+            if (webSockets)
             {
-                transportSettings.Add(new object[] { MqttWebSocketsTransportSettings });
                 transportSettings.Add(new object[] { AmqpWebSocketsTransportSettings });
             }
 

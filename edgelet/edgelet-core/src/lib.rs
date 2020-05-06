@@ -2,7 +2,13 @@
 
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-#![allow(clippy::module_name_repetitions, clippy::use_self)]
+#![allow(
+    clippy::missing_errors_doc,
+    clippy::module_name_repetitions,
+    clippy::must_use_candidate,
+    clippy::too_many_lines,
+    clippy::use_self
+)]
 
 use std::path::{Path, PathBuf};
 
@@ -19,6 +25,7 @@ mod identity;
 mod logs;
 mod module;
 mod network;
+mod parse_since;
 mod settings;
 pub mod watchdog;
 pub mod workload;
@@ -35,18 +42,23 @@ pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
 pub use logs::{Chunked, LogChunk, LogDecode};
 pub use module::{
-    ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleOperation,
+    DiskInfo, ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleOperation,
     ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec,
     ModuleStatus, ModuleTop, ProvisioningResult, RegistryOperation, RuntimeOperation, SystemInfo,
+    SystemResources,
 };
 pub use network::{Ipam, IpamConfig, MobyNetwork, Network};
+pub use parse_since::parse_since;
 pub use settings::{
-    AttestationMethod, Certificates, Connect, Dps, Listen, Manual,
-    ParseManualDeviceConnectionStringError, Provisioning, RetryLimit, RuntimeSettings, Settings,
-    SymmetricKeyAttestationInfo, TpmAttestationInfo, WatchdogSettings, X509AttestationInfo,
-    DEFAULT_CONNECTION_STRING,
+    AttestationMethod, Certificates, Connect, Dps, External, Listen, Manual, ManualAuthMethod,
+    ManualDeviceConnectionString, ManualX509Auth, Protocol, Provisioning, ProvisioningType,
+    RetryLimit, RuntimeSettings, Settings, SymmetricKeyAttestationInfo, TpmAttestationInfo,
+    WatchdogSettings, X509AttestationInfo,
 };
 pub use workload::WorkloadConfig;
+
+/// This is the default auto generated certificate life
+pub const DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS: u16 = 90;
 
 lazy_static! {
     static ref VERSION: &'static str =

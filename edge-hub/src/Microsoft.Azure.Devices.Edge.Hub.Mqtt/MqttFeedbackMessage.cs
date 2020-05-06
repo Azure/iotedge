@@ -3,12 +3,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 {
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Routing.Core;
+    using HubMessage = Microsoft.Azure.Devices.Edge.Hub.Core.IMessage;
 
     class MqttFeedbackMessage : IFeedbackMessage
     {
-        readonly IMessage message;
+        readonly HubMessage message;
 
-        public MqttFeedbackMessage(IMessage message, FeedbackStatus status)
+        public MqttFeedbackMessage(HubMessage message, FeedbackStatus status)
         {
             this.message = message;
             this.FeedbackStatus = status;
@@ -21,6 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         public IDictionary<string, string> Properties => this.message.Properties;
 
         public IDictionary<string, string> SystemProperties => this.message.SystemProperties;
+
+        public uint ProcessedPriority => RouteFactory.DefaultPriority;
 
         public void Dispose() => this.message.Dispose();
     }

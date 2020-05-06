@@ -5,7 +5,7 @@ use futures::{future, Future, IntoFuture};
 use hyper::{Body, Request, Response, StatusCode};
 use url::form_urlencoded;
 
-use edgelet_core::{LogOptions, LogTail, ModuleRuntime, RuntimeOperation};
+use edgelet_core::{parse_since, LogOptions, LogTail, ModuleRuntime, RuntimeOperation};
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 
@@ -82,7 +82,7 @@ fn parse_options(query: &str) -> Result<LogOptions, Error> {
     let since = parse
         .iter()
         .find(|&(ref key, _)| key == "since")
-        .map_or_else(|| Ok(0), |(_, val)| val.parse::<i32>())
+        .map_or_else(|| Ok(0), |(_, val)| parse_since(val))
         .context(ErrorKind::MalformedRequestParameter("since"))?;
     let options = LogOptions::new()
         .with_follow(follow)
@@ -96,12 +96,15 @@ mod tests {
     use chrono::prelude::*;
     use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState, ModuleStatus};
     use edgelet_test_utils::crypto::TestHsm;
-    use edgelet_test_utils::module::*;
+    use edgelet_test_utils::module::{
+        TestConfig, TestModule, TestProvisioningResult, TestRuntime, TestSettings,
+    };
     use futures::Stream;
-    use management::models::*;
-    use serde_json;
+    use management::models::ErrorResponse;
 
-    use super::*;
+    use super::{
+        parse_options, Body, Future, Handler, LogTail, ModuleLogs, Parameters, Request, StatusCode,
+    };
     use crate::server::module::tests::Error;
 
     #[test]
@@ -165,8 +168,12 @@ mod tests {
             .with_finished_at(Some(Utc.ymd(2018, 4, 13).and_hms_milli(15, 20, 0, 1)))
             .with_image_id(Some("image-id".to_string()));
         let config = TestConfig::new("microsoft/test-image".to_string());
-        let module: TestModule<Error, _> =
-            TestModule::new("test-module".to_string(), config, Ok(state));
+        let module: TestModule<Error, _> = TestModule::new_with_logs(
+            "test-module".to_string(),
+            config,
+            Ok(state),
+            vec![&[b'A', b'B', b'C']],
+        );
         let runtime = TestRuntime::make_runtime(
             TestSettings::new(),
             TestProvisioningResult::new(),
@@ -191,7 +198,7 @@ mod tests {
             .into_body()
             .concat2()
             .and_then(|b| {
-                assert_eq!(0, b.len());
+                assert_eq!(3, b.len());
                 Ok(())
             })
             .wait()

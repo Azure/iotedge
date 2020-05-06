@@ -51,7 +51,7 @@ fn x509_get_conf_identity_cert_success() {
     setup_configured_id_cert(home_dir.get_path());
 
     let hsm_lock = HsmLock::new();
-    let x509 = X509::new(hsm_lock).unwrap();
+    let x509 = X509::new(hsm_lock, 1000).unwrap();
 
     let cert_info = x509.get().unwrap();
 

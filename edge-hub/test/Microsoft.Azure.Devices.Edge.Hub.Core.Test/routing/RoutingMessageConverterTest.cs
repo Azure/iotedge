@@ -73,13 +73,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             };
             string dataString = JsonConvert.SerializeObject(data);
             byte[] messageBytes = Encoding.UTF8.GetBytes(dataString);
-            var properties = new Dictionary<string, string>()
+            IDictionary<string, string> properties = new Dictionary<string, string>()
             {
                 { "model", "temperature" },
                 { "level", "one" }
             };
 
-            var systemProperties = new Dictionary<string, string>()
+            IDictionary<string, string> systemProperties = new Dictionary<string, string>()
             {
                 { SystemProperties.MessageId, "12345" },
                 { SystemProperties.UserId, "UserId10" },

@@ -40,9 +40,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly Option<UpstreamProtocol> upstreamProtocol;
         readonly TimeSpan connectivityCheckFrequency;
         readonly int maxConnectedClients;
+        readonly TimeSpan messageAckTimeout;
         readonly TimeSpan cloudConnectionIdleTimeout;
         readonly bool closeCloudConnectionOnIdleTimeout;
         readonly TimeSpan operationTimeout;
+        readonly bool useServerHeartbeat;
         readonly Option<TimeSpan> minTwinSyncPeriod;
         readonly Option<TimeSpan> reportedPropertiesSyncFrequency;
         readonly bool useV1TwinManager;
@@ -50,6 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly int upstreamFanOutFactor;
         readonly bool encryptTwinStore;
         readonly TimeSpan configUpdateFrequency;
+        readonly bool checkEntireQueueOnCleanup;
         readonly ExperimentalFeatures experimentalFeatures;
 
         public RoutingModule(
@@ -66,9 +69,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             Option<UpstreamProtocol> upstreamProtocol,
             TimeSpan connectivityCheckFrequency,
             int maxConnectedClients,
+            TimeSpan messageAckTimeout,
             TimeSpan cloudConnectionIdleTimeout,
             bool closeCloudConnectionOnIdleTimeout,
             TimeSpan operationTimeout,
+            bool useServerHeartbeat,
             Option<TimeSpan> minTwinSyncPeriod,
             Option<TimeSpan> reportedPropertiesSyncFrequency,
             bool useV1TwinManager,
@@ -76,6 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             int upstreamFanOutFactor,
             bool encryptTwinStore,
             TimeSpan configUpdateFrequency,
+            bool checkEntireQueueOnCleanup,
             ExperimentalFeatures experimentalFeatures)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
@@ -91,9 +97,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.upstreamProtocol = upstreamProtocol;
             this.connectivityCheckFrequency = connectivityCheckFrequency;
             this.maxConnectedClients = Preconditions.CheckRange(maxConnectedClients, 1);
+            this.messageAckTimeout = messageAckTimeout;
             this.cloudConnectionIdleTimeout = cloudConnectionIdleTimeout;
             this.closeCloudConnectionOnIdleTimeout = closeCloudConnectionOnIdleTimeout;
             this.operationTimeout = operationTimeout;
+            this.useServerHeartbeat = useServerHeartbeat;
             this.minTwinSyncPeriod = minTwinSyncPeriod;
             this.reportedPropertiesSyncFrequency = reportedPropertiesSyncFrequency;
             this.useV1TwinManager = useV1TwinManager;
@@ -101,6 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.upstreamFanOutFactor = upstreamFanOutFactor;
             this.encryptTwinStore = encryptTwinStore;
             this.configUpdateFrequency = configUpdateFrequency;
+            this.checkEntireQueueOnCleanup = checkEntireQueueOnCleanup;
             this.experimentalFeatures = experimentalFeatures;
         }
 
@@ -199,7 +208,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        var productInfoStore = c.Resolve<IProductInfoStore>();
+                        var productInfoStore = await c.Resolve<Task<IProductInfoStore>>();
                         var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
                         var clientProvider = c.Resolve<IClientProvider>();
                         var tokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubClientAuthTokenProvider");
@@ -221,6 +230,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             this.cloudConnectionIdleTimeout,
                             this.closeCloudConnectionOnIdleTimeout,
                             this.operationTimeout,
+                            this.useServerHeartbeat,
                             proxy,
                             productInfoStore);
                         return cloudConnectionProvider;
@@ -240,12 +250,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         var cloudConnectionProviderTask = c.Resolve<Task<ICloudConnectionProvider>>();
                         var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
                         var identityProvider = c.Resolve<IIdentityProvider>();
+                        var deviceConnectivityManager = c.Resolve<IDeviceConnectivityManager>();
                         ICloudConnectionProvider cloudConnectionProvider = await cloudConnectionProviderTask;
                         ICredentialsCache credentialsCache = await credentialsCacheTask;
                         IConnectionManager connectionManager = new ConnectionManager(
                             cloudConnectionProvider,
                             credentialsCache,
                             identityProvider,
+                            deviceConnectivityManager,
                             this.maxConnectedClients);
                         return connectionManager;
                     })
@@ -351,49 +363,50 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     .As<EndpointExecutorConfig>()
                     .SingleInstance();
 
-                // ICheckpointStore
+                // Task<ICheckpointStore>
                 builder.Register(
-                        c =>
+                        async c =>
                         {
-                            var dbStoreProvider = c.Resolve<IDbStoreProvider>();
+                            var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
                             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-                            return CheckpointStore.Create(storeProvider);
+                            ICheckpointStore checkpointStore = CheckpointStore.Create(storeProvider);
+                            return checkpointStore;
                         })
-                    .As<ICheckpointStore>()
+                    .As<Task<ICheckpointStore>>()
                     .SingleInstance();
 
-                // IMessageStore
+                // Task<IMessageStore>
                 builder.Register(
-                        c =>
+                        async c =>
                         {
-                            var checkpointStore = c.Resolve<ICheckpointStore>();
-                            var dbStoreProvider = c.Resolve<IDbStoreProvider>();
+                            var checkpointStore = await c.Resolve<Task<ICheckpointStore>>();
+                            var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
                             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-                            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, TimeSpan.MaxValue);
+                            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, this.storeAndForwardConfiguration.TimeToLive, this.checkEntireQueueOnCleanup);
                             return messageStore;
                         })
-                    .As<IMessageStore>()
+                    .As<Task<IMessageStore>>()
                     .SingleInstance();
 
-                // IEndpointExecutorFactory
+                // Task<IEndpointExecutorFactory>
                 builder.Register(
-                        c =>
+                        async c =>
                         {
                             var endpointExecutorConfig = c.Resolve<EndpointExecutorConfig>();
-                            var messageStore = c.Resolve<IMessageStore>();
+                            var messageStore = await c.Resolve<Task<IMessageStore>>();
                             IEndpointExecutorFactory endpointExecutorFactory = new StoringAsyncEndpointExecutorFactory(endpointExecutorConfig, new AsyncEndpointExecutorOptions(10, TimeSpan.FromSeconds(10)), messageStore);
                             return endpointExecutorFactory;
                         })
-                    .As<IEndpointExecutorFactory>()
+                    .As<Task<IEndpointExecutorFactory>>()
                     .SingleInstance();
 
                 // Task<Router>
                 builder.Register(
                         async c =>
                         {
-                            var checkpointStore = c.Resolve<ICheckpointStore>();
+                            var checkpointStore = await c.Resolve<Task<ICheckpointStore>>();
                             var routerConfig = c.Resolve<RouterConfig>();
-                            var endpointExecutorFactory = c.Resolve<IEndpointExecutorFactory>();
+                            var endpointExecutorFactory = await c.Resolve<Task<IEndpointExecutorFactory>>();
                             return await Router.CreateAsync(Guid.NewGuid().ToString(), this.iotHubName, routerConfig, endpointExecutorFactory, checkpointStore);
                         })
                     .As<Task<Router>>()
@@ -405,7 +418,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         {
                             if (this.useV1TwinManager)
                             {
-                                var dbStoreProvider = c.Resolve<IDbStoreProvider>();
+                                var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
                                 var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
                                 IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
                                 return TwinManager.CreateTwinManager(connectionManager, messageConverterProvider, Option.Some<IStoreProvider>(new StoreProvider(dbStoreProvider)));
@@ -507,16 +520,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        IMessageStore messageStore = this.isStoreAndForwardEnabled ? c.Resolve<IMessageStore>() : null;
+                        IMessageStore messageStore = this.isStoreAndForwardEnabled ? await c.Resolve<Task<IMessageStore>>() : null;
+                        var storageSpaceChecker = c.Resolve<IStorageSpaceChecker>();
+                        var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
+                        RouteFactory routeFactory = await c.Resolve<Task<RouteFactory>>();
                         Router router = await c.Resolve<Task<Router>>();
-                        var configUpdater = new ConfigUpdater(router, messageStore, this.configUpdateFrequency);
+                        var twinManagerTask = c.Resolve<Task<ITwinManager>>();
+                        var twinMessageConverter = c.Resolve<Core.IMessageConverter<Twin>>();
+                        var twinManager = await twinManagerTask;
+                        var configUpdater = new ConfigUpdater(router, messageStore, this.configUpdateFrequency, storageSpaceChecker);
                         return configUpdater;
                     })
                 .As<Task<ConfigUpdater>>()
                 .SingleInstance();
 
             // Task<IConfigSource>
-            builder.Register(
+            builder.Register<Task<IConfigSource>>(
                     async c =>
                     {
                         RouteFactory routeFactory = await c.Resolve<Task<RouteFactory>>();
@@ -531,17 +550,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             IEdgeHub edgeHub = await edgeHubTask;
                             IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
                             IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
-                            IConfigSource edgeHubConnection = await EdgeHubConnection.Create(
+
+                            var edgeHubConnection = await EdgeHubConnection.Create(
                                 edgeHubCredentials.Identity,
                                 edgeHub,
                                 twinManager,
                                 connectionManager,
                                 routeFactory,
                                 twinCollectionMessageConverter,
-                                twinMessageConverter,
                                 this.versionInfo,
                                 deviceScopeIdentitiesCache);
-                            return edgeHubConnection;
+
+                            return new TwinConfigSource(edgeHubConnection, edgeHubCredentials.Identity.Id, this.versionInfo, twinManager, twinMessageConverter, twinCollectionMessageConverter, routeFactory);
                         }
                         else
                         {
@@ -559,7 +579,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         var edgeHubTask = c.Resolve<Task<IEdgeHub>>();
                         IConnectionManager connectionManager = await connectionManagerTask;
                         IEdgeHub edgeHub = await edgeHubTask;
-                        IConnectionProvider connectionProvider = new ConnectionProvider(connectionManager, edgeHub);
+                        IConnectionProvider connectionProvider = new ConnectionProvider(connectionManager, edgeHub, this.messageAckTimeout);
                         return connectionProvider;
                     })
                 .As<Task<IConnectionProvider>>()
@@ -572,7 +592,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         {
             string entityName = "EdgeTwin";
             Option<IEntityStore<string, TwinStoreEntity>> twinStoreOption = Option.None<IEntityStore<string, TwinStoreEntity>>();
-            var storeProvider = context.Resolve<IStoreProvider>();
+            var storeProvider = await context.Resolve<Task<IStoreProvider>>();
             if (this.encryptTwinStore)
             {
                 Option<IEncryptionProvider> encryptionProvider = await context.Resolve<Task<Option<IEncryptionProvider>>>();

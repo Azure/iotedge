@@ -23,11 +23,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             // Arrange
             var systemInfoSample = new SystemInfo("linux", "x86", "1");
 
-            var moduleManager = Mock.Of<IModuleManager>(m => m.GetSystemInfoAsync() == Task.FromResult(systemInfoSample));
+            var moduleManager = Mock.Of<IModuleManager>(m => m.GetSystemInfoAsync(CancellationToken.None) == Task.FromResult(systemInfoSample));
             IRuntimeInfoProvider runtimeInfoProvider = new RuntimeInfoProvider<TestConfig>(moduleManager);
 
             // Act
-            SystemInfo systemInfo = await runtimeInfoProvider.GetSystemInfo();
+            SystemInfo systemInfo = await runtimeInfoProvider.GetSystemInfo(CancellationToken.None);
 
             // Assert
             Assert.NotNull(systemInfo);
@@ -101,13 +101,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             Stream GetLogsStream() => new MemoryStream(Encoding.UTF8.GetBytes(dummyLogs));
 
             var moduleManager = new Mock<IModuleManager>();
-            moduleManager.Setup(m => m.GetModuleLogs(id, It.IsAny<bool>(), It.IsAny<Option<int>>(), It.IsAny<Option<int>>(), It.IsAny<CancellationToken>()))
+            moduleManager.Setup(m => m.GetModuleLogs(id, It.IsAny<bool>(), It.IsAny<Option<int>>(), It.IsAny<Option<string>>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(GetLogsStream);
 
             var runtimeInfoProvider = new RuntimeInfoProvider<TestConfig>(moduleManager.Object);
 
             // Act
-            Stream receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, false, Option.None<int>(), Option.None<int>(), CancellationToken.None);
+            Stream receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, false, Option.None<int>(), Option.None<string>(), CancellationToken.None);
 
             // Assert
             var buffer = new byte[1024];

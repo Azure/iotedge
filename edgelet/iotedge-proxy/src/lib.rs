@@ -4,9 +4,12 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
+    clippy::missing_errors_doc,
     clippy::module_name_repetitions,
+    clippy::must_use_candidate,
     clippy::shadow_unrelated,
-    clippy::use_self,
+    clippy::too_many_lines,
+    clippy::use_self
 )]
 
 mod api;
@@ -18,7 +21,7 @@ mod routine;
 mod settings;
 pub mod signal;
 
-pub use error::{Error, ErrorKind};
+pub use error::{Error, ErrorKind, InitializeErrorReason};
 pub use routine::Routine;
 pub use settings::{ApiSettings, ServiceSettings, Settings};
 

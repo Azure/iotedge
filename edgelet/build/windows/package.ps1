@@ -90,7 +90,11 @@ Function New-Package([string] $Name, [string] $Version)
         Write-Host $(Get-Command makecat.exe).Path
     }
 
-    Invoke-Expression "& '$pkggen' $manifest /universalbsp /variables:'_REPO_ROOT=..\..\..;_OPENSSL_ROOT_DIR=$env:OPENSSL_ROOT_DIR;_Arch=$(if ($Arm) { 'thumbv7a-pc-windows-msvc' } else { '' })' /cpu:$(if ($Arm) { 'arm' } else { 'amd64' }) /version:$Version"
+    $pkggenVariables = '_REPO_ROOT=..\..\..'
+    $pkggenVariables += ";_OPENSSL_ROOT_DIR=$env:OPENSSL_ROOT_DIR"
+    $pkggenVariables += ";_OPENSSL_DLL_SUFFIX=$(if ($Arm) { 'arm' } else { 'x64' })"
+    $pkggenVariables += ";_Arch=$(if ($Arm) { 'thumbv7a-pc-windows-msvc' } else { '' })"
+    & $pkggen $manifest /universalbsp "/variables:$pkggenVariables" "/cpu:$(if ($Arm) { 'arm' } else { 'amd64' })" "/version:$Version"
     if ($LASTEXITCODE) {
         Throw "Failed to package cab"
     }

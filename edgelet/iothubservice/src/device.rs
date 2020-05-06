@@ -224,13 +224,13 @@ fn url_encode(value: &str) -> PercentEncode<'_, IOTHUB_ENCODE_SET> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{
+        AuthMechanism, Client, DeviceClient, Error, Future, Module, StatusCode, TokenSource,
+    };
 
     use chrono::{DateTime, Utc};
     use futures::Stream;
     use hyper::{self, Body, Client as HyperClient, Method, Request, Response};
-    use serde_json;
-    use tokio;
     use typed_headers::{mime, ContentType, HeaderMapExt};
     use url::Url;
 
@@ -578,7 +578,7 @@ mod tests {
                 .with_module_id("m2".to_string())
                 .with_generation_id("g2".to_string())
                 .with_managed_by("iotedge".to_string())
-                .with_authentication(auth.clone()),
+                .with_authentication(auth),
         ];
         let expected_modules = modules.clone();
 
@@ -627,7 +627,7 @@ mod tests {
             .with_module_id("m1".to_string())
             .with_generation_id("g1".to_string())
             .with_managed_by("iotedge".to_string())
-            .with_authentication(auth.clone());
+            .with_authentication(auth);
         let expected_module = module.clone();
 
         let handler = move |req: Request<Body>| {
@@ -674,7 +674,7 @@ mod tests {
             .with_module_id("$edgeAgent".to_string())
             .with_generation_id("g1".to_string())
             .with_managed_by("iotedge".to_string())
-            .with_authentication(auth.clone());
+            .with_authentication(auth);
         let expected_module = module.clone();
 
         let handler = move |req: Request<Body>| {

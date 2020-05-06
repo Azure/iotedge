@@ -5,19 +5,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
 
     public class MetricsConfig
     {
-        public MetricsConfig(bool enabled, MetricsListenerConfig listenerConfig)
+        public MetricsConfig(IConfiguration config, bool enabledDefault = true)
         {
-            this.Enabled = enabled;
-            this.ListenerConfig = listenerConfig;
-        }
-
-        public static MetricsConfig Create(IConfiguration config)
-        {
-            bool enabled = config.GetValue("enabled", false);
-            MetricsListenerConfig listenerConfig = enabled
-                ? MetricsListenerConfig.Create(config.GetSection("listener"))
-                : new MetricsListenerConfig();
-            return new MetricsConfig(enabled, listenerConfig);
+            this.Enabled = config.GetValue("MetricsEnabled", enabledDefault);
+            this.ListenerConfig = MetricsListenerConfig.Create(config);
         }
 
         public bool Enabled { get; }

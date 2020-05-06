@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Cloud
             this.clientId = Preconditions.CheckNotNull(clientId, nameof(clientId));
         }
 
-        public Task<DirectMethodResponse> CallMethodAsync(DirectMethodRequest request) => this.edgeHub.InvokeMethodAsync(this.clientId, request);
+        public Task<DirectMethodResponse> CallMethodAsync(DirectMethodRequest request) => this.edgeHub.InvokeMethodAsync("upstream", request);
 
         public Task OnDesiredPropertyUpdates(IMessage desiredProperties) => this.edgeHub.UpdateDesiredPropertiesAsync(this.clientId, desiredProperties);
 

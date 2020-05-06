@@ -25,7 +25,7 @@ namespace SimulatedTemperatureSensor
     ///Humidity: int, %
     ///Pressure: double, psi
     /// </summary>
-    public class MessageBody
+    class MessageBody
     {
         [JsonProperty(PropertyName = "machine")]
         public Machine Machine { get; set; }
@@ -37,7 +37,7 @@ namespace SimulatedTemperatureSensor
         public DateTime TimeCreated { get; set; }
     }
 
-    public class Machine
+    class Machine
     {
         [JsonProperty(PropertyName = "temperature")]
         public double Temperature { get; set; }
@@ -46,7 +46,7 @@ namespace SimulatedTemperatureSensor
         public double Pressure { get; set; }
     }
 
-    public class Ambient
+    class Ambient
     {
         [JsonProperty(PropertyName = "temperature")]
         public double Temperature { get; set; }

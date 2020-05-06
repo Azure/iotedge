@@ -6,10 +6,12 @@ namespace Microsoft.Azure.Devices.Client.Samples
     using System.Globalization;
     using System.IO;
     using System.Linq;
+    using System.Net.Security;
     using System.Runtime.InteropServices;
     using System.Security.Cryptography.X509Certificates;
     using System.Text;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Org.BouncyCastle.Crypto;
     using Org.BouncyCastle.Crypto.Parameters;
     using Org.BouncyCastle.OpenSsl;
@@ -19,18 +21,20 @@ namespace Microsoft.Azure.Devices.Client.Samples
 
     class Program
     {
-        // 1) Obtain the IoT Hub hostname and device id for your downstream device.
-        //    Update the IOTHUB_HOSTNAME and DEVICE_ID in the Properties/launchSettings.json file.
-        // 2) Obtain the Edge device hostname: The edge device hostname is the hostname set in
-        //    the config.yaml of the Edge device to which this sample will connect to.
-        //    Update the IOTEDGE_GATEWAY_HOSTNAME in the Properties/launchSettings.json file.
-        // 3) Obtain the trusted CA certificate file required to trust the Edge gateway. 
-        //    In the docs this would be the azure-iot-test-only.root.ca.cert.pem.
-        //    Update IOTEDGE_TRUSTED_CA_CERTIFICATE_PEM_PATH to point to this file.
-        // 4) Optionally, update DEVICE_CLIENT_PROTOCOL to indicate the choice of protocol to use.
-        //    Options are Mqtt, MqttWs, Amqp, AmqpWS. Default is Mqtt.
-        // 5) Optionally, update MESSAGE_COUNT to indicate the number of telemetry messages to send
-        //    to the Edge gateway. Default is 10.
+        /* 1) Obtain the IoT Hub hostname and device id for your downstream device.
+              Update the IOTHUB_HOSTNAME and DEVICE_ID in the Properties/launchSettings.json file.
+           2) Obtain the Edge device hostname: The edge device hostname is the hostname set in
+              the config.yaml of the Edge device to which this sample will connect to.
+              Update the IOTEDGE_GATEWAY_HOSTNAME in the Properties/launchSettings.json file.
+           3) Obtain the trusted CA certificate file required to trust the Edge gateway.
+              In the docs this would be the azure-iot-test-only.root.ca.cert.pem.
+              Update IOTEDGE_TRUSTED_CA_CERTIFICATE_PEM_PATH to point to this file.
+           4) Optionally, update DEVICE_CLIENT_PROTOCOL to indicate the choice of protocol to use.
+              Options are Mqtt, MqttWs, Amqp, AmqpWS. Default is Mqtt.
+           5) Optionally, update MESSAGE_COUNT to indicate the number of telemetry messages to send
+              to the Edge gateway. Default is 10. */
+
+        const int TEMPERATURE_THRESHOLD = 30;
         static readonly string IothubHostname = Environment.GetEnvironmentVariable("IOTHUB_HOSTNAME");
         static readonly string DownstreamDeviceId = Environment.GetEnvironmentVariable("DEVICE_ID");
         static readonly string IotEdgeGatewayHostname = Environment.GetEnvironmentVariable("IOTEDGE_GATEWAY_HOSTNAME");
@@ -39,9 +43,7 @@ namespace Microsoft.Azure.Devices.Client.Samples
         static readonly string TrustedCACertPath = Environment.GetEnvironmentVariable("IOTEDGE_TRUSTED_CA_CERTIFICATE_PEM_PATH");
         static readonly string ClientTransportType = Environment.GetEnvironmentVariable("DEVICE_CLIENT_PROTOCOL");
         static readonly string MessageCountEnv = Environment.GetEnvironmentVariable("MESSAGE_COUNT");
-        const int TEMPERATURE_THRESHOLD = 30;
-
-        static int MESSAGE_COUNT = 10;
+        static int messageCount = 10;
 
         public static IEnumerable<X509Certificate2> GetCertificatesFromPem(IEnumerable<string> rawPemCerts) =>
             rawPemCerts
@@ -114,7 +116,7 @@ namespace Microsoft.Azure.Devices.Client.Samples
 
                 if (certObject is RsaPrivateCrtKeyParameters)
                 {
-                    keyParams = ((RsaPrivateCrtKeyParameters)certObject);
+                    keyParams = (RsaPrivateCrtKeyParameters)certObject;
                 }
 
                 certObject = pemReader.ReadObject();
@@ -152,27 +154,48 @@ namespace Microsoft.Azure.Devices.Client.Samples
             return ParseCertificateAndKey(cert, privateKey);
         }
 
-        static TransportType GetTransport(string protocol)
+        static ITransportSettings[] GetTransport(string protocol)
         {
-            TransportType result = TransportType.Mqtt_Tcp_Only;
+            TransportType transportType = TransportType.Mqtt_Tcp_Only;
+            ITransportSettings[] transportSettings = new ITransportSettings[1];
 
-            if (!string.IsNullOrWhiteSpace(protocol))
+            if (string.Equals("Mqtt", protocol, StringComparison.OrdinalIgnoreCase))
             {
-                if (string.Compare("MqttWs", protocol, StringComparison.OrdinalIgnoreCase) == 0)
-                {
-                    result = TransportType.Mqtt_WebSocket_Only;
-                }
-                else if (string.Compare("Amqp", protocol, StringComparison.OrdinalIgnoreCase) == 0)
-                {
-                    result = TransportType.Amqp_Tcp_Only;
-                }
-                else if (string.Compare("AmqpWs", protocol, StringComparison.OrdinalIgnoreCase) == 0)
-                {
-                    result = TransportType.Amqp_WebSocket_Only;
-                }
+                transportType = TransportType.Mqtt_Tcp_Only;
+            }
+            else if (string.Equals("MqttWs", protocol, StringComparison.OrdinalIgnoreCase))
+            {
+                transportType = TransportType.Mqtt_WebSocket_Only;
+            }
+            else if (string.Equals("Amqp", protocol, StringComparison.OrdinalIgnoreCase))
+            {
+                transportType = TransportType.Amqp_Tcp_Only;
+            }
+            else if (string.Equals("AmqpWs", protocol, StringComparison.OrdinalIgnoreCase))
+            {
+                transportType = TransportType.Amqp_WebSocket_Only;
+            }
+            else
+            {
+                throw new ArgumentException("Invalid protocol");
             }
 
-            return result;
+            X509Certificate2 trustedCACert = GetTrustedCACertFromFile(TrustedCACertPath);
+            RemoteCertificateValidationCallback certificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => CustomCertificateValidator.ValidateCertificate(trustedCACert, (X509Certificate2)certificate, chain, sslPolicyErrors);
+            if (transportType == TransportType.Amqp_Tcp_Only || transportType == TransportType.Amqp_WebSocket_Only)
+            {
+                transportSettings[0] = new AmqpTransportSettings(transportType);
+                AmqpTransportSettings amqpTransportSettings = (AmqpTransportSettings)transportSettings[0];
+                amqpTransportSettings.RemoteCertificateValidationCallback = certificateValidationCallback;
+            }
+            else
+            {
+                transportSettings[0] = new MqttTransportSettings(transportType);
+                MqttTransportSettings mqttTransportSettings = (MqttTransportSettings)transportSettings[0];
+                mqttTransportSettings.RemoteCertificateValidationCallback = certificateValidationCallback;
+            }
+
+            return transportSettings;
         }
 
         /// <summary>
@@ -212,23 +235,28 @@ namespace Microsoft.Azure.Devices.Client.Samples
 
             if (!string.IsNullOrWhiteSpace(MessageCountEnv))
             {
-                if (!int.TryParse(MessageCountEnv, out MESSAGE_COUNT))
+                if (!int.TryParse(MessageCountEnv, out messageCount))
                 {
-                    Console.WriteLine("Invalid number of messages in env variable MESSAGE_COUNT. MESSAGE_COUNT set to {0}\n", MESSAGE_COUNT);
+                    Console.WriteLine("Invalid number of messages in env variable MESSAGE_COUNT. MESSAGE_COUNT set to {0}\n", messageCount);
                 }
             }
 
-            TransportType transport = GetTransport(ClientTransportType);
+            if (string.IsNullOrWhiteSpace(ClientTransportType))
+            {
+                throw new ArgumentException("Device client protocol cannot be null or empty");
+            }
 
-            InstallCACert();
+            X509Certificate2 trustedCACert = GetTrustedCACertFromFile(TrustedCACertPath);
+            InstallCACert(trustedCACert);
 
             Console.WriteLine("Creating device client using identity certificate...\n");
 
             var (cert, certChain) = GetClientCertificateAndChainFromFile(DeviceIdentityCertPath, DeviceIdentityPrivateKeyPath);
             InstallChainCertificates(certChain);
-            var auth = new DeviceAuthenticationWithX509Certificate(DownstreamDeviceId, cert);
 
-            DeviceClient deviceClient = DeviceClient.Create(IothubHostname, IotEdgeGatewayHostname, auth, transport);
+            ITransportSettings[] transportSettings = GetTransport(ClientTransportType);
+            var auth = new DeviceAuthenticationWithX509Certificate(DownstreamDeviceId, cert);
+            DeviceClient deviceClient = DeviceClient.Create(IothubHostname, IotEdgeGatewayHostname, auth, transportSettings);
 
             if (deviceClient == null)
             {
@@ -236,7 +264,7 @@ namespace Microsoft.Azure.Devices.Client.Samples
             }
             else
             {
-                SendEvents(deviceClient, MESSAGE_COUNT).Wait();
+                SendEvents(deviceClient, messageCount).Wait();
             }
 
             Console.WriteLine("Exiting!\n");
@@ -271,32 +299,26 @@ namespace Microsoft.Azure.Devices.Client.Samples
         ///    a prompt will likely come up to confirm the installation of the certificate.
         ///    This usually happens the first time a certificate will be installed.
         /// </summary>
-        static void InstallCACert()
+        static void InstallCACert(X509Certificate2 trustedCACert)
         {
-            string certPath = Environment.GetEnvironmentVariable("IOTEDGE_TRUSTED_CA_CERTIFICATE_PEM_PATH");
-            if (!string.IsNullOrWhiteSpace(certPath))
+            Console.WriteLine("User configured CA certificate path: {0}", TrustedCACertPath);
+            Console.WriteLine("Attempting to install CA certificate: {0}", TrustedCACertPath);
+            X509Store store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
+            store.Open(OpenFlags.ReadWrite);
+            store.Add(trustedCACert);
+            Console.WriteLine("Successfully added certificate: {0}", TrustedCACertPath);
+            store.Close();
+        }
+
+        static X509Certificate2 GetTrustedCACertFromFile(string trustedCACertPath)
+        {
+            if (string.IsNullOrWhiteSpace(TrustedCACertPath) || !File.Exists(TrustedCACertPath))
             {
-                Console.WriteLine("User configured CA certificate path: {0}", certPath);
-                if (!File.Exists(certPath))
-                {
-                    // cannot proceed further without a proper cert file
-                    Console.WriteLine("Invalid certificate file: {0}", certPath);
-                    throw new InvalidOperationException("Invalid certificate file.");
-                }
-                else
-                {
-                    Console.WriteLine("Attempting to install CA certificate: {0}", certPath);
-                    X509Store store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
-                    store.Open(OpenFlags.ReadWrite);
-                    store.Add(new X509Certificate2(System.Security.Cryptography.X509Certificates.X509Certificate.CreateFromCertFile(certPath)));
-                    Console.WriteLine("Successfully added certificate: {0}", certPath);
-                    store.Close();
-                }
+                Console.WriteLine("Invalid certificate file: {0}", TrustedCACertPath);
+                throw new InvalidOperationException("Invalid certificate file.");
             }
-            else
-            {
-                Console.WriteLine("IOTEDGE_TRUSTED_CA_CERTIFICATE_PEM_PATH was not set or null, not installing any CA certificate");
-            }
+
+            return new X509Certificate2(System.Security.Cryptography.X509Certificates.X509Certificate.CreateFromCertFile(TrustedCACertPath));
         }
 
         /// <summary>

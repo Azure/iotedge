@@ -117,6 +117,8 @@ _logs/
 
 # MSTest test Results
 [Tt]est[Rr]esult*/
+!TestResultCoordinator
+!test/modules/ModuleLib/TestResults
 [Bb]uild[Ll]og.*
 *.trx
 
@@ -320,3 +322,8 @@ stylecop.json
 *.swp
 *.swo
 *.vi
+
+# fuzz
+in
+out
+

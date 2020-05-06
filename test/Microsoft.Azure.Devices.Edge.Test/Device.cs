@@ -5,45 +5,32 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
     using NUnit.Framework;
 
-    class Device : DeviceBase
+    [EndToEnd]
+    class Device : SasManualProvisioningFixture
     {
         [Test]
-        public async Task TransparentGateway(
-            [Values] TestAuthenticationType testAuth,
-            [Values(Protocol.Mqtt, Protocol.Amqp)] Protocol protocol)
+        public async Task QuickstartCerts()
         {
-            // For CA and self-signed cert tests, temporarily disable AMQP
-            var auth = testAuth.ToAuthenticationType();
-            if (protocol == Protocol.Amqp &&
-                (auth == AuthenticationType.CertificateAuthority || auth == AuthenticationType.SelfSigned))
-            {
-                Assert.Ignore("x509 cert + AMQP tests disabled until bug is resolved");
-            }
+            CancellationToken token = this.TestToken;
 
-            CancellationToken token = this.cts.Token;
+            await this.runtime.DeployConfigurationAsync(token);
 
-            // Generate a leaf device ID--based on the (edge) device ID--that is at most
-            // (deviceId.Length + 26 chars) long. This gives us a leaf device ID of <= 63
-            // characters, and gives LeafDevice.CreateAsync (called below) some wiggle room to
-            // create certs with unique CNs that don't exceed the 64-char limit.
-            string leafDeviceId = $"{Context.Current.DeviceId}-{protocol.ToString()}-{testAuth.ToString()}";
-
-            Option<string> parentId = testAuth == TestAuthenticationType.SasOutOfScope
-                ? Option.None<string>()
-                : Option.Some(Context.Current.DeviceId);
+            string leafDeviceId = DeviceId.Current.Generate();
 
             var leaf = await LeafDevice.CreateAsync(
                 leafDeviceId,
-                protocol,
-                auth,
-                parentId,
-                testAuth.UseSecondaryCertificate(),
-                this.ca,
+                Protocol.Amqp,
+                AuthenticationType.Sas,
+                Option.None<string>(),
+                false,
+                CertificateAuthority.GetQuickstart(),
                 this.iotHub,
                 token);
 

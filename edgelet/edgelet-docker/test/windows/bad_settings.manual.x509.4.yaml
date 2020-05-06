@@ -1,0 +1,33 @@
+# x509 manual provisioning does not have the iothub hostname specified
+provisioning:
+  source: "manual"
+  authentication:
+    method: "x509"
+    device_id: "something"
+    identity_cert: "file:///some/path/identity.cert.pem"
+    identity_pk: "file:///some/path/identity.key.pem"
+
+agent:
+  name: "edgeAgent"
+  type: "docker"
+  env: {}
+  config:
+    image: "microsoft/azureiotedge-agent:1.0-preview"
+    create_options: {}
+    auth: {}
+hostname: "localhost"
+
+# Sets the connection uris for clients
+connect:
+  workload_uri: "http://localhost:8081"
+  management_uri: "http://localhost:8080"
+
+# Sets the uris to listen on
+# These can be different than the connect uris.
+# For instance, when using the fd:// scheme for systemd
+listen:
+  workload_uri: "http://0.0.0.0:8081"
+  management_uri: "http://0.0.0.0:8080"
+docker_uri: "http://localhost:2375"
+homedir: "C:\\temp"
+network: "azure-iot-edge"

@@ -1,0 +1,255 @@
+﻿[
+  {
+    "deploymentConfig": {
+      "schemaVersion": "1.0",
+      "runtime": {
+        "type": "docker",
+        "settings": {
+          "minDockerVersion": "v1.25",
+          "loggingOptions": "",
+          "registryCredentials": {
+          }
+        }
+      },
+      "systemModules": {
+        "edgeAgent": {
+          "type": "docker",
+          "settings": {
+            "image": "mcr.microsoft.com/azureiotedge-agent:1.0",
+            "createOptions": "{}"
+          },
+          "env": {
+          }
+        },
+        "edgeHub": {
+          "type": "docker",
+          "settings": {
+            "image": "mcr.microsoft.com/azureiotedge-hub:1.0",
+            "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}],\"443/tcp\":[{\"HostPort\":\"443\"}],\"5671/tcp\":[{\"HostPort\":\"5671\"}]},\"StopTimeout\":60}}"
+          },
+          "env": {
+          },
+          "status": "running",
+          "restartPolicy": "always"
+        }
+      },
+      "modules": {
+        "tempSensor": {
+          "type": "docker",
+          "settings": {
+            "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:20191106.7-linux-amd64",
+            "createOptions": ""
+          },
+          "priority": 2,
+          "status": "running",
+          "restartPolicy": "always"
+        }
+      }
+    },
+    "runtimeInfo": {
+      "modules": {
+        "tempSensor": {
+          "exitCode": 0,
+          "runtimeStatus": "running",
+          "status": "running",
+          "restartPolicy": "always",
+          "priority": 2,
+          "type": "docker",
+          "settings": {
+            "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:20191106.8-linux-amd64",
+            "createOptions": "{}"
+          }
+        },
+        "tempSensor1": {
+          "exitCode": 0,
+          "runtimeStatus": "running",
+          "status": "running",
+          "restartPolicy": "always",
+          "priority": 1,
+          "type": "docker",
+          "settings": {
+            "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:20191106.8-linux-amd64",
+            "createOptions": "{}"
+          }
+        }
+      }
+    },
+    "validator": {
+      "$type": "ModulePriorityValidator",
+      "moduleCommands": [
+        {
+          "command": "create",
+          "moduleName": "edgeAgent"
+        },
+        {
+          "command": "start",
+          "moduleName": "edgeAgent"
+        },
+        {
+          "command": "stop",
+          "moduleName": "tempSensor1"
+        },
+        {
+          "command": "remove",
+          "moduleName": "tempSensor1"
+        },
+        {
+          "command": "update",
+          "moduleName": "tempSensor"
+        },
+        {
+          "command": "start",
+          "moduleName": "tempSensor"
+        },
+        {
+          "command": "create",
+          "moduleName": "edgeHub"
+        },
+        {
+          "command": "start",
+          "moduleName": "edgeHub"
+        }
+      ]
+    }
+  },
+  {
+    "deploymentConfig": {
+      "schemaVersion": "1.0",
+      "runtime": {
+        "type": "docker",
+        "settings": {
+          "minDockerVersion": "v1.25",
+          "loggingOptions": "",
+          "registryCredentials": {
+          }
+        }
+      },
+      "systemModules": {
+        "edgeAgent": {
+          "type": "docker",
+          "settings": {
+            "image": "mcr.microsoft.com/azureiotedge-agent:1.0",
+            "createOptions": "{}"
+          },
+          "priority": 2,
+          "env": {
+          }
+        },
+        "edgeHub": {
+          "type": "docker",
+          "settings": {
+            "image": "mcr.microsoft.com/azureiotedge-hub:1.0",
+            "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}],\"443/tcp\":[{\"HostPort\":\"443\"}],\"5671/tcp\":[{\"HostPort\":\"5671\"}]},\"StopTimeout\":60}}"
+          },
+          "env": {
+          },
+          "priority": 0,
+          "status": "running",
+          "restartPolicy": "always"
+        }
+      },
+      "modules": {
+        "tempSensor": {
+          "type": "docker",
+          "settings": {
+            "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:20191106.7-linux-amd64",
+            "createOptions": ""
+          },
+          "priority": 1,
+          "status": "running",
+          "restartPolicy": "always"
+        },
+        "tempSensor2": {
+          "type": "docker",
+          "settings": {
+            "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:20191106.7-linux-amd64",
+            "createOptions": ""
+          },
+          "status": "running",
+          "restartPolicy": "always"
+        }
+      }
+    },
+    "runtimeInfo": {
+      "modules": {
+        "edgeAgent": {
+          "exitCode": 0,
+          "runtimeStatus": "running",
+          "status": "running",
+          "restartPolicy": "always",
+          "priority": 2,
+          "type": "docker",
+          "settings": {
+            "image": "mcr.microsoft.com/azureiotedge-agent:2.0",
+            "createOptions": "{}"
+          }
+        },
+        "tempSensor": {
+          "exitCode": 0,
+          "runtimeStatus": "running",
+          "status": "running",
+          "restartPolicy": "always",
+          "priority": 4,
+          "type": "docker",
+          "settings": {
+            "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:20191106.7-linux-amd64",
+            "createOptions": "{}"
+          }
+        },
+        "tempSensor1": {
+          "exitCode": 0,
+          "runtimeStatus": "running",
+          "status": "running",
+          "restartPolicy": "always",
+          "priority": 3,
+          "type": "docker",
+          "settings": {
+            "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:20191106.8-linux-amd64",
+            "createOptions": "{}"
+          }
+        }
+      }
+    },
+    "validator": {
+      "$type": "ModulePriorityValidator",
+      "moduleCommands": [
+        {
+          "command": "update",
+          "moduleName": "edgeAgent"
+        },
+        {
+          "command": "create",
+          "moduleName": "edgeHub"
+        },
+        {
+          "command": "start",
+          "moduleName": "edgeHub"
+        },
+        {
+          "command": "update",
+          "moduleName": "tempSensor"
+        },
+        {
+          "command": "start",
+          "moduleName": "tempSensor"
+        },
+        {
+          "command": "stop",
+          "moduleName": "tempSensor1"
+        },
+        {
+          "command": "remove",
+          "moduleName": "tempSensor1"
+        },
+        {
+          "command": "create",
+          "moduleName": "tempSensor2"
+        },
+        {
+          "command": "start",
+          "moduleName": "tempSensor2"
+        }
+      ]
+    }
+  }
+]

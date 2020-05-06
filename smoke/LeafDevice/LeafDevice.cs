@@ -116,6 +116,7 @@ namespace LeafDeviceTest
                 IList<string> thumbprintCerts = new List<string>();
                 if (this.usePrimaryThumbprintClientCert)
                 {
+                    Console.WriteLine("Configure to use primary cert thumbprint for authentication");
                     this.x509CACertPath = Option.Some(Preconditions.CheckNotNull(primaryClientCertificatePath));
                     this.x509CAKeyPath = Option.Some(Preconditions.CheckNotNull(primaryClientCertificateKeyPath));
                     thumbprintCerts.Add(primaryClientCertificatePath);
@@ -123,6 +124,7 @@ namespace LeafDeviceTest
                 }
                 else
                 {
+                    Console.WriteLine("Configure to use secondary cert thumbprint for authentication");
                     this.x509CACertPath = Option.Some(Preconditions.CheckNotNull(secondaryClientCertificatePath));
                     this.x509CAKeyPath = Option.Some(Preconditions.CheckNotNull(secondaryClientCertificateKeyPath));
                     thumbprintCerts.Add(Preconditions.CheckNotNull(primaryClientCertificatePath));

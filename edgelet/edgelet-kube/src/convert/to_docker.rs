@@ -1,11 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use docker::models::ContainerCreateBody;
-use edgelet_docker::DockerConfig;
+use failure::Fail;
 use k8s_openapi::api::core::v1 as api_core;
 use log::debug;
 
-use crate::constants::*;
+use docker::models::ContainerCreateBody;
+use edgelet_docker::DockerConfig;
+
+use crate::constants::{EDGE_MODULE_LABEL, EDGE_ORIGINAL_MODULEID};
 use crate::error::{Error, ErrorKind, Result};
 use crate::KubeModule;
 
@@ -31,7 +33,7 @@ pub fn pod_to_module(pod: &api_core::Pod) -> Option<Result<KubeModule>> {
                     meta.annotations.as_ref().and_then(|annotations| {
                         annotations
                             .get(EDGE_ORIGINAL_MODULEID)
-                            .and_then(|module_id| Some((module, module_id)))
+                            .map(|module_id| (module, module_id))
                     })
                 })
         })
@@ -41,22 +43,22 @@ pub fn pod_to_module(pod: &api_core::Pod) -> Option<Result<KubeModule>> {
             debug!("Found the module named: {}, id {}", module, module_id);
             get_container_by_name(&module, pod)
                 .map_or_else(
-                    || Err(ErrorKind::ModuleNotFound(module.to_string()))?,
+                    || Err(ErrorKind::ModuleNotFound(module.to_string()).into()),
                     |container| {
                         container.image.as_ref().map_or_else(
-                            || Err(ErrorKind::ImageNotFound)?,
+                            || Err(ErrorKind::ImageNotFound.into()),
                             |image_name| {
                                 DockerConfig::new(
                                     image_name.to_string(),
                                     ContainerCreateBody::new(),
                                     None,
                                 )
-                                .map_err(Error::from)
+                                .map_err(|err| Error::from(err.context(ErrorKind::PodToModule)))
                             },
                         )
                     },
                 )
-                .map_err(Error::from)
+                .map_err(|err| Error::from(err.context(ErrorKind::PodToModule)))
                 .and_then(|config| KubeModule::new(module_id.to_string(), config))
         })
 }
@@ -64,10 +66,9 @@ pub fn pod_to_module(pod: &api_core::Pod) -> Option<Result<KubeModule>> {
 #[cfg(test)]
 mod tests {
 
-    use super::*;
+    use super::pod_to_module;
     use edgelet_core::Module;
     use k8s_openapi::api::core::v1 as api_core;
-    use serde_json;
 
     const POD_SUCCESS: &str = r###"
     {
@@ -238,5 +239,4 @@ mod tests {
         assert!(result.is_some());
         assert!(result.unwrap().is_err());
     }
-
 }

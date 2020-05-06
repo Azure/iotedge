@@ -2,7 +2,7 @@
   "keyVault": {
     "baseUrl": "https://edgebuildkv.vault.azure.net/",
     "clientId": "668cc883-59f1-4a11-9d4d-bdf18563d672",
-    "clientCertificateThumbprint": "3c79dc82703923b48866c3ce294e0b06f5e2578e"
+    "clientCertificateThumbprint": "bd76a78e183714a37a13f855ccd97e15c50f3894"
   },
   "iotHubConnStrKey": "IotHubConnStr2",
   "device1ConnStrKey": "IotDevice1ConnStr2",

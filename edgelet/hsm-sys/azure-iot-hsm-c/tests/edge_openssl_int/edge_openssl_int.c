@@ -369,7 +369,7 @@ void test_helper_server_chain_validator(const PKI_KEY_PROPS *key_props)
 
 static X509* test_helper_load_certificate_file(const char* cert_file_name)
 {
-    BIO* cert_file = BIO_new_file(cert_file_name, "r");
+    BIO* cert_file = BIO_new_file(cert_file_name, "rb");
     ASSERT_IS_NOT_NULL(cert_file, "Line:" TOSTRING(__LINE__));
     X509* x509_cert = PEM_read_bio_X509(cert_file, NULL, NULL, NULL);
     // make sure the file is closed before asserting below

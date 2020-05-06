@@ -65,6 +65,23 @@ enum ContainerOs {
     Windows
 }
 
+function New-Sockets([string] $EdgeDataDirectory) {
+    foreach ($name in 'mgmt', 'workload') {
+        # We can't bind socket files directly in Windows, so create a folder
+        # and bind to that. The folder needs to give Modify rights to a
+        # well-known group that will exist in any container so that
+        # non-privileged modules can access it.
+        $path = "$EdgeDataDirectory\$name"
+        New-Item $Path -ItemType Directory -Force | Out-Null
+        $sid = New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-11' # NT AUTHORITY\Authenticated Users
+        $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
+            $sid, 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
+        $acl = Get-Acl -Path $path
+        $acl.AddAccessRule($rule)
+        Set-Acl -Path $path -AclObject $acl
+    }
+}
+
 <#
 .SYNOPSIS
 
@@ -88,39 +105,57 @@ PS> Initialize-IoTEdge -Manual -DeviceConnectionString $deviceConnectionString -
 
 .EXAMPLE
 
-PS> Initialize-IoTEdge -Manual -DeviceConnectionString $deviceConnectionString -ContainerOs Windows -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
+PS> Initialize-IoTEdge -ManualConnectionString -DeviceConnectionString $deviceConnectionString -ContainerOs Windows
 
 
 .EXAMPLE
 
-PS> Initialize-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows
+PS> Initialize-IoTEdge -ManualConnectionString -DeviceConnectionString $deviceConnectionString -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle -ContainerOs Windows
 
 
 .EXAMPLE
 
-PS> Initialize-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
+PS> Initialize-IoTEdge -ManualConnectionString -DeviceConnectionString $deviceConnectionString -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle -ContainerOs Windows
 
 
 .EXAMPLE
 
-PS> Initialize-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows -SymmetricKey $symmetricKey
+PS> Initialize-IoTEdge -ManualX509 -IotHubHostName $iotHubHostName -DeviceId $deviceId -X509IdentityCertificate $x509IdentityCertificate -X509IdentityPrivateKey $x509IdentityPrivateKey -ContainerOs Windows
 
 
 .EXAMPLE
 
-PS> Initialize-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows -SymmetricKey $symmetricKey -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
+PS> Initialize-IoTEdge -ManualX509 -IotHubHostName $iotHubHostName -DeviceId $deviceId -X509IdentityCertificate $x509IdentityCertificate -X509IdentityPrivateKey $x509IdentityPrivateKey -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle -ContainerOs Windows
 
 
 .EXAMPLE
 
-PS> Initialize-IoTEdge -Dps -ScopeId $scopeId -ContainerOs Windows -X509IdentityCertificate $x509IdentityCertificate
--X509IdentityPrivateKey $x509IdentityPrivateKey
+PS> Initialize-IoTEdge -DpsTpm -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows
 
 
 .EXAMPLE
 
-PS> Initialize-IoTEdge -Dps -ScopeId $scopeId -ContainerOs Windows -X509IdentityCertificate $x509IdentityCertificate
--X509IdentityPrivateKey $x509IdentityPrivateKey -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
+PS> Initialize-IoTEdge -DpsTpm -ScopeId $scopeId -RegistrationId $registrationId -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle -ContainerOs Windows
+
+
+.EXAMPLE
+
+PS> Initialize-IoTEdge -DpsSymmetricKey -ScopeId $scopeId -RegistrationId $registrationId -SymmetricKey $symmetricKey -ContainerOs Windows
+
+
+.EXAMPLE
+
+PS> Initialize-IoTEdge -DpsSymmetricKey -ScopeId $scopeId -RegistrationId $registrationId -SymmetricKey $symmetricKey -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle -ContainerOs Windows
+
+
+.EXAMPLE
+
+PS> Initialize-IoTEdge -DpsX509 -ScopeId $scopeId -X509IdentityCertificate $x509IdentityCertificate -X509IdentityPrivateKey $x509IdentityPrivateKey -ContainerOs Windows
+
+
+.EXAMPLE
+
+PS> Initialize-IoTEdge -DpsX509 -ScopeId $scopeId -X509IdentityCertificate $x509IdentityCertificate -X509IdentityPrivateKey $x509IdentityPrivateKey -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle -ContainerOs Windows
 
 
 .EXAMPLE
@@ -128,45 +163,82 @@ PS> Initialize-IoTEdge -Dps -ScopeId $scopeId -ContainerOs Windows -X509Identity
 PS> Initialize-IoTEdge -External -ExternalProvisioningEndpoint $externalProvisioningEndpoint -ContainerOs Windows -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
 #>
 function Initialize-IoTEdge {
-    [CmdletBinding(DefaultParameterSetName = 'Manual')]
+    [CmdletBinding(DefaultParameterSetName = 'ManualConnectionString')]
     param (
-        # Specified the daemon will be configured manually, using a device connection string.
-        [Parameter(ParameterSetName = 'Manual')]
-        [Switch] $Manual,
+        # Specifies that the daemon will be configured manually, using a connection string.
+        #
+        # `-Manual` is an alias for this parameter.
+        [Parameter(ParameterSetName = 'ManualConnectionString')]
+        [Alias('Manual')]
+        [Switch] $ManualConnectionString,
 
-        # Specified the daemon will be configured using DPS, using a scope ID and registration ID.
-        [Parameter(ParameterSetName = 'DPS')]
-        [Switch] $Dps,
+        # Specifies that the daemon will be configured manually, using an identity certificate.
+        [Parameter(ParameterSetName = 'ManualX509')]
+        [Switch] $ManualX509,
+
+        # Specifies that the daemon will be configured using DPS TPM attestation.
+        [Parameter(ParameterSetName = 'DpsTpm')]
+        [Switch] $DpsTpm,
+
+        # Specifies that the daemon will be configured using DPS symmetric key attestation.
+        [Parameter(ParameterSetName = 'DpsSymmetricKey')]
+        [Switch] $DpsSymmetricKey,
+
+        # Specifies that the daemon will be configured using DPS X509 attestation.
+        [Parameter(ParameterSetName = 'DpsX509')]
+        [Switch] $DpsX509,
 
         # Specified the daemon will be configured using an external provisioning endpoint.
         [Parameter(ParameterSetName = 'External')]
         [Switch] $External,
 
         # The device connection string.
-        [Parameter(Mandatory = $true, ParameterSetName = 'Manual')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'ManualConnectionString')]
         [String] $DeviceConnectionString,
 
+        # The IoT Hub hostname the Edge device is a part of
+        [Parameter(Mandatory = $true, ParameterSetName ='ManualX509')]
+        [ValidateNotNullOrEmpty()]
+        [String] $IotHubHostName,
+
+        # The Edge device Id
+        [Parameter(Mandatory = $true, ParameterSetName = 'ManualX509')]
+        [ValidateNotNullOrEmpty()]
+        [String] $DeviceId,
+
+        # Specifies that the daemon will be configured using DPS. The choice of attestation depends on the other DPS input parameters.
+        [Parameter(ParameterSetName = 'DpsTpm')]
+        [Parameter(ParameterSetName = 'DpsSymmetricKey')]
+        [Parameter(ParameterSetName = 'DpsX509')]
+        [Switch] $Dps,
+
         # The DPS scope ID.
-        [Parameter(Mandatory = $true, ParameterSetName = 'DPS')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'DpsTpm')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'DpsSymmetricKey')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'DpsX509')]
         [String] $ScopeId,
 
         # The DPS registration ID.
-        [Parameter(ParameterSetName = 'DPS')]
+        [Parameter(Mandatory = $true, ParameterSetName  = 'DpsTpm')]
+        [Parameter(Mandatory = $true, ParameterSetName  = 'DpsSymmetricKey')]
+        [Parameter(Mandatory = $false, ParameterSetName = 'DpsX509')]
         [ValidateNotNullOrEmpty()]
         [String] $RegistrationId,
 
         # The DPS symmetric key to provision the Edge device identity
-        [Parameter(ParameterSetName = 'DPS')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'DpsSymmetricKey')]
         [ValidateNotNullOrEmpty()]
         [String] $SymmetricKey,
 
         # The Edge device identity certificate
-        [Parameter(ParameterSetName = 'DPS')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'ManualX509')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'DpsX509')]
         [ValidateNotNullOrEmpty()]
         [String] $X509IdentityCertificate,
 
         # The Edge device identity private key
-        [Parameter(ParameterSetName = 'DPS')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'ManualX509')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'DpsX509')]
         [ValidateNotNullOrEmpty()]
         [String] $X509IdentityPrivateKey,
 
@@ -187,6 +259,9 @@ function Initialize-IoTEdge {
         [ValidateNotNullOrEmpty()]
         [String] $ExternalProvisioningEndpoint,
 
+        # Specifies whether dynamic reprovisioning should be enabled or not.
+        [Switch] $DynamicReprovisioning,
+
         # The base OS of all the containers that will be run on this device via the security daemon.
         #
         # If set to Linux, a separate installation of Docker for Windows is expected.
@@ -204,6 +279,32 @@ function Initialize-IoTEdge {
         [SecureString] $Password
     )
 
+    switch ($PSCmdlet.ParameterSetName) {
+        'DpsSymmetricKey' {
+            $DpsSymmetricKey = $true
+        }
+
+        'DpsTpm' {
+            $DpsTpm = $true
+        }
+
+        'DpsX509' {
+            $DpsX509 = $true
+        }
+
+        'External' {
+            $External = $true
+        }
+
+        'ManualConnectionString' {
+            $ManualConnectionString = $true
+        }
+
+        'ManualX509' {
+            $ManualX509 = $true
+        }
+    }
+
     $ErrorActionPreference = 'Stop'
     Set-StrictMode -Version 5
 
@@ -213,9 +314,14 @@ function Initialize-IoTEdge {
         throw
     }
 
+    if (-not (Test-VcRuntimePresent)) {
+        Write-HostRed 'VC Runtime must be installed before IoT Edge can be initialized.'
+        throw
+    }
+
     if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
         Write-HostRed
-        Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
+        Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
         throw
     }
 
@@ -229,16 +335,24 @@ function Initialize-IoTEdge {
         throw
     }
 
-    Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck -SkipBatteryCheck
+    Setup-Environment -ContainerOs $ContainerOs -SkipBatteryCheck
 
     $configPath = Join-Path -Path $EdgeDataDirectory -ChildPath 'config.yaml'
     if (Test-Path $configPath) {
         Write-HostRed
         Write-HostRed "$configPath already exists."
-        Write-HostRed ('Delete it using "Uninstall-IoTEdge -Force" and then ' +
-            're-run "Deploy-IoTEdge" and "Initialize-IoTEdge"')
+        if (Test-IotCore) {
+            Write-HostRed ('You must reflash the device and then ' +
+                're-run "Deploy-IoTEdge" and "Initialize-IoTEdge"')
+        } else {
+            Write-HostRed ('Delete it using "Uninstall-IoTEdge -Force" and then ' +
+                're-run "Deploy-IoTEdge" and "Initialize-IoTEdge"')
+        }
         throw
     }
+
+    New-Sockets $EdgeDataDirectory
+    Set-SystemPath
 
     # config.yaml
     Write-Host 'Generating config.yaml...'
@@ -250,10 +364,13 @@ function Initialize-IoTEdge {
 
     Set-ProvisioningMode
     Set-Certificates
+    if ($DpsX509 -or $ManualX509) {
+        Import-IntermediateCertChain $X509IdentityCertificate
+    }
     Set-AgentImage
     Set-Hostname
     if ($ContainerOs -eq 'Linux') {
-        Set-GatewayAddress
+        Set-ListenConnectUriForLinuxContainers
     }
     else {
         Set-CorrectProgramData
@@ -331,7 +448,6 @@ function Update-IoTEdge {
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
         -RestartIfNeeded:$RestartIfNeeded `
         -Update `
-        -SkipArchCheck `
         -SkipBatteryCheck
 }
 
@@ -389,12 +505,11 @@ function Deploy-IoTEdge {
         # Restart if needed without prompting.
         [Switch] $RestartIfNeeded,
 
-        # Skip processor architecture check.
-        [Switch] $SkipArchCheck,
-
         # Skip battery check.
         [Switch] $SkipBatteryCheck
     )
+
+    Set-StrictMode -Version 5
 
     Install-Packages `
         -ContainerOs $ContainerOs `
@@ -402,7 +517,6 @@ function Deploy-IoTEdge {
         -OfflineInstallationPath $OfflineInstallationPath `
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
         -RestartIfNeeded:$RestartIfNeeded `
-        -SkipArchCheck:$SkipArchCheck `
         -SkipBatteryCheck:$SkipBatteryCheck
 
     Set-SystemPath
@@ -431,83 +545,135 @@ PS> Install-IoTEdge -Manual -DeviceConnectionString $deviceConnectionString -Con
 
 .EXAMPLE
 
-PS> Install-IoTEdge -Manual -DeviceConnectionString $deviceConnectionString -ContainerOs Windows -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
+PS> Install-IoTEdge -ManualConnectionString -DeviceConnectionString $deviceConnectionString -ContainerOs Windows
 
 
 .EXAMPLE
 
-PS> Install-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows
+PS> Install-IoTEdge -ManualConnectionString -DeviceConnectionString $deviceConnectionString -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle -ContainerOs Windows
 
 
 .EXAMPLE
 
-PS> Install-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
+PS> Install-IoTEdge -ManualX509 -IotHubHostName $iotHubHostName -DeviceId $deviceId -X509IdentityCertificate $x509IdentityCertificate -X509IdentityPrivateKey $x509IdentityPrivateKey -ContainerOs Windows
 
 
 .EXAMPLE
 
-PS> Install-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows -SymmetricKey $symmetricKey
+PS> Install-IoTEdge -ManualX509 -IotHubHostName $iotHubHostName -DeviceId $deviceId -X509IdentityCertificate $x509IdentityCertificate -X509IdentityPrivateKey $x509IdentityPrivateKey -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle -ContainerOs Windows
 
 
 .EXAMPLE
 
-PS> Install-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows -SymmetricKey $symmetricKey -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
+PS> Install-IoTEdge -DpsTpm -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows
 
 
 .EXAMPLE
 
-PS> Install-IoTEdge -Dps -ScopeId $scopeId -ContainerOs Windows -X509IdentityCertificate $x509IdentityCertificate -X509IdentityPrivateKey $x509IdentityPrivateKey
+PS> Install-IoTEdge -DpsTpm -ScopeId $scopeId -RegistrationId $registrationId -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle -ContainerOs Windows
 
 
 .EXAMPLE
 
-PS> Install-IoTEdge -Dps -ScopeId $scopeId -ContainerOs Windows -X509IdentityCertificate $x509IdentityCertificate -X509IdentityPrivateKey $x509IdentityPrivateKey -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
+PS> Install-IoTEdge -DpsSymmetricKey -ScopeId $scopeId -RegistrationId $registrationId -SymmetricKey $symmetricKey -ContainerOs Windows
 
 
 .EXAMPLE
 
-PS> Install-IoTEdge -External -ExternalProvisioningEndpoint $externalProvisioningEndpoint -ContainerOs Windows -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
+PS> Install-IoTEdge -DpsSymmetricKey -ScopeId $scopeId -RegistrationId $registrationId -SymmetricKey $symmetricKey -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle -ContainerOs Windows
+
+
+.EXAMPLE
+
+PS> Install-IoTEdge -DpsX509 -ScopeId $scopeId -X509IdentityCertificate $x509IdentityCertificate -X509IdentityPrivateKey $x509IdentityPrivateKey -ContainerOs Windows
+
+
+.EXAMPLE
+
+PS> Install-IoTEdge -DpsX509 -ScopeId $scopeId -X509IdentityCertificate $x509IdentityCertificate -X509IdentityPrivateKey $x509IdentityPrivateKey -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle -ContainerOs Windows
+
+
+.EXAMPLE
+
+PS> Install-IoTEdge -External -ExternalProvisioningEndpoint $externalProvisioningEndpoint -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle -ContainerOs Windows
 #>
 function Install-IoTEdge {
-    [CmdletBinding(DefaultParameterSetName = 'Manual')]
+    [CmdletBinding(DefaultParameterSetName = 'ManualConnectionString')]
     param (
-        # Specified the daemon will be configured manually, using a device connection string.
-        [Parameter(ParameterSetName = 'Manual')]
-        [Switch] $Manual,
+        # Specifies that the daemon will be configured manually, using a connection string.
+        #
+        # `-Manual` is an alias for this parameter.
+        [Parameter(ParameterSetName = 'ManualConnectionString')]
+        [Alias('Manual')]
+        [Switch] $ManualConnectionString,
 
-        # Specified the daemon will be configured using DPS, using a scope ID and registration ID.
-        [Parameter(ParameterSetName = 'DPS')]
-        [Switch] $Dps,
+        # Specifies that the daemon will be configured manually, using an identity certificate.
+        [Parameter(ParameterSetName = 'ManualX509')]
+        [Switch] $ManualX509,
+
+        # Specifies that the daemon will be configured using DPS TPM attestation.
+        [Parameter(ParameterSetName = 'DpsTpm')]
+        [Switch] $DpsTpm,
+
+        # Specifies that the daemon will be configured using DPS symmetric key attestation.
+        [Parameter(ParameterSetName = 'DpsSymmetricKey')]
+        [Switch] $DpsSymmetricKey,
+
+        # Specifies that the daemon will be configured using DPS X509 attestation.
+        [Parameter(ParameterSetName = 'DpsX509')]
+        [Switch] $DpsX509,
 
         # Specified the daemon will be configured using an external provisioning endpoint.
         [Parameter(ParameterSetName = 'External')]
         [Switch] $External,
 
         # The device connection string.
-        [Parameter(Mandatory = $true, ParameterSetName = 'Manual')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'ManualConnectionString')]
         [String] $DeviceConnectionString,
 
+        # The IoT Hub hostname the Edge device is a part of
+        [Parameter(Mandatory = $true, ParameterSetName = 'ManualX509')]
+        [ValidateNotNullOrEmpty()]
+        [String] $IotHubHostName,
+
+        # The Edge device Id
+        [Parameter(Mandatory = $true, ParameterSetName = 'ManualX509')]
+        [ValidateNotNullOrEmpty()]
+        [String] $DeviceId,
+
+        # Specifies that the daemon will be configured using DPS. The choice of attestation depends on the other DPS input parameters.
+        [Parameter(ParameterSetName = 'DpsTpm')]
+        [Parameter(ParameterSetName = 'DpsSymmetricKey')]
+        [Parameter(ParameterSetName = 'DpsX509')]
+        [Switch] $Dps,
+
         # The DPS scope ID.
-        [Parameter(Mandatory = $true, ParameterSetName = 'DPS')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'DpsTpm')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'DpsSymmetricKey')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'DpsX509')]
         [String] $ScopeId,
 
         # The DPS registration ID.
-        [Parameter(ParameterSetName = 'DPS')]
+        [Parameter(Mandatory = $true, ParameterSetName  = 'DpsTpm')]
+        [Parameter(Mandatory = $true, ParameterSetName  = 'DpsSymmetricKey')]
+        [Parameter(Mandatory = $false, ParameterSetName = 'DpsX509')]
         [ValidateNotNullOrEmpty()]
         [String] $RegistrationId,
 
         # The DPS symmetric key to provision the Edge device identity
-        [Parameter(ParameterSetName = 'DPS')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'DpsSymmetricKey')]
         [ValidateNotNullOrEmpty()]
         [String] $SymmetricKey,
 
         # The Edge device identity certificate
-        [Parameter(ParameterSetName = 'DPS')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'ManualX509')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'DpsX509')]
         [ValidateNotNullOrEmpty()]
         [String] $X509IdentityCertificate,
 
         # The Edge device identity private key
-        [Parameter(ParameterSetName = 'DPS')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'ManualX509')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'DpsX509')]
         [ValidateNotNullOrEmpty()]
         [String] $X509IdentityPrivateKey,
 
@@ -527,6 +693,9 @@ function Install-IoTEdge {
         [Parameter(Mandatory = $true, ParameterSetName = 'External')]
         [ValidateNotNullOrEmpty()]
         [String] $ExternalProvisioningEndpoint,
+
+        # Specifies whether dynamic reprovisioning should be enabled or not.
+        [Switch] $DynamicReprovisioning,
 
         # The base OS of all the containers that will be run on this device via the security daemon.
         #
@@ -563,12 +732,11 @@ function Install-IoTEdge {
         # Restart if needed without prompting.
         [Switch] $RestartIfNeeded,
 
-        # Skip processor architecture check.
-        [Switch] $SkipArchCheck,
-
         # Skip battery check.
         [Switch] $SkipBatteryCheck
     )
+
+    Set-StrictMode -Version 5
 
     # Set by Deploy-IoTEdge if it succeeded, so we can abort early in case of failure.
     #
@@ -585,7 +753,6 @@ function Install-IoTEdge {
         -OfflineInstallationPath $OfflineInstallationPath `
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
         -RestartIfNeeded:$RestartIfNeeded `
-        -SkipArchCheck:$SkipArchCheck `
         -SkipBatteryCheck:$SkipBatteryCheck
 
     if (-not $script:installPackagesCompleted) {
@@ -596,23 +763,55 @@ function Install-IoTEdge {
         '-ContainerOs' = $ContainerOs
     }
 
-    if ($Manual) { $Params["-Manual"] = $true }
-    if ($Dps) { $Params["-Dps"] = $true }
-    if ($External) { $Params["-External"] = $true }
-    if ($DeviceConnectionString) { $Params["-DeviceConnectionString"] = $DeviceConnectionString }
-    if ($ScopeId) { $Params["-ScopeId"] = $ScopeId }
-    if ($RegistrationId) { $Params["-RegistrationId"] = $RegistrationId }
-    if ($SymmetricKey) { $Params["-SymmetricKey"] = $SymmetricKey }
-    if ($X509IdentityCertificate) { $Params["-X509IdentityCertificate"] = $X509IdentityCertificate }
-    if ($X509IdentityPrivateKey) { $Params["-X509IdentityPrivateKey"] = $X509IdentityPrivateKey }
+    switch ($PSCmdlet.ParameterSetName) {
+        'DpsSymmetricKey' {
+            $Params["-DpsSymmetricKey"] = $true
+            $Params["-ScopeId"] = $ScopeId
+            $Params["-RegistrationId"] = $RegistrationId
+            $Params["-SymmetricKey"] = $SymmetricKey
+        }
+
+        'DpsTpm' {
+            $Params["-DpsTpm"] = $true
+            $Params["-ScopeId"] = $ScopeId
+            $Params["-RegistrationId"] = $RegistrationId
+        }
+
+        'DpsX509' {
+            $Params["-DpsX509"] = $true
+            $Params["-ScopeId"] = $ScopeId
+            if ($RegistrationId) { $Params["-RegistrationId"] = $RegistrationId }
+            $Params["-X509IdentityCertificate"] = $X509IdentityCertificate
+            $Params["-X509IdentityPrivateKey"] = $X509IdentityPrivateKey
+        }
+
+        'External' {
+            $Params["-External"] = $true
+            $Params["-ExternalProvisioningEndpoint"] = $ExternalProvisioningEndpoint
+        }
+
+        'ManualConnectionString' {
+            $Params["-ManualConnectionString"] = $true
+            $Params["-DeviceConnectionString"] = $DeviceConnectionString
+        }
+
+        'ManualX509' {
+            $Params["-ManualX509"] = $true
+            $Params["-IotHubHostName"] = $IotHubHostName
+            $Params["-DeviceId"] = $DeviceId
+            $Params["-X509IdentityCertificate"] = $X509IdentityCertificate
+            $Params["-X509IdentityPrivateKey"] = $X509IdentityPrivateKey
+        }
+    }
+
     if ($DeviceCACertificate) { $Params["-DeviceCACertificate"] = $DeviceCACertificate }
     if ($DeviceCAPrivateKey) { $Params["-DeviceCAPrivateKey"] = $DeviceCAPrivateKey }
     if ($DeviceTrustbundle) { $Params["-DeviceTrustbundle"] = $DeviceTrustbundle }
-    if ($ExternalProvisioningEndpoint) { $Params["-ExternalProvisioningEndpoint"] = $ExternalProvisioningEndpoint }
     if ($AgentImage) { $Params["-AgentImage"] = $AgentImage }
     if ($Username) { $Params["-Username"] = $Username }
     if ($Password) { $Params["-Password"] = $Password }
-
+    $Params["-DynamicReprovisioning"] = $DynamicReprovisioning
+    
     # Used to suppress some messages from Initialize-IoTEdge that have already been emitted by Deploy-IoTEdge
     $initializeCalledFromInstall = $true
 
@@ -709,6 +908,8 @@ function Get-IoTEdgeLog {
         [DateTime] $StartTime = [datetime]::Now.AddMinutes(-5)
     )
 
+    Set-StrictMode -Version 5
+
     Get-WinEvent -ea SilentlyContinue -FilterHashtable @{ProviderName='iotedged';LogName='application';StartTime=$StartTime} |
         Select TimeCreated, Message |
         Sort-Object @{Expression='TimeCreated';Descending=$false} |
@@ -722,7 +923,6 @@ function Install-Packages(
         [HashTable] $InvokeWebRequestParameters,
         [Switch] $RestartIfNeeded,
         [Switch] $Update,
-        [Switch] $SkipArchCheck,
         [Switch] $SkipBatteryCheck
     )
 {
@@ -746,7 +946,7 @@ function Install-Packages(
 
         if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
             Write-HostRed
-            Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
+            Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
             throw
         }
 
@@ -760,7 +960,7 @@ function Install-Packages(
         if (Test-EdgeAlreadyInstalled) {
             if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
                 Write-HostRed
-                Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
+                Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
             }
             else {
                 Write-HostRed
@@ -773,8 +973,7 @@ function Install-Packages(
         if (Test-MobyAlreadyInstalled) {
             if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
                 Write-HostRed
-                Write-HostRed ('IoT Edge Moby Engine is installed in an invalid location. ' +
-                    $ReinstallMessage)
+                Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
             }
             else {
                 Write-HostRed
@@ -785,7 +984,7 @@ function Install-Packages(
         }
     }
 
-    Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck:$SkipArchCheck -SkipBatteryCheck:$SkipBatteryCheck
+    Setup-Environment -ContainerOs $ContainerOs -SkipBatteryCheck:$SkipBatteryCheck
 
     $restartNeeded = $false
 
@@ -799,8 +998,8 @@ function Install-Packages(
                 }
             }
         }
-        Get-VcRuntime
     }
+    Get-VcRuntime # does nothing if vcruntime already installed
 
     # Download
     Get-IoTEdge -RestartNeeded ([ref] $restartNeeded) -Update $Update
@@ -833,7 +1032,7 @@ function Install-Packages(
 
 function Setup-Environment {
     [CmdletBinding()]
-    param ([string] $ContainerOs, [switch] $SkipArchCheck, [switch] $SkipBatteryCheck)
+    param ([string] $ContainerOs, [switch] $SkipBatteryCheck)
 
     $currentWindowsBuild = Get-WindowsBuild
     $preRequisitesMet = switch ($ContainerOs) {
@@ -870,12 +1069,6 @@ function Setup-Environment {
                 $true
             }
         }
-    }
-
-    if ((-not $SkipArchCheck) -and ($env:PROCESSOR_ARCHITECTURE -eq 'ARM')) {
-        Write-HostRed ('IoT Edge is currently not supported on Windows ARM32. ' +
-            'See https://aka.ms/iotedge-platsup for more details.')
-        $preRequisitesMet = $false
     }
 
     if (Test-IoTCore) {
@@ -1141,9 +1334,18 @@ function Get-IoTEdge([ref] $RestartNeeded, [bool] $Update) {
             Invoke-Native 'ApplyUpdate -clear'
         }
 
+        $edgeCabUrl = switch ($env:PROCESSOR_ARCHITECTURE) {
+            'AMD64' {
+                'https://aka.ms/iotedged-windows-latest-cab'
+            }
+            'ARM' {
+                'https://aka.ms/iotedged-windows-arm32v7-latest-cab'
+            }
+        }
+
         $edgeArchivePath = Download-File `
             -Description 'IoT Edge' `
-            -Url 'https://aka.ms/iotedged-windows-latest-cab' `
+            -Url $edgeCabUrl `
             -DownloadFilename 'microsoft-azure-iotedge.cab' `
             -LocalCacheGlob 'microsoft-azure-iotedge.cab' `
             -Delete ([ref] $deleteEdgeArchive)
@@ -1152,21 +1354,6 @@ function Get-IoTEdge([ref] $RestartNeeded, [bool] $Update) {
         Install-Package -Path $edgeArchivePath -RestartNeeded $RestartNeeded
         if (-not $Update) {
             Stop-Service $EdgeServiceName -ErrorAction SilentlyContinue
-
-            foreach ($name in 'mgmt', 'workload') {
-                # We can't bind socket files directly in Windows, so create a folder
-                # and bind to that. The folder needs to give Modify rights to a
-                # well-known group that will exist in any container so that
-                # non-privileged modules can access it.
-                $path = "$EdgeDataDirectory\$name"
-                New-Item $Path -ItemType Directory -Force | Out-Null
-                $sid = New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-11' # NT AUTHORITY\Authenticated Users
-                $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
-                    $sid, 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
-                $acl = Get-Acl -Path $path
-                $acl.AddAccessRule($rule)
-                Set-Acl -Path $path -AclObject $acl
-            }
         }
     }
     finally {
@@ -1401,13 +1588,17 @@ function Reset-SystemPath {
     Write-Verbose 'Removed IoT Edge directories from system PATH'
 }
 
+function Test-VcRuntimePresent {
+    return Test-Path 'C:\Windows\System32\vcruntime140.dll'
+}
+
 function Get-VcRuntime {
     if (Test-IotCore) {
         Write-HostGreen 'Skipping VC Runtime installation on IoT Core.'
         return
     }
 
-    if (Test-Path 'C:\Windows\System32\vcruntime140.dll') {
+    if (Test-VcRuntimePresent) {
         Write-HostGreen 'Skipping VC Runtime installation because it is already installed.'
         return
     }
@@ -1453,10 +1644,10 @@ function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
         Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $EdgeServiceName
         if ($?) {
             Start-Sleep -Seconds 7
-            Write-Verbose 'Stopped the IoT Edge service'
+            Write-Verbose "Stopped the IoT Edge service $EdgeServiceName"
         }
         else {
-            Write-Verbose "$cmdErr"
+            Write-Verbose "Stopping IoT Edge service $EdgeServiceName failed. Error: $cmdErr"
         }
     }
 
@@ -1466,10 +1657,10 @@ function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
         Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $MobyServiceName
         if ($?) {
             Start-Sleep -Seconds 7
-            Write-Verbose 'Stopped the IoT Edge Moby Engine service'
+            Write-Verbose "Stopped the IoT Edge Moby Engine service $MobyServiceName"
         }
         else {
-            Write-Verbose "$cmdErr"
+            Write-Verbose "Stopping IoT Edge Moby Engine service $MobyServiceName failed. Error: $cmdErr"
         }
     }
 
@@ -1486,6 +1677,7 @@ function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
         }
     }
     else {
+        Write-Verbose 'Uninstalling IoT Edge package.'
         Uninstall-Package -Name $EdgePackage -RestartNeeded $RestartNeeded
     }
 }
@@ -1540,66 +1732,94 @@ function Validate-GatewaySettings {
 }
 
 function Get-DpsProvisioningSettings {
-    $idCertFilesProvided = $false
-    $attestationMethod = 'tpm' # default
-    if ($SymmetricKey) {
+    $attestationMethod = ''
+    if ($DpsTpm) {
+        $attestationMethod = 'tpm'
+    }
+    elseif ($DpsSymmetricKey) {
         $attestationMethod = 'symmetric_key'
     }
-    elseif ($X509IdentityCertificate -or $X509IdentityPrivateKey) {
+    elseif ($DpsX509) {
         $attestationMethod = 'x509'
-        $idCertFilesProvided = $true
-    }
-
-    if ($idCertFilesProvided) {
-        if ($RegistrationId) {
-            Write-HostYellow 'NOTE: RegistrationId is strictly not required for this DPS provisioning mode as it can be obtained from the identity certificate'
-        }
     }
     else {
-        if (-not $RegistrationId) {
-            Write-HostRed
-            Write-HostRed "RegistrationId is required for this DPS provisioning mode."
-            throw
-        }
-    }
-
-    if ($attestationMethod -eq 'x509') {
-        if (-Not (Test-Path -Path $X509IdentityCertificate)) {
-            Write-HostRed
-            Write-HostRed "Identity certificate file $X509IdentityCertificate not found."
-            throw
-        }
-        if (-Not (Test-Path -Path $X509IdentityPrivateKey)) {
-            Write-HostRed
-            Write-HostRed "Identity private file $X509IdentityPrivateKey not found."
-            throw
-        }
+        Write-HostRed
+        Write-HostRed ('Unsupported DPS attestation mechanism. Please re-run Initialize-IoTEdge or Install-IoTEdge with the correct parameters.')
+        throw
     }
 
     return $attestationMethod
+}
+
+function Get-ManualAuthSettings {
+    $authenticationMethod = ''
+
+    if ($ManualConnectionString) {
+        $authenticationMethod = 'device_connection_string'
+    }
+    elseif ($ManualX509) {
+        $authenticationMethod = 'x509'
+    }
+    else {
+        Write-HostRed
+        Write-HostRed ('Unsupported manual authentication mechanism. Please re-run Initialize-IoTEdge or Install-IoTEdge with the correct parameters.')
+        throw
+    }
+
+    return $authenticationMethod
 }
 
 function Set-ProvisioningMode {
     Update-ConfigYaml({
         param($configurationYaml)
 
-        if ($Manual -or $DeviceConnectionString) {
-            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"'
-            $replacementContent = @(
-                'provisioning:',
-                '  source: ''manual''',
-                "  device_connection_string: '$DeviceConnectionString'")
+        if ($DynamicReprovisioning) {
+            $DynamicReprovisioning = 'true'
+        }
+        else {
+            $DynamicReprovisioning = 'false'
+        }
+
+        if ($ManualConnectionString -or $ManualX509) {
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"\s*#?\s*dynamic_reprovisioning:\s*.*'
+            $authenticationMethod = Get-ManualAuthSettings
+            if ($authenticationMethod -eq 'device_connection_string') {
+                $replacementContent = @(
+                    'provisioning:',
+                    '  source: ''manual''',
+                    "  device_connection_string: '$DeviceConnectionString'",
+                    "  dynamic_reprovisioning: $DynamicReprovisioning")
+            } elseif ($authenticationMethod -eq 'x509') {
+                $certUri = ([System.Uri][System.IO.Path]::GetFullPath($X509IdentityCertificate)).AbsoluteUri
+                $pkUri = ([System.Uri][System.IO.Path]::GetFullPath($X509IdentityPrivateKey)).AbsoluteUri
+                $replacementContent = @(
+                    'provisioning:',
+                    '  source: ''manual''',
+                    '  authentication:',
+                    "    method: '$authenticationMethod'"
+                    "    iothub_hostname: '$IotHubHostName'"
+                    "    device_id: '$DeviceId'"
+                    "    identity_cert: '$certUri'"
+                    "    identity_pk: '$pkUri'",
+                    "  dynamic_reprovisioning: $DynamicReprovisioning")
+            }
             $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
             Write-HostGreen 'Configured device for manual provisioning.'
             return $configurationYaml
         }
         elseif ($External -or $ExternalProvisioningEndpoint){
-            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*endpoint:\s*".*"'
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*endpoint:\s*".*"\s*#?\s*dynamic_reprovisioning:\s*.*'
             $replacementContent = @(
                 'provisioning:',
                 '  source: ''external''',
-                "  endpoint: '$ExternalProvisioningEndpoint'")
+                "  endpoint: '$ExternalProvisioningEndpoint'",
+                "  dynamic_reprovisioning: $DynamicReprovisioning")
             $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
+
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"\s*#?\s*dynamic_reprovisioning:\s*.*'
+            $replacementContent = ''
+            $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
+
             Write-HostGreen 'Configured device for external provisioning.'
             return $configurationYaml
         }
@@ -1612,6 +1832,8 @@ function Set-ProvisioningMode {
             } elseif ($attestationMethod -eq 'x509') {
                 $selectionRegex += '\s*#?\s*identity_cert:\s".*"\s*#?\s*identity_pk:\s".*"'
             }
+
+            $selectionRegex += '\s*#?\s*dynamic_reprovisioning:\s*.*'
             $replacementContent = @(
                 'provisioning:',
                 '  source: ''dps''',
@@ -1633,9 +1855,11 @@ function Set-ProvisioningMode {
                 $uri = ([System.Uri][System.IO.Path]::GetFullPath($X509IdentityPrivateKey)).AbsoluteUri
                 $replacementContent += "    identity_pk: '$uri'"
             }
+
+            $replacementContent += "  dynamic_reprovisioning: $DynamicReprovisioning"
             $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
 
-            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"'
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"\s*#?\s*dynamic_reprovisioning:\s*.*'
             $replacementContent = ''
             $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
 
@@ -1725,15 +1949,17 @@ function Set-ListenConnectUri([string] $ManagementUri, [string] $WorkloadUri) {
     $env:IOTEDGE_HOST = $ManagementUri
 }
 
-function Set-GatewayAddress {
-    $gatewayAddress = (Get-NetIpAddress |
-            Where-Object {$_.InterfaceAlias -like '*vEthernet (DockerNAT)*' -and $_.AddressFamily -eq 'IPv4'}).IPAddress
+function Set-ListenConnectUriForLinuxContainers {
+    # "host.docker.internal" is a well-known address that maps to the Host from inside a container on Docker Desktop.
 
-    Set-ListenConnectUri `
-        -ManagementUri "http://${gatewayAddress}:15580" `
-        -WorkloadUri "http://${gatewayAddress}:15581"
+    $connectAddress = 'http://host.docker.internal'
+    $listenAddress = 'http://127.0.0.1'
 
-    Write-HostGreen "Configured device with gateway address '$gatewayAddress'."
+    Set-ConfigUri -Section 'connect' -ManagementUri "${connectAddress}:15580" -WorkloadUri "${connectAddress}:15581"
+    Set-ConfigUri -Section 'listen' -ManagementUri "${listenAddress}:15580" -WorkloadUri "${listenAddress}:15581" 
+
+    Set-MachineEnvironmentVariable 'IOTEDGE_HOST' "${listenAddress}:15580" 
+    $env:IOTEDGE_HOST = "${listenAddress}:15580"
 }
 
 function Set-CorrectProgramData {
@@ -1990,6 +2216,56 @@ function Download-File([string] $Description, [string] $Url, [string] $DownloadF
     return $result
 }
 
+<#
+.SYNOPSIS
+
+Import intermediate certificates into Windows certificate store.
+
+
+.INPUTS
+
+None
+
+
+.OUTPUTS
+
+None
+
+
+.EXAMPLE
+
+PS> Import-IntermediateCertChain $DeviceIdentityCertPath
+#>
+function Import-IntermediateCertChain ([string] $DeviceIdentityCertPath){ 
+    $certificateStore = New-Object System.Security.Cryptography.X509Certificates.X509Store ([System.Security.Cryptography.X509Certificates.StoreName]::CertificateAuthority, [System.Security.Cryptography.X509Certificates.StoreLocation]::LocalMachine)
+    $certificateStore.Open([System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite);
+
+    $certEnd = "END CERTIFICATE"
+    
+    $certs = New-Object System.Collections.ArrayList
+    $currentCert = New-Object System.Text.StringBuilder
+    foreach ($line in [System.IO.File]::ReadLines($DeviceIdentityCertPath)) {
+        if ($line -Match $certEnd){
+            [void]$currentCert.AppendLine($line)
+            [void]$certs.Add($currentCert.ToString())
+            [void]$currentCert.Clear()
+        }
+        else {
+            [void]$currentCert.AppendLine($line)
+        }
+    }
+
+    # Drop the first certificate and add all remaining to certificate store
+    $enc = [System.Text.Encoding]::UTF8
+    for ($i = 1; $i -lt $certs.Count; $i++){
+        $bytes = $enc.GetBytes($certs[$i])
+        $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 (,$bytes)
+        $certificateStore.Add($cert)
+    }
+
+    $certificateStore.Dispose()
+}
+
 New-Alias -Name Install-SecurityDaemon -Value Install-IoTEdge -Force
 New-Alias -Name Uninstall-SecurityDaemon -Value Uninstall-IoTEdge -Force
 
@@ -2000,6 +2276,7 @@ Export-ModuleMember `
         Get-IoTEdgeLog,
         Update-IoTEdge,
         Install-IoTEdge,
+        Import-IntermediateCertChain,
         Uninstall-IoTEdge `
     -Alias `
         Install-SecurityDaemon,

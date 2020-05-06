@@ -1,0 +1,4 @@
+{
+  "transportType": "amqp",
+  "outputName": "output1"
+}

@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using System.Net;
     using System.Net.Security;
     using System.Net.Sockets;
+    using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
@@ -44,6 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly IByteBufferAllocator byteBufferAllocator;
         readonly IProductInfoStore productInfoStore;
         readonly bool clientCertAuthAllowed;
+        readonly SslProtocols sslProtocols;
 
         IChannel serverChannel;
         IEventLoopGroup eventLoopGroup;
@@ -58,7 +60,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             IWebSocketListenerRegistry webSocketListenerRegistry,
             IByteBufferAllocator byteBufferAllocator,
             IProductInfoStore productInfoStore,
-            bool clientCertAuthAllowed)
+            bool clientCertAuthAllowed,
+            SslProtocols sslProtocols)
         {
             this.settingsProvider = Preconditions.CheckNotNull(settingsProvider, nameof(settingsProvider));
             this.tlsCertificate = Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate));
@@ -70,6 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.byteBufferAllocator = Preconditions.CheckNotNull(byteBufferAllocator);
             this.clientCertAuthAllowed = clientCertAuthAllowed;
             this.productInfoStore = Preconditions.CheckNotNull(productInfoStore, nameof(productInfoStore));
+            this.sslProtocols = sslProtocols;
         }
 
         public string Name => "MQTT";
@@ -153,7 +157,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                             // configure the channel pipeline of the new Channel by adding handlers
                             TlsSettings serverSettings = new ServerTlsSettings(
                                 certificate: this.tlsCertificate,
-                                negotiateClientCertificate: this.clientCertAuthAllowed);
+                                negotiateClientCertificate: this.clientCertAuthAllowed,
+                                checkCertificateRevocation: false,
+                                enabledProtocols: this.sslProtocols);
 
                             channel.Pipeline.AddLast(
                                 new TlsHandler(

@@ -1076,6 +1076,20 @@ BEGIN_TEST_SUITE(certificate_info_ut)
         //cleanup
     }
 
+    TEST_FUNCTION(get_utc_time_from_asn_string_success_test_y2038)
+    {
+        //arrange
+        time_t test_time;
+
+        //act
+        test_time = get_utc_time_from_asn_string((unsigned char*)"491231235959Z", 13);
+
+        //assert
+        ASSERT_ARE_EQUAL(int64_t, 2524607999, test_time);
+
+        //cleanup
+    }
+
     TEST_FUNCTION(get_common_name_NULL_param_fails)
     {
         //arrange

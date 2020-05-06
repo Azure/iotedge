@@ -6,97 +6,91 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using System.Collections.Generic;
     using System.IO;
     using System.Runtime.InteropServices;
-    using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Configuration;
-    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
 
-    public class CombinedKubernetesConfigProvider : CombinedDockerConfigProvider
+    public class CombinedKubernetesConfigProvider : ICombinedConfigProvider<CombinedKubernetesConfig>
     {
-        readonly IConfigSource configSource;
+        const string CmdKey = "Cmd";
+        const string EntrypointKey = "Entrypoint";
+        const string WorkingDirKey = "WorkingDir";
 
-        public CombinedKubernetesConfigProvider(IEnumerable<AuthConfig> authConfigs, IConfigSource configSource)
-            : base(authConfigs)
+        readonly CombinedDockerConfigProvider dockerConfigProvider;
+        readonly Uri workloadUri;
+        readonly Uri managementUri;
+        readonly bool enableKubernetesExtensions;
+
+        public CombinedKubernetesConfigProvider(
+            IEnumerable<global::Docker.DotNet.Models.AuthConfig> authConfigs,
+            Uri workloadUri,
+            Uri managementUri,
+            bool enableKubernetesExtensions)
         {
-            this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
+            this.dockerConfigProvider = new CombinedDockerConfigProvider(authConfigs);
+            this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
+            this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
+            this.enableKubernetesExtensions = enableKubernetesExtensions;
         }
 
-        static CreateContainerParameters CloneOrCreateParams(CreateContainerParameters createOptions) =>
-            createOptions != null
-            ? JsonConvert.DeserializeObject<CreateContainerParameters>(JsonConvert.SerializeObject(createOptions))
-            : new CreateContainerParameters();
-
-        public override CombinedDockerConfig GetCombinedConfig(IModule module, IRuntimeInfo runtimeInfo)
+        public CombinedKubernetesConfig GetCombinedConfig(IModule module, IRuntimeInfo runtimeInfo)
         {
-            CombinedDockerConfig combinedConfig = base.GetCombinedConfig(module, runtimeInfo);
+            CombinedDockerConfig dockerConfig = this.dockerConfigProvider.GetCombinedConfig(module, runtimeInfo);
 
             // if the workload URI is a Unix domain socket then volume mount it into the container
-            CreateContainerParameters createOptions = CloneOrCreateParams(combinedConfig.CreateOptions);
-            this.MountSockets(module, createOptions);
-            this.InjectNetworkAliases(module, createOptions);
+            HostConfig hostConfig = this.AddSocketBinds(module, Option.Maybe(dockerConfig.CreateOptions.HostConfig));
 
-            return new CombinedDockerConfig(combinedConfig.Image, createOptions, combinedConfig.AuthConfig);
-        }
+            CreatePodParameters createOptions = new CreatePodParameters(
+                dockerConfig.CreateOptions.Env,
+                dockerConfig.CreateOptions.ExposedPorts,
+                hostConfig,
+                dockerConfig.CreateOptions.Image,
+                dockerConfig.CreateOptions.Labels,
+                GetPropertiesStringArray(CmdKey, dockerConfig.CreateOptions.OtherProperties),
+                GetPropertiesStringArray(EntrypointKey, dockerConfig.CreateOptions.OtherProperties),
+                GetPropertiesString(WorkingDirKey, dockerConfig.CreateOptions.OtherProperties));
 
-        void InjectNetworkAliases(IModule module, CreateContainerParameters createOptions)
-        {
-            if (createOptions.NetworkingConfig?.EndpointsConfig == null)
+            if (this.enableKubernetesExtensions)
             {
-                string networkId = this.configSource.Configuration.GetValue<string>(Core.Constants.NetworkIdKey);
-                string edgeDeviceHostName = this.configSource.Configuration.GetValue<string>(Core.Constants.EdgeDeviceHostNameKey);
-
-                if (!string.IsNullOrWhiteSpace(networkId))
-                {
-                    var endpointSettings = new EndpointSettings();
-                    if (module.Name.Equals(Core.Constants.EdgeHubModuleName, StringComparison.OrdinalIgnoreCase)
-                        && !string.IsNullOrWhiteSpace(edgeDeviceHostName))
-                    {
-                        endpointSettings.Aliases = new List<string>
-                        {
-                            edgeDeviceHostName
-                        };
-                    }
-
-                    IDictionary<string, EndpointSettings> endpointsConfig = new Dictionary<string, EndpointSettings>
-                    {
-                        [networkId] = endpointSettings
-                    };
-                    createOptions.NetworkingConfig = new NetworkingConfig
-                    {
-                        EndpointsConfig = endpointsConfig
-                    };
-                }
+                Option<KubernetesExperimentalCreatePodParameters> experimentalOptions = KubernetesExperimentalCreatePodParameters.Parse(dockerConfig.CreateOptions.OtherProperties);
+                experimentalOptions.ForEach(parameters => createOptions.Volumes = parameters.Volumes);
+                experimentalOptions.ForEach(parameters => createOptions.NodeSelector = parameters.NodeSelector);
+                experimentalOptions.ForEach(parameters => createOptions.Resources = parameters.Resources);
+                experimentalOptions.ForEach(parameters => createOptions.SecurityContext = parameters.SecurityContext);
+                experimentalOptions.ForEach(parameters => createOptions.DeploymentStrategy = parameters.DeploymentStrategy);
             }
+
+            Option<ImagePullSecret> imagePullSecret = dockerConfig.AuthConfig
+                .Map(auth => new ImagePullSecret(auth));
+
+            return new CombinedKubernetesConfig(dockerConfig.Image, createOptions, imagePullSecret);
         }
 
-        void MountSockets(IModule module, CreateContainerParameters createOptions)
+        HostConfig AddSocketBinds(IModule module, Option<HostConfig> dockerHostConfig)
         {
-            var workloadUri = new Uri(this.configSource.Configuration.GetValue<string>(Core.Constants.EdgeletWorkloadUriVariableName));
-            if (string.Equals(workloadUri.Scheme, "unix", StringComparison.OrdinalIgnoreCase))
+            Option<HostConfig> hostConfig = dockerHostConfig;
+
+            // If Workload URI is Unix domain socket, and the module is the EdgeAgent, then mount it ino the container.
+            if (string.Equals(this.workloadUri.Scheme, "unix", StringComparison.OrdinalIgnoreCase))
             {
-                SetMountOptions(createOptions, workloadUri);
+                string path = BindPath(this.workloadUri);
+                hostConfig = hostConfig.Else(() => Option.Some(new HostConfig { Binds = new List<string>() }));
+                hostConfig.ForEach(config => config.Binds.Add($"{path}:{path}"));
             }
 
             // If Management URI is Unix domain socket, and the module is the EdgeAgent, then mount it ino the container.
-            var managementUri = new Uri(this.configSource.Configuration.GetValue<string>(Core.Constants.EdgeletManagementUriVariableName));
-            if (string.Equals(managementUri.Scheme, "unix", StringComparison.OrdinalIgnoreCase)
+            if (string.Equals(this.managementUri.Scheme, "unix", StringComparison.OrdinalIgnoreCase)
                 && module.Name.Equals(Core.Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase))
             {
-                SetMountOptions(createOptions, managementUri);
+                string path = BindPath(this.managementUri);
+                hostConfig = hostConfig.Else(() => Option.Some(new HostConfig { Binds = new List<string>() }));
+                hostConfig.ForEach(config => config.Binds.Add($"{path}:{path}"));
             }
-        }
 
-        static void SetMountOptions(CreateContainerParameters createOptions, Uri uri)
-        {
-            HostConfig hostConfig = createOptions.HostConfig ?? new HostConfig();
-            IList<string> binds = hostConfig.Binds ?? new List<string>();
-            string path = BindPath(uri);
-            binds.Add($"{path}:{path}");
-
-            hostConfig.Binds = binds;
-            createOptions.HostConfig = hostConfig;
+            return hostConfig.OrDefault();
         }
 
         static string BindPath(Uri uri)
@@ -107,5 +101,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 ? Path.GetDirectoryName(uri.LocalPath)
                 : uri.AbsolutePath;
         }
+
+        static IReadOnlyList<string> GetPropertiesStringArray(string key, IDictionary<string, JToken> other) =>
+            Option.Maybe(other).FlatMap(options => options.Get(key).FlatMap(option => Option.Maybe(option.ToObject<IReadOnlyList<string>>()))).OrDefault();
+
+        static string GetPropertiesString(string key, IDictionary<string, JToken> other) =>
+            Option.Maybe(other).FlatMap(options => options.Get(key).FlatMap(option => Option.Maybe(option.ToObject<string>()))).OrDefault();
     }
 }

@@ -5,12 +5,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
     using System.Collections.Generic;
     using System.IO;
     using System.Runtime.InteropServices;
-    using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
+    using AuthConfig = global::Docker.DotNet.Models.AuthConfig;
 
     public class CombinedEdgeletConfigProvider : CombinedDockerConfigProvider
     {
@@ -33,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             this.MountSockets(module, createOptions);
             this.InjectNetworkAliases(module, createOptions);
 
-            return new CombinedDockerConfig(combinedConfig.Image, createOptions, combinedConfig.AuthConfig);
+            return new CombinedDockerConfig(combinedConfig.Image, createOptions, combinedConfig.NotaryContentTrust, combinedConfig.AuthConfig);
         }
 
         static CreateContainerParameters CloneOrCreateParams(CreateContainerParameters createOptions) =>

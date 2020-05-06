@@ -4,10 +4,12 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::default_trait_access,
+    clippy::doc_markdown, // clippy wants the "IoT" of "IoT Hub" in a code fence
+    clippy::missing_errors_doc,
     clippy::module_name_repetitions,
-    clippy::use_self,
-    // clippy want the "IoT" of "IoT Hub" in a code fence
-    clippy::doc_markdown
+    clippy::must_use_candidate,
+    clippy::too_many_lines,
+    clippy::use_self
 )]
 
 mod error;
@@ -103,7 +105,10 @@ pub fn append_dns_san_entries(sans: &str, names: &[&str]) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{
+        append_dns_san_entries, parse_query, prepare_cert_uri_module, prepare_dns_san_entries,
+        sanitize_dns_label, DNS_MAX_SIZE,
+    };
 
     #[test]
     fn parse_query_empty_input() {

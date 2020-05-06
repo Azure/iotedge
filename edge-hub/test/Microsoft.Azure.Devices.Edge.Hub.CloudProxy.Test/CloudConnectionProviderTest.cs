@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
+    using TransportType = Microsoft.Azure.Devices.Client.TransportType;
 
     [Unit]
     public class CloudConnectionProviderTest
@@ -43,11 +44,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                         AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
                         {
                             Pooling = true,
-                            MaxPoolSize = 20,
-                            ConnectionIdleTimeout = TimeSpan.FromSeconds(5)
-                        }
+                            MaxPoolSize = 20
+                        },
+                        IdleTimeout = TimeSpan.FromSeconds(0)
                     }
-                }
+                },
+                false
             };
 
             yield return new object[]
@@ -62,12 +64,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                         AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
                         {
                             Pooling = true,
-                            MaxPoolSize = 30,
-                            ConnectionIdleTimeout = TimeSpan.FromSeconds(5)
+                            MaxPoolSize = 30
                         },
-                        Proxy = new WebProxy(ProxyUri)
+                        Proxy = new WebProxy(ProxyUri),
+                        IdleTimeout = TimeSpan.FromSeconds(60)
                     }
-                }
+                },
+                true
             };
 
             yield return new object[]
@@ -82,12 +85,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                         AmqpConnectionPoolSettings = new AmqpConnectionPoolSettings
                         {
                             Pooling = true,
-                            MaxPoolSize = 50,
-                            ConnectionIdleTimeout = TimeSpan.FromSeconds(5)
+                            MaxPoolSize = 50
                         },
                         Proxy = new WebProxy(ProxyUri)
                     }
-                }
+                },
+                false
             };
 
             yield return new object[]
@@ -101,7 +104,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                     {
                         Proxy = new WebProxy(ProxyUri)
                     }
-                }
+                },
+                false
             };
 
             yield return new object[]
@@ -115,7 +119,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                     {
                         Proxy = new WebProxy(ProxyUri)
                     }
-                }
+                },
+                true
             };
         }
 
@@ -137,6 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
+                false,
                 Option.None<IWebProxy>(),
                 productInfoStore);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
@@ -180,6 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
+                false,
                 Option.None<IWebProxy>(),
                 productInfoStore);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
@@ -219,6 +226,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
+                false,
                 Option.None<IWebProxy>(),
                 productInfoStore);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
@@ -261,6 +269,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
+                false,
                 Option.None<IWebProxy>(),
                 productInfoStore);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
@@ -303,6 +312,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
+                false,
                 Option.None<IWebProxy>(),
                 productInfoStore);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
@@ -319,9 +329,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
         [Theory]
         [MemberData(nameof(UpstreamProtocolTransportSettingsData))]
-        public void GetTransportSettingsTest(Option<UpstreamProtocol> upstreamProtocol, int connectionPoolSize, Option<IWebProxy> proxy, ITransportSettings[] expectedTransportSettingsList)
+        public void GetTransportSettingsTest(Option<UpstreamProtocol> upstreamProtocol, int connectionPoolSize, Option<IWebProxy> proxy, ITransportSettings[] expectedTransportSettingsList, bool useServerHeartbeat)
         {
-            ITransportSettings[] transportSettingsList = CloudConnectionProvider.GetTransportSettings(upstreamProtocol, connectionPoolSize, proxy);
+            ITransportSettings[] transportSettingsList = CloudConnectionProvider.GetTransportSettings(upstreamProtocol, connectionPoolSize, proxy, useServerHeartbeat);
 
             Assert.NotNull(transportSettingsList);
             Assert.Equal(expectedTransportSettingsList.Length, transportSettingsList.Length);

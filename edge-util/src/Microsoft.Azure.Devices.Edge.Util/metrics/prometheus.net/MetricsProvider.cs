@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
 {
+    using System;
     using System.Collections.Generic;
     using System.Globalization;
     using System.IO;
@@ -20,7 +21,15 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
             this.namePrefix = Preconditions.CheckNonWhiteSpace(namePrefix, nameof(namePrefix));
             Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            this.defaultLabelNames = new List<string> { iotHubName, deviceId };
+            this.defaultLabelNames = new List<string> { iotHubName, deviceId, Guid.NewGuid().ToString() };
+
+            // TODO:
+            // By default, the Prometheus.Net library emits some default metrics.
+            // While useful, these are emitted without any tags. This will make it hard to
+            // consume and make sense of these metrics. So suppressing the default metrics for
+            // now. We can look at ways to add tags to the default metrics, or emiting the
+            // metrics manually.
+            Metrics.SuppressDefaultMetrics();
         }
 
         public IMetricsGauge CreateGauge(string name, string description, List<string> labelNames)
@@ -47,6 +56,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
             }
         }
 
+        internal CollectorRegistry DefaultRegistry => Metrics.DefaultRegistry;
+
         string GetCounterName(string name) => string.Format(CultureInfo.InvariantCulture, CounterNameFormat, this.namePrefix, name);
 
         string GetName(string name) => string.Format(CultureInfo.InvariantCulture, NameFormat, this.namePrefix, name);
@@ -56,7 +67,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
             var allLabelNames = new List<string>
             {
                 MetricsConstants.IotHubLabel,
-                MetricsConstants.DeviceIdLabel
+                MetricsConstants.DeviceIdLabel,
+                "instance_number"
             };
             allLabelNames.AddRange(labelNames);
             return allLabelNames;

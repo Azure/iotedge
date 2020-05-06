@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Threading;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using RocksDbSharp;
@@ -71,6 +72,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             }
         }
 
+        public Task CloseAsync()
+        {
+            // No-op.
+            return Task.CompletedTask;
+        }
+
         public void Dispose()
         {
             this.Dispose(true);
@@ -98,6 +105,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
                 }
             }
         }
+
+        public void RemoveDbStore() => this.RemoveDbStore(DefaultPartitionName);
 
         static class Events
         {

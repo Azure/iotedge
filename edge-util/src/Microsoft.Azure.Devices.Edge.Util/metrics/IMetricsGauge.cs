@@ -3,6 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
 {
     public interface IMetricsGauge
     {
-        void Set(long value, string[] labelValues);
+        void Set(double value, string[] labelValues);
     }
 }

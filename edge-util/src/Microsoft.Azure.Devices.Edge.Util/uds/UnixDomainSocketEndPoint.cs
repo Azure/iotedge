@@ -11,17 +11,17 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
     {
         const AddressFamily EndPointAddressFamily = AddressFamily.Unix;
 
-        static readonly Encoding s_pathEncoding = Encoding.UTF8;
+        static readonly Encoding PathEncoding = Encoding.UTF8;
 
-        static readonly int s_nativePathOffset = 2; // = offsetof(struct sockaddr_un, sun_path). It's the same on Linux and OSX
+        static readonly int NativePathOffset = 2; // = offsetof(struct sockaddr_un, sun_path). It's the same on Linux and OSX
 
-        static readonly int s_nativePathLength = 91; // sockaddr_un.sun_path at http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/sys_un.h.html, -1 for terminator
+        static readonly int NativePathLength = 91; // sockaddr_un.sun_path at http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/sys_un.h.html, -1 for terminator
 
-        static readonly int s_nativeAddressSize = s_nativePathOffset + s_nativePathLength;
+        static readonly int NativeAddressSize = NativePathOffset + NativePathLength;
 
-        readonly string _path;
+        readonly string path;
 
-        readonly byte[] _encodedPath;
+        readonly byte[] encodedPath;
 
         public UnixDomainSocketEndPoint(string path)
         {
@@ -30,10 +30,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
                 throw new ArgumentNullException(nameof(path));
             }
 
-            this._path = path;
-            this._encodedPath = s_pathEncoding.GetBytes(this._path);
+            this.path = path;
+            this.encodedPath = PathEncoding.GetBytes(this.path);
 
-            if (path.Length == 0 || this._encodedPath.Length > s_nativePathLength)
+            if (path.Length == 0 || this.encodedPath.Length > NativePathLength)
             {
                 throw new ArgumentOutOfRangeException(nameof(path), path);
             }
@@ -47,25 +47,25 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
             }
 
             if (socketAddress.Family != EndPointAddressFamily ||
-                socketAddress.Size > s_nativeAddressSize)
+                socketAddress.Size > NativeAddressSize)
             {
                 throw new ArgumentOutOfRangeException(nameof(socketAddress));
             }
 
-            if (socketAddress.Size > s_nativePathOffset)
+            if (socketAddress.Size > NativePathOffset)
             {
-                this._encodedPath = new byte[socketAddress.Size - s_nativePathOffset];
-                for (int i = 0; i < this._encodedPath.Length; i++)
+                this.encodedPath = new byte[socketAddress.Size - NativePathOffset];
+                for (int i = 0; i < this.encodedPath.Length; i++)
                 {
-                    this._encodedPath[i] = socketAddress[s_nativePathOffset + i];
+                    this.encodedPath[i] = socketAddress[NativePathOffset + i];
                 }
 
-                this._path = s_pathEncoding.GetString(this._encodedPath, 0, this._encodedPath.Length);
+                this.path = PathEncoding.GetString(this.encodedPath, 0, this.encodedPath.Length);
             }
             else
             {
-                this._encodedPath = Array.Empty<byte>();
-                this._path = string.Empty;
+                this.encodedPath = Array.Empty<byte>();
+                this.path = string.Empty;
             }
         }
 
@@ -73,21 +73,21 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
 
         public override SocketAddress Serialize()
         {
-            var result = new SocketAddress(AddressFamily.Unix, s_nativeAddressSize);
-            Debug.Assert(this._encodedPath.Length + s_nativePathOffset <= result.Size, "Expected path to fit in address");
+            var result = new SocketAddress(AddressFamily.Unix, NativeAddressSize);
+            Debug.Assert(this.encodedPath.Length + NativePathOffset <= result.Size, "Expected path to fit in address");
 
-            for (int index = 0; index < this._encodedPath.Length; index++)
+            for (int index = 0; index < this.encodedPath.Length; index++)
             {
-                result[s_nativePathOffset + index] = this._encodedPath[index];
+                result[NativePathOffset + index] = this.encodedPath[index];
             }
 
-            result[s_nativePathOffset + this._encodedPath.Length] = 0; // path must be null-terminated
+            result[NativePathOffset + this.encodedPath.Length] = 0; // path must be null-terminated
 
             return result;
         }
 
         public override EndPoint Create(SocketAddress socketAddress) => new UnixDomainSocketEndPoint(socketAddress);
 
-        public override string ToString() => this._path;
+        public override string ToString() => this.path;
     }
 }

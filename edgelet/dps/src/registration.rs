@@ -3,7 +3,6 @@
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
-use base64;
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use failure::{Fail, ResultExt};
@@ -12,7 +11,6 @@ use futures::{future, Future};
 use hyper::{Method, StatusCode};
 use log::{debug, info};
 use percent_encoding::{define_encode_set, percent_encode, PATH_SEGMENT_ENCODE_SET};
-use serde_json;
 use tokio::prelude::*;
 use tokio::timer::Interval;
 use url::form_urlencoded::Serializer as UrlSerializer;
@@ -351,7 +349,7 @@ where
                         Method::PUT,
                         &format!("{}/registrations/{}/register", scope_id, registration_id),
                         None,
-                        Some(registration.clone()),
+                        Some(registration),
                         false,
                     )
                     .map_err(|err| {
@@ -512,7 +510,7 @@ where
                             Ok(None)
                         } else {
                             match key_store.get(&KeyIdentity::Device, "primary") {
-                                Ok(id_key) => Ok(Some(id_key.clone())),
+                                Ok(id_key) => Ok(Some(id_key)),
                                 Err(_err) => Err(()),
                             }
                         };
@@ -521,7 +519,7 @@ where
                                 let ts = if let Some(k) = tk {
                                     Some(DpsTokenSource::new(
                                         scope_id.to_string(),
-                                        registration_id.clone().to_string(),
+                                        registration_id.clone(),
                                         k,
                                     ))
                                 } else {
@@ -593,13 +591,14 @@ mod tests {
     use std::sync::Mutex;
 
     use edgelet_core::crypto::{MemoryKey, MemoryKeyStore};
-    use http;
     use hyper::{self, Body, Request, Response, StatusCode};
-    use serde_json;
-    use tokio;
     use url::Url;
 
-    use super::*;
+    use super::{
+        future, get_device_info, stream, Activate, Arc, Async, Bytes, Client,
+        DeviceRegistrationResult, DpsAuthKind, DpsClient, DpsTokenSource, Error, ErrorKind, Future,
+        KeyIdentity, Method, RegistrationOperationStatus, RwLock, Stream, TpmRegistrationResult,
+    };
     use crate::DPS_API_VERSION;
 
     #[test]
@@ -1137,8 +1136,7 @@ mod tests {
                 "scope_id".to_string(),
                 "reg".to_string(),
                 key.clone(),
-            ))
-            .clone(),
+            )),
         ));
         let token_source = DpsTokenSource::new("scope_id".to_string(), "reg".to_string(), key);
         let dps_operation = DpsClient::<_, _, MemoryKeyStore>::get_device_registration_result(
@@ -1181,8 +1179,7 @@ mod tests {
                 "scope_id".to_string(),
                 "reg".to_string(),
                 key.clone(),
-            ))
-            .clone(),
+            )),
         ));
         let token_source = DpsTokenSource::new("scope_id".to_string(), "reg".to_string(), key);
         let dps_operation = DpsClient::<_, _, MemoryKeyStore>::get_device_registration_result(
@@ -1271,7 +1268,7 @@ mod tests {
         let key = MemoryKey::new("key".to_string());
         let token_source = DpsTokenSource::new("scope_id".to_string(), "reg".to_string(), key);
         let dps_operation = DpsClient::<_, _, MemoryKeyStore>::get_operation_status(
-            &Arc::new(RwLock::new(client.clone())),
+            &Arc::new(RwLock::new(client)),
             "scope_id",
             "reg",
             "operation",

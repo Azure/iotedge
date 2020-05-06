@@ -2,7 +2,10 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::doc_markdown,
+    clippy::missing_errors_doc,
     clippy::module_name_repetitions,
+    clippy::must_use_candidate,
+    clippy::too_many_lines,
     clippy::use_self
 )]
 
@@ -316,7 +319,7 @@ fn deserialize_timestamp(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{query, Error, SntpTimeQueryResult};
 
     #[test]
     fn it_works() -> Result<(), Error> {

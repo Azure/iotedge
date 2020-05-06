@@ -21,6 +21,12 @@ pub struct DeviceProvisioningInfo {
     device_id: String,
     #[serde(rename = "credentials")]
     credentials: crate::models::Credentials,
+    /// The registration/provisioning status of the device in IoT hub.
+    #[serde(rename = "status", skip_serializing_if = "Option::is_none")]
+    status: Option<String>,
+    /// The registration/provisioning sub-status of 'assigned' devices in IoT hub.
+    #[serde(rename = "substatus", skip_serializing_if = "Option::is_none")]
+    substatus: Option<String>,
 }
 
 impl DeviceProvisioningInfo {
@@ -33,6 +39,8 @@ impl DeviceProvisioningInfo {
             hub_name,
             device_id,
             credentials,
+            status: None,
+            substatus: None,
         }
     }
 
@@ -76,5 +84,39 @@ impl DeviceProvisioningInfo {
 
     pub fn credentials(&self) -> &crate::models::Credentials {
         &self.credentials
+    }
+
+    pub fn set_status(&mut self, status: String) {
+        self.status = Some(status);
+    }
+
+    pub fn with_status(mut self, status: String) -> DeviceProvisioningInfo {
+        self.status = Some(status);
+        self
+    }
+
+    pub fn status(&self) -> Option<&str> {
+        self.status.as_ref().map(AsRef::as_ref)
+    }
+
+    pub fn reset_status(&mut self) {
+        self.status = None;
+    }
+
+    pub fn set_substatus(&mut self, substatus: String) {
+        self.substatus = Some(substatus);
+    }
+
+    pub fn with_substatus(mut self, substatus: String) -> DeviceProvisioningInfo {
+        self.substatus = Some(substatus);
+        self
+    }
+
+    pub fn substatus(&self) -> Option<&str> {
+        self.substatus.as_ref().map(AsRef::as_ref)
+    }
+
+    pub fn reset_substatus(&mut self) {
+        self.substatus = None;
     }
 }

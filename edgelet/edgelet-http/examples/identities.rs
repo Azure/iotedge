@@ -10,8 +10,7 @@ use hyper::{Body, Request, Response, StatusCode};
 
 use edgelet_hsm::Crypto;
 use edgelet_http::route::{Builder, Parameters, RegexRoutesBuilder, Router};
-use edgelet_http::CertificateManager;
-use edgelet_http::{Error as HttpError, HyperExt, Version};
+use edgelet_http::{Error as HttpError, HyperExt, TlsAcceptorParams, Version};
 
 #[allow(clippy::needless_pass_by_value)]
 fn index(
@@ -95,7 +94,7 @@ fn main() {
 
     println!("Starting server on {}", addr);
     let run = Http::new()
-        .bind_url(addr, router, None::<&CertificateManager<Crypto>>)
+        .bind_url(addr, router, None::<TlsAcceptorParams<'_, Crypto>>)
         .unwrap()
         .run();
 

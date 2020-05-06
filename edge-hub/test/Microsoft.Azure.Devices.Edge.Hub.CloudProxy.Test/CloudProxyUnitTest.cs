@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -35,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var cloudListener = new Mock<ICloudListener>();
             TimeSpan idleTimeout = TimeSpan.FromSeconds(5);
-            var message = Mock.Of<IMessage>();
+            var message = new EdgeMessage(new byte[0], new Dictionary<string, string>(), new Dictionary<string, string>());
             ICloudProxy cloudProxy = new CloudProxy(client.Object, messageConverterProvider.Object, "device1", null, cloudListener.Object, idleTimeout, true);
 
             // Act

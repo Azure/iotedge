@@ -93,6 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             this.deviceConnectivityManager.DeviceConnected -= this.HandleDeviceConnectedEvent;
             this.deviceConnectivityManager.DeviceDisconnected -= this.HandleDeviceDisconnectedEvent;
+            this.isConnected.Set(false);
             this.underlyingClient?.Dispose();
         }
 

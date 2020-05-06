@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         {
             var factory = new TestCommandFactory();
             var planner = new RestartPlanner(factory);
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
             var addExecutionList = new List<TestRecordType>();
             Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, ModuleSet.Empty, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty);
@@ -42,12 +42,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         {
             var factory = new TestCommandFactory();
 
-            IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
 
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { addModule });
 
             var planner = new RestartPlanner(factory);
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
             ModuleSet addRunning = ModuleSet.Create(addModule);
             var addExecutionList = new List<TestRecordType>
@@ -68,12 +68,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         {
             var factory = new TestCommandFactory();
 
-            IModule stoppedModule = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            IModule stoppedModule = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
             ModuleSet addStopped = ModuleSet.Create(stoppedModule);
 
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { stoppedModule });
             var planner = new RestartPlanner(factory);
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
             var addStoppedExecutionList = new List<TestRecordType>
             {
@@ -92,12 +92,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         {
             var factory = new TestCommandFactory();
 
-            IModule currentModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            IModule desiredModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            IModule currentModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+            IModule desiredModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
 
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { desiredModule });
             var planner = new RestartPlanner(factory);
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
             ModuleSet currentSet = ModuleSet.Create(currentModule);
             ModuleSet desiredSet = ModuleSet.Create(desiredModule);
@@ -120,9 +120,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         {
             var factory = new TestCommandFactory();
             var planner = new RestartPlanner(factory);
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
-            IModule removeModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            IModule removeModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
             ModuleSet removeRunning = ModuleSet.Create(removeModule);
             var removeExecutionList = new List<TestRecordType>
             {
@@ -141,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         public async void RestartPlannerAddRemoveUpdate()
         {
             var factory = new TestCommandFactory();
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
             DateTime lastStartTime = DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind);
             DateTime lastExitTime = lastStartTime.AddDays(1);
 
@@ -154,10 +154,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             };
             var desiredModules = new List<IModule>
             {
-                new TestModule("NewMod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars),
-                new TestModule("NewMod2", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars),
-                new TestModule("UpdateMod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars),
-                new TestModule("UpdateMod2", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
+                new TestModule("NewMod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars),
+                new TestModule("NewMod2", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars),
+                new TestModule("UpdateMod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars),
+                new TestModule("UpdateMod2", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
             };
 
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(desiredModules);
@@ -202,6 +202,41 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     // AddModTrue2
                     Assert.True(recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[0])) < recorder.ExecutionList.FindIndex(r => r.Equals(updateExecutionList[6])));
                 });
+        }
+
+        [Fact]
+        [Unit]
+        public async void RestartPlannerAddModulesWithPriority()
+        {
+            var factory = new TestCommandFactory();
+
+            IModule module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, 3, DefaultConfigurationInfo, EnvVars);
+            IModule updatedModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, 3, DefaultConfigurationInfo, EnvVars);
+            IModule addModule2 = new TestModule("mod2", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, 2, DefaultConfigurationInfo, EnvVars);
+            IModule addModule3 = new TestModule("mod3", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, 1, DefaultConfigurationInfo, EnvVars);
+
+            IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { module1, addModule2, addModule3 });
+
+            var planner = new RestartPlanner(factory);
+            var token = default(CancellationToken);
+
+            ModuleSet currentSet = ModuleSet.Create(module1);
+            ModuleSet desiredSet = ModuleSet.Create(updatedModule1, addModule2, addModule3);
+            var executionList = new List<TestRecordType>
+            {
+                new TestRecordType(TestCommandType.TestCreate, addModule3),
+                new TestRecordType(TestCommandType.TestStart, addModule3),
+                new TestRecordType(TestCommandType.TestCreate, addModule2),
+                new TestRecordType(TestCommandType.TestStart, addModule2),
+                new TestRecordType(TestCommandType.TestStop, module1),
+                new TestRecordType(TestCommandType.TestUpdate, updatedModule1),
+                new TestRecordType(TestCommandType.TestStart, updatedModule1),
+            };
+            Plan addPlan = await planner.PlanAsync(desiredSet, currentSet, RuntimeInfo, moduleIdentities);
+            var planRunner = new OrderedPlanRunner();
+            await planRunner.ExecuteAsync(1, addPlan, token);
+
+            factory.Recorder.ForEach(r => Assert.Equal(executionList, r.ExecutionList));
         }
 
         static IImmutableDictionary<string, IModuleIdentity> GetModuleIdentities(IList<IModule> modules)

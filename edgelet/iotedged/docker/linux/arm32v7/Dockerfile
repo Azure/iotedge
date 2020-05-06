@@ -6,4 +6,6 @@ ADD ./docker/linux/arm32v7/iotedged /app
 
 ENV LD_LIBRARY_PATH /app
 
+USER edgeletuser
+
 CMD ["/app/iotedged"]

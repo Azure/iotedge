@@ -35,8 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
     {
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
         static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
-        static readonly TestModule TestModule = new TestModule("module", "version", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-        static readonly TestModule UpdateModule = new TestModule("module", "version", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+        static readonly TestModule TestModule = new TestModule("module", "version", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+        static readonly TestModule UpdateModule = new TestModule("module", "version", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
         static readonly TestCommand WrapTargetCommand = new TestCommand(TestCommandType.TestCreate, TestModule);
 
         [Fact]
@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
             Task<ICommand> commandBeingDecorated,
             TestExecutionExpr testExpr)
         {
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
             var logFactoryMock = new Mock<ILoggerFactory>();
             var logMock = new Mock<ILogger<LoggingCommandFactory>>();
@@ -114,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
             Task<ICommand> commandBeingDecorated,
             TestExecutionExpr testExpr)
         {
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
             var logFactoryMock = new Mock<ILoggerFactory>();
             var logMock = new Mock<ILogger<LoggingCommandFactory>>();
@@ -144,7 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
             Task<ICommand> commandBeingDecorated,
             TestExecutionExpr testExpr)
         {
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
             var logFactoryMock = new Mock<ILoggerFactory>();
             var logMock = new Mock<ILogger<LoggingCommandFactory>>();
@@ -174,7 +174,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
             Task<ICommand> commandBeingDecorated,
             TestExecutionExpr testExpr)
         {
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
             var logFactoryMock = new Mock<ILoggerFactory>();
             var logMock = new Mock<ILogger<LoggingCommandFactory>>();
             var factoryMock = new Mock<ICommandFactory>();

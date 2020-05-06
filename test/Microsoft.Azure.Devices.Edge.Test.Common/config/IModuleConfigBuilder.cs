@@ -11,9 +11,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
         IModuleConfigBuilder WithDesiredProperties(IDictionary<string, object> properties);
 
-        IModuleConfigBuilder WithEnvironment(IEnumerable<(string, string)> env);
+        IModuleConfigBuilder WithEnvironment(params (string, string)[] env);
 
         IModuleConfigBuilder WithProxy(Option<Uri> proxy);
+
+        IModuleConfigBuilder WithSettings(params (string, string)[] settings);
 
         ModuleConfiguration Build();
     }

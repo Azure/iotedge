@@ -44,8 +44,11 @@ unsafe impl Send for Crypto {}
 unsafe impl Sync for Crypto {}
 
 impl Crypto {
-    pub fn new(hsm_lock: Arc<HsmLock>) -> Result<Self, Error> {
-        let hsm = HsmCrypto::new()?;
+    pub fn new(
+        hsm_lock: Arc<HsmLock>,
+        auto_generated_ca_lifetime_seconds: u64,
+    ) -> Result<Self, Error> {
+        let hsm = HsmCrypto::new(auto_generated_ca_lifetime_seconds)?;
         Crypto::from_hsm(hsm, hsm_lock)
     }
 

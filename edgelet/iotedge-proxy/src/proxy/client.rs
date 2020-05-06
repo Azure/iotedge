@@ -1,13 +1,17 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::ResultExt;
+use std::convert::AsRef;
+
+use failure::{Fail, ResultExt};
 use futures::{Future, IntoFuture};
 use hyper::client::connect::Connect;
 use hyper::client::HttpConnector;
 use hyper::header::HeaderValue;
-use hyper::{header, Body, Client as HyperClient, Request, Response};
+use hyper::{header, Body, Client as HyperClient, Request, Response, Uri};
 use hyper_tls::HttpsConnector;
 use log::info;
+use url::percent_encoding::percent_decode;
+use url::Url;
 
 use crate::proxy::{Config, TokenSource};
 use crate::{Error, ErrorKind};
@@ -57,13 +61,10 @@ where
         &self,
         mut req: Request<Body>,
     ) -> impl Future<Item = Response<Body>, Error = Error> {
-        self.config
-            .host()
-            .join(req.uri().path_and_query().map_or("", |p| p.as_str()))
-            .map_err(Error::from)
+        build_uri(self.config.host().clone(), req.uri())
             .and_then(|url| {
                 // set a full URL to redirect request to
-                *req.uri_mut() = url.as_str().parse()?;
+                *req.uri_mut() = url;
 
                 // set host value in request header
                 if let Ok(host) = req.uri().host().unwrap_or_default().parse() {
@@ -73,7 +74,7 @@ where
                 // add authorization header with bearer token to authenticate request
                 if let Some(token) = self.config.token().get() {
                     let token = HeaderValue::from_str(format!("Bearer {}", token).as_str())
-                        .context(ErrorKind::HeaderValue("Authorization".to_owned()))?;
+                        .with_context(|_| ErrorKind::HeaderValue("Authorization".to_owned()))?;
 
                     req.headers_mut().insert(header::AUTHORIZATION, token);
                 }
@@ -86,6 +87,31 @@ where
     }
 }
 
+fn build_uri(base_url: Url, requested_uri: &Uri) -> Result<Uri, Error> {
+    let path = percent_decode(requested_uri.path().as_bytes())
+        .decode_utf8()
+        .with_context(|_| ErrorKind::Uri(requested_uri.to_string()))?;
+
+    let query = requested_uri
+        .query()
+        .map(|query| {
+            percent_decode(query.as_bytes())
+                .decode_utf8()
+                .with_context(|_| ErrorKind::Uri(requested_uri.to_string()))
+        })
+        .transpose()?;
+
+    let mut destination_url = base_url;
+    destination_url.set_path(&path);
+    destination_url.set_query(query.as_ref().map(AsRef::as_ref));
+
+    let full_uri = destination_url
+        .as_str()
+        .parse::<Uri>()
+        .with_context(|_| ErrorKind::Uri(destination_url.to_string()))?;
+    Ok(full_uri)
+}
+
 pub struct HyperHttpClient<C>(HyperClient<C>);
 
 impl<C> HttpClient for HyperHttpClient<C>
@@ -95,17 +121,24 @@ where
     fn request(&self, req: Request<Body>) -> ResponseFuture {
         let request = format!("{} {} {:?}", req.method(), req.uri(), req.version());
 
-        let fut = self.0.request(req).map_err(Error::from).map(move |res| {
-            let body_length = res
-                .headers()
-                .get(header::CONTENT_LENGTH)
-                .and_then(|length| length.to_str().ok().map(ToString::to_string))
-                .unwrap_or_else(|| "-".to_string());
+        let fut = self
+            .0
+            .request(req)
+            .map_err({
+                let request = request.clone();
+                |err| Error::from(err.context(ErrorKind::HttpRequest(request)))
+            })
+            .map(move |res| {
+                let body_length = res
+                    .headers()
+                    .get(header::CONTENT_LENGTH)
+                    .and_then(|length| length.to_str().ok().map(ToString::to_string))
+                    .unwrap_or_else(|| "-".to_string());
 
-            info!("\"{}\" {} {}", request, res.status(), body_length);
+                info!("\"{}\" {} {}", request, res.status(), body_length);
 
-            res
-        });
+                res
+            });
 
         Box::new(fut)
     }
@@ -125,6 +158,7 @@ mod tests {
     use tokio::runtime::current_thread;
     use url::Url;
 
+    use crate::proxy::client::build_uri;
     use crate::proxy::config::ValueToken;
     use crate::proxy::test::config::config;
     use crate::proxy::test::http::client_fn;
@@ -140,7 +174,7 @@ mod tests {
         let task = client.request(req).and_then(|res| {
             let status = res.status();
             res.into_body()
-                .map_err(Error::from)
+                .map_err(|_| Error::from(ErrorKind::Generic))
                 .concat2()
                 .map(move |body| (status, body.into_bytes()))
         });
@@ -193,13 +227,33 @@ mod tests {
 
     #[test]
     fn it_fails_when_http_client_returns_error() {
-        let http = client_fn(|_| Err(Error::from(ErrorKind::Hyper)));
+        let http = client_fn(|_| {
+            Err(Error::from(ErrorKind::HttpRequest(
+                "GET / HTTP 1.1".to_string(),
+            )))
+        });
         let client = Client::with_client(http, config());
         let req = Request::new(Body::empty());
 
         let task = client.request(req);
 
         let err = current_thread::block_on_all(task).unwrap_err();
-        assert_eq!(err.kind(), &ErrorKind::Hyper);
+        assert_eq!(
+            err.kind(),
+            &ErrorKind::HttpRequest("GET / HTTP 1.1".to_string(),)
+        );
+    }
+
+    #[test]
+    fn it_constructs_destination_uri() {
+        let dst = "https://iotedged:8080/".parse().unwrap();
+        let uri = "http://localhost//api/values?version=v1".parse().unwrap();
+
+        let full_url = build_uri(dst, &uri).unwrap();
+
+        let expected_url = "https://iotedged:8080//api/values?version=v1"
+            .parse::<Uri>()
+            .unwrap();
+        assert_eq!(full_url, expected_url);
     }
 }

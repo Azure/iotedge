@@ -1,5 +1,3 @@
-# Configures the provisioning mode
-
 # x509 provisioning does not have a valid identity private key URI specified
 provisioning:
   source: "dps"

@@ -1,11 +1,10 @@
-
-# Configures the provisioning mode
+# multiple registation ids with TPM provisioning
 provisioning:
   source: "dps"
   global_endpoint: "scheme://jibba-jabba.net"
   scope_id: "i got no time for the jibba-jabba"
   registration_id: "register me fool"
-  attestation: 
+  attestation:
     method: "tpm"
     registration_id: "register me fool"
 

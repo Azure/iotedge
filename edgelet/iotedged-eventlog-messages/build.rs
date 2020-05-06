@@ -13,7 +13,6 @@ mod windows {
     use std::path::{Path, PathBuf};
     use std::process::Command;
 
-    use version_compare::VersionCompare;
     use winreg::enums::*;
     use winreg::RegKey;
 
@@ -57,7 +56,15 @@ mod windows {
         let max_version = installed_roots
             .enum_keys()
             .map(|v| v.unwrap())
-            .max_by(|v1, v2| VersionCompare::compare(v1, v2).unwrap().ord().unwrap())
+            .max_by(|v1, v2| {
+                v1.split('.')
+                    .zip(v2.split('.'))
+                    .fold(std::cmp::Ordering::Equal, |ord, (v1, v2)| {
+                        let v1: u32 = v1.parse().unwrap();
+                        let v2: u32 = v2.parse().unwrap();
+                        ord.then_with(|| v1.cmp(&v2))
+                    })
+            })
             .unwrap();
 
         let kits_root: String = installed_roots.get_value("KitsRoot10").unwrap();

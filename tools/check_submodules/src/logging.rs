@@ -7,7 +7,7 @@ use edgelet_utils::log_failure;
 use env_logger;
 use log::{Level, LevelFilter};
 
-use error::Error;
+use crate::error::Error;
 
 const ENV_LOG: &str = "IOTEDGE_LOG";
 

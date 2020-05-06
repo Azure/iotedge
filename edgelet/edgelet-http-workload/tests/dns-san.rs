@@ -5,6 +5,7 @@
 #![cfg(not(windows))]
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
+#![allow(clippy::must_use_candidate)]
 
 use std::env;
 use std::str;
@@ -56,8 +57,8 @@ pub enum Error {
 impl<'a> From<&'a Error> for ModuleRuntimeErrorReason {
     fn from(err: &'a Error) -> Self {
         match err {
-            Error::General => ModuleRuntimeErrorReason::Other,
-            Error::NotFound => ModuleRuntimeErrorReason::NotFound,
+            Error::General => Self::Other,
+            Error::NotFound => Self::NotFound,
         }
     }
 }
@@ -84,7 +85,7 @@ impl WorkloadConfig for Config {
 }
 
 fn init_crypto() -> Crypto {
-    let crypto = Crypto::new(HsmLock::new()).unwrap();
+    let crypto = Crypto::new(HsmLock::new(), 1000).unwrap();
 
     // create the default issuing CA cert
     let edgelet_ca_props = CertificateProperties::new(

@@ -436,7 +436,7 @@ paths:
         default:
           description: Error
           schema:
-            $ref: '#/definitions/ErrorResponse'            
+            $ref: '#/definitions/ErrorResponse'
 definitions:
   ModuleList:
     type: object

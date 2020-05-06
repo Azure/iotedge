@@ -2,7 +2,6 @@
 
 use clap::crate_name;
 
-use edgelet_core;
 use futures::future::{self, FutureResult};
 
 use crate::error::Error;
@@ -21,7 +20,7 @@ impl Command for Version {
     type Future = FutureResult<(), Error>;
 
     #[allow(clippy::print_literal)]
-    fn execute(&mut self) -> Self::Future {
+    fn execute(self) -> Self::Future {
         println!(
             "{} {}",
             crate_name!(),

@@ -5,18 +5,20 @@
 #include "test_utils.h"
 #include "hsm_client_data.h"
 
+#define TEST_VALIDITY 1000
+
 static int x509_init_succeeds_when_called_after_deinit(void)
 {
-    ASSERT(hsm_client_x509_init() == 0);
+    ASSERT(hsm_client_x509_init(TEST_VALIDITY) == 0);
     hsm_client_x509_deinit();
-    ASSERT(hsm_client_x509_init() == 0);
+    ASSERT(hsm_client_x509_init(TEST_VALIDITY) == 0);
     hsm_client_x509_deinit();
     return 0;
 }
 
 static int x509_interface_pointer_is_always_the_same_after_init(void)
 {
-    ASSERT(hsm_client_x509_init() == 0);
+    ASSERT(hsm_client_x509_init(TEST_VALIDITY) == 0);
 
     const HSM_CLIENT_X509_INTERFACE* if1 = hsm_client_x509_interface();
     const HSM_CLIENT_X509_INTERFACE* if2 = hsm_client_x509_interface();
@@ -44,7 +46,7 @@ static int x509_interface_implements_all_functions(void)
 
 static int get_cert_returns_a_non_null_value(void)
 {
-    ASSERT(hsm_client_x509_init() == 0);
+    ASSERT(hsm_client_x509_init(TEST_VALIDITY) == 0);
 
     const HSM_CLIENT_X509_INTERFACE* x509 = hsm_client_x509_interface();
     ASSERT(x509 != NULL);
@@ -65,7 +67,7 @@ static int get_cert_returns_a_non_null_value(void)
 
 static int get_key_returns_a_non_null_value(void)
 {
-    ASSERT(hsm_client_x509_init() == 0);
+    ASSERT(hsm_client_x509_init(TEST_VALIDITY) == 0);
 
     const HSM_CLIENT_X509_INTERFACE* x509 = hsm_client_x509_interface();
     ASSERT(x509 != NULL);
@@ -86,7 +88,7 @@ static int get_key_returns_a_non_null_value(void)
 
 static int get_common_name_returns_a_non_null_value(void)
 {
-    ASSERT(hsm_client_x509_init() == 0);
+    ASSERT(hsm_client_x509_init(TEST_VALIDITY) == 0);
 
     const HSM_CLIENT_X509_INTERFACE* x509 = hsm_client_x509_interface();
     ASSERT(x509 != NULL);
