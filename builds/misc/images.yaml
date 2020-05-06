@@ -201,8 +201,6 @@ jobs:
         - win-rs5
     workspace:
       clean: all
-    variables:
-      NetCorePackageUri: https://download.visualstudio.microsoft.com/download/pr/56131147-65ea-47d6-a945-b0296c86e510/44b43b7cb27d55081e650b9a4188a419/dotnet-sdk-3.1.201-win-x64.exe
     steps:
       - template: ../templates/install-dotnet3.yaml
 
