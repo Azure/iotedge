@@ -1,11 +1,10 @@
 use std::collections::HashMap;
-use std::iter::FromIterator;
+use std::convert::TryFrom;
 
 use mqtt3::proto;
-use tracing::error;
 
 use crate::session::Session;
-use crate::ClientId;
+use crate::{ClientId, Error};
 
 pub enum StateChange<'a> {
     Subscriptions(&'a ClientId, Option<Vec<&'a str>>),
@@ -57,14 +56,18 @@ impl<'a> StateChange<'a> {
     }
 }
 
-impl<'a> From<StateChange<'a>> for proto::Publication {
-    fn from(state: StateChange<'a>) -> Self {
+impl<'a> TryFrom<StateChange<'a>> for proto::Publication {
+    type Error = Error;
+
+    fn try_from(state: StateChange<'a>) -> Result<Self, Error> {
         const STATE_CHANGE_QOS: proto::QoS = proto::QoS::AtLeastOnce;
 
-        match state {
+        Ok(match state {
             StateChange::Subscriptions(client_id, subscriptions) => {
                 let payload = if let Some(subscriptions) = subscriptions {
-                    get_message_body(subscriptions.into_iter()).into()
+                    serde_json::to_string(&subscriptions)
+                        .map_err(|_| Error::NotifyError)?
+                        .into()
                 } else {
                     "".into()
                 };
@@ -80,26 +83,18 @@ impl<'a> From<StateChange<'a>> for proto::Publication {
                 topic_name: "$edgehub/connected".to_owned(),
                 qos: STATE_CHANGE_QOS,
                 retain: true,
-                payload: get_message_body(connections.iter().map(|c| c.as_str())).into(),
+                payload: serde_json::to_string(&connections)
+                    .map_err(|_| Error::NotifyError)?
+                    .into(),
             },
             StateChange::Sessions(sessions) => proto::Publication {
                 topic_name: "$edgehub/sessions".to_owned(),
                 qos: STATE_CHANGE_QOS,
                 retain: true,
-                payload: get_message_body(sessions.iter().map(|c| c.as_str())).into(),
+                payload: serde_json::to_string(&sessions)
+                    .map_err(|_| Error::NotifyError)?
+                    .into(),
             },
-        }
+        })
     }
-}
-
-fn get_message_body<'a, P>(payload: P) -> String
-where
-    P: IntoIterator<Item = &'a str>,
-{
-    let payload: Vec<&str> = Vec::from_iter(payload);
-
-    serde_json::to_string(&payload).unwrap_or_else(|e| {
-        error!("Json Error: {}", e);
-        "".to_owned()
-    })
 }

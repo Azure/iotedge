@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::convert::TryInto;
 use std::{panic, thread};
 
 use crossbeam_channel::{Receiver, Sender};
@@ -203,7 +204,7 @@ where
         let client_ids = self.sessions.keys().cloned().collect::<Vec<ClientId>>();
 
         for client_id in client_ids {
-            if let Some(session) = self.close_session(&client_id) {
+            if let Some(session) = self.close_session(&client_id)? {
                 sessions.push(session)
             }
         }
@@ -334,7 +335,7 @@ where
                     session.send(event)?;
                 }
 
-                self.publish_all(StateChange::new_connection(&self.sessions).into())?;
+                self.publish_all(StateChange::new_connection(&self.sessions).try_into()?)?;
             }
             Err(SessionError::DuplicateSession(mut old_session, ack)) => {
                 // Drop the old connection
@@ -357,6 +358,7 @@ where
             Err(SessionError::PacketIdentifiersExhausted) => {
                 panic!("Session identifiers exhausted, this can only be caused by a bug.");
             }
+            Err(SessionError::Other(e)) => Err(e)?,
         }
 
         debug!("connect handled.");
@@ -365,7 +367,7 @@ where
 
     fn process_disconnect(&mut self, client_id: &ClientId) -> Result<(), Error> {
         debug!("handling disconnect...");
-        if let Some(mut session) = self.close_session(client_id) {
+        if let Some(mut session) = self.close_session(client_id)? {
             session.send(ClientEvent::Disconnect(proto::Disconnect))?;
         } else {
             debug!("no session for {}", client_id);
@@ -380,7 +382,7 @@ where
 
     fn drop_connection(&mut self, client_id: &ClientId) -> Result<(), Error> {
         debug!("handling drop connection...");
-        if let Some(mut session) = self.close_session(client_id) {
+        if let Some(mut session) = self.close_session(client_id)? {
             session.send(ClientEvent::DropConnection)?;
 
             // Ungraceful disconnect - send the will
@@ -396,7 +398,7 @@ where
 
     fn process_close_session(&mut self, client_id: &ClientId) -> Result<(), Error> {
         debug!("handling close session...");
-        if let Some(session) = self.close_session(client_id) {
+        if let Some(session) = self.close_session(client_id)? {
             debug!("session removed");
 
             // Ungraceful disconnect - send the will
@@ -457,8 +459,8 @@ where
                 publish_to(&self.authorizer, session, &publication)?;
             }
 
-            let message = StateChange::new_subscription(client_id, &session).into();
-            self.publish_all(message)?;
+            let change = StateChange::new_subscription(client_id, &session).try_into()?;
+            self.publish_all(change)?;
         } else {
             debug!("no session for {}", client_id);
         }
@@ -476,8 +478,8 @@ where
                 let unsuback = session.unsubscribe(unsubscribe)?;
                 session.send(ClientEvent::UnsubAck(unsuback))?;
 
-                let notify_message = StateChange::new_subscription(client_id, &session).into();
-                self.publish_all(notify_message)?;
+                let change = StateChange::new_subscription(client_id, &session).try_into()?;
+                self.publish_all(change)?;
 
                 Ok(())
             }
@@ -717,7 +719,7 @@ where
                 };
 
                 let subscription_change =
-                    StateChange::new_subscription(&client_id, &new_session).into();
+                    StateChange::new_subscription(&client_id, &new_session).try_into()?;
                 self.sessions.insert(client_id.clone(), new_session);
 
                 let ack = proto::ConnAck {
@@ -726,10 +728,9 @@ where
                 };
                 let events = vec![];
 
-                self.publish_all(StateChange::new_session(&self.sessions).into())
-                    .unwrap();
-                self.publish_all(subscription_change).unwrap();
-                
+                self.publish_all(StateChange::new_session(&self.sessions).try_into()?)?;
+                self.publish_all(subscription_change)?;
+
                 Ok((ack, events))
             }
         }
@@ -790,16 +791,13 @@ where
         }
     }
 
-    fn close_session(&mut self, client_id: &ClientId) -> Option<Session> {
-        match self.sessions.remove(client_id) {
+    fn close_session(&mut self, client_id: &ClientId) -> Result<Option<Session>, Error> {
+        Ok(match self.sessions.remove(client_id) {
             Some(Session::Transient(connected)) => {
                 info!("closing transient session for {}", client_id);
-                self.publish_all(StateChange::new_connection(&self.sessions).into())
-                    .unwrap();
-                self.publish_all(StateChange::new_session(&self.sessions).into())
-                    .unwrap();
-                self.publish_all(StateChange::clear_subscriptions(client_id).into())
-                    .unwrap();
+                self.publish_all(StateChange::new_connection(&self.sessions).try_into()?)?;
+                self.publish_all(StateChange::new_session(&self.sessions).try_into()?)?;
+                self.publish_all(StateChange::clear_subscriptions(client_id).try_into()?)?;
 
                 let (auth_id, _state, will, handle) = connected.into_parts();
                 Some(Session::new_disconnecting(
@@ -815,8 +813,7 @@ where
                 // to be sent on the connection
 
                 info!("moving persistent session to offline for {}", client_id);
-                self.publish_all(StateChange::new_connection(&self.sessions).into())
-                    .unwrap();
+                self.publish_all(StateChange::new_connection(&self.sessions).try_into()?)?;
 
                 let (auth_id, state, will, handle) = connected.into_parts();
                 let new_session = Session::new_offline(state);
@@ -835,7 +832,7 @@ where
                 None
             }
             _ => None,
-        }
+        })
     }
 
     fn publish_all(&mut self, mut publication: proto::Publication) -> Result<(), Error> {
@@ -1089,6 +1086,13 @@ pub enum SessionError {
     PacketIdentifiersExhausted,
     ProtocolViolation(Session),
     DuplicateSession(Session, proto::ConnAck),
+    Other(Error),
+}
+
+impl From<Error> for SessionError {
+    fn from(error: Error) -> Self {
+        Self::Other(error)
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -1635,7 +1639,7 @@ pub(crate) mod tests {
 
         // close session and check behavior
         let old_session = broker.close_session(&client_id);
-        assert_matches!(old_session, Some(Session::Disconnecting(_)));
+        assert_matches!(old_session, Ok(Some(Session::Disconnecting(_))));
         assert_eq!(0, broker.sessions.len());
     }
 
@@ -1660,7 +1664,7 @@ pub(crate) mod tests {
 
         // close session and check behavior
         let old_session = broker.close_session(&client_id);
-        assert_matches!(old_session, Some(Session::Disconnecting(_)));
+        assert_matches!(old_session, Ok(Some(Session::Disconnecting(_))));
         assert_eq!(1, broker.sessions.len());
         assert_matches!(broker.sessions[&client_id], Session::Offline(_));
     }
@@ -1851,7 +1855,7 @@ pub(crate) mod tests {
 
         // close session and check behavior
         let old_session = broker.close_session(&client_id);
-        assert_matches!(old_session, Some(Session::Disconnecting(_)));
+        assert_matches!(old_session, Ok(Some(Session::Disconnecting(_))));
         assert_eq!(1, broker.sessions.len());
         assert_matches!(broker.sessions[&client_id], Session::Offline(_));
 
@@ -1884,7 +1888,7 @@ pub(crate) mod tests {
 
         // close session and check behavior
         let old_session = broker.close_session(&client_id);
-        assert_matches!(old_session, Some(Session::Disconnecting(_)));
+        assert_matches!(old_session, Ok(Some(Session::Disconnecting(_))));
         assert_eq!(1, broker.sessions.len());
         assert_matches!(broker.sessions[&client_id], Session::Offline(_));
 
