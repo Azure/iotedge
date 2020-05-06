@@ -132,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
             await Assert.ThrowsAsync<ArgumentException>(() => create.ExecuteAsync(token));
 
             factoryMock.Verify(commandMethodBeingTested);
-            logMock.Verify(l => l.Log<object>(LogLevel.Information, It.IsAny<EventId>(), It.IsAny<object>(), It.IsAny<Exception>(), (Func<object, Exception, string>)It.IsAny<object>()), Times.Once);
+            logMock.Verify(l => l.Log(LogLevel.Information, It.IsAny<EventId>(), It.IsAny<object>(), It.IsAny<Exception>(), (Func<object, Exception, string>)It.IsAny<object>()), Times.Once);
             logMock.Verify(l => l.Log(LogLevel.Error, It.IsAny<EventId>(), It.IsAny<object>(), It.IsAny<Exception>(), (Func<object, Exception, string>)It.IsAny<object>()), Times.Once);
         }
 
