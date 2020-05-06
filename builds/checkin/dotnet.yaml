@@ -34,10 +34,6 @@ jobs:
     steps:
       - template: ../templates/install-dotnet3.yaml
       - task: Bash@3
-        displayName: Install Prerequisites
-        inputs:
-          filePath: scripts/linux/installPrereqs.sh
-      - task: Bash@3
         displayName: Build
         inputs:
           filePath: scripts/linux/buildBranch.sh
@@ -64,10 +60,6 @@ jobs:
       vmImage: "vs2017-win2016"
     steps:
       - template: ../templates/install-dotnet3.yaml
-      - task: PowerShell@2
-        displayName: Install Prerequisites
-        inputs:
-          filePath: scripts/windows/setup/Install-Prerequisites.ps1
       - task: PowerShell@2
         displayName: Build
         inputs:
