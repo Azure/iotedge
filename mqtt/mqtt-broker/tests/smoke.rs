@@ -276,7 +276,15 @@ async fn will_message() {
 
     let (broker_shutdown, broker_task, address) = common::start_server(broker);
 
-    let client_a = TestClientBuilder::new(address.clone())
+    let mut client_b = TestClientBuilder::new(address.clone())
+        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-b".into()))
+        .build();
+
+    client_b.subscribe(topic, QoS::AtLeastOnce).await;
+
+    client_b.subscriptions().recv().await; // wait for SubAck.
+
+    let mut client_a = TestClientBuilder::new(address.clone())
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-a".into()))
         .will(Publication {
             topic_name: topic.into(),
@@ -284,14 +292,9 @@ async fn will_message() {
             retain: false,
             payload: "will_msg_a".into(),
         })
-        .keep_alive(Duration::from_secs(1))
         .build();
 
-    let mut client_b = TestClientBuilder::new(address.clone())
-        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-b".into()))
-        .build();
-
-    client_b.subscribe(topic, QoS::AtLeastOnce).await;
+    client_a.connections().recv().await; // wait for ConnAck
 
     client_a.terminate().await;
 
