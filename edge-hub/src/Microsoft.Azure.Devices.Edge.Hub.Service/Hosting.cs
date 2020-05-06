@@ -1,21 +1,16 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
-    using System;
-    using System.Collections.Generic;
     using System.Net;
-    using System.Net.Security;
     using System.Net.Sockets;
     using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
     using Autofac;
     using Microsoft.AspNetCore.Hosting;
-    using Microsoft.AspNetCore.Http.Features;
     using Microsoft.AspNetCore.Server.Kestrel.Https;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
-    using Newtonsoft.Json;
 
     public class Hosting
     {
@@ -38,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             int port = configuration.GetValue("httpSettings:port", 443);
             var certificateMode = clientCertAuthEnabled ? ClientCertificateMode.AllowCertificate : ClientCertificateMode.NoCertificate;
+            CertChainMapper certChainMapper = new CertChainMapper();
             IWebHostBuilder webHostBuilder = new WebHostBuilder()
                 .UseKestrel(
                     options =>
@@ -53,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                                         ServerCertificate = serverCertificate,
                                         ClientCertificateValidation = (clientCert, chain, policyErrors) => // TODO: verify that this runs only if certificate provided
                                         {
-                                            CertChainMapper.ImportCertChain(clientCert.Thumbprint, chain.ChainElements);
+                                            certChainMapper.ImportCertChain(clientCert.Thumbprint, chain.ChainElements);
                                             return true;
                                         },
                                         ClientCertificateMode = certificateMode,
@@ -67,6 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     {
                         serviceCollection.AddSingleton(configuration);
                         serviceCollection.AddSingleton(dependencyManager);
+                        serviceCollection.AddSingleton(certChainMapper);
                     })
                 .UseStartup<Startup>();
             IWebHost webHost = webHostBuilder.Build();

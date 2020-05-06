@@ -25,14 +25,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     {
         readonly IDependencyManager dependencyManager;
         readonly IConfigurationRoot configuration;
+        readonly CertChainMapper certChainMapper;
 
         // ReSharper disable once UnusedParameter.Local
         public Startup(
             IConfigurationRoot configuration,
-            IDependencyManager dependencyManager)
+            IDependencyManager dependencyManager,
+            CertChainMapper certChainMapper)
         {
             this.configuration = Preconditions.CheckNotNull(configuration, nameof(configuration));
             this.dependencyManager = Preconditions.CheckNotNull(dependencyManager, nameof(dependencyManager));
+            this.certChainMapper = Preconditions.CheckNotNull(certChainMapper, nameof(certChainMapper));
         }
 
         internal IContainer Container { get; private set; }
@@ -56,11 +59,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             app.UseWebSockets();
 
-            // TODO: eliminate hacky POC and consolidate with the below response headers
             app.Use(
                 async (context, next) =>
                 {
-                    Option<IList<X509Certificate2>> certChainOption = CertChainMapper.ExtractCertChain(context.Connection);
+                    Option<IList<X509Certificate2>> certChainOption = this.certChainMapper.ExtractCertChain(context.Connection);
                     certChainOption.ForEach(certChain =>
                     {
                         TlsConnectionFeatureExtended tlsConnectionFeatureExtended = new TlsConnectionFeatureExtended
