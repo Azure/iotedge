@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
             services.AddMemoryCache();
-            services.AddMvc(options => options.Filters.Add(typeof(ExceptionFilter)));
+            services.AddMvc(options => options.Filters.Add(typeof(ExceptionFilter))).AddNewtonsoftJson();
             services.Configure<MvcOptions>(options =>
             {
                 options.Filters.Add(new RequireHttpsAttribute());
