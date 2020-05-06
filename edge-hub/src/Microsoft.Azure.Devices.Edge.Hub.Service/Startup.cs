@@ -4,13 +4,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System;
     using System.Collections.Generic;
     using System.Security.Cryptography.X509Certificates;
-    using System.Threading.Tasks;
     using Autofac;
     using Autofac.Extensions.DependencyInjection;
-    using Microsoft.AspNetCore.Authentication.Certificate;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
-    using Microsoft.AspNetCore.Http.Features;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;

@@ -10,7 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_10_22
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_10_22.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning;
     using Microsoft.Azure.Devices.Edge.Util;

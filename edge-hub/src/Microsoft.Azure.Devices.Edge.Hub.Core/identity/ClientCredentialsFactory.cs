@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 {
-    using System;
     using System.Collections.Generic;
     using System.Security.Cryptography.X509Certificates;
     using Microsoft.Azure.Devices.Client;

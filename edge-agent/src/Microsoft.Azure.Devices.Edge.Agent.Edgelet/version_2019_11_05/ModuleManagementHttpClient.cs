@@ -15,7 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_11_05
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
-    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using Disk = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.Disk;
     using Identity = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.Identity;
