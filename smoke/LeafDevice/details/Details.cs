@@ -120,8 +120,10 @@ namespace LeafDeviceTest
         {
             if (!string.IsNullOrEmpty(this.trustedCACertificateFileName))
             {
-                // Since Windows will pop up security warning when add certificate to current user store location;
+                // Windows will pop up security warning when add certificate to current user store location, so the tests won't run automatically;
                 // Therefore we will use CustomCertificateValidator instead.
+                // Since Microsoft.Azure.Devices.Client v1.23.0 release, the only e2e test that fails on Windows if the
+                // CustomCertificateValidator workaround is removed is Quickstart Certs test
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     Console.WriteLine("Hook up callback on device transport settings to validate with given certificate");

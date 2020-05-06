@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             var routeConfig4 = new RouteConfig("r2", "FROM /messages/* INTO $upstream", r2);
             var routeConfig5 = new RouteConfig("r2", "FROM /messages/* INTO $upstream", r2);
 
-            yield return new object[] { routeConfig1, routeConfig2, true };
+            yield return new object[] { routeConfig1, routeConfig2, false };
             yield return new object[] { routeConfig2, routeConfig3, false };
             yield return new object[] { routeConfig3, routeConfig4, false };
             yield return new object[] { routeConfig4, routeConfig5, true };
