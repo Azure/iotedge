@@ -32,6 +32,11 @@ jobs:
             IotHubConnStr2,
             IotHubMqttHeadCert
       - template: ../templates/install-dotnet3.yaml
+      - task: Bash@3
+        displayName: Install Prerequisites needed for RocksDB integration tests
+        inputs:
+          filePath: scripts/linux/installPrereqs.sh
+          arguments: -u $(NetCorePackageUriLinux)
       - pwsh: |
           $store = [System.Security.Cryptography.X509Certificates.X509Store]::new('Root', 'CurrentUser')
           $store.Open('ReadWrite')

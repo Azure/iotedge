@@ -34,6 +34,10 @@ jobs:
     steps:
       - template: ../templates/install-dotnet3.yaml
       - task: Bash@3
+        displayName: Install Prerequisites
+        inputs:
+          filePath: scripts/linux/installPrereqs.sh
+      - task: Bash@3
         displayName: Build
         inputs:
           filePath: scripts/linux/buildBranch.sh
