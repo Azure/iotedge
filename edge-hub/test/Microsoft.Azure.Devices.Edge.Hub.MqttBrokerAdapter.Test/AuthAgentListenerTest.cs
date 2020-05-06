@@ -104,6 +104,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         }
 
         [Fact]
+        public async Task DeniesBadCertificateFormat()
+        {
+            (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
+
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
+            {
+                await sut.StartAsync();
+
+                dynamic content = new ExpandoObject();
+                content.version = "2020-04-20";
+                content.username = "testhub/device/api-version=2018-06-30";
+                content.certificate = new byte[] { 0x30, 0x23, 0x44 };
+
+                dynamic response = await PostAsync(content, URL);
+
+                Assert.Equal(403, (int)response.result);
+            }
+        }
+
+        [Fact]
         public async Task DeniesNoVersion()
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
@@ -113,6 +133,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 await sut.StartAsync();
 
                 dynamic content = new ExpandoObject();
+                content.username = "testhub/device/api-version=2018-06-30";
+                content.password = "somepassword";
+
+                dynamic response = await PostAsync(content, URL);
+
+                Assert.Equal(403, (int)response.result);
+            }
+        }
+
+        [Fact]
+        public async Task DeniesBadVersion()
+        {
+            (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
+
+            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
+            {
+                await sut.StartAsync();
+
+                dynamic content = new ExpandoObject();
+                content.version = "2017-04-20";
                 content.username = "testhub/device/api-version=2018-06-30";
                 content.password = "somepassword";
 
@@ -285,20 +325,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         }
 
         [Fact]
-        public async Task DisconnectsOnBadContentLengthShortBody()
-        {
-            (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
-
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, config))
-            {
-                await sut.StartAsync();
-                var result = await SendDirectRequest(RequestBody, contentLengthOverride: RequestBody.Length + 10);
-
-                Assert.StartsWith(@"{""result"":403,", result);
-            }
-        }
-
-        [Fact]
         public async Task DeniesBadContentLengthLongBody()
         {
             (var authenticator, var usernameParser, var credFactory) = SetupAcceptEverything();
@@ -401,8 +427,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
             else
             {
-                return response.Substring(contentStart + 4);
+                var content = response.Substring(contentStart + 4);                
+                return CutChunkNumber(content);
             }
+        }
+
+        private string CutChunkNumber(string content)
+        {
+            var result = content;
+
+            if (content.Length > 0 && char.IsDigit(content[0]))
+            {
+                var contentStart = content.IndexOf("\r\n");
+                result = content.Substring(contentStart + 2);
+            }
+
+            return result;
         }
 
         private bool IsTimeout(DateTime startTime) => DateTime.Now - startTime > TimeSpan.FromSeconds(5);

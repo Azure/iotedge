@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.DependencyInjection.Extensions;
     using Microsoft.Extensions.Logging;
 
@@ -25,7 +26,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public string Name => "AUTH";
 
-        public AuthAgentProtocolHead(IAuthenticator authenticator, IUsernameParser usernameParser, IClientCredentialsFactory clientCredentialsFactory, AuthAgentProtocolHeadConfig config)
+        public AuthAgentProtocolHead(
+                    IAuthenticator authenticator,
+                    IUsernameParser usernameParser,
+                    IClientCredentialsFactory clientCredentialsFactory,
+                    AuthAgentProtocolHeadConfig config)
         {
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             this.usernameParser = Preconditions.CheckNotNull(usernameParser, nameof(usernameParser));
@@ -92,12 +97,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                             AuthAgentProtocolHeadConfig config)
         {
             return WebHost.CreateDefaultBuilder()
-                          .UseStartup<AuthAgentRequestHandler>()
+                          .UseStartup<AuthAgentStartup>()
+                          .UseKestrel(serverOptions => serverOptions.Limits.MaxRequestBufferSize = 64 * 1024)
                           .UseUrls($"http://*:{config.Port}")
                           .ConfigureServices(s => s.TryAddSingleton(authenticator))
                           .ConfigureServices(s => s.TryAddSingleton(usernameParser))
                           .ConfigureServices(s => s.TryAddSingleton(clientCredentialsFactory))
                           .ConfigureServices(s => s.TryAddSingleton(config))
+                          .ConfigureServices(s => s.AddMvc())
                           .ConfigureLogging(c => c.ClearProviders())
                           .Build();
         }
@@ -105,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         static class Events
         {
             const int IdStart = AuthAgentEventIds.AuthAgentProtocolHead;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<AuthAgentRequestHandler>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<AuthAgentProtocolHead>();
 
             enum EventIds
             {
