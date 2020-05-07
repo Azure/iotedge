@@ -1,7 +1,6 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::{cmp, fmt, mem};
 
-use failure::ResultExt;
 use mqtt3::proto;
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeTuple;
@@ -9,9 +8,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use tracing::{debug, warn};
 
 use crate::subscription::Subscription;
-use crate::{
-    AuthId, ClientEvent, ClientId, ConnReq, ConnectionHandle, Error, ErrorKind, Message, Publish,
-};
+use crate::{AuthId, ClientEvent, ClientId, ConnReq, ConnectionHandle, Error, Message, Publish};
 
 const MAX_INFLIGHT_MESSAGES: usize = 16;
 
@@ -146,13 +143,9 @@ impl ConnectedSession {
         Ok(unsuback)
     }
 
-    async fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
+    fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
         let message = Message::Client(self.state.client_id.clone(), event);
-        self.handle
-            .send(message)
-            .await
-            .context(ErrorKind::SendConnectionMessage)?;
-        Ok(())
+        self.handle.send(message)
     }
 }
 
@@ -277,13 +270,9 @@ impl DisconnectingSession {
         self.will
     }
 
-    async fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
+    fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
         let message = Message::Client(self.client_id.clone(), event);
-        self.handle
-            .send(message)
-            .await
-            .context(ErrorKind::SendConnectionMessage)?;
-        Ok(())
+        self.handle.send(message)
     }
 }
 
@@ -616,7 +605,7 @@ impl Session {
         match self {
             Self::Transient(connected) => Ok(connected.auth_id()),
             Self::Persistent(connected) => Ok(connected.auth_id()),
-            Self::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Offline(_offline) => Err(Error::SessionOffline),
             Self::Disconnecting(disconnecting) => Ok(disconnecting.auth_id()),
         }
     }
@@ -637,8 +626,8 @@ impl Session {
         match self {
             Self::Transient(connected) => connected.handle_publish(publish),
             Self::Persistent(connected) => connected.handle_publish(publish),
-            Self::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
-            Self::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Offline(_offline) => Err(Error::SessionOffline),
+            Self::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -646,8 +635,8 @@ impl Session {
         match self {
             Self::Transient(connected) => connected.handle_puback(puback),
             Self::Persistent(connected) => connected.handle_puback(puback),
-            Self::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
-            Self::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Offline(_offline) => Err(Error::SessionOffline),
+            Self::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -658,8 +647,8 @@ impl Session {
         match self {
             Self::Transient(connected) => connected.handle_puback0(id),
             Self::Persistent(connected) => connected.handle_puback0(id),
-            Self::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
-            Self::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Offline(_offline) => Err(Error::SessionOffline),
+            Self::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -667,8 +656,8 @@ impl Session {
         match self {
             Self::Transient(connected) => connected.handle_pubrec(pubrec),
             Self::Persistent(connected) => connected.handle_pubrec(pubrec),
-            Self::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
-            Self::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Offline(_offline) => Err(Error::SessionOffline),
+            Self::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -679,8 +668,8 @@ impl Session {
         match self {
             Self::Transient(connected) => connected.handle_pubrel(pubrel),
             Self::Persistent(connected) => connected.handle_pubrel(pubrel),
-            Self::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
-            Self::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Offline(_offline) => Err(Error::SessionOffline),
+            Self::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -691,8 +680,8 @@ impl Session {
         match self {
             Self::Transient(connected) => connected.handle_pubcomp(pubcomp),
             Self::Persistent(connected) => connected.handle_pubcomp(pubcomp),
-            Self::Offline(_offline) => Err(Error::from(ErrorKind::SessionOffline)),
-            Self::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Offline(_offline) => Err(Error::SessionOffline),
+            Self::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -704,7 +693,7 @@ impl Session {
             Self::Transient(connected) => connected.publish_to(publication.to_owned()),
             Self::Persistent(connected) => connected.publish_to(publication.to_owned()),
             Self::Offline(offline) => offline.publish_to(publication.to_owned()),
-            Self::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -715,8 +704,8 @@ impl Session {
         match self {
             Self::Transient(connected) => connected.subscribe_to(subscribe_to),
             Self::Persistent(connected) => connected.subscribe_to(subscribe_to),
-            Self::Offline(_) => Err(Error::from(ErrorKind::SessionOffline)),
-            Self::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Offline(_) => Err(Error::SessionOffline),
+            Self::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
@@ -727,17 +716,17 @@ impl Session {
         match self {
             Self::Transient(connected) => connected.unsubscribe(unsubscribe),
             Self::Persistent(connected) => connected.unsubscribe(unsubscribe),
-            Self::Offline(_) => Err(Error::from(ErrorKind::SessionOffline)),
-            Self::Disconnecting(_) => Err(Error::from(ErrorKind::SessionOffline)),
+            Self::Offline(_) => Err(Error::SessionOffline),
+            Self::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }
 
-    pub async fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
+    pub fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
         match self {
-            Self::Transient(ref mut connected) => connected.send(event).await,
-            Self::Persistent(ref mut connected) => connected.send(event).await,
-            Self::Disconnecting(ref mut disconnecting) => disconnecting.send(event).await,
-            _ => Err(ErrorKind::SessionOffline.into()),
+            Self::Transient(ref mut connected) => connected.send(event),
+            Self::Persistent(ref mut connected) => connected.send(event),
+            Self::Disconnecting(ref mut disconnecting) => disconnecting.send(event),
+            _ => Err(Error::SessionOffline),
         }
     }
 }
@@ -830,7 +819,7 @@ impl PacketIdentifiers {
 
         let (block, mask) = self.entry(current);
         if (*block & mask) != 0 {
-            return Err(Error::from(ErrorKind::PacketIdentifiersExhausted));
+            return Err(Error::PacketIdentifiersExhausted);
         }
 
         *block |= mask;
@@ -872,8 +861,6 @@ impl Default for PacketIdentifiers {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::*;
-
     use std::time::Duration;
 
     use matches::assert_matches;
@@ -883,9 +870,18 @@ pub(crate) mod tests {
     use tokio::sync::mpsc;
     use uuid::Uuid;
 
+    use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
+
     use crate::subscription::tests::arb_subscription;
-    use crate::tests::*;
-    use crate::ConnectionHandle;
+    use crate::tests::{
+        arb_clientid, arb_packet_identifier, arb_proto_publish, arb_publication, arb_publish,
+        arb_topic,
+    };
+    use crate::{auth::AuthId, ConnectionHandle};
+    use crate::{
+        session::{IdentifiersInUse, PacketIdentifiers, Session, SessionState},
+        ClientId, ConnReq, Error,
+    };
 
     fn arb_identifiers_in_use() -> impl Strategy<Value = IdentifiersInUse> {
         vec(num::usize::ANY, PacketIdentifiers::SIZE).prop_map(|v| {
@@ -936,7 +932,7 @@ pub(crate) mod tests {
 
     fn connection_handle() -> ConnectionHandle {
         let id = Uuid::new_v4();
-        let (tx1, _rx1) = mpsc::channel(128);
+        let (tx1, _rx1) = mpsc::unbounded_channel();
         ConnectionHandle::new(id, tx1)
     }
 
@@ -947,8 +943,8 @@ pub(crate) mod tests {
             will: None,
             client_id: proto::ClientId::IdWithCleanSession(id),
             keep_alive: Duration::default(),
-            protocol_name: crate::PROTOCOL_NAME.to_string(),
-            protocol_level: crate::PROTOCOL_LEVEL,
+            protocol_name: PROTOCOL_NAME.to_string(),
+            protocol_level: PROTOCOL_LEVEL,
         }
     }
 
@@ -970,8 +966,8 @@ pub(crate) mod tests {
 
         assert_eq!(ack, proto::SubAckQos::Success(proto::QoS::AtMostOnce));
         assert_matches!(subscription, Some(_));
-        match session {
-            Session::Transient(ref connected) => {
+        match &session {
+            Session::Transient(connected) => {
                 assert_eq!(1, connected.state.subscriptions.len());
                 assert_eq!(
                     proto::QoS::AtMostOnce,
@@ -990,8 +986,8 @@ pub(crate) mod tests {
 
         assert_eq!(ack, proto::SubAckQos::Success(proto::QoS::AtLeastOnce));
         assert_matches!(subscription, Some(_));
-        match session {
-            Session::Transient(ref connected) => {
+        match &session {
+            Session::Transient(connected) => {
                 assert_eq!(1, connected.state.subscriptions.len());
                 assert_eq!(
                     proto::QoS::AtLeastOnce,
@@ -1029,7 +1025,7 @@ pub(crate) mod tests {
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
         let req1 = ConnReq::new(client_id, connect1, None, handle1);
-        let auth_id = AuthId::anonymous();
+        let auth_id = AuthId::Anonymous;
         let mut session = Session::new_transient(auth_id, req1);
 
         let subscribe_to = proto::SubscribeTo {
@@ -1047,8 +1043,8 @@ pub(crate) mod tests {
         };
         session.unsubscribe(&unsubscribe).unwrap();
 
-        match session {
-            Session::Transient(ref connected) => {
+        match &session {
+            Session::Transient(connected) => {
                 assert_eq!(1, connected.state.subscriptions.len());
                 assert_eq!(
                     proto::QoS::AtMostOnce,
@@ -1068,8 +1064,8 @@ pub(crate) mod tests {
             unsuback.packet_identifier
         );
 
-        match session {
-            Session::Transient(ref connected) => {
+        match &session {
+            Session::Transient(connected) => {
                 assert_eq!(0, connected.state.subscriptions.len());
             }
             _ => panic!("not transient"),
@@ -1086,8 +1082,8 @@ pub(crate) mod tests {
             topic_filter: "topic/new".to_string(),
             qos: proto::QoS::AtMostOnce,
         };
-        let err = session.subscribe_to(subscribe_to).unwrap_err();
-        assert_eq!(ErrorKind::SessionOffline, *err.kind());
+        let result = session.subscribe_to(subscribe_to);
+        assert_matches!(result, Err(Error::SessionOffline));
     }
 
     #[test]
@@ -1100,8 +1096,8 @@ pub(crate) mod tests {
             packet_identifier: proto::PacketIdentifier::new(24).unwrap(),
             unsubscribe_from: vec!["topic/new".to_string()],
         };
-        let err = session.unsubscribe(&unsubscribe).unwrap_err();
-        assert_eq!(ErrorKind::SessionOffline, *err.kind());
+        let result = session.unsubscribe(&unsubscribe);
+        assert_matches!(result, Err(Error::SessionOffline));
     }
 
     #[test]

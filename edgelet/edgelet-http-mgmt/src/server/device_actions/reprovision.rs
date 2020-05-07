@@ -54,7 +54,7 @@ mod tests {
     use futures::sync::mpsc;
     use futures::Stream;
 
-    use super::*;
+    use super::{Body, Future, Handler, ReprovisionDevice, Request, StatusCode};
     use crate::error::{Error, ErrorKind};
 
     #[test]

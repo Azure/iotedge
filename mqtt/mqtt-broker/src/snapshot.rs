@@ -2,7 +2,7 @@ use tokio::sync::mpsc::{self, Receiver, Sender};
 use tracing::{info, warn};
 
 use crate::persist::Persist;
-use crate::{BrokerState, Error, ErrorKind};
+use crate::{BrokerState, Error};
 
 enum Event {
     State(BrokerState),
@@ -13,11 +13,10 @@ enum Event {
 pub struct StateSnapshotHandle(Sender<Event>);
 
 impl StateSnapshotHandle {
-    pub async fn send(&mut self, state: BrokerState) -> Result<(), Error> {
+    pub fn try_send(&mut self, state: BrokerState) -> Result<(), Error> {
         self.0
-            .send(Event::State(state))
-            .await
-            .map_err(|_| ErrorKind::SendSnapshotMessage)?;
+            .try_send(Event::State(state))
+            .map_err(|_| Error::SendSnapshotMessage)?;
         Ok(())
     }
 }
@@ -30,7 +29,7 @@ impl ShutdownHandle {
         self.0
             .send(Event::Shutdown)
             .await
-            .map_err(|_| ErrorKind::SendSnapshotMessage)?;
+            .map_err(|_| Error::SendSnapshotMessage)?;
         Ok(())
     }
 }
@@ -43,7 +42,7 @@ pub struct Snapshotter<P> {
 
 impl<P> Snapshotter<P> {
     pub fn new(persistor: P) -> Self {
-        let (sender, events) = mpsc::channel(1024);
+        let (sender, events) = mpsc::channel(5);
         Snapshotter {
             persistor,
             sender,
@@ -68,7 +67,7 @@ where
         while let Some(event) = self.events.recv().await {
             match event {
                 Event::State(state) => {
-                    if let Err(e) = self.persistor.store(state).await.map_err(Into::into) {
+                    if let Err(e) = self.persistor.store(state).await {
                         warn!(message = "an error occurred persisting state snapshot.", error=%e);
                     }
                 }

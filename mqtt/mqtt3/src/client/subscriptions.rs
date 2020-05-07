@@ -600,7 +600,7 @@ impl Iterator for NewConnectionIter {
 }
 
 /// Used to update subscriptions
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct UpdateSubscriptionHandle(futures_channel::mpsc::Sender<SubscriptionUpdate>);
 
 impl UpdateSubscriptionHandle {

@@ -3,6 +3,7 @@ trigger:
   branches:
     include:
       - master
+      - iiot
 pr: none
 
 jobs:
@@ -436,7 +437,6 @@ jobs:
           name: Functions Sample
           imageName: azureiotedge-functions-filter
           project: EdgeHubTriggerCSharp
-          arm32v7: 'false'
 
       # Direct Method Sender
       - template: templates/image-windows.yaml

@@ -17,7 +17,10 @@ use url::Url;
 use edgelet_core::{parse_since, LogOptions, LogTail};
 use edgelet_http_mgmt::ModuleClient;
 
-use iotedge::*;
+use iotedge::{
+    Check, Command, Error, ErrorKind, List, Logs, OutputFormat, OutputLocation, Restart,
+    SupportBundle, Unknown, Version,
+};
 
 fn main() {
     if let Err(ref error) = run() {

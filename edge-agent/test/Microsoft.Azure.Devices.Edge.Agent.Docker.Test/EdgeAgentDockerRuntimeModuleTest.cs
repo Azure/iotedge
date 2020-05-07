@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     using System.Collections.Generic;
     using System.Globalization;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
@@ -20,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             DateTime lastStartTimeUtc = DateTime.Parse("2017-11-13T23:44:35.127381Z", null, DateTimeStyles.RoundtripKind);
             DateTime lastExitTimeUtc = DateTime.Parse("2017-11-13T23:49:35.127381Z", null, DateTimeStyles.RoundtripKind);
             var module = new EdgeAgentDockerRuntimeModule(
-                new DockerReportedConfig("booyah:latest", string.Empty, "someSha"),
+                new DockerReportedConfig("booyah:latest", string.Empty, "someSha", Option.None<NotaryContentTrust>()),
                 ModuleStatus.Running,
                 0,
                 string.Empty,
@@ -171,7 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             DateTime lastStartTimeUtc = DateTime.Parse("2017-11-13T23:44:35.127381Z", null, DateTimeStyles.RoundtripKind);
             DateTime lastExitTimeUtc = DateTime.Parse("2017-11-13T23:49:35.127381Z", null, DateTimeStyles.RoundtripKind);
             var module = new EdgeAgentDockerRuntimeModule(
-                new DockerReportedConfig("booyah", string.Empty, "someSha"),
+                new DockerReportedConfig("booyah", string.Empty, "someSha", Option.None<NotaryContentTrust>()),
                 ModuleStatus.Running,
                 0,
                 string.Empty,

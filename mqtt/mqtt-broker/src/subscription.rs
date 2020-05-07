@@ -4,7 +4,7 @@ use std::str::FromStr;
 use mqtt3::proto;
 use serde::{Deserialize, Serialize};
 
-use crate::{Error, ErrorKind};
+use crate::Error;
 
 const NUL_CHAR: char = '\0';
 const TOPIC_SEPARATOR: char = '/';
@@ -93,7 +93,7 @@ enum Segment {
 impl Segment {
     pub fn matches(&self, segment: &str) -> bool {
         match self {
-            Segment::Level(ref s) => s == segment,
+            Segment::Level(s) => s == segment,
             Segment::SingleLevelWildcard => true,
             Segment::MultiLevelWildcard => true,
         }
@@ -105,7 +105,7 @@ impl fmt::Display for TopicFilter {
         let len = self.segments.len();
         for (i, segment) in self.segments.iter().enumerate() {
             match segment {
-                Segment::Level(ref s) => write!(f, "{}", s)?,
+                Segment::Level(s) => write!(f, "{}", s)?,
                 Segment::SingleLevelWildcard => write!(f, "{}", SINGLELEVEL_WILDCARD)?,
                 Segment::MultiLevelWildcard => write!(f, "{}", MULTILEVEL_WILDCARD)?,
             }
@@ -126,9 +126,7 @@ impl FromStr for TopicFilter {
         // [MQTT-4.7.3-2] - Topic Names and Topic Filters MUST NOT include the
         // null character (Unicode U+0000).
         if string.is_empty() || string.contains(NUL_CHAR) {
-            return Err(Error::from(ErrorKind::InvalidTopicFilter(
-                string.to_owned(),
-            )));
+            return Err(Error::InvalidTopicFilter(string.to_owned()));
         }
 
         let mut segments = Vec::new();
@@ -139,9 +137,7 @@ impl FromStr for TopicFilter {
                 Segment::SingleLevelWildcard
             } else {
                 if s.contains(MULTILEVEL_WILDCARD) || s.contains(SINGLELEVEL_WILDCARD) {
-                    return Err(Error::from(ErrorKind::InvalidTopicFilter(
-                        string.to_owned(),
-                    )));
+                    return Err(Error::InvalidTopicFilter(string.to_owned()));
                 }
                 Segment::Level(s.to_owned())
             };
@@ -155,9 +151,7 @@ impl FromStr for TopicFilter {
         let len = segments.len();
         for (i, segment) in segments.iter().enumerate() {
             if *segment == Segment::MultiLevelWildcard && i != len - 1 {
-                return Err(Error::from(ErrorKind::InvalidTopicFilter(
-                    string.to_owned(),
-                )));
+                return Err(Error::InvalidTopicFilter(string.to_owned()));
             }
         }
         let filter = TopicFilter::new(segments);
@@ -167,12 +161,15 @@ impl FromStr for TopicFilter {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::*;
     use std::str::FromStr;
 
     use proptest::bool;
     use proptest::collection::vec;
     use proptest::prelude::*;
+
+    use mqtt3::proto;
+
+    use crate::subscription::{Segment, Subscription, TopicFilter};
 
     fn arb_segment() -> impl Strategy<Value = Segment> {
         prop_oneof![
