@@ -215,7 +215,7 @@ pub(crate) mod tests {
         matches_connection_publication(message, &["Session 1", "Session 2", "Session 3"]);
 
         // Offline sessions
-        let sessions: HashMap<ClientId, Session> = HashMap::from_iter((1..8).map(|i| {
+        let sessions: HashMap<ClientId, Session> = HashMap::from_iter((1..7).map(|i| {
             let id = format!("Session {}", i);
             let session = make_session(
                 &id,
@@ -234,6 +234,93 @@ pub(crate) mod tests {
 
         let message: proto::Publication = many_connections.try_into().unwrap();
         matches_connection_publication(message, &["Session 2", "Session 4", "Session 6"]);
+    }
+
+    #[test]
+    fn test_sessions() {
+        // No sessions
+        let sessions: HashMap<ClientId, Session> = HashMap::new();
+        let no_sessions = StateChange::new_session(&sessions);
+        if let StateChange::Connections(no_sessions) = &no_sessions {
+            assert_eq!(&Vec::<&ClientId>::new(), no_sessions);
+        }
+
+        let message: proto::Publication = no_sessions.try_into().unwrap();
+        matches_session_publication(message, &[]);
+
+        // One session
+        let sessions: HashMap<ClientId, Session> = HashMap::from_iter((1..2).map(|i| {
+            let id = format!("Session {}", i);
+            let session = make_session(&id, (1..i).map(|j| format!("Subscription {}", j)), true);
+
+            (id.into(), session)
+        }));
+        let one_session = StateChange::new_session(&sessions);
+        if let StateChange::Connections(one_session) = &one_session {
+            let expected: ClientId = "Session 1".into();
+            assert_eq!(&vec![&expected], one_session);
+        }
+
+        let message: proto::Publication = one_session.try_into().unwrap();
+        matches_session_publication(message, &["Session 1"]);
+
+        // Multiple sessions
+        let sessions: HashMap<ClientId, Session> = HashMap::from_iter((1..4).map(|i| {
+            let id = format!("Session {}", i);
+            let session = make_session(&id, (1..i).map(|j| format!("Subscription {}", j)), true);
+
+            (id.into(), session)
+        }));
+        let many_sessions = StateChange::new_session(&sessions);
+        if let StateChange::Connections(many_sessions) = &many_sessions {
+            let mut actual: Vec<&str> = many_sessions.iter().map(|id| id.as_str()).collect();
+            actual.sort();
+            assert_eq!(vec!["Session 1", "Session 2", "Session 3"], actual);
+        }
+
+        let message: proto::Publication = many_sessions.try_into().unwrap();
+        matches_session_publication(message, &["Session 1", "Session 2", "Session 3"]);
+
+        // Offline sessions
+        let sessions: HashMap<ClientId, Session> = HashMap::from_iter((1..7).map(|i| {
+            let id = format!("Session {}", i);
+            let session = make_session(
+                &id,
+                (1..i).map(|j| format!("Subscription {}", j)),
+                i % 2 == 0, // even sessions are online, odd offline
+            );
+
+            (id.into(), session)
+        }));
+        let many_sessions = StateChange::new_session(&sessions);
+        if let StateChange::Connections(many_sessions) = &many_sessions {
+            let mut actual: Vec<&str> = many_sessions.iter().map(|id| id.as_str()).collect();
+            actual.sort();
+            assert_eq!(
+                vec![
+                    "Session 1",
+                    "Session 2",
+                    "Session 3",
+                    "Session 4",
+                    "Session 5",
+                    "Session 6"
+                ],
+                actual
+            );
+        }
+
+        let message: proto::Publication = many_sessions.try_into().unwrap();
+        matches_session_publication(
+            message,
+            &[
+                "Session 1",
+                "Session 2",
+                "Session 3",
+                "Session 4",
+                "Session 5",
+                "Session 6",
+            ],
+        );
     }
 
     fn make_session<I, S>(id: &str, subscriptions: I, online: bool) -> Session
@@ -280,6 +367,10 @@ pub(crate) mod tests {
 
     fn matches_connection_publication(publication: proto::Publication, body: &[&str]) {
         matches_publication(publication, "$edgehub/connected".to_owned(), body);
+    }
+
+    fn matches_session_publication(publication: proto::Publication, body: &[&str]) {
+        matches_publication(publication, "$edgehub/sessions".to_owned(), body);
     }
 
     fn matches_publication(publication: proto::Publication, topic: String, body: &[&str]) {
