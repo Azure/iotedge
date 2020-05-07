@@ -5,21 +5,193 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
     using System.Collections.Generic;
     using System.IO;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core;
     using Newtonsoft.Json;
     using Xunit;
-    using Xunit.Sdk;
 
     [Unit]
     public class EdgeHubDesiredPropertiesTest
     {
+        [Theory]
+        [MemberData(nameof(GetSchemaVersionData))]
+        public void SchemaVersionCheckTest(string manifest, Type expectedException)
+        {
+            if (expectedException != null)
+            {
+                Assert.Throws(expectedException, () => JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(manifest));
+            }
+            else
+            {
+                JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(manifest);
+            }
+        }
+
+        public static IEnumerable<object[]> GetSchemaVersionData()
+        {
+            string noVersion =
+                @"{
+                  'routes': {
+                    'route1': 'from /* INTO $upstream'
+                  },
+                  'storeAndForwardConfiguration': {
+                    'timeToLiveSecs': 20
+                  },
+                  '$version': 2
+                }";
+
+            string version_0_1 =
+                    @"{
+                      'schemaVersion': '0.1',
+                      'routes': {
+                        'route1': 'from /* INTO $upstream'
+                      },
+                      'storeAndForwardConfiguration': {
+                        'timeToLiveSecs': 20
+                      },
+                      '$version': 2
+                    }";
+
+            string version_1 =
+                    @"{
+                      'schemaVersion': '1',
+                      'routes': {
+                        'route1': 'from /* INTO $upstream'
+                      },
+                      'storeAndForwardConfiguration': {
+                        'timeToLiveSecs': 20
+                      },
+                      '$version': 2
+                    }";
+
+            string version_1_0 =
+                    @"{
+                      'schemaVersion': '1.0',
+                      'routes': {
+                        'route1': 'from /* INTO $upstream'
+                      },
+                      'storeAndForwardConfiguration': {
+                        'timeToLiveSecs': 20
+                      },
+                      '$version': 2
+                    }";
+
+            string version_1_1 =
+                    @"{
+                      'schemaVersion': '1.1',
+                      'routes': {
+                        'route1': 'from /* INTO $upstream'
+                      },
+                      'storeAndForwardConfiguration': {
+                        'timeToLiveSecs': 20
+                      },
+                      '$version': 2
+                    }";
+
+            string version_1_1_0 =
+                    @"{
+                      'schemaVersion': '1.1.0',
+                      'routes': {
+                        'route1': 'from /* INTO $upstream'
+                      },
+                      'storeAndForwardConfiguration': {
+                        'timeToLiveSecs': 20
+                      },
+                      '$version': 2
+                    }";
+
+            string version_1_2 =
+                    @"{
+                      'schemaVersion': '1.2',
+                      'routes': {
+                        'route1': 'from /* INTO $upstream'
+                      },
+                      'storeAndForwardConfiguration': {
+                        'timeToLiveSecs': 20
+                      },
+                      '$version': 2
+                    }";
+
+            string version_2_0 =
+                    @"{
+                      'schemaVersion': '2.0',
+                      'routes': {
+                        'route1': 'from /* INTO $upstream'
+                      },
+                      'storeAndForwardConfiguration': {
+                        'timeToLiveSecs': 20
+                      },
+                      '$version': 2
+                    }";
+
+            string version_2_0_1 =
+                    @"{
+                      'schemaVersion': '2.0.1',
+                      'routes': {
+                        'route1': 'from /* INTO $upstream'
+                      },
+                      'storeAndForwardConfiguration': {
+                        'timeToLiveSecs': 20
+                      },
+                      '$version': 2
+                    }";
+
+            string versionMismatch =
+                @"{
+                  'schemaVersion': '1.0',
+                  'routes': {
+                    'route1': {
+                      'route': 'from /* INTO $upstream',
+                      'priority': 1,
+                      'timeToLiveSecs': 7200
+                    }
+                  },
+                  'storeAndForwardConfiguration': {
+                    'timeToLiveSecs': 20
+                  },
+                  '$version': 2
+                }";
+
+            yield return new object[] { noVersion, typeof(ArgumentException) };
+            yield return new object[] { version_0_1, typeof(InvalidSchemaVersionException) };
+            yield return new object[] { version_1, typeof(InvalidSchemaVersionException) };
+            yield return new object[] { version_1_0, null };
+            yield return new object[] { version_1_1, null };
+            yield return new object[] { version_1_1_0, null };
+            yield return new object[] { version_1_2, typeof(InvalidSchemaVersionException) };
+            yield return new object[] { version_2_0, typeof(InvalidSchemaVersionException) };
+            yield return new object[] { version_2_0_1, typeof(InvalidSchemaVersionException) };
+            yield return new object[] { versionMismatch, typeof(InvalidSchemaVersionException) };
+        }
+
         [Fact]
-        public void RoutesSmokeTest()
+        public void RoutesSmokeTest_1_0()
         {
             string normal =
                 @"{
                   'schemaVersion': '1.0',
+                  'routes': {
+                    'route1': 'from /* INTO $upstream'
+                  },
+                  'storeAndForwardConfiguration': {
+                    'timeToLiveSecs': 20
+                  },
+                  '$version': 2
+                }";
+            var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(normal);
+            Assert.Equal(1, desiredProperties.Routes.Count);
+
+            Assert.Equal("from /* INTO $upstream", desiredProperties.Routes["route1"].Route);
+            Assert.Equal(20, desiredProperties.StoreAndForwardConfiguration.TimeToLiveSecs);
+        }
+
+        [Fact]
+        public void RoutesSmokeTest_1_1_0()
+        {
+            string normal =
+                @"{
+                  'schemaVersion': '1.1.0',
                   'routes': {
                     'route1': 'from /* INTO $upstream',
                     'route2': {
@@ -52,7 +224,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         {
             string emptyRoutesSection =
                 @"{
-                  'schemaVersion': '1.0',
+                  'schemaVersion': '1.1.0',
                   'routes': {},
                   'storeAndForwardConfiguration': {
                     'timeToLiveSecs': 20
@@ -68,7 +240,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         {
             string noPriority =
                 @"{
-                  'schemaVersion': '1.0',
+                  'schemaVersion': '1.1.0',
                   'routes': {
                     'route2': {
                       'route': 'from /* INTO $upstream',
@@ -90,7 +262,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         {
             string noTTL =
                 @"{
-                  'schemaVersion': '1.0',
+                  'schemaVersion': '1.1.0',
                   'routes': {
                     'route2': {
                       'route': 'from /* INTO $upstream',
@@ -112,7 +284,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         {
             string noPriorityOrTTL =
                 @"{
-                  'schemaVersion': '1.0',
+                  'schemaVersion': '1.1.0',
                   'routes': {
                     'route2': {
                       'route': 'from /* INTO $upstream'
@@ -141,7 +313,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         {
             string noRoutesSection =
                 @"{
-                  'schemaVersion': '1.0',
+                  'schemaVersion': '1.1.0',
                   'storeAndForwardConfiguration': {
                     'timeToLiveSecs': 20
                   },
@@ -150,7 +322,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
 
             string emptyRouteName1 =
                 @"{
-                  'schemaVersion': '1.0',
+                  'schemaVersion': '1.1.0',
                   'routes': {
                     '': 'from /* INTO $upstream',
                   },
@@ -162,7 +334,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
 
             string emptyRouteName2 =
                 @"{
-                  'schemaVersion': '1.0',
+                  'schemaVersion': '1.1.0',
                   'routes': {
                     '': {
                       'route': 'from /* INTO $upstream'
@@ -176,7 +348,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
 
             string emptyRouteString1 =
                 @"{
-                  'schemaVersion': '1.0',
+                  'schemaVersion': '1.1.0',
                   'routes': {
                     'route1': ''
                     },
@@ -188,7 +360,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
 
             string emptyRouteString2 =
                 @"{
-                  'schemaVersion': '1.0',
+                  'schemaVersion': '1.1.0',
                   'routes': {
                     'route2': {
                       'route': '',
@@ -204,9 +376,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
 
             string noRouteString =
                 @"{
-                  'schemaVersion': '1.0',
+                  'schemaVersion': '1.1.0',
                   'routes': {
                     'route2': ,
+                  },
+                  'storeAndForwardConfiguration': {
+                    'timeToLiveSecs': 20
+                  },
+                  '$version': 2
+                }";
+
+            string badPriorityValue =
+                @"{
+                  'schemaVersion': '1.1.0',
+                  'routes': {
+                    'route1': {
+                      'route': 'from /* INTO $upstream',
+                      'priority': 50,
+                      'timeToLiveSecs': 7200
+                    }
                   },
                   'storeAndForwardConfiguration': {
                     'timeToLiveSecs': 20
@@ -220,6 +408,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             yield return new object[] { emptyRouteString1, typeof(ArgumentException) };
             yield return new object[] { emptyRouteString2, typeof(ArgumentException) };
             yield return new object[] { noRouteString, typeof(InvalidDataException) };
+            yield return new object[] { badPriorityValue, typeof(ArgumentOutOfRangeException) };
         }
     }
 }

@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
@@ -23,29 +22,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     [Unit]
     public class EdgeHubConnectionTest
     {
-        [Theory]
-        [InlineData("1.0", null)]
-        [InlineData("1.1", null)]
-        [InlineData("1.2", null)]
-        [InlineData("1.3", null)]
-        [InlineData("1", typeof(InvalidSchemaVersionException))]
-        [InlineData("", typeof(InvalidSchemaVersionException))]
-        [InlineData(null, typeof(InvalidSchemaVersionException))]
-        [InlineData("0.1", typeof(InvalidSchemaVersionException))]
-        [InlineData("2.0", typeof(InvalidSchemaVersionException))]
-        [InlineData("2.1", typeof(InvalidSchemaVersionException))]
-        public void SchemaVersionCheckTest(string schemaVersion, Type expectedException)
-        {
-            if (expectedException != null)
-            {
-                Assert.Throws(expectedException, () => EdgeHubConfigParser.ValidateSchemaVersion(schemaVersion));
-            }
-            else
-            {
-                EdgeHubConfigParser.ValidateSchemaVersion(schemaVersion);
-            }
-        }
-
         [Fact]
         public async Task HandleMethodInvocationTest()
         {
