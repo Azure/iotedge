@@ -121,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             var fullRuntimeModule = CreateEdgeAgentDockerRuntimeModule(new DockerConfig(
                 "Foo",
-                createOptions: "{\"ignore\": \"me\"}",
+                "{\"ignore\": \"me\"}",
                 Option.None<NotaryContentTrust>()));
 
             var runtimeModuleWithLabels = CreateEdgeAgentDockerRuntimeModule(new DockerConfig(
