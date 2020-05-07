@@ -10,6 +10,7 @@ const FAILPOINTS: &[&str] = &[
     "consolidatestate.store.serialize_into",
     "filepersistor.load.fileopen",
     "filepersistor.load.format",
+    "filepersistor.load.spawn_blocking",
     "filepersistor.store.fileopen",
     "filepersistor.store.filerename",
     "filepersistor.store.symlink_unlink",
@@ -18,6 +19,7 @@ const FAILPOINTS: &[&str] = &[
     "filepersistor.store.readdir",
     "filepersistor.store.entry_unlink",
     "filepersistor.store.new_file_unlink",
+    "filepersistor.store.spawn_blocking",
 ];
 
 #[derive(Clone, Debug)]
@@ -43,7 +45,7 @@ fn tear_down_failpoints() {
     }
 }
 
-fn test_persistor(count: usize, ops: Vec<Op>) {
+async fn test_persistor(count: usize, ops: Vec<Op>) {
     let tmp_dir = TempDir::new().unwrap();
     let path = tmp_dir.path().to_owned();
     let mut persistor =
@@ -51,16 +53,16 @@ fn test_persistor(count: usize, ops: Vec<Op>) {
 
     // Make sure we've stored at least one state
     tear_down_failpoints();
-    persistor.store(BrokerState::default()).unwrap();
+    persistor.store(BrokerState::default()).await.unwrap();
 
     // process the operations
     for op in ops {
         match op {
             Op::Load => {
-                let _ = persistor.load();
+                let _ = persistor.load().await;
             }
             Op::Store(state) => {
-                let _ = persistor.store(state);
+                let _ = persistor.store(state).await;
             }
             Op::AddFailpoint(f) => fail::cfg(f, "return").unwrap(),
             Op::RemoveFailpoint(f) => fail::remove(f),
@@ -69,30 +71,28 @@ fn test_persistor(count: usize, ops: Vec<Op>) {
 
     // clear the failpoints and ensure we can load at least one state
     tear_down_failpoints();
-    let state = persistor.load().unwrap();
+    let state = persistor.load().await.unwrap();
     assert!(state.is_some());
 }
 
-// This test is meant to verify that the failpoints are actually enabled.
-// This is to prevent the case where someone disables the `fail/failpoints` feature
-// in the `Config.yaml` and unknowingly turns off the failpoints. This would render
-// the proptest tests useless because they would not exercise the failpoints.
-//
-// This smoke test ensures that the failpoints are actually enabled and should
-// catch this mistake.
 #[test]
 fn test_failpoints_smoketest() {
     let scenario = FailScenario::setup();
+    tokio::runtime::Builder::new()
+        .basic_scheduler()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            fail::cfg("filepersistor.load.spawn_blocking", "return").unwrap();
 
-    fail::cfg("filepersistor.store.fileopen", "return").unwrap();
+            let tmp_dir = TempDir::new().unwrap();
+            let path = tmp_dir.path().to_owned();
+            let mut persistor = FilePersistor::new(path, ConsolidatedStateFormat::default());
 
-    let tmp_dir = TempDir::new().unwrap();
-    let path = tmp_dir.path().to_owned();
-    let mut persistor = FilePersistor::new(path, ConsolidatedStateFormat::default());
-
-    let result = persistor.store(BrokerState::default());
-    matches::assert_matches!(result, Err(PersistError::FileOpen(_, _)));
-
+            let result = persistor.load().await;
+            matches::assert_matches!(result, Err(PersistError::TaskJoin(_)));
+        });
     scenario.teardown();
 }
 
@@ -102,7 +102,12 @@ proptest! {
     #[test]
     fn test_failpoints(count in 0usize..10, ops in vec(arb_op(), 0..50)) {
         let scenario = FailScenario::setup();
-        test_persistor(count, ops);
+        tokio::runtime::Builder::new()
+            .basic_scheduler()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(test_persistor(count, ops));
         scenario.teardown();
     }
 }
