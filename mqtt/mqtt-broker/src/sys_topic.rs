@@ -144,7 +144,9 @@ pub(crate) mod tests {
 
         if let StateChange::Subscriptions(stored_id, stored_subs) = &many_subs {
             assert_eq!(&&expected_id, stored_id);
-            assert_eq!(&vec!["Sub1", "Sub2", "Sub3"], stored_subs.as_ref().unwrap());
+            let mut actual: Vec<&str> = stored_subs.clone().unwrap();
+            actual.sort();
+            assert_eq!(vec!["Sub1", "Sub2", "Sub3"], actual);
         }
 
         let message: proto::Publication = many_subs.try_into().unwrap();
@@ -198,15 +200,14 @@ pub(crate) mod tests {
 
             (id.into(), session)
         }));
-        let one_connection = StateChange::new_connection(&sessions);
-        if let StateChange::Connections(one_connection) = &one_connection {
-            let expected1: ClientId = "Session 1".into();
-            let expected2: ClientId = "Session 2".into();
-            let expected3: ClientId = "Session 3".into();
-            assert_eq!(&vec![&expected1, &expected2, &expected3], one_connection);
+        let many_connections = StateChange::new_connection(&sessions);
+        if let StateChange::Connections(many_connections) = &many_connections {
+            let mut actual: Vec<&str> = many_connections.iter().map(|id| id.as_str()).collect();
+            actual.sort();
+            assert_eq!(vec!["Session 1", "Session 2", "Session 3"], actual);
         }
 
-        let message: proto::Publication = one_connection.try_into().unwrap();
+        let message: proto::Publication = many_connections.try_into().unwrap();
         matches_connection_publication(message, &["Session 1", "Session 2", "Session 3"]);
     }
 
