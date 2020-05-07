@@ -41,11 +41,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
             services.AddMemoryCache();
-            services.AddRazorPages();
+            services.AddControllers().AddNewtonsoftJson();
             services.Configure<MvcOptions>(options =>
             {
                 options.Filters.Add(new RequireHttpsAttribute());
-                options.EnableEndpointRouting = false;
             });
             this.Container = this.BuildContainer(services);
 
@@ -104,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapRazorPages();
+                endpoints.MapControllers();
             });
         }
 
