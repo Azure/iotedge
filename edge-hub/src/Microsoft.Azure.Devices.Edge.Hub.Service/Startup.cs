@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Security.Cryptography.X509Certificates;
     using Autofac;
     using Autofac.Extensions.DependencyInjection;
+    using Microsoft.AspNetCore.Authentication.Certificate;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Mvc;
@@ -40,6 +41,37 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         // This method gets called by the runtime. Use this method to add services to the container.
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
+            // services.AddAuthentication(
+            //     CertificateAuthenticationDefaults.AuthenticationScheme)
+            //     .AddCertificate(options =>
+            //     {
+            //         options.Events = new CertificateAuthenticationEvents
+            //         {
+            //             OnCertificateValidated = context =>
+            //             {
+            //                 CertificateValidatedContext context1;
+            //
+            //                 var claims = new[]
+            //                 {
+            //                     new Claim(
+            //                         ClaimTypes.NameIdentifier,
+            //                         context.ClientCertificate.Subject,
+            //                         ClaimValueTypes.String,
+            //                         context.Options.ClaimsIssuer),
+            //                     new Claim(ClaimTypes.Name,
+            //                         context.ClientCertificate.Subject,
+            //                         ClaimValueTypes.String,
+            //                         context.Options.ClaimsIssuer)
+            //                 };
+            //
+            //                 context.Principal = new ClaimsPrincipal(
+            //                     new ClaimsIdentity(claims, context.Scheme.Name));
+            //                 context.Success();
+            //
+            //                 return Task.CompletedTask;
+            //             }
+            //         };
+            //     });
             services.AddMemoryCache();
             services.AddControllers().AddNewtonsoftJson();
             services.Configure<MvcOptions>(options =>
@@ -58,15 +90,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             app.Use(
                 async (context, next) =>
                 {
-                    Option<IList<X509Certificate2>> certChainOption = this.certChainMapper.ExtractCertChain(context.Connection);
-                    certChainOption.ForEach(certChain =>
-                    {
-                        TlsConnectionFeatureExtended tlsConnectionFeatureExtended = new TlsConnectionFeatureExtended
-                        {
-                            ChainElements = certChain
-                        };
-                        context.Features.Set<ITlsConnectionFeatureExtended>(tlsConnectionFeatureExtended);
-                    });
+                    // Option<IList<X509Certificate2>> certChainOption = this.certChainMapper.ExtractCertChain(context.Connection);
+                    // certChainOption.ForEach(certChain =>
+                    // {
+                    //     TlsConnectionFeatureExtended tlsConnectionFeatureExtended = new TlsConnectionFeatureExtended
+                    //     {
+                    //         ChainElements = certChain
+                    //     };
+                    //     context.Features.Set<ITlsConnectionFeatureExtended>(tlsConnectionFeatureExtended);
+                    // });
                     await next();
                 });
 

@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Server.Kestrel.Https;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
+    using Microsoft.Azure.Devices.Edge.Hub.Http.Middleware;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
 
@@ -49,12 +50,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                                         ServerCertificate = serverCertificate,
                                         ClientCertificateValidation = (clientCert, chain, policyErrors) => // TODO: verify that this runs only if certificate provided
                                         {
-                                            certChainMapper.ImportCertChain(clientCert.Thumbprint, chain.ChainElements);
+                                            // certChainMapper.ImportCertChain(clientCert.Thumbprint, chain.ChainElements);
                                             return true;
                                         },
                                         ClientCertificateMode = certificateMode,
                                         SslProtocols = sslProtocols
-                                    });
+                                    })
+                                    .Use(next => new CertChainSavingMiddleware(next).OnConnectionAsync);
                             });
                     })
                 .UseSockets()
