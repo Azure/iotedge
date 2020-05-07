@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
             services.AddMemoryCache();
-            services.AddMvc(options => options.Filters.Add(typeof(ExceptionFilter))).AddNewtonsoftJson();
+            services.AddRazorPages();
             services.Configure<MvcOptions>(options =>
             {
                 options.Filters.Add(new RequireHttpsAttribute());
@@ -100,6 +100,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 });
 
             app.UseMvc();
+            app.UseRouting();
+
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapRazorPages();
+            });
         }
 
         IContainer BuildContainer(IServiceCollection services)
