@@ -98,7 +98,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     await next();
                 });
 
-            app.UseMvc();
             app.UseRouting();
 
             app.UseEndpoints(endpoints =>
