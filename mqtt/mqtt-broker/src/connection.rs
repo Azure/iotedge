@@ -9,7 +9,7 @@ use futures_util::stream::{Stream, StreamExt};
 use lazy_static::lazy_static;
 use mqtt3::proto::{self, DecodeError, EncodeError, Packet, PacketCodec};
 use tokio::io::{AsyncRead, AsyncWrite};
-use tokio::sync::mpsc::{self, Receiver, Sender};
+use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tokio_io_timeout::TimeoutStream;
 use tokio_util::codec::Framed;
 use tracing::{debug, info, span, trace, warn, Level};
@@ -34,22 +34,21 @@ const KEEPALIVE_MULT: f32 = 1.5;
 #[derive(Debug)]
 pub struct ConnectionHandle {
     id: Uuid,
-    sender: Sender<Message>,
+    sender: UnboundedSender<Message>,
 }
 
 impl ConnectionHandle {
-    pub(crate) fn new(id: Uuid, sender: Sender<Message>) -> Self {
+    pub(crate) fn new(id: Uuid, sender: UnboundedSender<Message>) -> Self {
         Self { id, sender }
     }
 
-    pub fn from_sender(sender: Sender<Message>) -> Self {
+    pub fn from_sender(sender: UnboundedSender<Message>) -> Self {
         Self::new(Uuid::new_v4(), sender)
     }
 
-    pub async fn send(&mut self, message: Message) -> Result<(), Error> {
+    pub fn send(&mut self, message: Message) -> Result<(), Error> {
         self.sender
             .send(message)
-            .await
             .map_err(Error::SendConnectionMessage)
     }
 }
@@ -97,7 +96,7 @@ where
     match codec.next().await {
         Some(Ok(Packet::Connect(connect))) => {
             let client_id = client_id(&connect.client_id);
-            let (sender, events) = mpsc::channel(128);
+            let (sender, events) = mpsc::unbounded_channel();
             let connection_handle = ConnectionHandle::from_sender(sender);
             let span = span!(Level::INFO, "connection", client_id=%client_id, remote_addr=%remote_addr, connection=%connection_handle);
 
@@ -260,10 +259,10 @@ where
 
 async fn outgoing_task<S>(
     client_id: ClientId,
-    mut messages: Receiver<Message>,
+    mut messages: UnboundedReceiver<Message>,
     mut outgoing: S,
     mut broker: BrokerHandle,
-) -> Result<(), (Receiver<Message>, Error)>
+) -> Result<(), (UnboundedReceiver<Message>, Error)>
 where
     S: Sink<Packet, Error = EncodeError> + Unpin,
 {

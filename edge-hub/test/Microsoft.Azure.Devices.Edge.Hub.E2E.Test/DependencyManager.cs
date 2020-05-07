@@ -140,6 +140,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 testRoutes = JsonConvert.DeserializeObject<IDictionary<string, string>>(customRoutes);
             }
 
+            if (!bool.TryParse(this.configuration["CheckEntireQueueOnCleanup"], out bool checkEntireQueueOnCleanup))
+            {
+                checkEntireQueueOnCleanup = false;
+            }
+
             builder.RegisterModule(
                 new CommonModule(
                     string.Empty,
@@ -192,6 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     10,
                     false,
                     TimeSpan.FromHours(1),
+                    checkEntireQueueOnCleanup,
                     experimentalFeatures));
 
             builder.RegisterModule(new HttpModule());

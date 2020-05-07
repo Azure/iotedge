@@ -19,7 +19,7 @@ use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::reactor::PollEvented2;
 use winapi::shared::winerror::ERROR_PIPE_BUSY;
 use winapi::um::namedpipeapi::WaitNamedPipeW;
-use winapi::um::winbase::*;
+use winapi::um::winbase::FILE_FLAG_OVERLAPPED;
 
 const PIPE_WAIT_TIMEOUT_MS: u32 = 10 * 1000;
 

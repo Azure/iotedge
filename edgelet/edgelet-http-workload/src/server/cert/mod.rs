@@ -6,7 +6,6 @@ use chrono::{DateTime, Utc};
 use failure::{Fail, ResultExt};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Response, StatusCode};
-use serde_json;
 
 use edgelet_core::{Certificate, CertificateProperties, CreateCertificate, KeyBytes, PrivateKey};
 use edgelet_utils::ensure_not_empty_with_context;

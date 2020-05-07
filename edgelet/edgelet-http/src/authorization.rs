@@ -66,7 +66,7 @@ mod tests {
     use futures::{Future, Stream};
     use hyper::{Body, Request, Response, StatusCode};
 
-    use super::*;
+    use super::{future, AuthId, Authorization, Handler, Parameters, Policy};
     use crate::error::Error as HttpError;
 
     #[test]

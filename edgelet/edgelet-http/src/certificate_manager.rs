@@ -210,7 +210,7 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{CertificateManager, ErrorKind, Future};
     use edgelet_core::crypto::{KeyBytes, PrivateKey};
     use edgelet_core::{CertificateProperties, CertificateType};
 
