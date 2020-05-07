@@ -29,8 +29,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
         {
             CombinedDockerConfig combinedConfig = base.GetCombinedConfig(module, runtimeInfo);
 
-            // if the workload URI is a Unix domain socket then volume mount it into the container
             CreateContainerParameters createOptions = CloneOrCreateParams(combinedConfig.CreateOptions);
+
+            // before making any other modifications to createOptions, save edge agent's createOptions + env as
+            // container labels so they're available as soon as it loads
+            InjectEdgeAgentLabels(module, createOptions);
+
+            // if the workload URI is a Unix domain socket then volume mount it into the container
             this.MountSockets(module, createOptions);
             this.InjectNetworkAliases(module, createOptions);
 
@@ -60,6 +65,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? Path.GetDirectoryName(uri.LocalPath)
                 : uri.AbsolutePath;
+        }
+
+        static void InjectEdgeAgentLabels(IModule module, CreateContainerParameters createOptions)
+        {
+            // The IModule argument came from the desired properties in a new deployment. For edge agent only,
+            // save its createOptions and env as labels so we can detect changes in future configs.
+            // Note: createOptions and env for each module are generally saved to a store (see the DeploymentConfigInfo
+            // member of Microsoft.Azure.Devices.Edge.Agent.Core.Agent) and we could get them there, but we'd miss the
+            // bootstrap scenario where edge agent is starting for the first time and therefore has no config store.
+            // That's why edge agent is treated differently: its config is persisted in the container's labels before
+            // it ever starts.
+            if (module.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase))
+            {
+                // get createOptions JSON before making any updates to labels
+                string createOptionsJson = JsonConvert.SerializeObject(createOptions);
+
+                var moduleWithDockerConfig = (IModule<DockerConfig>)module; // cast is safe; base impl already checked it
+                var env = moduleWithDockerConfig.Env ?? new Dictionary<string, EnvVal>();
+
+                var labels = createOptions.Labels ?? new Dictionary<string, string>();
+                // if these labels already existed (e.g. specified in the deployment), just overwrite them
+                labels[Constants.Labels.CreateOptions] = createOptionsJson;
+                labels[Constants.Labels.Env] = JsonConvert.SerializeObject(env);
+                createOptions.Labels = labels;
+            }
         }
 
         void InjectNetworkAliases(IModule module, CreateContainerParameters createOptions)

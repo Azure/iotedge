@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Configuration;
     using Moq;
+    using Newtonsoft.Json;
     using Xunit;
 
     [Unit]
@@ -251,6 +252,55 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
                     "{\"Binds\":[\"/var/run/iotedgedworkload.sock:/var/run/iotedgedworkload.sock\"],\"Devices\":[],\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"Capabilities\":[[\"gpu\"]],\"Options\":{}}]}",
                     reserializedHostConfig);
             }
+        }
+
+        static (IDictionary<string, EnvVal>, string) CreateEnv(params (string key, string value)[] pairs)
+        {
+            var dict = new Dictionary<string, EnvVal>();
+            foreach (var (key, value) in pairs)
+            {
+                dict.Add(key, new EnvVal(value));
+            }
+
+            return (dict, JsonConvert.SerializeObject(dict));
+        }
+
+        [Theory]
+        // standard data in createOptions
+        [InlineData("{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}]}}}")]
+        // createOptions with pre-existing reserved labels (shouldn't happen, but we need to be resilient)
+        [InlineData("{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}]}},\"Labels\":{\"net.azure-devices.edge.create-options\":\"one\",\"net.azure-devices.edge.env\":\"two\"}}")]
+        public void TestEdgeAgentLabels(string createOptions)
+        {
+            (IDictionary<string, EnvVal> dictEnv, string jsonEnv) = CreateEnv(("a", "one"), ("b", "two"));
+
+            // Arrange
+            var runtimeInfo = Mock.Of<IRuntimeInfo<DockerRuntimeConfig>>(ri =>
+                ri.Config == new DockerRuntimeConfig("1.24", string.Empty));
+
+            var module = Mock.Of<IModule<DockerConfig>>(m => m.Config == new DockerConfig("some-image:latest", createOptions, Option.None<NotaryContentTrust>())
+                && m.Name == Constants.EdgeAgentModuleName
+                && m.Env == dictEnv);
+
+            IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
+                new Dictionary<string, string>
+                {
+                    { Constants.EdgeletWorkloadUriVariableName, "http://blah" },
+                    { Constants.EdgeletManagementUriVariableName, "http://blah" }
+                }).Build();
+            var configSource = Mock.Of<IConfigSource>(s => s.Configuration == configRoot);
+            ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedEdgeletConfigProvider(
+                new[] { new AuthConfig() },
+                configSource);
+
+            // Act
+            CombinedDockerConfig config = provider.GetCombinedConfig(module, runtimeInfo);
+
+            // Assert
+            Assert.NotNull(config.CreateOptions?.Labels);
+            Assert.Equal(2, config.CreateOptions.Labels.Count);
+            Assert.Equal(createOptions, config.CreateOptions.Labels[Constants.Labels.CreateOptions]);
+            Assert.Equal(jsonEnv, config.CreateOptions.Labels[Constants.Labels.Env]);
         }
     }
 }
