@@ -115,7 +115,7 @@ pub(crate) mod tests {
         let expected_id: ClientId = "Session".into();
 
         // Session with no subscriptions
-        let session = make_session(expected_id.as_str(), Vec::<&str>::new());
+        let session = make_session(expected_id.as_str(), Vec::<&str>::new(), true);
         let no_subs = StateChange::new_subscription(&expected_id, &session);
 
         if let StateChange::Subscriptions(stored_id, stored_subs) = &no_subs {
@@ -127,7 +127,7 @@ pub(crate) mod tests {
         matches_subscription_publication(message, expected_id.as_str(), &[]);
 
         // Session with 1 subscription
-        let session = make_session(expected_id.as_str(), &["Sub"]);
+        let session = make_session(expected_id.as_str(), &["Sub"], true);
         let one_sub = StateChange::new_subscription(&expected_id, &session);
 
         if let StateChange::Subscriptions(stored_id, stored_subs) = &one_sub {
@@ -139,7 +139,11 @@ pub(crate) mod tests {
         matches_subscription_publication(message, expected_id.as_str(), &["Sub"]);
 
         // Session with many subscriptions
-        let session = make_session(expected_id.as_str(), (1..4).map(|i| format!("Sub{}", i)));
+        let session = make_session(
+            expected_id.as_str(),
+            (1..4).map(|i| format!("Sub{}", i)),
+            true,
+        );
         let many_subs = StateChange::new_subscription(&expected_id, &session);
 
         if let StateChange::Subscriptions(stored_id, stored_subs) = &many_subs {
@@ -180,7 +184,7 @@ pub(crate) mod tests {
         // One session
         let sessions: HashMap<ClientId, Session> = HashMap::from_iter((1..2).map(|i| {
             let id = format!("Session {}", i);
-            let session = make_session(&id, (1..i).map(|j| format!("Subscription {}", j)));
+            let session = make_session(&id, (1..i).map(|j| format!("Subscription {}", j)), true);
 
             (id.into(), session)
         }));
@@ -193,10 +197,10 @@ pub(crate) mod tests {
         let message: proto::Publication = one_connection.try_into().unwrap();
         matches_connection_publication(message, &["Session 1"]);
 
-        // One multiple sessions
+        // Multiple sessions
         let sessions: HashMap<ClientId, Session> = HashMap::from_iter((1..4).map(|i| {
             let id = format!("Session {}", i);
-            let session = make_session(&id, (1..i).map(|j| format!("Subscription {}", j)));
+            let session = make_session(&id, (1..i).map(|j| format!("Subscription {}", j)), true);
 
             (id.into(), session)
         }));
@@ -209,9 +213,30 @@ pub(crate) mod tests {
 
         let message: proto::Publication = many_connections.try_into().unwrap();
         matches_connection_publication(message, &["Session 1", "Session 2", "Session 3"]);
+
+        // Offline sessions
+        let sessions: HashMap<ClientId, Session> = HashMap::from_iter((1..8).map(|i| {
+            let id = format!("Session {}", i);
+            let session = make_session(
+                &id,
+                (1..i).map(|j| format!("Subscription {}", j)),
+                i % 2 == 0, // even sessions are online, odd offline
+            );
+
+            (id.into(), session)
+        }));
+        let many_connections = StateChange::new_connection(&sessions);
+        if let StateChange::Connections(many_connections) = &many_connections {
+            let mut actual: Vec<&str> = many_connections.iter().map(|id| id.as_str()).collect();
+            actual.sort();
+            assert_eq!(vec!["Session 2", "Session 4", "Session 6"], actual);
+        }
+
+        let message: proto::Publication = many_connections.try_into().unwrap();
+        matches_connection_publication(message, &["Session 2", "Session 4", "Session 6"]);
     }
 
-    fn make_session<I, S>(id: &str, subscriptions: I) -> Session
+    fn make_session<I, S>(id: &str, subscriptions: I, online: bool) -> Session
     where
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
@@ -225,16 +250,20 @@ pub(crate) mod tests {
         }));
         let state = SessionState::from_parts(id.into(), subscriptions, VecDeque::new());
 
-        Session::new_persistent(
-            AuthId::Anonymous,
-            ConnReq::new(
-                id.into(),
-                persistent_connect(id.to_owned()),
-                None,
-                connection_handle(),
-            ),
-            state,
-        )
+        if online {
+            Session::new_persistent(
+                AuthId::Anonymous,
+                ConnReq::new(
+                    id.into(),
+                    persistent_connect(id.to_owned()),
+                    None,
+                    connection_handle(),
+                ),
+                state,
+            )
+        } else {
+            Session::new_offline(state)
+        }
     }
 
     fn matches_subscription_publication(
