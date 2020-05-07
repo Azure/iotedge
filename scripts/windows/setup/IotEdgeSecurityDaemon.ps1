@@ -1781,14 +1781,13 @@ function Set-ProvisioningMode {
         }
 
         if ($ManualConnectionString -or $ManualX509) {
-            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"\s*#?\s*dynamic_reprovisioning:\s*.*'
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"\s*.*'
             $authenticationMethod = Get-ManualAuthSettings
             if ($authenticationMethod -eq 'device_connection_string') {
                 $replacementContent = @(
                     'provisioning:',
                     '  source: ''manual''',
-                    "  device_connection_string: '$DeviceConnectionString'",
-                    "  dynamic_reprovisioning: $DynamicReprovisioning")
+                    "  device_connection_string: '$DeviceConnectionString'")
             } elseif ($authenticationMethod -eq 'x509') {
                 $certUri = ([System.Uri][System.IO.Path]::GetFullPath($X509IdentityCertificate)).AbsoluteUri
                 $pkUri = ([System.Uri][System.IO.Path]::GetFullPath($X509IdentityPrivateKey)).AbsoluteUri
