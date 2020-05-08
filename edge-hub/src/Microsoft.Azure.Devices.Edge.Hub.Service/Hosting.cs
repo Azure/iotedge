@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                                         {
                                             options.RemoteCertificateValidationCallback = (_, clientCert, chain, policyErrors) =>
                                             {
-                                                TlsConnectionFeatureExtended tlsConnectionFeatureExtended = GetConnectionFeatureExtended(chain, context);
+                                                TlsConnectionFeatureExtended tlsConnectionFeatureExtended = GetConnectionFeatureExtended(chain);
                                                 context.Features.Set<ITlsConnectionFeatureExtended>(tlsConnectionFeatureExtended);
                                                 return true;
                                             };
@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             return new Hosting(webHost, container);
         }
 
-        public static TlsConnectionFeatureExtended GetConnectionFeatureExtended(X509Chain chain, ConnectionContext context)
+        public static TlsConnectionFeatureExtended GetConnectionFeatureExtended(X509Chain chain)
         {
             IList<X509Certificate2> clientCertChain = new List<X509Certificate2>();
             foreach (X509ChainElement chainElement in chain.ChainElements)
