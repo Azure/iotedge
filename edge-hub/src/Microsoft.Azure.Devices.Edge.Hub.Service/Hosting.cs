@@ -34,7 +34,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             SslProtocols sslProtocols)
         {
             int port = configuration.GetValue("httpSettings:port", 443);
-            var certificateMode = clientCertAuthEnabled ? ClientCertificateMode.AllowCertificate : ClientCertificateMode.NoCertificate;
+            // var certificateMode = clientCertAuthEnabled ? ClientCertificateMode.AllowCertificate : ClientCertificateMode.NoCertificate;
+            var certificateMode = ClientCertificateMode.NoCertificate;
             IWebHostBuilder webHostBuilder = new WebHostBuilder()
                 .UseKestrel(
                     options =>
@@ -52,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                                         {
                                             options.RemoteCertificateValidationCallback = (_, clientCert, chain, policyErrors) =>
                                             {
-                                                TlsConnectionFeatureExtended tlsConnectionFeatureExtended = GetConnectionFeatureExtended(chain);
+                                                TlsConnectionFeatureExtended tlsConnectionFeatureExtended = GetConnectionFeatureExtended(chain); // TODO: handle case where no cert is used
                                                 context.Features.Set<ITlsConnectionFeatureExtended>(tlsConnectionFeatureExtended);
                                                 return true;
                                             };
