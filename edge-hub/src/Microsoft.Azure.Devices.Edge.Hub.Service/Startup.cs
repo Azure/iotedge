@@ -2,18 +2,13 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System;
-    using System.Collections.Generic;
-    using System.Security.Cryptography.X509Certificates;
     using Autofac;
     using Autofac.Extensions.DependencyInjection;
-    using Microsoft.AspNetCore.Authentication.Certificate;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Hub.Http;
-    using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Middleware;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
@@ -23,17 +18,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     {
         readonly IDependencyManager dependencyManager;
         readonly IConfigurationRoot configuration;
-        readonly CertChainMapper certChainMapper;
 
         // ReSharper disable once UnusedParameter.Local
         public Startup(
             IConfigurationRoot configuration,
-            IDependencyManager dependencyManager,
-            CertChainMapper certChainMapper)
+            IDependencyManager dependencyManager)
         {
             this.configuration = Preconditions.CheckNotNull(configuration, nameof(configuration));
             this.dependencyManager = Preconditions.CheckNotNull(dependencyManager, nameof(dependencyManager));
-            this.certChainMapper = Preconditions.CheckNotNull(certChainMapper, nameof(certChainMapper));
         }
 
         internal IContainer Container { get; private set; }
@@ -41,43 +33,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         // This method gets called by the runtime. Use this method to add services to the container.
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
-            // services.AddAuthentication(
-            //     CertificateAuthenticationDefaults.AuthenticationScheme)
-            //     .AddCertificate(options =>
-            //     {
-            //         options.Events = new CertificateAuthenticationEvents
-            //         {
-            //             OnCertificateValidated = context =>
-            //             {
-            //                 CertificateValidatedContext context1;
-            //
-            //                 var claims = new[]
-            //                 {
-            //                     new Claim(
-            //                         ClaimTypes.NameIdentifier,
-            //                         context.ClientCertificate.Subject,
-            //                         ClaimValueTypes.String,
-            //                         context.Options.ClaimsIssuer),
-            //                     new Claim(ClaimTypes.Name,
-            //                         context.ClientCertificate.Subject,
-            //                         ClaimValueTypes.String,
-            //                         context.Options.ClaimsIssuer)
-            //                 };
-            //
-            //                 context.Principal = new ClaimsPrincipal(
-            //                     new ClaimsIdentity(claims, context.Scheme.Name));
-            //                 context.Success();
-            //
-            //                 return Task.CompletedTask;
-            //             }
-            //         };
-            //     });
             services.AddMemoryCache();
             services.AddControllers().AddNewtonsoftJson();
             services.Configure<MvcOptions>(options =>
             {
                 options.Filters.Add(new RequireHttpsAttribute());
             });
+
             this.Container = this.BuildContainer(services);
 
             return new AutofacServiceProvider(this.Container);
@@ -86,21 +48,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public void Configure(IApplicationBuilder app)
         {
             app.UseWebSockets();
-
-            app.Use(
-                async (context, next) =>
-                {
-                    // Option<IList<X509Certificate2>> certChainOption = this.certChainMapper.ExtractCertChain(context.Connection);
-                    // certChainOption.ForEach(certChain =>
-                    // {
-                    //     TlsConnectionFeatureExtended tlsConnectionFeatureExtended = new TlsConnectionFeatureExtended
-                    //     {
-                    //         ChainElements = certChain
-                    //     };
-                    //     context.Features.Set<ITlsConnectionFeatureExtended>(tlsConnectionFeatureExtended);
-                    // });
-                    await next();
-                });
 
             var webSocketListenerRegistry = app.ApplicationServices.GetService(typeof(IWebSocketListenerRegistry)) as IWebSocketListenerRegistry;
             app.UseWebSocketHandlingMiddleware(webSocketListenerRegistry);

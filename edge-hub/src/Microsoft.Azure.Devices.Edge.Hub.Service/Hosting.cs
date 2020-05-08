@@ -1,11 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
+    using System.Collections.Generic;
     using System.Net;
     using System.Net.Sockets;
     using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
     using Autofac;
+    using Microsoft.AspNetCore.Connections;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Server.Kestrel.Https;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
@@ -34,7 +36,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             int port = configuration.GetValue("httpSettings:port", 443);
             var certificateMode = clientCertAuthEnabled ? ClientCertificateMode.AllowCertificate : ClientCertificateMode.NoCertificate;
-            CertChainMapper certChainMapper = new CertChainMapper();
             IWebHostBuilder webHostBuilder = new WebHostBuilder()
                 .UseKestrel(
                     options =>
@@ -47,19 +48,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                                 listenOptions.UseHttps(
                                     new HttpsConnectionAdapterOptions()
                                     {
-                                        ServerCertificateSelector = (connectionContext, _) =>
+                                        ServerCertificate = serverCertificate,
+                                        OnAuthenticate = (context, options) =>
                                         {
-                                            return serverCertificate;
-                                        },
-                                        ClientCertificateValidation = (clientCert, chain, policyErrors) => // TODO: verify that this runs only if certificate provided
-                                        {
-                                            // certChainMapper.ImportCertChain(clientCert.Thumbprint, chain.ChainElements);
-                                            return true;
+                                            options.RemoteCertificateValidationCallback = (_, clientCert, chain, policyErrors) =>
+                                            {
+                                                TlsConnectionFeatureExtended tlsConnectionFeatureExtended = GetConnectionFeatureExtended(chain, context);
+                                                context.Features.Set<ITlsConnectionFeatureExtended>(tlsConnectionFeatureExtended);
+                                                return true;
+                                            };
                                         },
                                         ClientCertificateMode = certificateMode,
                                         SslProtocols = sslProtocols
-                                    })
-                                    .Use(next => new CertChainSavingMiddleware(next).OnConnectionAsync);
+                                    });
                             });
                     })
                 .UseSockets()
@@ -68,12 +69,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     {
                         serviceCollection.AddSingleton(configuration);
                         serviceCollection.AddSingleton(dependencyManager);
-                        serviceCollection.AddSingleton(certChainMapper);
                     })
                 .UseStartup<Startup>();
             IWebHost webHost = webHostBuilder.Build();
             IContainer container = webHost.Services.GetService(typeof(IStartup)) is Startup startup ? startup.Container : null;
             return new Hosting(webHost, container);
+        }
+
+        public static TlsConnectionFeatureExtended GetConnectionFeatureExtended(X509Chain chain, ConnectionContext context)
+        {
+            IList<X509Certificate2> clientCertChain = new List<X509Certificate2>();
+            foreach (X509ChainElement chainElement in chain.ChainElements)
+            {
+                clientCertChain.Add(new X509Certificate2(chainElement.Certificate));
+            }
+
+            return new TlsConnectionFeatureExtended
+            {
+                ChainElements = clientCertChain
+            };
         }
     }
 }
