@@ -18,12 +18,9 @@ impl<'a> StateChange<'a> {
     pub fn new_subscription(client_id: &'a ClientId, session: &'a Session) -> Self {
         let subscriptions = session
             .subscriptions()
-            .unwrap()
-            .keys()
-            .map(String::as_str)
-            .collect();
+            .map(|s| s.keys().map(String::as_str).collect());
 
-        Self::Subscriptions(client_id, Some(subscriptions))
+        Self::Subscriptions(client_id, subscriptions)
     }
 
     pub fn clear_subscriptions(client_id: &'a ClientId) -> Self {
@@ -69,7 +66,7 @@ impl<'a> TryFrom<StateChange<'a>> for proto::Publication {
                         .map_err(|_| Error::NotifyError)?
                         .into()
                 } else {
-                    "".into()
+                    bytes::Bytes::new()
                 };
 
                 proto::Publication {
@@ -101,15 +98,16 @@ impl<'a> TryFrom<StateChange<'a>> for proto::Publication {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::*;
-    use crate::broker::tests::*;
-    use crate::session::*;
-    use crate::subscription::*;
-    use crate::*;
     use std::collections::{HashMap, VecDeque};
     use std::convert::TryInto;
-    use std::iter::FromIterator;
     use std::str::FromStr;
+
+    use super::{StateChange, STATE_CHANGE_QOS};
+    use crate::broker::tests::{connection_handle, is_notify_equal, persistent_connect};
+    use crate::session::{Session, SessionState};
+    use crate::subscription::{Subscription, TopicFilter};
+    use crate::{AuthId, ClientId, ConnReq};
+    use mqtt3::proto;
     #[test]
     fn test_subscriptions() {
         let expected_id: ClientId = "Session".into();
@@ -120,8 +118,7 @@ pub(crate) mod tests {
 
         if let StateChange::Subscriptions(stored_id, stored_subs) = &no_subs {
             assert_eq!(&&expected_id, stored_id);
-            assert_eq!(&Vec::<&str>::new(), stored_subs.as_ref().unwrap());
-        }
+            assert_eq!(&Some(Vec::new()), stored_subs);        }
 
         let message: proto::Publication = no_subs.try_into().unwrap();
         matches_subscription_publication(message, expected_id.as_str(), &[]);
@@ -132,7 +129,7 @@ pub(crate) mod tests {
 
         if let StateChange::Subscriptions(stored_id, stored_subs) = &one_sub {
             assert_eq!(&&expected_id, stored_id);
-            assert_eq!(&vec!["Sub"], stored_subs.as_ref().unwrap());
+            assert_eq!(&Some(vec!["Sub"]), stored_subs);
         }
 
         let message: proto::Publication = one_sub.try_into().unwrap();
@@ -182,12 +179,15 @@ pub(crate) mod tests {
         matches_connection_publication(message, &[]);
 
         // One session
-        let sessions: HashMap<ClientId, Session> = HashMap::from_iter((1..2).map(|i| {
-            let id = format!("Session {}", i);
-            let session = make_session(&id, (1..i).map(|j| format!("Subscription {}", j)), true);
+        let sessions: HashMap<ClientId, Session> = (1..2)
+            .map(|i| {
+                let id = format!("Session {}", i);
+                let session =
+                    make_session(&id, (1..i).map(|j| format!("Subscription {}", j)), true);
 
-            (id.into(), session)
-        }));
+                (id.into(), session)
+            })
+            .collect();
         let one_connection = StateChange::new_connection(&sessions);
         if let StateChange::Connections(one_connection) = &one_connection {
             let expected: ClientId = "Session 1".into();
@@ -198,12 +198,15 @@ pub(crate) mod tests {
         matches_connection_publication(message, &["Session 1"]);
 
         // Multiple sessions
-        let sessions: HashMap<ClientId, Session> = HashMap::from_iter((1..4).map(|i| {
-            let id = format!("Session {}", i);
-            let session = make_session(&id, (1..i).map(|j| format!("Subscription {}", j)), true);
+        let sessions: HashMap<ClientId, Session> = (1..4)
+            .map(|i| {
+                let id = format!("Session {}", i);
+                let session =
+                    make_session(&id, (1..i).map(|j| format!("Subscription {}", j)), true);
 
-            (id.into(), session)
-        }));
+                (id.into(), session)
+            })
+            .collect();
         let many_connections = StateChange::new_connection(&sessions);
         if let StateChange::Connections(many_connections) = &many_connections {
             let mut actual: Vec<&str> = many_connections.iter().map(|id| id.as_str()).collect();
@@ -215,16 +218,18 @@ pub(crate) mod tests {
         matches_connection_publication(message, &["Session 1", "Session 2", "Session 3"]);
 
         // Offline sessions
-        let sessions: HashMap<ClientId, Session> = HashMap::from_iter((1..7).map(|i| {
-            let id = format!("Session {}", i);
-            let session = make_session(
-                &id,
-                (1..i).map(|j| format!("Subscription {}", j)),
-                i % 2 == 0, // even sessions are online, odd offline
-            );
+        let sessions: HashMap<ClientId, Session> = (1..7)
+            .map(|i| {
+                let id = format!("Session {}", i);
+                let session = make_session(
+                    &id,
+                    (1..i).map(|j| format!("Subscription {}", j)),
+                    i % 2 == 0, // even sessions are online, odd offline
+                );
 
-            (id.into(), session)
-        }));
+                (id.into(), session)
+            })
+            .collect();
         let many_connections = StateChange::new_connection(&sessions);
         if let StateChange::Connections(many_connections) = &many_connections {
             let mut actual: Vec<&str> = many_connections.iter().map(|id| id.as_str()).collect();
@@ -249,12 +254,15 @@ pub(crate) mod tests {
         matches_session_publication(message, &[]);
 
         // One session
-        let sessions: HashMap<ClientId, Session> = HashMap::from_iter((1..2).map(|i| {
-            let id = format!("Session {}", i);
-            let session = make_session(&id, (1..i).map(|j| format!("Subscription {}", j)), true);
+        let sessions: HashMap<ClientId, Session> = (1..2)
+            .map(|i| {
+                let id = format!("Session {}", i);
+                let session =
+                    make_session(&id, (1..i).map(|j| format!("Subscription {}", j)), true);
 
-            (id.into(), session)
-        }));
+                (id.into(), session)
+            })
+            .collect();
         let one_session = StateChange::new_session(&sessions);
         if let StateChange::Connections(one_session) = &one_session {
             let expected: ClientId = "Session 1".into();
@@ -265,12 +273,15 @@ pub(crate) mod tests {
         matches_session_publication(message, &["Session 1"]);
 
         // Multiple sessions
-        let sessions: HashMap<ClientId, Session> = HashMap::from_iter((1..4).map(|i| {
-            let id = format!("Session {}", i);
-            let session = make_session(&id, (1..i).map(|j| format!("Subscription {}", j)), true);
+        let sessions: HashMap<ClientId, Session> = (1..4)
+            .map(|i| {
+                let id = format!("Session {}", i);
+                let session =
+                    make_session(&id, (1..i).map(|j| format!("Subscription {}", j)), true);
 
-            (id.into(), session)
-        }));
+                (id.into(), session)
+            })
+            .collect();
         let many_sessions = StateChange::new_session(&sessions);
         if let StateChange::Connections(many_sessions) = &many_sessions {
             let mut actual: Vec<&str> = many_sessions.iter().map(|id| id.as_str()).collect();
@@ -282,16 +293,18 @@ pub(crate) mod tests {
         matches_session_publication(message, &["Session 1", "Session 2", "Session 3"]);
 
         // Offline sessions
-        let sessions: HashMap<ClientId, Session> = HashMap::from_iter((1..7).map(|i| {
-            let id = format!("Session {}", i);
-            let session = make_session(
-                &id,
-                (1..i).map(|j| format!("Subscription {}", j)),
-                i % 2 == 0, // even sessions are online, odd offline
-            );
+        let sessions: HashMap<ClientId, Session> = (1..7)
+            .map(|i| {
+                let id = format!("Session {}", i);
+                let session = make_session(
+                    &id,
+                    (1..i).map(|j| format!("Subscription {}", j)),
+                    i % 2 == 0, // even sessions are online, odd offline
+                );
 
-            (id.into(), session)
-        }));
+                (id.into(), session)
+            })
+            .collect();
         let many_sessions = StateChange::new_session(&sessions);
         if let StateChange::Connections(many_sessions) = &many_sessions {
             let mut actual: Vec<&str> = many_sessions.iter().map(|id| id.as_str()).collect();
@@ -328,13 +341,16 @@ pub(crate) mod tests {
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        let subscriptions = HashMap::from_iter(subscriptions.into_iter().map(|s| {
-            let s = s.as_ref();
-            (
-                s.to_owned(),
-                Subscription::new(TopicFilter::from_str(s).unwrap(), proto::QoS::AtLeastOnce),
-            )
-        }));
+        let subscriptions = subscriptions
+            .into_iter()
+            .map(|s| {
+                let s = s.as_ref();
+                (
+                    s.to_owned(),
+                    Subscription::new(TopicFilter::from_str(s).unwrap(), proto::QoS::AtLeastOnce),
+                )
+            })
+            .collect();
         let state = SessionState::from_parts(id.into(), subscriptions, VecDeque::new());
 
         if online {

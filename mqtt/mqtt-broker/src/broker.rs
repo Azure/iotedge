@@ -792,7 +792,7 @@ where
     }
 
     fn close_session(&mut self, client_id: &ClientId) -> Result<Option<Session>, Error> {
-        Ok(match self.sessions.remove(client_id) {
+       let new_session = match self.sessions.remove(client_id) {
             Some(Session::Transient(connected)) => {
                 info!("closing transient session for {}", client_id);
                 self.publish_all(StateChange::new_connection(&self.sessions).try_into()?)?;
@@ -832,7 +832,9 @@ where
                 None
             }
             _ => None,
-        })
+        };
+
+        Ok(new_session)
     }
 
     fn publish_all(&mut self, mut publication: proto::Publication) -> Result<(), Error> {
