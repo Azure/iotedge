@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Server.Kestrel.Https;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
-    using Microsoft.Azure.Devices.Edge.Hub.Http.Middleware;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
 
