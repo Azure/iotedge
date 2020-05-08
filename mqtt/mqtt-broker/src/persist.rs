@@ -120,20 +120,35 @@ impl FileFormat for ConsolidatedStateFormat {
             Err(PersistError::Deserialize(None))
         });
 
-        let state: ConsolidatedState =
+        let state: ConsolidatedStateVersioned =
             bincode::deserialize_from(decoder).map_err(|e| PersistError::Deserialize(Some(e)))?;
 
         Ok(state.into())
     }
 
     fn store<W: Write>(&self, writer: W, state: BrokerState) -> Result<(), Self::Error> {
-        let state: ConsolidatedState = state.into();
+        let state: ConsolidatedStateVersioned = state.into();
 
         let encoder = GzEncoder::new(writer, Compression::default());
         fail_point!("bincodeformat.store.serialize_into", |_| {
             Err(PersistError::Serialize(None))
         });
         bincode::serialize_into(encoder, &state).map_err(|e| PersistError::Serialize(Some(e)))
+    }
+}
+
+impl From<BrokerState> for ConsolidatedStateVersioned {
+    fn from(state: BrokerState) -> Self {
+        ConsolidatedStateVersioned::V2(state.into())
+    }
+}
+
+impl From<ConsolidatedStateVersioned> for BrokerState {
+    fn from(state: ConsolidatedStateVersioned) -> Self {
+        match state {
+            ConsolidatedStateVersioned::V1(state) => state.into(),
+            ConsolidatedStateVersioned::V2(state) => state.into(),
+        }
     }
 }
 
@@ -240,8 +255,126 @@ impl From<ConsolidatedState> for BrokerState {
     }
 }
 
+impl From<ConsolidatedStateV2> for BrokerState {
+    fn from(state: ConsolidatedStateV2) -> Self {
+        let ConsolidatedStateV2 {
+            payloads,
+            retained,
+            sessions,
+        } = state;
+
+        let expand_payload = |publication: SimplifiedPublication| Publication {
+            topic_name: publication.topic_name,
+            qos: publication.qos,
+            retain: publication.retain,
+            payload: payloads
+                .get(&publication.payload)
+                .expect("corrupted data")
+                .clone(),
+        };
+
+        let retained = retained
+            .into_iter()
+            .map(|(topic, publication)| (topic, expand_payload(publication)))
+            .collect();
+
+        #[allow(clippy::redundant_closure)] // removing closure leads to borrow error
+        let sessions = sessions
+            .into_iter()
+            .map(|session| {
+                let waiting_to_be_sent = session
+                    .waiting_to_be_sent
+                    .into_iter()
+                    .map(|publication| expand_payload(publication))
+                    .collect();
+                SessionState::from_parts(
+                    session.client_id,
+                    session.subscriptions,
+                    waiting_to_be_sent,
+                )
+            })
+            .collect();
+
+        BrokerState::new(retained, sessions)
+    }
+}
+
+impl From<BrokerState> for ConsolidatedStateV2 {
+    fn from(state: BrokerState) -> Self {
+        let (retained, sessions) = state.into_parts();
+
+        #[allow(clippy::mutable_key_type)]
+        let mut payloads = HashMap::new();
+
+        let mut shrink_payload = |publication: Publication| {
+            let next_id = payloads.len() as u64;
+
+            let id = *payloads.entry(publication.payload).or_insert(next_id);
+
+            SimplifiedPublication {
+                topic_name: publication.topic_name,
+                qos: publication.qos,
+                retain: publication.retain,
+                payload: id,
+            }
+        };
+
+        let retained = retained
+            .into_iter()
+            .map(|(topic, publication)| (topic, shrink_payload(publication)))
+            .collect();
+
+        let sessions = sessions
+            .into_iter()
+            .map(|session| {
+                let (client_id, subscriptions, waiting_to_be_sent) = session.into_parts();
+
+                #[allow(clippy::redundant_closure)] // removing closure leads to borrow error
+                let waiting_to_be_sent = waiting_to_be_sent
+                    .into_iter()
+                    .map(|publication| shrink_payload(publication))
+                    .collect();
+
+                ConsolidatedSession {
+                    client_id,
+                    subscriptions,
+                    waiting_to_be_sent,
+                }
+            })
+            .collect();
+
+        // Note that while payloads are consolidated using a Hashmap<Byte, u64>, they are stored as a Hashmap<u64, Byte>.
+        // This makes consolidation much faster
+        let payloads = payloads
+            .drain()
+            .map(|(payload, id)| (id, payload))
+            .collect();
+
+        ConsolidatedStateV2 {
+            payloads,
+            retained,
+            sessions,
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+enum ConsolidatedStateVersioned {
+    V1(ConsolidatedState),
+    V2(ConsolidatedStateV2),
+}
+
 #[derive(Deserialize, Serialize)]
 struct ConsolidatedState {
+    #[serde(serialize_with = "serialize_payloads")]
+    #[serde(deserialize_with = "deserialize_payloads")]
+    payloads: HashMap<u64, Bytes>,
+    retained: HashMap<String, SimplifiedPublication>,
+    sessions: Vec<ConsolidatedSession>,
+}
+
+#[derive(Deserialize, Serialize)]
+struct ConsolidatedStateV2 {
     #[serde(serialize_with = "serialize_payloads")]
     #[serde(deserialize_with = "deserialize_payloads")]
     payloads: HashMap<u64, Bytes>,
@@ -518,14 +651,20 @@ pub enum PersistError {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use std::io::Cursor;
+    use std::{collections::HashMap, fs::OpenOptions, io::Cursor};
 
+    use flate2::{write::GzEncoder, Compression};
     use proptest::prelude::*;
     use tempfile::TempDir;
 
+    use super::{STATE_DEFAULT_STEM, STATE_EXTENSION};
     use crate::broker::{tests::arb_broker_state, BrokerState};
-    use crate::persist::{
-        ConsolidatedState, ConsolidatedStateFormat, FileFormat, FilePersistor, Persist,
+    use crate::{
+        persist::{
+            ConsolidatedState, ConsolidatedStateFormat, ConsolidatedStateVersioned, FileFormat,
+            FilePersistor, Persist,
+        },
+        PersistError, SessionState,
     };
 
     proptest! {
@@ -576,5 +715,34 @@ pub(crate) mod tests {
         persistor.store(BrokerState::default()).await.unwrap();
         let state = persistor.load().await.unwrap().unwrap();
         assert_eq!(BrokerState::default(), state);
+    }
+
+    #[tokio::test]
+    async fn filepersistor_versions_smoketest() {
+        let tmp_dir = TempDir::new().unwrap();
+        let dir = tmp_dir.path().to_owned();
+
+        let broker_state =
+            BrokerState::new(HashMap::default(), vec![SessionState::new("123".into())]);
+        let state: ConsolidatedState = broker_state.clone().into();
+        let versioned = ConsolidatedStateVersioned::V1(state);
+
+        let path = dir.join(format!("{}.{}", STATE_DEFAULT_STEM, STATE_EXTENSION));
+        let file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .open(&path)
+            .map_err(|e| PersistError::FileOpen(path.clone(), Some(e)))
+            .unwrap();
+
+        let encoder = GzEncoder::new(file, Compression::default());
+        bincode::serialize_into(encoder, &versioned)
+            .map_err(|e| PersistError::Serialize(Some(e)))
+            .unwrap();
+
+        let mut persistor = FilePersistor::new(dir, ConsolidatedStateFormat::default());
+        let state = persistor.load().await.unwrap().unwrap();
+
+        assert_eq!(broker_state, state);
     }
 }
