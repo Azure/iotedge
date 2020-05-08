@@ -329,10 +329,7 @@ where
                     .map_err(|_| Error::from(ErrorKind::Persist(ErrorReason::ReadVersion)))?;
                 let size: usize = u32::from_be_bytes(size).try_into().unwrap();
 
-                let mut version = Vec::with_capacity(size);
-                unsafe {
-                    version.set_len(size);
-                }
+                let mut version = vec![0; size];
                 file.read_exact(&mut version)
                     .map_err(|_| Error::from(ErrorKind::Persist(ErrorReason::ReadVersion)))?;
                 let version: &str = bincode::deserialize(&version)
