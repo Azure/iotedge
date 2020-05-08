@@ -19,13 +19,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 
         public async Task OnConnectionAsync(ConnectionContext context)
         {
-            await Task.Yield();
-
             SslStream sslStream = context.Features.Get<SslStream>();
-            IList<X509Certificate2> certChainCopy = new List<X509Certificate2>();
 
-            // TODO: should we leave inner stream open?
-            new SslStream(sslStream, false, (_, clientCert, chain, policyErrors) =>
+            IList<X509Certificate2> certChainCopy = new List<X509Certificate2>();
+            SslStream newSslStream = new SslStream(sslStream, true, (_, clientCert, chain, policyErrors) => // TODO: should we leave inner stream open?
             {
                 foreach (X509ChainElement chainElement in chain.ChainElements)
                 {
@@ -34,12 +31,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 
                 return true;
             });
+            newSslStream.Close();
 
             TlsConnectionFeatureExtended tlsConnectionFeatureExtended = new TlsConnectionFeatureExtended
             {
                 ChainElements = certChainCopy
             };
             context.Features.Set<ITlsConnectionFeatureExtended>(tlsConnectionFeatureExtended);
+
+            await this.next(context);
         }
 
         static class Events
