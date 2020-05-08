@@ -47,7 +47,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                                 listenOptions.UseHttps(
                                     new HttpsConnectionAdapterOptions()
                                     {
-                                        ServerCertificate = serverCertificate,
+                                        ServerCertificateSelector = (connectionContext, _) =>
+                                        {
+                                            return serverCertificate;
+                                        },
                                         ClientCertificateValidation = (clientCert, chain, policyErrors) => // TODO: verify that this runs only if certificate provided
                                         {
                                             // certChainMapper.ImportCertChain(clientCert.Thumbprint, chain.ChainElements);

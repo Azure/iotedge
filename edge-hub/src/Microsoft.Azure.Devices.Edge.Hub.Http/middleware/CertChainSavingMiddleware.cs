@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             IList<X509Certificate2> certChainCopy = new List<X509Certificate2>();
 
             // TODO: should we leave inner stream open?
-            new SslStream(sslStream, true, (_, clientCert, chain, policyErrors) =>
+            new SslStream(sslStream, false, (_, clientCert, chain, policyErrors) =>
             {
                 foreach (X509ChainElement chainElement in chain.ChainElements)
                 {
