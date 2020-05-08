@@ -1,4 +1,4 @@
-# 1.0.9.1 (2020-05-07)
+# 1.0.9.1 (2020-05-08)
 ## Edge Agent
 ### Bug Fixes
 * Update [Windows IoT Core ARM32 version compatibility issue](https://support.microsoft.com/en-us/help/4542617/you-might-encounter-issues-when-using-windows-server-containers-with-t) to OS version 10.0.17763.1158 ([3f42583](https://github.com/Azure/iotedge/commit/3f425836720c07b522da19bf582351e1afba4bf6))
