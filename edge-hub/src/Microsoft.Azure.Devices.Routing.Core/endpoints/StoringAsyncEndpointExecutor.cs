@@ -177,12 +177,18 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 }
             }
 
-            this.prioritiesToFsms.CompareAndSet(snapshot, updatedSnapshot.ToImmutableDictionary());
-            Events.UpdatePrioritiesSuccess(this, updatedSnapshot.Keys.ToList());
+            if (this.prioritiesToFsms.CompareAndSet(snapshot, updatedSnapshot.ToImmutableDictionary()))
+            {
+                Events.UpdatePrioritiesSuccess(this, updatedSnapshot.Keys.ToList());
 
-            // Update the lastUsedFsm to be the initial one, we always
-            // have at least one priority->FSM pair at this point.
-            this.lastUsedFsm = updatedSnapshot[priorities[0]];
+                // Update the lastUsedFsm to be the initial one, we always
+                // have at least one priority->FSM pair at this point.
+                this.lastUsedFsm = updatedSnapshot[priorities[0]];
+            }
+            else
+            {
+                Events.UpdatePrioritiesFailure(this, updatedSnapshot.Keys.ToList());
+            }
         }
 
         static string GetMessageQueueId(string endpointId, uint priority)
@@ -457,6 +463,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             public static void UpdatePrioritiesSuccess(StoringAsyncEndpointExecutor executor, IList<uint> priorities)
             {
                 Log.LogInformation((int)EventIds.UpdatePrioritiesSuccess, $"[UpdatePrioritiesSuccess] Update priorities succeeded EndpointId: {executor.Endpoint.Id}, EndpointName: {executor.Endpoint.Name}, New Priorities: {priorities}");
+            }
+
+            public static void UpdatePrioritiesFailure(StoringAsyncEndpointExecutor executor, IList<uint> priorities)
+            {
+                Log.LogInformation((int)EventIds.UpdatePrioritiesSuccess, $"[UpdatePrioritiesSuccess] Update priorities failed EndpointId: {executor.Endpoint.Id}, EndpointName: {executor.Endpoint.Name}, New Priorities: {priorities}");
             }
 
             public static void Close(StoringAsyncEndpointExecutor executor)
