@@ -393,6 +393,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 SetEndpointFailure,
                 UpdatePriorities,
                 UpdatePrioritiesSuccess,
+                UpdatePrioritiesFailure,
                 Close,
                 CloseSuccess,
                 CloseFailure,
@@ -467,7 +468,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
             public static void UpdatePrioritiesFailure(StoringAsyncEndpointExecutor executor, IList<uint> priorities)
             {
-                Log.LogError((int)EventIds.UpdatePrioritiesSuccess, $"[UpdatePrioritiesSuccess] Update priorities failed EndpointId: {executor.Endpoint.Id}, EndpointName: {executor.Endpoint.Name}, New Priorities: {priorities}");
+                Log.LogError((int)EventIds.UpdatePrioritiesFailure, $"[UpdatePrioritiesSuccess] Update priorities failed EndpointId: {executor.Endpoint.Id}, EndpointName: {executor.Endpoint.Name}, New Priorities: {priorities}");
             }
 
             public static void Close(StoringAsyncEndpointExecutor executor)
