@@ -92,7 +92,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 if (!this.closed.GetAndSet(true))
                 {
                     this.cts.Cancel();
-                    // Require to close FSM to complete any currently executing command if any to unblock sendMessageTask.
+                    // Require to close all FSMs to complete currently executing command if any in order to unblock sendMessageTask.
                     ImmutableDictionary<uint, EndpointExecutorFsm> snapshot = this.prioritiesToFsms;
                     foreach (EndpointExecutorFsm fsm in snapshot.Values)
                     {

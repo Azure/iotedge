@@ -149,7 +149,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
         }
 
         [Fact]
-        public async Task CloseAsyncWillCallCloseAsyncOfAllFsmsTestToUnblockSendingTask()
+        public async Task CloseAsyncWillCallCloseAsyncOfAllFsmsTest()
         {
             var endpoint = new TestEndpoint("endpoint1");
             endpoint.CanProcess = false;
