@@ -1,8 +1,6 @@
-use std::fmt;
-
 use async_trait::async_trait;
-use base64::encode;
 use serde::{Deserialize, Serialize};
+use serde_repr::Deserialize_repr;
 
 use crate::auth::{AuthId, Authenticator, Credentials};
 use crate::{AuthenticationError, Error};
@@ -22,15 +20,15 @@ impl Authenticator for EdgeHubAuthenticator {
         username: Option<String>,
         credentials: Credentials,
     ) -> Result<Option<AuthId>, Self::Error> {
-        self.internal_authenticate((username, credentials).into())
+        self.authenticate_client((username, credentials).into())
             .await
             .map_err(Error::Authenticate)?
-            .into_auth_id()
+            .into()
     }
 }
 
 impl EdgeHubAuthenticator {
-    async fn internal_authenticate(
+    async fn authenticate_client(
         &self,
         request: EdgeHubAuthRequest,
     ) -> Result<EdgeHubAuthResponse, AuthenticationError> {
@@ -77,15 +75,15 @@ pub struct EdgeHubAuthRequest {
 }
 
 impl From<(Option<String>, Credentials)> for EdgeHubAuthRequest {
-    fn from(item: (Option<String>, Credentials)) -> Self {
-        let (password, certificate) = match item.1 {
+    fn from((username, credentials): (Option<String>, Credentials)) -> Self {
+        let (password, certificate) = match credentials {
             Credentials::Password(p) => (p, None),
-            Credentials::ClientCertificate(c) => (None, Some(encode(c))),
+            Credentials::ClientCertificate(c) => (None, Some(base64::encode(c))),
         };
 
         EdgeHubAuthRequest {
             version: API_VERSION.to_string(),
-            username: item.0,
+            username,
             password,
             certificate,
             certificate_chain: None,
@@ -93,7 +91,7 @@ impl From<(Option<String>, Credentials)> for EdgeHubAuthRequest {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Deserialize_repr, Copy, Clone)]
 #[repr(i32)]
 pub enum EdgeHubResultCode {
     Authenticated = 200,
@@ -108,10 +106,10 @@ pub struct EdgeHubAuthResponse {
     identity: Option<String>,
 }
 
-impl EdgeHubAuthResponse {
-    fn into_auth_id(self) -> Result<Option<AuthId>, Error> {
-        match self.result {
-            EdgeHubResultCode::Authenticated => self
+impl From<EdgeHubAuthResponse> for Result<Option<AuthId>, Error> {
+    fn from(item: EdgeHubAuthResponse) -> Self {
+        match item.result {
+            EdgeHubResultCode::Authenticated => item
                 .identity
                 .map_or(Err(AuthenticationError::ProcessResponse.into()), |i| {
                     Ok(Some(AuthId::Identity(i)))
@@ -121,42 +119,10 @@ impl EdgeHubAuthResponse {
     }
 }
 
-macro_rules! impl_for {
-    ($fun_name:ident, $typ:ident) => {
-        fn $fun_name<E: serde::de::Error>(self, v: $typ) -> Result<EdgeHubResultCode, E> {
-            match v {
-                200 => Ok(EdgeHubResultCode::Authenticated),
-                403 => Ok(EdgeHubResultCode::Unauthenticated),
-                v => Err(E::custom(format!("unexpected int: {}", v))),
-            }
-        }
-    };
-}
-
-struct EdgeHubResultCodeVisitor;
-impl<'de> serde::de::Visitor<'de> for EdgeHubResultCodeVisitor {
-    type Value = EdgeHubResultCode;
-    fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("200 or 403")
-    }
-
-    impl_for!(visit_i32, i32);
-    impl_for!(visit_i64, i64);
-    impl_for!(visit_u32, u32);
-    impl_for!(visit_u64, u64);
-}
-
-impl<'de> serde::Deserialize<'de> for EdgeHubResultCode {
-    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<EdgeHubResultCode, D::Error> {
-        d.deserialize_i32(EdgeHubResultCodeVisitor)
-    }
-}
-
 #[cfg(test)]
 mod tests {
 
     use base64::decode;
-    use matches::assert_matches;
     use mockito::{mock, Matcher};
 
     use crate::auth::authentication_edgehub::EdgeHubAuthenticator;
@@ -170,32 +136,6 @@ mod tests {
                         XkEup2RRAj7SSdOYhTmRpg5chhpZX/4/eF8gMAoGCCqGSM49BAMCA0kAMEYCIQD/\
                         wNzMjU1B8De5/+jEif8rkLDtqnohmVRXuAE5dCfbvAIhAJTJ+Fyg19uLSKVyOK8R\
                         5q87sIqhJXhTfNYvIt77Dq4J";
-
-    #[tokio::test]
-    async fn test_call_auth_agent() {
-        let _m = mock("POST", "/authenticate/")
-        .with_status(200)
-        .with_body(r#"{"result": 200, "identity":"vikauthtest.azure-devices.net/ca_root","version": "2020-04-20"}"#)
-        .create();
-
-        let authenticator = EdgeHubAuthenticator {
-            url: mockito::server_url() + "/authenticate/",
-        };
-        let cert_as_string = CERT.to_string();
-        let raw_cert_result = decode(cert_as_string);
-        let raw_cert = raw_cert_result.unwrap();
-        let cert: Certificate = Certificate::from(raw_cert);
-        let credentials = Credentials::ClientCertificate(cert);
-
-        let result = authenticator
-            .authenticate(
-                Some("vikauthtest/thumb2/api-version=2018-06-30".to_string()),
-                credentials,
-            )
-            .await;
-
-        assert_matches!(result, Ok(Some(_)));
-    }
 
     #[tokio::test]
     async fn response_ok_feeds_identity() {

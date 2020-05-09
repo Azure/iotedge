@@ -25,6 +25,7 @@ rand = { version = "0.7", optional = true }
 regex = "1"
 reqwest = { version = "0.10", features = ["json"] }
 serde = { version = "1.0", features = ["derive", "rc"] }
+serde_repr = "0.1"
 thiserror = "1.0"
 tokio = { version = "0.2", features = ["blocking", "stream", "sync", "tcp"] }
 tokio-io-timeout = "0.4"
