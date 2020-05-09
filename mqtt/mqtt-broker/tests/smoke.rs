@@ -15,12 +15,10 @@ mod common;
 
 #[tokio::test]
 async fn basic_connect_clean_session() {
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let (broker_shutdown, broker_task, address) = common::start_server(broker);
+    let (broker_shutdown, broker_task, address) =
+        common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut client = TestClientBuilder::new(address)
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
@@ -49,12 +47,10 @@ async fn basic_connect_clean_session() {
 ///	- Expects to see `reset_session` flag = false (existing session on the server).
 #[tokio::test]
 async fn basic_connect_existing_session() {
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let (broker_shutdown, broker_task, address) = common::start_server(broker);
+    let (broker_shutdown, broker_task, address) =
+        common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut client = TestClientBuilder::new(address.clone())
         .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests".into()))
@@ -99,12 +95,10 @@ async fn basic_connect_existing_session() {
 async fn basic_pub_sub() {
     let topic = "topic/A";
 
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let (broker_shutdown, broker_task, address) = common::start_server(broker);
+    let (broker_shutdown, broker_task, address) =
+        common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut client = TestClientBuilder::new(address)
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
@@ -155,12 +149,10 @@ async fn retained_messages() {
     let topic_b = "topic/B";
     let topic_c = "topic/C";
 
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let (broker_shutdown, broker_task, address) = common::start_server(broker);
+    let (broker_shutdown, broker_task, address) =
+        common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut client = TestClientBuilder::new(address)
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
@@ -223,12 +215,10 @@ async fn retained_messages_zero_payload() {
     let topic_b = "topic/B";
     let topic_c = "topic/C";
 
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let (broker_shutdown, broker_task, address) = common::start_server(broker);
+    let (broker_shutdown, broker_task, address) =
+        common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut client = TestClientBuilder::new(address)
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
@@ -269,12 +259,10 @@ async fn retained_messages_zero_payload() {
 async fn will_message() {
     let topic = "topic/A";
 
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let (broker_shutdown, broker_task, address) = common::start_server(broker);
+    let (broker_shutdown, broker_task, address) =
+        common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let client_a = TestClientBuilder::new(address.clone())
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-a".into()))
@@ -326,12 +314,10 @@ async fn offline_messages() {
     let topic_b = "topic/B";
     let topic_c = "topic/C";
 
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let (broker_shutdown, broker_task, address) = common::start_server(broker);
+    let (broker_shutdown, broker_task, address) =
+        common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut client_a = TestClientBuilder::new(address.clone())
         .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests-a".into()))
@@ -400,12 +386,10 @@ async fn overlapping_subscriptions() {
     let topic_filter_pound = "topic/#";
     let topic_filter_plus = "topic/+";
 
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let (broker_shutdown, broker_task, address) = common::start_server(broker);
+    let (broker_shutdown, broker_task, address) =
+        common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut client_a = TestClientBuilder::new(address.clone())
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-a".into()))

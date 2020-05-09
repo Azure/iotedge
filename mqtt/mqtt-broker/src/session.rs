@@ -880,7 +880,7 @@ pub(crate) mod tests {
     use crate::{auth::AuthId, ConnectionHandle};
     use crate::{
         session::{IdentifiersInUse, PacketIdentifiers, Session, SessionState},
-        ClientId, ConnReq, Error,
+        AuthResult, ClientId, ConnReq, Error,
     };
 
     fn arb_identifiers_in_use() -> impl Strategy<Value = IdentifiersInUse> {
@@ -954,7 +954,7 @@ pub(crate) mod tests {
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
-        let req1 = ConnReq::new(client_id, connect1, None, handle1);
+        let req1 = ConnReq::new(client_id, connect1, AuthResult::Successful(None), handle1);
         let auth_id = "auth-id1".into();
         let mut session = Session::new_transient(auth_id, req1);
         let subscribe_to = proto::SubscribeTo {
@@ -1004,7 +1004,7 @@ pub(crate) mod tests {
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
-        let req1 = ConnReq::new(client_id, connect1, None, handle1);
+        let req1 = ConnReq::new(client_id, connect1, AuthResult::Successful(None), handle1);
         let auth_id = "auth-id1".into();
         let mut session = Session::new_transient(auth_id, req1);
         let subscribe_to = proto::SubscribeTo {
@@ -1024,7 +1024,7 @@ pub(crate) mod tests {
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
-        let req1 = ConnReq::new(client_id, connect1, None, handle1);
+        let req1 = ConnReq::new(client_id, connect1, AuthResult::Successful(None), handle1);
         let auth_id = AuthId::Anonymous;
         let mut session = Session::new_transient(auth_id, req1);
 

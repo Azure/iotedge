@@ -32,7 +32,7 @@ pub use crate::auth::{AuthId, Authenticator, Authorizer, Certificate};
 pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle, BrokerState};
 pub use crate::configuration::BrokerConfig;
 pub use crate::connection::ConnectionHandle;
-pub use crate::error::{Error, InitializeBrokerError};
+pub use crate::error::{AuthenticationError, Error, InitializeBrokerError};
 pub use crate::persist::{
     ConsolidatedStateFormat, FileFormat, FilePersistor, NullPersistor, Persist, PersistError,
 };
@@ -61,11 +61,18 @@ impl std::fmt::Display for ClientId {
         write!(f, "{}", self.as_str())
     }
 }
+
+#[derive(Debug)]
+pub enum AuthResult {
+    Successful(Option<AuthId>),
+    Failed,
+}
+
 #[derive(Debug)]
 pub struct ConnReq {
     client_id: ClientId,
     connect: proto::Connect,
-    certificate: Option<Certificate>,
+    auth_result: AuthResult,
     handle: ConnectionHandle,
 }
 
@@ -73,13 +80,13 @@ impl ConnReq {
     pub fn new(
         client_id: ClientId,
         connect: proto::Connect,
-        certificate: Option<Certificate>,
+        auth_result: AuthResult,
         handle: ConnectionHandle,
     ) -> Self {
         Self {
             client_id,
             connect,
-            certificate,
+            auth_result,
             handle,
         }
     }
@@ -96,8 +103,8 @@ impl ConnReq {
         &self.handle
     }
 
-    pub fn certificate(&self) -> Option<&Certificate> {
-        self.certificate.as_ref()
+    pub fn auth_result(&self) -> &AuthResult {
+        &self.auth_result
     }
 
     pub fn handle_mut(&mut self) -> &mut ConnectionHandle {

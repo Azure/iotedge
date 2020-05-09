@@ -54,6 +54,9 @@ pub enum Error {
 
     #[error("Unable to start broker.")]
     InitializeBroker(#[from] InitializeBrokerError),
+
+    #[error("Authentication error.")]
+    Authenticate(#[from] AuthenticationError),
 }
 
 /// Represents errors occurred while bootstrapping broker.
@@ -79,4 +82,20 @@ pub enum InitializeBrokerError {
 
     #[error("An error occurred  bootstrapping TLS")]
     Tls(#[source] native_tls::Error),
+}
+
+/// Authentication errors.
+#[derive(Debug, Error)]
+pub enum AuthenticationError {
+    #[error("failed to execute.")]
+    Execution,
+
+    #[error("failed to send request.")]
+    SendRequest,
+
+    #[error("failed to process response.")]
+    ProcessResponse,
+
+    #[error("not supported response version {0}")]
+    ApiVersion(String),
 }

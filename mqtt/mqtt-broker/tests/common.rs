@@ -287,7 +287,8 @@ where
 /// Starts a test server with a provided broker and returns
 /// shutdown handle, broker task and server binding.
 pub fn start_server<N, Z>(
-    broker: Broker<N, Z>,
+    broker: Broker<Z>,
+    authenticator: N,
 ) -> (Sender<()>, JoinHandle<Result<BrokerState, Error>>, String)
 where
     N: Authenticator + Send + Sync + 'static,
@@ -302,7 +303,8 @@ where
 
     let (shutdown, rx) = oneshot::channel::<()>();
     let transports = vec![mqtt_broker::TransportBuilder::Tcp(address.clone())];
-    let broker_task = tokio::spawn(Server::from_broker(broker).serve(transports, rx.map(drop)));
+    let broker_task =
+        tokio::spawn(Server::from_broker(broker).serve(transports, rx.map(drop), authenticator));
 
     (shutdown, broker_task, address)
 }
