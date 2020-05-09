@@ -624,11 +624,11 @@ function Install-RootCACertificate(
 
     $rootKeyFile = Get-KeyPathForPrefix($_rootCAPrefix)
     Write-Host ("Copying the Root CA private key to $rootKeyFile")
-    Copy-Item $rootCAKeyFile $rootKeyFile
+    Copy-Item "$rootCAKeyFile" "$rootKeyFile"
 
     $rootCertFile = Get-CertPathForPrefix($_rootCAPrefix)
     Write-Host ("Copying the Root CA certificate to $rootCertFile")
-    Copy-Item $rootCAFile $rootCertFile
+    Copy-Item "$rootCAFile" "$rootCertFile"
 
     New-IntermediateCACertificate $_intermediatePrefix $_rootCAPrefix $_intermediateCommonName $_privateKeyPassword $rootPrivateKeyPassword
     Write-Host "Success"
@@ -637,7 +637,7 @@ function Install-RootCACertificate(
 # Get-CACertsCertUseEdge retrieves the algorithm (RSA vs ECC) that was specified during New-CACertsCertChain
 function Get-CACertsCertUseRsa()
 {
-    Write-Output ((Get-Content $algorithmUsedFile -ErrorAction SilentlyContinue) -eq "rsa")
+    Write-Output ((Get-Content "$algorithmUsedFile" -ErrorAction SilentlyContinue) -eq "rsa")
 }
 
 <#
@@ -682,9 +682,9 @@ function New-CACertsVerificationCert([Parameter(Mandatory=$TRUE)][string]$reques
     $verifCertPath = Get-CertPathForPrefix($verificationPrefix)
     $verifCertFullChainPath = Get-CertPathForPrefix("$verificationPrefix-full-chain")
     $verifKeyPath = Get-KeyPathForPrefix($verificationPrefix)
-    Remove-Item -Path $verifCertPath -ErrorAction SilentlyContinue
-    Remove-Item -Path $verifCertFullChainPath -ErrorAction SilentlyContinue
-    Remove-Item -Path $verifKeyPath -ErrorAction SilentlyContinue
+    Remove-Item -Path "$verifCertPath" -ErrorAction SilentlyContinue
+    Remove-Item -Path "$verifCertFullChainPath" -ErrorAction SilentlyContinue
+    Remove-Item -Path "$verifKeyPath" -ErrorAction SilentlyContinue
     New-ClientCertificate $verificationPrefix $_rootCAPrefix $requestedCommonName
     if (-not (Test-Path $verifCertPath))
     {
