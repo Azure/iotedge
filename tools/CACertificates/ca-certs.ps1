@@ -474,7 +474,7 @@ function New-CertFullChain([string]$certFile, [string]$prefix, [string]$issuerPr
     {
         $issuerFullChainCertFileName  = Get-CertPathForPrefix("$issuerPrefix-full-chain")
     }
-    Get-Content $certFile, $issuerFullChainCertFileName | Set-Content $fullCertChain
+    Get-Content "$certFile", "$issuerFullChainCertFileName" | Set-Content "$fullCertChain"
     Write-Host ("Certificate with subject {0} has been output to {1} and with full chain to {2}" -f $subject, $certFile, $fullCertChain)
 }
 
