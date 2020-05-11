@@ -25,14 +25,9 @@ impl Translator {
     pub fn incoming_subscribe(
         &self,
         client_id: &str,
-        subscribe: proto::Subscribe,
+        mut subscribe: proto::Subscribe,
     ) -> proto::Subscribe {
-        let proto::Subscribe {
-            packet_identifier,
-            mut subscribe_to,
-        } = subscribe;
-
-        for mut sub_to in &mut subscribe_to {
+        for mut sub_to in &mut subscribe.subscribe_to {
             if let Some(new_topic) = self
                 .incoming
                 .translate_incoming(&sub_to.topic_filter, client_id)
@@ -41,10 +36,7 @@ impl Translator {
             }
         }
 
-        proto::Subscribe {
-            packet_identifier,
-            subscribe_to,
-        }
+        subscribe
     }
 
     pub fn incoming_unsubscribe(
@@ -52,11 +44,11 @@ impl Translator {
         client_id: &str,
         mut unsubscribe: proto::Unsubscribe,
     ) -> proto::Unsubscribe {
-        unsubscribe.unsubscribe_from = unsubscribe
-            .unsubscribe_from
-            .drain(..)
-            .map(|t| self.incoming.translate_incoming(&t, client_id).unwrap_or(t))
-            .collect();
+        for unsub_from in &mut unsubscribe.unsubscribe_from {
+            if let Some(new_topic) = self.incoming.translate_incoming(&unsub_from, client_id) {
+                *unsub_from = new_topic;
+            }
+        }
 
         unsubscribe
     }
@@ -68,6 +60,7 @@ impl Translator {
         {
             publish.topic_name = new_topic;
         }
+
         publish
     }
 
@@ -75,6 +68,7 @@ impl Translator {
         if let Some(new_topic) = self.outgoing.translate_outgoing(&publish.topic_name) {
             publish.topic_name = new_topic;
         }
+
         publish
     }
 }
