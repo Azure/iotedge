@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                                                 options.ClientCertificateRequired = true;
                                                 options.RemoteCertificateValidationCallback = (_, clientCert, chain, policyErrors) =>
                                                 {
-                                                    TlsConnectionFeatureExtended tlsConnectionFeatureExtended = GetConnectionFeatureExtended(chain);
+                                                    TlsConnectionFeatureExtended tlsConnectionFeatureExtended = GetConnectionFeatureExtended(Option.Some(chain));
                                                     context.Features.Set<ITlsConnectionFeatureExtended>(tlsConnectionFeatureExtended);
                                                     return true;
                                                 };
@@ -78,15 +78,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             return new Hosting(webHost, container);
         }
 
-        public static TlsConnectionFeatureExtended GetConnectionFeatureExtended(X509Chain chain)
+        public static TlsConnectionFeatureExtended GetConnectionFeatureExtended(Option<X509Chain> chain)
         {
-            Preconditions.CheckNotNull(chain);
-
             IList<X509Certificate2> clientCertChain = new List<X509Certificate2>();
-            foreach (X509ChainElement chainElement in chain.ChainElements)
+            chain.ForEach(chain =>
             {
-                clientCertChain.Add(new X509Certificate2(chainElement.Certificate));
-            }
+                foreach (X509ChainElement chainElement in chain.ChainElements)
+                {
+                    clientCertChain.Add(new X509Certificate2(chainElement.Certificate));
+                }
+            });
 
             return new TlsConnectionFeatureExtended
             {
