@@ -120,6 +120,11 @@ As the message pump fetches messages out of the store, the MessageStore checks t
 
 If the message is expired, it simply gets skipped over, and GetNext() keeps on iterating until it fills the requested batch size or the store is empty.  Then in the background, the existing message cleanup task will periodically delete these expired messages.
 
+#### Message clean up
+With the addition of PriorityQueues, the CleanupProcessor assumptions change. Previously, we could always assume that if a message at the head of a queue should not be deleted, then none of the subsequent messages in the queue should be either. Now, because we can have different TTL’s for messages within the same queue, there can be messages that have expired in the queue after the head. The *checkEntireQueueOnCleanup* flag is an environment variable for edgeHub. If it is set to true, we will clean more aggressively, by checking the entire queue every time the cleanup processor runs. If it is set to false, we just remove the oldest items in the queue until we get to one that is not expired. 
+
+This is currently a trade-off between I/O and memory, and different users will have different preferences. If users are not sending different TTL’s to the same endpoint, they should keep this flag off to save I/O. If they are, then they may want to turn this on to save memory.
+
 ### Live deployment manifest changes
 A new deployment manifest can come down with routing updates while there are still pending messages in the store.  In this case, since the previous priority and TTL values are effectively snapshotted into the store, there will be no change to the behavior of pending messages.  Any new message that comes in after the manifest changes are applied will be enqueued with the new config.
 
