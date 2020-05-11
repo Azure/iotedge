@@ -61,13 +61,10 @@ impl<'a> TryFrom<StateChange<'a>> for proto::Publication {
     fn try_from(state: StateChange<'a>) -> Result<Self, Error> {
         Ok(match state {
             StateChange::Subscriptions(client_id, subscriptions) => {
-                let payload = if let Some(subscriptions) = subscriptions {
-                    serde_json::to_string(&subscriptions)
-                        .map_err(|_| Error::NotifyError)?
-                        .into()
-                } else {
-                    bytes::Bytes::new()
-                };
+                let payload = subscriptions
+                    .map(|subscriptions| serde_json::to_string(&subscriptions))
+                    .transpose()?
+                    .map_or_else(|| bytes::Bytes::new(), |json| json.into());
 
                 proto::Publication {
                     topic_name: format!("$edgehub/subscriptions/{}", client_id),
@@ -80,17 +77,13 @@ impl<'a> TryFrom<StateChange<'a>> for proto::Publication {
                 topic_name: "$edgehub/connected".to_owned(),
                 qos: STATE_CHANGE_QOS,
                 retain: true,
-                payload: serde_json::to_string(&connections)
-                    .map_err(|_| Error::NotifyError)?
-                    .into(),
+                payload: serde_json::to_string(&connections)?.into(),
             },
             StateChange::Sessions(sessions) => proto::Publication {
                 topic_name: "$edgehub/sessions".to_owned(),
                 qos: STATE_CHANGE_QOS,
                 retain: true,
-                payload: serde_json::to_string(&sessions)
-                    .map_err(|_| Error::NotifyError)?
-                    .into(),
+                payload: serde_json::to_string(&sessions)?.into(),
             },
         })
     }
@@ -118,7 +111,8 @@ pub(crate) mod tests {
 
         if let StateChange::Subscriptions(stored_id, stored_subs) = &no_subs {
             assert_eq!(&&expected_id, stored_id);
-            assert_eq!(&Some(Vec::new()), stored_subs);        }
+            assert_eq!(&Some(Vec::new()), stored_subs);
+        }
 
         let message: proto::Publication = no_subs.try_into().unwrap();
         matches_subscription_publication(message, expected_id.as_str(), &[]);

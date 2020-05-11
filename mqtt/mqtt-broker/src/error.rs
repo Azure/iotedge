@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use mqtt3::proto::Packet;
+use serde_json::error::Error as JsonError;
 use thiserror::Error;
 
 use crate::Message;
@@ -55,8 +56,8 @@ pub enum Error {
     #[error("Unable to start broker.")]
     InitializeBroker(#[from] InitializeBrokerError),
 
-    #[error("An error occurred when notifying $edgehub")]
-    NotifyError,
+    #[error("An error occurred when notifying $edgehub: {0}")]
+    NotifyError(#[from] JsonError),
 }
 
 /// Represents errors occurred while bootstrapping broker.
