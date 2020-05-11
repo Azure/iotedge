@@ -27,7 +27,6 @@ mod server;
 mod session;
 mod snapshot;
 mod subscription;
-mod translation;
 mod transport;
 
 pub use crate::auth::{AuthId, Certificate};

@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 
-use crate::{ClientEvent, Publish};
 use lazy_static::lazy_static;
 use mqtt3::proto;
 use regex::Regex;
@@ -23,33 +22,11 @@ impl Translator {
         }
     }
 
-    pub fn translate_incoming(&self, client_id: &str, event: ClientEvent) -> ClientEvent {
-        match event {
-            ClientEvent::Subscribe(s) => ClientEvent::Subscribe(self.subscribe(client_id, s)),
-            ClientEvent::Unsubscribe(u) => ClientEvent::Unsubscribe(self.unsubscribe(client_id, u)),
-            ClientEvent::PublishFrom(p) => {
-                ClientEvent::PublishFrom(self.publish_incoming(client_id, p))
-            }
-            e => e,
-        }
-    }
-
-    // note pubAcks don't need to be translated since they only contain an
-    // id, not a lits of topics subbed to
-    pub fn translate_outgoing(&self, event: ClientEvent) -> ClientEvent {
-        match event {
-            ClientEvent::PublishTo(Publish::QoS0(pid, p)) => {
-                ClientEvent::PublishTo(Publish::QoS0(pid, self.publish_outgoing(p)))
-            }
-            ClientEvent::PublishTo(Publish::QoS12(pid, p)) => {
-                ClientEvent::PublishTo(Publish::QoS12(pid, self.publish_outgoing(p)))
-            }
-
-            p => p,
-        }
-    }
-
-    fn subscribe(&self, client_id: &str, subscribe: proto::Subscribe) -> proto::Subscribe {
+    pub fn incoming_subscribe(
+        &self,
+        client_id: &str,
+        subscribe: proto::Subscribe,
+    ) -> proto::Subscribe {
         let proto::Subscribe {
             packet_identifier,
             mut subscribe_to,
@@ -70,7 +47,7 @@ impl Translator {
         }
     }
 
-    fn unsubscribe(
+    pub fn incoming_unsubscribe(
         &self,
         client_id: &str,
         mut unsubscribe: proto::Unsubscribe,
@@ -84,7 +61,7 @@ impl Translator {
         unsubscribe
     }
 
-    fn publish_incoming(&self, client_id: &str, mut publish: proto::Publish) -> proto::Publish {
+    pub fn incoming_publish(&self, client_id: &str, mut publish: proto::Publish) -> proto::Publish {
         if let Some(new_topic) = self
             .incoming
             .translate_incoming(&publish.topic_name, client_id)
@@ -94,7 +71,7 @@ impl Translator {
         publish
     }
 
-    fn publish_outgoing(&self, mut publish: proto::Publish) -> proto::Publish {
+    pub fn outgoing_publish(&self, mut publish: proto::Publish) -> proto::Publish {
         if let Some(new_topic) = self.outgoing.translate_outgoing(&publish.topic_name) {
             publish.topic_name = new_topic;
         }

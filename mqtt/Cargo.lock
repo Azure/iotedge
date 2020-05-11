@@ -1751,6 +1751,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "topic-translator"
+version = "0.1.0"
+dependencies = [
+ "lazy_static",
+ "mqtt3",
+ "regex",
+]
+
+[[package]]
 name = "tracing"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
