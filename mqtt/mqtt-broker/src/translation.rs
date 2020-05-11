@@ -91,38 +91,42 @@ fn to_legacy_topic(topic: String) -> String {
 
 const TRANSLATION_TOPIC: &str = "$edgehub";
 const DEVICE_ID: &str = r"(?P<device_id>[a-zA-Z-\.\+%_#\*\?!\(\),=@\$']*)";
-struct Translator {
-    basic: Regex,
-    twin_pattern: Regex,
+macro_rules! translate_from {
+    ($( $translate_name:ident, $translate_from:expr, $translate_to:expr ),*) => {
+        struct TranslateFrom {
+            $(
+                $translate_name: Regex,
+            )*
+        }
+
+        impl TranslateFrom {
+            fn new() -> Result<Self, regex::Error> {
+                Ok(Self {
+                    $(
+                        $translate_name: Regex::new(&$translate_from)?,
+                    )*
+                })
+            }
+
+            fn translate_from(&self, topic: &str) -> Option<String> {
+                if topic.starts_with(TRANSLATION_TOPIC) {
+                    $(
+                        #[allow(unused_variables)]
+                        if let Some(captures) = self.$translate_name.captures(topic) {
+                            return Some($translate_to(captures).into());
+                        }
+                    )*
+                }
+
+                None
+            }
+        }
+    };
 }
 
-impl Translator {
-    fn new() -> Result<Self, regex::Error> {
-        Ok(Self {
-            basic: Regex::new(&format!("\\$edgehub/{}", DEVICE_ID))?,
-            twin_pattern: Regex::new(&format!(
-                "\\$edgehub/{}/twin/get(?P<request_id>.*)",
-                DEVICE_ID
-            ))?,
-        })
-    }
-
-    fn translate_from(&self, topic: &str) -> Option<String> {
-        if !topic.starts_with(TRANSLATION_TOPIC) {
-            return None;
-        }
-
-        if let Some(captures) = self.basic.captures(topic) {
-            println!("Device Id: {}", &captures["device_id"]);
-        }
-
-        if let Some(captures) = self.twin_pattern.captures(topic) {
-            println!("Request Id: {}", &captures["request_id"]);
-            return Some(format!("$iothub/twin/GET{}", &captures["request_id"]));
-        }
-
-        None
-    }
+translate_from! {
+    twin_get, format!("\\$edgehub/{}/twin/get(?P<request_id>.*)",DEVICE_ID), {|captures: regex::Captures<'_>| format!("$iothub/twin/GET{}", &captures["request_id"])},
+    twin_res, format!("\\$edgehub/{}/twin/res(?P<request_id>.*)",DEVICE_ID), {|captures: regex::Captures<'_>| format!("$iothub/twin/res{}", &captures["request_id"])}
 }
 
 #[cfg(test)]
@@ -130,11 +134,16 @@ pub(crate) mod tests {
     use super::*;
     #[test]
     fn test_translator() {
-        let translator = Translator::new().unwrap();
+        let translator = TranslateFrom::new().unwrap();
         assert_eq!(translator.translate_from("blagh"), None);
+        assert_eq!(translator.translate_from("$edgehub/client_a/not_a_topic"), None);
         assert_eq!(
             translator.translate_from("$edgehub/client_a/twin/get?res=1234"),
             Some("$iothub/twin/GET?res=1234".to_owned())
+        );
+        assert_eq!(
+            translator.translate_from("$edgehub/client_a/twin/res?res=1234"),
+            Some("$iothub/twin/res?res=1234".to_owned())
         );
     }
 }
