@@ -251,9 +251,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
-        public static Option<T> GetOption<K, T>(this IDictionary<K, T> dict, K key)
+        public static Option<TV> GetOption<TK, TV>(this IDictionary<TK, TV> dict, TK key)
         {
-            return dict.TryGetValue(key, out T o) ? Some(o) : None<T>();
+            return dict.TryGetValue(key, out TV o) ? Some(o) : None<TV>();
         }
 
         /// <summary>

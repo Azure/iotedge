@@ -209,11 +209,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                return GetCpuLinux(module);
+                return this.GetCpuLinux(module);
             }
             else
             {
-                return GetCpuWindows(module);
+                return this.GetCpuWindows(module);
             }
         }
 
@@ -221,18 +221,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
         Option<double> GetCpuLinux(DockerStats module)
         {
             Option<double> currentTotal = module.CpuStats.AndThen(s => s.CpuUsage).AndThen(s => s.TotalUsage);
-            Option<double> previousTotal = module.Name.AndThen(previousModuleCpu.GetOption);
+            Option<double> previousTotal = module.Name.AndThen(this.previousModuleCpu.GetOption);
             Option<double> moduleDelta = currentTotal.AndThen(curr => previousTotal.Map(prev => curr - prev));
 
             Option<double> currentSystem = module.CpuStats.AndThen(s => s.SystemCpuUsage);
-            Option<double> previousSystem = module.Name.AndThen(previousSystemCpu.GetOption);
+            Option<double> previousSystem = module.Name.AndThen(this.previousSystemCpu.GetOption);
             Option<double> systemDelta = currentSystem.AndThen(curr => previousSystem.Map(prev => curr - prev));
 
             // set previous to new current
             module.Name.ForEach(name =>
             {
-                currentTotal.ForEach(curr => previousModuleCpu[name] = curr);
-                currentSystem.ForEach(curr => previousSystemCpu[name] = curr);
+                currentTotal.ForEach(curr => this.previousModuleCpu[name] = curr);
+                currentSystem.ForEach(curr => this.previousSystemCpu[name] = curr);
             });
 
             return moduleDelta.AndThen(moduleDif => systemDelta.AndThen(systemDif =>
