@@ -7,10 +7,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
     using Autofac;
-    using Microsoft.AspNetCore.Connections;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Server.Kestrel.Https;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
 
@@ -34,7 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             SslProtocols sslProtocols)
         {
             int port = configuration.GetValue("httpSettings:port", 443);
-            // var certificateMode = clientCertAuthEnabled ? ClientCertificateMode.AllowCertificate : ClientCertificateMode.NoCertificate;
             IWebHostBuilder webHostBuilder = new WebHostBuilder()
                 .UseKestrel(
                     options =>
@@ -50,15 +49,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                                         ServerCertificate = serverCertificate,
                                         OnAuthenticate = (context, options) =>
                                         {
-                                            options.ClientCertificateRequired = true;
-                                            options.RemoteCertificateValidationCallback = (_, clientCert, chain, policyErrors) =>
+                                            if (clientCertAuthEnabled)
                                             {
-                                                TlsConnectionFeatureExtended tlsConnectionFeatureExtended = GetConnectionFeatureExtended(chain); // TODO: handle case where no cert is used
-                                                context.Features.Set<ITlsConnectionFeatureExtended>(tlsConnectionFeatureExtended);
-                                                return true;
-                                            };
+                                                options.ClientCertificateRequired = true;
+                                                options.RemoteCertificateValidationCallback = (_, clientCert, chain, policyErrors) =>
+                                                {
+                                                    TlsConnectionFeatureExtended tlsConnectionFeatureExtended = GetConnectionFeatureExtended(chain);
+                                                    context.Features.Set<ITlsConnectionFeatureExtended>(tlsConnectionFeatureExtended);
+                                                    return true;
+                                                };
+                                            }
                                         },
-                                        ClientCertificateMode = ClientCertificateMode.NoCertificate,
+                                        ClientCertificateMode = ClientCertificateMode.NoCertificate, // we can override this in OnAuthenticate if using certs
                                         SslProtocols = sslProtocols
                                     });
                             });
@@ -78,6 +80,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         public static TlsConnectionFeatureExtended GetConnectionFeatureExtended(X509Chain chain)
         {
+            Preconditions.CheckNotNull(chain);
+
             IList<X509Certificate2> clientCertChain = new List<X509Certificate2>();
             foreach (X509ChainElement chainElement in chain.ChainElements)
             {
