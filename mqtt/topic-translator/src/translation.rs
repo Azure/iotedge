@@ -64,7 +64,7 @@ impl Translator {
         publish
     }
 
-    pub fn outgoing_publish(&self, mut publish: proto::Publish) -> proto::Publish {
+    pub fn outgoing_publish(&self, mut publish: proto::Publication) -> proto::Publication {
         if let Some(new_topic) = self.outgoing.translate_outgoing(&publish.topic_name) {
             publish.topic_name = new_topic;
         }

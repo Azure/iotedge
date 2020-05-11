@@ -824,6 +824,7 @@ dependencies = [
  "tokio-io-timeout",
  "tokio-native-tls",
  "tokio-util",
+ "topic-translator",
  "tracing",
  "tracing-futures",
  "tracing-subscriber",

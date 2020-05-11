@@ -5,6 +5,7 @@ use futures_util::future;
 use mqtt3::proto;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{self, Receiver, Sender};
+use topic_translator::TRANSLATOR;
 use tracing::{debug, info, span, warn, Level};
 use tracing_futures::Instrument;
 
@@ -13,7 +14,6 @@ use crate::auth::{
     Operation,
 };
 use crate::session::{ConnectedSession, Session, SessionState};
-use crate::translation::TRANSLATOR;
 use crate::{
     subscription::Subscription, AuthId, ClientEvent, ClientId, ConnReq, Error, ErrorKind, Message,
     SystemEvent,
@@ -115,8 +115,6 @@ where
         client_id: ClientId,
         event: ClientEvent,
     ) -> Result<(), Error> {
-        let event = TRANSLATOR.translate_incoming(&client_id.0, event);
-
         debug!("incoming: {:?}", event);
         let result = match event {
             ClientEvent::ConnReq(connreq) => self.process_connect(client_id, connreq).await,
@@ -396,6 +394,8 @@ where
         client_id: ClientId,
         sub: proto::Subscribe,
     ) -> Result<(), Error> {
+        let sub = TRANSLATOR.incoming_subscribe(&client_id.0, sub);
+
         let subscriptions = if let Some(session) = self.sessions.get_mut(&client_id) {
             let (suback, subscriptions) = subscribe(&self.authorizer, session, sub.clone()).await?;
             session.send(ClientEvent::SubAck(suback)).await?;
@@ -434,6 +434,8 @@ where
         client_id: ClientId,
         unsubscribe: proto::Unsubscribe,
     ) -> Result<(), Error> {
+        let unsubscribe = TRANSLATOR.incoming_unsubscribe(&client_id.0, unsubscribe);
+
         match self.get_session_mut(&client_id) {
             Ok(session) => {
                 let unsuback = session.unsubscribe(&unsubscribe)?;
@@ -452,6 +454,8 @@ where
         client_id: ClientId,
         publish: proto::Publish,
     ) -> Result<(), Error> {
+        let publish = TRANSLATOR.incoming_publish(&client_id.0, publish);
+
         let operation = Operation::new_publish(publish.clone());
         if let Some(session) = self.sessions.get_mut(&client_id) {
             let activity = Activity::new(session.auth_id()?.clone(), client_id.clone(), operation);
@@ -875,7 +879,8 @@ async fn publish_to<Z: Authorizer>(
     session: &mut Session,
     publication: &proto::Publication,
 ) -> Result<(), Error> {
-    let operation = Operation::new_receive(publication.clone());
+    let translated_publication = TRANSLATOR.outgoing_publish(publication.clone());
+    let operation = Operation::new_receive(translated_publication);
     let client_id = session.client_id().clone();
     let auth_id = session.auth_id()?;
     let activity = Activity::new(auth_id.clone(), client_id.clone(), operation);
@@ -988,13 +993,6 @@ pub struct BrokerHandle(Sender<Message>);
 
 impl BrokerHandle {
     pub async fn send(&mut self, message: Message) -> Result<(), Error> {
-        let message = match message {
-            Message::Client(client_id, event) => {
-                Message::Client(client_id, TRANSLATOR.translate_outgoing(event))
-            }
-            m => m,
-        };
-
         self.0
             .send(message)
             .await
