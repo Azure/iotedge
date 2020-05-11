@@ -137,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     0,
                     Option.Some(new DateTime(2017, 10, 10)),
                     Option.None<DateTime>(),
-                    new DockerReportedConfig("edgeAgent:v1", string.Empty, edgeAgentHash, Option.None<NotaryContentTrust>())));
+                    new DockerReportedConfig("edgeAgent:v1", "{\"Env\":[\"foo4=bar4\"]}", edgeAgentHash, Option.None<NotaryContentTrust>())));
 
             var runtimeInfoProvider = Mock.Of<IRuntimeInfoProvider>(r => r.GetModules(CancellationToken.None) == Task.FromResult(moduleRuntimeInfoList.AsEnumerable()));
             var moduleStateStore = new Mock<IEntityStore<string, ModuleState>>();
@@ -236,7 +236,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(ImagePullPolicy.OnCreate, receivedDockerEdgeAgent.ImagePullPolicy);
             Assert.Equal(Constants.HighestPriority, receivedDockerEdgeAgent.Priority);
             Assert.Equal("edgeAgent:v1", receivedDockerEdgeAgent.Config.Image);
-            Assert.Equal("{}", JsonConvert.SerializeObject(receivedDockerEdgeAgent.Config.CreateOptions));
+            Assert.Equal("{\"Env\":[\"foo4=bar4\"]}", JsonConvert.SerializeObject(receivedDockerEdgeAgent.Config.CreateOptions));
             Assert.Equal(new DateTime(2017, 10, 10), receivedDockerEdgeAgent.LastStartTimeUtc);
             Assert.Equal(edgeAgentHash, (receivedDockerEdgeAgent.Config as DockerReportedConfig)?.ImageHash);
         }

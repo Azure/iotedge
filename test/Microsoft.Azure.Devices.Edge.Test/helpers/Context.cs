@@ -101,6 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.TestResultCoordinatorImage = Option.Maybe(Get("testResultCoordinatorImage"));
             this.LoadGenImage = Option.Maybe(Get("loadGenImage"));
             this.RelayerImage = Option.Maybe(Get("relayerImage"));
+            this.NetworkControllerImage = Option.Maybe(Get("networkControllerImage"));
             this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5));
             this.Verbose = context.GetValue<bool>("verbose");
         }
@@ -160,6 +161,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public Option<string> LoadGenImage { get; }
 
         public Option<string> RelayerImage { get; }
+
+        public Option<string> NetworkControllerImage { get; }
 
         public TimeSpan TestTimeout { get; }
 
