@@ -5,7 +5,6 @@ use futures_util::future;
 use mqtt3::proto;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{self, Receiver, Sender};
-use topic_translator::TRANSLATOR;
 use tracing::{debug, info, span, warn, Level};
 use tracing_futures::Instrument;
 
@@ -394,8 +393,6 @@ where
         client_id: ClientId,
         sub: proto::Subscribe,
     ) -> Result<(), Error> {
-        let sub = TRANSLATOR.incoming_subscribe(&client_id.0, sub);
-
         let subscriptions = if let Some(session) = self.sessions.get_mut(&client_id) {
             let (suback, subscriptions) = subscribe(&self.authorizer, session, sub.clone()).await?;
             session.send(ClientEvent::SubAck(suback)).await?;
@@ -434,8 +431,6 @@ where
         client_id: ClientId,
         unsubscribe: proto::Unsubscribe,
     ) -> Result<(), Error> {
-        let unsubscribe = TRANSLATOR.incoming_unsubscribe(&client_id.0, unsubscribe);
-
         match self.get_session_mut(&client_id) {
             Ok(session) => {
                 let unsuback = session.unsubscribe(&unsubscribe)?;
@@ -454,8 +449,6 @@ where
         client_id: ClientId,
         publish: proto::Publish,
     ) -> Result<(), Error> {
-        let publish = TRANSLATOR.incoming_publish(&client_id.0, publish);
-
         let operation = Operation::new_publish(publish.clone());
         if let Some(session) = self.sessions.get_mut(&client_id) {
             let activity = Activity::new(session.auth_id()?.clone(), client_id.clone(), operation);
@@ -879,8 +872,7 @@ async fn publish_to<Z: Authorizer>(
     session: &mut Session,
     publication: &proto::Publication,
 ) -> Result<(), Error> {
-    let translated_publication = TRANSLATOR.outgoing_publish(publication.clone());
-    let operation = Operation::new_receive(translated_publication);
+    let operation = Operation::new_receive(publication.clone());
     let client_id = session.client_id().clone();
     let auth_id = session.auth_id()?;
     let activity = Activity::new(auth_id.clone(), client_id.clone(), operation);

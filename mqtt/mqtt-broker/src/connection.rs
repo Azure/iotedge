@@ -14,6 +14,7 @@ use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tokio_io_timeout::TimeoutStream;
 use tokio_util::codec::Framed;
+use topic_translator::TRANSLATOR;
 use tracing::{debug, info, span, trace, warn, Level};
 use tracing_futures::Instrument;
 use uuid::Uuid;
@@ -230,12 +231,18 @@ where
                     Packet::PingResp(pingresp) => ClientEvent::PingResp(pingresp),
                     Packet::PubAck(puback) => ClientEvent::PubAck(puback),
                     Packet::PubComp(pubcomp) => ClientEvent::PubComp(pubcomp),
-                    Packet::Publish(publish) => ClientEvent::PublishFrom(publish),
+                    Packet::Publish(publish) => {
+                        ClientEvent::PublishFrom(TRANSLATOR.incoming_publish(&client_id.0, publish))
+                    }
                     Packet::PubRec(pubrec) => ClientEvent::PubRec(pubrec),
                     Packet::PubRel(pubrel) => ClientEvent::PubRel(pubrel),
-                    Packet::Subscribe(subscribe) => ClientEvent::Subscribe(subscribe),
+                    Packet::Subscribe(subscribe) => ClientEvent::Subscribe(
+                        TRANSLATOR.incoming_subscribe(&client_id.0, subscribe),
+                    ),
                     Packet::SubAck(suback) => ClientEvent::SubAck(suback),
-                    Packet::Unsubscribe(unsubscribe) => ClientEvent::Unsubscribe(unsubscribe),
+                    Packet::Unsubscribe(unsubscribe) => ClientEvent::Unsubscribe(
+                        TRANSLATOR.incoming_unsubscribe(&client_id.0, unsubscribe),
+                    ),
                     Packet::UnsubAck(unsuback) => ClientEvent::UnsubAck(unsuback),
                 };
 
@@ -287,9 +294,11 @@ where
                 ClientEvent::Unsubscribe(unsub) => Some(Packet::Unsubscribe(unsub)),
                 ClientEvent::UnsubAck(unsuback) => Some(Packet::UnsubAck(unsuback)),
                 ClientEvent::PublishTo(Publish::QoS12(_id, publish)) => {
+                    let publish = TRANSLATOR.outgoing_publish(publish);
                     Some(Packet::Publish(publish))
                 }
                 ClientEvent::PublishTo(Publish::QoS0(id, publish)) => {
+                    let publish = TRANSLATOR.outgoing_publish(publish);
                     let result = outgoing
                         .send(Packet::Publish(publish))
                         .await
