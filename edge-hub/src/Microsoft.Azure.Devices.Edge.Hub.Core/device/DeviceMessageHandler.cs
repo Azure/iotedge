@@ -411,7 +411,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 var taskCompletionSource = new TaskCompletionSource<bool>();
                 this.messageTaskCompletionSources.TryAdd(lockToken, taskCompletionSource);
 
-                using (Metrics.TimeMessageSend(this.Identity, message))
+                using (Metrics.TimeMessageSend(this.Identity, message, message.GetOutput(), message.GetInput()))
                 {
                     Events.SendingMessage(this.Identity, lockToken);
                     Metrics.MessageProcessingLatency(this.Identity, message);
@@ -473,7 +473,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             static readonly IMetricsTimer MessagesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "message_send_duration_seconds",
                 "Time taken to send a message",
-                new List<string> { "from", "to" });
+                new List<string> { "from", "to", "from_route_output", "to_route_input" });
 
             static readonly IMetricsTimer GetTwinTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "gettwin_duration_seconds",
@@ -500,11 +500,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 "Time taken to process message in EdgeHub",
                 new List<string> { "from", "to", "priority" });
 
-            public static IDisposable TimeMessageSend(IIdentity identity, IMessage message)
+            public static IDisposable TimeMessageSend(IIdentity identity, IMessage message, string fromRoute, string toRoute)
             {
                 string from = message.GetSenderId();
                 string to = identity.Id;
-                return MessagesTimer.GetTimer(new[] { from, to });
+                return MessagesTimer.GetTimer(new[] { from, to, fromRoute, toRoute });
             }
 
             public static IDisposable TimeGetTwin(string id) => GetTwinTimer.GetTimer(new[] { "edge_hub", id });

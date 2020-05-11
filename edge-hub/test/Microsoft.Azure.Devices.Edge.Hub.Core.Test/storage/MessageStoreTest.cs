@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Storage;
@@ -19,12 +20,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
     public class MessageStoreTest
     {
         [Theory]
-        [InlineData(0)]
-        [InlineData(10150)]
-        [InlineData(-1)]
-        public async Task BasicTest(long initialCheckpointOffset)
+        [InlineData(0, false)]
+        [InlineData(0, true)]
+        [InlineData(10150, false)]
+        [InlineData(10150, true)]
+        [InlineData(-1, false)]
+        [InlineData(-1, true)]
+        public async Task BasicTest(long initialCheckpointOffset, bool checkEntireQueueOnCleanup)
         {
-            (IMessageStore messageStore, ICheckpointStore checkpointStore) result = await this.GetMessageStore(initialCheckpointOffset);
+            (IMessageStore messageStore, ICheckpointStore checkpointStore) result = await this.GetMessageStore(initialCheckpointOffset, checkEntireQueueOnCleanup);
             using (IMessageStore messageStore = result.messageStore)
             {
                 for (int i = 0; i < 10000; i++)
@@ -72,10 +76,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             }
         }
 
-        [Fact]
-        public async Task CleanupTestTimeout()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task CleanupTestTimeout(bool checkEntireQueueOnCleanup)
         {
-            (IMessageStore messageStore, ICheckpointStore checkpointStore) result = await this.GetMessageStore(20);
+            (IMessageStore messageStore, ICheckpointStore checkpointStore, InMemoryDbStore _) result = await this.GetMessageStore(checkEntireQueueOnCleanup, 20);
             using (IMessageStore messageStore = result.messageStore)
             {
                 for (int i = 0; i < 200; i++)
@@ -114,10 +120,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             }
         }
 
-        [Fact]
-        public async Task CleanupTestTimeoutWithRead()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task CleanupTestTimeoutWithRead(bool checkEntireQueueOnCleanup)
         {
-            (IMessageStore messageStore, ICheckpointStore checkpointStore) result = await this.GetMessageStore(20);
+            (IMessageStore messageStore, ICheckpointStore checkpointStore, InMemoryDbStore _) result = await this.GetMessageStore(checkEntireQueueOnCleanup, 20);
             using (IMessageStore messageStore = result.messageStore)
             {
                 for (int i = 0; i < 200; i++)
@@ -172,10 +180,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             }
         }
 
-        [Fact]
-        public async Task CleanupTestCheckpointed()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task CleanupTestCheckpointed(bool checkEntireQueueOnCleanup)
         {
-            (IMessageStore messageStore, ICheckpointStore checkpointStore) result = await this.GetMessageStore(20);
+            (IMessageStore messageStore, ICheckpointStore checkpointStore, InMemoryDbStore _) result = await this.GetMessageStore(checkEntireQueueOnCleanup, 20);
             ICheckpointStore checkpointStore = result.checkpointStore;
             using (IMessageStore messageStore = result.messageStore)
             {
@@ -217,10 +227,66 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             }
         }
 
-        [Fact]
-        public async Task CleanupTestTimeoutUpdateGlobalTimeToLive()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task CleanupTestTimeoutMultipleTTLs(bool checkEntireQueueOnCleanup)
         {
-            (IMessageStore messageStore, ICheckpointStore checkpointStore) result = await this.GetMessageStore(20);
+            (IMessageStore messageStore, ICheckpointStore checkpointStore, InMemoryDbStore inMemoryDbStore) result = await this.GetMessageStore(checkEntireQueueOnCleanup, 10);
+            result.messageStore.SetTimeToLive(TimeSpan.FromSeconds(10));
+            using (IMessageStore messageStore = result.messageStore)
+            {
+                var messageIdsAlive = new List<string>();
+                var messageIdsExpired = new List<string>();
+                for (int i = 0; i < 200; i++)
+                {
+                    IMessage input = this.GetMessage(i);
+                    string edgeMessageId = input.SystemProperties[SystemProperties.EdgeMessageId];
+                    uint timeToLiveSecs = 1000;
+                    if (i % 2 == 0)
+                    {
+                        messageIdsExpired.Add(edgeMessageId);
+                        timeToLiveSecs = 10;
+                    }
+                    else
+                    {
+                        messageIdsAlive.Add(edgeMessageId);
+                    }
+
+                    IMessage updatedMessage = await messageStore.Add("module1", input, timeToLiveSecs);
+                    CompareUpdatedMessageWithOffset(input, i, updatedMessage);
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(70));
+
+                IMessageIterator module1Iterator = messageStore.GetMessageIterator("module1");
+                IEnumerable<IMessage> batch = await module1Iterator.GetNext(200);
+                Assert.Equal(100, batch.Count());
+                foreach (string edgeMessageId in messageIdsAlive)
+                {
+                    Assert.True(await result.inMemoryDbStore.Contains(edgeMessageId.ToBytes()));
+                }
+
+                for (int i = 0; i < messageIdsExpired.Count; i++)
+                {
+                    if (checkEntireQueueOnCleanup || i == 0)
+                    {
+                        Assert.False(await result.inMemoryDbStore.Contains(messageIdsExpired[i].ToBytes()));
+                    }
+                    else
+                    {
+                        Assert.True(await result.inMemoryDbStore.Contains(messageIdsExpired[i].ToBytes()));
+                    }
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task CleanupTestTimeoutUpdateGlobalTimeToLive(bool checkEntireQueueOnCleanup)
+        {
+            (IMessageStore messageStore, ICheckpointStore checkpointStore, InMemoryDbStore _) result = await this.GetMessageStore(checkEntireQueueOnCleanup, 20);
             result.messageStore.SetTimeToLive(TimeSpan.FromSeconds(20));
             using (IMessageStore messageStore = result.messageStore)
             {
@@ -297,10 +363,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             }
         }
 
-        [Fact]
-        public async Task CleanupTestTimeoutUpdateIndividualMessageTimeToLive()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task CleanupTestTimeoutUpdateIndividualMessageTimeToLive(bool checkEntireQueueOnCleanup)
         {
-            (IMessageStore messageStore, ICheckpointStore checkpointStore) result = await this.GetMessageStore(20);
+            (IMessageStore messageStore, ICheckpointStore checkpointStore, InMemoryDbStore _) result = await this.GetMessageStore(checkEntireQueueOnCleanup, 20);
             result.messageStore.SetTimeToLive(TimeSpan.FromSeconds(20));
             using (IMessageStore messageStore = result.messageStore)
             {
@@ -379,14 +447,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             }
         }
 
-        [Fact]
-        public async Task MessageStoreAddRemoveEndpointTest()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task MessageStoreAddRemoveEndpointTest(bool checkEntireQueueOnCleanup)
         {
             // Arrange
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
             ICheckpointStore checkpointStore = CheckpointStore.Create(storeProvider);
-            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, TimeSpan.FromHours(1));
+            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, TimeSpan.FromHours(1), checkEntireQueueOnCleanup);
 
             // Act
             await messageStore.AddEndpoint("module1");
@@ -490,18 +560,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
                 });
         }
 
-        async Task<(IMessageStore, ICheckpointStore)> GetMessageStore(int ttlSecs = 300)
+        async Task<(IMessageStore, ICheckpointStore, InMemoryDbStore)> GetMessageStore(bool checkEntireQueueOnCleanup, int ttlSecs = 300)
         {
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
+            InMemoryDbStore inMemoryDbStore = dbStoreProvider.GetDbStore("messages") as InMemoryDbStore;
             ICheckpointStore checkpointStore = CheckpointStore.Create(storeProvider);
-            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, TimeSpan.FromSeconds(ttlSecs));
+            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, TimeSpan.FromSeconds(ttlSecs), checkEntireQueueOnCleanup);
             await messageStore.AddEndpoint("module1");
             await messageStore.AddEndpoint("module2");
-            return (messageStore, checkpointStore);
+            return (messageStore, checkpointStore, inMemoryDbStore);
         }
 
-        async Task<(IMessageStore, ICheckpointStore)> GetMessageStore(long initialCheckpointOffset, int ttlSecs = 300)
+        async Task<(IMessageStore, ICheckpointStore)> GetMessageStore(long initialCheckpointOffset, bool checkEntireQueueOnCleanup, int ttlSecs = 300)
         {
             var dbStoreProvider = new InMemoryDbStoreProvider();
             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
@@ -514,7 +585,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             }
 
             ICheckpointStore checkpointStore = new CheckpointStore(checkpointUnderlyingStore);
-            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, TimeSpan.FromSeconds(ttlSecs));
+            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, TimeSpan.FromSeconds(ttlSecs), checkEntireQueueOnCleanup);
             await messageStore.AddEndpoint("module1");
             await messageStore.AddEndpoint("module2");
             return (messageStore, checkpointStore);
