@@ -27,11 +27,15 @@ impl Translator {
         match event {
             ClientEvent::Subscribe(s) => ClientEvent::Subscribe(self.subscribe(client_id, s)),
             ClientEvent::Unsubscribe(u) => ClientEvent::Unsubscribe(self.unsubscribe(client_id, u)),
-            ClientEvent::PublishFrom(p) => ClientEvent::PublishFrom(self.publish_incoming(client_id, p)),
+            ClientEvent::PublishFrom(p) => {
+                ClientEvent::PublishFrom(self.publish_incoming(client_id, p))
+            }
             e => e,
         }
     }
 
+    // note pubAcks don't need to be translated since they only contain an
+    // id, not a lits of topics subbed to
     pub fn translate_outgoing(&self, event: ClientEvent) -> ClientEvent {
         match event {
             ClientEvent::PublishTo(Publish::QoS0(pid, p)) => {
@@ -164,9 +168,27 @@ macro_rules! translate_outgoing {
 }
 
 translate_incoming! {
+    leaf_events {
+        format!("devices/{}/messages/events", DEVICE_ID),
+        {|_, client_id| format!("$edgehub/{}/messages/events", client_id)}
+        // should it use client_id or &captures["device_id"] ?
+    },
+    module_events {
+        format!("devices/{}/modules/(?P<module_id>.*)/messages/events", DEVICE_ID),
+        {|_, client_id| format!("$edgehub/{}/messages/events", client_id)}
+        // should it use client_id or &captures["device_id"]/modules/&captures["module_id"] ?
+    },
     desired_properties {
-        format!("\\$iothub/twin/PATCH/properties/desired"),
+        "\\$iothub/twin/PATCH/properties/desired",
         {|_, client_id| format!("$edgehub/{}/twin/desired", client_id)}
+    },
+    twin_get {
+        "\\$iothub/twin/GET",
+        {|_, client_id| format!("$edgehub/{}/twin/get", client_id)}
+    },
+    direct_method_response {
+        "\\$iothub/methods/res/(?P<status>.*)",
+        {|captures: regex::Captures<'_>, client_id| format!("$edgehub/{}/methods/res/{}", client_id, &captures["status"])}
     }
 }
 
@@ -179,11 +201,10 @@ translate_outgoing! {
         format!("\\$edgehub/{}/twin/reported(?P<params>.*)", DEVICE_ID),
         {|captures: regex::Captures<'_>| format!("$iothub/twin/PATCH/properties/reported{}", &captures["params"])}
     },
-    twin_res {
+    twin_response {
         format!("\\$edgehub/{}/twin/res(?P<params>.*)", DEVICE_ID),
         {|captures: regex::Captures<'_>| format!("$iothub/twin/res{}", &captures["params"])}
     },
-    // twin_get, format!("\\$edgehub/{}/twin/get(?P<request_id>.*)", DEVICE_ID), {|captures: regex::Captures<'_>| format!("$iothub/twin/GET{}", &captures["request_id"])},
     direct_method_request {
         format!("\\$edgehub/{}/methods/post", DEVICE_ID),
         {|_| "$iothub/methods/POST/"}
@@ -227,10 +248,6 @@ pub(crate) mod tests {
             translator.translate_outgoing("$edgehub/client_a/twin/res?res=1234"),
             Some("$iothub/twin/res?res=1234".to_owned())
         );
-        // assert_eq!(
-        //     translator.translate_outgoing("$edgehub/client_a/twin/get?res=1234"),
-        //     Some("$iothub/twin/GET?res=1234".to_owned())
-        // );
         assert_eq!(
             translator.translate_outgoing("$edgehub/client_a/methods/post"),
             Some("$iothub/methods/POST/".to_owned())
