@@ -111,7 +111,6 @@ macro_rules! translate_from {
             fn translate_from(&self, topic: &str) -> Option<String> {
                 if topic.starts_with(TRANSLATION_TOPIC) {
                     $(
-                        #[allow(unused_variables)]
                         if let Some(captures) = self.$translate_name.captures(topic) {
                             return Some($translate_to(captures).into());
                         }
@@ -125,8 +124,11 @@ macro_rules! translate_from {
 }
 
 translate_from! {
-    twin_get, format!("\\$edgehub/{}/twin/get(?P<request_id>.*)",DEVICE_ID), {|captures: regex::Captures<'_>| format!("$iothub/twin/GET{}", &captures["request_id"])},
-    twin_res, format!("\\$edgehub/{}/twin/res(?P<request_id>.*)",DEVICE_ID), {|captures: regex::Captures<'_>| format!("$iothub/twin/res{}", &captures["request_id"])}
+    c2d_message, format!("\\$edgehub/{}/messages/c2d/post", DEVICE_ID), {|captures: regex::Captures<'_>| format!("devices/{}/messages/devicebound", &captures["device_id"])},
+    twin_reported, format!("\\$edgehub/{}/twin/reported(?P<params>.*)", DEVICE_ID), {|captures: regex::Captures<'_>| format!("$iothub/twin/PATCH/properties/reported{}", &captures["params"])},
+    twin_res, format!("\\$edgehub/{}/twin/res(?P<params>.*)", DEVICE_ID), {|captures: regex::Captures<'_>| format!("$iothub/twin/res{}", &captures["params"])},
+    // twin_get, format!("\\$edgehub/{}/twin/get(?P<request_id>.*)", DEVICE_ID), {|captures: regex::Captures<'_>| format!("$iothub/twin/GET{}", &captures["request_id"])},
+    direct_method_request, format!("\\$edgehub/{}/methods/post", DEVICE_ID), {|_| "$iothub/methods/POST/"}
 }
 
 #[cfg(test)]
@@ -136,14 +138,29 @@ pub(crate) mod tests {
     fn test_translator() {
         let translator = TranslateFrom::new().unwrap();
         assert_eq!(translator.translate_from("blagh"), None);
-        assert_eq!(translator.translate_from("$edgehub/client_a/not_a_topic"), None);
         assert_eq!(
-            translator.translate_from("$edgehub/client_a/twin/get?res=1234"),
-            Some("$iothub/twin/GET?res=1234".to_owned())
+            translator.translate_from("$edgehub/client_a/not_a_topic"),
+            None
+        );
+        assert_eq!(
+            translator.translate_from("$edgehub/client_a/messages/c2d/post"),
+            Some("devices/client_a/messages/devicebound".to_owned())
+        );
+        assert_eq!(
+            translator.translate_from("$edgehub/client_a/twin/reported?res=1234"),
+            Some("$iothub/twin/PATCH/properties/reported?res=1234".to_owned())
         );
         assert_eq!(
             translator.translate_from("$edgehub/client_a/twin/res?res=1234"),
             Some("$iothub/twin/res?res=1234".to_owned())
+        );
+        // assert_eq!(
+        //     translator.translate_from("$edgehub/client_a/twin/get?res=1234"),
+        //     Some("$iothub/twin/GET?res=1234".to_owned())
+        // );
+        assert_eq!(
+            translator.translate_from("$edgehub/client_a/methods/post"),
+            Some("$iothub/methods/POST/".to_owned())
         );
     }
 }
