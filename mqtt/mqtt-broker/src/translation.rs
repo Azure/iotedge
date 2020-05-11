@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+#![allow(unused_imports)]
+
 use crate::{ClientEvent, Publish};
 use lazy_static::lazy_static;
 use mqtt3::proto;
@@ -83,5 +86,55 @@ fn to_legacy_topic(topic: String) -> String {
         "$iothub/twin/GET".to_owned()
     } else {
         topic
+    }
+}
+
+const TRANSLATION_TOPIC: &str = "$edgehub";
+const DEVICE_ID: &str = r"(?P<device_id>[a-zA-Z-\.\+%_#\*\?!\(\),=@\$']*)";
+struct Translator {
+    basic: Regex,
+    twin_pattern: Regex,
+}
+
+impl Translator {
+    fn new() -> Result<Self, regex::Error> {
+        Ok(Self {
+            basic: Regex::new(&format!("\\$edgehub/{}", DEVICE_ID))?,
+            twin_pattern: Regex::new(&format!(
+                "\\$edgehub/{}/twin/get(?P<request_id>.*)",
+                DEVICE_ID
+            ))?,
+        })
+    }
+
+    fn translate_from(&self, topic: &str) -> Option<String> {
+        if !topic.starts_with(TRANSLATION_TOPIC) {
+            return None;
+        }
+
+        if let Some(captures) = self.basic.captures(topic) {
+            println!("Device Id: {}", &captures["device_id"]);
+        }
+
+        if let Some(captures) = self.twin_pattern.captures(topic) {
+            println!("Request Id: {}", &captures["request_id"]);
+            return Some(format!("$iothub/twin/GET{}", &captures["request_id"]));
+        }
+
+        None
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::*;
+    #[test]
+    fn test_translator() {
+        let translator = Translator::new().unwrap();
+        assert_eq!(translator.translate_from("blagh"), None);
+        assert_eq!(
+            translator.translate_from("$edgehub/client_a/twin/get?res=1234"),
+            Some("$iothub/twin/GET?res=1234".to_owned())
+        );
     }
 }
