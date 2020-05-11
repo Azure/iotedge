@@ -35,7 +35,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             int port = configuration.GetValue("httpSettings:port", 443);
             var certificateMode = clientCertAuthEnabled ? ClientCertificateMode.AllowCertificate : ClientCertificateMode.NoCertificate;
-            var certificateRequired = clientCertAuthEnabled ? true : false;
             IWebHostBuilder webHostBuilder = new WebHostBuilder()
                 .UseKestrel(
                     options =>
