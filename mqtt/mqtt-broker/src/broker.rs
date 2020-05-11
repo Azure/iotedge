@@ -13,7 +13,7 @@ use crate::auth::{
     Operation,
 };
 use crate::session::{ConnectedSession, Session, SessionState};
-use crate::translation::{translate_incoming, translate_outgoing};
+use crate::translation::TRANSLATOR;
 use crate::{
     subscription::Subscription, AuthId, ClientEvent, ClientId, ConnReq, Error, ErrorKind, Message,
     SystemEvent,
@@ -115,7 +115,7 @@ where
         client_id: ClientId,
         event: ClientEvent,
     ) -> Result<(), Error> {
-        let event = translate_incoming(&client_id.0, event);
+        let event = TRANSLATOR.translate_incoming(&client_id.0, event);
 
         debug!("incoming: {:?}", event);
         let result = match event {
@@ -990,7 +990,7 @@ impl BrokerHandle {
     pub async fn send(&mut self, message: Message) -> Result<(), Error> {
         let message = match message {
             Message::Client(client_id, event) => {
-                Message::Client(client_id, translate_outgoing(event))
+                Message::Client(client_id, TRANSLATOR.translate_outgoing(event))
             }
             m => m,
         };
