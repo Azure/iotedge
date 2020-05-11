@@ -102,7 +102,7 @@ To achieve this, the routing layer needs to pass more message context down to th
 In this design, the message routing and queue layers remain agnostic of the underlying endpoint implementations. This means even though message priorities primarily target the IoT Hub endpoint, message priorities on brokered endpoints is also enabled.
 
 ###	Handling priorities
-The endpoint executor takes the provided context and expand the collection of sequential stores to be one per priority per endpoint.  When a new message comes in, the executor enqueues it into the sequential store that matches the endpoint and priority.  For naming, these new sequential stores take the endpoint ID, and append “_Pri<value>” to the end of the string, where <value> is the message priority this sequential store represents (e.g. “iothub_Pri0”, “iothub_Pri1”, etc).
+The endpoint executor takes the provided context and expand the collection of sequential stores to be one per priority per endpoint.  When a new message comes in, the executor enqueues it into the sequential store that matches the endpoint and priority.  For naming, these new sequential stores take the endpoint ID, and append “_Pri[value]” to the end of the string, where *[value]* is the message priority this sequential store represents (e.g. “iothub_Pri0”, “iothub_Pri1”, etc).
 
 ![](./images/route_priority_ttl/priority_message_pump_components.jpg)
 
@@ -138,5 +138,5 @@ There should also be no noticeable impact to performance, as the feature only ch
 
 ## Limitations
 - Priority values can only be between 0-9 inclusive.
-- In the case where a message has two different routes to the same endpoint with difference priorities, the route that yields the highest priority will be use.
+- In the case where a message has two different routes to the same endpoint with difference priorities, the route that yields the highest priority will be used.
 - When changing priorities on an existing route, the updated priority will not apply to any message already received and stored by EdgeHub.
