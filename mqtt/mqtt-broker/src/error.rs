@@ -56,8 +56,8 @@ pub enum Error {
     #[error("Unable to start broker.")]
     InitializeBroker(#[from] InitializeBrokerError),
 
-    #[error("An error occurred when notifying $edgehub: {0}")]
-    NotifyError(#[from] JsonError),
+    #[error("An error occurred when constructing state change: {0}")]
+    StateChange(#[from] JsonError),
 }
 
 /// Represents errors occurred while bootstrapping broker.

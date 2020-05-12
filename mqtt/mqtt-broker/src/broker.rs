@@ -5,6 +5,7 @@ use std::{panic, thread};
 use crossbeam_channel::{Receiver, Sender};
 use mqtt3::proto;
 use serde::{Deserialize, Serialize};
+use thiserror::Error as DeriveError;
 use tracing::{debug, error, info, span, warn, Level};
 
 use crate::auth::{
@@ -358,7 +359,7 @@ where
             Err(SessionError::PacketIdentifiersExhausted) => {
                 panic!("Session identifiers exhausted, this can only be caused by a bug.");
             }
-            Err(SessionError::Other(e)) => Err(e)?,
+            Err(SessionError::StateChange(e)) => Err(e)?,
         }
 
         debug!("connect handled.");
@@ -792,7 +793,7 @@ where
     }
 
     fn close_session(&mut self, client_id: &ClientId) -> Result<Option<Session>, Error> {
-       let new_session = match self.sessions.remove(client_id) {
+        let new_session = match self.sessions.remove(client_id) {
             Some(Session::Transient(connected)) => {
                 info!("closing transient session for {}", client_id);
                 self.publish_all(StateChange::new_connection(&self.sessions).try_into()?)?;
@@ -1083,18 +1084,16 @@ impl BrokerHandle {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, DeriveError)]
 pub enum SessionError {
+    #[error("")]
     PacketIdentifiersExhausted,
+    #[error("{0:?}")]
     ProtocolViolation(Session),
+    #[error("{0:?}{1:?}")]
     DuplicateSession(Session, proto::ConnAck),
-    Other(Error),
-}
-
-impl From<Error> for SessionError {
-    fn from(error: Error) -> Self {
-        Self::Other(error)
-    }
+    #[error("{0}")]
+    StateChange(#[from] Error),
 }
 
 #[derive(Debug, thiserror::Error)]
