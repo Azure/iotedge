@@ -288,7 +288,7 @@ where
                     session.send(event)?;
                 }
 
-                self.publish_all(StateChange::new_connection(&self.sessions).try_into()?)?;
+                self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?)?;
             }
             OpenSession::DuplicateSession(mut old_session, ack) => {
                 // Drop the old connection
@@ -408,7 +408,7 @@ where
                 publish_to(&self.authorizer, session, &publication)?;
             }
 
-            let change = StateChange::new_subscription(client_id, &session).try_into()?;
+            let change = StateChange::new_subscription_change(client_id, Some(&session)).try_into()?;
             self.publish_all(change)?;
         } else {
             debug!("no session for {}", client_id);
@@ -427,7 +427,7 @@ where
                 let unsuback = session.unsubscribe(unsubscribe)?;
                 session.send(ClientEvent::UnsubAck(unsuback))?;
 
-                let change = StateChange::new_subscription(client_id, &session).try_into()?;
+                let change = StateChange::new_subscription_change(client_id, Some(&session)).try_into()?;
                 self.publish_all(change)?;
 
                 Ok(())
@@ -667,7 +667,7 @@ where
                 };
 
                 let subscription_change =
-                    StateChange::new_subscription(&client_id, &new_session).try_into()?;
+                    StateChange::new_subscription_change(&client_id, Some(&new_session)).try_into()?;
                 self.sessions.insert(client_id.clone(), new_session);
 
                 let ack = proto::ConnAck {
@@ -676,7 +676,7 @@ where
                 };
                 let events = vec![];
 
-                self.publish_all(StateChange::new_session(&self.sessions).try_into()?)?;
+                self.publish_all(StateChange::new_session_change(&self.sessions).try_into()?)?;
                 self.publish_all(subscription_change)?;
 
                 OpenSession::OpenedSession(ack, events)
@@ -745,9 +745,9 @@ where
         let new_session = match self.sessions.remove(client_id) {
             Some(Session::Transient(connected)) => {
                 info!("closing transient session for {}", client_id);
-                self.publish_all(StateChange::new_connection(&self.sessions).try_into()?)?;
-                self.publish_all(StateChange::new_session(&self.sessions).try_into()?)?;
-                self.publish_all(StateChange::clear_subscriptions(client_id).try_into()?)?;
+                self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?)?;
+                self.publish_all(StateChange::new_session_change(&self.sessions).try_into()?)?;
+                self.publish_all(StateChange::new_subscription_change(client_id, None).try_into()?)?;
 
                 let (auth_id, _state, will, handle) = connected.into_parts();
                 Some(Session::new_disconnecting(
@@ -763,7 +763,7 @@ where
                 // to be sent on the connection
 
                 info!("moving persistent session to offline for {}", client_id);
-                self.publish_all(StateChange::new_connection(&self.sessions).try_into()?)?;
+                self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?)?;
 
                 let (auth_id, state, will, handle) = connected.into_parts();
                 let new_session = Session::new_offline(state);

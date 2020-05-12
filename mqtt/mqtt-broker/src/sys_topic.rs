@@ -15,19 +15,17 @@ pub enum StateChange<'a> {
 }
 
 impl<'a> StateChange<'a> {
-    pub fn new_subscription(client_id: &'a ClientId, session: &'a Session) -> Self {
-        let subscriptions = session
-            .subscriptions()
-            .map(|s| s.keys().map(String::as_str).collect());
+    pub fn new_subscription_change(client_id: &'a ClientId, session: Option<&'a Session>) -> Self {
+        let subscriptions = session.and_then(|session| {
+            session
+                .subscriptions()
+                .map(|s| s.keys().map(String::as_str).collect())
+        });
 
         Self::Subscriptions(client_id, subscriptions)
     }
 
-    pub fn clear_subscriptions(client_id: &'a ClientId) -> Self {
-        Self::Subscriptions(client_id, None)
-    }
-
-    pub fn new_connection(sessions: &'a HashMap<ClientId, Session>) -> Self {
+    pub fn new_connection_change(sessions: &'a HashMap<ClientId, Session>) -> Self {
         let connections = sessions
             .iter()
             .filter_map(|(client_id, session)| match session {
@@ -40,7 +38,7 @@ impl<'a> StateChange<'a> {
         Self::Connections(connections)
     }
 
-    pub fn new_session(sessions: &'a HashMap<ClientId, Session>) -> Self {
+    pub fn new_session_change(sessions: &'a HashMap<ClientId, Session>) -> Self {
         let sessions = sessions
             .iter()
             .filter_map(|(client_id, session)| match session {
