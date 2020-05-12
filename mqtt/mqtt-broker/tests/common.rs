@@ -22,7 +22,7 @@ use tokio_util::codec::Framed;
 use mqtt3::{
     proto::{ClientId, Connect, Packet, PacketCodec, Publication, Publish, QoS, SubscribeTo},
     Client, Event, PublishError, PublishHandle, ReceivedPublication, ShutdownHandle,
-    UpdateSubscriptionHandle, PROTOCOL_NAME, PROTOCOL_LEVEL,
+    UpdateSubscriptionHandle, PROTOCOL_LEVEL, PROTOCOL_NAME,
 };
 use mqtt_broker::{Authenticator, Authorizer, Broker, BrokerState, Error, Server};
 
@@ -140,10 +140,7 @@ impl TestClient {
     }
 }
 
-pub struct TestClientBuilder<T>
-where
-    T: ToSocketAddrs + Clone + Send + Sync + Unpin + 'static,
-{
+pub struct TestClientBuilder<T> {
     address: T,
     client_id: ClientId,
     username: Option<String>,
@@ -203,7 +200,7 @@ where
             let address = address.clone();
             let password = password.clone();
             Box::pin(async move {
-                let io = tokio::net::TcpStream::connect(&address).await;
+                let io = tokio::net::TcpStream::connect(address).await;
                 io.map(|io| (io, password))
             })
         };
