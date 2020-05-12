@@ -1,6 +1,6 @@
 use fail::FailScenario;
 
-use mqtt_broker::{BrokerState, VersionedFileFormat, FilePersistor, Persist, PersistError};
+use mqtt_broker::{BrokerState, FilePersistor, Persist, PersistError, VersionedFileFormat};
 use proptest::collection::vec;
 use proptest::prelude::*;
 use tempfile::TempDir;
