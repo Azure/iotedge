@@ -370,20 +370,20 @@ pub(crate) mod tests {
     ) {
         matches_publication(
             publication,
-            format!("$edgehub/subscriptions/{}", client_id),
+            &format!("$edgehub/subscriptions/{}", client_id),
             body,
         );
     }
 
     fn matches_connection_publication(publication: proto::Publication, body: &[&str]) {
-        matches_publication(publication, "$edgehub/connected".to_owned(), body);
+        matches_publication(publication, "$edgehub/connected", body);
     }
 
     fn matches_session_publication(publication: proto::Publication, body: &[&str]) {
-        matches_publication(publication, "$edgehub/sessions".to_owned(), body);
+        matches_publication(publication, "$edgehub/sessions", body);
     }
 
-    fn matches_publication(publication: proto::Publication, topic: String, body: &[&str]) {
+    fn matches_publication(publication: proto::Publication, topic: &str, body: &[&str]) {
         let proto::Publication {
             topic_name,
             qos,
@@ -391,7 +391,7 @@ pub(crate) mod tests {
             payload,
         } = publication;
 
-        assert_eq!(topic_name, topic);
+        assert_eq!(&topic_name, topic);
         assert_eq!(qos, STATE_CHANGE_QOS);
         assert_eq!(retain, true);
         is_notify_equal(&payload, body);
