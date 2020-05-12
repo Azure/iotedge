@@ -5,7 +5,8 @@ use bytes::{Buf, BufMut};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use tokio_util::codec::Decoder;
 
-use super::{BufMutExt, ByteBuf};
+use crate::proto::{BufMutExt, ByteBuf};
+use crate::{PROTOCOL_LEVEL, PROTOCOL_NAME};
 
 /// An MQTT packet
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -137,6 +138,20 @@ pub struct Connect {
     pub protocol_level: u8,
 }
 
+impl Default for Connect {
+    fn default() -> Self {
+        Connect {
+            username: None,
+            password: None,
+            will: None,
+            client_id: super::ClientId::ServerGenerated,
+            keep_alive: Duration::from_secs(30),
+            protocol_name: PROTOCOL_NAME.into(),
+            protocol_level: PROTOCOL_LEVEL,
+        }
+    }
+}
+
 impl std::fmt::Debug for Connect {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Connect")
@@ -170,11 +185,6 @@ impl PacketMeta for Connect {
         }
 
         let protocol_level = src.try_get_u8()?;
-        if protocol_level != crate::PROTOCOL_LEVEL {
-            return Err(super::DecodeError::UnrecognizedProtocolLevel(
-                protocol_level,
-            ));
-        }
 
         let connect_flags = src.try_get_u8()?;
         if connect_flags & 0x01 != 0 {
