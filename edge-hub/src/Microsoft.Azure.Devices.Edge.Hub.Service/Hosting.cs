@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Autofac;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Server.Kestrel.Https;
+    using Microsoft.Azure.Devices.Edge.Hub.Http.Controllers;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
@@ -43,27 +44,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                             port,
                             listenOptions =>
                             {
-                                // listenOptions.UseHttps(
-                                //     new HttpsConnectionAdapterOptions()
-                                //     {
-                                //         ServerCertificate = serverCertificate,
-                                //         OnAuthenticate = (context, options) =>
-                                //         {
-                                //             if (clientCertAuthEnabled)
-                                //             {
-                                //                 options.ClientCertificateRequired = true;
-                                //                 options.RemoteCertificateValidationCallback = (_, clientCert, chain, policyErrors) =>
-                                //                 {
-                                //                     Option<X509Chain> chainOption = chain == null ? Option.None<X509Chain>() : Option.Some(chain);
-                                //                     TlsConnectionFeatureExtended tlsConnectionFeatureExtended = GetConnectionFeatureExtended(chainOption);
-                                //                     context.Features.Set<ITlsConnectionFeatureExtended>(tlsConnectionFeatureExtended);
-                                //                     return true;
-                                //                 };
-                                //             }
-                                //         },
-                                //         ClientCertificateMode = ClientCertificateMode.NoCertificate, // we can override this in OnAuthenticate if using certs
-                                //         SslProtocols = sslProtocols
-                                //     });
+                                listenOptions.UseHttps(
+                                    new HttpsConnectionAdapterOptions()
+                                    {
+                                        ServerCertificate = serverCertificate,
+                                        OnAuthenticate = (context, options) =>
+                                        {
+                                            if (clientCertAuthEnabled)
+                                            {
+                                                options.ClientCertificateRequired = true;
+                                                options.RemoteCertificateValidationCallback = (_, clientCert, chain, policyErrors) =>
+                                                {
+                                                    Option<X509Chain> chainOption = chain == null ? Option.None<X509Chain>() : Option.Some(chain);
+                                                    TlsConnectionFeatureExtended tlsConnectionFeatureExtended = GetConnectionFeatureExtended(chainOption);
+                                                    context.Features.Set<ITlsConnectionFeatureExtended>(tlsConnectionFeatureExtended);
+                                                    return true;
+                                                };
+                                            }
+                                        },
+                                        ClientCertificateMode = ClientCertificateMode.NoCertificate, // we can override this in OnAuthenticate if using certs
+                                        SslProtocols = sslProtocols
+                                    });
                             });
                     })
                 .UseSockets()
@@ -74,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                         serviceCollection.AddSingleton(dependencyManager);
                     })
                 .UseStartup<Startup>()
-                .UseSetting(WebHostDefaults.ApplicationKey, typeof(Startup).Assembly.GetName().Name);
+                .UseSetting(WebHostDefaults.ApplicationKey, typeof(TwinsController).Assembly.GetName().Name);
             IWebHost webHost = webHostBuilder.Build();
             IContainer container = webHost.Services.GetService(typeof(IStartup)) is Startup startup ? startup.Container : null;
             return new Hosting(webHost, container);
