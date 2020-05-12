@@ -4,7 +4,6 @@ use std::panic;
 
 use mqtt3::proto;
 use serde::{Deserialize, Serialize};
-use thiserror::Error as DeriveError;
 use tracing::{debug, error, info, span, warn, Level};
 
 use crate::auth::{
@@ -277,8 +276,8 @@ where
 
         // Process the CONNECT packet after it has been validated
         // TODO - fix ConnAck return_code != accepted to not add session to sessions map
-        match self.open_session(auth_id, connreq) {
-            Ok((ack, events)) => {
+        match self.open_session(auth_id, connreq)? {
+            OpenSession::OpenedSession(ack, events) => {
                 // Send ConnAck on new session
                 let session = self
                     .get_session_mut(&client_id)
@@ -291,7 +290,7 @@ where
 
                 self.publish_all(StateChange::new_connection(&self.sessions).try_into()?)?;
             }
-            Err(SessionError::DuplicateSession(mut old_session, ack)) => {
+            OpenSession::DuplicateSession(mut old_session, ack) => {
                 // Drop the old connection
                 old_session.send(ClientEvent::DropConnection)?;
 
@@ -306,13 +305,9 @@ where
                     session.send(ClientEvent::DropConnection)?;
                 }
             }
-            Err(SessionError::ProtocolViolation(mut old_session)) => {
+            OpenSession::ProtocolViolation(mut old_session) => {
                 old_session.send(ClientEvent::DropConnection)?
             }
-            Err(SessionError::PacketIdentifiersExhausted) => {
-                panic!("Session identifiers exhausted, this can only be caused by a bug.");
-            }
-            Err(SessionError::StateChange(e)) => return Err(e),
         }
 
         debug!("connect handled.");
@@ -616,14 +611,10 @@ where
             .ok_or_else(|| NoSessionError)
     }
 
-    fn open_session(
-        &mut self,
-        auth_id: AuthId,
-        connreq: ConnReq,
-    ) -> Result<(proto::ConnAck, Vec<ClientEvent>), SessionError> {
+    fn open_session(&mut self, auth_id: AuthId, connreq: ConnReq) -> Result<OpenSession, Error> {
         let client_id = connreq.client_id().clone();
 
-        match self.sessions.remove(&client_id) {
+        let session = match self.sessions.remove(&client_id) {
             Some(Session::Transient(current_connected)) => {
                 self.open_session_connected(auth_id, connreq, current_connected)
             }
@@ -636,11 +627,14 @@ where
                 let (new_session, events, session_present) =
                     if let proto::ClientId::IdWithExistingSession(_) = connreq.connect().client_id {
                         debug!("moving offline session to online for {}", client_id);
-                        let (state, events) = offline
-                            .into_online()
-                            .map_err(|_| SessionError::PacketIdentifiersExhausted)?;
-                        let new_session = Session::new_persistent(auth_id, connreq, state);
-                        (new_session, events, true)
+                        if let Ok((state, events)) = offline.into_online() {
+                            let new_session = Session::new_persistent(auth_id, connreq, state);
+                            (new_session, events, true)
+                        } else {
+                            panic!(
+                                "Session identifiers exhausted, this can only be caused by a bug."
+                            );
+                        }
                     } else {
                         info!("cleaning offline session for {}", client_id);
                         let new_session = Session::new_transient(auth_id, connreq);
@@ -654,11 +648,11 @@ where
                     return_code: proto::ConnectReturnCode::Accepted,
                 };
 
-                Ok((ack, events))
+                OpenSession::OpenedSession(ack, events)
             }
-            Some(Session::Disconnecting(disconnecting)) => Err(SessionError::ProtocolViolation(
-                Session::Disconnecting(disconnecting),
-            )),
+            Some(Session::Disconnecting(disconnecting)) => {
+                OpenSession::ProtocolViolation(Session::Disconnecting(disconnecting))
+            }
             None => {
                 // No session present - create a new one.
                 let new_session = if let proto::ClientId::IdWithExistingSession(_) =
@@ -685,9 +679,11 @@ where
                 self.publish_all(StateChange::new_session(&self.sessions).try_into()?)?;
                 self.publish_all(subscription_change)?;
 
-                Ok((ack, events))
+                OpenSession::OpenedSession(ack, events)
             }
-        }
+        };
+
+        Ok(session)
     }
 
     fn open_session_connected(
@@ -695,7 +691,7 @@ where
         auth_id: AuthId,
         connreq: ConnReq,
         current_connected: ConnectedSession,
-    ) -> Result<(proto::ConnAck, Vec<ClientEvent>), SessionError> {
+    ) -> OpenSession {
         if current_connected.handle() == connreq.handle() {
             // [MQTT-3.1.0-2] - The Server MUST process a second CONNECT Packet
             // sent from a Client as a protocol violation and disconnect the Client.
@@ -741,7 +737,7 @@ where
                 return_code: proto::ConnectReturnCode::Accepted,
             };
 
-            Err(SessionError::DuplicateSession(old_session, ack))
+            OpenSession::DuplicateSession(old_session, ack)
         }
     }
 
@@ -1031,16 +1027,11 @@ impl BrokerHandle {
     }
 }
 
-#[derive(Debug, DeriveError)]
-pub enum SessionError {
-    #[error("")]
-    PacketIdentifiersExhausted,
-    #[error("{0:?}")]
+#[derive(Debug)]
+enum OpenSession {
+    OpenedSession(proto::ConnAck, Vec<ClientEvent>),
     ProtocolViolation(Session),
-    #[error("{0:?}{1:?}")]
     DuplicateSession(Session, proto::ConnAck),
-    #[error("{0}")]
-    StateChange(#[from] Error),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -1062,9 +1053,10 @@ pub(crate) mod tests {
 
     use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
 
+    use super::OpenSession;
     use crate::{
         auth::{Activity, AuthenticateError, AuthorizeError, Operation},
-        broker::{BrokerBuilder, BrokerHandle, BrokerState, SessionError},
+        broker::{BrokerBuilder, BrokerHandle, BrokerState},
         error::Error,
         session::{tests::arb_session_state, Session},
         tests::{arb_publication, arb_topic},
@@ -1653,7 +1645,7 @@ pub(crate) mod tests {
         assert_eq!(1, broker.sessions.len());
 
         let result = broker.open_session(auth_id, req2);
-        assert_matches!(result, Err(SessionError::ProtocolViolation(_)));
+        assert_matches!(result, Ok(OpenSession::ProtocolViolation(_)));
         assert_eq!(0, broker.sessions.len());
     }
 
@@ -1682,7 +1674,7 @@ pub(crate) mod tests {
         assert_eq!(1, broker.sessions.len());
 
         let result = broker.open_session(auth_id, req2);
-        assert_matches!(result, Err(SessionError::ProtocolViolation(_)));
+        assert_matches!(result, Ok(OpenSession::ProtocolViolation(_)));
         assert_eq!(0, broker.sessions.len());
     }
 
@@ -1707,7 +1699,7 @@ pub(crate) mod tests {
 
         let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
         let result = broker.open_session(auth_id, req2);
-        assert_matches!(result, Err(SessionError::DuplicateSession(_, _)));
+        assert_matches!(result, Ok(OpenSession::DuplicateSession(_, _)));
         assert_matches!(broker.sessions[&client_id], Session::Transient(_));
         assert_eq!(1, broker.sessions.len());
     }
@@ -1733,7 +1725,7 @@ pub(crate) mod tests {
 
         let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
         let result = broker.open_session(auth_id, req2);
-        assert_matches!(result, Err(SessionError::DuplicateSession(_, _)));
+        assert_matches!(result, Ok(OpenSession::DuplicateSession(_, _)));
         assert_matches!(broker.sessions[&client_id], Session::Persistent(_));
         assert_eq!(1, broker.sessions.len());
     }
@@ -1759,7 +1751,7 @@ pub(crate) mod tests {
 
         let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
         let result = broker.open_session(auth_id, req2);
-        assert_matches!(result, Err(SessionError::DuplicateSession(_, _)));
+        assert_matches!(result, Ok(OpenSession::DuplicateSession(_, _)));
         assert_matches!(broker.sessions[&client_id], Session::Transient(_));
         assert_eq!(1, broker.sessions.len());
     }
@@ -1785,7 +1777,7 @@ pub(crate) mod tests {
         assert_eq!(1, broker.sessions.len());
 
         let result = broker.open_session(auth_id, req2);
-        assert_matches!(result, Err(SessionError::DuplicateSession(_, _)));
+        assert_matches!(result, Ok(OpenSession::DuplicateSession(_, _)));
         assert_matches!(broker.sessions[&client_id], Session::Persistent(_));
         assert_eq!(1, broker.sessions.len());
     }
