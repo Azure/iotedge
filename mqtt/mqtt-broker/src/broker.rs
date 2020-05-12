@@ -2256,6 +2256,7 @@ pub(crate) mod tests {
 
         broker_handle
             .send(Message::Client(client_id.into(), event))
+            .await
             .unwrap();
     }
 
@@ -2277,7 +2278,7 @@ pub(crate) mod tests {
         };
 
         let message = Message::Client(client_id, ClientEvent::Subscribe(subscribe));
-        handle.send(message).unwrap();
+        handle.send(message).await.unwrap();
 
         assert_matches!(
             rx.recv().await,
@@ -2297,7 +2298,7 @@ pub(crate) mod tests {
         };
 
         let message = Message::Client(client_id, ClientEvent::Unsubscribe(unsubscribe));
-        handle.send(message).unwrap();
+        handle.send(message).await.unwrap();
 
         assert_matches!(
             rx.recv().await,
