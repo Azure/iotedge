@@ -67,8 +67,8 @@
 #                       should be specified as file:///path/identity_key.pem
 #
 # External Settings
-#     endpoint - Required. Value of the endpoint used to retrieve device specific
-#                information such as its IoT hub connection information.
+#     endpoint        - Required. Value of the endpoint used to retrieve device specific
+#                       information such as its IoT hub connection information.
 #
 # Dynamic Re-provisioning Settings
 #     dynamic_reprovisioning - Optional. A flag to opt-in to the dynamic re-provisioning 
@@ -80,6 +80,14 @@
 #                              For the external provisioning mode specifically, the daemon 
 #                              will notify the external provisioning endpoint about the
 #                              re-provisioning event before shutting down.
+#
+# Nesed Edge Settings
+#     gateway_hostname       - Optional. This entry should only be specified for the 
+#                              host name of the parent edge device for nested edge sceanrio.
+#                              This value is injected into Edge Agent and Edge Hub modules as
+#                              environment value 'IOTEDGE_GATEWAYHOSTNAME'. Regardless of case
+#                              the hostname is specified below, a lower case value is used to
+#                              configure the Edge Hub server hostname.
 ###############################################################################
 
 # Manual provisioning configuration using a connection string

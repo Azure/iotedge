@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void EmptyIsNotAllowedAsPodAnnotation()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "Module1", Mock.Of<ICredentials>());
             var labels = new Dictionary<string, string>
             {
                 // string.Empty is an invalid label name
@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void SimpleDeploymentCreationHappyPath()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "Module1", Mock.Of<ICredentials>());
             var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
@@ -82,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void SimpleDeploymentStoppedHasZeroReplicas()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "Module1", Mock.Of<ICredentials>());
             var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Stopped, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void ValidatePodPropertyTranslation()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "Module1", Mock.Of<ICredentials>());
             var labels = new Dictionary<string, string>
             {
                 // Add a label
@@ -164,7 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void PvcMappingByDefault()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "ModuleId", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "ModuleId", Mock.Of<ICredentials>());
             var labels = new Dictionary<string, string>();
             var hostConfig = VolumeMountHostConfig;
             var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
@@ -187,7 +187,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void PvcMappingForVolumeNameVolume()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "ModuleId", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "ModuleId", Mock.Of<ICredentials>());
             var labels = new Dictionary<string, string>();
             var hostConfig = VolumeMountHostConfig;
             var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
@@ -212,7 +212,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void PvcMappingForStorageClassVolume()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "ModuleId", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "ModuleId", Mock.Of<ICredentials>());
             var labels = new Dictionary<string, string>();
             var hostConfig = VolumeMountHostConfig;
             var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
@@ -236,7 +236,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void PvcMappingForDefaultStorageClassVolume()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "ModuleId", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "ModuleId", Mock.Of<ICredentials>());
             var labels = new Dictionary<string, string>();
             var hostConfig = VolumeMountHostConfig;
             var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
@@ -260,7 +260,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void PvcMappingForPVVolumeExtended()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "ModuleId", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "ModuleId", Mock.Of<ICredentials>());
             var labels = new Dictionary<string, string>();
             var hostConfig = VolumeMountHostConfig;
 
@@ -311,7 +311,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void AppliesNodeSelectorFromCreateOptionsToPodSpec()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "Module1", Mock.Of<ICredentials>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVarsDict);
             IDictionary<string, string> nodeSelector = new Dictionary<string, string>
             {
@@ -330,7 +330,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void LeaveNodeSelectorEmptyWhenNothingProvidedInCreateOptions()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "Module1", Mock.Of<ICredentials>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVarsDict);
             var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
             var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
@@ -345,7 +345,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void AppliesResourcesFromCreateOptionsToContainerSpec()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "Module1", Mock.Of<ICredentials>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVarsDict);
             var resources = new V1ResourceRequirements(
                 new Dictionary<string, ResourceQuantity>
@@ -375,7 +375,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void LeaveResourcesEmptyWhenNothingProvidedInCreateOptions()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "Module1", Mock.Of<ICredentials>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVarsDict);
             var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
             var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
@@ -391,7 +391,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void AppliesVolumesFromCreateOptionsToContainerSpec()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "Module1", Mock.Of<ICredentials>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVarsDict);
             var volumes = new[]
             {
@@ -427,7 +427,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void AddsVolumesFromCreateOptionsToContainerSpecEvenIfTheyOverrideExistingOnes()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "Module1", Mock.Of<ICredentials>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVarsDict);
             var volumes = new[]
             {
@@ -463,7 +463,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void LeaveVolumesIntactWhenNothingProvidedInCreateOptions()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "Module1", Mock.Of<ICredentials>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVarsDict);
             var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
             var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
@@ -483,7 +483,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void PassImagePullSecretsInPodSpecForProxyAndModuleContainers()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "Module1", Mock.Of<ICredentials>());
             var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.Some(new AuthConfig("user-registry1")));
             var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate, EdgeletModuleOwner);
             var labels = new Dictionary<string, string>();
@@ -499,7 +499,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void PassOnlyOneImagePullSecretInPodSpecIfProxyAndModuleContainersHasTheSameImagePullSecrets()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "Module1", Mock.Of<ICredentials>());
             var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.Some(new AuthConfig("user-registry1")));
             var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate, EdgeletModuleOwner);
             var labels = new Dictionary<string, string>();
@@ -514,7 +514,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void RunAsNonRootAndRunAsUser1000SecurityPolicyWhenSettingSet()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "Module1", Mock.Of<ICredentials>());
             var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.Some(new AuthConfig("user-registry1")));
             var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate, EdgeletModuleOwner);
             var labels = new Dictionary<string, string>();
@@ -530,7 +530,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void PodSecurityContextFromCreateOptionsOverridesDefaultRunAsNonRootOptionsWhenProvided()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "Module1", Mock.Of<ICredentials>());
             var securityContext = new V1PodSecurityContext { RunAsNonRoot = true, RunAsUser = 0 };
             var config = new KubernetesConfig("image", CreatePodParameters.Create(securityContext: securityContext), Option.Some(new AuthConfig("user-registry1")));
             var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate, EdgeletModuleOwner);
@@ -547,7 +547,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void ApplyPodSecurityContextFromCreateOptionsWhenProvided()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "Module1", Mock.Of<ICredentials>());
             var securityContext = new V1PodSecurityContext { RunAsNonRoot = true, RunAsUser = 20001 };
             var config = new KubernetesConfig("image", CreatePodParameters.Create(securityContext: securityContext), Option.Some(new AuthConfig("user-registry1")));
             var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate, EdgeletModuleOwner);
@@ -564,7 +564,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void LeavesStrategyEmptyWhenNotProvided()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "Module1", Mock.Of<ICredentials>());
             var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.Some(new AuthConfig("user-registry1")));
             var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate, EdgeletModuleOwner);
             var labels = new Dictionary<string, string>();
@@ -578,7 +578,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void ApplyDeploymentStrategyWhenProvided()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "Module1", Mock.Of<ICredentials>());
             var deploymentStrategy = new V1DeploymentStrategy { Type = "Recreate" };
             var config = new KubernetesConfig("image", CreatePodParameters.Create(deploymentStrategy: deploymentStrategy), Option.Some(new AuthConfig("user-registry1")));
             var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate, EdgeletModuleOwner);
@@ -593,7 +593,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void NoCmdOptionsNoContainerArgs()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "Module1", Mock.Of<ICredentials>());
             var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.Some(new AuthConfig("user-registry1")));
             var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate, EdgeletModuleOwner);
             var labels = new Dictionary<string, string>();
@@ -611,7 +611,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         public void CmdOptionsContainerArgs()
         {
             var cmd = new List<string> { "argument1", "argument2" };
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "Module1", Mock.Of<ICredentials>());
             var config = new KubernetesConfig("image", CreatePodParameters.Create(cmd: cmd), Option.Some(new AuthConfig("user-registry1")));
             var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate, EdgeletModuleOwner);
             var labels = new Dictionary<string, string>();
@@ -630,7 +630,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         public void EntrypointOptionsContainerCommands()
         {
             var entrypoint = new List<string> { "command", "argument-a" };
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "Module1", Mock.Of<ICredentials>());
             var config = new KubernetesConfig("image", CreatePodParameters.Create(entrypoint: entrypoint), Option.Some(new AuthConfig("user-registry1")));
             var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate, EdgeletModuleOwner);
             var labels = new Dictionary<string, string>();
@@ -648,7 +648,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void WorkingDirOptionsContainerWorkingDir()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "Module1", Mock.Of<ICredentials>());
             var config = new KubernetesConfig("image", CreatePodParameters.Create(workingDir: "/tmp/working"), Option.Some(new AuthConfig("user-registry1")));
             var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate, EdgeletModuleOwner);
             var labels = new Dictionary<string, string>();
@@ -664,7 +664,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void EdgeAgentEnvSettingsHaveLotsOfStuff()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "$edgeAgent", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "gateway", "deviceid", "$edgeAgent", Mock.Of<ICredentials>());
             var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.Some(new AuthConfig("user-registry1")));
             var module = new KubernetesModule("edgeAgent", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate, EdgeletModuleOwner);
             var labels = new Dictionary<string, string>();

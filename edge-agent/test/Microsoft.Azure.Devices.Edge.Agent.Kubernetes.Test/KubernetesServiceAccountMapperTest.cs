@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void RequiredMetadataExistsWhenCreated()
         {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "ModuleId", Mock.Of<ICredentials>());
+            var identity = new ModuleIdentity("hostname", "edgedevicehostname", "edgedevicehostname", "deviceid", "ModuleId", Mock.Of<ICredentials>());
             var mapper = new KubernetesServiceAccountMapper();
             var labels = new Dictionary<string, string> { ["device"] = "k8s-device" };
             var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels), Option.None<AuthConfig>());

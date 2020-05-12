@@ -5,16 +5,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
     public class ModuleIdentity : IModuleIdentity
     {
-        public ModuleIdentity(string iotHubHostname, string gatewayHostname, string deviceId, string moduleId, ICredentials credentials)
+        public ModuleIdentity(
+            string iotHubHostname,
+            string edgeDeviceHostname,
+            string gatewayHostname,
+            string deviceId,
+            string moduleId,
+            ICredentials credentials)
         {
-            this.IotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(this.IotHubHostname));
+            this.IotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.GatewayHostname = gatewayHostname;
-            this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(this.DeviceId));
-            this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(this.ModuleId));
+            this.EdgeDeviceHostname = Preconditions.CheckNonWhiteSpace(edgeDeviceHostname, nameof(edgeDeviceHostname));
+            this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.Credentials = Preconditions.CheckNotNull(credentials, nameof(this.Credentials));
         }
 
         public string IotHubHostname { get; }
+
+        public string EdgeDeviceHostname { get; }
 
         public string GatewayHostname { get; }
 
