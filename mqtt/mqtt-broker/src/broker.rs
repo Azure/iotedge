@@ -312,7 +312,7 @@ where
             Err(SessionError::PacketIdentifiersExhausted) => {
                 panic!("Session identifiers exhausted, this can only be caused by a bug.");
             }
-            Err(SessionError::StateChange(e)) => Err(e)?,
+            Err(SessionError::StateChange(e)) => return Err(e),
         }
 
         debug!("connect handled.");

@@ -64,7 +64,7 @@ impl<'a> TryFrom<StateChange<'a>> for proto::Publication {
                 let payload = subscriptions
                     .map(|subscriptions| serde_json::to_string(&subscriptions))
                     .transpose()?
-                    .map_or_else(|| bytes::Bytes::new(), |json| json.into());
+                    .map_or_else(bytes::Bytes::new, |json| json.into());
 
                 proto::Publication {
                     topic_name: format!("$edgehub/subscriptions/{}", client_id),
