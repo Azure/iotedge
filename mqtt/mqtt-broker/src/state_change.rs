@@ -165,6 +165,8 @@ pub(crate) mod tests {
         let no_connections = StateChange::new_connection_change(&sessions);
         if let StateChange::Connections(no_connections) = &no_connections {
             assert_eq!(&Vec::<&ClientId>::new(), no_connections);
+        } else {
+            panic!("Expected Connection Change")
         }
 
         let message: proto::Publication = no_connections.try_into().unwrap();
@@ -184,6 +186,8 @@ pub(crate) mod tests {
         if let StateChange::Connections(one_connection) = &one_connection {
             let expected: ClientId = "Session 1".into();
             assert_eq!(&vec![&expected], one_connection);
+        } else {
+            panic!("Expected Connection Change")
         }
 
         let message: proto::Publication = one_connection.try_into().unwrap();
@@ -204,6 +208,8 @@ pub(crate) mod tests {
             let mut actual: Vec<&str> = many_connections.iter().map(|id| id.as_str()).collect();
             actual.sort();
             assert_eq!(vec!["Session 1", "Session 2", "Session 3"], actual);
+        } else {
+            panic!("Expected Connection Change")
         }
 
         let message: proto::Publication = many_connections.try_into().unwrap();
@@ -227,6 +233,8 @@ pub(crate) mod tests {
             let mut actual: Vec<&str> = many_connections.iter().map(|id| id.as_str()).collect();
             actual.sort();
             assert_eq!(vec!["Session 2", "Session 4", "Session 6"], actual);
+        } else {
+            panic!("Expected Connection Change")
         }
 
         let message: proto::Publication = many_connections.try_into().unwrap();
@@ -238,8 +246,10 @@ pub(crate) mod tests {
         // No sessions
         let sessions: HashMap<ClientId, Session> = HashMap::new();
         let no_sessions = StateChange::new_session_change(&sessions);
-        if let StateChange::Connections(no_sessions) = &no_sessions {
+        if let StateChange::Sessions(no_sessions) = &no_sessions {
             assert_eq!(&Vec::<&ClientId>::new(), no_sessions);
+        } else {
+            panic!("Expected Session Change")
         }
 
         let message: proto::Publication = no_sessions.try_into().unwrap();
@@ -256,9 +266,11 @@ pub(crate) mod tests {
             })
             .collect();
         let one_session = StateChange::new_session_change(&sessions);
-        if let StateChange::Connections(one_session) = &one_session {
+        if let StateChange::Sessions(one_session) = &one_session {
             let expected: ClientId = "Session 1".into();
             assert_eq!(&vec![&expected], one_session);
+        } else {
+            panic!("Expected Session Change")
         }
 
         let message: proto::Publication = one_session.try_into().unwrap();
@@ -275,10 +287,12 @@ pub(crate) mod tests {
             })
             .collect();
         let many_sessions = StateChange::new_session_change(&sessions);
-        if let StateChange::Connections(many_sessions) = &many_sessions {
+        if let StateChange::Sessions(many_sessions) = &many_sessions {
             let mut actual: Vec<&str> = many_sessions.iter().map(|id| id.as_str()).collect();
             actual.sort();
             assert_eq!(vec!["Session 1", "Session 2", "Session 3"], actual);
+        } else {
+            panic!("Expected Session Change")
         }
 
         let message: proto::Publication = many_sessions.try_into().unwrap();
@@ -298,7 +312,7 @@ pub(crate) mod tests {
             })
             .collect();
         let many_sessions = StateChange::new_session_change(&sessions);
-        if let StateChange::Connections(many_sessions) = &many_sessions {
+        if let StateChange::Sessions(many_sessions) = &many_sessions {
             let mut actual: Vec<&str> = many_sessions.iter().map(|id| id.as_str()).collect();
             actual.sort();
             assert_eq!(
@@ -312,6 +326,8 @@ pub(crate) mod tests {
                 ],
                 actual
             );
+        } else {
+            panic!("Expected Session Change")
         }
 
         let message: proto::Publication = many_sessions.try_into().unwrap();
