@@ -45,12 +45,7 @@ namespace DirectMethodSender
             ulong directMethodCount,
             CancellationToken none)
         {
-            TimeSpan timeouts = Settings.Current.DirectMethodDelay;
-            CloudToDeviceMethod cloudToDeviceMethod = new CloudToDeviceMethod(
-                methodName,
-                Settings.Current.DirectMethodDelay,
-                Settings.Current.DirectMethodDelay)
-                .SetPayloadJson($"{{ \"Message\": \"Hello\", \"DirectMethodCount\": \"{directMethodCount.ToString()}\" }}");
+            CloudToDeviceMethod cloudToDeviceMethod = new CloudToDeviceMethod(methodName).SetPayloadJson($"{{ \"Message\": \"Hello\", \"DirectMethodCount\": \"{directMethodCount.ToString()}\" }}");
             CloudToDeviceMethodResult result = await this.serviceClient.InvokeDeviceMethodAsync(deviceId, targetModuleId, cloudToDeviceMethod, CancellationToken.None);
             return result.Status;
         }

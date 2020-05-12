@@ -135,7 +135,7 @@ fn dispatch_messages(
         .authorizer(|_| Ok(true))
         .build();
 
-    let (on_publish_tx, on_publish_rx) = crossbeam_channel::bounded(1024);
+    let (on_publish_tx, mut on_publish_rx) = mpsc::unbounded_channel();
     broker.on_publish = Some(on_publish_tx);
 
     let mut broker_handle = broker.handle();
@@ -180,11 +180,15 @@ fn dispatch_messages(
                         publish_handle.id.as_client_id(),
                         ClientEvent::PublishFrom(publish),
                     );
-                    broker_handle.send(message).expect("publish");
+                    runtime
+                        .block_on(broker_handle.send(message))
+                        .expect("publish");
                 });
 
-                let execution_time = on_publish_rx.recv().expect("publish processed");
-                total_execution_time += execution_time;
+                runtime.block_on(async {
+                    let execution_time = on_publish_rx.recv().await.expect("publish processed");
+                    total_execution_time += execution_time;
+                });
             }
 
             total_execution_time
@@ -194,6 +198,7 @@ fn dispatch_messages(
     runtime.block_on(async move {
         broker_handle
             .send(Message::System(SystemEvent::Shutdown))
+            .await
             .expect("broker shutdown event");
 
         futures_util::future::join_all(subscriber_tasks).await;
@@ -242,7 +247,7 @@ impl Client {
         };
         let connreq = ConnReq::new(client.id.as_client_id(), connect, None, connection_handle);
         let message = Message::Client(client.id.as_client_id(), ClientEvent::ConnReq(connreq));
-        client.broker_handle.send(message).expect("connect");
+        client.broker_handle.send(message).await.expect("connect");
 
         client
     }
@@ -256,7 +261,7 @@ impl Client {
             }],
         };
         let message = Message::Client(self.id.as_client_id(), ClientEvent::Subscribe(subscribe));
-        self.broker_handle.send(message).expect("subscribe");
+        self.broker_handle.send(message).await.expect("subscribe");
     }
 
     fn publish_handle(&self) -> PublishHandle {
@@ -317,7 +322,7 @@ impl Client {
 
                     if let Some(event) = event_out {
                         let message = Message::Client(client_id.clone(), event);
-                        if let Err(e) = self.broker_handle.send(message) {
+                        if let Err(e) = self.broker_handle.send(message).await {
                             warn!("{}: Broker closed connection. {:?}", client_id, e);
                             stop = true;
                         }
