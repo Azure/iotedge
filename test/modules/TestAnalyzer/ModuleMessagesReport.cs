@@ -42,7 +42,7 @@ namespace TestAnalyzer
 
         public IList<MissedMessagesDetails> MissedMessages { get; }
 
-        public bool IsPassed => this.StatusCode == StatusCode.AllMessages;
+        public bool IsPassed => this.StatusCode == StatusCode.AllMessages || this.StatusCode == StatusCode.OldMessages;
 
         public IDictionary<string, string> TestInfo { get; }
 
