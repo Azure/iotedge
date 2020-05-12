@@ -101,16 +101,46 @@ namespace TestAnalyzer
                 }
             }
 
-            // check if last message is older
-            if (DateTime.Compare(lastMessageDateTime.AddMilliseconds(toleranceInMilliseconds), endDateTime) < 0)
+            bool areMessagesMissing = missingCounter > 0;
+            bool areLatestMessagesTooOld = DateTime.Compare(lastMessageDateTime.AddMilliseconds(toleranceInMilliseconds), endDateTime) < 0;
+            string missingMessagesStatus = $"Missing messages: {missingCounter}. ";
+            string messagesTooOldStatus = $"No messages received for the past {toleranceInMilliseconds} milliseconds. ";
+            string noMissingMessagesStatus = "All messages received. ";
+
+            if (areMessagesMissing)
             {
-                Logger.LogInformation($"Module {moduleId}: last message datetime={lastMessageDateTime} and end datetime={endDateTime}");
-                return new ModuleMessagesReport(moduleId, StatusCode.OldMessages, totalMessagesCounter, $"Missing messages: {missingCounter}. No messages received for the past {toleranceInMilliseconds} milliseconds.", lastMessageDateTime, missedMessages, Settings.Current.TestInfo);
+                Logger.LogInformation($"Module {moduleId}: missing messages");
             }
 
-            return missingCounter > 0
-                ? new ModuleMessagesReport(moduleId, StatusCode.SkippedMessages, totalMessagesCounter, $"Missing messages: {missingCounter}.", lastMessageDateTime, missedMessages, Settings.Current.TestInfo)
-                : new ModuleMessagesReport(moduleId, StatusCode.AllMessages, totalMessagesCounter, "All messages received.", lastMessageDateTime, Settings.Current.TestInfo);
+            if (areLatestMessagesTooOld)
+            {
+                Logger.LogInformation($"Module {moduleId}: last message datetime={lastMessageDateTime} and end datetime={endDateTime}");
+            }
+
+            StatusCode statusCode;
+            string statusMessage;
+            if (missingCounter > 0 && areLatestMessagesTooOld)
+            {
+                statusCode = StatusCode.SkippedAndOldMessages;
+                statusMessage = $"{missingMessagesStatus}{messagesTooOldStatus}";
+            }
+            else if (missingCounter > 0)
+            {
+                statusCode = StatusCode.SkippedMessages;
+                statusMessage = $"{missingMessagesStatus}";
+            }
+            else if (areLatestMessagesTooOld)
+            {
+                statusCode = StatusCode.OldMessages;
+                statusMessage = $"{messagesTooOldStatus}{noMissingMessagesStatus}";
+            }
+            else
+            {
+                statusCode = StatusCode.AllMessages;
+                statusMessage = $"{noMissingMessagesStatus}";
+            }
+
+            return new ModuleMessagesReport(moduleId, statusCode, totalMessagesCounter, statusMessage, lastMessageDateTime, missedMessages, Settings.Current.TestInfo);
         }
     }
 }
