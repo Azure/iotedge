@@ -11,7 +11,7 @@ use crate::auth::{
     Operation,
 };
 use crate::session::{ConnectedSession, Session, SessionState};
-use crate::sys_topic::StateChange;
+use crate::state_change::StateChange;
 use crate::{
     subscription::Subscription, AuthId, ClientEvent, ClientId, ConnReq, Error, Message, SystemEvent,
 };
@@ -1994,7 +1994,7 @@ pub(crate) mod tests {
     }
 
     #[tokio::test]
-    async fn test_notify_single_connection() {
+    async fn test_notify_state_change_single_connection() {
         let broker = BrokerBuilder::default()
             .authenticator(|_| Ok(Some(AuthId::Anonymous)))
             .authorizer(|_| Ok(true))
@@ -2036,7 +2036,7 @@ pub(crate) mod tests {
     }
 
     #[tokio::test]
-    async fn test_notify_multiple_connection() {
+    async fn test_notify_state_change_multiple_connection() {
         let broker = BrokerBuilder::default()
             .authenticator(|_| Ok(Some(AuthId::Anonymous)))
             .authorizer(|_| Ok(true))
@@ -2068,7 +2068,7 @@ pub(crate) mod tests {
     }
 
     #[tokio::test]
-    async fn test_notify_add_remove_connection() {
+    async fn test_notify_state_change_add_remove_connection() {
         let broker = BrokerBuilder::default()
             .authenticator(|_| Ok(Some(AuthId::Anonymous)))
             .authorizer(|_| Ok(true))
@@ -2107,7 +2107,7 @@ pub(crate) mod tests {
     }
 
     #[tokio::test]
-    async fn test_notify_add_remove_subscription() {
+    async fn test_notify_state_change_add_remove_subscription() {
         let broker = BrokerBuilder::default()
             .authenticator(|_| Ok(Some(AuthId::Anonymous)))
             .authorizer(|_| Ok(true))
@@ -2144,7 +2144,7 @@ pub(crate) mod tests {
     }
 
     #[tokio::test]
-    async fn test_notify_add_remove_multiple_subscriptions() {
+    async fn test_notify_state_change_add_remove_multiple_subscriptions() {
         let broker = BrokerBuilder::default()
             .authenticator(|_| Ok(Some(AuthId::Anonymous)))
             .authorizer(|_| Ok(true))
@@ -2184,7 +2184,7 @@ pub(crate) mod tests {
     }
 
     #[tokio::test]
-    async fn test_notify_existing_subscriptions() {
+    async fn test_notify_state_change_existing_subscriptions() {
         let broker = BrokerBuilder::default()
             .authenticator(|_| Ok(Some(AuthId::Anonymous)))
             .authorizer(|_| Ok(true))

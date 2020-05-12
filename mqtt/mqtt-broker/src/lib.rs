@@ -26,7 +26,7 @@ mod server;
 mod session;
 mod snapshot;
 mod subscription;
-mod sys_topic;
+mod state_change;
 mod transport;
 
 pub use crate::auth::{AuthId, Authenticator, Authorizer, Certificate};

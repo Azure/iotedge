@@ -105,7 +105,7 @@ pub(crate) mod tests {
 
         // Session with no subscriptions
         let session = make_session(expected_id.as_str(), Vec::<&str>::new(), true);
-        let no_subs = StateChange::new_subscription(&expected_id, &session);
+        let no_subs = StateChange::new_subscription_change(&expected_id, Some(&session));
 
         if let StateChange::Subscriptions(stored_id, stored_subs) = &no_subs {
             assert_eq!(&&expected_id, stored_id);
@@ -117,7 +117,7 @@ pub(crate) mod tests {
 
         // Session with 1 subscription
         let session = make_session(expected_id.as_str(), &["Sub"], true);
-        let one_sub = StateChange::new_subscription(&expected_id, &session);
+        let one_sub = StateChange::new_subscription_change(&expected_id, Some(&session));
 
         if let StateChange::Subscriptions(stored_id, stored_subs) = &one_sub {
             assert_eq!(&&expected_id, stored_id);
@@ -133,7 +133,7 @@ pub(crate) mod tests {
             (1..4).map(|i| format!("Sub{}", i)),
             true,
         );
-        let many_subs = StateChange::new_subscription(&expected_id, &session);
+        let many_subs = StateChange::new_subscription_change(&expected_id, Some(&session));
 
         if let StateChange::Subscriptions(stored_id, stored_subs) = &many_subs {
             assert_eq!(&&expected_id, stored_id);
@@ -146,7 +146,7 @@ pub(crate) mod tests {
         matches_subscription_publication(message, expected_id.as_str(), &["Sub1", "Sub2", "Sub3"]);
 
         // Clear subscriptions
-        let clear_subs = StateChange::clear_subscriptions(&expected_id);
+        let clear_subs = StateChange::new_subscription_change(&expected_id, None);
 
         if let StateChange::Subscriptions(stored_id, stored_subs) = &clear_subs {
             assert_eq!(&&expected_id, stored_id);
@@ -162,7 +162,7 @@ pub(crate) mod tests {
     fn test_connections() {
         // No sessions
         let sessions: HashMap<ClientId, Session> = HashMap::new();
-        let no_connections = StateChange::new_connection(&sessions);
+        let no_connections = StateChange::new_connection_change(&sessions);
         if let StateChange::Connections(no_connections) = &no_connections {
             assert_eq!(&Vec::<&ClientId>::new(), no_connections);
         }
@@ -175,12 +175,12 @@ pub(crate) mod tests {
             .map(|i| {
                 let id = format!("Session {}", i);
                 let session =
-                    make_session(&id, (1..i).map(|j| format!("Subscription {}", j)), true);
+                make_session(&id, (1..i).map(|j| format!("Subscription {}", j)), true);
 
                 (id.into(), session)
             })
             .collect();
-        let one_connection = StateChange::new_connection(&sessions);
+        let one_connection = StateChange::new_connection_change(&sessions);
         if let StateChange::Connections(one_connection) = &one_connection {
             let expected: ClientId = "Session 1".into();
             assert_eq!(&vec![&expected], one_connection);
@@ -194,12 +194,12 @@ pub(crate) mod tests {
             .map(|i| {
                 let id = format!("Session {}", i);
                 let session =
-                    make_session(&id, (1..i).map(|j| format!("Subscription {}", j)), true);
+                    make_session_change(&id, (1..i).map(|j| format!("Subscription {}", j)), true);
 
                 (id.into(), session)
             })
             .collect();
-        let many_connections = StateChange::new_connection(&sessions);
+        let many_connections = StateChange::new_connection_change(&sessions);
         if let StateChange::Connections(many_connections) = &many_connections {
             let mut actual: Vec<&str> = many_connections.iter().map(|id| id.as_str()).collect();
             actual.sort();
@@ -222,7 +222,7 @@ pub(crate) mod tests {
                 (id.into(), session)
             })
             .collect();
-        let many_connections = StateChange::new_connection(&sessions);
+        let many_connections = StateChange::new_connection_change(&sessions);
         if let StateChange::Connections(many_connections) = &many_connections {
             let mut actual: Vec<&str> = many_connections.iter().map(|id| id.as_str()).collect();
             actual.sort();
@@ -237,7 +237,7 @@ pub(crate) mod tests {
     fn test_sessions() {
         // No sessions
         let sessions: HashMap<ClientId, Session> = HashMap::new();
-        let no_sessions = StateChange::new_session(&sessions);
+        let no_sessions = StateChange::new_session_change(&sessions);
         if let StateChange::Connections(no_sessions) = &no_sessions {
             assert_eq!(&Vec::<&ClientId>::new(), no_sessions);
         }
@@ -255,7 +255,7 @@ pub(crate) mod tests {
                 (id.into(), session)
             })
             .collect();
-        let one_session = StateChange::new_session(&sessions);
+        let one_session = StateChange::new_session_change(&sessions);
         if let StateChange::Connections(one_session) = &one_session {
             let expected: ClientId = "Session 1".into();
             assert_eq!(&vec![&expected], one_session);
@@ -274,7 +274,7 @@ pub(crate) mod tests {
                 (id.into(), session)
             })
             .collect();
-        let many_sessions = StateChange::new_session(&sessions);
+        let many_sessions = StateChange::new_session_change(&sessions);
         if let StateChange::Connections(many_sessions) = &many_sessions {
             let mut actual: Vec<&str> = many_sessions.iter().map(|id| id.as_str()).collect();
             actual.sort();
@@ -297,7 +297,7 @@ pub(crate) mod tests {
                 (id.into(), session)
             })
             .collect();
-        let many_sessions = StateChange::new_session(&sessions);
+        let many_sessions = StateChange::new_session_change(&sessions);
         if let StateChange::Connections(many_sessions) = &many_sessions {
             let mut actual: Vec<&str> = many_sessions.iter().map(|id| id.as_str()).collect();
             actual.sort();
