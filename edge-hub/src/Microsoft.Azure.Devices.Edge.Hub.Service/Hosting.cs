@@ -43,27 +43,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                             port,
                             listenOptions =>
                             {
-                                listenOptions.UseHttps(
-                                    new HttpsConnectionAdapterOptions()
-                                    {
-                                        ServerCertificate = serverCertificate,
-                                        OnAuthenticate = (context, options) =>
-                                        {
-                                            if (clientCertAuthEnabled)
-                                            {
-                                                options.ClientCertificateRequired = true;
-                                                options.RemoteCertificateValidationCallback = (_, clientCert, chain, policyErrors) =>
-                                                {
-                                                    Option<X509Chain> chainOption = chain == null ? Option.None<X509Chain>() : Option.Some(chain);
-                                                    TlsConnectionFeatureExtended tlsConnectionFeatureExtended = GetConnectionFeatureExtended(chainOption);
-                                                    context.Features.Set<ITlsConnectionFeatureExtended>(tlsConnectionFeatureExtended);
-                                                    return true;
-                                                };
-                                            }
-                                        },
-                                        ClientCertificateMode = ClientCertificateMode.NoCertificate, // we can override this in OnAuthenticate if using certs
-                                        SslProtocols = sslProtocols
-                                    });
+                                // listenOptions.UseHttps(
+                                //     new HttpsConnectionAdapterOptions()
+                                //     {
+                                //         ServerCertificate = serverCertificate,
+                                //         OnAuthenticate = (context, options) =>
+                                //         {
+                                //             if (clientCertAuthEnabled)
+                                //             {
+                                //                 options.ClientCertificateRequired = true;
+                                //                 options.RemoteCertificateValidationCallback = (_, clientCert, chain, policyErrors) =>
+                                //                 {
+                                //                     Option<X509Chain> chainOption = chain == null ? Option.None<X509Chain>() : Option.Some(chain);
+                                //                     TlsConnectionFeatureExtended tlsConnectionFeatureExtended = GetConnectionFeatureExtended(chainOption);
+                                //                     context.Features.Set<ITlsConnectionFeatureExtended>(tlsConnectionFeatureExtended);
+                                //                     return true;
+                                //                 };
+                                //             }
+                                //         },
+                                //         ClientCertificateMode = ClientCertificateMode.NoCertificate, // we can override this in OnAuthenticate if using certs
+                                //         SslProtocols = sslProtocols
+                                //     });
                             });
                     })
                 .UseSockets()
