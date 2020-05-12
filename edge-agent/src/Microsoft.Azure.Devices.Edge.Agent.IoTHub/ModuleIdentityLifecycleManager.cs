@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.Data;
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -15,18 +16,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly IServiceClient serviceClient;
         readonly string iothubHostName;
         readonly string deviceId;
-        readonly string gatewayHostName;
+        readonly string edgeDeviceHostname;
 
         public ModuleIdentityLifecycleManager(
             IServiceClient serviceClient,
             string iothubHostName,
             string deviceId,
-            string gatewayHostName)
+            string edgeDeviceHostname)
         {
             this.serviceClient = Preconditions.CheckNotNull(serviceClient, nameof(serviceClient));
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
+            this.edgeDeviceHostname = Preconditions.CheckNonWhiteSpace(edgeDeviceHostname, nameof(edgeDeviceHostname));
         }
 
         // Modules in IoTHub can be created in one of two ways - 1. single deployment:
@@ -110,10 +111,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 p =>
                 {
                     string connectionString = this.GetModuleConnectionString(p);
-                    return new ModuleIdentity(this.iothubHostName, this.gatewayHostName, this.deviceId, p.Id, new ConnectionStringCredentials(connectionString));
+                    return new ModuleIdentity(
+                        this.iothubHostName,
+                        this.edgeDeviceHostname,
+                        this.GetGatewayHostname(p.Id),
+                        this.deviceId,
+                        p.Id,
+                        new ConnectionStringCredentials(connectionString));
                 });
 
             return moduleIdentities.ToImmutableDictionary(m => ModuleIdentityHelper.GetModuleName(m.ModuleId));
+        }
+
+        string GetGatewayHostname(string moduleId)
+        {
+            if (moduleId.Equals(Constants.EdgeAgentModuleIdentityName, StringComparison.OrdinalIgnoreCase) ||
+                moduleId.Equals(Constants.EdgeHubModuleIdentityName, StringComparison.OrdinalIgnoreCase))
+            {
+                return string.Empty;
+            }
+
+            return this.edgeDeviceHostname;
         }
 
         string GetModuleConnectionString(Module module)
@@ -129,7 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
             return module.Id.Equals(Constants.EdgeHubModuleIdentityName, StringComparison.OrdinalIgnoreCase)
                 ? moduleConnectionString
-                : moduleConnectionString.WithGatewayHostName(this.gatewayHostName);
+                : moduleConnectionString.WithGatewayHostName(this.edgeDeviceHostname);
         }
 
         async Task<Module[]> UpdateServiceModulesIdentityAsync(IEnumerable<string> removeIdentities, IEnumerable<string> createIdentities, IEnumerable<Module> updateIdentities)

@@ -36,6 +36,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
 
         public string Id => this.id.Value;
 
+        public ModuleSpec ModuleSpec => this.moduleSpec;
+
         public static CreateOrUpdateCommand BuildCreate(
             IModuleManager moduleManager,
             IModule module,
@@ -118,16 +120,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
                 envVars.Add(new EnvVar(Constants.IotHubHostnameVariableName, identity.IotHubHostname));
             }
 
+            if (identity.ModuleId.Equals(Constants.EdgeAgentModuleIdentityName) || identity.ModuleId.Equals(Constants.EdgeHubModuleIdentityName))
+            {
+                envVars.Add(new EnvVar(Constants.EdgeDeviceHostNameKey, identity.EdgeDeviceHostname));
+            }
+
             if (!string.IsNullOrWhiteSpace(identity.GatewayHostname))
             {
-                if (identity.ModuleId.Equals(Constants.EdgeAgentModuleIdentityName) || identity.ModuleId.Equals(Constants.EdgeHubModuleIdentityName))
-                {
-                    envVars.Add(new EnvVar(Constants.EdgeDeviceHostNameKey, identity.GatewayHostname));
-                }
-                else if (!identity.ModuleId.Equals(Constants.EdgeHubModuleIdentityName))
-                {
-                    envVars.Add(new EnvVar(Constants.GatewayHostnameVariableName, identity.GatewayHostname));
-                }
+                envVars.Add(new EnvVar(Constants.GatewayHostnameVariableName, identity.GatewayHostname));
             }
 
             if (!string.IsNullOrWhiteSpace(identity.DeviceId))

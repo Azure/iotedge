@@ -404,6 +404,8 @@ pub struct Provisioning {
 
     #[serde(default)]
     dynamic_reprovisioning: bool,
+
+    gateway_hostname: Option<String>,
 }
 
 impl Provisioning {
@@ -413,6 +415,10 @@ impl Provisioning {
 
     pub fn dynamic_reprovisioning(&self) -> bool {
         self.dynamic_reprovisioning
+    }
+
+    pub fn gateway_hostname(&self) -> Option<&str> {
+        self.gateway_hostname.as_ref().map(AsRef::as_ref)
     }
 }
 

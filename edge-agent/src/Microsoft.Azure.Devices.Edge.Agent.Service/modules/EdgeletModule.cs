@@ -32,7 +32,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     {
         readonly string deviceId;
         readonly string iotHubHostName;
-        readonly string gatewayHostName;
+        readonly string edgeDeviceHostname;
+        readonly string parentEdgeHostname;
         readonly Uri managementUri;
         readonly Uri workloadUri;
         readonly string apiVersion;
@@ -48,7 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
         public EdgeletModule(
             string iotHubHostname,
-            string gatewayHostName,
+            string edgeDeviceHostname,
+            string parentEdgeHostname,
             string deviceId,
             Uri managementUri,
             Uri workloadUri,
@@ -64,7 +66,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string backupConfigFilePath)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
-            this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
+            this.edgeDeviceHostname = Preconditions.CheckNonWhiteSpace(edgeDeviceHostname, nameof(edgeDeviceHostname));
+            this.parentEdgeHostname = parentEdgeHostname;
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
@@ -103,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IModuleIdentityLifecycleManager
-            var identityBuilder = new ModuleIdentityProviderServiceBuilder(this.iotHubHostName, this.deviceId, this.gatewayHostName);
+            var identityBuilder = new ModuleIdentityProviderServiceBuilder(this.iotHubHostName, this.deviceId, this.edgeDeviceHostname, this.parentEdgeHostname);
             builder.Register(c => new ModuleIdentityLifecycleManager(c.Resolve<IIdentityManager>(), identityBuilder, this.workloadUri))
                 .As<IModuleIdentityLifecycleManager>()
                 .SingleInstance();

@@ -7,6 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         string GatewayHostname { get; }
 
+        string EdgeDeviceHostname { get; }
+
         string DeviceId { get; }
 
         string ModuleId { get; }

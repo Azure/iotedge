@@ -12,16 +12,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public void TestCreateInstance_ShouldThrowWhithNullArguments()
         {
             string connectionString = "fake";
-            string moduleName = "module1";
-            string gatewayHostname = "gateway.local";
+            string edgeDeviceHostname = "edgedevicehostname";
+            string parentEdgeHostname = "parentedgehostname";
             string iothubHostname = "iothub.local";
             string deviceId = "device1";
+            string moduleName = "module1";
 
-            Assert.Throws<ArgumentException>(() => new ModuleIdentity(null, gatewayHostname, deviceId, moduleName, new ConnectionStringCredentials(connectionString)));
-            Assert.NotNull(new ModuleIdentity(iothubHostname, null, deviceId, moduleName, new ConnectionStringCredentials(connectionString)));
-            Assert.Throws<ArgumentException>(() => new ModuleIdentity(iothubHostname, gatewayHostname, null, moduleName, new ConnectionStringCredentials(connectionString)));
-            Assert.Throws<ArgumentException>(() => new ModuleIdentity(iothubHostname, gatewayHostname, deviceId, null, new ConnectionStringCredentials(connectionString)));
-            Assert.Throws<ArgumentNullException>(() => new ModuleIdentity(iothubHostname, gatewayHostname, deviceId, moduleName, null));
+            Assert.Throws<ArgumentException>(() => new ModuleIdentity(null, edgeDeviceHostname, parentEdgeHostname, deviceId, moduleName, new ConnectionStringCredentials(connectionString)));
+            Assert.NotNull(new ModuleIdentity(iothubHostname, edgeDeviceHostname, null, deviceId, moduleName, new ConnectionStringCredentials(connectionString)));
+            Assert.Throws<ArgumentException>(() => new ModuleIdentity(iothubHostname, edgeDeviceHostname, parentEdgeHostname, null, moduleName, new ConnectionStringCredentials(connectionString)));
+            Assert.Throws<ArgumentException>(() => new ModuleIdentity(iothubHostname, edgeDeviceHostname, parentEdgeHostname, deviceId, null, new ConnectionStringCredentials(connectionString)));
+            Assert.Throws<ArgumentNullException>(() => new ModuleIdentity(iothubHostname, edgeDeviceHostname, parentEdgeHostname, deviceId, moduleName, null));
         }
     }
 }
