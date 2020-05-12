@@ -22,7 +22,7 @@ use tokio_util::codec::Framed;
 use mqtt3::{
     proto::{ClientId, Connect, Packet, PacketCodec, Publication, Publish, QoS, SubscribeTo},
     Client, Event, PublishError, PublishHandle, ReceivedPublication, ShutdownHandle,
-    UpdateSubscriptionHandle,
+    UpdateSubscriptionHandle, PROTOCOL_NAME, PROTOCOL_LEVEL,
 };
 use mqtt_broker::{Authenticator, Authorizer, Broker, BrokerState, Error, Server};
 
@@ -307,6 +307,7 @@ impl PacketStream {
         let mut result = TcpStream::connect(&server_addr).await;
         let start_time = Instant::now();
         while let Err(_) = result {
+            tokio::time::delay_for(Duration::from_millis(100)).await;
             if start_time.elapsed() > *DEFAULT_TIMEOUT {
                 break;
             }
@@ -337,7 +338,10 @@ impl PacketStream {
                 username,
                 password,
                 client_id,
-                ..Default::default()
+                will: None,
+                keep_alive: Duration::from_secs(30),
+                protocol_name: PROTOCOL_NAME.into(),
+                protocol_level: PROTOCOL_LEVEL,
             })
             .await;
         client

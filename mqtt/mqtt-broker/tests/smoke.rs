@@ -8,13 +8,12 @@ use mqtt3::{
         ClientId, ConnAck, Connect, ConnectReturnCode, ConnectionRefusedReason, Packet,
         PacketIdentifier, PacketIdentifierDupQoS, PingReq, PubAck, Publication, Publish, QoS,
     },
-    Event, ReceivedPublication,
+    Event, ReceivedPublication, PROTOCOL_LEVEL, PROTOCOL_NAME,
 };
 
 use common::{PacketStream, TestClientBuilder};
 use mqtt_broker::{AuthId, BrokerBuilder};
 
-mod client;
 mod common;
 
 #[tokio::test]
@@ -30,7 +29,7 @@ async fn basic_connect_clean_session() {
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
         .build();
 
-    assert_matches!(
+    assert_eq!(
         client.connections().recv().await,
         Some(Event::NewConnection {
             reset_session: true
@@ -59,7 +58,7 @@ async fn basic_connect_existing_session() {
         .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests".into()))
         .build();
 
-    assert_matches!(
+    assert_eq!(
         client.connections().recv().await,
         Some(Event::NewConnection {
             reset_session: true
@@ -72,7 +71,7 @@ async fn basic_connect_existing_session() {
         .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests".into()))
         .build();
 
-    assert_matches!(
+    assert_eq!(
         client.connections().recv().await,
         Some(Event::NewConnection {
             reset_session: false
@@ -402,7 +401,7 @@ async fn offline_messages() {
         .build();
 
     // expects existing session.
-    assert_matches!(
+    assert_eq!(
         client_a.connections().recv().await,
         Some(Event::NewConnection {
             reset_session: false
@@ -478,7 +477,7 @@ async fn offline_messages_persisted_on_broker_restart() {
         .build();
 
     // expects existing session.
-    assert_matches!(
+    assert_eq!(
         client_a.connections().recv().await,
         Some(Event::NewConnection {
             reset_session: false
@@ -580,7 +579,7 @@ async fn wrong_first_packet_connection_dropped() {
     let mut client = PacketStream::open(server_handle.address()).await;
     client.send_packet(Packet::PingReq(PingReq)).await;
 
-    assert_matches!(client.next().await, None); // None means stream closed.
+    assert_eq!(client.next().await, None); // None means stream closed.
 }
 
 #[tokio::test]
@@ -596,11 +595,16 @@ async fn duplicate_connect_packet_connection_dropped() {
     client
         .send_connect(Connect {
             client_id: ClientId::IdWithCleanSession("test-client".into()),
-            ..Default::default()
+            username: None,
+            password: None,
+            will: None,
+            keep_alive: Duration::from_secs(30),
+            protocol_name: PROTOCOL_NAME.into(),
+            protocol_level: PROTOCOL_LEVEL,
         })
         .await;
 
-    assert_matches!(
+    assert_eq!(
         client.next().await,
         Some(Packet::ConnAck(ConnAck {
             return_code: ConnectReturnCode::Accepted,
@@ -611,11 +615,16 @@ async fn duplicate_connect_packet_connection_dropped() {
     client
         .send_connect(Connect {
             client_id: ClientId::IdWithCleanSession("test-client".into()),
-            ..Default::default()
+            username: None,
+            password: None,
+            will: None,
+            keep_alive: Duration::from_secs(30),
+            protocol_name: PROTOCOL_NAME.into(),
+            protocol_level: PROTOCOL_LEVEL,
         })
         .await;
 
-    assert_matches!(client.next().await, None); // None means stream closed.
+    assert_eq!(client.next().await, None); // None means stream closed.
 }
 
 #[tokio::test]
@@ -632,11 +641,15 @@ async fn wrong_protocol_name_connection_dropped() {
         .send_connect(Connect {
             client_id: ClientId::IdWithCleanSession("test-client".into()),
             protocol_name: "HELLO".into(),
-            ..Default::default()
+            username: None,
+            password: None,
+            will: None,
+            keep_alive: Duration::from_secs(30),
+            protocol_level: PROTOCOL_LEVEL,
         })
         .await;
 
-    assert_matches!(client.next().await, None); // None means stream closed.
+    assert_eq!(client.next().await, None); // None means stream closed.
 }
 
 #[tokio::test]
@@ -653,7 +666,11 @@ async fn wrong_protocol_version_rejected() {
         .send_connect(Connect {
             client_id: ClientId::IdWithCleanSession("test-client".into()),
             protocol_level: 80u8,
-            ..Default::default()
+            username: None,
+            password: None,
+            will: None,
+            keep_alive: Duration::from_secs(30),
+            protocol_name: PROTOCOL_NAME.into(),
         })
         .await;
 

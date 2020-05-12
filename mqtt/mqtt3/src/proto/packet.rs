@@ -6,7 +6,6 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use tokio_util::codec::Decoder;
 
 use crate::proto::{BufMutExt, ByteBuf};
-use crate::{PROTOCOL_LEVEL, PROTOCOL_NAME};
 
 /// An MQTT packet
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -136,20 +135,6 @@ pub struct Connect {
     pub keep_alive: Duration,
     pub protocol_name: String,
     pub protocol_level: u8,
-}
-
-impl Default for Connect {
-    fn default() -> Self {
-        Connect {
-            username: None,
-            password: None,
-            will: None,
-            client_id: super::ClientId::ServerGenerated,
-            keep_alive: Duration::from_secs(30),
-            protocol_name: PROTOCOL_NAME.into(),
-            protocol_level: PROTOCOL_LEVEL,
-        }
-    }
 }
 
 impl std::fmt::Debug for Connect {
