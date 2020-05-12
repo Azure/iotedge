@@ -175,7 +175,7 @@ pub(crate) mod tests {
             .map(|i| {
                 let id = format!("Session {}", i);
                 let session =
-                make_session(&id, (1..i).map(|j| format!("Subscription {}", j)), true);
+                    make_session(&id, (1..i).map(|j| format!("Subscription {}", j)), true);
 
                 (id.into(), session)
             })
@@ -194,7 +194,7 @@ pub(crate) mod tests {
             .map(|i| {
                 let id = format!("Session {}", i);
                 let session =
-                    make_session_change(&id, (1..i).map(|j| format!("Subscription {}", j)), true);
+                    make_session(&id, (1..i).map(|j| format!("Subscription {}", j)), true);
 
                 (id.into(), session)
             })
