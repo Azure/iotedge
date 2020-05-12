@@ -7,7 +7,6 @@ use hyper::{Body, Request, Response, StatusCode};
 use log::debug;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use serde_json;
 
 use edgelet_core::{ImagePullPolicy, Module, ModuleRegistry, ModuleRuntime};
 use edgelet_http::route::{Handler, Parameters};
@@ -94,12 +93,14 @@ mod tests {
     use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::crypto::TestHsm;
-    use edgelet_test_utils::module::*;
+    use edgelet_test_utils::module::{
+        TestConfig, TestModule, TestProvisioningResult, TestRegistry, TestRuntime, TestSettings,
+    };
     use lazy_static::lazy_static;
     use management::models::{Config, ErrorResponse, ModuleSpec};
     use serde_json::json;
 
-    use super::*;
+    use super::{Future, Handler, PrepareUpdateModule, Request, StatusCode, Stream};
     use crate::server::module::tests::Error;
 
     lazy_static! {

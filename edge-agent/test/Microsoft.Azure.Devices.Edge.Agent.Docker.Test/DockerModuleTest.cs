@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
@@ -17,8 +18,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     {
         const string SerializedModule = @"{""version"":""version1"",""type"":""docker"",""status"":""running"",""restartPolicy"":""on-unhealthy"",""imagePullPolicy"":""on-create"",""settings"":{""image"":""image1:42"", ""createOptions"": {""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}},""configuration"":{""id"":""1""},""env"":{""Env1"": {""value"":""Val1""}}}";
         static readonly ConfigurationInfo DefaultConfigurationInfo = null;
-        static readonly DockerConfig Config1 = new DockerConfig("image1:42", @"{""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}");
-        static readonly DockerConfig Config2 = new DockerConfig("image2:42", @"{""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}");
+        static readonly DockerConfig Config1 = new DockerConfig("image1:42", @"{""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}", Option.None<NotaryContentTrust>());
+        static readonly DockerConfig Config2 = new DockerConfig("image2:42", @"{""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}", Option.None<NotaryContentTrust>());
         static readonly IDictionary<string, EnvVal> DefaultEnvVals = new Dictionary<string, EnvVal> { ["Env1"] = new EnvVal("Val1") };
         static readonly IModule Module1 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals);
         static readonly IModule Module2 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals);
@@ -476,7 +477,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         {
             // Arrange
             string createOptions = @"{""Env"": [""k1=v1"",""k2=v2""]}";
-            var config = new DockerConfig("ubuntu:latest", createOptions);
+            var config = new DockerConfig("ubuntu:latest", createOptions, Option.None<NotaryContentTrust>());
             var module = new DockerModule("testser", "1.0", ModuleStatus.Running, RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, Constants.DefaultPriority, null, null);
 
             // Act

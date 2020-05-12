@@ -1,11 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use base64;
 use failure::ResultExt;
 use futures::{future, Future, IntoFuture, Stream};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
-use serde_json;
 
 use edgelet_core::Decrypt;
 use edgelet_http::route::{Handler, Parameters};
@@ -93,7 +91,7 @@ mod tests {
     use workload::models::DecryptResponse;
     use workload::models::ErrorResponse;
 
-    use super::*;
+    use super::{Body, DecryptHandler, DecryptRequest, Handler, Response, Stream};
 
     #[derive(Clone, Debug, Default)]
     struct TestHsm {}

@@ -48,7 +48,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         public void Start(TimeSpan scrapingInterval, TimeSpan uploadInterval)
         {
             this.scrape = new PeriodicTask(this.Scrape, scrapingInterval, scrapingInterval, Log, "Metrics Scrape");
-            this.upload = new PeriodicTask(this.Upload, uploadInterval, uploadInterval, Log, "Metrics Upload");
+            TimeSpan uploadJitter = new TimeSpan((long)(uploadInterval.Ticks * new Random().NextDouble()));
+            this.upload = new PeriodicTask(this.Upload, uploadJitter, uploadInterval, Log, "Metrics Upload");
         }
 
         internal async Task Scrape(CancellationToken cancellationToken)

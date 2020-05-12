@@ -206,14 +206,13 @@ impl<C: 'static + Connect> Module for DockerModule<C> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{parse_top_response, Deserializer, InlineResponse2001, Utc, MIN_DATE};
 
     use std::string::ToString;
 
     use hyper::Client;
     use serde::Serialize;
     use time::Duration;
-    use tokio;
 
     use docker::apis::client::APIClient;
     use docker::apis::configuration::Configuration;
