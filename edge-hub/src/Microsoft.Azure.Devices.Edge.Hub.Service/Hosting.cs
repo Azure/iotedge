@@ -73,7 +73,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                         serviceCollection.AddSingleton(configuration);
                         serviceCollection.AddSingleton(dependencyManager);
                     })
-                .UseStartup<Startup>();
+                .UseStartup<Startup>()
+                .UseSetting(WebHostDefaults.ApplicationKey, typeof(Startup).Assembly.GetName().Name);
             IWebHost webHost = webHostBuilder.Build();
             IContainer container = webHost.Services.GetService(typeof(IStartup)) is Startup startup ? startup.Container : null;
             return new Hosting(webHost, container);
