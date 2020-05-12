@@ -135,12 +135,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.timer.Reset();
             try
             {
-                using (Metrics.TimeMessageSend(this.clientId))
+                string outputRoute = inputMessage.GetOutput();
+                using (Metrics.TimeMessageSend(this.clientId, outputRoute))
                 {
                     Metrics.MessageProcessingLatency(this.clientId, inputMessage);
                     await this.client.SendEventAsync(message);
                     Events.SendMessage(this);
-                    Metrics.AddSentMessages(this.clientId, 1, inputMessage.GetOutput(), inputMessage.ProcessedPriority);
+                    Metrics.AddSentMessages(this.clientId, 1, outputRoute, inputMessage.ProcessedPriority);
                 }
             }
             catch (Exception ex)
@@ -167,7 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             try
             {
-                using (Metrics.TimeMessageSend(this.clientId))
+                using (Metrics.TimeMessageSend(this.clientId, metricOutputRoute))
                 {
                     await this.client.SendEventBatchAsync(messages);
                     Events.SendMessage(this);
@@ -623,7 +624,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             static readonly IMetricsTimer MessagesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "message_send_duration_seconds",
                 "Time taken to send a message",
-                new List<string> { "from", "to" });
+                new List<string> { "from", "to", "from_route_output", "to_route_input" });
 
             static readonly IMetricsCounter SentMessagesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "messages_sent",
@@ -660,7 +661,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 "Time taken to process message in EdgeHub",
                 new List<string> { "from", "to", "priority" });
 
-            public static IDisposable TimeMessageSend(string id) => MessagesTimer.GetTimer(new[] { id, "upstream" });
+            public static IDisposable TimeMessageSend(string id, string fromRoute) => MessagesTimer.GetTimer(new[] { id, "upstream", fromRoute, string.Empty });
 
             public static void AddSentMessages(string id, int count, string fromRoute, uint priority) =>
                 SentMessagesCounter.Increment(count, new[] { id, "upstream", fromRoute, string.Empty, priority.ToString() });
