@@ -46,13 +46,6 @@ namespace Relayer
                 await SetIsFinishedDirectMethodAsync(moduleClient);
                 Logger.LogInformation("Set direct method IsFinished successfully");
 
-                // For Windows, module to module direct communication doesn't work unless we ping from inside the docker container first
-                // TODO: Investigate why this is happening and remove this workaround. It could be a DNS caching issue
-                if (OsPlatform.IsWindows())
-                {
-                    SendPing();
-                }
-
                 // Receive a message and call ProcessAndSendMessageAsync to send it on its way
                 await moduleClient.SetInputMessageHandlerAsync(Settings.Current.InputName, ProcessAndSendMessageAsync, moduleClient);
                 Logger.LogInformation($"Set input message handler for input {Settings.Current.InputName} successfully");
@@ -165,27 +158,6 @@ namespace Relayer
             }
 
             return MessageResponse.Completed;
-        }
-
-        static void SendPing()
-        {
-            Ping ping = new Ping();
-            string uri = Settings.Current.TestResultCoordinatorUrl;
-            string pingMe = uri.Substring(uri.LastIndexOf('/') + 1).Split(':')[0];
-            Logger.LogInformation($"Sending ping to this: {pingMe}");
-            ExecuteWithRetry(() => ping.Send(pingMe), RetryingPing); 
-        }
-
-        static void ExecuteWithRetry(Action act, Action<RetryingEventArgs> onRetry)
-        {
-            var transientRetryPolicy = RetryPolicy.DefaultExponential;
-            transientRetryPolicy.Retrying += (_, args) => onRetry(args);
-            transientRetryPolicy.ExecuteAction(act);
-        }
-
-        static void RetryingPing(RetryingEventArgs retryingEventArgs)
-        {
-            Logger.LogDebug($"Retrying Ping {retryingEventArgs.CurrentRetryCount} times because of error - {retryingEventArgs.LastException}");
         }
 
         private static async Task SetIsFinishedDirectMethodAsync(ModuleClient client)
