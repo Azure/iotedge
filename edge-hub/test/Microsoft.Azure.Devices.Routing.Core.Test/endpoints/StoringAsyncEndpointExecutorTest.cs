@@ -149,6 +149,31 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
         }
 
         [Fact]
+        public async Task CloseAsyncWillCallCloseAsyncOfAllFsmsTest()
+        {
+            var endpoint = new TestEndpoint("endpoint1");
+            endpoint.CanProcess = false;
+            var storingAsyncEndpointExecutor = new StoringAsyncEndpointExecutor(
+                endpoint,
+                new NullCheckpointerFactory(),
+                new EndpointExecutorConfig(TimeSpan.FromHours(1), RetryStrategy.DefaultFixed, TimeSpan.FromHours(1)),
+                new AsyncEndpointExecutorOptions(10, TimeSpan.FromMilliseconds(1)),
+                new TestMessageStore());
+            await storingAsyncEndpointExecutor.UpdatePriorities(new List<uint>() { 0 }, Option.None<Endpoint>());
+            var message = GetNewMessages(1, 0).First();
+
+            await storingAsyncEndpointExecutor.Invoke(message, 0, 3600);
+            // await Task.Delay(1000);
+            Assert.Equal(0, endpoint.N);
+
+            Task closeTask = storingAsyncEndpointExecutor.CloseAsync();
+            Task timeoutTask = Task.Delay(5000);
+            var firstCompletedTask = await Task.WhenAny(closeTask, timeoutTask);
+
+            Assert.True(firstCompletedTask == closeTask, "storingAsyncEndpointExecutor can't close when processing a message");
+        }
+
+        [Fact]
         public async Task TestSetEndpoint()
         {
             var endpoint1 = new TestEndpoint("id");
