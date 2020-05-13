@@ -51,6 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var serviceIdentity = new ServiceIdentity(
                 "d1",
                 "m1",
+                "e1",
                 "12345",
                 new List<string> { Constants.IotEdgeIdentityCapability },
                 serviceAuthentication,
@@ -115,6 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var serviceIdentity = new ServiceIdentity(
                 "d1",
                 "m1",
+                "e1",
                 "12345",
                 new List<string>(),
                 serviceAuthentication,
@@ -148,6 +150,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var serviceIdentity = new ServiceIdentity(
                 "d1",
                 "m1",
+                "e1",
                 "12345",
                 new List<string> { Constants.IotEdgeIdentityCapability },
                 serviceAuthentication,
@@ -180,6 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var serviceIdentity = new ServiceIdentity(
                 "d1",
                 "m1",
+                "e1",
                 "12345",
                 new List<string>(),
                 serviceAuthentication,

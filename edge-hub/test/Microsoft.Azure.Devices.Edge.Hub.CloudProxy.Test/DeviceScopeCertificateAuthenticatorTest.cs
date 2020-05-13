@@ -507,6 +507,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var serviceIdentity = new ServiceIdentity(
                 deviceId,
                 moduleId,
+                "e1",
                 "1234",
                 new string[0],
                 new ServiceAuthentication(new X509ThumbprintAuthentication(primaryCertificate.Thumbprint, secondaryCertificate.Thumbprint)),
@@ -544,6 +545,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var serviceIdentity = new ServiceIdentity(
                 deviceId,
                 moduleId,
+                "e1",
                 "1234",
                 new string[0],
                 new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority),
