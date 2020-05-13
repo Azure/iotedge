@@ -21,6 +21,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public IServiceIdentitiesIterator GetServiceIdentitiesIterator() => new ServiceIdentitiesIterator(this.securityScopesApiClient);
 
+        public IServiceIdentitiesIterator GetNestedServiceIdentitiesIterator() => new NestedServiceIdentitiesIterator(this.securityScopesApiClient);
+
         public async Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId)
         {
             Option<ScopeResult> scopeResult = Option.None<ScopeResult>();
@@ -172,6 +174,60 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             public static void BadRequestResult(string id, HttpStatusCode statusCode)
             {
                 Log.LogDebug((int)EventIds.ScopeResultReceived, $"Received scope result for {id} with status code {statusCode} indicating that {id} has been removed from the scope");
+            }
+        }
+
+        /// <summary>
+        /// This is a helper class used to pull down the devices/modules in scope for every nested Edge Device.
+        /// It maintains a queue of ServiceIdentitiesIterator, each representating a child Edge device
+        /// in the subtree, and uses these iterators to perform breadth-first-expansion on the tree.
+        /// </summary>
+        class NestedServiceIdentitiesIterator : IServiceIdentitiesIterator
+        {
+            IDeviceScopeApiClient rootClient;
+            Queue<IServiceIdentitiesIterator> remainingEdgeNodes;
+
+            public NestedServiceIdentitiesIterator(IDeviceScopeApiClient securityScopesApiClient)
+            {
+                this.remainingEdgeNodes = new Queue<IServiceIdentitiesIterator>();
+
+                this.rootClient = Preconditions.CheckNotNull(securityScopesApiClient);
+                this.remainingEdgeNodes.Enqueue(new ServiceIdentitiesIterator(securityScopesApiClient));
+            }
+
+            public bool HasNext => this.remainingEdgeNodes.Count > 0;
+
+            public Task<IEnumerable<ServiceIdentity>> GetNext()
+            {
+                // Check for the empty-case
+                if (this.remainingEdgeNodes.Count == 0)
+                {
+                    return Task.FromResult(Enumerable.Empty<ServiceIdentity>());
+                }
+
+                // Get the head without popping, as each iterator could potentially require
+                // multiple calls to GetNext() to fully drain, we can't remove it from
+                // the queue until it's fully completed
+                IServiceIdentitiesIterator currentNode = this.remainingEdgeNodes.Peek();
+                IList<ServiceIdentity> results = currentNode.GetNext().Result.ToList();
+
+                if (!currentNode.HasNext)
+                {
+                    // We're done with this iterator, it's safe to pop it now
+                    this.remainingEdgeNodes.Dequeue();
+                }
+
+                foreach (ServiceIdentity identity in results)
+                {
+                    if (identity.IsEdgeDevice)
+                    {
+                        // Create a new iterator for the child Edge and enqueue it
+                        var childClient = this.rootClient.CreateOnBehalfOfDeviceScopeClient(identity.DeviceId);
+                        this.remainingEdgeNodes.Enqueue(new ServiceIdentitiesIterator(childClient));
+                    }
+                }
+
+                return Task.FromResult(results.AsEnumerable());
             }
         }
 

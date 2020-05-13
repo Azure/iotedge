@@ -58,6 +58,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
         public IEnumerable<string> Capabilities { get; }
 
         [JsonIgnore]
+        public bool IsEdgeDevice => !this.IsModule && this.Capabilities.Contains(Constants.IotEdgeIdentityCapability);
+
+        [JsonIgnore]
         public bool IsModule => this.ModuleId.HasValue;
 
         [JsonProperty("authentication")]

@@ -155,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     Events.StartingRefreshCycle();
                     var currentCacheIds = new List<string>();
-                    IServiceIdentitiesIterator iterator = this.serviceProxy.GetServiceIdentitiesIterator();
+                    IServiceIdentitiesIterator iterator = this.serviceProxy.GetNestedServiceIdentitiesIterator();
                     while (iterator.HasNext)
                     {
                         IEnumerable<ServiceIdentity> batch = await iterator.GetNext();

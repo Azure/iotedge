@@ -5,6 +5,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
     public interface IDeviceScopeApiClient
     {
+        IDeviceScopeApiClient CreateOnBehalfOfDeviceScopeClient(string deviceId);
+
         Task<ScopeResult> GetIdentitiesInScope();
 
         Task<ScopeResult> GetNext(string continuationToken);
