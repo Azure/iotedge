@@ -1,4 +1,4 @@
-ARG base_tag=3.1.2-nanoserver-1809
+ARG base_tag=3.1.4-nanoserver-1809
 FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}
 
 USER ContainerAdministrator
