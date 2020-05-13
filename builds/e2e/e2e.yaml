@@ -36,6 +36,7 @@ jobs:
 
     steps:
     - pwsh: |
+        pwd
         sudo find . -type f -group root -execdir rm {} +
         sudo find . -type d -group root -execdir rm -r '{}' \;
       displayName: Clean up files (as sudo)
