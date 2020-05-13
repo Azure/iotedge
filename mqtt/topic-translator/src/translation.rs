@@ -7,13 +7,15 @@ lazy_static! {
 }
 
 pub struct Translator {
-    helper: TranslateHelper,
+    d2c: TranslateD2C,
+    c2d: TranslateC2D,
 }
 
 impl Translator {
     fn new() -> Self {
         Self {
-            helper: TranslateHelper::new().unwrap(), //temp
+            d2c: TranslateD2C::new().unwrap(), //temp
+            c2d: TranslateC2D::new().unwrap(), //temp
         }
     }
 
@@ -23,10 +25,7 @@ impl Translator {
         mut subscribe: proto::Subscribe,
     ) -> proto::Subscribe {
         for mut sub_to in &mut subscribe.subscribe_to {
-            if let Some(new_topic) = self
-                .helper
-                .translate_incoming(&sub_to.topic_filter, client_id)
-            {
+            if let Some(new_topic) = self.c2d.translate_to_new(&sub_to.topic_filter, client_id) {
                 println!(
                     "Translating subscription {} to {}",
                     sub_to.topic_filter, new_topic
@@ -44,7 +43,7 @@ impl Translator {
         mut unsubscribe: proto::Unsubscribe,
     ) -> proto::Unsubscribe {
         for unsub_from in &mut unsubscribe.unsubscribe_from {
-            if let Some(new_topic) = self.helper.translate_incoming(&unsub_from, client_id) {
+            if let Some(new_topic) = self.c2d.translate_to_new(&unsub_from, client_id) {
                 *unsub_from = new_topic;
             }
         }
@@ -53,10 +52,7 @@ impl Translator {
     }
 
     pub fn incoming_publish(&self, client_id: &str, mut publish: proto::Publish) -> proto::Publish {
-        if let Some(new_topic) = self
-            .helper
-            .translate_incoming(&publish.topic_name, client_id)
-        {
+        if let Some(new_topic) = self.d2c.translate_to_new(&publish.topic_name, client_id) {
             println!(
                 "Translating incoming publication {} to {}",
                 publish.topic_name, new_topic
@@ -68,7 +64,7 @@ impl Translator {
     }
 
     pub fn outgoing_publish(&self, mut publish: proto::Publish) -> proto::Publish {
-        if let Some(new_topic) = self.helper.translate_outgoing(&publish.topic_name) {
+        if let Some(new_topic) = self.c2d.translate_to_old(&publish.topic_name) {
             println!(
                 "Translating outgoing publication {} to {}",
                 publish.topic_name, new_topic
@@ -81,14 +77,50 @@ impl Translator {
 }
 
 const DEVICE_ID: &str = r"(?P<device_id>.*)";
-macro_rules! translate {
+macro_rules! translate_d2c {
+    ($(
+        $translate_name:ident {
+            to_new { $new_from:expr, $new_to:expr }
+        }
+    ),*) => {
+        struct TranslateD2C {
+            $(
+                $translate_name: Regex,
+            )*
+        }
+
+        impl TranslateD2C {
+            fn new() -> Result<Self, regex::Error> {
+                Ok(Self {
+                    $(
+                        $translate_name: Regex::new(&$new_from)?,
+                    )*
+                })
+            }
+
+            fn translate_to_new(&self, topic: &str, client_id: &str) -> Option<String> {
+                if topic.starts_with("$iothub") || topic.starts_with("devices") {
+                    $(
+                        if let Some(captures) = self.$translate_name.captures(topic) {
+                            return Some($new_to(captures, client_id).into());
+                        }
+                    )*
+                }
+
+                None
+            }
+        }
+    };
+}
+
+macro_rules! translate_c2d {
     ($(
         $translate_name:ident {
             to_new { $new_from:expr, $new_to:expr },
             to_old { $old_from:expr, $old_to:expr }
         }
     ),*) => {
-        struct TranslateHelper {
+        struct TranslateC2D {
             to_new: TranslateRegex,
             to_old: TranslateRegex,
         }
@@ -99,7 +131,7 @@ macro_rules! translate {
             )*
         }
 
-        impl TranslateHelper {
+        impl TranslateC2D {
             fn new() -> Result<Self, regex::Error> {
                 Ok(Self {
                     to_new: TranslateRegex {
@@ -115,7 +147,7 @@ macro_rules! translate {
                 })
             }
 
-            fn translate_incoming(&self, topic: &str, client_id: &str) -> Option<String> {
+            fn translate_to_new(&self, topic: &str, client_id: &str) -> Option<String> {
                 if topic.starts_with("$iothub") || topic.starts_with("devices") {
                     $(
                         if let Some(captures) = self.to_new.$translate_name.captures(topic) {
@@ -127,7 +159,7 @@ macro_rules! translate {
                 None
             }
 
-            fn translate_outgoing(&self, topic: &str) -> Option<String> {
+            fn translate_to_old(&self, topic: &str) -> Option<String> {
                 if topic.starts_with("$edgehub") {
                     $(
                         if let Some(captures) = self.to_old.$translate_name.captures(topic) {
@@ -142,18 +174,40 @@ macro_rules! translate {
     };
 }
 
-translate! {
+translate_d2c! {
     // Message Translation
     events { // note this may have to be split into 2 patterns for device and modules, depending on how client_id encodes device and module id
         to_new {
             format!("devices/{}/messages/events", DEVICE_ID),
             {|captures: regex::Captures<'_>, _| format!("$edgehub/{}/messages/events", &captures["device_id"])}
-        },
-        to_old {
-            format!("\\$edgehub/{}/messages/events", DEVICE_ID),
-            {|captures: regex::Captures<'_>| format!("devices/{}/messages/events", &captures["device_id"])}
         }
     },
+
+    // Twin Translation
+    twin_desired {
+        to_new {
+            "\\$iothub/twin/PATCH/properties/desired(?P<params>.*)",
+            {|captures: regex::Captures<'_>, client_id| format!("$edgehub/{}/twin/desired{}", client_id, &captures["params"])}
+        }
+    },
+    twin_get {
+        to_new {
+            "\\$iothub/twin/GET(?P<params>.*)",
+            {|captures: regex::Captures<'_>, client_id| format!("$edgehub/{}/twin/get{}", client_id, &captures["params"])}
+        }
+    },
+
+    // Direct Methods
+    direct_method_response {
+        to_new {
+            "\\$iothub/methods/res/(?P<status>.*)",
+            {|captures: regex::Captures<'_>, client_id| format!("$edgehub/{}/methods/res/{}", client_id, &captures["status"])}
+        }
+    }
+}
+
+translate_c2d! {
+    // Message Translation
     c2d_message {
         to_new {
             format!("devices/{}/messages/devicebound", DEVICE_ID),
@@ -165,17 +219,7 @@ translate! {
         }
     },
 
-    // Twin translation
-    twin_desired {
-        to_new {
-            "\\$iothub/twin/PATCH/properties/desired(?P<params>.*)",
-            {|captures: regex::Captures<'_>, client_id| format!("$edgehub/{}/twin/desired{}", client_id, &captures["params"])}
-        },
-        to_old {
-            format!("\\$edgehub/{}/twin/desired(?P<params>.*)", DEVICE_ID),
-            {|captures: regex::Captures<'_>| format!("$iothub/twin/PATCH/properties/desired{}", &captures["params"])}
-        }
-    },
+    // Twin Translation
     twin_reported {
         to_new {
             "\\$iothub/twin/PATCH/properties/reported(?P<params>.*)",
@@ -184,18 +228,6 @@ translate! {
         to_old {
             format!("\\$edgehub/{}/twin/reported(?P<params>.*)", DEVICE_ID),
             {|captures: regex::Captures<'_>| format!("$iothub/twin/PATCH/properties/reported{}", &captures["params"])}
-        }
-    },
-    twin_get {
-        to_new {
-            "\\$iothub/twin/GET(?P<params>.*)",
-            {|captures: regex::Captures<'_>, client_id| format!("$edgehub/{}/twin/get{}", client_id, &captures["params"])}
-        },
-        to_old {
-            "a^",
-            //format!("\\$edgehub/{}/twin/get(?P<params>.*)", DEVICE_ID),
-            {|_| ""}
-            //{|captures: regex::Captures<'_>| format!("$iothub/twin/GET{}", &captures["params"])}
         }
     },
     twin_response {
@@ -210,16 +242,6 @@ translate! {
     },
 
     // Direct Methods
-    direct_method_response {
-        to_new {
-            "\\$iothub/methods/res/(?P<status>.*)",
-            {|captures: regex::Captures<'_>, client_id| format!("$edgehub/{}/methods/res/{}", client_id, &captures["status"])}
-        },
-        to_old {
-            format!("\\$edgehub/{}/methods/res/(?P<status>.*)", DEVICE_ID),
-            {|captures: regex::Captures<'_>| format!("$iothub/methods/res/{}", &captures["status"])}
-        }
-    },
     direct_method_request {
         to_new {
             "\\$iothub/methods/POST/",
