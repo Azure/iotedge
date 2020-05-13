@@ -34,7 +34,8 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             TransportType transportType,
             ITransientErrorDetectionStrategy transientErrorDetectionStrategy = null,
             RetryStrategy retryStrategy = null,
-            ILogger logger = null)
+            ILogger logger = null,
+            int timeoutAfterSecs = 0)
         {
             var retryPolicy = new RetryPolicy(transientErrorDetectionStrategy, retryStrategy);
             retryPolicy.Retrying += (_, args) =>
@@ -42,7 +43,10 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
                 WriteLog(logger, LogLevel.Error, $"Retry {args.CurrentRetryCount} times to create module client and failed with exception:{Environment.NewLine}{args.LastException}");
             };
 
-            ModuleClient client = await retryPolicy.ExecuteAsync(() => InitializeModuleClientAsync(transportType, logger));
+            ModuleClient client = (timeoutAfterSecs == 0) ?
+                await retryPolicy.ExecuteAsync(() => InitializeModuleClientAsync(transportType, logger)) :
+                await retryPolicy.ExecuteAsync(() => InitializeModuleClientAsync(transportType, logger)
+                    .TimeoutAfter(TimeSpan.FromSeconds(timeoutAfterSecs)));
             return client;
         }
 

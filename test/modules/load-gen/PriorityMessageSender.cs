@@ -113,7 +113,8 @@ namespace LoadGen
             this.resultsSent = expectedSequenceNumberList.Count + 1;
 
             // See explanation above why we need to send sequence number 1 as the first expected value.
-            await this.ReportResult(1);
+            ExecuteWithRetry(async () => await this.ReportResult(1), RetryingReport, this.Logger);
+            // await this.ReportResult(1);
 
             foreach (int sequenceNumber in expectedSequenceNumberList)
             {
@@ -123,6 +124,18 @@ namespace LoadGen
             }
 
             this.isFinished = true;
+        }
+
+        static void ExecuteWithRetry(Action act, Action<RetryingEventArgs, ILogger> onRetry, ILogger logger)
+        {
+            var transientRetryPolicy = RetryPolicy.DefaultExponential;
+            transientRetryPolicy.Retrying += (_, args) => onRetry(args, logger);
+            transientRetryPolicy.ExecuteAction(act);
+        }
+
+        static void RetryingReport(RetryingEventArgs retryingEventArgs, ILogger logger)
+        {
+            logger.LogDebug($"Retrying Reporting result {retryingEventArgs.CurrentRetryCount} times because of error - {retryingEventArgs.LastException}");
         }
 
         private async Task SetIsFinishedDirectMethodAsync()
