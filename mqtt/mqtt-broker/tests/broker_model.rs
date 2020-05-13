@@ -3,76 +3,87 @@ use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
 use mqtt_broker::{
     AuthId, Broker, BrokerBuilder, ClientEvent, ClientId, ConnReq, ConnectionHandle, Message,
 };
-use proptest::proptest;
+use proptest::{prop_assert_eq, proptest};
 use std::{collections::HashMap, time::Duration};
+use tokio::sync::mpsc::{self, Receiver, Sender};
 use uuid::Uuid;
 
 proptest! {
     #[test]
     fn broker_manages_sessions(
-        connect in tests_util::arb_connect()
+        events in proptest::collection::vec(tests_util::arb_broker_event(), 1..50)
     ) {
     tokio::runtime::Builder::new()
         .basic_scheduler()
         .enable_all()
         .build()
         .unwrap()
-        .block_on(test_broker_manages_sessions(connect));
+        .block_on(test_broker_manages_sessions(events));
     }
 }
 
-async fn test_broker_manages_sessions(connect: proto::Connect) {
+async fn test_broker_manages_sessions(events: impl IntoIterator<Item = BrokerEvent>) {
     let mut broker = BrokerBuilder::default()
         .authenticator(|_| Ok(Some(AuthId::Anonymous)))
         .authorizer(|_| Ok(true))
         .build();
 
-    let (tx, mut rx) = tokio::sync::mpsc::channel(1);
-    let connection_handle = ConnectionHandle::from_sender(tx);
+    // let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    // let connection_handle = ConnectionHandle::from_sender(tx);
 
-    let client_id = client_id(&connect.client_id);
-    // let connect = proto::Connect {
-    //     username: None,
-    //     password: None,
-    //     will: None,
-    //     client_id: proto::ClientId::IdWithCleanSession(id.into()),
-    //     keep_alive: Duration::from_secs(1),
-    //     protocol_name: PROTOCOL_NAME.into(),
-    //     protocol_level: PROTOCOL_LEVEL,
-    // };
-    let event = ClientEvent::ConnReq(ConnReq::new(
-        client_id.clone(),
-        connect.clone(),
-        None,
-        connection_handle,
-    ));
+    let mut clients = Vec::new();
 
     let mut model = BrokerModel::default();
 
-    broker
-        .process_message(client_id.clone(), event)
-        .await
-        .expect("process message");
+    for event in events {
+        let (client_id, broker_event, model_event) = match event {
+            BrokerEvent::ConnReq(client_id, connect) => {
+                let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+                clients.push(rx);
+                let connection_handle = ConnectionHandle::from_sender(tx);
+                let connreq =
+                    ConnReq::new(client_id.clone(), connect.clone(), None, connection_handle);
+                (
+                    client_id,
+                    ClientEvent::ConnReq(connreq),
+                    ModelEventIn::ConnReq(connect),
+                )
+            }
+            BrokerEvent::Disconnect(client_id, disconnect) => (
+                client_id,
+                ClientEvent::Disconnect(disconnect.clone()),
+                ModelEventIn::Disconnect(disconnect),
+            ),
+        };
 
-    let model_response = model.process_message(client_id.clone(), ModelEventIn::ConnReq(connect));
+        broker
+            .process_message(client_id.clone(), broker_event)
+            .expect("process message");
+
+        let model_event = model.process_message(client_id, model_event);
+    }
+
+    // let model_response = model.process_message(client_id.clone(), ModelEventIn::ConnReq(connect));
 
     let (retained, sessions) = broker.clone_state().into_parts();
 
-    match (rx.recv().await, model_response) {
-        (
-            Some(Message::Client(broker_client_id, ClientEvent::ConnAck(broker_connack))),
-            Some(ModelEventOut::ConnAck(model_connack)),
-        ) => {
-            assert_eq!(broker_client_id, client_id);
-            assert_eq!(broker_connack, model_connack);
-        }
-        _ => todo!(),
-    }
+    // match (rx.recv().await, model_response) {
+    //     (
+    //         Some(Message::Client(broker_client_id, ClientEvent::ConnAck(broker_connack))),
+    //         Some(ModelEventOut::ConnAck(model_connack)),
+    //     ) => {
+    //         assert_eq!(broker_client_id, client_id);
+    //         assert_eq!(broker_connack, model_connack);
+    //     }
+    //     _ => todo!(),
+    // }
 
     assert_eq!(sessions.len(), model.sessions.len());
-    for (broker, model) in sessions.into_iter().zip(model.sessions) {
-        assert_eq!(broker.client_id(), &model.0);
+
+    for session in sessions {
+        assert!(model.sessions.remove(session.client_id()).is_some());
     }
+    assert!(model.sessions.is_empty());
 }
 
 fn client_id(client_id: &proto::ClientId) -> ClientId {
@@ -82,6 +93,32 @@ fn client_id(client_id: &proto::ClientId) -> ClientId {
         proto::ClientId::IdWithExistingSession(id) => id.into(),
     }
 }
+
+#[derive(Debug)]
+pub enum BrokerEvent {
+    ConnReq(ClientId, proto::Connect),
+    Disconnect(ClientId, proto::Disconnect),
+}
+
+// impl BrokerEvent {
+//     fn client_id(&self) -> ClientId {
+//         match self {
+//             BrokerEvent::ConnReq(client_id, _) => client_id.clone(),
+//         }
+//     }
+
+//     fn into_broker_event(self) -> ClientEvent {
+//         match self {
+//             BrokerEvent::ConnReq(_, connreq) => ClientEvent::ConnReq(connreq),
+//         }
+//     }
+
+//     fn as_model_event(&self) -> ModelEventIn {
+//         match self {
+//             BrokerEvent::ConnReq(_, connreq) => connreq.connect().clone(),
+//         }
+//     }
+// }
 
 #[derive(Debug, Default)]
 struct BrokerModel {
@@ -96,6 +133,10 @@ impl BrokerModel {
     ) -> Option<ModelEventOut> {
         match event {
             ModelEventIn::ConnReq(connreq) => Some(self.process_connect(client_id, connreq)),
+            ModelEventIn::Disconnect(_) => {
+                self.process_disconnect(client_id);
+                None
+            }
         }
     }
 
@@ -107,7 +148,13 @@ impl BrokerModel {
             proto::ClientId::ServerGenerated | proto::ClientId::IdWithCleanSession(_) => {
                 ModelSession::Transient(Vec::default())
             }
-            _ => existing.unwrap_or_else(|| ModelSession::Persisted(Vec::default())),
+            proto::ClientId::IdWithExistingSession(_) => {
+                let subscriptions = match existing {
+                    Some(ModelSession::Persisted(subscriptions)) => subscriptions,
+                    _ => Vec::default(),
+                };
+                ModelSession::Persisted(subscriptions)
+            }
         };
 
         self.sessions.insert(client_id, session);
@@ -117,7 +164,48 @@ impl BrokerModel {
             return_code: proto::ConnectReturnCode::Accepted,
         })
     }
+
+    fn process_disconnect(&mut self, client_id: ClientId) {
+        if let Some(session) = self.sessions.get(&client_id) {
+            if matches!(session, ModelSession::Transient(_)) {
+                self.sessions.remove(&client_id);
+            }
+        }
+    }
 }
+
+// #[test]
+// fn broker_test() {
+//     let events = vec![
+//         ModelEventIn::ConnReq(proto::Connect {
+//             client_id: proto::ClientId::IdWithCleanSession("client_6".into()),
+//             keep_alive: std::time::Duration::from_secs(1),
+//             protocol_name: "MQTT".into(),
+//             protocol_level: 4,
+//             username: None,
+//             password: None,
+//             will: None,
+//         }),
+//         ModelEventIn::ConnReq(proto::Connect {
+//             client_id: proto::ClientId::IdWithExistingSession("client_6".into()),
+//             keep_alive: std::time::Duration::from_secs(1),
+//             protocol_name: "MQTT".into(),
+//             protocol_level: 4,
+//             username: None,
+//             password: None,
+//             will: None,
+//         }),
+//         ModelEventIn::Disconnect(proto::Disconnect),
+//     ];
+
+//     let mut model = BrokerModel::default();
+//     for event in events {
+//         let model_event = model.process_message(ClientId::from("client_6"), event);
+//         dbg!(&model.sessions);
+//     }
+
+//     assert_eq!(model.sessions.len(), 1)
+// }
 
 #[derive(Debug)]
 pub enum ModelSession {
@@ -127,6 +215,7 @@ pub enum ModelSession {
 
 enum ModelEventIn {
     ConnReq(proto::Connect),
+    Disconnect(proto::Disconnect),
 }
 
 enum ModelEventOut {
@@ -140,28 +229,49 @@ mod tests_util {
     use proptest::{bool, collection::vec, num, prelude::*};
 
     use bytes::Bytes;
-    use mqtt_broker::{ClientId, Publish, Segment, Subscription, TopicFilter};
+    use mqtt_broker::{
+        ClientEvent, ClientId, ConnReq, Publish, Segment, Subscription, TopicFilter,
+    };
 
-    //     pub fn arb_client_event() -> impl Strategy<Value = ClientEvent> {
+    use crate::{client_id, BrokerEvent};
 
-    //         prop_oneof![
-    //             arb_connect()
-    //         ]
+    pub fn arb_broker_event() -> impl Strategy<Value = BrokerEvent> {
+        prop_oneof![
+            arb_client_id_weighted()
+                .prop_flat_map(|s| arb_connect(s)
+                    .prop_map(|s| BrokerEvent::ConnReq(client_id(&s.client_id), s))),
+            arb_client_id_weighted()
+                .prop_map(|s| BrokerEvent::Disconnect(client_id(&s), proto::Disconnect))
+        ]
+    }
+
+    // prop_compose! {
+    // pub fn arb_broker_connect()(
+    //     connect in arb_connect()
+    //     ) -> BrokerEvent{
+
+    //         let client_id = client_id(&connect.client_id);
+    //         let event = ClientEvent::ConnReq(ConnReq::new(
+    //             client_id.clone(),
+    //             connect.clone(),
+    //             None,
+    //             connection_handle,
+    //         ));
+
+    //         BrokerEvent::ConnReq(client_id, rx, connreq)
     //     }
     // }
 
     prop_compose! {
-        pub fn arb_connect()(
+        pub fn arb_connect(client_id: proto::ClientId)(
             username in arb_username(),
             password in arb_password(),
-            client_id in arb_client_id()
         ) -> proto::Connect{
             proto::Connect{
-
                 username,
                 password,
                 will: None,
-                client_id,
+                client_id: client_id.clone(),
                 keep_alive: Duration::from_secs(1),
                 protocol_name: mqtt3::PROTOCOL_NAME.into(),
                 protocol_level: mqtt3::PROTOCOL_LEVEL,
@@ -182,6 +292,17 @@ mod tests_util {
             Just(proto::ClientId::ServerGenerated),
             "[a-zA-Z0-9]{1,23}".prop_map(|s| proto::ClientId::IdWithCleanSession(s)),
             "[a-zA-Z0-9]{1,23}".prop_map(|s| proto::ClientId::IdWithExistingSession(s))
+        ]
+    }
+
+    pub fn arb_client_id_weighted() -> impl Strategy<Value = proto::ClientId> {
+        let max = 10;
+        prop_oneof![
+            Just(proto::ClientId::ServerGenerated),
+            "[a-zA-Z0-9]{1,23}".prop_map(|s| proto::ClientId::IdWithCleanSession(s)),
+            "[a-zA-Z0-9]{1,23}".prop_map(|s| proto::ClientId::IdWithExistingSession(s)),
+            (0..max).prop_map(|s| proto::ClientId::IdWithCleanSession(format!("client_{}", s))),
+            (0..max).prop_map(|s| proto::ClientId::IdWithExistingSession(format!("client_{}", s)))
         ]
     }
 
