@@ -62,6 +62,11 @@ async fn test_broker_manages_sessions(events: impl IntoIterator<Item = BrokerEve
                 ClientEvent::Subscribe(subscribe.clone()),
                 ModelEventIn::Subscribe(subscribe),
             ),
+            BrokerEvent::Unsubscribe(client_id, unsubscribe) => (
+                client_id,
+                ClientEvent::Unsubscribe(unsubscribe.clone()),
+                ModelEventIn::Unsubscribe(unsubscribe),
+            ),
         };
 
         broker
@@ -92,7 +97,7 @@ async fn test_broker_manages_sessions(events: impl IntoIterator<Item = BrokerEve
         let model_session = model.sessions.remove(&client_id).expect("model_session");
         let mut model_topics = model_session.into_topics();
 
-        assert_eq!(subscriptions.len(), dbg!(&model_topics).len());
+        assert_eq!(subscriptions.len(), model_topics.len());
 
         for topic in subscriptions.keys() {
             assert!(model_topics.remove(topic));
@@ -117,6 +122,7 @@ pub enum BrokerEvent {
     ConnReq(ClientId, proto::Connect),
     Disconnect(ClientId, proto::Disconnect),
     Subscribe(ClientId, proto::Subscribe),
+    Unsubscribe(ClientId, proto::Unsubscribe),
 }
 
 // impl BrokerEvent {
@@ -151,6 +157,9 @@ impl BrokerModel {
             ModelEventIn::ConnReq(connreq) => self.process_connect(client_id, connreq),
             ModelEventIn::Disconnect(_) => self.process_disconnect(client_id),
             ModelEventIn::Subscribe(subscribe) => self.process_subscribe(client_id, subscribe),
+            ModelEventIn::Unsubscribe(unsubscribe) => {
+                self.process_unsubscribe(client_id, unsubscribe)
+            }
         }
     }
 
@@ -208,47 +217,26 @@ impl BrokerModel {
                 for proto::SubscribeTo { topic_filter, .. } in subscribe.subscribe_to {
                     topics.insert(topic_filter);
                 }
-                dbg!(topics);
             }
-            dbg!(self.sessions.get(&client_id));
         }
+    }
 
-        dbg!(self);
+    fn process_unsubscribe(&mut self, client_id: ClientId, unsubscribe: proto::Unsubscribe) {
+        if let Some(session) = self.sessions.get_mut(&client_id) {
+            let online_topics = match session {
+                ModelSession::Transient(topics) => Some(topics),
+                ModelSession::Persisted(topics) => Some(topics),
+                ModelSession::Offline(_) => None,
+            };
+
+            if let Some(topics) = online_topics {
+                for topic_filter in unsubscribe.unsubscribe_from {
+                    topics.remove(&topic_filter);
+                }
+            }
+        }
     }
 }
-
-// #[test]
-// fn broker_test() {
-//     let events = vec![
-//         ModelEventIn::ConnReq(proto::Connect {
-//             client_id: proto::ClientId::IdWithCleanSession("client_6".into()),
-//             keep_alive: std::time::Duration::from_secs(1),
-//             protocol_name: "MQTT".into(),
-//             protocol_level: 4,
-//             username: None,
-//             password: None,
-//             will: None,
-//         }),
-//         ModelEventIn::ConnReq(proto::Connect {
-//             client_id: proto::ClientId::IdWithExistingSession("client_6".into()),
-//             keep_alive: std::time::Duration::from_secs(1),
-//             protocol_name: "MQTT".into(),
-//             protocol_level: 4,
-//             username: None,
-//             password: None,
-//             will: None,
-//         }),
-//         ModelEventIn::Disconnect(proto::Disconnect),
-//     ];
-
-//     let mut model = BrokerModel::default();
-//     for event in events {
-//         let model_event = model.process_message(ClientId::from("client_6"), event);
-//         dbg!(&model.sessions);
-//     }
-
-//     assert_eq!(model.sessions.len(), 1)
-// }
 
 #[derive(Debug)]
 pub enum ModelSession {
@@ -271,6 +259,7 @@ enum ModelEventIn {
     ConnReq(proto::Connect),
     Disconnect(proto::Disconnect),
     Subscribe(proto::Subscribe),
+    Unsubscribe(proto::Unsubscribe),
 }
 
 enum ModelEventOut {
@@ -311,6 +300,8 @@ mod tests_util {
             arb_client_id_weighted()
                 .prop_flat_map(|id| arb_subscribe()
                     .prop_map(move |p| BrokerEvent::Subscribe(client_id(&id), p))),
+            arb_client_id_weighted().prop_flat_map(|id| arb_unsubscribe()
+                .prop_map(move |p| BrokerEvent::Unsubscribe(client_id(&id), p))),
         ]
     }
 
@@ -352,8 +343,8 @@ mod tests_util {
         pub fn arb_subscribe()(
             packet_identifier in arb_packet_identifier(),
             subscribe_to in proptest::collection::vec(arb_subscribe_to(), 1..10)
-        ) -> proto::Subscribe{
-            proto::Subscribe{
+        ) -> proto::Subscribe {
+            proto::Subscribe {
                 packet_identifier,
                 subscribe_to
             }
@@ -362,7 +353,7 @@ mod tests_util {
 
     prop_compose! {
         pub fn arb_subscribe_to()(
-            topic_filter in arb_topic_filter().prop_map(|f| f.to_string()),
+            topic_filter in arb_topic_filter_weighted(),
             qos in arb_qos()
         ) -> proto::SubscribeTo {
             proto::SubscribeTo {
@@ -370,6 +361,26 @@ mod tests_util {
                 qos
             }
         }
+    }
+
+    prop_compose! {
+        pub fn arb_unsubscribe()(
+            packet_identifier in arb_packet_identifier(),
+            unsubscribe_from in proptest::collection::vec(arb_topic_filter_weighted(), 1..10)
+        ) -> proto::Unsubscribe {
+            proto::Unsubscribe {
+                packet_identifier,
+                unsubscribe_from
+            }
+        }
+    }
+
+    pub fn arb_topic_filter_weighted() -> impl Strategy<Value = String> {
+        let max = 10;
+        prop_oneof![
+            arb_topic_filter().prop_map(|topic| topic.to_string()),
+            (0..max).prop_map(|n| format!("topic/{}", n)),
+        ]
     }
 
     pub fn arb_username() -> impl Strategy<Value = Option<String>> {
