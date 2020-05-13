@@ -36,7 +36,8 @@ jobs:
 
     steps:
     - pwsh: |
-        sudo git clean -ffdx
+        sudo find . -type f -group root -execdir rm {} +
+        sudo find . -type d -group root -execdir rm -r '{}' \;
       displayName: Clean up files (as sudo)
 
     - template: templates/e2e-setup.yaml
