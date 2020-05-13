@@ -192,14 +192,16 @@ translate! {
             {|captures: regex::Captures<'_>, client_id| format!("$edgehub/{}/twin/get{}", client_id, &captures["params"])}
         },
         to_old {
-            format!("\\$edgehub/{}/twin/get(?P<params>.*)", DEVICE_ID),
-            {|captures: regex::Captures<'_>| format!("$iothub/twin/GET{}", &captures["params"])}
+            "a^",
+            //format!("\\$edgehub/{}/twin/get(?P<params>.*)", DEVICE_ID),
+            {|_| ""}
+            //{|captures: regex::Captures<'_>| format!("$iothub/twin/GET{}", &captures["params"])}
         }
     },
     twin_response {
         to_new {
             "\\$iothub/twin/res(?P<params>.*)",
-            {|captures: regex::Captures<'_>, client_id| format!("$edgehub/{}/twin/get{}", client_id, &captures["params"])}
+            {|captures: regex::Captures<'_>, client_id| format!("$edgehub/{}/twin/res{}", client_id, &captures["params"])}
         },
         to_old {
             format!("\\$edgehub/{}/twin/res(?P<params>.*)", DEVICE_ID),

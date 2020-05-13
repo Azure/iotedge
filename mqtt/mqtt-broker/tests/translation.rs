@@ -32,18 +32,39 @@ async fn basic_translation() {
         .client_id(ClientId::IdWithCleanSession("device_1".into()))
         .build();
 
-    device_1
-        .subscribe("$iothub/twin/PATCH/properties/desired", QoS::AtLeastOnce)
-        .await;
+    // Core subscribes
     edge_hub_core
-        .publish_qos1("$edgehub/device_1/twin/desired", "", false)
+        .subscribe("$edgehub/+/twin/get/#", QoS::AtLeastOnce)
         .await;
+    println!("Subscribed");
 
+    // device requests twin update
+    device_1
+        .subscribe("$iothub/twin/res/10", QoS::AtLeastOnce)
+        .await;
+    device_1
+        .publish_qos1("$iothub/twin/GET/10", "", false)
+        .await;
+    println!("Publish");
+
+    // Core recieves request
+    assert_matches!(
+        edge_hub_core.publications().recv().await,
+        Some(ReceivedPublication {
+            topic_name,..
+        }) if topic_name == String::from("$edgehub/device_1/twin/get/10")
+    );
+    edge_hub_core
+        .publish_qos1("$edgehub/device_1/twin/res/10", "", false)
+        .await;
+    println!("recieve request");
+
+    // device recieves response
     assert_matches!(
         device_1.publications().recv().await,
         Some(ReceivedPublication {
             topic_name,..
-        }) if topic_name == String::from("$iothub/twin/PATCH/properties/desired")
+        }) if topic_name == String::from("$iothub/twin/res/10")
     );
 
     broker_shutdown.send(()).expect("can't stop the broker");
