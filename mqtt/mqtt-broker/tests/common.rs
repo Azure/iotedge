@@ -291,7 +291,7 @@ pub fn start_server<N, Z>(
     authenticator: N,
 ) -> (Sender<()>, JoinHandle<Result<BrokerState, Error>>, String)
 where
-    N: Authenticator + Send + Sync + 'static,
+    N: Authenticator + Send + Clone + Sync + 'static,
     Z: Authorizer + Send + Sync + 'static,
 {
     lazy_static! {

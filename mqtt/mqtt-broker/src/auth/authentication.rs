@@ -29,7 +29,7 @@ impl From<Vec<u8>> for Certificate {
 
 /// A trait to authenticate a MQTT client with given credentials.
 #[async_trait]
-pub trait Authenticator: Clone {
+pub trait Authenticator {
     /// Authentication error.
     type Error: std::error::Error + Send;
 
