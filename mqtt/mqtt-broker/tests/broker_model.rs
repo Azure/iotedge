@@ -4,7 +4,10 @@ use mqtt_broker::{
     AuthId, Broker, BrokerBuilder, ClientEvent, ClientId, ConnReq, ConnectionHandle, Message,
 };
 use proptest::{prop_assert_eq, proptest};
-use std::{collections::HashMap, time::Duration};
+use std::{
+    collections::{HashMap, HashSet},
+    time::Duration,
+};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use uuid::Uuid;
 
@@ -54,6 +57,11 @@ async fn test_broker_manages_sessions(events: impl IntoIterator<Item = BrokerEve
                 ClientEvent::Disconnect(disconnect.clone()),
                 ModelEventIn::Disconnect(disconnect),
             ),
+            BrokerEvent::Subscribe(client_id, subscribe) => (
+                client_id,
+                ClientEvent::Subscribe(subscribe.clone()),
+                ModelEventIn::Subscribe(subscribe),
+            ),
         };
 
         broker
@@ -80,9 +88,19 @@ async fn test_broker_manages_sessions(events: impl IntoIterator<Item = BrokerEve
 
     assert_eq!(sessions.len(), model.sessions.len());
 
-    for session in sessions {
-        assert!(model.sessions.remove(session.client_id()).is_some());
+    for (client_id, subscriptions, _) in sessions.into_iter().map(|session| session.into_parts()) {
+        let model_session = model.sessions.remove(&client_id).expect("model_session");
+        let mut model_topics = model_session.into_topics();
+
+        assert_eq!(subscriptions.len(), dbg!(&model_topics).len());
+
+        for topic in subscriptions.keys() {
+            assert!(model_topics.remove(topic));
+        }
+
+        assert!(model_topics.is_empty());
     }
+
     assert!(model.sessions.is_empty());
 }
 
@@ -98,6 +116,7 @@ fn client_id(client_id: &proto::ClientId) -> ClientId {
 pub enum BrokerEvent {
     ConnReq(ClientId, proto::Connect),
     Disconnect(ClientId, proto::Disconnect),
+    Subscribe(ClientId, proto::Subscribe),
 }
 
 // impl BrokerEvent {
@@ -126,32 +145,30 @@ struct BrokerModel {
 }
 
 impl BrokerModel {
-    fn process_message(
-        &mut self,
-        client_id: ClientId,
-        event: ModelEventIn,
-    ) -> Option<ModelEventOut> {
+    fn process_message(&mut self, client_id: ClientId, event: ModelEventIn) {
+        //) -> Option<ModelEventOut> {
         match event {
-            ModelEventIn::ConnReq(connreq) => Some(self.process_connect(client_id, connreq)),
-            ModelEventIn::Disconnect(_) => {
-                self.process_disconnect(client_id);
-                None
-            }
+            ModelEventIn::ConnReq(connreq) => self.process_connect(client_id, connreq),
+            ModelEventIn::Disconnect(_) => self.process_disconnect(client_id),
+            ModelEventIn::Subscribe(subscribe) => self.process_subscribe(client_id, subscribe),
         }
     }
 
-    fn process_connect(&mut self, client_id: ClientId, connect: proto::Connect) -> ModelEventOut {
+    fn process_connect(&mut self, client_id: ClientId, connect: proto::Connect) {
+        // -> ModelEventOut {
         let existing = self.sessions.remove(&client_id);
-        let session_present = existing.is_some();
+        // let session_present = existing.is_some();
 
         let session = match connect.client_id {
             proto::ClientId::ServerGenerated | proto::ClientId::IdWithCleanSession(_) => {
-                ModelSession::Transient(Vec::default())
+                ModelSession::Transient(HashSet::default())
             }
             proto::ClientId::IdWithExistingSession(_) => {
                 let subscriptions = match existing {
+                    Some(ModelSession::Transient(subscriptions)) => subscriptions,
                     Some(ModelSession::Persisted(subscriptions)) => subscriptions,
-                    _ => Vec::default(),
+                    Some(ModelSession::Offline(subscriptions)) => subscriptions,
+                    None => HashSet::default(),
                 };
                 ModelSession::Persisted(subscriptions)
             }
@@ -159,18 +176,44 @@ impl BrokerModel {
 
         self.sessions.insert(client_id, session);
 
-        ModelEventOut::ConnAck(proto::ConnAck {
-            session_present,
-            return_code: proto::ConnectReturnCode::Accepted,
-        })
+        // ModelEventOut::ConnAck(proto::ConnAck {
+        //     session_present,
+        //     return_code: proto::ConnectReturnCode::Accepted,
+        // })
     }
 
     fn process_disconnect(&mut self, client_id: ClientId) {
-        if let Some(session) = self.sessions.get(&client_id) {
-            if matches!(session, ModelSession::Transient(_)) {
-                self.sessions.remove(&client_id);
+        if let Some(session) = self.sessions.remove(&client_id) {
+            let offline_session = match session {
+                ModelSession::Transient(_) => None,
+                ModelSession::Persisted(topics) => Some(ModelSession::Offline(topics)),
+                ModelSession::Offline(topics) => Some(ModelSession::Offline(topics)),
+            };
+
+            if let Some(session) = offline_session {
+                self.sessions.insert(client_id, session);
             }
         }
+    }
+
+    fn process_subscribe(&mut self, client_id: ClientId, subscribe: proto::Subscribe) {
+        if let Some(session) = self.sessions.get_mut(&client_id) {
+            let online_topics = match session {
+                ModelSession::Transient(topics) => Some(topics),
+                ModelSession::Persisted(topics) => Some(topics),
+                ModelSession::Offline(_) => None,
+            };
+
+            if let Some(topics) = online_topics {
+                for proto::SubscribeTo { topic_filter, .. } in subscribe.subscribe_to {
+                    topics.insert(topic_filter);
+                }
+                dbg!(topics);
+            }
+            dbg!(self.sessions.get(&client_id));
+        }
+
+        dbg!(self);
     }
 }
 
@@ -209,13 +252,25 @@ impl BrokerModel {
 
 #[derive(Debug)]
 pub enum ModelSession {
-    Transient(Vec<String>),
-    Persisted(Vec<String>),
+    Transient(HashSet<String>),
+    Persisted(HashSet<String>),
+    Offline(HashSet<String>),
+}
+
+impl ModelSession {
+    fn into_topics(self) -> HashSet<String> {
+        match self {
+            ModelSession::Transient(topics) => topics,
+            ModelSession::Persisted(topics) => topics,
+            ModelSession::Offline(topics) => topics,
+        }
+    }
 }
 
 enum ModelEventIn {
     ConnReq(proto::Connect),
     Disconnect(proto::Disconnect),
+    Subscribe(proto::Subscribe),
 }
 
 enum ModelEventOut {
@@ -235,13 +290,27 @@ mod tests_util {
 
     use crate::{client_id, BrokerEvent};
 
+    // prop_compose! {
+    //         pub fn arb_broker_event_new()(
+    //             client_id in arb_client_id_weighted()
+    //         ) -> BrokerEvent{
+    //             prop_oneof![
+    // arb_connect(client_id).prop_map(|p|
+    //                 BrokerEvent::ConnReq(client_id(&p.client_id), p))
+    //             ]
+    //         }
+    //     }
+
     pub fn arb_broker_event() -> impl Strategy<Value = BrokerEvent> {
         prop_oneof![
             arb_client_id_weighted()
-                .prop_flat_map(|s| arb_connect(s)
-                    .prop_map(|s| BrokerEvent::ConnReq(client_id(&s.client_id), s))),
+                .prop_flat_map(|id| arb_connect(id)
+                    .prop_map(|p| BrokerEvent::ConnReq(client_id(&p.client_id), p))),
             arb_client_id_weighted()
-                .prop_map(|s| BrokerEvent::Disconnect(client_id(&s), proto::Disconnect))
+                .prop_map(|id| BrokerEvent::Disconnect(client_id(&id), proto::Disconnect)),
+            arb_client_id_weighted()
+                .prop_flat_map(|id| arb_subscribe()
+                    .prop_map(move |p| BrokerEvent::Subscribe(client_id(&id), p))),
         ]
     }
 
@@ -275,6 +344,30 @@ mod tests_util {
                 keep_alive: Duration::from_secs(1),
                 protocol_name: mqtt3::PROTOCOL_NAME.into(),
                 protocol_level: mqtt3::PROTOCOL_LEVEL,
+            }
+        }
+    }
+
+    prop_compose! {
+        pub fn arb_subscribe()(
+            packet_identifier in arb_packet_identifier(),
+            subscribe_to in proptest::collection::vec(arb_subscribe_to(), 1..10)
+        ) -> proto::Subscribe{
+            proto::Subscribe{
+                packet_identifier,
+                subscribe_to
+            }
+        }
+    }
+
+    prop_compose! {
+        pub fn arb_subscribe_to()(
+            topic_filter in arb_topic_filter().prop_map(|f| f.to_string()),
+            qos in arb_qos()
+        ) -> proto::SubscribeTo {
+            proto::SubscribeTo {
+                topic_filter,
+                qos
             }
         }
     }
