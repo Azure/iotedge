@@ -1,6 +1,3 @@
-#![allow(dead_code)]
-#![allow(unused_imports)]
-
 use lazy_static::lazy_static;
 use mqtt3::proto;
 use regex::Regex;
@@ -32,6 +29,10 @@ impl Translator {
                 .incoming
                 .translate_incoming(&sub_to.topic_filter, client_id)
             {
+                println!(
+                    "Translating subscription {} to {}",
+                    sub_to.topic_filter, new_topic
+                );
                 sub_to.topic_filter = new_topic;
             }
         }
@@ -58,6 +59,10 @@ impl Translator {
             .incoming
             .translate_incoming(&publish.topic_name, client_id)
         {
+            println!(
+                "Translating incoming publication {} to {}",
+                publish.topic_name, new_topic
+            );
             publish.topic_name = new_topic;
         }
 
@@ -66,6 +71,10 @@ impl Translator {
 
     pub fn outgoing_publish(&self, mut publish: proto::Publish) -> proto::Publish {
         if let Some(new_topic) = self.outgoing.translate_outgoing(&publish.topic_name) {
+            println!(
+                "Translating outgoing publication {} to {}",
+                publish.topic_name, new_topic
+            );
             publish.topic_name = new_topic;
         }
 
@@ -73,7 +82,7 @@ impl Translator {
     }
 }
 
-const DEVICE_ID: &str = r"(?P<device_id>[a-zA-Z-\.\+%_#\*\?!\(\),=@\$']*)";
+const DEVICE_ID: &str = r"(?P<device_id>.*)";
 macro_rules! translate_incoming {
     ($(  $translate_name:ident { $translate_from:expr, $translate_to:expr } ),*) => {
         struct TranslateIncoming {
@@ -139,11 +148,11 @@ macro_rules! translate_outgoing {
 }
 
 translate_incoming! {
-    leaf_events {
-        format!("devices/{}/messages/events", DEVICE_ID),
-        {|_, client_id| format!("$edgehub/{}/messages/events", client_id)}
-        // should it use client_id or &captures["device_id"] ?
-    },
+    // leaf_events {
+    //     format!("devices/{}/messages/events", DEVICE_ID),
+    //     {|_, client_id| format!("$edgehub/{}/messages/events", client_id)}
+    //     // should it use client_id or &captures["device_id"] ?
+    // },
     module_events {
         format!("devices/{}/modules/(?P<module_id>.*)/messages/events", DEVICE_ID),
         {|_, client_id| format!("$edgehub/{}/messages/events", client_id)}
@@ -152,34 +161,38 @@ translate_incoming! {
     desired_properties {
         "\\$iothub/twin/PATCH/properties/desired",
         {|_, client_id| format!("$edgehub/{}/twin/desired", client_id)}
-    },
-    twin_get {
-        "\\$iothub/twin/GET",
-        {|_, client_id| format!("$edgehub/{}/twin/get", client_id)}
-    },
-    direct_method_response {
-        "\\$iothub/methods/res/(?P<status>.*)",
-        {|captures: regex::Captures<'_>, client_id| format!("$edgehub/{}/methods/res/{}", client_id, &captures["status"])}
     }
+    // twin_get {
+    //     "\\$iothub/twin/GET",
+    //     {|_, client_id| format!("$edgehub/{}/twin/get", client_id)}
+    // },
+    // direct_method_response {
+    //     "\\$iothub/methods/res/(?P<status>.*)",
+    //     {|captures: regex::Captures<'_>, client_id| format!("$edgehub/{}/methods/res/{}", client_id, &captures["status"])}
+    // }
 }
 
 translate_outgoing! {
+    desired_properties {
+        format!("\\$edgehub/{}/twin/desired", DEVICE_ID),
+        {|_| "$iothub/twin/PATCH/properties/desired"}
+    },
     c2d_message {
         format!("\\$edgehub/{}/messages/c2d/post", DEVICE_ID),
         {|captures: regex::Captures<'_>| format!("devices/{}/messages/devicebound", &captures["device_id"])}
-    },
-    twin_reported {
-        format!("\\$edgehub/{}/twin/reported(?P<params>.*)", DEVICE_ID),
-        {|captures: regex::Captures<'_>| format!("$iothub/twin/PATCH/properties/reported{}", &captures["params"])}
-    },
-    twin_response {
-        format!("\\$edgehub/{}/twin/res(?P<params>.*)", DEVICE_ID),
-        {|captures: regex::Captures<'_>| format!("$iothub/twin/res{}", &captures["params"])}
-    },
-    direct_method_request {
-        format!("\\$edgehub/{}/methods/post", DEVICE_ID),
-        {|_| "$iothub/methods/POST/"}
     }
+    // twin_reported {
+    //     format!("\\$edgehub/{}/twin/reported(?P<params>.*)", DEVICE_ID),
+    //     {|captures: regex::Captures<'_>| format!("$iothub/twin/PATCH/properties/reported{}", &captures["params"])}
+    // },
+    // twin_response {
+    //     format!("\\$edgehub/{}/twin/res(?P<params>.*)", DEVICE_ID),
+    //     {|captures: regex::Captures<'_>| format!("$iothub/twin/res{}", &captures["params"])}
+    // },
+    // direct_method_request {
+    //     format!("\\$edgehub/{}/methods/post", DEVICE_ID),
+    //     {|_| "$iothub/methods/POST/"}
+    // }
 }
 
 #[cfg(test)]

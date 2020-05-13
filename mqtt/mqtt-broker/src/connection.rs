@@ -300,9 +300,7 @@ where
                 }
                 ClientEvent::PublishTo(Publish::QoS0(id, publish)) => {
                     let publish = TRANSLATOR.outgoing_publish(publish);
-                    let result = outgoing
-                        .send(Packet::Publish(publish))
-                        .await;
+                    let result = outgoing.send(Packet::Publish(publish)).await;
 
                     if let Err(e) = result {
                         warn!(message = "error occurred while writing to connection", error=%e);
