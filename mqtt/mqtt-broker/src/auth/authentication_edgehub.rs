@@ -7,6 +7,7 @@ use crate::{AuthenticationError, Error};
 
 const API_VERSION: &str = "2020-04-20";
 
+#[derive(Clone)]
 pub struct EdgeHubAuthenticator {
     url: String,
 }
@@ -53,14 +54,6 @@ impl EdgeHubAuthenticator {
         }
 
         Ok(response)
-    }
-}
-
-impl Clone for EdgeHubAuthenticator {
-    fn clone(&self) -> Self {
-        EdgeHubAuthenticator {
-            url: self.url.clone(),
-        }
     }
 }
 

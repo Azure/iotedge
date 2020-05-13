@@ -69,6 +69,7 @@ pub struct AuthenticateError;
 
 /// Default implementation that always unable to authenticate a MQTT client and return `Ok(None)`.
 /// This implementation will be used if custom authentication mechanism was not provided.
+#[derive(Clone)]
 pub struct DefaultAuthenticator;
 
 #[async_trait]
@@ -81,12 +82,6 @@ impl Authenticator for DefaultAuthenticator {
         _: Credentials,
     ) -> Result<Option<AuthId>, Self::Error> {
         Ok(None)
-    }
-}
-
-impl Clone for DefaultAuthenticator {
-    fn clone(&self) -> Self {
-        DefaultAuthenticator
     }
 }
 
