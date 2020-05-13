@@ -12,7 +12,7 @@ function clean_up() {
     rm -rf /etc/iotedge/config.yaml
 
     if [ "$CLEAN_ALL" = '1' ]; then
-        echo 'Prune docker system '
+        echo 'Prune docker system'
         docker system prune -af --volumes || true
 
         echo 'Restart docker'
