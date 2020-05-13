@@ -17,7 +17,7 @@ use mqtt_broker::{AuthId, BrokerBuilder};
 mod common;
 
 #[tokio::test]
-async fn basic_translation() {
+async fn twin_translation() {
     let broker = BrokerBuilder::default()
         .authenticator(|_| Ok(Some(AuthId::Anonymous)))
         .authorizer(|_| Ok(true))
@@ -36,7 +36,6 @@ async fn basic_translation() {
     edge_hub_core
         .subscribe("$edgehub/+/twin/get/#", QoS::AtLeastOnce)
         .await;
-    println!("Subscribed");
 
     // device requests twin update
     device_1
@@ -45,7 +44,6 @@ async fn basic_translation() {
     device_1
         .publish_qos1("$iothub/twin/GET/10", "", false)
         .await;
-    println!("Publish");
 
     // Core recieves request
     assert_matches!(
@@ -57,7 +55,6 @@ async fn basic_translation() {
     edge_hub_core
         .publish_qos1("$edgehub/device_1/twin/res/10", "", false)
         .await;
-    println!("recieve request");
 
     // device recieves response
     assert_matches!(
