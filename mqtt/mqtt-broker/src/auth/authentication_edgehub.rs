@@ -38,7 +38,7 @@ impl EdgeHubAuthenticator {
             .json(&request)
             .send()
             .await
-            .map_err(|_| AuthenticationError::SendRequest)?;
+            .map_err(AuthenticationError::SendRequest)?;
 
         if response.status() != reqwest::StatusCode::OK {
             return Err(AuthenticationError::ProcessResponse);

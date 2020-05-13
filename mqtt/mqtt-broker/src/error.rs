@@ -90,12 +90,12 @@ pub enum AuthenticationError {
     #[error("failed to execute.")]
     Execution,
 
-    #[error("failed to send request.")]
-    SendRequest,
+    #[error("failed to send request: {0}.")]
+    SendRequest(#[source] reqwest::Error),
 
     #[error("failed to process response.")]
     ProcessResponse,
 
-    #[error("not supported response version {0}")]
+    #[error("not supported response version {0}.")]
     ApiVersion(String),
 }
