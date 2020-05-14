@@ -31,9 +31,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void UnableToParseInvalidPort()
         {
-            var result = PortAndProtocol.Parse("1a23/HTTP");
+            var result = PortAndProtocol.Parse("1a23/TCP");
 
             Assert.Equal(Option.None<PortAndProtocol>(), result);
+        }
+
+        [Fact]
+        public void UnableToParseTooManyParts()
+        {
+            var result = PortAndProtocol.Parse("10/tcp/udp");
+
+            Assert.Equal(Option.None<PortAndProtocol>(), result);
+        }
+
+        [Fact]
+        public void DefaultProtocolIsTCP()
+        {
+            var result = PortAndProtocol.Parse("3434").OrDefault();
+
+            Assert.Equal(3434, result.Port);
+            Assert.Equal("TCP", result.Protocol);
         }
 
         [Theory]

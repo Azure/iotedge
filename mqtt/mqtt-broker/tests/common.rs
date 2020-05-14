@@ -1,25 +1,28 @@
 use std::{
     sync::atomic::{AtomicU32, Ordering},
-    time::Duration,
+    task::{Context, Poll},
+    time::{Duration, Instant},
 };
 
 use bytes::Bytes;
-use futures::{future::select, pin_mut};
-use futures_util::{FutureExt, StreamExt};
+use futures::{future::select, pin_mut, Stream};
+use futures_util::{sink::SinkExt, FutureExt, StreamExt};
 use lazy_static::lazy_static;
 use tokio::{
-    net::ToSocketAddrs,
+    net::{TcpStream, ToSocketAddrs},
     sync::{
         mpsc::{self, UnboundedReceiver},
         oneshot::{self, Sender},
     },
     task::JoinHandle,
 };
+use tokio_io_timeout::TimeoutStream;
+use tokio_util::codec::Framed;
 
 use mqtt3::{
-    proto::{ClientId, Publication, QoS, SubscribeTo},
+    proto::{ClientId, Connect, Packet, PacketCodec, Publication, Publish, QoS, SubscribeTo},
     Client, Event, PublishError, PublishHandle, ReceivedPublication, ShutdownHandle,
-    UpdateSubscriptionHandle,
+    UpdateSubscriptionHandle, PROTOCOL_LEVEL, PROTOCOL_NAME,
 };
 use mqtt_broker::{Authenticator, Authorizer, Broker, BrokerState, Error, Server};
 
@@ -137,10 +140,7 @@ impl TestClient {
     }
 }
 
-pub struct TestClientBuilder<T>
-where
-    T: ToSocketAddrs + Clone + Send + Sync + Unpin + 'static,
-{
+pub struct TestClientBuilder<T> {
     address: T,
     client_id: ClientId,
     username: Option<String>,
@@ -200,7 +200,7 @@ where
             let address = address.clone();
             let password = password.clone();
             Box::pin(async move {
-                let io = tokio::net::TcpStream::connect(&address).await;
+                let io = tokio::net::TcpStream::connect(address).await;
                 io.map(|io| (io, password))
             })
         };
@@ -284,11 +284,139 @@ where
     }
 }
 
+lazy_static! {
+    static ref DEFAULT_TIMEOUT: Duration = Duration::from_secs(5);
+}
+
+/// A simple wrapper around TcpStream + PacketCodec to send specific packets
+/// to a broker for more granular integration testing.
+#[derive(Debug)]
+pub struct PacketStream {
+    codec: Framed<TimeoutStream<TcpStream>, PacketCodec>,
+}
+
+impl PacketStream {
+    /// Creates a client and opens TCP connection to the server.
+    /// No MQTT packets are sent at this moment.
+    pub async fn open(server_addr: impl ToSocketAddrs) -> Self {
+        // broker may not be available immediately in the test,
+        // so we'll try to connect for some time.
+        let mut result = TcpStream::connect(&server_addr).await;
+        let start_time = Instant::now();
+        while let Err(_) = result {
+            tokio::time::delay_for(Duration::from_millis(100)).await;
+            if start_time.elapsed() > *DEFAULT_TIMEOUT {
+                break;
+            }
+            result = TcpStream::connect(&server_addr).await;
+        }
+
+        let tcp_stream = result.expect("unable to establish tcp connection");
+        let mut timeout = TimeoutStream::new(tcp_stream);
+        timeout.set_read_timeout(Some(*DEFAULT_TIMEOUT));
+        timeout.set_write_timeout(Some(*DEFAULT_TIMEOUT));
+
+        let codec = Framed::new(timeout, PacketCodec::default());
+
+        Self { codec }
+    }
+
+    /// Creates a client, opens TCP connection to the server,
+    /// and sends CONNECT packet.
+    pub async fn connect(
+        client_id: ClientId,
+        server_addr: impl ToSocketAddrs,
+        username: Option<String>,
+        password: Option<String>,
+    ) -> Self {
+        let mut client = Self::open(server_addr).await;
+        client
+            .send_connect(Connect {
+                username,
+                password,
+                client_id,
+                will: None,
+                keep_alive: Duration::from_secs(30),
+                protocol_name: PROTOCOL_NAME.into(),
+                protocol_level: PROTOCOL_LEVEL,
+            })
+            .await;
+        client
+    }
+
+    pub async fn send_connect(&mut self, connect: Connect) {
+        self.send_packet(Packet::Connect(connect)).await;
+    }
+
+    pub async fn send_publish(&mut self, publish: Publish) {
+        self.send_packet(Packet::Publish(publish)).await;
+    }
+
+    pub async fn send_packet(&mut self, packet: Packet) {
+        self.codec
+            .send(packet)
+            .await
+            .expect("Unable to send a packet");
+    }
+}
+
+impl Stream for PacketStream {
+    type Item = Packet;
+
+    fn poll_next(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Option<Self::Item>> {
+        match self.codec.poll_next_unpin(cx) {
+            Poll::Ready(Some(result)) => {
+                Poll::Ready(Some(result.expect("Error decoding incoming packet")))
+            }
+            Poll::Ready(None) => Poll::Ready(None),
+            Poll::Pending => Poll::Pending,
+        }
+    }
+}
+
+/// Used to control server lifetime during tests. Implements
+/// Drop to cleanup resources after every test.
+pub struct ServerHandle {
+    address: String,
+    shutdown: Option<Sender<()>>,
+    task: Option<JoinHandle<Result<BrokerState, Error>>>,
+}
+
+impl ServerHandle {
+    pub fn address(&self) -> String {
+        self.address.clone()
+    }
+
+    pub async fn shutdown(&mut self) -> BrokerState {
+        self.shutdown
+            .take()
+            .unwrap()
+            .send(())
+            .expect("couldn't shutdown broker");
+
+        self.task
+            .take()
+            .unwrap()
+            .await
+            .unwrap()
+            .expect("can't wait for the broker")
+    }
+}
+
+impl Drop for ServerHandle {
+    fn drop(&mut self) {
+        if let Some(sender) = self.shutdown.take() {
+            sender.send(()).expect("couldn't shutdown broker");
+        }
+    }
+}
+
 /// Starts a test server with a provided broker and returns
 /// shutdown handle, broker task and server binding.
-pub fn start_server<N, Z>(
-    broker: Broker<N, Z>,
-) -> (Sender<()>, JoinHandle<Result<BrokerState, Error>>, String)
+pub fn start_server<N, Z>(broker: Broker<N, Z>) -> ServerHandle
 where
     N: Authenticator + Send + Sync + 'static,
     Z: Authorizer + Send + Sync + 'static,
@@ -302,7 +430,11 @@ where
 
     let (shutdown, rx) = oneshot::channel::<()>();
     let transports = vec![mqtt_broker::TransportBuilder::Tcp(address.clone())];
-    let broker_task = tokio::spawn(Server::from_broker(broker).serve(transports, rx.map(drop)));
+    let task = tokio::spawn(Server::from_broker(broker).serve(transports, rx.map(drop)));
 
-    (shutdown, broker_task, address)
+    ServerHandle {
+        address,
+        shutdown: Some(shutdown),
+        task: Some(task),
+    }
 }

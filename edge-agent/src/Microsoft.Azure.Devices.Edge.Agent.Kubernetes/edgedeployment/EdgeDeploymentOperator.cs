@@ -73,7 +73,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                         // kick off a new watch
                         this.StartListEdgeDeployments();
                     },
-                    onError: Events.EdgeDeploymentWatchFailed));
+                    onError: (ex) =>
+                    {
+                        Events.EdgeDeploymentWatchFailed(ex);
+                        throw ex;
+                    }));
         }
 
         internal async Task EdgeDeploymentOnEventHandlerAsync(WatchEventType type, EdgeDeploymentDefinition item)
