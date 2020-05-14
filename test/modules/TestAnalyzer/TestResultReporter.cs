@@ -103,9 +103,6 @@ namespace TestAnalyzer
 
             bool areMessagesMissing = missingCounter > 0;
             bool areLatestMessagesTooOld = DateTime.Compare(lastMessageDateTime.AddMilliseconds(toleranceInMilliseconds), endDateTime) < 0;
-            string missingMessagesStatus = $"Missing messages: {missingCounter}. ";
-            string messagesTooOldStatus = $"No messages received for the past {toleranceInMilliseconds} milliseconds. ";
-            string noMissingMessagesStatus = "All messages received. ";
 
             if (areMessagesMissing)
             {
@@ -117,14 +114,25 @@ namespace TestAnalyzer
                 Logger.LogInformation($"Module {moduleId}: last message datetime={lastMessageDateTime} and end datetime={endDateTime}");
             }
 
+            (StatusCode statusCode, string statusMessage) = GetStatus(areMessagesMissing, areLatestMessagesTooOld, missingCounter, toleranceInMilliseconds);
+
+            return new ModuleMessagesReport(moduleId, statusCode, totalMessagesCounter, statusMessage, lastMessageDateTime, missedMessages, Settings.Current.TestInfo);
+        }
+
+        static (StatusCode, string) GetStatus(bool areMessagesMissing, bool areLatestMessagesTooOld, long missingCounter, double toleranceInMilliseconds)
+        {
+            string missingMessagesStatus = $"Missing messages: {missingCounter}. ";
+            string messagesTooOldStatus = $"No messages received for the past {toleranceInMilliseconds} milliseconds. ";
+            string noMissingMessagesStatus = "All messages received. ";
+
             StatusCode statusCode;
             string statusMessage;
-            if (missingCounter > 0 && areLatestMessagesTooOld)
+            if (areMessagesMissing && areLatestMessagesTooOld)
             {
                 statusCode = StatusCode.SkippedAndOldMessages;
                 statusMessage = $"{missingMessagesStatus}{messagesTooOldStatus}";
             }
-            else if (missingCounter > 0)
+            else if (areMessagesMissing)
             {
                 statusCode = StatusCode.SkippedMessages;
                 statusMessage = $"{missingMessagesStatus}";
@@ -140,7 +148,7 @@ namespace TestAnalyzer
                 statusMessage = $"{noMissingMessagesStatus}";
             }
 
-            return new ModuleMessagesReport(moduleId, statusCode, totalMessagesCounter, statusMessage, lastMessageDateTime, missedMessages, Settings.Current.TestInfo);
+            return (statusCode, statusMessage);
         }
     }
 }
