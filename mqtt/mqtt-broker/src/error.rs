@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
 use mqtt3::proto::Packet;
-use serde_json::error::Error as JsonError;
 use thiserror::Error;
 
 use crate::Message;
@@ -57,7 +56,7 @@ pub enum Error {
     InitializeBroker(#[from] InitializeBrokerError),
 
     #[error("An error occurred when constructing state change: {0}")]
-    StateChange(#[from] JsonError),
+    StateChange(#[from] serde_json::Error),
 }
 
 /// Represents errors occurred while bootstrapping broker.
