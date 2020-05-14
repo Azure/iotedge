@@ -32,10 +32,13 @@
               },
               "ExperimentalFeatures__EnableUploadLogs": {
                   "value": "true"
+              },
+              "RuntimeLogLevel": {
+                "value": "debug"
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-agent:<EdgeRuntime.BuildNumber>-linux-<Architecture>",
+              "image": "edgebuilds.azurecr.io/microsoft/ea_0514_1645",
               "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"PortBindings\": {\"9600/tcp\": [{\"HostPort\": \"9600\"}]}}}"
             }
           },
@@ -54,6 +57,9 @@
               },
               "experimentalfeatures__enableMetrics": {
                 "value": "true"
+              },
+              "RuntimeLogLevel": {
+                "value": "debug"
               }
             },
             "status": "running",
