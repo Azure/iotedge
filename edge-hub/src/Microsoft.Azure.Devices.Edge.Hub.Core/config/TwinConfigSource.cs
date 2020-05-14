@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
     public class TwinConfigSource : IConfigSource
     {
-        static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeHubConfigParser>();
+        static readonly ILogger Log = Logger.Factory.CreateLogger<TwinConfigSource>();
 
         readonly AsyncLock configLock = new AsyncLock();
         readonly ITwinManager twinManager;
@@ -185,7 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         static class Events
         {
             const int IdStart = HubCoreEventIds.TwinConfigSource;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeHubConnection>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<TwinConfigSource>();
 
             enum EventIds
             {

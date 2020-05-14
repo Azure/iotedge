@@ -51,7 +51,9 @@ namespace Microsoft.Azure.Devices.Routing.Core
             return string.Equals(this.Id, other.Id) &&
                    string.Equals(this.Condition, other.Condition) &&
                    this.Source.Equals(other.Source) &&
-                   this.Endpoint.Equals(other.Endpoint);
+                   this.Endpoint.Equals(other.Endpoint) &&
+                   this.Priority == other.Priority &&
+                   this.TimeToLiveSecs == other.TimeToLiveSecs;
         }
 
         public override bool Equals(object obj)

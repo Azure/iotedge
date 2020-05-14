@@ -388,7 +388,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{
+        AsRef, AuthMechanism, DeviceClient, Future, HubAuthType, HubIdentity, HubIdentityManager,
+        Identity, IdentityManager, IdentitySpec, KeyIdentity, Module, SasTokenSource, SymmetricKey,
+        TokenSource, Utc, KEY_PRIMARY, KEY_SECONDARY,
+    };
 
     use bytes::Bytes;
     use chrono::TimeZone;

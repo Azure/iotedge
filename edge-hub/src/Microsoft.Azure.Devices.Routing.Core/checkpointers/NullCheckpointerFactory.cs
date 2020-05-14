@@ -6,5 +6,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
     public class NullCheckpointerFactory : ICheckpointerFactory
     {
         public Task<ICheckpointer> CreateAsync(string id) => Task.FromResult(NullCheckpointer.Instance);
+        public Task<ICheckpointer> CreateAsync(string id, string _, uint __) => Task.FromResult(NullCheckpointer.Instance);
     }
 }

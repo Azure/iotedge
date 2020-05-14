@@ -12,7 +12,7 @@ use edgelet_core::{
 };
 use edgelet_http::authentication::Authentication;
 use edgelet_http::authorization::Authorization;
-use edgelet_http::route::*;
+use edgelet_http::route::{Builder, RegexRecognizer, Router, RouterService};
 use edgelet_http::{router, Version};
 use edgelet_http_mgmt::ListModules;
 use failure::{Compat, Fail, ResultExt};
