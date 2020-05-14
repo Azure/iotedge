@@ -36,10 +36,10 @@ namespace NetworkController
                 {
                     await networkInterfaceName.ForEachAsync(async name =>
                     {
-                    var offline = new OfflineController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
-                    var satellite = new SatelliteController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
-                    var cellular = new CellularController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
-                    controllers.AddRange(new List<INetworkController>{ offline, satellite, cellular });
+                        var offline = new OfflineController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
+                        var satellite = new SatelliteController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
+                        var cellular = new CellularController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
+                        controllers.AddRange(new List<INetworkController> { offline, satellite, cellular });
 
                         // Reset network status before start delay to ensure network status is in designed state before test starts.
                         var sw = new Stopwatch();
