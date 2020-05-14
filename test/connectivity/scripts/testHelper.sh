@@ -16,7 +16,7 @@ function clean_up() {
         docker system prune -af --volumes || true
 
         echo 'Restart docker'
-        systemctl restart docker
+        systemctl restart docker # needed due to https://github.com/moby/moby/issues/23302
     else
         echo 'Remove docker containers'
         docker rm -f $(docker ps -aq) || true
