@@ -9,5 +9,6 @@ edition = "2018"
 [dependencies]
 lazy_static = "1.4"
 regex = "1"
+tracing = "0.1"
 
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }

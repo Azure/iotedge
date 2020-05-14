@@ -1690,6 +1690,7 @@ dependencies = [
  "lazy_static",
  "mqtt3",
  "regex",
+ "tracing",
 ]
 
 [[package]]

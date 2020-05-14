@@ -1,6 +1,7 @@
 use lazy_static::lazy_static;
 use mqtt3::proto;
 use regex::Regex;
+use tracing::debug;
 
 lazy_static! {
     pub static ref TRANSLATOR: Translator = Translator::new();
@@ -26,7 +27,7 @@ impl Translator {
     ) -> proto::Subscribe {
         for mut sub_to in &mut subscribe.subscribe_to {
             if let Some(new_topic) = self.c2d.translate_to_new(&sub_to.topic_filter, client_id) {
-                println!(
+                debug!(
                     "Translating subscription {} to {}",
                     sub_to.topic_filter, new_topic
                 );
@@ -53,7 +54,7 @@ impl Translator {
 
     pub fn incoming_publish(&self, client_id: &str, mut publish: proto::Publish) -> proto::Publish {
         if let Some(new_topic) = self.d2c.translate_to_new(&publish.topic_name, client_id) {
-            println!(
+            debug!(
                 "Translating incoming publication {} to {}",
                 publish.topic_name, new_topic
             );
@@ -65,7 +66,7 @@ impl Translator {
 
     pub fn outgoing_publish(&self, mut publish: proto::Publish) -> proto::Publish {
         if let Some(new_topic) = self.c2d.translate_to_old(&publish.topic_name) {
-            println!(
+            debug!(
                 "Translating outgoing publication {} to {}",
                 publish.topic_name, new_topic
             );
@@ -176,7 +177,7 @@ macro_rules! translate_c2d {
 
 translate_d2c! {
     // Message Translation
-    events { // note this may have to be split into 2 patterns for device and modules, depending on how client_id encodes device and module id
+    device_send_message { // note this may have to be split into 2 patterns for device and modules, depending on how client_id encodes device and module id
         to_new {
             format!("devices/{}/messages/events", DEVICE_ID),
             {|captures: regex::Captures<'_>, _| format!("$edgehub/{}/messages/events", &captures["device_id"])}
@@ -184,16 +185,16 @@ translate_d2c! {
     },
 
     // Twin Translation
-    twin_desired {
+    twin_send_update_to_hub {
         to_new {
-            "\\$iothub/twin/PATCH/properties/desired(?P<params>.*)",
-            {|captures: regex::Captures<'_>, client_id| format!("$edgehub/{}/twin/desired{}", client_id, &captures["params"])}
+            "\\$iothub/twin/PATCH/properties/reported/(?P<params>.*)",
+            {|captures: regex::Captures<'_>, client_id| format!("$edgehub/{}/twin/reported/{}", client_id, &captures["params"])}
         }
     },
-    twin_get {
+    twin_get_from_hub {
         to_new {
-            "\\$iothub/twin/GET(?P<params>.*)",
-            {|captures: regex::Captures<'_>, client_id| format!("$edgehub/{}/twin/get{}", client_id, &captures["params"])}
+            "\\$iothub/twin/GET/(?P<params>.*)",
+            {|captures: regex::Captures<'_>, client_id| format!("$edgehub/{}/twin/get/{}", client_id, &captures["params"])}
         }
     },
 
@@ -220,36 +221,36 @@ translate_c2d! {
     },
 
     // Twin Translation
-    twin_reported {
+    twin_recieve_update_from_hub {
         to_new {
-            "\\$iothub/twin/PATCH/properties/reported(?P<params>.*)",
-            {|captures: regex::Captures<'_>, client_id| format!("$edgehub/{}/twin/reported{}", client_id, &captures["params"])}
+            "\\$iothub/twin/PATCH/properties/desired/(?P<params>.*)",
+            {|captures: regex::Captures<'_>, client_id| format!("$edgehub/{}/twin/desired/{}", client_id, &captures["params"])}
         },
         to_old {
-            format!("\\$edgehub/{}/twin/reported(?P<params>.*)", DEVICE_ID),
-            {|captures: regex::Captures<'_>| format!("$iothub/twin/PATCH/properties/reported{}", &captures["params"])}
+            format!("\\$edgehub/{}/twin/desired/(?P<params>.*)", DEVICE_ID),
+            {|captures: regex::Captures<'_>| format!("$iothub/twin/PATCH/properties/desired/{}", &captures["params"])}
         }
     },
-    twin_response {
+    twin_response_from_hub {
         to_new {
-            "\\$iothub/twin/res(?P<params>.*)",
-            {|captures: regex::Captures<'_>, client_id| format!("$edgehub/{}/twin/res{}", client_id, &captures["params"])}
+            "\\$iothub/twin/res/(?P<params>.*)",
+            {|captures: regex::Captures<'_>, client_id| format!("$edgehub/{}/twin/res/{}", client_id, &captures["params"])}
         },
         to_old {
-            format!("\\$edgehub/{}/twin/res(?P<params>.*)", DEVICE_ID),
-            {|captures: regex::Captures<'_>| format!("$iothub/twin/res{}", &captures["params"])}
+            format!("\\$edgehub/{}/twin/res/(?P<params>.*)", DEVICE_ID),
+            {|captures: regex::Captures<'_>| format!("$iothub/twin/res/{}", &captures["params"])}
         }
     },
 
     // Direct Methods
-    direct_method_request {
+    recieve_direct_method_request {
         to_new {
-            "\\$iothub/methods/POST/",
-            {|_, client_id| format!("$edgehub/{}/methods/post", client_id)}
+            "\\$iothub/methods/POST/(?P<params>.*)",
+            {|captures: regex::Captures<'_>, client_id| format!("$edgehub/{}/methods/post/{}", client_id, &captures["params"])}
         },
         to_old {
-            format!("\\$edgehub/{}/methods/post", DEVICE_ID),
-            {|_| "$iothub/methods/POST/"}
+            format!("\\$edgehub/{}/methods/post/(?P<params>.*)", DEVICE_ID),
+            {|captures: regex::Captures<'_>| format!("$iothub/methods/POST/{}", &captures["params"])}
         }
     }
 }
