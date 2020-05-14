@@ -62,7 +62,8 @@ impl<'a> TryFrom<StateChange<'a>> for proto::Publication {
                 let payload = subscriptions
                     .map(|subscriptions| serde_json::to_string(&subscriptions))
                     .transpose()?
-                    .map_or_else(bytes::Bytes::new, |json| json.into());
+                    .map(|json| json.into())
+                    .unwrap_or_default();
 
                 proto::Publication {
                     topic_name: format!("$edgehub/subscriptions/{}", client_id),
@@ -88,17 +89,19 @@ impl<'a> TryFrom<StateChange<'a>> for proto::Publication {
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+mod tests {
     use std::collections::{HashMap, VecDeque};
     use std::convert::TryInto;
     use std::str::FromStr;
 
-    use super::{StateChange, STATE_CHANGE_QOS};
+    use mqtt3::proto;
+
     use crate::broker::tests::{connection_handle, is_notify_equal, persistent_connect};
     use crate::session::{Session, SessionState};
+    use crate::state_change::{StateChange, STATE_CHANGE_QOS};
     use crate::subscription::{Subscription, TopicFilter};
     use crate::{AuthId, ClientId, ConnReq};
-    use mqtt3::proto;
+
     #[test]
     fn test_subscriptions() {
         let expected_id: ClientId = "Session".into();
