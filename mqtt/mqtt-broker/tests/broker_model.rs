@@ -11,6 +11,17 @@ use mqtt_broker::{
 };
 
 proptest! {
+    /// Model based test to check whether broker can manage arbitrary packet sequence while
+    /// maintaining sessions and subscriptions for clients properly.
+    ///
+    /// Model-based tests contain a simplified model of MQTT broker that handles some MQTT packets.
+    /// Randomly generated MQTT packets processed by both: broker and broker model. Later tests verify
+    /// that the broker and its model processed packet in a similar way.
+    ///
+    /// Currently, there is only on a test case that handles a randomly generated sequence of
+    /// CONNECT, DISCONNECT, SUBSCRIBE, UNSUBSCRIBE packets with pseudo-random data. In the end,
+    /// the test verifies that both the broker and its model contain the same number of sessions
+    //// and same number of subscriptions.
     #[test]
     fn broker_manages_sessions(
         events in proptest::collection::vec(arb_broker_event(), 1..50)

@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use bytes::Bytes;
 use mqtt3::proto;
 use proptest::{
     bool,
@@ -12,7 +13,6 @@ use crate::{
     session::{IdentifiersInUse, PacketIdentifiers},
     BrokerState, ClientId, Publish, Segment, SessionState, Subscription, TopicFilter,
 };
-use bytes::Bytes;
 
 prop_compose! {
     pub fn arb_broker_state()(
@@ -144,7 +144,7 @@ pub fn arb_client_id() -> impl Strategy<Value = proto::ClientId> {
     ]
 }
 pub fn arb_clientid() -> impl Strategy<Value = ClientId> {
-    "[a-zA-Z0-9]{1,23}".prop_map(|s| ClientId::from(s))
+    "[a-zA-Z0-9]{1,23}".prop_map(Into::into)
 }
 
 pub fn arb_client_id_weighted() -> impl Strategy<Value = proto::ClientId> {

@@ -103,6 +103,7 @@ where
         BrokerState { retained, sessions }
     }
 
+    #[cfg(any(test, feature = "proptest"))]
     pub fn clone_state(&self) -> BrokerState {
         let retained = self.retained.clone();
         let sessions = self
