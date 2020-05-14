@@ -184,7 +184,7 @@ where
                 let message = Message::Client(client_id.clone(), event);
                 try_send!(connreq.handle_mut(), message);
 
-                debug!("dropping connection due to authentication error");
+                debug!("dropping connection due to connect packet error");
                 let message = Message::Client(client_id, ClientEvent::DropConnection);
                 try_send!(connreq.handle_mut(), message);
             };
