@@ -34,7 +34,7 @@ pub use crate::configuration::BrokerConfig;
 pub use crate::connection::ConnectionHandle;
 pub use crate::error::{Error, InitializeBrokerError};
 pub use crate::persist::{
-    ConsolidatedStateFormat, FileFormat, FilePersistor, NullPersistor, Persist, PersistError,
+    FileFormat, FilePersistor, NullPersistor, Persist, PersistError, VersionedFileFormat,
 };
 pub use crate::server::Server;
 pub use crate::session::SessionState;
