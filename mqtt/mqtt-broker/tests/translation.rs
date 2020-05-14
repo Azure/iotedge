@@ -17,12 +17,12 @@ async fn translation_twin_retrieve() {
         .authorizer(|_| Ok(true))
         .build();
 
-    let (broker_shutdown, broker_task, address) = common::start_server(broker);
+    let mut server_handle = common::start_server(broker);
 
-    let mut edge_hub_core = TestClientBuilder::new(address.clone())
+    let mut edge_hub_core = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
         .build();
-    let mut device_1 = TestClientBuilder::new(address)
+    let mut device_1 = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("device_1".into()))
         .build();
 
@@ -48,11 +48,7 @@ async fn translation_twin_retrieve() {
     // device recieves response
     recieve_with_topic(&mut device_1, "$iothub/twin/res/200/?rid=10").await;
 
-    broker_shutdown.send(()).expect("can't stop the broker");
-    broker_task
-        .await
-        .unwrap()
-        .expect("can't wait for the broker");
+    server_handle.shutdown().await;
 }
 
 // https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-mqtt-support#update-device-twins-reported-properties
@@ -63,12 +59,12 @@ async fn translation_twin_update() {
         .authorizer(|_| Ok(true))
         .build();
 
-    let (broker_shutdown, broker_task, address) = common::start_server(broker);
+    let mut server_handle = common::start_server(broker);
 
-    let mut edge_hub_core = TestClientBuilder::new(address.clone())
+    let mut edge_hub_core = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
         .build();
-    let mut device_1 = TestClientBuilder::new(address)
+    let mut device_1 = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("device_1".into()))
         .build();
 
@@ -98,11 +94,7 @@ async fn translation_twin_update() {
     // device recieves response
     recieve_with_topic(&mut device_1, "$iothub/twin/res/200/?rid=20").await;
 
-    broker_shutdown.send(()).expect("can't stop the broker");
-    broker_task
-        .await
-        .unwrap()
-        .expect("can't wait for the broker");
+    server_handle.shutdown().await;
 }
 
 // https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-mqtt-support#receiving-desired-properties-update-notifications
@@ -113,12 +105,12 @@ async fn translation_twin_recieve() {
         .authorizer(|_| Ok(true))
         .build();
 
-    let (broker_shutdown, broker_task, address) = common::start_server(broker);
+    let mut server_handle = common::start_server(broker);
 
-    let mut edge_hub_core = TestClientBuilder::new(address.clone())
+    let mut edge_hub_core = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
         .build();
-    let mut device_1 = TestClientBuilder::new(address)
+    let mut device_1 = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("device_1".into()))
         .build();
 
@@ -139,11 +131,7 @@ async fn translation_twin_recieve() {
     )
     .await;
 
-    broker_shutdown.send(()).expect("can't stop the broker");
-    broker_task
-        .await
-        .unwrap()
-        .expect("can't wait for the broker");
+    server_handle.shutdown().await;
 }
 
 // https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-mqtt-support#respond-to-a-direct-method
@@ -154,12 +142,12 @@ async fn translation_direct_method_response() {
         .authorizer(|_| Ok(true))
         .build();
 
-    let (broker_shutdown, broker_task, address) = common::start_server(broker);
+    let mut server_handle = common::start_server(broker);
 
-    let mut edge_hub_core = TestClientBuilder::new(address.clone())
+    let mut edge_hub_core = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
         .build();
-    let mut device_1 = TestClientBuilder::new(address)
+    let mut device_1 = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("device_1".into()))
         .build();
 
@@ -195,11 +183,7 @@ async fn translation_direct_method_response() {
     )
     .await;
 
-    broker_shutdown.send(()).expect("can't stop the broker");
-    broker_task
-        .await
-        .unwrap()
-        .expect("can't wait for the broker");
+    server_handle.shutdown().await;
 }
 
 async fn recieve_with_topic(client: &mut TestClient, topic: &str) {
