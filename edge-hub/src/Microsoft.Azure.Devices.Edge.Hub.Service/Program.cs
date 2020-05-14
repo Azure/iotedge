@@ -159,6 +159,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 protocolHeads.Add(await container.Resolve<Task<AuthAgentProtocolHead>>());
             }
 
+            if (configuration.GetValue("mqttBridgeSettings:enabled", true))
+            {
+                protocolHeads.Add(container.Resolve<MqttBridgeProtocolHead>());
+            }
+
             return new EdgeHubProtocolHead(protocolHeads, logger);
         }
 
