@@ -542,9 +542,10 @@ pub(crate) mod tests {
     use proptest::prelude::*;
     use tempfile::TempDir;
 
-    use crate::broker::{tests::arb_broker_state, BrokerState};
-    use crate::persist::{
-        ConsolidatedState, FileFormat, FilePersistor, Persist, VersionedFileFormat,
+    use crate::{
+        persist::{ConsolidatedState, FileFormat, FilePersistor, Persist, VersionedFileFormat},
+        proptest::arb_broker_state,
+        BrokerState,
     };
 
     proptest! {

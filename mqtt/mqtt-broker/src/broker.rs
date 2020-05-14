@@ -105,7 +105,28 @@ where
         BrokerState { retained, sessions }
     }
 
-    fn process_message(&mut self, client_id: ClientId, event: ClientEvent) -> Result<(), Error> {
+    #[cfg(any(test, feature = "proptest"))]
+    pub fn clone_state(&self) -> BrokerState {
+        let retained = self.retained.clone();
+        let sessions = self
+            .sessions
+            .values()
+            .filter_map(|session| match session {
+                Session::Transient(session) => Some(session.state().clone()),
+                Session::Persistent(session) => Some(session.state().clone()),
+                Session::Offline(session) => Some(session.state().clone()),
+                _ => None,
+            })
+            .collect();
+
+        BrokerState { retained, sessions }
+    }
+
+    pub fn process_message(
+        &mut self,
+        client_id: ClientId,
+        event: ClientEvent,
+    ) -> Result<(), Error> {
         debug!("incoming: {:?}", event);
         let result = match event {
             ClientEvent::ConnReq(connreq) => self.process_connect(client_id, connreq),
@@ -1050,10 +1071,7 @@ pub(crate) mod tests {
     use bytes::Bytes;
     use futures_util::future::FutureExt;
     use matches::assert_matches;
-    use proptest::collection::{hash_map, vec};
-    use proptest::prelude::*;
-    use tokio::sync::mpsc::error::TryRecvError;
-    use tokio::sync::mpsc::{self, UnboundedReceiver};
+    use tokio::sync::mpsc::{self, error::TryRecvError, UnboundedReceiver};
     use uuid::Uuid;
 
     use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
@@ -1061,24 +1079,11 @@ pub(crate) mod tests {
     use super::OpenSession;
     use crate::{
         auth::{Activity, AuthenticateError, AuthorizeError, Operation},
-        broker::{BrokerBuilder, BrokerHandle, BrokerState},
+        broker::{BrokerBuilder, BrokerHandle},
         error::Error,
-        session::{tests::arb_session_state, Session},
-        tests::{arb_publication, arb_topic},
+        session::Session,
         AuthId, ClientEvent, ClientId, ConnReq, ConnectionHandle, Message, Publish,
     };
-
-    prop_compose! {
-        pub fn arb_broker_state()(
-            retained in hash_map(arb_topic(), arb_publication(), 0..20),
-            sessions in vec(arb_session_state(), 0..10),
-        ) -> BrokerState {
-            BrokerState {
-                retained,
-                sessions,
-            }
-        }
-    }
 
     pub fn connection_handle() -> ConnectionHandle {
         let id = Uuid::new_v4();
