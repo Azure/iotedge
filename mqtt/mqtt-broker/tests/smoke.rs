@@ -186,8 +186,15 @@ async fn retained_messages() {
 
     // inspect broker state after shutdown to
     // deterministically verify presence of retained messages.
+    // filter out edgehub messages
     let (retained, _) = state.into_parts();
-    assert_eq!(retained.len(), 3);
+    assert_eq!(
+        retained
+            .iter()
+            .filter(|(topic, _)| !topic.contains("edgehub"))
+            .count(),
+        3
+    );
 }
 
 /// Scenario:
@@ -236,8 +243,15 @@ async fn retained_messages_zero_payload() {
 
     // inspect broker state after shutdown to
     // deterministically verify absence of retained messages.
+    // filter out edgehub messages
     let (retained, _) = state.into_parts();
-    assert_eq!(retained.len(), 0);
+    assert_eq!(
+        retained
+            .iter()
+            .filter(|(topic, _)| !topic.contains("edgehub"))
+            .count(),
+        0
+    );
 }
 
 /// Scenario:
