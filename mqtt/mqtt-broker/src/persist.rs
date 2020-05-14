@@ -108,10 +108,29 @@ impl<F> FilePersistor<F> {
     }
 }
 
-#[derive(Clone, Debug, Default)]
-pub struct ConsolidatedStateFormat;
+#[derive(Deserialize, Serialize)]
+enum VersionedState {
+    V1(ConsolidatedState),
+}
 
-impl FileFormat for ConsolidatedStateFormat {
+impl From<BrokerState> for VersionedState {
+    fn from(state: BrokerState) -> Self {
+        VersionedState::V1(state.into())
+    }
+}
+
+impl From<VersionedState> for BrokerState {
+    fn from(state: VersionedState) -> Self {
+        match state {
+            VersionedState::V1(state) => state.into(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct VersionedFileFormat;
+
+impl FileFormat for VersionedFileFormat {
     type Error = PersistError;
 
     fn load<R: Read>(&self, reader: R) -> Result<BrokerState, Self::Error> {
@@ -120,14 +139,14 @@ impl FileFormat for ConsolidatedStateFormat {
             Err(PersistError::Deserialize(None))
         });
 
-        let state: ConsolidatedState =
+        let state: VersionedState =
             bincode::deserialize_from(decoder).map_err(|e| PersistError::Deserialize(Some(e)))?;
 
         Ok(state.into())
     }
 
     fn store<W: Write>(&self, writer: W, state: BrokerState) -> Result<(), Self::Error> {
-        let state: ConsolidatedState = state.into();
+        let state: VersionedState = state.into();
 
         let encoder = GzEncoder::new(writer, Compression::default());
         fail_point!("bincodeformat.store.serialize_into", |_| {
@@ -525,7 +544,7 @@ pub(crate) mod tests {
 
     use crate::broker::{tests::arb_broker_state, BrokerState};
     use crate::persist::{
-        ConsolidatedState, ConsolidatedStateFormat, FileFormat, FilePersistor, Persist,
+        ConsolidatedState, FileFormat, FilePersistor, Persist, VersionedFileFormat,
     };
 
     proptest! {
@@ -550,7 +569,7 @@ pub(crate) mod tests {
         #[test]
         fn consolidate_roundtrip(state in arb_broker_state()) {
             let (expected_retained, expected_sessions) = state.clone().into_parts();
-            let format = ConsolidatedStateFormat;
+            let format = VersionedFileFormat;
             let mut buffer = vec![0_u8; 10 * 1024 * 1024];
             let writer = Cursor::new(&mut buffer);
             format.store(writer, state).unwrap();
@@ -571,7 +590,7 @@ pub(crate) mod tests {
     async fn filepersistor_smoketest() {
         let tmp_dir = TempDir::new().unwrap();
         let path = tmp_dir.path().to_owned();
-        let mut persistor = FilePersistor::new(path, ConsolidatedStateFormat::default());
+        let mut persistor = FilePersistor::new(path, VersionedFileFormat::default());
 
         persistor.store(BrokerState::default()).await.unwrap();
         let state = persistor.load().await.unwrap().unwrap();
