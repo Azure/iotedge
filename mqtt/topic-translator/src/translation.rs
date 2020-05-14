@@ -77,7 +77,7 @@ impl Translator {
     }
 }
 
-const DEVICE_ID: &str = r"(?P<device_id>.*)";
+const DEVICE_ID: &str = r"(?P<device_id>.+)";
 macro_rules! translate_d2c {
     ($(
         $translate_name:ident {
@@ -100,9 +100,11 @@ macro_rules! translate_d2c {
             }
 
             fn translate_to_new(&self, topic: &str, client_id: &str) -> Option<String> {
+                println!("Translating {}", topic);
                 if topic.starts_with("$iothub") || topic.starts_with("devices") {
                     $(
                         if let Some(captures) = self.$translate_name.captures(topic) {
+                            println!("Match {}", $new_from);
                             return Some($new_to(captures, client_id).into());
                         }
                     )*
@@ -179,8 +181,8 @@ translate_d2c! {
     // Message Translation
     device_send_message { // note this may have to be split into 2 patterns for device and modules, depending on how client_id encodes device and module id
         to_new {
-            format!("devices/{}/messages/events", DEVICE_ID),
-            {|captures: regex::Captures<'_>, _| format!("$edgehub/{}/messages/events", &captures["device_id"])}
+            format!("devices/{}/messages/events(?P<path>.*)", DEVICE_ID),
+            {|captures: regex::Captures<'_>, _| format!("$edgehub/{}/messages/events{}", &captures["device_id"], &captures["path"])}
         }
     },
 
@@ -211,12 +213,12 @@ translate_c2d! {
     // Message Translation
     c2d_message {
         to_new {
-            format!("devices/{}/messages/devicebound", DEVICE_ID),
-            {|captures: regex::Captures<'_>, _| format!("$edgehub/{}/messages/c2d/post", &captures["device_id"])}
+            format!("devices/{}/messages/devicebound(?P<path>.*)", DEVICE_ID),
+            {|captures: regex::Captures<'_>, _| format!("$edgehub/{}/messages/c2d/post{}", &captures["device_id"], &captures["path"])}
         },
         to_old {
-            format!("\\$edgehub/{}/messages/c2d/post", DEVICE_ID),
-            {|captures: regex::Captures<'_>| format!("devices/{}/messages/devicebound", &captures["device_id"])}
+            format!("\\$edgehub/{}/messages/c2d/post(?P<path>.*)", DEVICE_ID),
+            {|captures: regex::Captures<'_>| format!("devices/{}/messages/devicebound{}", &captures["device_id"], &captures["path"])}
         }
     },
 
@@ -255,46 +257,107 @@ translate_c2d! {
     }
 }
 
-// #[cfg(test)]
-// pub(crate) mod tests {
-//     use super::*;
-//     #[test]
-//     fn test_translate_incoming() {
-//         let translator = TranslateIncoming::new().unwrap();
-//         assert_eq!(translator.translate_incoming("blagh", "client_a"), None);
-//         assert_eq!(
-//             translator.translate_incoming("$iothub/not_a_topic", "client_a"),
-//             None
-//         );
-//         assert_eq!(
-//             translator.translate_incoming("$iothub/twin/PATCH/properties/desired", "client_a"),
-//             Some("$edgehub/client_a/twin/desired".to_owned())
-//         );
-//     }
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::*;
+    #[test]
+    fn test_translater() {
+        let d2c = TranslateD2C::new().unwrap();
+        let c2d = TranslateC2D::new().unwrap();
 
-//     #[test]
-//     fn test_translate_outgoing() {
-//         let translator = TranslateOutgoing::new().unwrap();
-//         assert_eq!(translator.translate_outgoing("blagh"), None);
-//         assert_eq!(
-//             translator.translate_outgoing("$edgehub/client_a/not_a_topic"),
-//             None
-//         );
-//         assert_eq!(
-//             translator.translate_outgoing("$edgehub/client_a/messages/c2d/post"),
-//             Some("devices/client_a/messages/devicebound".to_owned())
-//         );
-//         assert_eq!(
-//             translator.translate_outgoing("$edgehub/client_a/twin/reported?res=1234"),
-//             Some("$iothub/twin/PATCH/properties/reported?res=1234".to_owned())
-//         );
-//         assert_eq!(
-//             translator.translate_outgoing("$edgehub/client_a/twin/res?res=1234"),
-//             Some("$iothub/twin/res?res=1234".to_owned())
-//         );
-//         assert_eq!(
-//             translator.translate_outgoing("$edgehub/client_a/methods/post"),
-//             Some("$iothub/methods/POST/".to_owned())
-//         );
-//     }
-// }
+        // None
+        assert_eq!(d2c.translate_to_new("blagh", "client_a"), None);
+        assert_eq!(d2c.translate_to_new("$iothub/blagh", "client_a"), None);
+
+        // Messages d2c
+        assert_eq!(
+            d2c.translate_to_new("devices/device_1/messages/events", "device_1"),
+            Some("$edgehub/device_1/messages/events".to_owned())
+        );
+        assert_eq!(
+            d2c.translate_to_new("devices/device_1/messages/events/route_1/input", "device_1"),
+            Some("$edgehub/device_1/messages/events/route_1/input".to_owned())
+        );
+        // assert_eq!(
+        //     d2c.translate_to_new(
+        //         "devices/device_1/modules/client_a/messages/events",
+        //         "client_a"
+        //     ),
+        //     Some("$edgehub/device_1/modules/client_a/messages/events".to_owned())
+        // );
+
+        // Messages c2d
+        assert_eq!(
+            c2d.translate_to_new("devices/device_1/messages/devicebound", "device_1"),
+            Some("$edgehub/device_1/messages/c2d/post".to_owned())
+        );
+        assert_eq!(
+            c2d.translate_to_old("$edgehub/device_1/messages/c2d/post"),
+            Some("devices/device_1/messages/devicebound".to_owned())
+        );
+
+        assert_eq!(
+            c2d.translate_to_new(
+                "devices/device_1/messages/devicebound/route_1/input",
+                "device_1"
+            ),
+            Some("$edgehub/device_1/messages/c2d/post/route_1/input".to_owned())
+        );
+        assert_eq!(
+            c2d.translate_to_old("$edgehub/device_1/messages/c2d/post/route_1/input"),
+            Some("devices/device_1/messages/devicebound/route_1/input".to_owned())
+        );
+        // assert_eq!(
+        //     c2d.translate_to_new(
+        //         "devices/device_1/modules/client_a/messages/devicebound",
+        //         "client_a"
+        //     ),
+        //     Some("$edgehub/device_1/modules/client_a/messages/devicebound".to_owned())
+        // );
+
+        // Twin d2c
+        assert_eq!(
+            d2c.translate_to_new("$iothub/twin/PATCH/properties/reported/?rid=1", "client_a"),
+            Some("$edgehub/client_a/twin/reported/?rid=1".to_owned())
+        );
+        assert_eq!(
+            d2c.translate_to_new("$iothub/twin/GET/?rid=2", "client_a"),
+            Some("$edgehub/client_a/twin/get/?rid=2".to_owned())
+        );
+
+        // Twin c2d
+        assert_eq!(
+            c2d.translate_to_new("$iothub/twin/PATCH/properties/desired/?rid=1", "client_a"),
+            Some("$edgehub/client_a/twin/desired/?rid=1".to_owned())
+        );
+        assert_eq!(
+            c2d.translate_to_old("$edgehub/client_a/twin/desired/?rid=1"),
+            Some("$iothub/twin/PATCH/properties/desired/?rid=1".to_owned())
+        );
+
+        assert_eq!(
+            c2d.translate_to_new("$iothub/twin/res/#", "client_a"),
+            Some("$edgehub/client_a/twin/res/#".to_owned())
+        );
+        assert_eq!(
+            c2d.translate_to_old("$edgehub/client_a/twin/res/?rid=3"),
+            Some("$iothub/twin/res/?rid=3".to_owned())
+        );
+
+        // Direct Method d2c
+        assert_eq!(
+            d2c.translate_to_new("$iothub/methods/res/200/?rid=4", "client_a"),
+            Some("$edgehub/client_a/methods/res/200/?rid=4".to_owned())
+        );
+
+        // Direct Method c2d
+        assert_eq!(
+            c2d.translate_to_new("$iothub/methods/POST/#", "client_a"),
+            Some("$edgehub/client_a/methods/post/#".to_owned())
+        );
+        assert_eq!(
+            c2d.translate_to_old("$edgehub/client_a/methods/post/my_method/?rid=5"),
+            Some("$iothub/methods/POST/my_method/?rid=5".to_owned())
+        );
+    }
+}
