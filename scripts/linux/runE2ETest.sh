@@ -27,7 +27,7 @@ function clean_up() {
         docker system prune -af --volumes || true
 
         echo 'Restart docker'
-        systemctl restart docker
+        systemctl restart docker # needed due to https://github.com/moby/moby/issues/23302
     fi
 }
 

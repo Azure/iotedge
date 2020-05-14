@@ -29,7 +29,7 @@ cp ~/proxy-env.override.conf "$home/"
 chown -R "$user:$user" "$home/proxy-env.override.conf"
 
 systemctl daemon-reload
-systemctl restart docker # needed due to https://github.com/moby/moby/issues/23302
+systemctl restart docker
 
 # Output the host key so it can be added to the agent's known_hosts file
 echo -n '#DATA#'
