@@ -186,11 +186,78 @@ async fn translation_direct_method_response() {
     server_handle.shutdown().await;
 }
 
+#[tokio::test]
+async fn translation_twin_notify() {
+    let broker = BrokerBuilder::default()
+        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+        .authorizer(|_| Ok(true))
+        .build();
+
+    let mut server_handle = common::start_server(broker);
+
+    let mut edge_hub_core = TestClientBuilder::new(server_handle.address())
+        .client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
+        .build();
+    let mut device_1 = TestClientBuilder::new(server_handle.address())
+        .client_id(ClientId::IdWithCleanSession("device_1".into()))
+        .build();
+
+    // Core subscribes
+    edge_hub_core
+        .subscribe("$edgehub/+/twin/get/#", QoS::AtLeastOnce)
+        .await;
+    edge_hub_core
+        .subscribe("$edgehub/subscriptions/device_1", QoS::AtLeastOnce)
+        .await;
+    recieve_with_topic_and_payload(&mut edge_hub_core, "$edgehub/subscriptions/device_1", "[]").await;
+
+    // device requests twin update
+    device_1
+        .subscribe("$iothub/twin/res/#", QoS::AtLeastOnce)
+        .await;
+    recieve_with_topic_and_payload(
+        &mut edge_hub_core,
+        "$edgehub/subscriptions/device_1",
+        "[\"$edgehub/device_1/twin/res/#\"]",
+    )
+    .await;
+
+    device_1
+        .publish_qos1("$iothub/twin/GET/?rid=10", "", false)
+        .await;
+
+    // Core recieves request
+    recieve_with_topic(&mut edge_hub_core, "$edgehub/device_1/twin/get/?rid=10").await;
+    edge_hub_core
+        .publish_qos1("$edgehub/device_1/twin/res/200/?rid=10", "", false)
+        .await;
+
+    // device recieves response
+    recieve_with_topic(&mut device_1, "$iothub/twin/res/200/?rid=10").await;
+
+    server_handle.shutdown().await;
+}
+
 async fn recieve_with_topic(client: &mut TestClient, topic: &str) {
     assert_matches!(
         client.publications().recv().await,
         Some(ReceivedPublication {
             topic_name,..
         }) if &topic_name == topic
+    );
+}
+
+async fn recieve_with_topic_and_payload<B>(
+    client: &mut TestClient,
+    topic: &str,
+    expected_payload: B,
+) where
+    B: Into<bytes::Bytes>,
+{
+    assert_matches!(
+        client.publications().recv().await,
+        Some(ReceivedPublication {
+            topic_name, payload,..
+        }) if &topic_name == topic && payload == expected_payload.into()
     );
 }
