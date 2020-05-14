@@ -1,17 +1,10 @@
-#![allow(dead_code)]
-#![allow(unused_imports)]
-
-use std::time::Duration;
-
-use bytes::Bytes;
-use futures_util::StreamExt;
 use matches::assert_matches;
 use mqtt3::{
-    proto::{ClientId, Publication, QoS},
-    Event, ReceivedPublication,
+    proto::{ClientId, QoS},
+    ReceivedPublication,
 };
 
-use common::TestClientBuilder;
+use common::{TestClient, TestClientBuilder};
 use mqtt_broker::{AuthId, BrokerBuilder};
 
 mod common;
@@ -47,23 +40,13 @@ async fn translation_twin_retrieve() {
         .await;
 
     // Core recieves request
-    assert_matches!(
-        edge_hub_core.publications().recv().await,
-        Some(ReceivedPublication {
-            topic_name,..
-        }) if &topic_name == "$edgehub/device_1/twin/get/?rid=10"
-    );
+    recieve_with_topic(&mut edge_hub_core, "$edgehub/device_1/twin/get/?rid=10").await;
     edge_hub_core
         .publish_qos1("$edgehub/device_1/twin/res/200/?rid=10", "", false)
         .await;
 
     // device recieves response
-    assert_matches!(
-        device_1.publications().recv().await,
-        Some(ReceivedPublication {
-            topic_name,..
-        }) if &topic_name == "$iothub/twin/res/200/?rid=10"
-    );
+    recieve_with_topic(&mut device_1, "$iothub/twin/res/200/?rid=10").await;
 
     broker_shutdown.send(()).expect("can't stop the broker");
     broker_task
@@ -103,23 +86,17 @@ async fn translation_twin_update() {
         .await;
 
     // Core recieves request
-    assert_matches!(
-        edge_hub_core.publications().recv().await,
-        Some(ReceivedPublication {
-            topic_name,..
-        }) if &topic_name == "$edgehub/device_1/twin/reported/?rid=20"
-    );
+    recieve_with_topic(
+        &mut edge_hub_core,
+        "$edgehub/device_1/twin/reported/?rid=20",
+    )
+    .await;
     edge_hub_core
         .publish_qos1("$edgehub/device_1/twin/res/200/?rid=20", "", false)
         .await;
 
     // device recieves response
-    assert_matches!(
-        device_1.publications().recv().await,
-        Some(ReceivedPublication {
-            topic_name,..
-        }) if &topic_name == "$iothub/twin/res/200/?rid=20"
-    );
+    recieve_with_topic(&mut device_1, "$iothub/twin/res/200/?rid=20").await;
 
     broker_shutdown.send(()).expect("can't stop the broker");
     broker_task
@@ -156,12 +133,11 @@ async fn translation_twin_recieve() {
         .await;
 
     // device recieves response
-    assert_matches!(
-        device_1.publications().recv().await,
-        Some(ReceivedPublication {
-            topic_name,..
-        }) if &topic_name == "$iothub/twin/PATCH/properties/desired/?version=30"
-    );
+    recieve_with_topic(
+        &mut device_1,
+        "$iothub/twin/PATCH/properties/desired/?version=30",
+    )
+    .await;
 
     broker_shutdown.send(()).expect("can't stop the broker");
     broker_task
@@ -207,27 +183,30 @@ async fn translation_direct_method_response() {
         .await;
 
     // device recieves call and responds
-    assert_matches!(
-        device_1.publications().recv().await,
-        Some(ReceivedPublication {
-            topic_name,..
-        }) if &topic_name == "$iothub/methods/POST/my_cool_method/?rid=7"
-    );
+    recieve_with_topic(&mut device_1, "$iothub/methods/POST/my_cool_method/?rid=7").await;
     device_1
         .publish_qos1("$iothub/methods/res/200/?rid=7", "", false)
         .await;
 
     // Core recieves response
-    assert_matches!(
-        edge_hub_core.publications().recv().await,
-        Some(ReceivedPublication {
-            topic_name,..
-        }) if &topic_name == "$edgehub/device_1/methods/res/200/?rid=7"
-    );
+    recieve_with_topic(
+        &mut edge_hub_core,
+        "$edgehub/device_1/methods/res/200/?rid=7",
+    )
+    .await;
 
     broker_shutdown.send(()).expect("can't stop the broker");
     broker_task
         .await
         .unwrap()
         .expect("can't wait for the broker");
+}
+
+async fn recieve_with_topic(client: &mut TestClient, topic: &str) {
+    assert_matches!(
+        client.publications().recv().await,
+        Some(ReceivedPublication {
+            topic_name,..
+        }) if &topic_name == topic
+    );
 }
