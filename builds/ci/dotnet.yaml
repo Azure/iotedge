@@ -33,7 +33,7 @@ jobs:
             IotHubMqttHeadCert
       - template: ../templates/install-dotnet3.yaml
       - task: Bash@3
-        displayName: Install Prerequisites needed for RocksDB integration tests
+        displayName: Install Prerequisites
         inputs:
           filePath: scripts/linux/installPrereqs.sh
           arguments: -u $(NetCorePackageUriLinux)
