@@ -2,8 +2,8 @@
 namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 {
     using System;
-    using System.Collections;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         readonly CancellationTokenSource cts = new CancellationTokenSource();
         readonly ICheckpointerFactory checkpointerFactory;
         readonly EndpointExecutorConfig config;
-        AtomicReference<SortedDictionary<uint, EndpointExecutorFsm>> prioritiesToFsms;
+        AtomicReference<ImmutableDictionary<uint, EndpointExecutorFsm>> prioritiesToFsms;
         EndpointExecutorFsm lastUsedFsm;
 
         public StoringAsyncEndpointExecutor(
@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             this.options = Preconditions.CheckNotNull(options);
             this.messageStore = messageStore;
             this.sendMessageTask = Task.Run(this.SendMessagesPump);
-            this.prioritiesToFsms = new AtomicReference<SortedDictionary<uint, EndpointExecutorFsm>>(new SortedDictionary<uint, EndpointExecutorFsm>());
+            this.prioritiesToFsms = new AtomicReference<ImmutableDictionary<uint, EndpointExecutorFsm>>(ImmutableDictionary<uint, EndpointExecutorFsm>.Empty);
         }
 
         public Endpoint Endpoint { get; }
@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 using (MetricsV0.StoreLatency(this.Endpoint.Id))
                 {
                     // Get the checkpointer corresponding to the queue for this priority
-                    SortedDictionary<uint, EndpointExecutorFsm> snapshot = this.prioritiesToFsms;
+                    ImmutableDictionary<uint, EndpointExecutorFsm> snapshot = this.prioritiesToFsms;
                     ICheckpointer checkpointer = snapshot[priority].Checkpointer;
 
                     IMessage storedMessage = await this.messageStore.Add(GetMessageQueueId(this.Endpoint.Id, priority), message, timeToLiveSecs);
@@ -92,6 +92,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 if (!this.closed.GetAndSet(true))
                 {
                     this.cts.Cancel();
+                    // Require to close all FSMs to complete currently executing command if any in order to unblock sendMessageTask.
+                    ImmutableDictionary<uint, EndpointExecutorFsm> snapshot = this.prioritiesToFsms;
+                    foreach (EndpointExecutorFsm fsm in snapshot.Values)
+                    {
+                        await fsm.CloseAsync();
+                    }
+
                     await (this.messageStore?.RemoveEndpoint(this.Endpoint.Id) ?? Task.CompletedTask);
                     await (this.sendMessageTask ?? Task.CompletedTask);
                 }
@@ -144,10 +151,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             // Update priorities by merging the new ones with the existing.
             // We don't ever remove stale priorities, otherwise stored messages
             // pending for a removed priority will never get sent.
-            SortedDictionary<uint, EndpointExecutorFsm> snapshot = this.prioritiesToFsms;
+            ImmutableDictionary<uint, EndpointExecutorFsm> snapshot = this.prioritiesToFsms;
+            Dictionary<uint, EndpointExecutorFsm> updatedSnapshot = new Dictionary<uint, EndpointExecutorFsm>(snapshot);
             foreach (uint priority in priorities)
             {
-                if (!snapshot.ContainsKey(priority))
+                if (!updatedSnapshot.ContainsKey(priority))
                 {
                     string id = GetMessageQueueId(this.Endpoint.Id, priority);
 
@@ -159,22 +167,28 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                     EndpointExecutorFsm fsm = new EndpointExecutorFsm(this.Endpoint, checkpointer, this.config);
 
                     // Add it to our dictionary
-                    snapshot.Add(priority, fsm);
+                    updatedSnapshot.Add(priority, fsm);
                 }
                 else
                 {
                     // Update the existing FSM with the new endpoint
-                    EndpointExecutorFsm fsm = snapshot[priority];
+                    EndpointExecutorFsm fsm = updatedSnapshot[priority];
                     await newEndpoint.ForEachAsync(e => fsm.RunAsync(Commands.UpdateEndpoint(e)));
                 }
             }
 
-            this.prioritiesToFsms.Value = snapshot;
-            Events.UpdatePrioritiesSuccess(this, snapshot.Keys.ToList());
+            if (this.prioritiesToFsms.CompareAndSet(snapshot, updatedSnapshot.ToImmutableDictionary()))
+            {
+                Events.UpdatePrioritiesSuccess(this, updatedSnapshot.Keys.ToList());
 
-            // Update the lastUsedFsm to be the initial one, we always
-            // have at least one priority->FSM pair at this point.
-            this.lastUsedFsm = snapshot.Values.First();
+                // Update the lastUsedFsm to be the initial one, we always
+                // have at least one priority->FSM pair at this point.
+                this.lastUsedFsm = updatedSnapshot[priorities[0]];
+            }
+            else
+            {
+                Events.UpdatePrioritiesFailure(this, updatedSnapshot.Keys.ToList());
+            }
         }
 
         static string GetMessageQueueId(string endpointId, uint priority)
@@ -214,11 +228,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                     {
                         await this.hasMessagesInQueue.WaitAsync(this.options.BatchTimeout);
 
-                        SortedDictionary<uint, EndpointExecutorFsm> snapshot = this.prioritiesToFsms;
+                        ImmutableDictionary<uint, EndpointExecutorFsm> snapshot = this.prioritiesToFsms;
                         bool haveMessagesRemaining = false;
 
+                        uint[] orderedPriorities = snapshot.Keys.OrderBy(k => k).ToArray();
                         // Iterate through all the message queues in priority order
-                        foreach (KeyValuePair<uint, EndpointExecutorFsm> entry in snapshot)
+                        foreach (uint priority in orderedPriorities)
                         {
                             // Also check for cancellation in every inner loop,
                             // since it could take time to send a batch of messages
@@ -227,8 +242,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                                 break;
                             }
 
-                            uint priority = entry.Key;
-                            EndpointExecutorFsm fsm = entry.Value;
+                            EndpointExecutorFsm fsm = snapshot[priority];
 
                             // Update the lastUsedFsm to be the current FSM
                             this.lastUsedFsm = fsm;
@@ -297,8 +311,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             if (disposing)
             {
                 this.cts.Dispose();
-                SortedDictionary<uint, EndpointExecutorFsm> snapshot = this.prioritiesToFsms;
-                this.prioritiesToFsms.Value = null;
+                ImmutableDictionary<uint, EndpointExecutorFsm> snapshot = this.prioritiesToFsms;
+                this.prioritiesToFsms.CompareAndSet(snapshot, ImmutableDictionary<uint, EndpointExecutorFsm>.Empty);
                 foreach (KeyValuePair<uint, EndpointExecutorFsm> entry in snapshot)
                 {
                     var fsm = entry.Value;
@@ -379,6 +393,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 SetEndpointFailure,
                 UpdatePriorities,
                 UpdatePrioritiesSuccess,
+                UpdatePrioritiesFailure,
                 Close,
                 CloseSuccess,
                 CloseFailure,
@@ -449,6 +464,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             public static void UpdatePrioritiesSuccess(StoringAsyncEndpointExecutor executor, IList<uint> priorities)
             {
                 Log.LogInformation((int)EventIds.UpdatePrioritiesSuccess, $"[UpdatePrioritiesSuccess] Update priorities succeeded EndpointId: {executor.Endpoint.Id}, EndpointName: {executor.Endpoint.Name}, New Priorities: {priorities}");
+            }
+
+            public static void UpdatePrioritiesFailure(StoringAsyncEndpointExecutor executor, IList<uint> priorities)
+            {
+                Log.LogError((int)EventIds.UpdatePrioritiesFailure, $"[UpdatePrioritiesSuccess] Update priorities failed EndpointId: {executor.Endpoint.Id}, EndpointName: {executor.Endpoint.Name}, New Priorities: {priorities}");
             }
 
             public static void Close(StoringAsyncEndpointExecutor executor)
