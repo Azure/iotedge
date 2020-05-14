@@ -19,9 +19,9 @@ proptest! {
     /// that the broker and its model processed packet in a similar way.
     ///
     /// Currently, there is only on a test case that handles a randomly generated sequence of
-    /// CONNECT, DISCONNECT, SUBSCRIBE, UNSUBSCRIBE packets with pseudo-random data. In the end,
-    /// the test verifies that both the broker and its model contain the same number of sessions
-    //// and same number of subscriptions.
+    /// CONNECT, DISCONNECT, SUBSCRIBE, UNSUBSCRIBE packets with pseudo-random data and also
+    /// DropConnection, CloseSession events. In the end, the test verifies that both the broker and
+    /// its model contain the same number of sessions and same number of subscriptions.
     #[test]
     fn broker_manages_sessions(
         events in proptest::collection::vec(arb_broker_event(), 1..50)
@@ -106,6 +106,16 @@ fn into_events(
             ClientEvent::Unsubscribe(unsubscribe.clone()),
             ModelEventIn::Unsubscribe(unsubscribe),
         ),
+        BrokerEvent::CloseSession(client_id) => (
+            client_id,
+            ClientEvent::CloseSession,
+            ModelEventIn::CloseSession,
+        ),
+        BrokerEvent::DropConnection(client_id) => (
+            client_id,
+            ClientEvent::DropConnection,
+            ModelEventIn::DropConnection,
+        ),
     }
 }
 
@@ -123,6 +133,8 @@ pub enum BrokerEvent {
     Disconnect(ClientId, proto::Disconnect),
     Subscribe(ClientId, proto::Subscribe),
     Unsubscribe(ClientId, proto::Unsubscribe),
+    CloseSession(ClientId),
+    DropConnection(ClientId),
 }
 
 #[derive(Debug, Default)]
@@ -139,6 +151,8 @@ impl BrokerModel {
             ModelEventIn::Unsubscribe(unsubscribe) => {
                 self.process_unsubscribe(client_id, unsubscribe)
             }
+            ModelEventIn::CloseSession => self.process_close_session(client_id),
+            ModelEventIn::DropConnection => self.process_drop_connection(client_id),
         }
     }
 
@@ -164,6 +178,18 @@ impl BrokerModel {
     }
 
     fn process_disconnect(&mut self, client_id: ClientId) {
+        self.close_session(client_id);
+    }
+
+    fn process_close_session(&mut self, client_id: ClientId) {
+        self.close_session(client_id);
+    }
+
+    fn process_drop_connection(&mut self, client_id: ClientId) {
+        self.close_session(client_id);
+    }
+
+    fn close_session(&mut self, client_id: ClientId) {
         if let Some(session) = self.sessions.remove(&client_id) {
             let offline_session = match session {
                 ModelSession::Transient(_) => None,
@@ -232,6 +258,8 @@ enum ModelEventIn {
     Disconnect(proto::Disconnect),
     Subscribe(proto::Subscribe),
     Unsubscribe(proto::Unsubscribe),
+    CloseSession,
+    DropConnection,
 }
 
 pub fn arb_broker_event() -> impl Strategy<Value = BrokerEvent> {
@@ -247,5 +275,7 @@ pub fn arb_broker_event() -> impl Strategy<Value = BrokerEvent> {
         arb_client_id_weighted()
             .prop_flat_map(|id| arb_unsubscribe()
                 .prop_map(move |p| BrokerEvent::Unsubscribe(client_id(&id), p))),
+        arb_client_id_weighted().prop_map(|id| BrokerEvent::CloseSession(client_id(&id))),
+        arb_client_id_weighted().prop_map(|id| BrokerEvent::DropConnection(client_id(&id))),
     ]
 }
