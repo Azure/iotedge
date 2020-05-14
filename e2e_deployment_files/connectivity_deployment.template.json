@@ -42,7 +42,7 @@
           "edgeHub": {
             "type": "docker",
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-hub:<EdgeRuntime.BuildNumber>-linux-<Architecture>",
+              "image": "edgebuilds.azurecr.io/microsoft/eh_0514_1235",
               "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}],\"9600/tcp\": [{\"HostPort\": \"9601\"}]}}}"
             },
             "env": {
