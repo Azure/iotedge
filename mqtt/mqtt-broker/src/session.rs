@@ -314,6 +314,10 @@ impl SessionState {
         &self.client_id
     }
 
+    pub fn subscriptions(&self) -> &HashMap<String, Subscription> {
+        &self.subscriptions
+    }
+
     pub fn update_subscription(
         &mut self,
         topic_filter: String,
@@ -617,6 +621,17 @@ impl Session {
             Self::Offline(_offline) => None,
             Self::Disconnecting(disconnecting) => disconnecting.into_will(),
         }
+    }
+
+    pub fn subscriptions(&self) -> Option<&HashMap<String, Subscription>> {
+        let state = match self {
+            Self::Transient(connected) => Some(connected.state()),
+            Self::Persistent(connected) => Some(connected.state()),
+            Self::Offline(offline) => Some(offline.state()),
+            Self::Disconnecting(_) => None,
+        };
+
+        state.map(SessionState::subscriptions)
     }
 
     pub fn handle_publish(

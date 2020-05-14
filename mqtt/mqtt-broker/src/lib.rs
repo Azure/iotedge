@@ -25,6 +25,7 @@ mod persist;
 mod server;
 mod session;
 mod snapshot;
+mod state_change;
 mod subscription;
 mod transport;
 
