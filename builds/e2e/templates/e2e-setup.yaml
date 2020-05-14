@@ -97,6 +97,7 @@ steps:
       methodReceiverImage = "$imagePrefix-direct-method-receiver:$imageTag";
       loadGenImage = "$imagePrefix-load-gen:$imageTag";
       relayerImage = "$imagePrefix-relayer:$imageTag";
+      networkControllerImage = "$imagePrefix-networkController:$imageTag";
       testResultCoordinatorImage = "$imagePrefix-test-result-coordinator:$imageTag";
       metricsValidatorImage = "$imagePrefix-metrics-validator:$imageTag";
       registries = @(
