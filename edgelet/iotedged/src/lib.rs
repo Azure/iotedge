@@ -1357,7 +1357,6 @@ where
     M::Settings: Serialize,
     C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
-    // Remove all edge containers and delete settings state
     info!("Removing all modules...");
     tokio_runtime
         .block_on(runtime.remove_all())
