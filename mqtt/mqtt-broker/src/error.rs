@@ -54,6 +54,9 @@ pub enum Error {
 
     #[error("Unable to start broker.")]
     InitializeBroker(#[from] InitializeBrokerError),
+
+    #[error("An error occurred when constructing state change: {0}")]
+    StateChange(#[from] serde_json::Error),
 }
 
 /// Represents errors occurred while bootstrapping broker.
