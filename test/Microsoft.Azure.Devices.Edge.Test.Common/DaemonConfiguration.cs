@@ -17,6 +17,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.configYamlFile = configYamlFile;
             string contents = File.ReadAllText(this.configYamlFile);
             this.config = new YamlDocument(contents);
+            this.UpdateBootstrapImage("dybronsoregistry.azurecr.io/dybronso/edgeagente2e-copy");
+        }
+
+        public void UpdateBootstrapImage(string bootstrapImage)
+        {
+            this.config.ReplaceOrAdd("agent.config.image", bootstrapImage);
         }
 
         public void AddHttpsProxy(Uri proxy)
