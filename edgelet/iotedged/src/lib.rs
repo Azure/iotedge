@@ -2655,6 +2655,79 @@ mod tests {
     }
 
     #[test]
+    fn check_settings_state_does_not_delete_other_files() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
+        let config = DockerConfig::new(
+            "microsoft/test-image".to_string(),
+            ContainerCreateBody::new(),
+            None,
+        )
+        .unwrap();
+
+        // create baseline settings_state
+        let state = ModuleRuntimeState::default();
+        let module: TestModule<Error, _> =
+            TestModule::new_with_config("test-module".to_string(), config, Ok(state));
+        let runtime = TestRuntime::make_runtime(
+            settings.clone(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
+        let crypto = TestCrypto {
+            use_expired_ca: false,
+            fail_device_ca_alias: false,
+            fail_decrypt: false,
+            fail_encrypt: true,
+        };
+        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
+        check_settings_state::<TestRuntime<_, Settings>, _>(
+            tmp_dir.path(),
+            "settings_state",
+            &settings,
+            &runtime,
+            &crypto,
+            &mut tokio_runtime,
+            None,
+        )
+        .unwrap();
+
+        // create a couple extra files in the same folder as settings_state
+        let provisioning_backup_json = tmp_dir.path().join("provisioning_backup.json");
+        File::create(&provisioning_backup_json)
+            .unwrap()
+            .write_all("{}".as_bytes())
+            .unwrap();
+
+        let file1 = tmp_dir.path().join("file1.txt");
+        File::create(&file1)
+            .unwrap()
+            .write_all("hello".as_bytes())
+            .unwrap();
+
+        // change settings; will force update of settings_state
+        let settings1 = Settings::new(Path::new(GOOD_SETTINGS1)).unwrap();
+        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
+        check_settings_state::<TestRuntime<_, Settings>, _>(
+            tmp_dir.path(),
+            "settings_state",
+            &settings1,
+            &runtime,
+            &crypto,
+            &mut tokio_runtime,
+            None,
+        )
+        .unwrap();
+
+        // verify extra files weren't deleted
+        assert!(provisioning_backup_json.exists());
+        assert!(file1.exists());
+    }
+
+    #[test]
     fn get_proxy_uri_recognizes_https_proxy() {
         // Use existing "https_proxy" env var if it's set, otherwise invent one
         let proxy_val = env::var("https_proxy")
