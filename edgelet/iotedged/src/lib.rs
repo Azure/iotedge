@@ -2699,13 +2699,13 @@ mod tests {
         let provisioning_backup_json = tmp_dir.path().join("provisioning_backup.json");
         File::create(&provisioning_backup_json)
             .unwrap()
-            .write_all("{}".as_bytes())
+            .write_all(b"{}")
             .unwrap();
 
         let file1 = tmp_dir.path().join("file1.txt");
         File::create(&file1)
             .unwrap()
-            .write_all("hello".as_bytes())
+            .write_all(b"hello")
             .unwrap();
 
         // change settings; will force update of settings_state
