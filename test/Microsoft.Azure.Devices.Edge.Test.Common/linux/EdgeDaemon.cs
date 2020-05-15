@@ -97,7 +97,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 async () =>
                 {
                     await this.InternalStopAsync(token);
-                    Log.Verbose($"DRB - Configuring daemon with bootstrapReg: {this.bootstrapRegistry.address}");
                     var yaml = new DaemonConfiguration("/etc/iotedge/config.yaml", this.bootstrapRegistry);
                     (string msg, object[] props) = await config(yaml);
 

@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config.ReplaceOrAdd("agent.config.image", bootstrapImage);
             this.config.ReplaceOrAdd("agent.config.auth.serveraddress", bootstrapACRServerAddress);
             this.config.ReplaceOrAdd("agent.config.auth.username", bootstrapACRUsername);
-            this.config.ReplaceOrAdd("agent.config.auth.password", Environment.GetEnvironmentVariable(bootstrapACRPassword));
+            this.config.ReplaceOrAdd("agent.config.auth.password", bootstrapACRPassword);
         }
 
         public void AddHttpsProxy(Uri proxy)
