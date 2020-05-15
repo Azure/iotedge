@@ -15,11 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
     public class AuthAgentController : Controller
     {
-        const int Authenticated = 200;
-        const int Unauthenticated = 403;
-
-        static readonly string apiVersion = "2020-04-20";
-
         readonly IAuthenticator authenticator;
         readonly IUsernameParser usernameParser;
         readonly IClientCredentialsFactory clientCredentialsFactory;
@@ -43,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 return this.Json(GetErrorResult());
             }
 
-            if (!string.Equals(request.Version, apiVersion))
+            if (!string.Equals(request.Version, AuthAgentConstants.ApiVersion))
             {
                 Events.ErrorBadVersion(request.Version ?? "(none)");
                 return this.Json(GetErrorResult());
@@ -155,7 +150,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             if (isAuthenticated)
             {
                 Events.AuthSucceeded(id);
-                return new { result = Authenticated, identity = $"{iotHubName}/{id}", version = apiVersion };
+                return new
+                {
+                    result = AuthAgentConstants.Authenticated,
+                    identity = $"{iotHubName}/{id}",
+                    version = AuthAgentConstants.ApiVersion
+                };
             }
             else
             {
@@ -164,7 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
         }
 
-        static object GetErrorResult() => new { result = Unauthenticated, version = apiVersion };
+        static object GetErrorResult() => new { result = AuthAgentConstants.Unauthenticated, version = AuthAgentConstants.ApiVersion };
 
         static X509Certificate2 DecodeCertificate(string encodedCertificate)
         {
