@@ -15,11 +15,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
     public class EdgeDaemon : IEdgeDaemon
     {
-        readonly (string address, string username, string password) bootstrapRegistry;
+        readonly (string image, string address, string username, string password) bootstrapAgentInfo;
 
-        public EdgeDaemon((string address, string username, string password) bootstrapRegistry)
+        public EdgeDaemon((string image, string address, string username, string password) bootstrapAgentInfo)
         {
-            this.bootstrapRegistry = bootstrapRegistry;
+            this.bootstrapAgentInfo = bootstrapAgentInfo;
         }
 
         public async Task InstallAsync(Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 async () =>
                 {
                     await this.InternalStopAsync(token);
-                    var yaml = new DaemonConfiguration("/etc/iotedge/config.yaml", this.bootstrapRegistry);
+                    var yaml = new DaemonConfiguration("/etc/iotedge/config.yaml", this.bootstrapAgentInfo);
                     (string msg, object[] props) = await config(yaml);
 
                     message += $" {msg}";

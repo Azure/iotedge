@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             return daemonLog;
         }
 
-        public IEdgeDaemon CreateEdgeDaemon(Option<string> _, (string address, string username, string password) registry) => new EdgeDaemon(registry);
+        public IEdgeDaemon CreateEdgeDaemon(Option<string> _, (string image, string address, string username, string password) bootstrapAgentInfo) => new EdgeDaemon(bootstrapAgentInfo);
 
         public async Task<IdCertificates> GenerateIdentityCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
         {

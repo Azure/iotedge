@@ -20,7 +20,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public ManualProvisioningFixture()
         {
-            this.daemon = OsPlatform.Current.CreateEdgeDaemon(Context.Current.InstallerPath, Context.Current.Registries.First());
+            (string serverAddress, string username, string password) firstRegistry = Context.Current.Registries.First();
+            (string image, string serverAddress, string username, string password) bootstrapAgentInfo =
+                (Context.Current.EdgeAgentBootstrapImage, firstRegistry.serverAddress, firstRegistry.username, firstRegistry.password);
+            this.daemon = OsPlatform.Current.CreateEdgeDaemon(Context.Current.InstallerPath, bootstrapAgentInfo);
             this.iotHub = new IotHub(
                 Context.Current.ConnectionString,
                 Context.Current.EventHubEndpoint,

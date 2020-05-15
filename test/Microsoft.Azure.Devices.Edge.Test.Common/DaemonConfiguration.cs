@@ -12,16 +12,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         readonly string configYamlFile;
         readonly YamlDocument config;
 
-        public DaemonConfiguration(string configYamlFile, (string address, string username, string password) bootstrapRegistry)
+        public DaemonConfiguration(string configYamlFile, (string image, string address, string username, string password) bootstrapAgentInfo)
         {
             this.configYamlFile = configYamlFile;
             string contents = File.ReadAllText(this.configYamlFile);
             this.config = new YamlDocument(contents);
             this.UpdateBootstrapImage(
-                "dybronsoregistry.azurecr.io/dybronso/edgeagente2e-copy",
-                bootstrapRegistry.address,
-                bootstrapRegistry.username,
-                bootstrapRegistry.password);
+                bootstrapAgentInfo.image,
+                bootstrapAgentInfo.address,
+                bootstrapAgentInfo.username,
+                bootstrapAgentInfo.password);
         }
 
         public void UpdateBootstrapImage(string bootstrapImage, string bootstrapACRServerAddress, string bootstrapACRUsername, string bootstrapACRPassword)
