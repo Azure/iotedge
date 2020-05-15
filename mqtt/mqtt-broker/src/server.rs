@@ -1,4 +1,5 @@
 use std::future::Future;
+use std::sync::Arc;
 
 use futures_util::future::{self, Either, FutureExt};
 use futures_util::pin_mut;
@@ -37,11 +38,13 @@ where
         A: ToSocketAddrs,
         F: Future<Output = ()> + Unpin,
         I: IntoIterator<Item = TransportBuilder<A>>,
-        N: Authenticator + Send + Clone + Sync + 'static,
+        N: Authenticator + Send + Sync + 'static,
     {
         let Server { broker } = self;
         let mut handle = broker.handle();
         let broker_task = tokio::spawn(broker.run());
+
+        let authenticator = Arc::new(authenticator);
 
         let mut incoming_tasks = Vec::new();
         let mut shutdown_handles = Vec::new();
@@ -172,12 +175,12 @@ async fn incoming_task<A, F, N>(
     transport: TransportBuilder<A>,
     handle: BrokerHandle,
     mut shutdown_signal: F,
-    authenticator: N,
+    authenticator: Arc<N>,
 ) -> Result<(), Error>
 where
     A: ToSocketAddrs,
     F: Future<Output = ()> + Unpin,
-    N: Authenticator + Send + Clone + Sync + 'static,
+    N: Authenticator + Send + Sync + 'static,
 {
     let io = transport.build().await?;
     let addr = io.local_addr()?;

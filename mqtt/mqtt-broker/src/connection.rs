@@ -76,7 +76,7 @@ pub async fn process<I, N>(
     io: I,
     remote_addr: SocketAddr,
     mut broker_handle: BrokerHandle,
-    authenticator: N,
+    authenticator: Arc<N>,
 ) -> Result<(), Error>
 where
     I: AsyncRead + AsyncWrite + GetPeerCertificate<Certificate = Certificate> + Unpin,

@@ -49,7 +49,7 @@ pub trait Authenticator {
 #[async_trait]
 impl<F> Authenticator for F
 where
-    F: Fn(Option<String>, Credentials) -> Result<Option<AuthId>, AuthenticateError> + Sync + Clone,
+    F: Fn(Option<String>, Credentials) -> Result<Option<AuthId>, AuthenticateError> + Sync,
 {
     type Error = AuthenticateError;
 
@@ -69,7 +69,6 @@ pub struct AuthenticateError;
 
 /// Default implementation that always unable to authenticate a MQTT client and return `Ok(None)`.
 /// This implementation will be used if custom authentication mechanism was not provided.
-#[derive(Clone)]
 pub struct DefaultAuthenticator;
 
 #[async_trait]
