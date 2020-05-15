@@ -81,7 +81,8 @@ pub async fn process<I, N>(
 ) -> Result<(), Error>
 where
     I: AsyncRead + AsyncWrite + GetPeerCertificate<Certificate = Certificate> + Unpin,
-    N: Authenticator<Error = AuthenticationError> + Send + Sync + 'static,
+    N: Authenticator + Send + Sync + 'static,
+    N::Error: Into<AuthenticationError>,
 {
     let certificate = io.peer_certificate()?;
 
@@ -139,7 +140,7 @@ where
 
                 let auth_result = match authenticator.authenticate(connect.username.clone(), credentials).await {
                                             Ok(result) => AuthResult::Successful(result),
-                                            Err(e) => AuthResult::Failed(e)
+                                            Err(e) => AuthResult::Failed(e.into())
                                         };
 
                 let req = ConnReq::new(client_id.clone(), connect, auth_result, connection_handle);

@@ -38,7 +38,8 @@ where
         A: ToSocketAddrs,
         F: Future<Output = ()> + Unpin,
         I: IntoIterator<Item = TransportBuilder<A>>,
-        N: Authenticator<Error = AuthenticationError> + Send + Sync + 'static,
+        N: Authenticator + Send + Sync + 'static,
+        N::Error: Into<AuthenticationError>,
     {
         let Server { broker } = self;
         let mut handle = broker.handle();
@@ -180,7 +181,8 @@ async fn incoming_task<A, F, N>(
 where
     A: ToSocketAddrs,
     F: Future<Output = ()> + Unpin,
-    N: Authenticator<Error = AuthenticationError> + Send + Sync + 'static,
+    N: Authenticator + Send + Sync + 'static,
+    N::Error: Into<AuthenticationError>,
 {
     let io = transport.build().await?;
     let addr = io.local_addr()?;
