@@ -10,12 +10,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using AuthConfig = global::Docker.DotNet.Models.AuthConfig;
 
     public class CombinedEdgeletConfigProvider : CombinedDockerConfigProvider
     {
         readonly IConfigSource configSource;
+        static readonly ILogger logger = Logger.Factory.CreateLogger<CombinedEdgeletConfigProvider>();
 
         public CombinedEdgeletConfigProvider(
             IEnumerable<AuthConfig> authConfigs,
@@ -83,6 +85,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
 
                 var moduleWithDockerConfig = (IModule<DockerConfig>)module; // cast is safe; base impl already checked it
                 var env = moduleWithDockerConfig.Env ?? new Dictionary<string, EnvVal>();
+                logger.LogDebug("DRB - found env vars");
+                foreach (var d in env.Keys)
+                {
+                    logger.LogDebug($"Key: {d}, Val: {env[d]}");
+                }
 
                 var labels = createOptions.Labels ?? new Dictionary<string, string>();
                 // if these labels already existed (e.g. specified in the deployment), just overwrite them
