@@ -37,7 +37,6 @@ proptest! {
 
 async fn test_broker_manages_sessions(events: impl IntoIterator<Item = BrokerEvent>) {
     let mut broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
         .authorizer(|_| Ok(true))
         .build();
 

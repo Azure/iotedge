@@ -18,12 +18,9 @@ mod common;
 
 #[tokio::test]
 async fn basic_connect_clean_session() {
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker);
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut client = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
@@ -47,12 +44,9 @@ async fn basic_connect_clean_session() {
 ///	- Expects to see `reset_session` flag = false (existing session on the server).
 #[tokio::test]
 async fn basic_connect_existing_session() {
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker);
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut client = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests".into()))
@@ -92,12 +86,9 @@ async fn basic_connect_existing_session() {
 async fn basic_pub_sub() {
     let topic = "topic/A";
 
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker);
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut client = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
@@ -143,12 +134,9 @@ async fn retained_messages() {
     let topic_b = "topic/B";
     let topic_c = "topic/C";
 
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let mut server_handle = common::start_server(broker);
+    let mut server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut client = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
@@ -214,12 +202,9 @@ async fn retained_messages_zero_payload() {
     let topic_b = "topic/B";
     let topic_c = "topic/C";
 
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let mut server_handle = common::start_server(broker);
+    let mut server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut client = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
@@ -268,12 +253,9 @@ async fn retained_messages_persisted_on_broker_restart() {
     let topic_b = "topic/B";
     let topic_c = "topic/C";
 
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let mut server_handle = common::start_server(broker);
+    let mut server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut client = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
@@ -292,11 +274,10 @@ async fn retained_messages_persisted_on_broker_restart() {
     // restart broker with saved state
     let broker = BrokerBuilder::default()
         .state(state)
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
         .authorizer(|_| Ok(true))
         .build();
 
-    let server_handle = common::start_server(broker);
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut client = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
@@ -332,12 +313,9 @@ async fn retained_messages_persisted_on_broker_restart() {
 async fn will_message() {
     let topic = "topic/A";
 
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker);
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut client_b = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-b".into()))
@@ -387,12 +365,9 @@ async fn offline_messages() {
     let topic_b = "topic/B";
     let topic_c = "topic/C";
 
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker);
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut client_a = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests-a".into()))
@@ -448,12 +423,9 @@ async fn offline_messages_persisted_on_broker_restart() {
     let topic_b = "topic/B";
     let topic_c = "topic/C";
 
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let mut server_handle = common::start_server(broker);
+    let mut server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut client_a = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests-a".into()))
@@ -480,11 +452,10 @@ async fn offline_messages_persisted_on_broker_restart() {
     // restart broker with saved state
     let broker = BrokerBuilder::default()
         .state(state)
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
         .authorizer(|_| Ok(true))
         .build();
 
-    let server_handle = common::start_server(broker);
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut client_a = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests-a".into()))
@@ -531,12 +502,9 @@ async fn overlapping_subscriptions() {
     let topic_filter_pound = "topic/#";
     let topic_filter_plus = "topic/+";
 
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker);
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut client_a = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-a".into()))
@@ -583,12 +551,9 @@ async fn overlapping_subscriptions() {
 
 #[tokio::test]
 async fn wrong_first_packet_connection_dropped() {
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker);
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut client = PacketStream::open(server_handle.address()).await;
     client.send_packet(Packet::PingReq(PingReq)).await;
@@ -598,12 +563,9 @@ async fn wrong_first_packet_connection_dropped() {
 
 #[tokio::test]
 async fn duplicate_connect_packet_connection_dropped() {
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker);
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut client = PacketStream::open(server_handle.address()).await;
     client
@@ -643,12 +605,9 @@ async fn duplicate_connect_packet_connection_dropped() {
 
 #[tokio::test]
 async fn wrong_protocol_name_connection_dropped() {
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker);
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut client = PacketStream::open(server_handle.address()).await;
     client
@@ -668,12 +627,9 @@ async fn wrong_protocol_name_connection_dropped() {
 
 #[tokio::test]
 async fn wrong_protocol_version_rejected() {
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker);
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut client = PacketStream::open(server_handle.address()).await;
     client
@@ -701,12 +657,9 @@ async fn wrong_protocol_version_rejected() {
 
 #[tokio::test]
 async fn qos1_puback_should_be_in_order() {
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker);
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut client = PacketStream::connect(
         ClientId::IdWithCleanSession("test-client".into()),
