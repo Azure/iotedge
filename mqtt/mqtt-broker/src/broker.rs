@@ -1055,7 +1055,8 @@ pub(crate) mod tests {
         broker::{BrokerBuilder, BrokerHandle},
         error::Error,
         session::Session,
-        AuthId, AuthenticationError, AuthResult, ClientEvent, ClientId, ConnReq, ConnectionHandle, Message, Publish,
+        AuthId, AuthResult, AuthenticationError, ClientEvent, ClientId, ConnReq, ConnectionHandle,
+        Message, Publish,
     };
 
     pub fn connection_handle() -> ConnectionHandle {
@@ -2065,9 +2066,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_notify_state_change_single_connection() {
-        let broker = BrokerBuilder::default()
-            .authorizer(|_| Ok(true))
-            .build();
+        let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -2106,9 +2105,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_notify_state_change_multiple_connection() {
-        let broker = BrokerBuilder::default()
-            .authorizer(|_| Ok(true))
-            .build();
+        let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -2137,9 +2134,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_notify_state_change_add_remove_connection() {
-        let broker = BrokerBuilder::default()
-            .authorizer(|_| Ok(true))
-            .build();
+        let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -2175,9 +2170,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_notify_state_change_add_remove_subscription() {
-        let broker = BrokerBuilder::default()
-            .authorizer(|_| Ok(true))
-            .build();
+        let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -2211,9 +2204,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_notify_state_change_add_remove_multiple_subscriptions() {
-        let broker = BrokerBuilder::default()
-            .authorizer(|_| Ok(true))
-            .build();
+        let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -2250,9 +2241,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_notify_state_change_existing_subscriptions() {
-        let broker = BrokerBuilder::default()
-            .authorizer(|_| Ok(true))
-            .build();
+        let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
