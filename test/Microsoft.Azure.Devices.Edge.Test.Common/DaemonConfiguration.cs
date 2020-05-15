@@ -23,9 +23,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public void UpdateBootstrapImage(string bootstrapImage, string bootstrapACRUsername, string bootstrapACRServerAddress)
         {
             this.config.ReplaceOrAdd("agent.config.image", bootstrapImage);
-            this.config.ReplaceOrAdd("agent.config.auth.username:", bootstrapACRUsername);
-            this.config.ReplaceOrAdd("agent.config.auth.serveraddress:", bootstrapACRServerAddress);
-            this.config.ReplaceOrAdd("agent.config.auth.password:", Environment.GetEnvironmentVariable("E2E_REGISTRIES__0__PASSWORD"));
+            this.config.ReplaceOrAdd("agent.config.auth.username", bootstrapACRUsername);
+            this.config.ReplaceOrAdd("agent.config.auth.serveraddress", bootstrapACRServerAddress);
+            this.config.ReplaceOrAdd("agent.config.auth.password", Environment.GetEnvironmentVariable("E2E_REGISTRIES__0__PASSWORD"));
 
         }
 
