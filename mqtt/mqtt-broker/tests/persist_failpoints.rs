@@ -97,7 +97,7 @@ fn test_failpoints_smoketest() {
 }
 
 // Generates random sequences of events and failures and ensures
-// that the last commited snapshot isn't corrupted.
+// that the last committed snapshot isn't corrupted.
 proptest! {
     #[test]
     fn test_failpoints(count in 0usize..10, ops in vec(arb_op(), 0..50)) {
