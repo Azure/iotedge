@@ -25,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 new Settings(Mock.Of<ISettingsProvider>()),
                 id => Task.FromResult(Mock.Of<IMessagingBridge>()),
                 Mock.Of<IAuthenticator>(),
+                Mock.Of<IUsernameParser>(),
                 Mock.Of<IClientCredentialsFactory>(),
                 () => Mock.Of<ISessionStatePersistenceProvider>(),
                 new MultithreadEventLoopGroup(),

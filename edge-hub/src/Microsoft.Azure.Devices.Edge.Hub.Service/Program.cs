@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
@@ -151,6 +152,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             if (configuration.GetValue("httpSettings:enabled", true))
             {
                 protocolHeads.Add(new HttpProtocolHead(hosting.WebHost));
+            }
+
+            if (configuration.GetValue("authAgentSettings:enabled", true))
+            {
+                protocolHeads.Add(await container.Resolve<Task<AuthAgentProtocolHead>>());
+            }
+
+            if (configuration.GetValue("mqttBridgeSettings:enabled", true))
+            {
+                protocolHeads.Add(container.Resolve<MqttBridgeProtocolHead>());
             }
 
             return new EdgeHubProtocolHead(protocolHeads, logger);
