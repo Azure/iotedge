@@ -17,12 +17,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.configYamlFile = configYamlFile;
             string contents = File.ReadAllText(this.configYamlFile);
             this.config = new YamlDocument(contents);
-            this.UpdateBootstrapImage("dybronsoregistry.azurecr.io/dybronso/edgeagente2e-copy");
+            this.UpdateBootstrapImage("dybronsoregistry.azurecr.io/dybronso/edgeagente2e-copy", "dybronsoregistry", "dybronso.azurecr.io" );
         }
 
-        public void UpdateBootstrapImage(string bootstrapImage)
+        public void UpdateBootstrapImage(string bootstrapImage, string bootstrapACRUsername, string bootstrapACRServerAddress)
         {
             this.config.ReplaceOrAdd("agent.config.image", bootstrapImage);
+            this.config.ReplaceOrAdd("agent.config.auth.username:", bootstrapACRUsername);
+            this.config.ReplaceOrAdd("agent.config.auth.serveraddress:", bootstrapACRServerAddress);
+            this.config.ReplaceOrAdd("agent.config.auth.password:", Environment.GetEnvironmentVariable("E2E_REGISTRIES__0__PASSWORD"));
+
         }
 
         public void AddHttpsProxy(Uri proxy)
