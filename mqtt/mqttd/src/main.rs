@@ -37,7 +37,7 @@ async fn run() -> Result<(), Error> {
     // Setup the snapshotter
     let mut persistor = FilePersistor::new(
         env::current_dir().expect("can't get cwd").join("state"),
-        ConsolidatedStateFormat::default(),
+        VersionedFileFormat::default(),
     );
     info!("Loading state...");
     let state = persistor.load().await?.unwrap_or_else(BrokerState::default);
