@@ -102,19 +102,19 @@ namespace TestAnalyzer
             }
 
             bool areMessagesMissing = missingCounter > 0;
-            bool areLatestMessagesTooOld = DateTime.Compare(lastMessageDateTime.AddMilliseconds(toleranceInMilliseconds), endDateTime) < 0;
+            bool isLastMessageTooOld = DateTime.Compare(lastMessageDateTime.AddMilliseconds(toleranceInMilliseconds), endDateTime) < 0;
 
             if (areMessagesMissing)
             {
                 Logger.LogInformation($"Module {moduleId}: missing messages");
             }
 
-            if (areLatestMessagesTooOld)
+            if (isLastMessageTooOld)
             {
                 Logger.LogInformation($"Module {moduleId}: last message datetime={lastMessageDateTime} and end datetime={endDateTime}");
             }
 
-            (StatusCode statusCode, string statusMessage) = GetStatus(areMessagesMissing, areLatestMessagesTooOld, missingCounter, toleranceInMilliseconds);
+            (StatusCode statusCode, string statusMessage) = GetStatus(areMessagesMissing, isLastMessageTooOld, missingCounter, toleranceInMilliseconds);
 
             return new ModuleMessagesReport(moduleId, statusCode, totalMessagesCounter, statusMessage, lastMessageDateTime, missedMessages, Settings.Current.TestInfo);
         }
