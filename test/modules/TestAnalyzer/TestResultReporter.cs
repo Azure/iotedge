@@ -119,28 +119,28 @@ namespace TestAnalyzer
             return new ModuleMessagesReport(moduleId, statusCode, totalMessagesCounter, statusMessage, lastMessageDateTime, missedMessages, Settings.Current.TestInfo);
         }
 
-        static (StatusCode, string) GetStatus(bool areMessagesMissing, bool areLatestMessagesTooOld, long missingCounter, double toleranceInMilliseconds)
+        static (StatusCode, string) GetStatus(bool areMessagesMissing, bool isLastMessageTooOld, long missingCounter, double toleranceInMilliseconds)
         {
-            string missingMessagesStatus = $"Missing messages: {missingCounter}. ";
-            string messagesTooOldStatus = $"No messages received for the past {toleranceInMilliseconds} milliseconds. ";
+            string missingMessagesStatus = $"Missing messages: {missingCounter}.";
+            string messagesTooOldStatus = $"No messages received for the past {toleranceInMilliseconds} milliseconds.";
             string noMissingMessagesStatus = "All messages received. ";
 
             StatusCode statusCode;
             string statusMessage;
-            if (areMessagesMissing && areLatestMessagesTooOld)
+            if (areMessagesMissing && isLastMessageTooOld)
             {
                 statusCode = StatusCode.SkippedAndOldMessages;
-                statusMessage = $"{missingMessagesStatus}{messagesTooOldStatus}";
+                statusMessage = $"{missingMessagesStatus} {messagesTooOldStatus}";
             }
             else if (areMessagesMissing)
             {
                 statusCode = StatusCode.SkippedMessages;
                 statusMessage = $"{missingMessagesStatus}";
             }
-            else if (areLatestMessagesTooOld)
+            else if (isLastMessageTooOld)
             {
                 statusCode = StatusCode.OldMessages;
-                statusMessage = $"{messagesTooOldStatus}{noMissingMessagesStatus}";
+                statusMessage = $"{messagesTooOldStatus} {noMissingMessagesStatus}";
             }
             else
             {
