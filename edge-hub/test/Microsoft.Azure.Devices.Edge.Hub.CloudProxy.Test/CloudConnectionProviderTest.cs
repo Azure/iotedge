@@ -210,7 +210,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
             var deviceServiceIdentity = new ServiceIdentity(deviceIdentity.Id, "1234", new string[0], new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled);
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceIdentity.Id), false))
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceIdentity.Id)))
                 .ReturnsAsync(Option.Some(deviceServiceIdentity));
             var productInfoStore = Mock.Of<IProductInfoStore>();
             var edgeHub = Mock.Of<IEdgeHub>();
@@ -250,7 +250,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
             var deviceServiceIdentity = new ServiceIdentity(deviceIdentity.Id, "1234", new string[0], new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Disabled);
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceIdentity.Id), false))
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceIdentity.Id)))
                 .ReturnsAsync(Option.Some(deviceServiceIdentity));
 
             var credentialsCache = new Mock<ICredentialsCache>(MockBehavior.Strict);
@@ -293,7 +293,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var tokenCreds = new TokenCredentials(deviceIdentity, token, string.Empty, false);
 
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceIdentity.Id), false))
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceIdentity.Id)))
                 .ReturnsAsync(Option.None<ServiceIdentity>());
 
             var credentialsCache = new Mock<ICredentialsCache>(MockBehavior.Strict);

@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         event EventHandler<ServiceIdentity> ServiceIdentityUpdated;
 
-        Task<Option<ServiceIdentity>> GetServiceIdentity(string id, bool refreshIfNotExists = false);
+        Task<Option<ServiceIdentity>> GetServiceIdentity(string id);
 
         void InitiateCacheRefresh();
 

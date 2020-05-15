@@ -3,6 +3,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using Newtonsoft.Json;
 
+    /// <summary>
+    /// This is an object to encapsulate JSON serialization of the
+    /// GetDevicesAndModulesInTargetScope POST request.
+    /// </summary>
     class NestedScopeRequest
     {
         [JsonProperty(PropertyName = "pageSize")]

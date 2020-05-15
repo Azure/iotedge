@@ -289,7 +289,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             IDeviceScopeApiClient securityScopesApiClient = new DeviceScopeApiClient(this.iothubHostName, this.edgeDeviceId, this.edgeHubModuleId, 10, edgeHubTokenProvider, proxy);
                             IServiceProxy serviceProxy = new ServiceProxy(securityScopesApiClient);
                             IKeyValueStore<string, string> encryptedStore = await GetEncryptedStore(c, "DeviceScopeCache");
-                            deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy, encryptedStore, this.scopeCacheRefreshRate);
+                            deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(this.edgeDeviceId, serviceProxy, encryptedStore, this.scopeCacheRefreshRate);
                         }
                         else
                         {

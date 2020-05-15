@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(() => new ThrowingClient(clientWatcher, 3));
 
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(Id, false))
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(Id))
                 .ReturnsAsync(
                     Option.Some(
                         new ServiceIdentity(
@@ -146,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(() => new ThrowingClient(clientWatcher, 3));
 
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(Id, false))
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(Id))
                 .ReturnsAsync(
                     Option.Some(
                         new ServiceIdentity(
@@ -230,7 +230,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(() => new ThrowingClient(clientWatcher, 15));
 
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(Id, false))
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(Id))
                 .ReturnsAsync(
                     Option.Some(
                         new ServiceIdentity(

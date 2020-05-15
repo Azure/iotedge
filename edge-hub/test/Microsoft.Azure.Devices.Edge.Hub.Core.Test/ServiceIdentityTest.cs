@@ -61,36 +61,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Module identities - Equal
             yield return new object[]
             {
-                new ServiceIdentity("d1", "m1", "e1", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
-                new ServiceIdentity("d1", "m1", "e1", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "m1", "e1", "e2", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "m1", "e1", "e2", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
                 true
             };
 
             yield return new object[]
             {
-                new ServiceIdentity("d1", "m1", "e1", "1234", new List<string> { "123", "iotEdge" }, new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
-                new ServiceIdentity("d1", "m1", "e1", "1234", new List<string> { "123", "iotEdge" }, new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "m1", "e1", "e2", "1234", new List<string> { "123", "iotEdge" }, new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "m1", "e1", "e2", "1234", new List<string> { "123", "iotEdge" }, new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
                 true
             };
 
             yield return new object[]
             {
-                new ServiceIdentity("d1", "m1", "e1", "1234", new List<string>(), new ServiceAuthentication(new SymmetricKeyAuthentication("k1", "k2")), ServiceIdentityStatus.Enabled),
-                new ServiceIdentity("d1", "m1", "e1", "1234", new List<string>(), new ServiceAuthentication(new SymmetricKeyAuthentication("k1", "k2")), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "m1", "e1", "e2", "1234", new List<string>(), new ServiceAuthentication(new SymmetricKeyAuthentication("k1", "k2")), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "m1", "e1", "e2", "1234", new List<string>(), new ServiceAuthentication(new SymmetricKeyAuthentication("k1", "k2")), ServiceIdentityStatus.Enabled),
                 true
             };
 
             yield return new object[]
             {
-                new ServiceIdentity("d1", "m1", "e1", "1234", new List<string>(), new ServiceAuthentication(new X509ThumbprintAuthentication("k1", "k2")), ServiceIdentityStatus.Enabled),
-                new ServiceIdentity("d1", "m1", "e1", "1234", new List<string>(), new ServiceAuthentication(new X509ThumbprintAuthentication("k1", "k2")), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "m1", "e1", "e2", "1234", new List<string>(), new ServiceAuthentication(new X509ThumbprintAuthentication("k1", "k2")), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "m1", "e1", "e2", "1234", new List<string>(), new ServiceAuthentication(new X509ThumbprintAuthentication("k1", "k2")), ServiceIdentityStatus.Enabled),
                 true
             };
 
             yield return new object[]
             {
-                new ServiceIdentity("d1", "m1", "e1", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.None), ServiceIdentityStatus.Disabled),
-                new ServiceIdentity("d1", "m1", "e1", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.None), ServiceIdentityStatus.Disabled),
+                new ServiceIdentity("d1", "m1", "e1", "e2", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.None), ServiceIdentityStatus.Disabled),
+                new ServiceIdentity("d1", "m1", "e1", "e2", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.None), ServiceIdentityStatus.Disabled),
                 true
             };
 
@@ -147,57 +147,57 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Module identities - Not Equal
             yield return new object[]
             {
-                new ServiceIdentity("d1", "m1", "e1", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
-                new ServiceIdentity("d2", "m1", "e1", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "m1", "e1", "e2", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d2", "m1", "e1", "e2", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
                 false
             };
 
             yield return new object[]
             {
-                new ServiceIdentity("d1", "m1", "e1", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
-                new ServiceIdentity("d1", "m2", "e1", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "m1", "e1", "e2", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "m2", "e1", "e2", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
                 false
             };
 
             yield return new object[]
             {
-                new ServiceIdentity("d1", "m1", "e1", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
-                new ServiceIdentity("d1", "m1", "e1", "1235", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "m1", "e1", "e2", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "m1", "e1", "e2", "1235", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
                 false
             };
 
             yield return new object[]
             {
-                new ServiceIdentity("d1", "m1", "e1", "1234", new List<string> { "123" }, new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
-                new ServiceIdentity("d1", "m1", "e1", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "m1", "e1", "e2", "1234", new List<string> { "123" }, new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "m1", "e1", "e2", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
                 false
             };
 
             yield return new object[]
             {
-                new ServiceIdentity("d1", "m1", "e1", "1234", new List<string> { "123" }, new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
-                new ServiceIdentity("d1", "m1", "e1", "1234", new List<string> { "234" }, new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "m1", "e1", "e2", "1234", new List<string> { "123" }, new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "m1", "e1", "e2", "1234", new List<string> { "234" }, new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
                 false
             };
 
             yield return new object[]
             {
-                new ServiceIdentity("d1", "m1", "e1", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
-                new ServiceIdentity("d1", "m1", "e1", "1234", new List<string>(), new ServiceAuthentication(new SymmetricKeyAuthentication("k1", "k2")), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "m1", "e1", "e2", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "m1", "e1", "e2", "1234", new List<string>(), new ServiceAuthentication(new SymmetricKeyAuthentication("k1", "k2")), ServiceIdentityStatus.Enabled),
                 false
             };
 
             yield return new object[]
             {
-                new ServiceIdentity("d1", "m1", "e1", "1234", new List<string>(), new ServiceAuthentication(new X509ThumbprintAuthentication("k1", "k2")), ServiceIdentityStatus.Enabled),
-                new ServiceIdentity("d1", "m1", "e1", "1234", new List<string>(), new ServiceAuthentication(new SymmetricKeyAuthentication("k1", "k2")), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "m1", "e1", "e2", "1234", new List<string>(), new ServiceAuthentication(new X509ThumbprintAuthentication("k1", "k2")), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "m1", "e1", "e2", "1234", new List<string>(), new ServiceAuthentication(new SymmetricKeyAuthentication("k1", "k2")), ServiceIdentityStatus.Enabled),
                 false
             };
 
             yield return new object[]
             {
-                new ServiceIdentity("d1", "m1", "e1", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
-                new ServiceIdentity("d1", "m1", "e1", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Disabled),
+                new ServiceIdentity("d1", "m1", "e1", "e2", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Enabled),
+                new ServiceIdentity("d1", "m1", "e1", "e2", "1234", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Disabled),
                 false
             };
         }

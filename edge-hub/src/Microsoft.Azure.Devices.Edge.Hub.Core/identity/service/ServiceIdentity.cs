@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
             IEnumerable<string> capabilities,
             ServiceAuthentication authentication,
             ServiceIdentityStatus status)
-            : this(deviceId, null, null, generationId, capabilities, authentication, status)
+            : this(deviceId, null, null, null, generationId, capabilities, authentication, status)
         {
         }
 
@@ -24,6 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
         public ServiceIdentity(
             string deviceId,
             string moduleId,
+            string deviceScope,
             string parentScopes,
             string generationId,
             IEnumerable<string> capabilities,
@@ -32,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.ModuleId = Option.Maybe(moduleId);
+            this.DeviceScope = Option.Maybe(deviceScope);
             this.ParentScopes = Option.Maybe(parentScopes);
             this.Capabilities = Preconditions.CheckNotNull(capabilities, nameof(capabilities));
             this.Authentication = Preconditions.CheckNotNull(authentication, nameof(authentication));
@@ -49,6 +51,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
         [JsonProperty("moduleId")]
         [JsonConverter(typeof(OptionConverter<string>))]
         public Option<string> ModuleId { get; }
+
+        [JsonProperty("deviceScope")]
+        [JsonConverter(typeof(OptionConverter<string>))]
+        public Option<string> DeviceScope { get; }
 
         [JsonProperty("parentScopes")]
         [JsonConverter(typeof(OptionConverter<string>))]
