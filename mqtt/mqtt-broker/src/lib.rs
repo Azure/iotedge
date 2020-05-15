@@ -72,7 +72,7 @@ pub enum AuthResult {
 pub struct ConnReq {
     client_id: ClientId,
     connect: proto::Connect,
-    auth_result: AuthResult,
+    auth: AuthResult,
     handle: ConnectionHandle,
 }
 
@@ -80,13 +80,13 @@ impl ConnReq {
     pub fn new(
         client_id: ClientId,
         connect: proto::Connect,
-        auth_result: AuthResult,
+        auth: AuthResult,
         handle: ConnectionHandle,
     ) -> Self {
         Self {
             client_id,
             connect,
-            auth_result,
+            auth,
             handle,
         }
     }
@@ -103,8 +103,8 @@ impl ConnReq {
         &self.handle
     }
 
-    pub fn auth_result(&self) -> &AuthResult {
-        &self.auth_result
+    pub fn auth(&self) -> &AuthResult {
+        &self.auth
     }
 
     pub fn handle_mut(&mut self) -> &mut ConnectionHandle {

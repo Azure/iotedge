@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_repr::Deserialize_repr;
 
 use crate::auth::{AuthId, Authenticator, Credentials};
-use crate::{AuthenticationError, Error};
+use crate::AuthenticationError;
 
 const API_VERSION: &str = "2020-04-20";
 
@@ -14,16 +14,15 @@ pub struct EdgeHubAuthenticator {
 
 #[async_trait]
 impl Authenticator for EdgeHubAuthenticator {
-    type Error = Error;
+    type Error = AuthenticationError;
 
     async fn authenticate(
         &self,
         username: Option<String>,
         credentials: Credentials,
     ) -> Result<Option<AuthId>, Self::Error> {
-        self.authenticate_client((username, credentials).into())
-            .await
-            .map_err(Error::Authenticate)?
+        self.authenticate_client(EdgeHubAuthRequest::new(username, credentials))
+            .await?
             .into()
     }
 }
@@ -49,7 +48,7 @@ impl EdgeHubAuthenticator {
             .await
             .map_err(|_| AuthenticationError::ProcessResponse)?;
 
-        if !response.version.eq(API_VERSION) {
+        if response.version != API_VERSION {
             return Err(AuthenticationError::ApiVersion(response.version));
         }
 
@@ -67,8 +66,8 @@ pub struct EdgeHubAuthRequest {
     certificate_chain: Option<Vec<String>>,
 }
 
-impl From<(Option<String>, Credentials)> for EdgeHubAuthRequest {
-    fn from((username, credentials): (Option<String>, Credentials)) -> Self {
+impl EdgeHubAuthRequest {
+    fn new(username: Option<String>, credentials: Credentials) -> Self {
         let (password, certificate) = match credentials {
             Credentials::Password(p) => (p, None),
             Credentials::ClientCertificate(c) => (None, Some(base64::encode(c))),
@@ -99,12 +98,12 @@ pub struct EdgeHubAuthResponse {
     identity: Option<String>,
 }
 
-impl From<EdgeHubAuthResponse> for Result<Option<AuthId>, Error> {
+impl From<EdgeHubAuthResponse> for Result<Option<AuthId>, AuthenticationError> {
     fn from(item: EdgeHubAuthResponse) -> Self {
         match item.result {
             EdgeHubResultCode::Authenticated => item
                 .identity
-                .map_or(Err(AuthenticationError::ProcessResponse.into()), |i| {
+                .map_or(Err(AuthenticationError::ProcessResponse), |i| {
                     Ok(Some(AuthId::Identity(i)))
                 }),
             EdgeHubResultCode::Unauthenticated => Ok(None),

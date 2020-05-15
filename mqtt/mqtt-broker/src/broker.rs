@@ -222,7 +222,7 @@ where
         // and authorization checks. If any of these checks fail, it SHOULD send an
         // appropriate CONNACK response with a non-zero return code as described in
         // section 3.2 and it MUST close the Network Connection.
-        let auth_id = match connreq.auth_result() {
+        let auth_id = match connreq.auth() {
             AuthResult::Successful(Some(auth_id)) => {
                 debug!(
                     "client {} successfully authenticated: {}",

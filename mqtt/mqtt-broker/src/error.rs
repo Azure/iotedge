@@ -91,7 +91,7 @@ pub enum AuthenticationError {
     Execution,
 
     #[error("failed to send request: {0}.")]
-    SendRequest(#[source] reqwest::Error),
+    SendRequest(#[from] reqwest::Error),
 
     #[error("failed to process response.")]
     ProcessResponse,
