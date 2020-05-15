@@ -1357,7 +1357,7 @@ where
     M::Settings: Serialize,
     C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
-    // Remove all edge containers and destroy the cache (settings and dps backup)
+    // Remove all edge containers and delete settings state
     info!("Removing all modules...");
     tokio_runtime
         .block_on(runtime.remove_all())
@@ -1366,22 +1366,17 @@ where
         ))?;
     info!("Finished removing modules.");
 
-    // Ignore errors from this operation because we could be recovering from a previous bad
-    // configuration and shouldn't stall the current configuration because of that
-    let _u = fs::remove_dir_all(subdir);
-
     let path = subdir.join(filename);
 
-    DirBuilder::new()
-        .recursive(true)
-        .create(subdir)
-        .context(ErrorKind::Initialize(
-            InitializeErrorReason::CreateSettingsDirectory,
-        ))?;
+    // Ignore errors from this operation because we could be recovering from a previous bad
+    // configuration and shouldn't stall the current configuration because of that
+    let _ = fs::remove_file(path);
 
     // regenerate the workload CA certificate
     destroy_workload_ca(crypto)?;
     prepare_workload_ca(crypto)?;
+
+    // regenerate settings_state
     let mut file =
         File::create(path).context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
     let digest = compute_settings_digest(settings, id_cert_thumbprint)
