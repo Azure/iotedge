@@ -5,7 +5,7 @@ use bytes::{Buf, BufMut};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use tokio_util::codec::Decoder;
 
-use super::{BufMutExt, ByteBuf};
+use crate::proto::{BufMutExt, ByteBuf};
 
 /// An MQTT packet
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -170,11 +170,6 @@ impl PacketMeta for Connect {
         }
 
         let protocol_level = src.try_get_u8()?;
-        if protocol_level != crate::PROTOCOL_LEVEL {
-            return Err(super::DecodeError::UnrecognizedProtocolLevel(
-                protocol_level,
-            ));
-        }
 
         let connect_flags = src.try_get_u8()?;
         if connect_flags & 0x01 != 0 {
