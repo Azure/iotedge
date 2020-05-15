@@ -82,6 +82,8 @@ jobs:
 ################################################################################	
     displayName: Linux amd64
 
+    timeoutInMinutes: 180
+
     pool:
       vmImage: ubuntu-16.04
 
@@ -98,6 +100,8 @@ jobs:
   - job: windows_amd64
 ################################################################################	
     displayName: Windows amd64
+
+    timeoutInMinutes: 180
 
     pool:
       vmImage: windows-2019
