@@ -20,7 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public ManualProvisioningFixture()
         {
-            Log.Verbose($"DRB - First registry: {Context.Current.Registries.First().address}");
             this.daemon = OsPlatform.Current.CreateEdgeDaemon(Context.Current.InstallerPath, Context.Current.Registries.First());
             this.iotHub = new IotHub(
                 Context.Current.ConnectionString,

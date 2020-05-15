@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public DeviceProvisioningFixture()
         {
-            Log.Verbose($"DRB - First registry: {Context.Current.Registries.First().address}");
             this.daemon = OsPlatform.Current.CreateEdgeDaemon(Context.Current.InstallerPath, Context.Current.Registries.First());
         }
     }
