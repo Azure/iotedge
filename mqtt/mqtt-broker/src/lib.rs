@@ -65,7 +65,7 @@ impl std::fmt::Display for ClientId {
 #[derive(Debug)]
 pub enum AuthResult {
     Successful(Option<AuthId>),
-    Failed,
+    Failed(AuthenticationError),
 }
 
 #[derive(Debug)]

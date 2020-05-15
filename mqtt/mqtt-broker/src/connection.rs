@@ -20,7 +20,8 @@ use crate::auth::Credentials;
 use crate::broker::BrokerHandle;
 use crate::transport::GetPeerCertificate;
 use crate::{
-    AuthResult, Authenticator, Certificate, ClientEvent, ClientId, ConnReq, Error, Message, Publish,
+    AuthResult, AuthenticationError, Authenticator, Certificate, ClientEvent, ClientId, ConnReq,
+    Error, Message, Publish,
 };
 
 lazy_static! {
@@ -80,7 +81,7 @@ pub async fn process<I, N>(
 ) -> Result<(), Error>
 where
     I: AsyncRead + AsyncWrite + GetPeerCertificate<Certificate = Certificate> + Unpin,
-    N: Authenticator + Send + Sync + 'static,
+    N: Authenticator<Error = AuthenticationError> + Send + Sync + 'static,
 {
     let certificate = io.peer_certificate()?;
 
@@ -136,10 +137,9 @@ where
                     Credentials::ClientCertificate,
                 );
 
-                // FIXME: pass the error
                 let auth_result = match authenticator.authenticate(connect.username.clone(), credentials).await {
                                             Ok(result) => AuthResult::Successful(result),
-                                            Err(_) => AuthResult::Failed
+                                            Err(e) => AuthResult::Failed(e)
                                         };
 
                 let req = ConnReq::new(client_id.clone(), connect, auth_result, connection_handle);

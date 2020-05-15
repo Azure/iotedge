@@ -21,7 +21,9 @@ use mqtt3::{
     Client, Event, PublishError, PublishHandle, ReceivedPublication, ShutdownHandle,
     UpdateSubscriptionHandle,
 };
-use mqtt_broker::{Authenticator, Authorizer, Broker, BrokerState, Error, Server};
+use mqtt_broker::{
+    AuthenticationError, Authenticator, Authorizer, Broker, BrokerState, Error, Server,
+};
 
 /// A wrapper on the [`mqtt3::Client`] to help simplify client event loop management.
 #[derive(Debug)]
@@ -291,7 +293,7 @@ pub fn start_server<N, Z>(
     authenticator: N,
 ) -> (Sender<()>, JoinHandle<Result<BrokerState, Error>>, String)
 where
-    N: Authenticator + Send + Sync + 'static,
+    N: Authenticator<Error = AuthenticationError> + Send + Sync + 'static,
     Z: Authorizer + Send + Sync + 'static,
 {
     lazy_static! {

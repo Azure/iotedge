@@ -235,8 +235,8 @@ where
                 refuse_connection!(proto::ConnectionRefusedReason::BadUserNameOrPassword);
                 return Ok(());
             }
-            AuthResult::Failed => {
-                // FIXME: warn!(message = "error authenticating client: {}", error = %e);
+            AuthResult::Failed(e) => {
+                warn!(message = "error authenticating client: {}", error = %e);
                 refuse_connection!(proto::ConnectionRefusedReason::ServerUnavailable);
                 return Ok(());
             }
@@ -1009,7 +1009,8 @@ pub(crate) mod tests {
         error::Error,
         session::{tests::arb_session_state, Session},
         tests::{arb_publication, arb_topic},
-        AuthId, AuthResult, ClientEvent, ClientId, ConnReq, ConnectionHandle, Message,
+        AuthId, AuthResult, AuthenticationError, ClientEvent, ClientId, ConnReq, ConnectionHandle,
+        Message,
     };
 
     prop_compose! {
@@ -1409,7 +1410,12 @@ pub(crate) mod tests {
         let (tx1, mut rx1) = mpsc::unbounded_channel();
         let conn1 = ConnectionHandle::from_sender(tx1);
         let client_id = ClientId::from("blah".to_string());
-        let req1 = ConnReq::new(client_id.clone(), connect1, AuthResult::Failed, conn1);
+        let req1 = ConnReq::new(
+            client_id.clone(),
+            connect1,
+            AuthResult::Failed(AuthenticationError::Execution),
+            conn1,
+        );
 
         broker_handle
             .send(Message::Client(

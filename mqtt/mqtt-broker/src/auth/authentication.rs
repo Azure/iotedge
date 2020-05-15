@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 
 use crate::auth::AuthId;
+use crate::AuthenticationError;
 
 /// Describes a MQTT client credentials.
 pub enum Credentials {
@@ -49,9 +50,9 @@ pub trait Authenticator {
 #[async_trait]
 impl<F> Authenticator for F
 where
-    F: Fn(Option<String>, Credentials) -> Result<Option<AuthId>, AuthenticateError> + Sync,
+    F: Fn(Option<String>, Credentials) -> Result<Option<AuthId>, AuthenticationError> + Sync,
 {
-    type Error = AuthenticateError;
+    type Error = AuthenticationError;
 
     async fn authenticate(
         &self,
@@ -62,18 +63,13 @@ where
     }
 }
 
-/// Authentication error type placeholder.
-#[derive(Debug, thiserror::Error)]
-#[error("An error occurred authenticating client.")]
-pub struct AuthenticateError;
-
 /// Default implementation that always unable to authenticate a MQTT client and return `Ok(None)`.
 /// This implementation will be used if custom authentication mechanism was not provided.
 pub struct DefaultAuthenticator;
 
 #[async_trait]
 impl Authenticator for DefaultAuthenticator {
-    type Error = AuthenticateError;
+    type Error = AuthenticationError;
 
     async fn authenticate(
         &self,
