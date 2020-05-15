@@ -36,7 +36,6 @@ jobs:
         displayName: Install Prerequisites
         inputs:
           filePath: scripts/linux/installPrereqs.sh
-          arguments: -u $(NetCorePackageUriLinux)
       - pwsh: |
           $store = [System.Security.Cryptography.X509Certificates.X509Store]::new('Root', 'CurrentUser')
           $store.Open('ReadWrite')
