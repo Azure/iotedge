@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel;
     using System.IO;
     using System.Linq;
@@ -14,6 +15,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
     public class EdgeDaemon : IEdgeDaemon
     {
+        readonly (string address, string username, string password) bootstrapRegistry;
+
+        public EdgeDaemon((string address, string username, string password) bootstrapRegistry)
+        {
+            this.bootstrapRegistry = bootstrapRegistry;
+        }
+
         public async Task InstallAsync(Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
         {
             var properties = new object[] { Dns.GetHostName() };
@@ -89,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 async () =>
                 {
                     await this.InternalStopAsync(token);
-                    var yaml = new DaemonConfiguration("/etc/iotedge/config.yaml");
+                    var yaml = new DaemonConfiguration("/etc/iotedge/config.yaml", this.bootstrapRegistry);
                     (string msg, object[] props) = await config(yaml);
 
                     message += $" {msg}";

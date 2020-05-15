@@ -12,21 +12,24 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         readonly string configYamlFile;
         readonly YamlDocument config;
 
-        public DaemonConfiguration(string configYamlFile)
+        public DaemonConfiguration(string configYamlFile, (string address, string username, string password) bootstrapRegistry)
         {
             this.configYamlFile = configYamlFile;
             string contents = File.ReadAllText(this.configYamlFile);
             this.config = new YamlDocument(contents);
-            this.UpdateBootstrapImage("dybronsoregistry.azurecr.io/dybronso/edgeagente2e-copy", "dybronsoregistry", "dybronso.azurecr.io" );
+            this.UpdateBootstrapImage(
+                "dybronsoregistry.azurecr.io/dybronso/edgeagente2e-copy",
+                bootstrapRegistry.address,
+                bootstrapRegistry.username,
+                bootstrapRegistry.password);
         }
 
-        public void UpdateBootstrapImage(string bootstrapImage, string bootstrapACRUsername, string bootstrapACRServerAddress)
+        public void UpdateBootstrapImage(string bootstrapImage, string bootstrapACRServerAddress, string bootstrapACRUsername, string bootstrapACRPassword)
         {
             this.config.ReplaceOrAdd("agent.config.image", bootstrapImage);
-            this.config.ReplaceOrAdd("agent.config.auth.username", bootstrapACRUsername);
             this.config.ReplaceOrAdd("agent.config.auth.serveraddress", bootstrapACRServerAddress);
-            this.config.ReplaceOrAdd("agent.config.auth.password", Environment.GetEnvironmentVariable("E2E_REGISTRIES__0__PASSWORD"));
-
+            this.config.ReplaceOrAdd("agent.config.auth.username", bootstrapACRUsername);
+            this.config.ReplaceOrAdd("agent.config.auth.password", Environment.GetEnvironmentVariable(bootstrapACRPassword));
         }
 
         public void AddHttpsProxy(Uri proxy)

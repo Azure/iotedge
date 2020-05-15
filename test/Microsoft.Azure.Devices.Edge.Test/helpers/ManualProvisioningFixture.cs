@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -18,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public ManualProvisioningFixture()
         {
-            this.daemon = OsPlatform.Current.CreateEdgeDaemon(Context.Current.InstallerPath);
+            this.daemon = OsPlatform.Current.CreateEdgeDaemon(Context.Current.InstallerPath, Context.Current.Registries.First());
             this.iotHub = new IotHub(
                 Context.Current.ConnectionString,
                 Context.Current.EventHubEndpoint,

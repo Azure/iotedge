@@ -168,7 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                                 // normalize stringized JSON inside "createOptions"
                                 // But ignore the value if it starts with 'net.azure-devices.edge'
                                 string value = JObject.Parse((string)v.Value).ToString(Formatting.None);
-                                v.Value = (value.Contains("net.azure-devices.edge")) ? "{}" : value;
+                                v.Value = value.Contains("net.azure-devices.edge") ? "{}" : value;
                             }
 
                             return v;
