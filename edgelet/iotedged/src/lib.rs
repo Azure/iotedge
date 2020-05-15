@@ -1368,10 +1368,6 @@ where
 
     let path = subdir.join(filename);
 
-    // Ignore errors from this operation because we could be recovering from a previous bad
-    // configuration and shouldn't stall the current configuration because of that
-    let _ = fs::remove_file(path);
-
     // regenerate the workload CA certificate
     destroy_workload_ca(crypto)?;
     prepare_workload_ca(crypto)?;
