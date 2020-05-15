@@ -2703,10 +2703,7 @@ mod tests {
             .unwrap();
 
         let file1 = tmp_dir.path().join("file1.txt");
-        File::create(&file1)
-            .unwrap()
-            .write_all(b"hello")
-            .unwrap();
+        File::create(&file1).unwrap().write_all(b"hello").unwrap();
 
         // change settings; will force update of settings_state
         let settings1 = Settings::new(Path::new(GOOD_SETTINGS1)).unwrap();
