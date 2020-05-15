@@ -74,7 +74,7 @@ jobs:
           imageName: azureiotedge-analyzer
           project: TestAnalyzer
 
-      # Functions Sample
+      # Functions Sample - Not supported on linux arm64
       - template: templates/image-linux.yaml
         parameters:
           name: Functions Sample
@@ -272,7 +272,7 @@ jobs:
           imageName: azureiotedge-analyzer
           project: TestAnalyzer
           
-      # Functions Sample - Not supported on arm64
+      # Functions Sample
       - template: templates/image-windows.yaml
         parameters:
           name: Functions Sample
