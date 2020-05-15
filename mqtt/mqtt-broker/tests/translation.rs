@@ -209,7 +209,8 @@ async fn translation_twin_notify() {
     edge_hub_core
         .subscribe("$edgehub/subscriptions/device_1", QoS::AtLeastOnce)
         .await;
-    recieve_with_topic_and_payload(&mut edge_hub_core, "$edgehub/subscriptions/device_1", "[]").await;
+    recieve_with_topic_and_payload(&mut edge_hub_core, "$edgehub/subscriptions/device_1", "[]")
+        .await;
 
     // device requests twin update
     device_1
