@@ -52,6 +52,11 @@ tracing-subscriber = "0.1"
 name = "persist_failpoints"
 required-features = ["fail/failpoints"]
 
+[[test]]
+name = "broker_model"
+path = "tests/broker_model.rs"
+required-features = ["proptest"]
+
 [[bench]]
 name = "persist_broker_state"
 harness = false
