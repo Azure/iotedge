@@ -16,9 +16,13 @@ use tracing::{debug, info, span, trace, warn, Level};
 use tracing_futures::Instrument;
 use uuid::Uuid;
 
+use crate::auth::Credentials;
 use crate::broker::BrokerHandle;
 use crate::transport::GetPeerCertificate;
-use crate::{Certificate, ClientEvent, ClientId, ConnReq, Error, Message, Publish};
+use crate::{
+    AuthResult, AuthenticationError, Authenticator, Certificate, ClientEvent, ClientId, ConnReq,
+    Error, Message, Publish,
+};
 
 lazy_static! {
     static ref DEFAULT_TIMEOUT: Duration = Duration::from_secs(5);
@@ -69,13 +73,16 @@ impl PartialEq for ConnectionHandle {
 ///
 /// Receives a source of packets and a handle to the Broker.
 /// Starts two tasks (sending and receiving)
-pub async fn process<I>(
+pub async fn process<I, N>(
     io: I,
     remote_addr: SocketAddr,
     mut broker_handle: BrokerHandle,
+    authenticator: Arc<N>,
 ) -> Result<(), Error>
 where
     I: AsyncRead + AsyncWrite + GetPeerCertificate<Certificate = Certificate> + Unpin,
+    N: Authenticator + Send + Sync + 'static,
+    N::Error: Into<AuthenticationError>,
 {
     let certificate = io.peer_certificate()?;
 
@@ -119,7 +126,24 @@ where
                     codec.get_mut().set_read_timeout(Some(keep_alive));
                 }
 
-                let req = ConnReq::new(client_id.clone(), connect, certificate, connection_handle);
+                // [MQTT-3.1.4-3] - The Server MAY check that the contents of the CONNECT
+                // Packet meet any further restrictions and MAY perform authentication
+                // and authorization checks. If any of these checks fail, it SHOULD send an
+                // appropriate CONNACK response with a non-zero return code as described in
+                // section 3.2 and it MUST close the Network Connection.
+                let credentials = certificate.map_or(
+                    Credentials::Password(
+                        connect.password.clone(),
+                    ),
+                    Credentials::ClientCertificate,
+                );
+
+                let auth_result = match authenticator.authenticate(connect.username.clone(), credentials).await {
+                                            Ok(result) => AuthResult::Successful(result),
+                                            Err(e) => AuthResult::Failed(e.into())
+                                        };
+
+                let req = ConnReq::new(client_id.clone(), connect, auth_result, connection_handle);
                 let event = ClientEvent::ConnReq(req);
                 let message = Message::Client(client_id.clone(), event);
                 broker_handle.send(message).await?;

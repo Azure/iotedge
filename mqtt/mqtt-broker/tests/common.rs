@@ -24,7 +24,9 @@ use mqtt3::{
     Client, Event, PublishError, PublishHandle, ReceivedPublication, ShutdownHandle,
     UpdateSubscriptionHandle, PROTOCOL_LEVEL, PROTOCOL_NAME,
 };
-use mqtt_broker::{Authenticator, Authorizer, Broker, BrokerState, Error, Server};
+use mqtt_broker::{
+    AuthenticationError, Authenticator, Authorizer, Broker, BrokerState, Error, Server,
+};
 
 /// A wrapper on the [`mqtt3::Client`] to help simplify client event loop management.
 #[derive(Debug)]
@@ -416,9 +418,10 @@ impl Drop for ServerHandle {
 
 /// Starts a test server with a provided broker and returns
 /// shutdown handle, broker task and server binding.
-pub fn start_server<N, Z>(broker: Broker<N, Z>) -> ServerHandle
+pub fn start_server<N, Z>(broker: Broker<Z>, authenticator: N) -> ServerHandle
 where
     N: Authenticator + Send + Sync + 'static,
+    N::Error: Into<AuthenticationError>,
     Z: Authorizer + Send + Sync + 'static,
 {
     lazy_static! {
@@ -430,7 +433,8 @@ where
 
     let (shutdown, rx) = oneshot::channel::<()>();
     let transports = vec![mqtt_broker::TransportBuilder::Tcp(address.clone())];
-    let task = tokio::spawn(Server::from_broker(broker).serve(transports, rx.map(drop)));
+    let task =
+        tokio::spawn(Server::from_broker(broker).serve(transports, rx.map(drop), authenticator));
 
     ServerHandle {
         address,

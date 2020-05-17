@@ -6,14 +6,12 @@ use mqtt3::proto;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info, span, warn, Level};
 
-use crate::auth::{
-    Activity, Authenticator, Authorizer, Credentials, DefaultAuthenticator, DefaultAuthorizer,
-    Operation,
-};
+use crate::auth::{Activity, Authorizer, DefaultAuthorizer, Operation};
 use crate::session::{ConnectedSession, Session, SessionState};
 use crate::state_change::StateChange;
 use crate::{
-    subscription::Subscription, AuthId, ClientEvent, ClientId, ConnReq, Error, Message, SystemEvent,
+    subscription::Subscription, AuthId, AuthResult, ClientEvent, ClientId, ConnReq, Error, Message,
+    SystemEvent,
 };
 use tokio::sync::mpsc::{self, Receiver, Sender};
 
@@ -28,21 +26,19 @@ macro_rules! try_send {
     }};
 }
 
-pub struct Broker<N, Z> {
+pub struct Broker<Z> {
     sender: Sender<Message>,
     messages: Receiver<Message>,
     sessions: HashMap<ClientId, Session>,
     retained: HashMap<String, proto::Publication>,
-    authenticator: N,
     authorizer: Z,
 
     #[cfg(feature = "__internal_broker_callbacks")]
     pub on_publish: Option<tokio::sync::mpsc::UnboundedSender<std::time::Duration>>,
 }
 
-impl<N, Z> Broker<N, Z>
+impl<Z> Broker<Z>
 where
-    N: Authenticator + Send + 'static,
     Z: Authorizer + Send + 'static,
 {
     pub fn handle(&self) -> BrokerHandle {
@@ -249,27 +245,20 @@ where
         // and authorization checks. If any of these checks fail, it SHOULD send an
         // appropriate CONNACK response with a non-zero return code as described in
         // section 3.2 and it MUST close the Network Connection.
-        let credentials = connreq.certificate().map_or(
-            Credentials::Basic(
-                connreq.connect().username.clone(),
-                connreq.connect().password.clone(),
-            ),
-            |certificate| Credentials::ClientCertificate(certificate.clone()),
-        );
-        let auth_id = match self.authenticator.authenticate(credentials) {
-            Ok(Some(auth_id)) => {
+        let auth_id = match connreq.auth() {
+            AuthResult::Successful(Some(auth_id)) => {
                 debug!(
                     "client {} successfully authenticated: {}",
                     client_id, auth_id
                 );
-                auth_id
+                auth_id.clone()
             }
-            Ok(None) => {
+            AuthResult::Successful(None) => {
                 warn!("unable to authenticate client: {}", client_id);
                 refuse_connection!(proto::ConnectionRefusedReason::BadUserNameOrPassword);
                 return Ok(());
             }
-            Err(e) => {
+            AuthResult::Failed(e) => {
                 warn!(message = "error authenticating client: {}", error = %e);
                 refuse_connection!(proto::ConnectionRefusedReason::ServerUnavailable);
                 return Ok(());
@@ -967,45 +956,30 @@ impl BrokerState {
     }
 }
 
-pub struct BrokerBuilder<N, Z> {
+pub struct BrokerBuilder<Z> {
     state: Option<BrokerState>,
-    authenticator: N,
     authorizer: Z,
 }
 
-impl Default for BrokerBuilder<DefaultAuthenticator, DefaultAuthorizer> {
+impl Default for BrokerBuilder<DefaultAuthorizer> {
     fn default() -> Self {
         Self {
             state: None,
-            authenticator: DefaultAuthenticator,
             authorizer: DefaultAuthorizer,
         }
     }
 }
 
-impl<N, Z> BrokerBuilder<N, Z>
+impl<Z> BrokerBuilder<Z>
 where
-    N: Authenticator,
     Z: Authorizer,
 {
-    pub fn authenticator<N1>(self, authenticator: N1) -> BrokerBuilder<N1, Z>
-    where
-        N1: Authenticator,
-    {
-        BrokerBuilder {
-            state: self.state,
-            authenticator,
-            authorizer: self.authorizer,
-        }
-    }
-
-    pub fn authorizer<Z1>(self, authorizer: Z1) -> BrokerBuilder<N, Z1>
+    pub fn authorizer<Z1>(self, authorizer: Z1) -> BrokerBuilder<Z1>
     where
         Z1: Authorizer,
     {
         BrokerBuilder {
             state: self.state,
-            authenticator: self.authenticator,
             authorizer,
         }
     }
@@ -1015,7 +989,7 @@ where
         self
     }
 
-    pub fn build(self) -> Broker<N, Z> {
+    pub fn build(self) -> Broker<Z> {
         let (retained, sessions) = match self.state {
             Some(state) => {
                 let sessions = state
@@ -1035,7 +1009,6 @@ where
             messages,
             sessions,
             retained,
-            authenticator: self.authenticator,
             authorizer: self.authorizer,
 
             #[cfg(feature = "__internal_broker_callbacks")]
@@ -1078,11 +1051,12 @@ pub(crate) mod tests {
 
     use super::OpenSession;
     use crate::{
-        auth::{Activity, AuthenticateError, AuthorizeError, Operation},
+        auth::{Activity, AuthorizeError, Operation},
         broker::{BrokerBuilder, BrokerHandle},
         error::Error,
         session::Session,
-        AuthId, ClientEvent, ClientId, ConnReq, ConnectionHandle, Message, Publish,
+        AuthId, AuthResult, AuthenticationError, ClientEvent, ClientId, ConnReq, ConnectionHandle,
+        Message, Publish,
     };
 
     pub fn connection_handle() -> ConnectionHandle {
@@ -1118,10 +1092,7 @@ pub(crate) mod tests {
     #[tokio::test]
     #[should_panic]
     async fn test_double_connect_protocol_violation() {
-        let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-            .authorizer(|_| Ok(true))
-            .build();
+        let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -1150,8 +1121,18 @@ pub(crate) mod tests {
         let conn2 = ConnectionHandle::new(id, tx1);
         let client_id = ClientId::from("blah".to_string());
 
-        let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
-        let req2 = ConnReq::new(client_id.clone(), connect2, None, conn2);
+        let req1 = ConnReq::new(
+            client_id.clone(),
+            connect1,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            conn1,
+        );
+        let req2 = ConnReq::new(
+            client_id.clone(),
+            connect2,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            conn2,
+        );
 
         broker_handle
             .send(Message::Client(
@@ -1181,10 +1162,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_double_connect_drop_first_transient() {
-        let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-            .authorizer(|_| Ok(true))
-            .build();
+        let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -1213,8 +1191,18 @@ pub(crate) mod tests {
         let conn2 = ConnectionHandle::from_sender(tx2);
         let client_id = ClientId::from("blah".to_string());
 
-        let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
-        let req2 = ConnReq::new(client_id.clone(), connect2, None, conn2);
+        let req1 = ConnReq::new(
+            client_id.clone(),
+            connect1,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            conn1,
+        );
+        let req2 = ConnReq::new(
+            client_id.clone(),
+            connect2,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            conn2,
+        );
 
         broker_handle
             .send(Message::Client(
@@ -1249,10 +1237,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_invalid_protocol_name() {
-        let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-            .authorizer(|_| Ok(true))
-            .build();
+        let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -1269,7 +1254,12 @@ pub(crate) mod tests {
         let (tx1, mut rx1) = mpsc::unbounded_channel();
         let conn1 = ConnectionHandle::from_sender(tx1);
         let client_id = ClientId::from("blah".to_string());
-        let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
+        let req1 = ConnReq::new(
+            client_id.clone(),
+            connect1,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            conn1,
+        );
 
         broker_handle
             .send(Message::Client(
@@ -1288,10 +1278,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_invalid_protocol_level() {
-        let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-            .authorizer(|_| Ok(true))
-            .build();
+        let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -1308,7 +1295,12 @@ pub(crate) mod tests {
         let (tx1, mut rx1) = mpsc::unbounded_channel();
         let conn1 = ConnectionHandle::from_sender(tx1);
         let client_id = ClientId::from("blah".to_string());
-        let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
+        let req1 = ConnReq::new(
+            client_id.clone(),
+            connect1,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            conn1,
+        );
 
         broker_handle
             .send(Message::Client(
@@ -1337,10 +1329,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_connect_auth_succeeded() {
-        let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-            .authorizer(|_| Ok(true))
-            .build();
+        let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -1358,7 +1347,12 @@ pub(crate) mod tests {
         let (tx1, mut rx1) = mpsc::unbounded_channel();
         let conn1 = ConnectionHandle::from_sender(tx1);
         let client_id = ClientId::from("blah".to_string());
-        let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
+        let req1 = ConnReq::new(
+            client_id.clone(),
+            connect1,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            conn1,
+        );
 
         broker_handle
             .send(Message::Client(
@@ -1380,10 +1374,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_connect_unknown_client() {
-        let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(None))
-            .authorizer(|_| Ok(true))
-            .build();
+        let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -1401,7 +1392,12 @@ pub(crate) mod tests {
         let (tx1, mut rx1) = mpsc::unbounded_channel();
         let conn1 = ConnectionHandle::from_sender(tx1);
         let client_id = ClientId::from("blah".to_string());
-        let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
+        let req1 = ConnReq::new(
+            client_id.clone(),
+            connect1,
+            AuthResult::Successful(None),
+            conn1,
+        );
 
         broker_handle
             .send(Message::Client(
@@ -1430,10 +1426,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_connect_authentication_failed() {
-        let broker = BrokerBuilder::default()
-            .authenticator(|_| Err(AuthenticateError))
-            .authorizer(|_| Ok(true))
-            .build();
+        let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -1451,7 +1444,12 @@ pub(crate) mod tests {
         let (tx1, mut rx1) = mpsc::unbounded_channel();
         let conn1 = ConnectionHandle::from_sender(tx1);
         let client_id = ClientId::from("blah".to_string());
-        let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
+        let req1 = ConnReq::new(
+            client_id.clone(),
+            connect1,
+            AuthResult::Failed(AuthenticationError::GeneralError),
+            conn1,
+        );
 
         broker_handle
             .send(Message::Client(
@@ -1480,10 +1478,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_connect_client_has_no_permissions() {
-        let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some("client-a".into())))
-            .authorizer(|_| Ok(false))
-            .build();
+        let broker = BrokerBuilder::default().authorizer(|_| Ok(false)).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -1501,7 +1496,12 @@ pub(crate) mod tests {
         let (tx1, mut rx1) = mpsc::unbounded_channel();
         let conn1 = ConnectionHandle::from_sender(tx1);
         let client_id = ClientId::from("blah".to_string());
-        let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
+        let req1 = ConnReq::new(
+            client_id.clone(),
+            connect1,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            conn1,
+        );
 
         broker_handle
             .send(Message::Client(
@@ -1531,7 +1531,6 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_connect_authorization_failed() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
             .authorizer(|_| Err(AuthorizeError))
             .build();
 
@@ -1551,7 +1550,12 @@ pub(crate) mod tests {
         let (tx1, mut rx1) = mpsc::unbounded_channel();
         let conn1 = ConnectionHandle::from_sender(tx1);
         let client_id = ClientId::from("blah".to_string());
-        let req1 = ConnReq::new(client_id.clone(), connect1, None, conn1);
+        let req1 = ConnReq::new(
+            client_id.clone(),
+            connect1,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            conn1,
+        );
 
         broker_handle
             .send(Message::Client(
@@ -1580,16 +1584,18 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_empty_transient() {
-        let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-            .authorizer(|_| Ok(true))
-            .build();
+        let mut broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
         let connect = transient_connect(id);
         let handle = connection_handle();
-        let req = ConnReq::new(client_id.clone(), connect, None, handle);
+        let req = ConnReq::new(
+            client_id.clone(),
+            connect,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            handle,
+        );
         let auth_id = AuthId::Anonymous;
 
         broker.open_session(auth_id, req).unwrap();
@@ -1606,16 +1612,18 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_empty_persistent() {
-        let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-            .authorizer(|_| Ok(true))
-            .build();
+        let mut broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
         let connect = persistent_connect(id);
         let handle = connection_handle();
-        let req = ConnReq::new(client_id.clone(), connect, None, handle);
+        let req = ConnReq::new(
+            client_id.clone(),
+            connect,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            handle,
+        );
         let auth_id = AuthId::Anonymous;
 
         broker.open_session(auth_id, req).unwrap();
@@ -1633,10 +1641,7 @@ pub(crate) mod tests {
     #[test]
     #[should_panic]
     fn test_add_session_same_connection_transient() {
-        let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-            .authorizer(|_| Ok(true))
-            .build();
+        let mut broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1647,8 +1652,18 @@ pub(crate) mod tests {
         let handle1 = ConnectionHandle::new(id, tx1.clone());
         let handle2 = ConnectionHandle::new(id, tx1);
 
-        let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
-        let req2 = ConnReq::new(client_id, connect2, None, handle2);
+        let req1 = ConnReq::new(
+            client_id.clone(),
+            connect1,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            handle1,
+        );
+        let req2 = ConnReq::new(
+            client_id,
+            connect2,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            handle2,
+        );
         let auth_id = AuthId::Anonymous;
 
         broker.open_session(auth_id.clone(), req1).unwrap();
@@ -1662,10 +1677,7 @@ pub(crate) mod tests {
     #[test]
     #[should_panic]
     fn test_add_session_same_connection_persistent() {
-        let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-            .authorizer(|_| Ok(true))
-            .build();
+        let mut broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1676,8 +1688,18 @@ pub(crate) mod tests {
         let handle1 = ConnectionHandle::new(id, tx1.clone());
         let handle2 = ConnectionHandle::new(id, tx1);
 
-        let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
-        let req2 = ConnReq::new(client_id, connect2, None, handle2);
+        let req1 = ConnReq::new(
+            client_id.clone(),
+            connect1,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            handle1,
+        );
+        let req2 = ConnReq::new(
+            client_id,
+            connect2,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            handle2,
+        );
         let auth_id = AuthId::Anonymous;
 
         broker.open_session(auth_id.clone(), req1).unwrap();
@@ -1690,10 +1712,7 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_different_connection_transient_then_transient() {
-        let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-            .authorizer(|_| Ok(true))
-            .build();
+        let mut broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1701,13 +1720,23 @@ pub(crate) mod tests {
         let connect2 = transient_connect(id);
         let handle1 = connection_handle();
         let handle2 = connection_handle();
-        let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
+        let req1 = ConnReq::new(
+            client_id.clone(),
+            connect1,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            handle1,
+        );
         let auth_id = AuthId::Anonymous;
 
         broker.open_session(auth_id.clone(), req1).unwrap();
         assert_eq!(1, broker.sessions.len());
 
-        let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
+        let req2 = ConnReq::new(
+            client_id.clone(),
+            connect2,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            handle2,
+        );
         let result = broker.open_session(auth_id, req2);
         assert_matches!(result, Ok(OpenSession::DuplicateSession(_, _)));
         assert_matches!(broker.sessions[&client_id], Session::Transient(_));
@@ -1716,10 +1745,7 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_different_connection_transient_then_persistent() {
-        let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-            .authorizer(|_| Ok(true))
-            .build();
+        let mut broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1727,13 +1753,23 @@ pub(crate) mod tests {
         let connect2 = persistent_connect(id);
         let handle1 = connection_handle();
         let handle2 = connection_handle();
-        let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
+        let req1 = ConnReq::new(
+            client_id.clone(),
+            connect1,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            handle1,
+        );
         let auth_id = AuthId::Anonymous;
 
         broker.open_session(auth_id.clone(), req1).unwrap();
         assert_eq!(1, broker.sessions.len());
 
-        let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
+        let req2 = ConnReq::new(
+            client_id.clone(),
+            connect2,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            handle2,
+        );
         let result = broker.open_session(auth_id, req2);
         assert_matches!(result, Ok(OpenSession::DuplicateSession(_, _)));
         assert_matches!(broker.sessions[&client_id], Session::Persistent(_));
@@ -1742,10 +1778,7 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_different_connection_persistent_then_transient() {
-        let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-            .authorizer(|_| Ok(true))
-            .build();
+        let mut broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1753,13 +1786,23 @@ pub(crate) mod tests {
         let connect2 = transient_connect(id);
         let handle1 = connection_handle();
         let handle2 = connection_handle();
-        let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
+        let req1 = ConnReq::new(
+            client_id.clone(),
+            connect1,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            handle1,
+        );
         let auth_id = AuthId::Anonymous;
 
         broker.open_session(auth_id.clone(), req1).unwrap();
         assert_eq!(1, broker.sessions.len());
 
-        let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
+        let req2 = ConnReq::new(
+            client_id.clone(),
+            connect2,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            handle2,
+        );
         let result = broker.open_session(auth_id, req2);
         assert_matches!(result, Ok(OpenSession::DuplicateSession(_, _)));
         assert_matches!(broker.sessions[&client_id], Session::Transient(_));
@@ -1768,10 +1811,7 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_different_connection_persistent_then_persistent() {
-        let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-            .authorizer(|_| Ok(true))
-            .build();
+        let mut broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1779,8 +1819,18 @@ pub(crate) mod tests {
         let connect2 = persistent_connect(id);
         let handle1 = connection_handle();
         let handle2 = connection_handle();
-        let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
-        let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
+        let req1 = ConnReq::new(
+            client_id.clone(),
+            connect1,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            handle1,
+        );
+        let req2 = ConnReq::new(
+            client_id.clone(),
+            connect2,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            handle2,
+        );
         let auth_id = AuthId::Anonymous;
 
         broker.open_session(auth_id.clone(), req1).unwrap();
@@ -1794,10 +1844,7 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_offline_persistent() {
-        let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-            .authorizer(|_| Ok(true))
-            .build();
+        let mut broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
@@ -1805,8 +1852,18 @@ pub(crate) mod tests {
         let connect2 = persistent_connect(id);
         let handle1 = connection_handle();
         let handle2 = connection_handle();
-        let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
-        let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
+        let req1 = ConnReq::new(
+            client_id.clone(),
+            connect1,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            handle1,
+        );
+        let req2 = ConnReq::new(
+            client_id.clone(),
+            connect2,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            handle2,
+        );
         let auth_id = AuthId::Anonymous;
 
         broker.open_session(auth_id.clone(), req1).unwrap();
@@ -1829,17 +1886,19 @@ pub(crate) mod tests {
 
     #[test]
     fn test_add_session_offline_transient() {
-        let mut broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-            .authorizer(|_| Ok(true))
-            .build();
+        let mut broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
         let connect1 = persistent_connect(id.clone());
         let handle1 = connection_handle();
         let handle2 = connection_handle();
-        let req1 = ConnReq::new(client_id.clone(), connect1, None, handle1);
+        let req1 = ConnReq::new(
+            client_id.clone(),
+            connect1,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            handle1,
+        );
         let auth_id = AuthId::Anonymous;
 
         broker.open_session(auth_id.clone(), req1).unwrap();
@@ -1855,7 +1914,12 @@ pub(crate) mod tests {
 
         // Reopen session
         let connect2 = transient_connect(id);
-        let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
+        let req2 = ConnReq::new(
+            client_id.clone(),
+            connect2,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            handle2,
+        );
         broker.open_session(auth_id, req2).unwrap();
 
         assert_eq!(1, broker.sessions.len());
@@ -1865,7 +1929,6 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_publish_client_has_no_permissions() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some("client-a".into())))
             .authorizer(|activity: Activity| match activity.operation() {
                 Operation::Connect(_) => Ok(true),
                 _ => Ok(false),
@@ -1900,7 +1963,6 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_subscribe_client_has_no_permissions() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some("client-a".into())))
             .authorizer(|activity: Activity| match activity.operation() {
                 Operation::Connect(_) => Ok(true),
                 Operation::Subscribe(subscribe) => match subscribe.topic_filter() {
@@ -1951,7 +2013,6 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_receive_client_has_no_permissions() {
         let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some("client-a".into())))
             .authorizer(|activity: Activity| match activity.operation() {
                 Operation::Connect(_) => Ok(true),
                 Operation::Publish(_) => Ok(true),
@@ -2005,10 +2066,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_notify_state_change_single_connection() {
-        let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-            .authorizer(|_| Ok(true))
-            .build();
+        let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -2047,10 +2105,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_notify_state_change_multiple_connection() {
-        let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-            .authorizer(|_| Ok(true))
-            .build();
+        let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -2079,10 +2134,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_notify_state_change_add_remove_connection() {
-        let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-            .authorizer(|_| Ok(true))
-            .build();
+        let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -2118,10 +2170,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_notify_state_change_add_remove_subscription() {
-        let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-            .authorizer(|_| Ok(true))
-            .build();
+        let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -2155,10 +2204,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_notify_state_change_add_remove_multiple_subscriptions() {
-        let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-            .authorizer(|_| Ok(true))
-            .build();
+        let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -2195,10 +2241,7 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn test_notify_state_change_existing_subscriptions() {
-        let broker = BrokerBuilder::default()
-            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-            .authorizer(|_| Ok(true))
-            .build();
+        let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
         let mut broker_handle = broker.handle();
         tokio::spawn(broker.run().map(drop));
@@ -2233,7 +2276,12 @@ pub(crate) mod tests {
         let (tx, mut rx) = mpsc::unbounded_channel();
         let conn = ConnectionHandle::from_sender(tx);
         let client_id = ClientId::from(client_id);
-        let req = ConnReq::new(client_id.clone(), connect, None, conn);
+        let req = ConnReq::new(
+            client_id.clone(),
+            connect,
+            AuthResult::Successful(Some(AuthId::Anonymous)),
+            conn,
+        );
         broker_handle
             .send(Message::Client(
                 client_id.clone(),

@@ -42,7 +42,6 @@ async fn run() -> Result<(), Error> {
     info!("Loading state...");
     let state = persistor.load().await?.unwrap_or_else(BrokerState::default);
     let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
         .authorizer(|_| Ok(true))
         .state(state)
         .build();
@@ -74,7 +73,7 @@ async fn run() -> Result<(), Error> {
 
     info!("Starting server...");
     let state = Server::from_broker(broker)
-        .serve(transports, shutdown)
+        .serve(transports, shutdown, |_, _| Ok(Some(AuthId::Anonymous)))
         .await?;
 
     // Stop snapshotting
