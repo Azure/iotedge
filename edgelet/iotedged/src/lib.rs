@@ -1357,7 +1357,6 @@ where
     M::Settings: Serialize,
     C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
-    // Remove all edge containers and destroy the cache (settings and dps backup)
     info!("Removing all modules...");
     tokio_runtime
         .block_on(runtime.remove_all())
@@ -1366,22 +1365,13 @@ where
         ))?;
     info!("Finished removing modules.");
 
-    // Ignore errors from this operation because we could be recovering from a previous bad
-    // configuration and shouldn't stall the current configuration because of that
-    let _u = fs::remove_dir_all(subdir);
-
     let path = subdir.join(filename);
-
-    DirBuilder::new()
-        .recursive(true)
-        .create(subdir)
-        .context(ErrorKind::Initialize(
-            InitializeErrorReason::CreateSettingsDirectory,
-        ))?;
 
     // regenerate the workload CA certificate
     destroy_workload_ca(crypto)?;
     prepare_workload_ca(crypto)?;
+
+    // regenerate settings_state
     let mut file =
         File::create(path).context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
     let digest = compute_settings_digest(settings, id_cert_thumbprint)
@@ -2662,6 +2652,76 @@ mod tests {
 
         assert_eq!(expected_base64, written1);
         assert_ne!(written1, written);
+    }
+
+    #[test]
+    fn check_settings_state_does_not_delete_other_files() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
+        let config = DockerConfig::new(
+            "microsoft/test-image".to_string(),
+            ContainerCreateBody::new(),
+            None,
+        )
+        .unwrap();
+
+        // create baseline settings_state
+        let state = ModuleRuntimeState::default();
+        let module: TestModule<Error, _> =
+            TestModule::new_with_config("test-module".to_string(), config, Ok(state));
+        let runtime = TestRuntime::make_runtime(
+            settings.clone(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
+        let crypto = TestCrypto {
+            use_expired_ca: false,
+            fail_device_ca_alias: false,
+            fail_decrypt: false,
+            fail_encrypt: true,
+        };
+        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
+        check_settings_state::<TestRuntime<_, Settings>, _>(
+            tmp_dir.path(),
+            "settings_state",
+            &settings,
+            &runtime,
+            &crypto,
+            &mut tokio_runtime,
+            None,
+        )
+        .unwrap();
+
+        // create a couple extra files in the same folder as settings_state
+        let provisioning_backup_json = tmp_dir.path().join("provisioning_backup.json");
+        File::create(&provisioning_backup_json)
+            .unwrap()
+            .write_all(b"{}")
+            .unwrap();
+
+        let file1 = tmp_dir.path().join("file1.txt");
+        File::create(&file1).unwrap().write_all(b"hello").unwrap();
+
+        // change settings; will force update of settings_state
+        let settings1 = Settings::new(Path::new(GOOD_SETTINGS1)).unwrap();
+        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
+        check_settings_state::<TestRuntime<_, Settings>, _>(
+            tmp_dir.path(),
+            "settings_state",
+            &settings1,
+            &runtime,
+            &crypto,
+            &mut tokio_runtime,
+            None,
+        )
+        .unwrap();
+
+        // verify extra files weren't deleted
+        assert!(provisioning_backup_json.exists());
+        assert!(file1.exists());
     }
 
     #[test]
