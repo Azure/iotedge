@@ -166,9 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                             if (v.Path.EndsWith("settings.createOptions"))
                             {
                                 // normalize stringized JSON inside "createOptions"
-                                // But ignore the value if it starts with 'net.azure-devices.edge'
-                                string value = JObject.Parse((string)v.Value).ToString(Formatting.None);
-                                v.Value = value.Contains("net.azure-devices.edge") ? "{}" : value;
+                                v.Value = JObject.Parse((string)v.Value).ToString(Formatting.None);
                             }
 
                             return v;
