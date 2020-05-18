@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="..\..\..\dotnetVersion.props" />
+  <Import Project="..\..\..\netcoreappVersion.props" />
 
   <PropertyGroup>
         <TreatWarningsAsErrors>True</TreatWarningsAsErrors>

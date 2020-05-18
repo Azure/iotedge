@@ -1,7 +1,7 @@
 ﻿<!--EXTERNAL_PROPERTIES: RocksDbAsPackage-->
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="..\..\..\dotnetVersion.props" />
+  <Import Project="..\..\..\netstandardVersion.props" />
 
   <PropertyGroup>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
