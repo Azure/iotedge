@@ -102,7 +102,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                         var env = labels.TryGetValue(Core.Constants.Labels.Env, out string envStr)
                             ? JsonConvert.DeserializeObject<Dictionary<string, EnvVal>>(envStr)
                             : new Dictionary<string, EnvVal>();
-                        Events.PrintMe($"EnvStr: {envStr}");
 
                         module = new EdgeAgentDockerRuntimeModule(
                             dockerRuntimeInfo.Config,
@@ -174,11 +173,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             public static void InvalidModuleType(ModuleRuntimeInfo moduleRuntimeInfo)
             {
                 Log.LogWarning((int)EventIds.InvalidModuleType, $"Module {moduleRuntimeInfo.Name} has an invalid module type '{moduleRuntimeInfo.Type}'. Expected type 'docker'");
-            }
-
-            public static void PrintMe(string printMe)
-            {
-                Log.LogDebug($"DRB - {printMe}");
             }
         }
     }

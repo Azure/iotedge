@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Test.Common;
-    using Serilog;
 
     public class DeviceProvisioningFixture : BaseFixture
     {

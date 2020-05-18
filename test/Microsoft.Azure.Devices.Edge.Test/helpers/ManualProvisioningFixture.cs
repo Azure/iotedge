@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
-    using Serilog;
 
     // NUnit's [Timeout] attribute isn't supported in .NET Standard
     // and even if it were, it doesn't run the teardown method when

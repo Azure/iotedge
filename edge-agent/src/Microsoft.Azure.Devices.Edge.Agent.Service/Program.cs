@@ -396,7 +396,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
             Logger.SetLogLevel(logLevel);
             ILogger logger = Logger.Factory.CreateLogger<Program>();
-            logger.LogInformation($"Set loglevel to {logLevel}");
             return logger;
         }
 
