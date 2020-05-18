@@ -39,14 +39,14 @@ async fn translation_twin_retrieve() {
         .publish_qos1("$iothub/twin/GET/?rid=10", "", false)
         .await;
 
-    // Core recieves request
-    recieve_with_topic(&mut edge_hub_core, "$edgehub/device_1/twin/get/?rid=10").await;
+    // Core receives request
+    receive_with_topic(&mut edge_hub_core, "$edgehub/device_1/twin/get/?rid=10").await;
     edge_hub_core
         .publish_qos1("$edgehub/device_1/twin/res/200/?rid=10", "", false)
         .await;
 
-    // device recieves response
-    recieve_with_topic(&mut device_1, "$iothub/twin/res/200/?rid=10").await;
+    // device receives response
+    receive_with_topic(&mut device_1, "$iothub/twin/res/200/?rid=10").await;
 
     server_handle.shutdown().await;
 }
@@ -81,8 +81,8 @@ async fn translation_twin_update() {
         .publish_qos1("$iothub/twin/PATCH/properties/reported/?rid=20", "", false)
         .await;
 
-    // Core recieves request
-    recieve_with_topic(
+    // Core receives request
+    receive_with_topic(
         &mut edge_hub_core,
         "$edgehub/device_1/twin/reported/?rid=20",
     )
@@ -91,15 +91,15 @@ async fn translation_twin_update() {
         .publish_qos1("$edgehub/device_1/twin/res/200/?rid=20", "", false)
         .await;
 
-    // device recieves response
-    recieve_with_topic(&mut device_1, "$iothub/twin/res/200/?rid=20").await;
+    // device receives response
+    receive_with_topic(&mut device_1, "$iothub/twin/res/200/?rid=20").await;
 
     server_handle.shutdown().await;
 }
 
 // https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-mqtt-support#receiving-desired-properties-update-notifications
 #[tokio::test]
-async fn translation_twin_recieve() {
+async fn translation_twin_receive() {
     let broker = BrokerBuilder::default()
         .authenticator(|_| Ok(Some(AuthId::Anonymous)))
         .authorizer(|_| Ok(true))
@@ -124,8 +124,8 @@ async fn translation_twin_recieve() {
         .publish_qos1("$edgehub/device_1/twin/desired/?version=30", "", false)
         .await;
 
-    // device recieves response
-    recieve_with_topic(
+    // device receives response
+    receive_with_topic(
         &mut device_1,
         "$iothub/twin/PATCH/properties/desired/?version=30",
     )
@@ -170,14 +170,14 @@ async fn translation_direct_method_response() {
         )
         .await;
 
-    // device recieves call and responds
-    recieve_with_topic(&mut device_1, "$iothub/methods/POST/my_cool_method/?rid=7").await;
+    // device receives call and responds
+    receive_with_topic(&mut device_1, "$iothub/methods/POST/my_cool_method/?rid=7").await;
     device_1
         .publish_qos1("$iothub/methods/res/200/?rid=7", "", false)
         .await;
 
-    // Core recieves response
-    recieve_with_topic(
+    // Core receives response
+    receive_with_topic(
         &mut edge_hub_core,
         "$edgehub/device_1/methods/res/200/?rid=7",
     )
@@ -209,14 +209,14 @@ async fn translation_twin_notify() {
     edge_hub_core
         .subscribe("$edgehub/subscriptions/device_1", QoS::AtLeastOnce)
         .await;
-    recieve_with_topic_and_payload(&mut edge_hub_core, "$edgehub/subscriptions/device_1", "[]")
+    receive_with_topic_and_payload(&mut edge_hub_core, "$edgehub/subscriptions/device_1", "[]")
         .await;
 
     // device requests twin update
     device_1
         .subscribe("$iothub/twin/res/#", QoS::AtLeastOnce)
         .await;
-    recieve_with_topic_and_payload(
+    receive_with_topic_and_payload(
         &mut edge_hub_core,
         "$edgehub/subscriptions/device_1",
         "[\"$edgehub/device_1/twin/res/#\"]",
@@ -227,19 +227,19 @@ async fn translation_twin_notify() {
         .publish_qos1("$iothub/twin/GET/?rid=10", "", false)
         .await;
 
-    // Core recieves request
-    recieve_with_topic(&mut edge_hub_core, "$edgehub/device_1/twin/get/?rid=10").await;
+    // Core receives request
+    receive_with_topic(&mut edge_hub_core, "$edgehub/device_1/twin/get/?rid=10").await;
     edge_hub_core
         .publish_qos1("$edgehub/device_1/twin/res/200/?rid=10", "", false)
         .await;
 
-    // device recieves response
-    recieve_with_topic(&mut device_1, "$iothub/twin/res/200/?rid=10").await;
+    // device receives response
+    receive_with_topic(&mut device_1, "$iothub/twin/res/200/?rid=10").await;
 
     server_handle.shutdown().await;
 }
 
-async fn recieve_with_topic(client: &mut TestClient, topic: &str) {
+async fn receive_with_topic(client: &mut TestClient, topic: &str) {
     assert_matches!(
         client.publications().recv().await,
         Some(ReceivedPublication {
@@ -248,7 +248,7 @@ async fn recieve_with_topic(client: &mut TestClient, topic: &str) {
     );
 }
 
-async fn recieve_with_topic_and_payload<B>(
+async fn receive_with_topic_and_payload<B>(
     client: &mut TestClient,
     topic: &str,
     expected_payload: B,

@@ -15,8 +15,8 @@ pub struct Translator {
 impl Translator {
     fn new() -> Self {
         Self {
-            d2c: TranslateD2C::new().unwrap(), //temp
-            c2d: TranslateC2D::new().unwrap(), //temp
+            d2c: TranslateD2C::new().expect("Invalid regex in tranlsation."),
+            c2d: TranslateC2D::new().expect("Invalid regex in tranlsation."),
         }
     }
 
@@ -100,11 +100,9 @@ macro_rules! translate_d2c {
             }
 
             fn translate_to_new(&self, topic: &str, client_id: &str) -> Option<String> {
-                println!("Translating {}", topic);
                 if topic.starts_with("$iothub") || topic.starts_with("devices") {
                     $(
                         if let Some(captures) = self.$translate_name.captures(topic) {
-                            println!("Match {}", $new_from);
                             return Some($new_to(captures, client_id).into());
                         }
                     )*
@@ -151,7 +149,7 @@ macro_rules! translate_c2d {
             }
 
             fn translate_to_new(&self, topic: &str, client_id: &str) -> Option<String> {
-                if topic.starts_with("$iothub") || topic.starts_with("devices") {
+                if topic.starts_with("$iothub/") || topic.starts_with("devices/") {
                     $(
                         if let Some(captures) = self.to_new.$translate_name.captures(topic) {
                             return Some($new_to(captures, client_id).into());
@@ -163,7 +161,7 @@ macro_rules! translate_c2d {
             }
 
             fn translate_to_old(&self, topic: &str) -> Option<String> {
-                if topic.starts_with("$edgehub") {
+                if topic.starts_with("$edgehub/") {
                     $(
                         if let Some(captures) = self.to_old.$translate_name.captures(topic) {
                             return Some($old_to(captures).into());
@@ -223,7 +221,7 @@ translate_c2d! {
     },
 
     // Twin Translation
-    twin_recieve_update_from_hub {
+    twin_receive_update_from_hub {
         to_new {
             "\\$iothub/twin/PATCH/properties/desired/(?P<params>.*)",
             {|captures: regex::Captures<'_>, client_id| format!("$edgehub/{}/twin/desired/{}", client_id, &captures["params"])}
@@ -245,7 +243,7 @@ translate_c2d! {
     },
 
     // Direct Methods
-    recieve_direct_method_request {
+    receive_direct_method_request {
         to_new {
             "\\$iothub/methods/POST/(?P<params>.*)",
             {|captures: regex::Captures<'_>, client_id| format!("$edgehub/{}/methods/post/{}", client_id, &captures["params"])}
