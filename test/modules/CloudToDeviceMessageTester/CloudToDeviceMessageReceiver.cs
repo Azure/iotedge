@@ -95,9 +95,9 @@ namespace CloudToDeviceMessageTester
                             continue;
                         }
 
-                        if (!(message?.Properties.ContainsKey(TestConstants.Message.SequenceNumberPropertyName) ?? false) ||
-                            !(message?.Properties.ContainsKey(TestConstants.Message.BatchIdPropertyName) ?? false) ||
-                            !(message?.Properties.ContainsKey(TestConstants.Message.TrackingIdPropertyName) ?? false))
+                        if (!message.Properties.ContainsKey(TestConstants.Message.SequenceNumberPropertyName) ||
+                            !message.Properties.ContainsKey(TestConstants.Message.BatchIdPropertyName) ||
+                            !message.Properties.ContainsKey(TestConstants.Message.TrackingIdPropertyName))
                         {
                             string messageBody = new StreamReader(message.BodyStream).ReadToEnd();
                             string propertyKeys = string.Join(",", message.Properties.Keys);
