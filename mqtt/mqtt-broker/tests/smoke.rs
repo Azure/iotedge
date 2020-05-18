@@ -4,38 +4,75 @@ use bytes::Bytes;
 use futures_util::StreamExt;
 use matches::assert_matches;
 use mqtt3::{
-    proto::{Publication, QoS},
-    Event, ReceivedPublication,
+    proto::{
+        ClientId, ConnAck, Connect, ConnectReturnCode, ConnectionRefusedReason, Packet,
+        PacketIdentifier, PacketIdentifierDupQoS, PingReq, PubAck, Publication, Publish, QoS,
+    },
+    Event, ReceivedPublication, PROTOCOL_LEVEL, PROTOCOL_NAME,
 };
 
-use common::TestClientBuilder;
+use common::{PacketStream, TestClientBuilder};
 use mqtt_broker::{AuthId, BrokerBuilder};
 
 mod common;
 
 #[tokio::test]
 async fn basic_connect_clean_session() {
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+
+    let mut client = TestClientBuilder::new(server_handle.address())
+        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
         .build();
 
-    let (broker_shutdown, broker_task, address) = common::start_server(broker);
-
-    let mut client = TestClientBuilder::new(address)
-        .client_id("mqtt-smoke-tests")
-        .build();
-
-    assert_matches!(
-        client.next().await,
-        Some(Event::NewConnection { reset_session }) if reset_session
+    assert_eq!(
+        client.connections().recv().await,
+        Some(Event::NewConnection {
+            reset_session: true
+        })
     );
 
-    broker_shutdown.send(()).expect("can't stop the broker");
-    broker_task
-        .await
-        .unwrap()
-        .expect("can't wait for the broker");
+    client.shutdown().await;
+}
+
+/// Scenario:
+///	- Client connects with clean session flag = false.
+///	- Expects to see `reset_session` flag = true (brand new session on the server).
+///	- Client disconnects.
+///	- Client connects with clean session flag = false.
+///	- Expects to see `reset_session` flag = false (existing session on the server).
+#[tokio::test]
+async fn basic_connect_existing_session() {
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+
+    let mut client = TestClientBuilder::new(server_handle.address())
+        .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests".into()))
+        .build();
+
+    assert_eq!(
+        client.connections().recv().await,
+        Some(Event::NewConnection {
+            reset_session: true
+        })
+    );
+
+    client.shutdown().await;
+
+    let mut client = TestClientBuilder::new(server_handle.address())
+        .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests".into()))
+        .build();
+
+    assert_eq!(
+        client.connections().recv().await,
+        Some(Event::NewConnection {
+            reset_session: false
+        })
+    );
+
+    client.shutdown().await;
 }
 
 /// Scenario:
@@ -49,46 +86,38 @@ async fn basic_connect_clean_session() {
 async fn basic_pub_sub() {
     let topic = "topic/A";
 
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+
+    let mut client = TestClientBuilder::new(server_handle.address())
+        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
         .build();
 
-    let (broker_shutdown, broker_task, address) = common::start_server(broker);
-
-    let mut client = TestClientBuilder::new(address)
-        .client_id("mqtt-smoke-tests")
-        .build();
-
-    client.subscribe_qos2(topic).await;
+    client.subscribe(topic, QoS::ExactlyOnce).await;
 
     client.publish_qos0(topic, "qos 0", false).await;
     client.publish_qos1(topic, "qos 1", false).await;
     client.publish_qos2(topic, "qos 2", false).await;
 
-    client.next().await; //skip connect event
-
-    assert_matches!(client.next().await, Some(Event::SubscriptionUpdates(_)));
     assert_matches!(
-        client.next().await,
-        Some(Event::Publication(ReceivedPublication{payload, ..})) if payload == Bytes::from("qos 0")
+        client.subscriptions().recv().await,
+        Some(Event::SubscriptionUpdates(_))
     );
     assert_matches!(
-        client.next().await,
-        Some(Event::Publication(ReceivedPublication{payload, ..})) if payload == Bytes::from("qos 1")
+        client.publications().recv().await,
+        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("qos 0")
     );
     assert_matches!(
-        client.next().await,
-        Some(Event::Publication(ReceivedPublication{payload, ..})) if payload == Bytes::from("qos 2")
+        client.publications().recv().await,
+        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("qos 1")
+    );
+    assert_matches!(
+        client.publications().recv().await,
+        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("qos 2")
     );
 
     client.shutdown().await;
-    broker_shutdown.send(()).expect("couldn't shutdown broker");
-    client.join().await;
-    broker_task
-        .await
-        .unwrap()
-        .expect("can't wait for the broker");
 }
 
 /// Scenario:
@@ -105,42 +134,31 @@ async fn retained_messages() {
     let topic_b = "topic/B";
     let topic_c = "topic/C";
 
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let (broker_shutdown, broker_task, address) = common::start_server(broker);
+    let mut server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
-    let mut client = TestClientBuilder::new(address)
-        .client_id("mqtt-smoke-tests")
+    let mut client = TestClientBuilder::new(server_handle.address())
+        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
         .build();
 
     client.publish_qos0(topic_a, "r qos 0", true).await;
     client.publish_qos1(topic_b, "r qos 1", true).await;
     client.publish_qos2(topic_c, "r qos 2", true).await;
 
-    client.subscribe_qos2("topic/+").await;
-
-    client.next().await; //skip connect event
+    client.subscribe("topic/+", QoS::ExactlyOnce).await;
 
     assert_matches!(
-        client.next().await,
+        client.subscriptions().recv().await,
         Some(Event::SubscriptionUpdates(_))
     );
 
-    let mut shutdown_handle = client.shutdown_handle();
-
     // read and map 3 expected events from the stream
-    let mut events = client
+    let mut events: Vec<_> = client
+        .publications()
         .take(3)
-        .filter_map(|e| async {
-            match e {
-                Event::Publication(publication) => Some((publication.payload, publication.retain)),
-                _ => None,
-            }
-        })
-        .collect::<Vec<_>>()
+        .map(|p| (p.payload, p.retain))
+        .collect()
         .await;
 
     // sort by payload for ease of comparison.
@@ -151,17 +169,20 @@ async fn retained_messages() {
     assert_eq!(events[1], (Bytes::from("r qos 1"), true));
     assert_eq!(events[2], (Bytes::from("r qos 2"), true));
 
-    shutdown_handle.shutdown().await.expect("couldn't shutdown");
-    broker_shutdown.send(()).expect("couldn't shutdown broker");
-    let state = broker_task
-        .await
-        .unwrap()
-        .expect("can't wait for the broker");
+    client.shutdown().await;
+    let state = server_handle.shutdown().await;
 
     // inspect broker state after shutdown to
-    // deterministically verify presense of retained messages.
+    // deterministically verify presence of retained messages.
+    // filter out edgehub messages
     let (retained, _) = state.into_parts();
-    assert_eq!(retained.len(), 3);
+    assert_eq!(
+        retained
+            .iter()
+            .filter(|(topic, _)| !topic.contains("edgehub"))
+            .count(),
+        3
+    );
 }
 
 /// Scenario:
@@ -181,18 +202,13 @@ async fn retained_messages_zero_payload() {
     let topic_b = "topic/B";
     let topic_c = "topic/C";
 
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+
+    let mut server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+
+    let mut client = TestClientBuilder::new(server_handle.address())
+        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
         .build();
-
-    let (broker_shutdown, broker_task, address) = common::start_server(broker);
-
-    let mut client = TestClientBuilder::new(address)
-        .client_id("mqtt-smoke-tests")
-        .build();
-
-    client.next().await; //skip connect event
 
     client.publish_qos0(topic_a, "r qos 0", true).await;
     client.publish_qos0(topic_a, "", true).await;
@@ -203,21 +219,89 @@ async fn retained_messages_zero_payload() {
     client.publish_qos2(topic_c, "r qos 2", true).await;
     client.publish_qos2(topic_c, "", true).await;
 
-    client.subscribe_qos2("topic/+").await;
+    client.subscribe("topic/+", QoS::ExactlyOnce).await;
 
-    assert_eq!(client.try_recv().await, None); // no new message expected.
+    assert_eq!(client.publications().try_recv().ok(), None); // no new message expected.
 
     client.shutdown().await;
-    broker_shutdown.send(()).expect("couldn't shutdown broker");
-    let state = broker_task
-        .await
-        .unwrap()
-        .expect("can't wait for the broker");
+    let state = server_handle.shutdown().await;
 
     // inspect broker state after shutdown to
     // deterministically verify absence of retained messages.
+    // filter out edgehub messages
     let (retained, _) = state.into_parts();
-    assert_eq!(retained.len(), 0);
+    assert_eq!(
+        retained
+            .iter()
+            .filter(|(topic, _)| !topic.contains("edgehub"))
+            .count(),
+        0
+    );
+}
+
+/// Scenario:
+/// - Client A connects with clean session.
+/// - Client A publishes to a Topic/A with RETAIN = true / QoS 0 / Some payload
+/// - Client A publishes to a Topic/B with RETAIN = true / QoS 1 / Some payload
+/// - Client A publishes to a Topic/C with RETAIN = true / QoS 2 / Some payload
+/// - Broker properly restarts.
+/// - Client A subscribes to a Topic/+
+/// - Expects to receive three messages.
+#[tokio::test]
+async fn retained_messages_persisted_on_broker_restart() {
+    let topic_a = "topic/A";
+    let topic_b = "topic/B";
+    let topic_c = "topic/C";
+
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+
+    let mut server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+
+    let mut client = TestClientBuilder::new(server_handle.address())
+        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
+        .build();
+
+    client.publish_qos0(topic_a, "r qos 0", true).await;
+    client.publish_qos1(topic_b, "r qos 1", true).await;
+    client.publish_qos2(topic_c, "r qos 2", true).await;
+
+    // need to wait till all messages are processed.
+    tokio::time::delay_for(Duration::from_secs(1)).await;
+
+    client.shutdown().await;
+    let state = server_handle.shutdown().await;
+
+    // restart broker with saved state
+    let broker = BrokerBuilder::default()
+        .state(state)
+        .authorizer(|_| Ok(true))
+        .build();
+
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+
+    let mut client = TestClientBuilder::new(server_handle.address())
+        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
+        .build();
+
+    client.subscribe("topic/+", QoS::ExactlyOnce).await;
+
+    // read and map 3 expected messages from the stream
+    let mut events: Vec<_> = client
+        .publications()
+        .take(3)
+        .map(|p| (p.payload, p.retain))
+        .collect()
+        .await;
+
+    // sort by payload for ease of comparison.
+    events.sort_by_key(|e| e.0.clone());
+
+    assert_eq!(3, events.len());
+    assert_eq!(events[0], (Bytes::from("r qos 0"), true));
+    assert_eq!(events[1], (Bytes::from("r qos 1"), true));
+    assert_eq!(events[2], (Bytes::from("r qos 2"), true));
+
+    client.shutdown().await;
 }
 
 /// Scenario:
@@ -229,47 +313,418 @@ async fn retained_messages_zero_payload() {
 async fn will_message() {
     let topic = "topic/A";
 
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+
+    let mut client_b = TestClientBuilder::new(server_handle.address())
+        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-b".into()))
         .build();
 
-    let (broker_shutdown, broker_task, address) = common::start_server(broker);
+    client_b.subscribe(topic, QoS::AtLeastOnce).await;
 
-    let mut client_a = TestClientBuilder::new(address.clone())
-        .client_id("mqtt-smoke-tests-a")
+    client_b.subscriptions().recv().await; // wait for SubAck.
+
+    let mut client_a = TestClientBuilder::new(server_handle.address())
+        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-a".into()))
         .will(Publication {
             topic_name: topic.into(),
             qos: QoS::AtLeastOnce,
             retain: false,
             payload: "will_msg_a".into(),
         })
-        .keep_alive(Duration::from_secs(1))
         .build();
 
-    client_a.next().await; //skip connect event
-
-    let mut client_b = TestClientBuilder::new(address.clone())
-        .client_id("mqtt-smoke-tests-b")
-        .build();
-
-    client_b.subscribe_qos2(topic).await;
-
-    client_b.next().await; //skip connect event
-    client_b.next().await; //skip subscribe event
+    client_a.connections().recv().await; // wait for ConnAck
 
     client_a.terminate().await;
 
     // expect will message
     assert_matches!(
-        client_b.next().await,
-        Some(Event::Publication(ReceivedPublication{payload, ..})) if payload == Bytes::from("will_msg_a")
+        client_b.publications().recv().await,
+        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("will_msg_a")
     );
 
     client_b.shutdown().await;
-    broker_shutdown.send(()).expect("couldn't shutdown broker");
-    broker_task
-        .await
-        .unwrap()
-        .expect("can't wait for the broker");
+}
+
+/// Scenario:
+/// - Client A connects with clean session = false and subscribes to Topic/+.
+/// - Client A disconnects
+/// - Client B connects with clean session
+/// - Client B publishes to a Topic/A with QoS 0
+/// - Client B publishes to a Topic/B with QoS 1
+/// - Client B publishes to a Topic/C with QoS 2
+/// - Client B disconnects
+/// - Client A connects with clean session = false
+/// - Expects session present = 0x01
+/// - Expects to receive three messages (QoS 1, 2, and including QoS 0).
+#[tokio::test]
+async fn offline_messages() {
+    let topic_a = "topic/A";
+    let topic_b = "topic/B";
+    let topic_c = "topic/C";
+
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+
+    let mut client_a = TestClientBuilder::new(server_handle.address())
+        .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests-a".into()))
+        .build();
+
+    client_a.subscribe("topic/+", QoS::ExactlyOnce).await;
+
+    client_a.shutdown().await;
+
+    let mut client_b = TestClientBuilder::new(server_handle.address())
+        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-b".into()))
+        .build();
+
+    client_b.publish_qos0(topic_a, "o qos 0", false).await;
+    client_b.publish_qos1(topic_b, "o qos 1", false).await;
+    client_b.publish_qos2(topic_c, "o qos 2", false).await;
+
+    let mut client_a = TestClientBuilder::new(server_handle.address())
+        .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests-a".into()))
+        .build();
+
+    // expects existing session.
+    assert_eq!(
+        client_a.connections().recv().await,
+        Some(Event::NewConnection {
+            reset_session: false
+        })
+    );
+
+    // read and map 3 expected publications from the stream
+    let mut events = client_a
+        .publications()
+        .take(3)
+        .map(|p| (p.payload))
+        .collect::<Vec<_>>()
+        .await;
+
+    // sort by payload for ease of comparison.
+    events.sort();
+
+    assert_eq!(3, events.len());
+    assert_eq!(events[0], Bytes::from("o qos 0"));
+    assert_eq!(events[1], Bytes::from("o qos 1"));
+    assert_eq!(events[2], Bytes::from("o qos 2"));
+
+    client_a.shutdown().await;
+    client_b.shutdown().await;
+}
+
+#[tokio::test]
+async fn offline_messages_persisted_on_broker_restart() {
+    let topic_a = "topic/A";
+    let topic_b = "topic/B";
+    let topic_c = "topic/C";
+
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+
+    let mut server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+
+    let mut client_a = TestClientBuilder::new(server_handle.address())
+        .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests-a".into()))
+        .build();
+
+    client_a.subscribe("topic/+", QoS::ExactlyOnce).await;
+
+    client_a.shutdown().await;
+
+    let mut client_b = TestClientBuilder::new(server_handle.address())
+        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-b".into()))
+        .build();
+
+    client_b.publish_qos0(topic_a, "o qos 0", false).await;
+    client_b.publish_qos1(topic_b, "o qos 1", false).await;
+    client_b.publish_qos2(topic_c, "o qos 2", false).await;
+
+    // need to wait till all messages are processed.
+    tokio::time::delay_for(Duration::from_secs(1)).await;
+
+    client_b.shutdown().await;
+    let state = server_handle.shutdown().await;
+
+    // restart broker with saved state
+    let broker = BrokerBuilder::default()
+        .state(state)
+        .authorizer(|_| Ok(true))
+        .build();
+
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+
+    let mut client_a = TestClientBuilder::new(server_handle.address())
+        .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests-a".into()))
+        .build();
+
+    // expects existing session.
+    assert_eq!(
+        client_a.connections().recv().await,
+        Some(Event::NewConnection {
+            reset_session: false
+        })
+    );
+
+    // read and map 3 expected publications from the stream
+    let mut events = client_a
+        .publications()
+        .take(3)
+        .map(|p| (p.payload))
+        .collect::<Vec<_>>()
+        .await;
+
+    // sort by payload for ease of comparison.
+    events.sort();
+
+    assert_eq!(3, events.len());
+    assert_eq!(events[0], Bytes::from("o qos 0"));
+    assert_eq!(events[1], Bytes::from("o qos 1"));
+    assert_eq!(events[2], Bytes::from("o qos 2"));
+
+    client_a.shutdown().await;
+}
+
+/// Scenario:
+/// - Client A connects with clean session.
+/// - Client A subscribes to Topic/A
+/// - Client A subscribes to Topic/+
+/// - Client A subscribes to Topic/#
+/// - Client B connects with clean session
+/// - Client B publishes to a Topic/A three messages with QoS 0, QoS 1, QoS 2
+/// - Client A Expects to receive ONLY three messages.
+#[tokio::test]
+async fn overlapping_subscriptions() {
+    let topic = "topic/A";
+    let topic_filter_pound = "topic/#";
+    let topic_filter_plus = "topic/+";
+
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+
+    let mut client_a = TestClientBuilder::new(server_handle.address())
+        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-a".into()))
+        .build();
+
+    client_a.subscribe(topic, QoS::AtMostOnce).await;
+    client_a
+        .subscribe(topic_filter_pound, QoS::AtLeastOnce)
+        .await;
+    client_a
+        .subscribe(topic_filter_plus, QoS::ExactlyOnce)
+        .await;
+
+    let mut client_b = TestClientBuilder::new(server_handle.address())
+        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-b".into()))
+        .build();
+
+    client_b.publish_qos0(topic, "overlap qos 0", false).await;
+    client_b.publish_qos1(topic, "overlap qos 1", false).await;
+    client_b.publish_qos2(topic, "overlap qos 2", false).await;
+
+    let mut events: Vec<_> = client_a
+        .publications()
+        .take(3)
+        .map(|p| (p.payload))
+        .collect()
+        .await;
+
+    // need to wait till all messages are processed.
+    tokio::time::delay_for(Duration::from_secs(1)).await;
+
+    assert_eq!(client_a.publications().try_recv().ok(), None); // no new message expected.
+
+    events.sort();
+
+    assert_eq!(3, events.len());
+    assert_eq!(events[0], Bytes::from("overlap qos 0"));
+    assert_eq!(events[1], Bytes::from("overlap qos 1"));
+    assert_eq!(events[2], Bytes::from("overlap qos 2"));
+
+    client_a.shutdown().await;
+    client_b.shutdown().await;
+}
+
+#[tokio::test]
+async fn wrong_first_packet_connection_dropped() {
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+
+    let mut client = PacketStream::open(server_handle.address()).await;
+    client.send_packet(Packet::PingReq(PingReq)).await;
+
+    assert_eq!(client.next().await, None); // None means stream closed.
+}
+
+#[tokio::test]
+async fn duplicate_connect_packet_connection_dropped() {
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+
+    let mut client = PacketStream::open(server_handle.address()).await;
+    client
+        .send_connect(Connect {
+            client_id: ClientId::IdWithCleanSession("test-client".into()),
+            username: None,
+            password: None,
+            will: None,
+            keep_alive: Duration::from_secs(30),
+            protocol_name: PROTOCOL_NAME.into(),
+            protocol_level: PROTOCOL_LEVEL,
+        })
+        .await;
+
+    assert_eq!(
+        client.next().await,
+        Some(Packet::ConnAck(ConnAck {
+            return_code: ConnectReturnCode::Accepted,
+            session_present: false
+        }))
+    );
+
+    client
+        .send_connect(Connect {
+            client_id: ClientId::IdWithCleanSession("test-client".into()),
+            username: None,
+            password: None,
+            will: None,
+            keep_alive: Duration::from_secs(30),
+            protocol_name: PROTOCOL_NAME.into(),
+            protocol_level: PROTOCOL_LEVEL,
+        })
+        .await;
+
+    assert_eq!(client.next().await, None); // None means stream closed.
+}
+
+#[tokio::test]
+async fn wrong_protocol_name_connection_dropped() {
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+
+    let mut client = PacketStream::open(server_handle.address()).await;
+    client
+        .send_connect(Connect {
+            client_id: ClientId::IdWithCleanSession("test-client".into()),
+            protocol_name: "HELLO".into(),
+            username: None,
+            password: None,
+            will: None,
+            keep_alive: Duration::from_secs(30),
+            protocol_level: PROTOCOL_LEVEL,
+        })
+        .await;
+
+    assert_eq!(client.next().await, None); // None means stream closed.
+}
+
+#[tokio::test]
+async fn wrong_protocol_version_rejected() {
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+
+    let mut client = PacketStream::open(server_handle.address()).await;
+    client
+        .send_connect(Connect {
+            client_id: ClientId::IdWithCleanSession("test-client".into()),
+            protocol_level: 80u8,
+            username: None,
+            password: None,
+            will: None,
+            keep_alive: Duration::from_secs(30),
+            protocol_name: PROTOCOL_NAME.into(),
+        })
+        .await;
+
+    assert_matches!(
+        client.next().await,
+        Some(Packet::ConnAck(ConnAck {
+            return_code: ConnectReturnCode::Refused(
+                ConnectionRefusedReason::UnacceptableProtocolVersion
+            ),
+            ..
+        }))
+    );
+}
+
+#[tokio::test]
+async fn qos1_puback_should_be_in_order() {
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+
+    let mut client = PacketStream::connect(
+        ClientId::IdWithCleanSession("test-client".into()),
+        server_handle.address(),
+        None,
+        None,
+    )
+    .await;
+
+    client.next().await; // skip connack
+
+    client
+        .send_publish(Publish {
+            packet_identifier_dup_qos: PacketIdentifierDupQoS::AtLeastOnce(
+                PacketIdentifier::new(1).unwrap(),
+                false,
+            ),
+            retain: false,
+            topic_name: "topic/A".into(),
+            payload: Bytes::from("qos 1"),
+        })
+        .await;
+
+    client
+        .send_publish(Publish {
+            packet_identifier_dup_qos: PacketIdentifierDupQoS::AtLeastOnce(
+                PacketIdentifier::new(2).unwrap(),
+                false,
+            ),
+            retain: false,
+            topic_name: "topic/A".into(),
+            payload: Bytes::from("qos 1"),
+        })
+        .await;
+
+    client
+        .send_publish(Publish {
+            packet_identifier_dup_qos: PacketIdentifierDupQoS::AtLeastOnce(
+                PacketIdentifier::new(3).unwrap(),
+                false,
+            ),
+            retain: false,
+            topic_name: "topic/A".into(),
+            payload: Bytes::from("qos 1"),
+        })
+        .await;
+
+    assert_eq!(
+        client.next().await,
+        Some(Packet::PubAck(PubAck {
+            packet_identifier: PacketIdentifier::new(1).unwrap()
+        }))
+    );
+
+    assert_eq!(
+        client.next().await,
+        Some(Packet::PubAck(PubAck {
+            packet_identifier: PacketIdentifier::new(2).unwrap()
+        }))
+    );
+
+    assert_eq!(
+        client.next().await,
+        Some(Packet::PubAck(PubAck {
+            packet_identifier: PacketIdentifier::new(3).unwrap()
+        }))
+    );
 }

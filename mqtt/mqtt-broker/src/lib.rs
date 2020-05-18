@@ -25,6 +25,7 @@ mod persist;
 mod server;
 mod session;
 mod snapshot;
+mod state_change;
 mod subscription;
 mod transport;
 
@@ -32,14 +33,18 @@ pub use crate::auth::{AuthId, Authenticator, Authorizer, Certificate};
 pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle, BrokerState};
 pub use crate::configuration::BrokerConfig;
 pub use crate::connection::ConnectionHandle;
-pub use crate::error::{Error, InitializeBrokerError};
+pub use crate::error::{AuthenticationError, Error, InitializeBrokerError};
 pub use crate::persist::{
-    ConsolidatedStateFormat, FileFormat, FilePersistor, NullPersistor, Persist, PersistError,
+    FileFormat, FilePersistor, NullPersistor, Persist, PersistError, VersionedFileFormat,
 };
 pub use crate::server::Server;
 pub use crate::session::SessionState;
 pub use crate::snapshot::{Snapshotter, StateSnapshotHandle};
+pub use crate::subscription::{Segment, Subscription, TopicFilter};
 pub use crate::transport::TransportBuilder;
+
+#[cfg(any(test, feature = "proptest"))]
+pub mod proptest;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ClientId(Arc<String>);
@@ -61,11 +66,18 @@ impl std::fmt::Display for ClientId {
         write!(f, "{}", self.as_str())
     }
 }
+
+#[derive(Debug)]
+pub enum AuthResult {
+    Successful(Option<AuthId>),
+    Failed(AuthenticationError),
+}
+
 #[derive(Debug)]
 pub struct ConnReq {
     client_id: ClientId,
     connect: proto::Connect,
-    certificate: Option<Certificate>,
+    auth: AuthResult,
     handle: ConnectionHandle,
 }
 
@@ -73,13 +85,13 @@ impl ConnReq {
     pub fn new(
         client_id: ClientId,
         connect: proto::Connect,
-        certificate: Option<Certificate>,
+        auth: AuthResult,
         handle: ConnectionHandle,
     ) -> Self {
         Self {
             client_id,
             connect,
-            certificate,
+            auth,
             handle,
         }
     }
@@ -96,8 +108,8 @@ impl ConnReq {
         &self.handle
     }
 
-    pub fn certificate(&self) -> Option<&Certificate> {
-        self.certificate.as_ref()
+    pub fn auth(&self) -> &AuthResult {
+        &self.auth
     }
 
     pub fn handle_mut(&mut self) -> &mut ConnectionHandle {
@@ -187,91 +199,4 @@ pub enum SystemEvent {
 pub enum Message {
     Client(ClientId, ClientEvent),
     System(SystemEvent),
-}
-
-#[cfg(test)]
-pub(crate) mod tests {
-    use std::sync::Arc;
-
-    use bytes::Bytes;
-    use proptest::collection::vec;
-    use proptest::num;
-    use proptest::prelude::*;
-
-    use mqtt3::proto;
-
-    use crate::{subscription::tests::arb_qos, ClientId, Publish};
-
-    pub fn arb_clientid() -> impl Strategy<Value = ClientId> {
-        "[a-zA-Z0-9]{1,23}".prop_map(|s| ClientId(Arc::new(s)))
-    }
-
-    pub fn arb_packet_identifier() -> impl Strategy<Value = proto::PacketIdentifier> {
-        (1_u16..=u16::max_value())
-            .prop_map(|i| proto::PacketIdentifier::new(i).expect("packet identifier failed"))
-    }
-
-    pub fn arb_topic() -> impl Strategy<Value = String> {
-        "\\PC+(/\\PC+)*"
-    }
-
-    pub fn arb_payload() -> impl Strategy<Value = Bytes> {
-        vec(num::u8::ANY, 0..1024).prop_map(Bytes::from)
-    }
-
-    prop_compose! {
-        pub fn arb_publication()(
-            topic_name in arb_topic(),
-            qos in arb_qos(),
-            retain in proptest::bool::ANY,
-            payload in arb_payload(),
-        ) -> proto::Publication {
-            proto::Publication {
-                topic_name,
-                qos,
-                retain,
-                payload,
-            }
-        }
-    }
-
-    pub fn arb_pidq() -> impl Strategy<Value = proto::PacketIdentifierDupQoS> {
-        prop_oneof![
-            Just(proto::PacketIdentifierDupQoS::AtMostOnce),
-            (arb_packet_identifier(), proptest::bool::ANY)
-                .prop_map(|(id, dup)| proto::PacketIdentifierDupQoS::AtLeastOnce(id, dup)),
-            (arb_packet_identifier(), proptest::bool::ANY)
-                .prop_map(|(id, dup)| proto::PacketIdentifierDupQoS::ExactlyOnce(id, dup)),
-        ]
-    }
-
-    prop_compose! {
-        pub fn arb_proto_publish()(
-            pidq in arb_pidq(),
-            retain in proptest::bool::ANY,
-            topic_name in arb_topic(),
-            payload in arb_payload(),
-        ) -> proto::Publish {
-            proto::Publish {
-                packet_identifier_dup_qos: pidq,
-                retain,
-                topic_name,
-                payload,
-            }
-        }
-    }
-
-    pub fn arb_publish() -> impl Strategy<Value = Publish> {
-        prop_oneof![
-            (arb_packet_identifier(), arb_proto_publish())
-                .prop_map(|(id, publish)| Publish::QoS0(id, publish)),
-            (arb_packet_identifier(), arb_proto_publish())
-                .prop_map(|(id, publish)| Publish::QoS12(id, publish)),
-        ]
-    }
-
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
 }

@@ -37,12 +37,11 @@ async fn run() -> Result<(), Error> {
     // Setup the snapshotter
     let mut persistor = FilePersistor::new(
         env::current_dir().expect("can't get cwd").join("state"),
-        ConsolidatedStateFormat::default(),
+        VersionedFileFormat::default(),
     );
     info!("Loading state...");
-    let state = persistor.load()?.unwrap_or_else(BrokerState::default);
+    let state = persistor.load().await?.unwrap_or_else(BrokerState::default);
     let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
         .authorizer(|_| Ok(true))
         .state(state)
         .build();
@@ -74,16 +73,16 @@ async fn run() -> Result<(), Error> {
 
     info!("Starting server...");
     let state = Server::from_broker(broker)
-        .serve(transports, shutdown)
+        .serve(transports, shutdown, |_, _| Ok(Some(AuthId::Anonymous)))
         .await?;
 
     // Stop snapshotting
-    shutdown_handle.try_shutdown()?;
-    let mut persistor = join_handle.await??;
+    shutdown_handle.shutdown().await?;
+    let mut persistor = join_handle.await?;
     info!("state snapshotter shutdown.");
 
     info!("persisting state before exiting...");
-    persistor.store(state)?;
+    persistor.store(state).await?;
     info!("state persisted.");
     info!("exiting... goodbye");
 
@@ -100,9 +99,12 @@ async fn tick_snapshot(
     let mut interval = tokio::time::interval_at(start, period);
     loop {
         interval.tick().await;
-        if let Err(e) = broker_handle.try_send(Message::System(SystemEvent::StateSnapshot(
-            snapshot_handle.clone(),
-        ))) {
+        if let Err(e) = broker_handle
+            .send(Message::System(SystemEvent::StateSnapshot(
+                snapshot_handle.clone(),
+            )))
+            .await
+        {
             warn!(message = "failed to tick the snapshotter", error=%e);
         }
     }

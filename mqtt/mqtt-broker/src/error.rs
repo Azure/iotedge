@@ -8,7 +8,7 @@ use crate::Message;
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("An error occurred sending a message to the broker.")]
-    SendBrokerMessage(#[source] crossbeam_channel::TrySendError<Message>),
+    SendBrokerMessage(#[source] tokio::sync::mpsc::error::SendError<Message>),
 
     #[error("An error occurred sending a message to a connection.")]
     SendConnectionMessage(#[source] tokio::sync::mpsc::error::SendError<Message>),
@@ -54,6 +54,12 @@ pub enum Error {
 
     #[error("Unable to start broker.")]
     InitializeBroker(#[from] InitializeBrokerError),
+
+    #[error("Authentication error.")]
+    Authenticate(#[from] AuthenticationError),
+
+    #[error("An error occurred when constructing state change: {0}")]
+    StateChange(#[from] serde_json::Error),
 }
 
 /// Represents errors occurred while bootstrapping broker.
@@ -79,4 +85,11 @@ pub enum InitializeBrokerError {
 
     #[error("An error occurred  bootstrapping TLS")]
     Tls(#[source] native_tls::Error),
+}
+
+/// Authentication errors.
+#[derive(Debug, Error)]
+pub enum AuthenticationError {
+    #[error("GeneralError")]
+    GeneralError,
 }

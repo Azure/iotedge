@@ -55,6 +55,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize) => this.GetBatch(startingOffset, batchSize, CancellationToken.None);
 
+        public long GetHeadOffset(CancellationToken cancellationToken)
+        {
+            return this.headOffset;
+        }
+
         public async Task<long> Append(T item, CancellationToken cancellationToken)
         {
             using (await this.tailLockObject.LockAsync(cancellationToken))
@@ -67,6 +72,44 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
         }
 
+        public async Task<bool> RemoveOffset(Func<long, T, Task<bool>> predicate, long offset, CancellationToken cancellationToken)
+        {
+            if (offset == this.headOffset)
+            {
+                return await this.RemoveFirst(predicate, cancellationToken);
+            }
+
+            if (this.IsEmpty())
+            {
+                return false;
+            }
+
+            if (offset == this.tailOffset)
+            {
+                using (await this.tailLockObject.LockAsync(cancellationToken))
+                {
+                    return await this.RemoveEnd(predicate, cancellationToken, false);
+                }
+            }
+
+            byte[] key = StoreUtils.GetKeyFromOffset(offset);
+            Option<T> value = await this.entityStore.Get(key, cancellationToken);
+            bool result = await value
+                .Match(
+                    async v =>
+                    {
+                        if (await predicate(offset, v))
+                        {
+                            await this.entityStore.Remove(key, cancellationToken);
+                            return true;
+                        }
+
+                        return false;
+                    },
+                    () => Task.FromResult(false));
+            return result;
+        }
+
         public async Task<bool> RemoveFirst(Func<long, T, Task<bool>> predicate, CancellationToken cancellationToken)
         {
             using (await this.headLockObject.LockAsync(cancellationToken))
@@ -77,24 +120,38 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                     return false;
                 }
 
-                byte[] key = StoreUtils.GetKeyFromOffset(this.headOffset);
-                Option<T> value = await this.entityStore.Get(key, cancellationToken);
-                bool result = await value
-                    .Match(
-                        async v =>
+                return await this.RemoveEnd(predicate, cancellationToken, true);
+            }
+        }
+
+        private async Task<bool> RemoveEnd(Func<long, T, Task<bool>> predicate, CancellationToken cancellationToken, bool head)
+        {
+            long offset = head ? this.headOffset : this.tailOffset;
+            byte[] key = StoreUtils.GetKeyFromOffset(offset);
+            Option<T> value = await this.entityStore.Get(key, cancellationToken);
+            bool result = await value
+                .Match(
+                    async v =>
+                    {
+                        if (await predicate(offset, v))
                         {
-                            if (await predicate(this.headOffset, v))
+                            await this.entityStore.Remove(key, cancellationToken);
+                            if (head)
                             {
-                                await this.entityStore.Remove(key, cancellationToken);
                                 this.headOffset++;
-                                return true;
+                            }
+                            else
+                            {
+                                this.tailOffset--;
                             }
 
-                            return false;
-                        },
-                        () => Task.FromResult(false));
-                return result;
-            }
+                            return true;
+                        }
+
+                        return false;
+                    },
+                    () => Task.FromResult(false));
+            return result;
         }
 
         public async Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize, CancellationToken cancellationToken)

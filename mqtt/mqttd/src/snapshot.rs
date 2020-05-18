@@ -28,9 +28,12 @@ mod imp {
         loop {
             stream.recv().await;
             info!("Received signal USR1");
-            if let Err(e) = broker_handle.send(Message::System(SystemEvent::StateSnapshot(
-                snapshot_handle.clone(),
-            ))) {
+            if let Err(e) = broker_handle
+                .send(Message::System(SystemEvent::StateSnapshot(
+                    snapshot_handle.clone(),
+                )))
+                .await
+            {
                 warn!(message = "failed to signal the snapshotter", error=%e);
             }
         }
