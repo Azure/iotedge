@@ -35,6 +35,50 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool clientCertAuthEnabled,
             SslProtocols sslProtocols)
         {
+            /* Define the HttpsConnectionAdapterOptions which integrates with aspnetcore https middleware to help us manage the client cert chain.
+               We need to store the client cert chain in the connection context, so that we can perform custom CA validation later to authenticate with the service identity.
+               We are using logic here that depends on an undocumented api, however eliminating this dependency would require a large refactor.
+               Context in this issue: https://github.com/dotnet/aspnetcore/issues/21606 */
+            HttpsConnectionAdapterOptions connectionAdapterOptions = new HttpsConnectionAdapterOptions()
+            {
+                ServerCertificate = serverCertificate,
+                OnAuthenticate = (context, options) =>
+                {
+                    if (clientCertAuthEnabled)
+                    {
+                        /* Certificate authorization can be enabled in edgeHub, however direct methods will hit this logic and not need certificates.
+                           This implies that the ClientCertificateRequired should be false.
+                           However, the naming of this field is not semantically correct.
+                           We looked at how aspnetcore used this field, and found that it is true when CertificateMode.AllowCertificate is set (which does not require certificates).
+                           Therefore we can set this field to true and it will still work with direct methods.
+                           */
+                        options.ClientCertificateRequired = true;
+                        options.RemoteCertificateValidationCallback = (_, clientCert, chain, policyErrors) =>
+                        {
+                            if (clientCert == null || policyErrors != SslPolicyErrors.None)
+                            {
+                                return false;
+                            }
+
+                            Option<X509Chain> chainOption = chain == null ? Option.None<X509Chain>() : Option.Some(chain);
+                            TlsConnectionFeatureExtended tlsConnectionFeatureExtended = GetConnectionFeatureExtended(chainOption);
+                            context.Features.Set<ITlsConnectionFeatureExtended>(tlsConnectionFeatureExtended);
+                            return true;
+                        };
+                    }
+                },
+                /* ClientCertificateMode.AllowCertificate is the intuitive choice here, however is not what we need
+                   If we use this then aspnetcore will register it's own certificate validation callback when creating the SslStream.
+                   This aspnetcore-created certificate validation callback in turn calls the HttpsConnectionAdapterOptions.ClientCertificateValidation, which we can configure In HttpsConnectionAdapterOptions.
+                   This is not the desired solution for us because HttpsConnectionAdapterOptions.ClientCertificateValidation does not provide access to the client cert chain when the connection is in scope.
+
+                   Thus, we need to pass NoCertificate to block aspnet from creating the SslStream with the certificate validation callback.
+                   This will let us use HttpsConnectionAdapterOptions.OnAuthenticate in order to register certificate validation with the connection in scope.
+                   We can handle the cert / no-cert case inside of OnAuthenticate */
+                ClientCertificateMode = ClientCertificateMode.NoCertificate,
+                SslProtocols = sslProtocols
+            };
+
             int port = configuration.GetValue("httpSettings:port", 443);
             IWebHostBuilder webHostBuilder = new WebHostBuilder()
                 .UseKestrel(
@@ -45,32 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                             port,
                             listenOptions =>
                             {
-                                listenOptions.UseHttps(
-                                    new HttpsConnectionAdapterOptions()
-                                    {
-                                        ServerCertificate = serverCertificate,
-                                        OnAuthenticate = (context, options) =>
-                                        {
-                                            if (clientCertAuthEnabled)
-                                            {
-                                                options.ClientCertificateRequired = true;
-                                                options.RemoteCertificateValidationCallback = (_, clientCert, chain, policyErrors) =>
-                                                {
-                                                    if (clientCert == null || policyErrors != SslPolicyErrors.None)
-                                                    {
-                                                        return false;
-                                                    }
-
-                                                    Option<X509Chain> chainOption = chain == null ? Option.None<X509Chain>() : Option.Some(chain);
-                                                    TlsConnectionFeatureExtended tlsConnectionFeatureExtended = GetConnectionFeatureExtended(chainOption);
-                                                    context.Features.Set<ITlsConnectionFeatureExtended>(tlsConnectionFeatureExtended);
-                                                    return true;
-                                                };
-                                            }
-                                        },
-                                        ClientCertificateMode = ClientCertificateMode.NoCertificate, // we can override this in OnAuthenticate if using certs
-                                        SslProtocols = sslProtocols
-                                    });
+                                listenOptions.UseHttps(connectionAdapterOptions);
                             });
                     })
                 .UseSockets()
@@ -87,6 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             return new Hosting(webHost, container);
         }
 
+        // This function wraps the client cert chain in special object for later storage in the connection context.
         public static TlsConnectionFeatureExtended GetConnectionFeatureExtended(Option<X509Chain> chain)
         {
             IList<X509Certificate2> clientCertChain = new List<X509Certificate2>();
