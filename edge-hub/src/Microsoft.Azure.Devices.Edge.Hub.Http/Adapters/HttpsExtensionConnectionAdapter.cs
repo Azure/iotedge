@@ -84,6 +84,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Adapters
 
         async Task<IAdaptedConnection> InnerOnConnectionAsync(ConnectionAdapterContext context)
         {
+            Console.WriteLine("---------------------CALLED CERTIFICATE VALIDATION---------------");
+
             SslStream sslStream;
             bool certificateRequired;
 
