@@ -100,7 +100,7 @@ steps:
       networkControllerImage = "$imagePrefix-networkcontroller:$imageTag";
       testResultCoordinatorImage = "$imagePrefix-test-result-coordinator:$imageTag";
       metricsValidatorImage = "$imagePrefix-metrics-validator:$imageTag";
-      edgeAgentBootstrapImage = "$imagePrefix-agent-bootstrap-e2e";
+      edgeAgentBootstrapImage = "$imagePrefix-agent-bootstrap-e2e-$(os)-$(arch)";
       registries = @(
         @{
           address = '$(cr.address)';
