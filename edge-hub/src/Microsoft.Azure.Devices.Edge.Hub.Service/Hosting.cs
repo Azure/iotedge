@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                         options.ClientCertificateRequired = true;
                         options.RemoteCertificateValidationCallback = (_, clientCert, chain, policyErrors) =>
                         {
-                            if (clientCert == null || policyErrors != SslPolicyErrors.None)
+                            if (policyErrors != SslPolicyErrors.None)
                             {
                                 return false;
                             }
