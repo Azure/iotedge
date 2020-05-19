@@ -48,6 +48,8 @@ async fn translation_twin_retrieve() {
     // device receives response
     receive_with_topic(&mut device_1, "$iothub/twin/res/200/?rid=10").await;
 
+    edge_hub_core.shutdown().await;
+    device_1.shutdown().await;
     server_handle.shutdown().await;
 }
 
@@ -94,6 +96,8 @@ async fn translation_twin_update() {
     // device receives response
     receive_with_topic(&mut device_1, "$iothub/twin/res/200/?rid=20").await;
 
+    edge_hub_core.shutdown().await;
+    device_1.shutdown().await;
     server_handle.shutdown().await;
 }
 
@@ -131,6 +135,8 @@ async fn translation_twin_receive() {
     )
     .await;
 
+    edge_hub_core.shutdown().await;
+    device_1.shutdown().await;
     server_handle.shutdown().await;
 }
 
@@ -183,6 +189,8 @@ async fn translation_direct_method_response() {
     )
     .await;
 
+    edge_hub_core.shutdown().await;
+    device_1.shutdown().await;
     server_handle.shutdown().await;
 }
 
@@ -236,6 +244,8 @@ async fn translation_twin_notify() {
     // device receives response
     receive_with_topic(&mut device_1, "$iothub/twin/res/200/?rid=10").await;
 
+    edge_hub_core.shutdown().await;
+    device_1.shutdown().await;
     server_handle.shutdown().await;
 }
 
