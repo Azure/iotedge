@@ -107,26 +107,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
         static object CreateExpectedAgentModuleConfig(JObject source)
         {
-            JToken createOptions = source.SelectToken("settings.createOptions") ?? new JObject();
-            JToken env = source.SelectToken("env") ?? new JObject();
+            source.TryAdd("settings", new JObject());
+            JObject settings = source.Value<JObject>("settings");
 
+            settings.TryAdd("createOptions", new JObject());
+            JObject createOptions = settings.Value<JObject>("createOptions");
             string createOptionsLabel = JsonConvert.SerializeObject(createOptions);
 
-            createOptions.Value<JObject>().TryAdd("Labels", new JObject());
+            createOptions.TryAdd("Labels", new JObject());
             JObject labels = createOptions.Value<JObject>("Labels");
+
+            JToken env = source.SelectToken("env") ?? new JObject();
+
             labels.TryAdd("net.azure-devices.edge.create-options", new JValue(createOptionsLabel));
             labels.TryAdd("net.azure-devices.edge.env", JsonConvert.SerializeObject(env));
             labels.TryAdd("net.azure-devices.edge.owner", new JValue("Microsoft.Azure.Devices.Edge.Agent"));
-            createOptions["Labels"] = labels;
-            source["settings"]["createOptions"] = createOptions;
-            if (source["settings"] != null)
-            {
-                source["settings"]["createOptions"] = createOptions;
-            }
-            else
-            {
-                source["settings"] = new JObject().TryAdd("createOptions", createOptions);
-            }
 
             return CreateExpectedModuleConfig(source);
         }
