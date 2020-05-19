@@ -22,14 +22,14 @@
             "type": "docker",
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"1m\",\"max-file\":\"3\"}}}}"
+              "createOptions": ""
             }
           },
           "edgeHub": {
             "type": "docker",
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"1m\",\"max-file\":\"3\"}},\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
+              "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
             },
@@ -45,7 +45,7 @@
             "restartPolicy": "always",
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-simulated-temperature-sensor:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"1m\",\"max-file\":\"3\"}}}}"
+              "createOptions": ""
             }
           },
           "tempFilterFunctions": {
@@ -55,7 +55,7 @@
             "restartPolicy": "always",
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-functions-filter:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"1m\",\"max-file\":\"3\"}}}}"
+              "createOptions": ""
             },
             "env": {
               "AZURE_FUNCTIONS_ENVIRONMENT": {
