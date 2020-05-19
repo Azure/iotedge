@@ -764,6 +764,7 @@ dependencies = [
  "itertools 0.9.0",
  "lazy_static",
  "matches",
+ "mqtt-edgehub",
  "mqtt3",
  "native-tls",
  "proptest",
@@ -778,11 +779,20 @@ dependencies = [
  "tokio-io-timeout",
  "tokio-native-tls",
  "tokio-util",
- "topic-translator",
  "tracing",
  "tracing-futures",
  "tracing-subscriber",
  "uuid",
+]
+
+[[package]]
+name = "mqtt-edgehub"
+version = "0.1.0"
+dependencies = [
+ "lazy_static",
+ "mqtt3",
+ "regex",
+ "tracing",
 ]
 
 [[package]]
@@ -1681,16 +1691,6 @@ dependencies = [
  "log",
  "pin-project-lite",
  "tokio",
-]
-
-[[package]]
-name = "topic-translator"
-version = "0.1.0"
-dependencies = [
- "lazy_static",
- "mqtt3",
- "regex",
- "tracing",
 ]
 
 [[package]]

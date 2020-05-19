@@ -1,5 +1,5 @@
 [package]
-name = "topic-translator"
+name = "mqtt-edgehub"
 version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
 edition = "2018"

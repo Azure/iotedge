@@ -12,7 +12,7 @@ use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tokio_io_timeout::TimeoutStream;
 use tokio_util::codec::Framed;
-use topic_translator::TRANSLATOR;
+use mqtt_edgehub::TRANSLATOR;
 use tracing::{debug, info, span, trace, warn, Level};
 use tracing_futures::Instrument;
 use uuid::Uuid;
