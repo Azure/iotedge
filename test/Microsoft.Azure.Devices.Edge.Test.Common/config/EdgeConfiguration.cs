@@ -120,8 +120,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             labels.TryAdd("net.azure-devices.edge.owner", new JValue("Microsoft.Azure.Devices.Edge.Agent"));
             labels.TryAdd("net.azure-devices.edge.create-options", new JValue(createOptionsLabel));
             labels.TryAdd("net.azure-devices.edge.env", env);
-            createOptions["Labels"] = labels;
-            source.TryAdd("settings.createOptions", createOptions);
+            // createOptions["Labels"] = labels;
+            // source.TryAdd("settings.createOptions", createOptions);
             Log.Verbose($"DRB -Added to source for edgeAgent: {source}");
             return CreateExpectedModuleConfig(source);
         }
