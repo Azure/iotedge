@@ -39,6 +39,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             ModuleConfiguration[] modules = moduleConfigs.ToArray();
 
             string[] names = modules.Select(m => m.Name).ToArray();
+            foreach (string name in names)
+            {
+                Log.Verbose($"DRB - name of module: {name}");
+            }
+
             string[] images = modules.Select(m => m.Image).ToArray();
             var config = new ConfigurationContent
             {
