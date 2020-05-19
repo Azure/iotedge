@@ -1,3 +1,14 @@
+/***********************************************************************************************************************
+ * This module translates between the old sdk iothub topics which lack a client id
+ * into newly designed topics that include a client id.
+ *
+ * IotHub currently relies on the connection information to identify a device.
+ * This does not work well in he broker message since edgehub core doesn't hold the connection to the device/module.
+ *
+ * This translation allows edgehub core to subscribe to the new topics that include client id to identify requests
+ ***********************************************************************************************************************
+ */
+
 use lazy_static::lazy_static;
 use mqtt3::proto;
 use regex::Regex;
@@ -276,13 +287,13 @@ pub(crate) mod tests {
             d2c.translate_to_new("devices/device_1/messages/events/route_1/input", "device_1"),
             Some("$edgehub/device_1/messages/events/route_1/input".to_owned())
         );
-        // assert_eq!(
-        //     d2c.translate_to_new(
-        //         "devices/device_1/modules/client_a/messages/events",
-        //         "client_a"
-        //     ),
-        //     Some("$edgehub/device_1/modules/client_a/messages/events".to_owned())
-        // );
+        assert_eq!(
+            d2c.translate_to_new(
+                "devices/device_1/modules/client_a/messages/events",
+                "client_a"
+            ),
+            Some("$edgehub/device_1/modules/client_a/messages/events".to_owned())
+        );
 
         // Messages c2d
         assert_eq!(
@@ -305,13 +316,18 @@ pub(crate) mod tests {
             c2d.translate_to_old("$edgehub/device_1/messages/c2d/post/route_1/input"),
             Some("devices/device_1/messages/devicebound/route_1/input".to_owned())
         );
-        // assert_eq!(
-        //     c2d.translate_to_new(
-        //         "devices/device_1/modules/client_a/messages/devicebound",
-        //         "client_a"
-        //     ),
-        //     Some("$edgehub/device_1/modules/client_a/messages/devicebound".to_owned())
-        // );
+
+        assert_eq!(
+            c2d.translate_to_new(
+                "devices/device_1/modules/client_a/messages/devicebound",
+                "client_a"
+            ),
+            Some("$edgehub/device_1/modules/client_a/messages/c2d/post".to_owned())
+        );
+        assert_eq!(
+            c2d.translate_to_old("$edgehub/device_1/modules/client_a/messages/c2d/post",),
+            Some("devices/device_1/modules/client_a/messages/devicebound".to_owned())
+        );
 
         // Twin d2c
         assert_eq!(
