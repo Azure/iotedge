@@ -55,11 +55,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                         options.ClientCertificateRequired = true;
                         options.RemoteCertificateValidationCallback = (_, clientCert, chain, policyErrors) =>
                         {
-                            if (policyErrors != SslPolicyErrors.None)
-                            {
-                                return false;
-                            }
-
                             Option<X509Chain> chainOption = chain == null ? Option.None<X509Chain>() : Option.Some(chain);
                             TlsConnectionFeatureExtended tlsConnectionFeatureExtended = GetConnectionFeatureExtended(chainOption);
                             context.Features.Set<ITlsConnectionFeatureExtended>(tlsConnectionFeatureExtended);
