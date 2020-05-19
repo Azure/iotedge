@@ -60,6 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 ?? new ModuleConfiguration();
             JObject desired = JObject.FromObject(edgeAgent.DesiredProperties);
 
+            Log.Verbose("DRB - Creating edgeConfiguration");
             var reported = new Dictionary<string, object>
             {
                 ["systemModules"] = desired
@@ -89,6 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
         static object CreateExpectedModuleConfig(JObject source)
         {
+            Log.Verbose($"DRB - ExpectedModuleConfig: {source}");
             JToken image = source.SelectToken($"settings.image"); // not optional
             JToken createOptions = source.SelectToken($"settings.createOptions") ?? new JObject();
             JToken env = source.SelectToken($"env") ?? new JObject();
@@ -120,7 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             labels.TryAdd("net.azure-devices.edge.env", env);
             createOptions["Labels"] = labels;
             source.TryAdd("settings.createOptions", createOptions);
-            Log.Verbose($"Added to source for edgeAgent: {source}");
+            Log.Verbose($"DRB -Added to source for edgeAgent: {source}");
             return CreateExpectedModuleConfig(source);
         }
 
