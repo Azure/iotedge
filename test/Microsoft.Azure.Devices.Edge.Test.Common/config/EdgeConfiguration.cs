@@ -117,9 +117,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
             createOptions.Value<JObject>().TryAdd("Labels", new JObject());
             JObject labels = createOptions.Value<JObject>("Labels");
-            labels.TryAdd("net.azure-devices.edge.owner", new JValue("Microsoft.Azure.Devices.Edge.Agent"));
             labels.TryAdd("net.azure-devices.edge.create-options", new JValue(createOptionsLabel));
             labels.TryAdd("net.azure-devices.edge.env", JsonConvert.SerializeObject(env));
+            labels.TryAdd("net.azure-devices.edge.owner", new JValue("Microsoft.Azure.Devices.Edge.Agent"));
             createOptions["Labels"] = labels;
             source["settings"]["createOptions"] = createOptions;
             Log.Verbose($"DRB -Added to source for edgeAgent: {source}");
