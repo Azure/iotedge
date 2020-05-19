@@ -1,18 +1,15 @@
-/***********************************************************************************************************************
- * This module translates between the old sdk iothub topics which lack a client id
- * into newly designed topics that include a client id.
- *
- * IotHub currently relies on the connection information to identify a device.
- * This does not work well in he broker message since edgehub core doesn't hold the connection to the device/module.
- *
- * This translation allows edgehub core to subscribe to the new topics that include client id to identify requests
- ***********************************************************************************************************************
- */
-
+/// This module translates between the old sdk iothub topics which lack a client id
+/// into newly designed topics that include a client id.
+///
+/// IotHub currently relies on the connection information to identify a device.
+/// This does not work well in he broker message since edgehub core doesn't hold the connection to the device/module.
+///
+/// This translation allows edgehub core to subscribe to the new topics that include client id to identify requests
 use lazy_static::lazy_static;
-use mqtt3::proto;
 use regex::Regex;
 use tracing::debug;
+
+use mqtt3::proto;
 
 lazy_static! {
     pub static ref TRANSLATOR: Translator = Translator::new();

@@ -7,8 +7,6 @@ use futures_util::pin_mut;
 use futures_util::sink::{Sink, SinkExt};
 use futures_util::stream::{Stream, StreamExt};
 use lazy_static::lazy_static;
-use mqtt3::proto::{self, DecodeError, EncodeError, Packet, PacketCodec};
-use mqtt_edgehub::TRANSLATOR;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tokio_io_timeout::TimeoutStream;
@@ -16,6 +14,9 @@ use tokio_util::codec::Framed;
 use tracing::{debug, info, span, trace, warn, Level};
 use tracing_futures::Instrument;
 use uuid::Uuid;
+
+use mqtt3::proto::{self, DecodeError, EncodeError, Packet, PacketCodec};
+use mqtt_edgehub::TRANSLATOR;
 
 use crate::broker::BrokerHandle;
 use crate::transport::GetPeerCertificate;
@@ -233,17 +234,21 @@ where
                     Packet::PubAck(puback) => ClientEvent::PubAck(puback),
                     Packet::PubComp(pubcomp) => ClientEvent::PubComp(pubcomp),
                     Packet::Publish(publish) => {
-                        ClientEvent::PublishFrom(TRANSLATOR.incoming_publish(&client_id.0, publish))
+                        let publish = TRANSLATOR.incoming_publish(&client_id.0, publish);
+                        ClientEvent::PublishFrom(publish)
                     }
                     Packet::PubRec(pubrec) => ClientEvent::PubRec(pubrec),
                     Packet::PubRel(pubrel) => ClientEvent::PubRel(pubrel),
-                    Packet::Subscribe(subscribe) => ClientEvent::Subscribe(
-                        TRANSLATOR.incoming_subscribe(&client_id.0, subscribe),
-                    ),
+                    Packet::Subscribe(subscribe) => {
+                        let subscribe = TRANSLATOR.incoming_subscribe(&client_id.0, subscribe);
+                        ClientEvent::Subscribe(subscribe)
+                    }
                     Packet::SubAck(suback) => ClientEvent::SubAck(suback),
-                    Packet::Unsubscribe(unsubscribe) => ClientEvent::Unsubscribe(
-                        TRANSLATOR.incoming_unsubscribe(&client_id.0, unsubscribe),
-                    ),
+                    Packet::Unsubscribe(unsubscribe) => {
+                        let unsubscribe =
+                            TRANSLATOR.incoming_unsubscribe(&client_id.0, unsubscribe);
+                        ClientEvent::Unsubscribe(unsubscribe)
+                    }
                     Packet::UnsubAck(unsuback) => ClientEvent::UnsubAck(unsuback),
                 };
 

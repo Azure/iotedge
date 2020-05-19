@@ -1,10 +1,10 @@
 use matches::assert_matches;
+
+use common::{TestClient, TestClientBuilder};
 use mqtt3::{
     proto::{ClientId, QoS},
     ReceivedPublication,
 };
-
-use common::{TestClient, TestClientBuilder};
 use mqtt_broker::{AuthId, BrokerBuilder};
 
 mod common;
