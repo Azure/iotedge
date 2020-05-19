@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
     using System.Threading.Tasks;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
+    using Serilog;
 
     public class EdgeConfiguration
     {
@@ -119,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             labels.TryAdd("net.azure-devices.edge.env", env);
             createOptions["Labels"] = labels;
             source.TryAdd("settings.createOptions", createOptions);
-
+            Log.Verbose($"Added to source for edgeAgent: {source}")
             return CreateExpectedModuleConfig(source);
         }
 
