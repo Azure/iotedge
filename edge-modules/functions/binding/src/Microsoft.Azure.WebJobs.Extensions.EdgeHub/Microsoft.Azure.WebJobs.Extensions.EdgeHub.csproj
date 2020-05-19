@@ -3,7 +3,7 @@
     <CompileBlocked>true</CompileBlocked>
   </PropertyGroup>
 
-  <Import Project="..\..\..\..\..\netstandardVersion.props" />
+  <Import Project="..\..\..\..\..\netcoreappVersion.props" />
 
   <PropertyGroup>
     <AssemblyName>Microsoft.Azure.WebJobs.Extensions.EdgeHub</AssemblyName>
