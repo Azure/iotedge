@@ -55,7 +55,7 @@ process_args()
 process_args "$@"
 
 if [[ -z ${RELEASE} ]]; then
-    cd "$PROJECT_ROOT" && IOTEDGE_HOMEDIR=/tmp $CARGO test --all
+    cd "$PROJECT_ROOT" && IOTEDGE_HOMEDIR=/tmp $CARGO test --all --all-features
 else
-    cd "$PROJECT_ROOT" && IOTEDGE_HOMEDIR=/tmp $CARGO test --all --release
+    cd "$PROJECT_ROOT" && IOTEDGE_HOMEDIR=/tmp $CARGO test --all --all-features --release
 fi

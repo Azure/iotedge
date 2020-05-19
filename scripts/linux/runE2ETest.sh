@@ -25,6 +25,9 @@ function clean_up() {
     if [ "$CLEAN_ALL" = '1' ]; then
         echo 'Prune docker system'
         docker system prune -af --volumes || true
+
+        echo 'Restart docker'
+        systemctl restart docker # needed due to https://github.com/moby/moby/issues/23302
     fi
 }
 
