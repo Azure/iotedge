@@ -68,9 +68,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                             .Children<JProperty>()
                             .ToDictionary(
                                 p => p.Name,
-                                p => p.Name == ModuleName.EdgeAgent
-                                ? CreateExpectedAgentModuleConfig((JObject)p.Value)
-                                : CreateExpectedModuleConfig((JObject)p.Value))
+                                p =>
+                                {
+                                    Log.Verbose($"DRB - Name of module: {p.Name}");
+                                    return p.Name == ModuleName.EdgeAgent ? CreateExpectedAgentModuleConfig((JObject)p.Value) : CreateExpectedModuleConfig((JObject)p.Value);
+                                })
             };
 
             if (desired.ContainsKey("modules"))
