@@ -12,77 +12,64 @@ use tracing::debug;
 use mqtt3::proto;
 
 lazy_static! {
-    pub static ref TRANSLATOR: Translator = Translator::new();
+    static ref TRANSLATED2C: TranslateD2C =
+        TranslateD2C::new().expect("Invalid regex in tranlsation.");
+    static ref TRANSLATEC2D: TranslateC2D =
+        TranslateC2D::new().expect("Invalid regex in tranlsation.");
 }
 
-pub struct Translator {
-    d2c: TranslateD2C,
-    c2d: TranslateC2D,
+pub fn translate_incoming_subscribe(
+    client_id: &str,
+    mut subscribe: proto::Subscribe,
+) -> proto::Subscribe {
+    for mut sub_to in &mut subscribe.subscribe_to {
+        if let Some(new_topic) = TRANSLATEC2D.translate_to_new(&sub_to.topic_filter, client_id) {
+            debug!(
+                "Translating subscription {} to {}",
+                sub_to.topic_filter, new_topic
+            );
+            sub_to.topic_filter = new_topic;
+        }
+    }
+
+    subscribe
 }
 
-impl Translator {
-    fn new() -> Self {
-        Self {
-            d2c: TranslateD2C::new().expect("Invalid regex in tranlsation."),
-            c2d: TranslateC2D::new().expect("Invalid regex in tranlsation."),
+pub fn translate_incoming_unsubscribe(
+    client_id: &str,
+    mut unsubscribe: proto::Unsubscribe,
+) -> proto::Unsubscribe {
+    for unsub_from in &mut unsubscribe.unsubscribe_from {
+        if let Some(new_topic) = TRANSLATEC2D.translate_to_new(&unsub_from, client_id) {
+            *unsub_from = new_topic;
         }
     }
 
-    pub fn incoming_subscribe(
-        &self,
-        client_id: &str,
-        mut subscribe: proto::Subscribe,
-    ) -> proto::Subscribe {
-        for mut sub_to in &mut subscribe.subscribe_to {
-            if let Some(new_topic) = self.c2d.translate_to_new(&sub_to.topic_filter, client_id) {
-                debug!(
-                    "Translating subscription {} to {}",
-                    sub_to.topic_filter, new_topic
-                );
-                sub_to.topic_filter = new_topic;
-            }
-        }
+    unsubscribe
+}
 
-        subscribe
+pub fn translate_incoming_publish(client_id: &str, mut publish: proto::Publish) -> proto::Publish {
+    if let Some(new_topic) = TRANSLATED2C.translate_to_new(&publish.topic_name, client_id) {
+        debug!(
+            "Translating incoming publication {} to {}",
+            publish.topic_name, new_topic
+        );
+        publish.topic_name = new_topic;
     }
 
-    pub fn incoming_unsubscribe(
-        &self,
-        client_id: &str,
-        mut unsubscribe: proto::Unsubscribe,
-    ) -> proto::Unsubscribe {
-        for unsub_from in &mut unsubscribe.unsubscribe_from {
-            if let Some(new_topic) = self.c2d.translate_to_new(&unsub_from, client_id) {
-                *unsub_from = new_topic;
-            }
-        }
+    publish
+}
 
-        unsubscribe
+pub fn translate_outgoing_publish(mut publish: proto::Publish) -> proto::Publish {
+    if let Some(new_topic) = TRANSLATEC2D.translate_to_old(&publish.topic_name) {
+        debug!(
+            "Translating outgoing publication {} to {}",
+            publish.topic_name, new_topic
+        );
+        publish.topic_name = new_topic;
     }
 
-    pub fn incoming_publish(&self, client_id: &str, mut publish: proto::Publish) -> proto::Publish {
-        if let Some(new_topic) = self.d2c.translate_to_new(&publish.topic_name, client_id) {
-            debug!(
-                "Translating incoming publication {} to {}",
-                publish.topic_name, new_topic
-            );
-            publish.topic_name = new_topic;
-        }
-
-        publish
-    }
-
-    pub fn outgoing_publish(&self, mut publish: proto::Publish) -> proto::Publish {
-        if let Some(new_topic) = self.c2d.translate_to_old(&publish.topic_name) {
-            debug!(
-                "Translating outgoing publication {} to {}",
-                publish.topic_name, new_topic
-            );
-            publish.topic_name = new_topic;
-        }
-
-        publish
-    }
+    publish
 }
 
 const DEVICE_ID: &str = r"(?P<device_id>.+)";

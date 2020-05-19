@@ -16,7 +16,10 @@ use tracing_futures::Instrument;
 use uuid::Uuid;
 
 use mqtt3::proto::{self, DecodeError, EncodeError, Packet, PacketCodec};
-use mqtt_edgehub::TRANSLATOR;
+use mqtt_edgehub::{
+    translate_incoming_publish, translate_incoming_subscribe, translate_incoming_unsubscribe,
+    translate_outgoing_publish,
+};
 
 use crate::broker::BrokerHandle;
 use crate::transport::GetPeerCertificate;
@@ -234,19 +237,18 @@ where
                     Packet::PubAck(puback) => ClientEvent::PubAck(puback),
                     Packet::PubComp(pubcomp) => ClientEvent::PubComp(pubcomp),
                     Packet::Publish(publish) => {
-                        let publish = TRANSLATOR.incoming_publish(&client_id.0, publish);
+                        let publish = translate_incoming_publish(&client_id.0, publish);
                         ClientEvent::PublishFrom(publish)
                     }
                     Packet::PubRec(pubrec) => ClientEvent::PubRec(pubrec),
                     Packet::PubRel(pubrel) => ClientEvent::PubRel(pubrel),
                     Packet::Subscribe(subscribe) => {
-                        let subscribe = TRANSLATOR.incoming_subscribe(&client_id.0, subscribe);
+                        let subscribe = translate_incoming_subscribe(&client_id.0, subscribe);
                         ClientEvent::Subscribe(subscribe)
                     }
                     Packet::SubAck(suback) => ClientEvent::SubAck(suback),
                     Packet::Unsubscribe(unsubscribe) => {
-                        let unsubscribe =
-                            TRANSLATOR.incoming_unsubscribe(&client_id.0, unsubscribe);
+                        let unsubscribe = translate_incoming_unsubscribe(&client_id.0, unsubscribe);
                         ClientEvent::Unsubscribe(unsubscribe)
                     }
                     Packet::UnsubAck(unsuback) => ClientEvent::UnsubAck(unsuback),
@@ -300,11 +302,11 @@ where
                 ClientEvent::Unsubscribe(unsub) => Some(Packet::Unsubscribe(unsub)),
                 ClientEvent::UnsubAck(unsuback) => Some(Packet::UnsubAck(unsuback)),
                 ClientEvent::PublishTo(Publish::QoS12(_id, publish)) => {
-                    let publish = TRANSLATOR.outgoing_publish(publish);
+                    let publish = translate_outgoing_publish(publish);
                     Some(Packet::Publish(publish))
                 }
                 ClientEvent::PublishTo(Publish::QoS0(id, publish)) => {
-                    let publish = TRANSLATOR.outgoing_publish(publish);
+                    let publish = translate_outgoing_publish(publish);
                     let result = outgoing.send(Packet::Publish(publish)).await;
 
                     if let Err(e) = result {
