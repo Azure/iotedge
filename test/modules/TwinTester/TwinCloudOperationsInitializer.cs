@@ -18,7 +18,7 @@ namespace TwinTester
         readonly DesiredPropertyUpdater desiredPropertyUpdater;
         PeriodicTask periodicUpdate;
 
-        TwinCloudOperationsInitializer(RegistryManager registryManager, ITwinTestResultHandler resultHandler, TwinState twinState)
+        TwinCloudOperationsInitializer(RegistryManager registryManager, ITwinTestResultHandler resultHandler, TwinTestState twinState)
         {
             this.desiredPropertyUpdater = new DesiredPropertyUpdater(registryManager, resultHandler, twinState);
         }
@@ -27,10 +27,10 @@ namespace TwinTester
         {
             try
             {
-                TwinState initializedState;
+                TwinTestState initializedState;
                 Twin twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId);
 
-                initializedState = new TwinState { TwinETag = twin.ETag };
+                initializedState = new TwinTestState(twin.ETag);
 
                 Logger.LogInformation($"Start state of module twin: {JsonConvert.SerializeObject(twin, Formatting.Indented)}");
                 return new TwinCloudOperationsInitializer(registryManager, resultHandler, initializedState);

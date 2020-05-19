@@ -13,13 +13,15 @@ namespace TwinTester
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(DesiredPropertyUpdater));
         readonly RegistryManager registryManager;
         readonly ITwinTestResultHandler resultHandler;
-        readonly TwinState twinState;
+        readonly TwinTestState twinState;
+        int desiredPropertyUpdateCounter;
 
-        public DesiredPropertyUpdater(RegistryManager registryManager, ITwinTestResultHandler resultHandler, TwinState twinState)
+        public DesiredPropertyUpdater(RegistryManager registryManager, ITwinTestResultHandler resultHandler, TwinTestState twinState)
         {
             this.registryManager = registryManager;
             this.resultHandler = resultHandler;
             this.twinState = twinState;
+            this.desiredPropertyUpdateCounter = twinState.DesiredPropertyUpdateCounter;
         }
 
         public async Task UpdateAsync()
@@ -29,7 +31,7 @@ namespace TwinTester
                 string desiredPropertyUpdateValue = new string('1', Settings.Current.TwinUpdateSize); // dummy twin update can be any character
 
                 var desiredProperties = new TwinProperties();
-                string propertyKey = this.twinState.DesiredPropertyUpdateCounter.ToString();
+                string propertyKey = this.desiredPropertyUpdateCounter.ToString();
                 desiredProperties.Desired[propertyKey] = desiredPropertyUpdateValue;
                 Twin patch = new Twin(desiredProperties);
 
@@ -51,7 +53,7 @@ namespace TwinTester
             try
             {
                 await this.resultHandler.HandleDesiredPropertyUpdateAsync(propertyKey, value);
-                this.twinState.DesiredPropertyUpdateCounter += 1;
+                this.desiredPropertyUpdateCounter += 1;
             }
             catch (Exception e)
             {
