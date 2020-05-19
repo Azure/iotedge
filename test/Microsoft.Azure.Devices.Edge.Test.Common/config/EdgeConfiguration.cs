@@ -39,11 +39,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             ModuleConfiguration[] modules = moduleConfigs.ToArray();
 
             string[] names = modules.Select(m => m.Name).ToArray();
-            foreach (string name in names)
-            {
-                Log.Verbose($"DRB - name of module: {name}");
-            }
-
             string[] images = modules.Select(m => m.Image).ToArray();
             var config = new ConfigurationContent
             {
@@ -73,11 +68,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                             .Children<JProperty>()
                             .ToDictionary(
                                 p => p.Name,
-                                p =>
-                                {
-                                    Log.Verbose($"DRB - Name of module: {p.Name}");
-                                    return p.Name == ModuleName.EdgeAgent ? CreateExpectedAgentModuleConfig((JObject)p.Value) : CreateExpectedModuleConfig((JObject)p.Value);
-                                })
+                                p => p.Name == ModuleName.EdgeAgent.Substring(1)
+                                ? CreateExpectedAgentModuleConfig((JObject)p.Value)
+                                : CreateExpectedModuleConfig((JObject)p.Value))
             };
 
             if (desired.ContainsKey("modules"))
