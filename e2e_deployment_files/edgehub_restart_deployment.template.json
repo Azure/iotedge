@@ -79,7 +79,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"1m\",\"max-file\":\"3\"}}}}"
             }
           },
           "directMethodReceiver2": {
@@ -100,7 +100,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"1m\",\"max-file\":\"3\"}}}}"
             }
           },
           "edgeHubRestartTester1": {
@@ -157,7 +157,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"1m\",\"max-file\":\"3\"}}}}"
             }
           },
           "relayer2": {
@@ -181,7 +181,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"1m\",\"max-file\":\"3\"}}}}"
             }
           },
           "testResultCoordinator": {
@@ -236,7 +236,7 @@
                 "value": "<NetworkController.RunProfile>"
               },
               "TEST_INFO": {
-                "value": "<TestInfo>"
+                "value": "<TestResultCoordinator.TestInfo>"
               }
             },
             "settings": {

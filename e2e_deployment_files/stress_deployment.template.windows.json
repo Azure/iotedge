@@ -22,7 +22,7 @@
             "type": "docker",
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-windows-<Architecture>",
-              "createOptions": ""
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"1m\",\"max-file\":\"3\"}}}}"
             },
             "env": {
               "experimentalfeatures__enabled": {
@@ -76,7 +76,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-windows-<Architecture>",
-              "createOptions": ""
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"1m\",\"max-file\":\"3\"}}}}"
             }
           },
           "loadGen2": {
@@ -94,7 +94,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-windows-<Architecture>",
-              "createOptions": ""
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"1m\",\"max-file\":\"3\"}}}}"
             }
           },
           "loadGen3": {
@@ -112,7 +112,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-windows-<Architecture>",
-              "createOptions": ""
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"1m\",\"max-file\":\"3\"}}}}"
             }
           },
           "loadGen4": {
@@ -130,13 +130,13 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-windows-<Architecture>",
-              "createOptions": ""
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"1m\",\"max-file\":\"3\"}}}}"
             }
           },
           "twinTester1": {
             "settings": {
                 "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-windows-<Architecture>",
-                "createOptions": ""
+                "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"1m\",\"max-file\":\"3\"}}}}"
             },
             "type": "docker",
             "version": "1.0",
@@ -166,7 +166,7 @@
           "twinTester2": {
             "settings": {
                 "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-windows-<Architecture>",
-                "createOptions": ""
+                "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"1m\",\"max-file\":\"3\"}}}}"
             },
             "type": "docker",
             "version": "1.0",
@@ -196,7 +196,7 @@
           "twinTester3": {
             "settings": {
                 "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-windows-<Architecture>",
-                "createOptions": ""
+                "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"1m\",\"max-file\":\"3\"}}}}"
             },
             "type": "docker",
             "version": "1.0",
@@ -226,7 +226,7 @@
           "twinTester4": {
             "settings": {
                 "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-windows-<Architecture>",
-                "createOptions": ""
+                "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"1m\",\"max-file\":\"3\"}}}}"
             },
             "type": "docker",
             "version": "1.0",
@@ -351,7 +351,7 @@
             },
             "settings": {
                 "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-windows-<Architecture>",
-                "createOptions": ""
+                "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"1m\",\"max-file\":\"3\"}}}}"
             }
           }
         }
