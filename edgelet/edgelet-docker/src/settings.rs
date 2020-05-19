@@ -1119,4 +1119,19 @@ mod tests {
             .unwrap()
             .contains_key("azure-iot-edge"));
     }
+
+    #[test]
+    fn agent_labels_are_set() {
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
+        let create_options = settings.agent().config().create_options();
+        let labels = create_options.labels().unwrap();
+        assert_eq!(
+            labels.get("net.azure-devices.edge.create-options"),
+            Some(&"{}".to_string())
+        );
+        assert_eq!(
+            labels.get("net.azure-devices.edge.env"),
+            Some(&"{}".to_string())
+        );
+    }
 }
