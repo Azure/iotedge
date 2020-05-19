@@ -61,7 +61,8 @@ namespace TestAnalyzer
             // Github issue: https://github.com/Azure/iotedge/issues/681
             // We expect to get this status sometimes because of edgehub restarts, but if we receive too many we should fail the tests.
             // TODO: When the SDK allows edgehub to de-register from subscriptions and we make the fix in edgehub, then we can fail tests for any status code 0.
-            bool statusCodeZeroBelowThreshold = this.StatusCodes.Where(s => s.StatusCode.Equals("0")).Count() < ((double)this.StatusCodes.Count / 100);
+            int allStatusCount = this.StatusCodes.Select(s => s.Count).Sum();
+            bool statusCodeZeroBelowThreshold = this.StatusCodes.Where(s => s.StatusCode.Equals("0")).Count() < ((double)allStatusCount / 100);
 
             return noUnexpectedStatus && statusCodeZeroBelowThreshold;
         }
