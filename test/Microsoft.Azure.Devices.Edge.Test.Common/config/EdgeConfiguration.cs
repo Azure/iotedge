@@ -122,7 +122,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             labels.TryAdd("net.azure-devices.edge.owner", new JValue("Microsoft.Azure.Devices.Edge.Agent"));
             createOptions["Labels"] = labels;
             source["settings"]["createOptions"] = createOptions;
-            Log.Verbose($"DRB -Added to source for edgeAgent: {source}");
+            if (source["settings"] != null)
+            {
+                source["settings"]["createOptions"] = createOptions;
+            }
+            else
+            {
+                source["settings"] = new JObject().TryAdd("createOptions", createOptions);
+            }
+
             return CreateExpectedModuleConfig(source);
         }
 
