@@ -218,16 +218,25 @@ fn agent_networking(settings: &mut Settings) -> Result<(), LoadSettingsError> {
 fn agent_labels(settings: &mut Settings) -> Result<(), LoadSettingsError> {
     let create_options = settings.agent().config().clone_create_options()?;
 
-    let mut labels = create_options.labels().cloned().unwrap_or_else(HashMap::new);
+    let mut labels = create_options
+        .labels()
+        .cloned()
+        .unwrap_or_else(HashMap::new);
 
     // IoT Edge reserves the label prefix "net.azure-devices.edge" for its own purposes
     // so we'll simply overwrite any matching labels created by the user.
-    labels.insert("net.azure-devices.edge.create-options".to_string(), "{}".to_string());
+    labels.insert(
+        "net.azure-devices.edge.create-options".to_string(),
+        "{}".to_string(),
+    );
     labels.insert("net.azure-devices.edge.env".to_string(), "{}".to_string());
 
     let create_options = create_options.with_labels(labels);
 
-    settings.agent_mut().config_mut().set_create_options(create_options);
+    settings
+        .agent_mut()
+        .config_mut()
+        .set_create_options(create_options);
 
     Ok(())
 }
