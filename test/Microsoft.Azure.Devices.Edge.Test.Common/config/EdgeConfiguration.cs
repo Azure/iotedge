@@ -120,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             labels.TryAdd("net.azure-devices.edge.env", env);
             createOptions["Labels"] = labels;
             source.TryAdd("settings.createOptions", createOptions);
-            Log.Verbose($"Added to source for edgeAgent: {source}")
+            Log.Verbose($"Added to source for edgeAgent: {source}");
             return CreateExpectedModuleConfig(source);
         }
 
