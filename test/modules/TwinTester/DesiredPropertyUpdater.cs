@@ -13,15 +13,15 @@ namespace TwinTester
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(DesiredPropertyUpdater));
         readonly RegistryManager registryManager;
         readonly ITwinTestResultHandler resultHandler;
-        readonly TwinTestState twinState;
+        readonly TwinTestState twinTestState;
         int desiredPropertyUpdateCounter;
 
-        public DesiredPropertyUpdater(RegistryManager registryManager, ITwinTestResultHandler resultHandler, TwinTestState twinState)
+        public DesiredPropertyUpdater(RegistryManager registryManager, ITwinTestResultHandler resultHandler, TwinTestState twinTestState)
         {
             this.registryManager = registryManager;
             this.resultHandler = resultHandler;
-            this.twinState = twinState;
-            this.desiredPropertyUpdateCounter = twinState.DesiredPropertyUpdateCounter;
+            this.twinTestState = twinTestState;
+            this.desiredPropertyUpdateCounter = twinTestState.DesiredPropertyUpdateCounter;
         }
 
         public async Task UpdateAsync()
@@ -35,8 +35,8 @@ namespace TwinTester
                 desiredProperties.Desired[propertyKey] = desiredPropertyUpdateValue;
                 Twin patch = new Twin(desiredProperties);
 
-                Twin newTwin = await this.registryManager.UpdateTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId, patch, this.twinState.TwinETag);
-                this.twinState.TwinETag = newTwin.ETag;
+                Twin newTwin = await this.registryManager.UpdateTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId, patch, this.twinTestState.TwinETag);
+                this.twinTestState.TwinETag = newTwin.ETag;
 
                 Logger.LogInformation($"Desired property updated {propertyKey}");
 

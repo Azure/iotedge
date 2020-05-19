@@ -7,9 +7,9 @@ namespace TwinTester
     class TwinTestState
     {
         string twinETag;
-        AtomicLong edgeHubLastStarted;
-        AtomicLong edgeHubLastStopped;
-        AtomicLong lastNetworkOffline;
+        readonly AtomicLong edgeHubLastStarted = new AtomicLong();
+        readonly AtomicLong edgeHubLastStopped = new AtomicLong();
+        readonly AtomicLong lastNetworkOffline = new AtomicLong();
 
         public TwinTestState(string twinETag)
             : this(0, 0, twinETag, DateTime.MinValue, DateTime.MinValue, DateTime.MinValue)
