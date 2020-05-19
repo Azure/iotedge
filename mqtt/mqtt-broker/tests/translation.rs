@@ -254,7 +254,7 @@ async fn receive_with_topic(client: &mut TestClient, topic: &str) {
         client.publications().recv().await,
         Some(ReceivedPublication {
             topic_name,..
-        }) if &topic_name == topic
+        }) if topic_name == topic
     );
 }
 
@@ -269,6 +269,6 @@ async fn receive_with_topic_and_payload<B>(
         client.publications().recv().await,
         Some(ReceivedPublication {
             topic_name, payload,..
-        }) if &topic_name == topic && payload == expected_payload.into()
+        }) if topic_name == topic && payload == expected_payload.into()
     );
 }
