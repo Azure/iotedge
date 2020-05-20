@@ -259,9 +259,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             Option<TimeSpan> timeBetweenReadings = module.Read.AndThen(read => previousRead.Map(preRead => read - preRead));
 
             // Get 100ns intervals
-            Option<long> intervalsPerCpu = timeBetweenReadings.Map(tbr => (long)tbr.TotalMilliseconds * 10000); 
+            Option<long> intervalsPerCpu = timeBetweenReadings.Map(tbr => (long)tbr.TotalMilliseconds * 10000);
             Option<long> possibleIntervals = intervalsPerCpu.AndThen(cpuInt => module.NumProcesses.Map(numProc => cpuInt * numProc));
-           
 
             Option<double> currentTotal = module.CpuStats.AndThen(s => s.CpuUsage).AndThen(s => s.TotalUsage);
             Option<double> previousTotal = module.Name.AndThen(this.previousModuleCpu.GetOption);
