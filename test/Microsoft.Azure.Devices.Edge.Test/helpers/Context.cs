@@ -22,9 +22,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
             string Get(string name) => context.GetValue<string>(name);
 
-            IEnumerable<(string, string, string)> GetAndValidateRegistries()
+            IEnumerable<Registry> GetAndValidateRegistries()
             {
-                var result = new List<(string, string, string)>();
+                var result = new List<Registry>();
 
                 var registries = context.GetSection("registries").GetChildren().ToArray();
                 foreach (var reg in registries)
@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     Preconditions.CheckNonWhiteSpace(username, nameof(username));
                     Preconditions.CheckNonWhiteSpace(password, nameof(password));
 
-                    result.Add((address, username, password));
+                    result.Add(new Registry(address, username, password));
                 }
 
                 return result;
@@ -141,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public Option<Uri> Proxy { get; }
 
-        public IEnumerable<(string address, string username, string password)> Registries { get; }
+        public IEnumerable<Registry> Registries { get; }
 
         public Option<(string certificate, string key, string password)> RootCaKeys { get; }
 
