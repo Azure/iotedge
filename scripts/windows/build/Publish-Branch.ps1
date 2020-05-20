@@ -202,7 +202,7 @@ foreach ($libProjectFileName in $libProjectList) {
 
     Write-Host "Publishing Lib Project - $libProjectFilePath"
     $ProjectPublishPath = Join-Path $PUBLISH_FOLDER ($libProjectFileName -replace @(".csproj", ""))
-    &$DOTNET_PATH publish -f netcoreapp3.1 -c $Configuration -o $ProjectPublishPath $libProjectFilePath |
+    &$DOTNET_PATH publish -f netstandard2.0 -c $Configuration -o $ProjectPublishPath $libProjectFilePath |
         Write-Host
     if ($LASTEXITCODE -ne 0) {
         throw "Failed lib publishing $libProjectFilePath."
