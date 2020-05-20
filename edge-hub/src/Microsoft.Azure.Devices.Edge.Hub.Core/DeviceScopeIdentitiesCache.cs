@@ -42,6 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             // Populate the ServiceIdentityTree
             this.serviceIdentityTree = new ServiceIdentityTree(edgeDeviceId);
+            this.serviceIdentityTree.ServiceIdentityRemoved += this.HandleServiceIdentityRemoved;
             foreach (KeyValuePair<string, StoredServiceIdentity> kvp in initialCache)
             {
                 kvp.Value.ServiceIdentity.ForEach(serviceIdentity => this.serviceIdentityTree.InsertOrUpdate(serviceIdentity));
@@ -226,8 +227,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     .Filter(s => s.Status == ServiceIdentityStatus.Enabled)
                     .HasValue;
 
+                // Remove the target identity and all its children from the tree,
+                // this will invoke a callback for each deleted identity, so we
+                // can also delete them from storage.
                 this.serviceIdentityTree.Remove(id);
-                await this.RemoveServiceIdentityFromStore(id);
                 Events.NotInScope(id);
 
                 if (hasValidServiceIdentity)
@@ -242,7 +245,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             using (await this.cacheLock.LockAsync())
             {
-                bool hasUpdated = this.serviceIdentityTree.Get(serviceIdentity.Id).Contains(serviceIdentity);
+                Option<ServiceIdentity> existing = this.serviceIdentityTree.Get(serviceIdentity.Id);
+                bool hasUpdated = existing.HasValue && !existing.Contains(serviceIdentity);
 
                 this.serviceIdentityTree.InsertOrUpdate(serviceIdentity);
                 await this.SaveServiceIdentityToStore(serviceIdentity.Id, new StoredServiceIdentity(serviceIdentity));
@@ -261,7 +265,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             await this.encryptedStore.Put(id, serviceIdentityString);
         }
 
-        async Task RemoveServiceIdentityFromStore(string id)
+        async void HandleServiceIdentityRemoved(object sender, string id)
         {
             await this.encryptedStore.Remove(id);
         }

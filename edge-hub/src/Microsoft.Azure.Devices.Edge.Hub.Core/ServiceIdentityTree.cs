@@ -14,6 +14,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     /// </summary>
     class ServiceIdentityTree
     {
+        public event EventHandler<string> ServiceIdentityRemoved;
+
         readonly IDictionary<string, ServiceIdentityTreeNode> nodes;
         readonly string rootDeviceId;
 
@@ -30,9 +32,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             if (this.Contains(identity.Id))
             {
-                // Update case - this is just remove + insert, except we
-                // don't remove the children if there are any
-                this.RemoveSingleNode(identity.Id);
+                // Update case - this is just remove + re-insert,
+                // except we don't remove any existing children.
+                // There's no scenario where losing a link to
+                // either the parent or a child wouldn't result
+                // in a call to RemoveRecursive().
+                this.RemoveSingleNode_NoCallback(identity.Id);
             }
 
             // Insert case
@@ -48,8 +53,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public void Remove(string id)
         {
-            // TODO: RICHMA - add OnRemoved callback to handle deletion from storage
-
             // In the case of an explicit removal, the device/module is
             // no longer part of the nested hierarchy, so we should
             // remove any children of the device as well.
@@ -87,9 +90,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 // Walk the parents up to the root
                 while (treeNode.Parent.HasValue)
                 {
-                    // Accumulate the auth chain per parent visited
+                    // Accumulate the auth chain per parent visited in the format:
+                    // "leaf1;edge1;edge2;...;rootEdge"
                     ServiceIdentityTreeNode parent = treeNode.Parent.Expect(() => new InvalidOperationException());
-                    authChain += parent.Identity.Id + ";";
+                    authChain += ";" + parent.Identity.Id;
 
                     if (parent.Identity.DeviceId == this.rootDeviceId)
                     {
@@ -152,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             List<ServiceIdentityTreeNode> danglingChildren =
                 this.nodes
                 .Select(kvp => kvp.Value)
-                .Where(serviceIdentity => serviceIdentity.Identity.ParentScopes.Equals(device.DeviceScope))
+                .Where(s => s.Identity.ParentScopes.HasValue && s.Identity.ParentScopes.Equals(device.DeviceScope))
                 .ToList();
 
             foreach (ServiceIdentityTreeNode child in danglingChildren)
@@ -162,7 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        void RemoveSingleNode(string id)
+        void RemoveSingleNode_NoCallback(string id)
         {
             if (this.nodes.TryGetValue(id, out ServiceIdentityTreeNode target))
             {
@@ -185,10 +189,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 target.Parent.ForEach(parent => parent.Children.Remove(target));
 
                 // Recursively remove each child
-                target.Children.ForEach(child => this.RemoveRecursive(child.Identity.Id));
+                var childrenSnapshot = new List<ServiceIdentityTreeNode>(target.Children);
+                childrenSnapshot.ForEach(child => this.RemoveRecursive(child.Identity.Id));
 
                 // Remove self after recursion
                 this.nodes.Remove(id);
+
+                // Notify callbacks
+                this.ServiceIdentityRemoved?.Invoke(this, id);
             }
         }
 

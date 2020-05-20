@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             int batchSize = 10;
             var tokenProvider = Mock.Of<ITokenProvider>();
             var deviceScopeApiClient = new DeviceScopeApiClient(iothubHostName, deviceId, moduleId, batchSize, tokenProvider, Option.None<IWebProxy>());
-            string expectedUri = "https://foo.azure-devices.net/devices/d1/modules/$edgeHub/devicesAndModulesInDeviceScope?deviceCount=10&continuationToken=&api-version=2018-08-30-preview";
+            string expectedUri = "https://foo.azure-devices.net/devices/d1/modules/$edgeHub/devicesAndModulesInTargetDeviceScope?api-version=2020-06-30-preview";
 
             // Act
             Uri uri = deviceScopeApiClient.GetServiceUri();

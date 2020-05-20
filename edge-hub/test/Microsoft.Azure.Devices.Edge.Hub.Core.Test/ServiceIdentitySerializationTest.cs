@@ -31,6 +31,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.NotNull(roundtripServiceIdentity);
             Assert.Equal(serviceIdentity.DeviceId, roundtripServiceIdentity.DeviceId);
             Assert.Equal(serviceIdentity.Id, roundtripServiceIdentity.Id);
+            Assert.Equal(serviceIdentity.DeviceScope, roundtripServiceIdentity.DeviceScope);
+            Assert.Equal(serviceIdentity.ParentScopes, roundtripServiceIdentity.ParentScopes);
             Assert.False(serviceIdentity.ModuleId.HasValue);
             Assert.Equal(serviceIdentity.IsModule, roundtripServiceIdentity.IsModule);
             Assert.Equal(serviceIdentity.Status, roundtripServiceIdentity.Status);
@@ -66,6 +68,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.NotNull(roundtripServiceIdentity);
             Assert.Equal(serviceIdentity.DeviceId, roundtripServiceIdentity.DeviceId);
             Assert.Equal(serviceIdentity.Id, roundtripServiceIdentity.Id);
+            Assert.Equal(serviceIdentity.DeviceScope, roundtripServiceIdentity.DeviceScope);
+            Assert.Equal(serviceIdentity.ParentScopes, roundtripServiceIdentity.ParentScopes);
             Assert.Equal(serviceIdentity.IsModule, roundtripServiceIdentity.IsModule);
             Assert.Equal(serviceIdentity.ModuleId.OrDefault(), roundtripServiceIdentity.ModuleId.OrDefault());
             Assert.Equal(serviceIdentity.Status, roundtripServiceIdentity.Status);
@@ -98,6 +102,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.NotNull(roundtripServiceIdentity);
             Assert.Equal(serviceIdentity.DeviceId, roundtripServiceIdentity.DeviceId);
             Assert.Equal(serviceIdentity.Id, roundtripServiceIdentity.Id);
+            Assert.Equal(serviceIdentity.DeviceScope, roundtripServiceIdentity.DeviceScope);
+            Assert.Equal(serviceIdentity.ParentScopes, roundtripServiceIdentity.ParentScopes);
             Assert.Equal(serviceIdentity.ModuleId.OrDefault(), roundtripServiceIdentity.ModuleId.OrDefault());
             Assert.Equal(serviceIdentity.Status, roundtripServiceIdentity.Status);
             Assert.Equal(serviceIdentity.GenerationId, roundtripServiceIdentity.GenerationId);
@@ -132,6 +138,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.NotNull(roundtripServiceIdentity);
             Assert.Equal(serviceIdentity.DeviceId, roundtripServiceIdentity.DeviceId);
             Assert.Equal(serviceIdentity.Id, roundtripServiceIdentity.Id);
+            Assert.Equal(serviceIdentity.DeviceScope, roundtripServiceIdentity.DeviceScope);
+            Assert.Equal(serviceIdentity.ParentScopes, roundtripServiceIdentity.ParentScopes);
             Assert.Equal(serviceIdentity.IsModule, roundtripServiceIdentity.IsModule);
             Assert.Equal(serviceIdentity.ModuleId.OrDefault(), roundtripServiceIdentity.ModuleId.OrDefault());
             Assert.Equal(serviceIdentity.Status, roundtripServiceIdentity.Status);
@@ -167,6 +175,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.NotNull(roundtripServiceIdentity);
             Assert.Equal(serviceIdentity.DeviceId, roundtripServiceIdentity.DeviceId);
             Assert.Equal(serviceIdentity.Id, roundtripServiceIdentity.Id);
+            Assert.Equal(serviceIdentity.DeviceScope, roundtripServiceIdentity.DeviceScope);
+            Assert.Equal(serviceIdentity.ParentScopes, roundtripServiceIdentity.ParentScopes);
             Assert.Equal(serviceIdentity.IsModule, roundtripServiceIdentity.IsModule);
             Assert.Equal(serviceIdentity.ModuleId.OrDefault(), roundtripServiceIdentity.ModuleId.OrDefault());
             Assert.Equal(serviceIdentity.Status, roundtripServiceIdentity.Status);
@@ -201,6 +211,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.NotNull(roundtripServiceIdentity);
             Assert.Equal(serviceIdentity.DeviceId, roundtripServiceIdentity.DeviceId);
             Assert.Equal(serviceIdentity.Id, roundtripServiceIdentity.Id);
+            Assert.Equal(serviceIdentity.DeviceScope, roundtripServiceIdentity.DeviceScope);
+            Assert.Equal(serviceIdentity.ParentScopes, roundtripServiceIdentity.ParentScopes);
             Assert.Equal(serviceIdentity.IsModule, roundtripServiceIdentity.IsModule);
             Assert.Equal(serviceIdentity.ModuleId.OrDefault(), roundtripServiceIdentity.ModuleId.OrDefault());
             Assert.Equal(serviceIdentity.Status, roundtripServiceIdentity.Status);
