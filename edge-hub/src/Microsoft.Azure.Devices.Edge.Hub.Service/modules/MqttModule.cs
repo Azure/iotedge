@@ -124,6 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         var mqttConnectionProviderTask = c.Resolve<Task<IMqttConnectionProvider>>();
                         var sessionStatePersistenceProviderTask = c.Resolve<Task<ISessionStatePersistenceProvider>>();
                         var authenticatorProviderTask = c.Resolve<Task<IAuthenticator>>();
+                        var usernameParser = c.Resolve<IUsernameParser>();
                         IClientCredentialsFactory clientCredentialsProvider = c.Resolve<IClientCredentialsFactory>();
                         IMqttConnectionProvider mqttConnectionProvider = await mqttConnectionProviderTask;
                         ISessionStatePersistenceProvider sessionStatePersistenceProvider = await sessionStatePersistenceProviderTask;
@@ -133,6 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             this.tlsCertificate,
                             mqttConnectionProvider,
                             authenticator,
+                            usernameParser,
                             clientCredentialsProvider,
                             sessionStatePersistenceProvider,
                             websocketListenerRegistry,

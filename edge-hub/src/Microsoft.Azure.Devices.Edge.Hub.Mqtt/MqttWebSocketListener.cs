@@ -23,6 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly Settings settings;
         readonly MessagingBridgeFactoryFunc messagingBridgeFactoryFunc;
         readonly IAuthenticator authenticator;
+        readonly IUsernameParser usernameParser;
         readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly Func<ISessionStatePersistenceProvider> sessionProviderFactory;
         readonly IEventLoopGroup workerGroup;
@@ -36,6 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             Settings settings,
             MessagingBridgeFactoryFunc messagingBridgeFactoryFunc,
             IAuthenticator authenticator,
+            IUsernameParser usernameParser,
             IClientCredentialsFactory clientCredentialsFactory,
             Func<ISessionStatePersistenceProvider> sessionProviderFactory,
             IEventLoopGroup workerGroup,
@@ -48,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.settings = Preconditions.CheckNotNull(settings, nameof(settings));
             this.messagingBridgeFactoryFunc = Preconditions.CheckNotNull(messagingBridgeFactoryFunc, nameof(messagingBridgeFactoryFunc));
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
+            this.usernameParser = Preconditions.CheckNotNull(usernameParser, nameof(usernameParser));
             this.clientCredentialsFactory = Preconditions.CheckNotNull(clientCredentialsFactory, nameof(clientCredentialsFactory));
             this.sessionProviderFactory = Preconditions.CheckNotNull(sessionProviderFactory, nameof(sessionProviderFactory));
             this.workerGroup = Preconditions.CheckNotNull(workerGroup, nameof(workerGroup));
@@ -62,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public Task ProcessWebSocketRequestAsync(WebSocket webSocket, Option<EndPoint> localEndPoint, EndPoint remoteEndPoint, string correlationId)
         {
-            var identityProvider = new DeviceIdentityProvider(this.authenticator, this.clientCredentialsFactory, this.productInfoStore, this.clientCertAuthAllowed);
+            var identityProvider = new DeviceIdentityProvider(this.authenticator, this.usernameParser, this.clientCredentialsFactory, this.productInfoStore, this.clientCertAuthAllowed);
             return this.ProcessWebSocketRequestAsyncInternal(identityProvider, webSocket, localEndPoint, remoteEndPoint, correlationId);
         }
 
@@ -74,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             X509Certificate2 clientCert,
             IList<X509Certificate2> clientCertChain)
         {
-            var identityProvider = new DeviceIdentityProvider(this.authenticator, this.clientCredentialsFactory, this.productInfoStore, this.clientCertAuthAllowed);
+            var identityProvider = new DeviceIdentityProvider(this.authenticator, this.usernameParser, this.clientCredentialsFactory, this.productInfoStore, this.clientCertAuthAllowed);
             identityProvider.RegisterConnectionCertificate(clientCert, clientCertChain);
             return this.ProcessWebSocketRequestAsyncInternal(identityProvider, webSocket, localEndPoint, remoteEndPoint, correlationId);
         }

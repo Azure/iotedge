@@ -233,18 +233,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             };
         }
 
-        public static IEnumerable<object[]> GetBadUsernameInputs()
-        {
-            yield return new[] { "missingEverythingAfterHostname" };
-            yield return new[] { "hostname/missingEverthingAfterDeviceId" };
-            yield return new[] { "hostname/deviceId/missingApiVersionProperty" };
-            yield return new[] { "hostname/deviceId/moduleId/missingApiVersionProperty" };
-            yield return new[] { "hostname/deviceId/moduleId/stillMissingApiVersionProperty&DeviceClientType=whatever" };
-            yield return new[] { "hostname/deviceId/moduleId/DeviceClientType=whatever&stillMissingApiVersionProperty" };
-            yield return new[] { "hostname/deviceId/moduleId/DeviceClientType=stillMissingApiVersionProperty" };
-            yield return new[] { "hostname/deviceId/moduleId/api-version=whatever/tooManySegments" };
-        }
-
         [Theory]
         [Unit]
         [MemberData(nameof(GetIdentityInputs))]
@@ -308,14 +296,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
         [Theory]
         [Unit]
-        [MemberData(nameof(GetBadUsernameInputs))]
-        public void NegativeUsernameTest(string username)
-        {
-            Assert.Throws<EdgeHubConnectionException>(() => DeviceIdentityProvider.ParseUserName(username));
-        }
-
-        [Theory]
-        [Unit]
         [MemberData(nameof(GetModuleIdentityInputs))]
         public async Task GetModuleIdentityTest(
             string value,
@@ -341,8 +321,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         {
             productInfoStore = productInfoStore ?? Mock.Of<IProductInfoStore>();
             var authenticator = Mock.Of<IAuthenticator>(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>()) == Task.FromResult(true));
+            var usernameParser = new MqttUsernameParser();
             var factory = new ClientCredentialsFactory(new IdentityProvider(iotHubHostName), productInfo);
-            var credentialIdentityProvider = new DeviceIdentityProvider(authenticator, factory, productInfoStore, isCertAuthAllowed);
+            var credentialIdentityProvider = new DeviceIdentityProvider(authenticator, usernameParser, factory, productInfoStore, isCertAuthAllowed);
             if (certificate != null && chain != null)
             {
                 credentialIdentityProvider.RegisterConnectionCertificate(certificate, chain);
