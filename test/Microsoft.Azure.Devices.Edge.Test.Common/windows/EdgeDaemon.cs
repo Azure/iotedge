@@ -14,10 +14,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
     public class EdgeDaemon : IEdgeDaemon
     {
         Option<string> bootstrapAgentImage;
-        Option<(string address, string username, string password)> bootstrapRegistry;
+        Option<Registry> bootstrapRegistry;
         Option<string> scriptDir;
 
-        public EdgeDaemon(Option<string> scriptDir, Option<string> bootstrapAgentImage, Option<(string serverAddress, string username, string password)> bootstrapRegistry)
+        public EdgeDaemon(Option<string> scriptDir, Option<string> bootstrapAgentImage, Option<Registry> bootstrapRegistry)
         {
             this.scriptDir = scriptDir;
             this.bootstrapAgentImage = bootstrapAgentImage;

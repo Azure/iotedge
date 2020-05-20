@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Registries = System.Collections.Generic.IEnumerable<(string address, string username, string password)>;
+    using Registries = System.Collections.Generic.IEnumerable<Registry>;
 
     public class EdgeRuntime
     {
@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             bool stageSystemModules = true)
         {
             var builder = new EdgeConfigBuilder(this.DeviceId);
-            builder.AddRegistryCredentials(this.registries);
+            builder.AddRegistries(this.registries);
             builder.AddEdgeAgent(this.agentImage.OrDefault())
                 .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
                 .WithProxy(this.proxy);
