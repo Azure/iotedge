@@ -2138,7 +2138,7 @@ pub(crate) mod tests {
             &mut broker_handle,
             &mut a_rx,
             a_id.clone(),
-            &["$edgehub/subscriptions/client_b"],
+            &["$edgehub/client_b/subscriptions"],
         )
         .await;
         check_notify_received(&mut a_rx, &[]).await;
@@ -2175,7 +2175,7 @@ pub(crate) mod tests {
             &mut broker_handle,
             &mut a_rx,
             a_id.clone(),
-            &["$edgehub/subscriptions/client_b"],
+            &["$edgehub/client_b/subscriptions"],
         )
         .await;
         check_notify_received(&mut a_rx, &[]).await;
@@ -2217,7 +2217,7 @@ pub(crate) mod tests {
             &mut broker_handle,
             &mut a_rx,
             a_id.clone(),
-            &["$edgehub/subscriptions/client_b"],
+            &["$edgehub/client_b/subscriptions"],
         )
         .await;
 
