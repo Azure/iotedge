@@ -34,6 +34,7 @@ tracing-futures = "0.2"
 uuid = { version = "0.8", features = ["v4"] }
 
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
+mqtt-edgehub = { path = "../mqtt-edgehub" }
 
 [dev-dependencies]
 atty = "0.2"
