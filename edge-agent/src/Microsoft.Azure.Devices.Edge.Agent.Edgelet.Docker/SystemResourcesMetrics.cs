@@ -164,7 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
 
         void SetModuleStats(SystemResources systemResources)
         {
-            DockerStats[] modules = JsonConvert.DeserializeObject<DockerStats[]>(systemResources.ModuleStats);
+            DockerStats[] modules = JsonConvert.DeserializeObject<DockerStats[]>(systemResources.DockerStats);
             foreach (DockerStats module in modules)
             {
                 if (!module.Name.HasValue)
@@ -255,13 +255,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
         // Modeled after https://github.com/docker/cli/blob/master/cli/command/container/stats_helpers.go#L185
         Option<double> GetCpuWindows(DockerStats module)
         {
-            Option<TimeSpan> timeBetweenReadings = module.Read.AndThen(read => module.PreviousRead.Map(preRead => read - preRead));
-            Option<long> intervalsPerCpu = timeBetweenReadings.Map(tbr => (long)tbr.TotalMilliseconds * 10);
+            Option<DateTime> previousRead = module.Name.AndThen(this.previousReadTime.GetOption);
+            Option<TimeSpan> timeBetweenReadings = module.Read.AndThen(read => previousRead.Map(preRead => read - preRead));
+
+            // Get 100ns intervals
+            Option<long> intervalsPerCpu = timeBetweenReadings.Map(tbr => (long)tbr.TotalMilliseconds * 10000); 
             Option<long> possibleIntervals = intervalsPerCpu.AndThen(cpuInt => module.NumProcesses.Map(numProc => cpuInt * numProc));
+           
 
             Option<double> currentTotal = module.CpuStats.AndThen(s => s.CpuUsage).AndThen(s => s.TotalUsage);
-            Option<double> previousTotal = module.PreviousCpuStats.AndThen(s => s.CpuUsage).AndThen(s => s.TotalUsage);
+            Option<double> previousTotal = module.Name.AndThen(this.previousModuleCpu.GetOption);
             Option<double> intervalsUsed = currentTotal.AndThen(curr => previousTotal.Map(prev => curr - prev));
+
+            // set previous to new current
+            module.Name.ForEach(name =>
+            {
+                currentTotal.ForEach(curr => this.previousModuleCpu[name] = curr);
+                module.Read.ForEach(curr => this.previousReadTime[name] = curr);
+            });
 
             return intervalsUsed.AndThen(used => possibleIntervals.AndThen(possible =>
             {
