@@ -59,5 +59,5 @@ $RUSTUP component add clippy
 
 echo "Running clippy..."
 $CARGO clippy --all
-$CARGO clippy --all --tests
+$CARGO clippy --all --tests --all-features
 $CARGO clippy --all --examples
