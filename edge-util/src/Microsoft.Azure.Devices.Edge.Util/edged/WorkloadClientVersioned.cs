@@ -62,6 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
             }
             catch (Exception ex)
             {
+                //BEARWASHERE -- Make this throw exception after it fails the retry
                 this.HandleException(ex, operation);
                 Events.SuccessfullyExecutedOperation(operation, this.WorkloadUri.ToString());
                 return default(T);
