@@ -11,8 +11,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public DeviceProvisioningFixture()
         {
-            Option<(string address, string username, string password)> bootstrapRegistry =
-                Option.Maybe<(string address, string username, string password)>(Context.Current.Registries.First());
+            Option<Registry> bootstrapRegistry =
+                Option.Maybe(Context.Current.Registries.First());
             this.daemon = OsPlatform.Current.CreateEdgeDaemon(Context.Current.InstallerPath, Context.Current.EdgeAgentBootstrapImage, bootstrapRegistry);
         }
     }

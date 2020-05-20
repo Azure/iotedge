@@ -9,23 +9,23 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
     {
         readonly string deviceId;
         readonly Dictionary<string, IModuleConfigBuilder> moduleBuilders;
-        readonly List<(string address, string username, string password)> registries;
+        readonly List<Registry> registries;
 
         public EdgeConfigBuilder(string deviceId)
         {
             this.deviceId = deviceId;
             this.moduleBuilders = new Dictionary<string, IModuleConfigBuilder>();
-            this.registries = new List<(string, string, string)>();
+            this.registries = new List<Registry>();
         }
 
-        public void AddRegistryCredentials(string address, string username, string password) =>
-            this.registries.Add((address, username, password));
+        public void AddRegistry(Registry registry) =>
+            this.registries.Add(registry);
 
-        public void AddRegistryCredentials(IEnumerable<(string address, string username, string password)> credentials)
+        public void AddRegistries(IEnumerable<Registry> credentials)
         {
-            foreach ((string address, string username, string password) in credentials)
+            foreach (Registry registry in credentials)
             {
-                this.AddRegistryCredentials(address, username, password);
+                this.AddRegistry(registry);
             }
         }
 
@@ -113,14 +113,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 var credentials = new Dictionary<string, object>();
                 for (int i = 0; i < this.registries.Count; ++i)
                 {
-                    (string address, string username, string password) = this.registries[i];
+                    Registry registry = this.registries[i];
                     credentials.Add(
                         $"reg{i}",
                         new
                         {
-                            username,
-                            password,
-                            address
+                            registry.Username,
+                            registry.Password,
+                            registry.Address
                         });
                 }
 

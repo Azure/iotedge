@@ -2074,7 +2074,7 @@ pub(crate) mod tests {
         )
         .await;
 
-        check_notify_recieved(&mut a_rx, &["client_a", "client_b", "client_c"]).await;
+        check_notify_received(&mut a_rx, &["client_a", "client_b", "client_c"]).await;
     }
 
     #[tokio::test]
@@ -2105,15 +2105,15 @@ pub(crate) mod tests {
             &["$edgehub/connected"],
         )
         .await;
-        check_notify_recieved(&mut a_rx, &["client_a", "client_b", "client_c"]).await;
+        check_notify_received(&mut a_rx, &["client_a", "client_b", "client_c"]).await;
 
         connect_client("client_d", &mut broker_handle)
             .await
             .unwrap();
-        check_notify_recieved(&mut a_rx, &["client_a", "client_b", "client_c", "client_d"]).await;
+        check_notify_received(&mut a_rx, &["client_a", "client_b", "client_c", "client_d"]).await;
 
         disconnect_client("client_c", &mut broker_handle).await;
-        check_notify_recieved(&mut a_rx, &["client_a", "client_b", "client_d"]).await;
+        check_notify_received(&mut a_rx, &["client_a", "client_b", "client_d"]).await;
     }
 
     #[tokio::test]
@@ -2141,16 +2141,16 @@ pub(crate) mod tests {
             &["$edgehub/subscriptions/client_b"],
         )
         .await;
-        check_notify_recieved(&mut a_rx, &[]).await;
+        check_notify_received(&mut a_rx, &[]).await;
 
         send_subscribe(&mut broker_handle, &mut b_rx, b_id.clone(), &["foo"]).await;
-        check_notify_recieved(&mut a_rx, &["foo"]).await;
+        check_notify_received(&mut a_rx, &["foo"]).await;
 
         send_subscribe(&mut broker_handle, &mut b_rx, b_id.clone(), &["bar"]).await;
-        check_notify_recieved(&mut a_rx, &["foo", "bar"]).await;
+        check_notify_received(&mut a_rx, &["foo", "bar"]).await;
 
         send_unsubscribe(&mut broker_handle, &mut b_rx, b_id.clone(), &["foo"]).await;
-        check_notify_recieved(&mut a_rx, &["bar"]).await;
+        check_notify_received(&mut a_rx, &["bar"]).await;
     }
 
     #[tokio::test]
@@ -2178,7 +2178,7 @@ pub(crate) mod tests {
             &["$edgehub/subscriptions/client_b"],
         )
         .await;
-        check_notify_recieved(&mut a_rx, &[]).await;
+        check_notify_received(&mut a_rx, &[]).await;
 
         send_subscribe(
             &mut broker_handle,
@@ -2187,10 +2187,10 @@ pub(crate) mod tests {
             &["foo", "bar", "baz"],
         )
         .await;
-        check_notify_recieved(&mut a_rx, &["foo", "bar", "baz"]).await;
+        check_notify_received(&mut a_rx, &["foo", "bar", "baz"]).await;
 
         send_unsubscribe(&mut broker_handle, &mut b_rx, b_id.clone(), &["foo", "baz"]).await;
-        check_notify_recieved(&mut a_rx, &["bar"]).await;
+        check_notify_received(&mut a_rx, &["bar"]).await;
     }
 
     #[tokio::test]
@@ -2221,7 +2221,7 @@ pub(crate) mod tests {
         )
         .await;
 
-        check_notify_recieved(&mut a_rx, &["foo", "bar", "baz"]).await;
+        check_notify_received(&mut a_rx, &["foo", "bar", "baz"]).await;
     }
 
     async fn connect_client(
@@ -2308,7 +2308,7 @@ pub(crate) mod tests {
         );
     }
 
-    async fn check_notify_recieved(rx: &mut UnboundedReceiver<Message>, expected: &[&str]) {
+    async fn check_notify_received(rx: &mut UnboundedReceiver<Message>, expected: &[&str]) {
         if let Some(Message::Client(
             _,
             ClientEvent::PublishTo(Publish::QoS12(_, proto::Publish { payload, .. })),
@@ -2316,7 +2316,7 @@ pub(crate) mod tests {
         {
             is_notify_equal(&payload, expected);
         } else {
-            panic!("Expected to recieve a QOS12 PublishTo");
+            panic!("Expected to receive a QOS12 PublishTo");
         }
     }
 
