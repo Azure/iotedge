@@ -41,6 +41,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                Context in this issue: https://github.com/dotnet/aspnetcore/issues/21606 */
             HttpsConnectionAdapterOptions connectionAdapterOptions = new HttpsConnectionAdapterOptions()
             {
+                /* ClientCertificateMode.AllowCertificate is the intuitive choice here, however is not what we need
+                   If we use this then aspnetcore will register it's own certificate validation callback when creating the SslStream.
+                   This aspnetcore-created certificate validation callback in turn calls the HttpsConnectionAdapterOptions.ClientCertificateValidation, which we can configure In HttpsConnectionAdapterOptions.
+                   This is not the desired solution for us because HttpsConnectionAdapterOptions.ClientCertificateValidation does not provide access to the client cert chain when the connection is in scope.
+
+                   Thus, we need to pass NoCertificate to block aspnet from creating the SslStream with the certificate validation callback.
+                   This will let us use HttpsConnectionAdapterOptions.OnAuthenticate in order to register certificate validation with the connection in scope.
+                   We can handle the cert / no-cert case inside of OnAuthenticate */
+                ClientCertificateMode = ClientCertificateMode.NoCertificate,
                 ServerCertificate = serverCertificate,
                 OnAuthenticate = (context, options) =>
                 {
@@ -62,15 +71,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                         };
                     }
                 },
-                /* ClientCertificateMode.AllowCertificate is the intuitive choice here, however is not what we need
-                   If we use this then aspnetcore will register it's own certificate validation callback when creating the SslStream.
-                   This aspnetcore-created certificate validation callback in turn calls the HttpsConnectionAdapterOptions.ClientCertificateValidation, which we can configure In HttpsConnectionAdapterOptions.
-                   This is not the desired solution for us because HttpsConnectionAdapterOptions.ClientCertificateValidation does not provide access to the client cert chain when the connection is in scope.
-
-                   Thus, we need to pass NoCertificate to block aspnet from creating the SslStream with the certificate validation callback.
-                   This will let us use HttpsConnectionAdapterOptions.OnAuthenticate in order to register certificate validation with the connection in scope.
-                   We can handle the cert / no-cert case inside of OnAuthenticate */
-                ClientCertificateMode = ClientCertificateMode.NoCertificate,
                 SslProtocols = sslProtocols
             };
 
