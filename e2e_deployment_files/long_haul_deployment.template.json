@@ -400,7 +400,8 @@
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-module-restarter:<Build.BuildNumber>-linux-<Architecture>"
+              "image": "<Container_Registry>/microsoft/azureiotedge-module-restarter:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
             }
           },
           "metricsCollector": {
