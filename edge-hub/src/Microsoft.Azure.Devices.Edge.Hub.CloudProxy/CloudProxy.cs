@@ -23,7 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         static readonly Type[] NonRecoverableExceptions =
         {
             typeof(NullReferenceException),
-            typeof(ObjectDisposedException)
+            typeof(ObjectDisposedException),
+            typeof(InvalidOperationException)
         };
 
         readonly IClient client;

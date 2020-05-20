@@ -224,6 +224,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [Theory]
         [InlineData(typeof(NullReferenceException))]
         [InlineData(typeof(ObjectDisposedException))]
+        [InlineData(typeof(InvalidOperationException))]
         public async Task TestHandleNonRecoverableExceptions(Type exceptionType)
         {
             // Arrange
