@@ -407,10 +407,12 @@ function run_connectivity_test() {
             testExitCode=0
         fi
 
+        iotedge support-bundle
+
         print_test_run_logs $testExitCode
 
         # stop IoT Edge service after test complete to prevent sending metrics
-        sudo systemctl stop iotedge
+        #sudo systemctl stop iotedge
     fi
 
     return $testExitCode

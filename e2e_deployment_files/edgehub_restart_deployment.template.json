@@ -54,6 +54,9 @@
               },
               "experimentalfeatures__enableMetrics": {
                   "value": "true"
+              },
+              "RuntimeLogLevel": {
+                "value": "debug"
               }
             },
             "status": "running",
@@ -225,6 +228,9 @@
               },
               "logAnalyticsLogType": {
                 "value": "<TestResultCoordinator.LogAnalyticsLogType>"
+              },
+              "logUploadEnabled": {
+                "value": "false"
               },
               "IOT_HUB_CONNECTION_STRING": {
                 "value": "<IoTHubConnectionString>"
