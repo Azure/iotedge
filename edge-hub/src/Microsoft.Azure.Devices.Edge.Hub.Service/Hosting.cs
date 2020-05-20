@@ -38,7 +38,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             /* Define the HttpsConnectionAdapterOptions which integrates with aspnetcore https middleware to help us manage the client cert chain.
                We need to store the client cert chain in the connection context, so that we can perform custom CA validation later to authenticate with the service identity.
                We are using logic here that depends on an undocumented api, however eliminating this dependency would require a large refactor.
-               Context in this issue: https://github.com/dotnet/aspnetcore/issues/21606 */
+               Context in this issue: https://github.com/dotnet/aspnetcore/issues/21606 
+               Link to aspnet https middleware: https://github.com/dotnet/aspnetcore/blob/e81033e094d4663ffd227bb4aed30b76b0631e6d/src/Servers/Kestrel/Core/src/Middleware/HttpsConnectionMiddleware.cs */
             HttpsConnectionAdapterOptions connectionAdapterOptions = new HttpsConnectionAdapterOptions()
             {
                 /* ClientCertificateMode.AllowCertificate is the intuitive choice here, however is not what we need
@@ -51,6 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                    We can handle the cert / no-cert case inside of OnAuthenticate */
                 ClientCertificateMode = ClientCertificateMode.NoCertificate,
                 ServerCertificate = serverCertificate,
+                SslProtocols = sslProtocols,
                 OnAuthenticate = (context, options) =>
                 {
                     if (clientCertAuthEnabled)
@@ -70,8 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                             return true;
                         };
                     }
-                },
-                SslProtocols = sslProtocols
+                }
             };
 
             int port = configuration.GetValue("httpSettings:port", 443);
