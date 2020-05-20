@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System;
     using System.IO;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class DaemonConfiguration
     {
@@ -12,11 +13,26 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         readonly string configYamlFile;
         readonly YamlDocument config;
 
-        public DaemonConfiguration(string configYamlFile)
+        public DaemonConfiguration(string configYamlFile, Option<string> agentImage, Option<(string address, string username, string password)> agentRegistry)
         {
             this.configYamlFile = configYamlFile;
             string contents = File.ReadAllText(this.configYamlFile);
             this.config = new YamlDocument(contents);
+            this.UpdateAgentImage(
+                agentImage.GetOrElse("mcr.microsoft.com/microsoft/azureiotedge-agent:1.0"),
+                agentRegistry);
+        }
+
+        public void UpdateAgentImage(string agentImage, Option<(string address, string username, string password)> agentRegistry)
+        {
+            this.config.ReplaceOrAdd("agent.config.image", agentImage);
+            agentRegistry.ForEach(
+                r =>
+                {
+                    this.config.ReplaceOrAdd("agent.config.auth.serveraddress", r.address);
+                    this.config.ReplaceOrAdd("agent.config.auth.username", r.username);
+                    this.config.ReplaceOrAdd("agent.config.auth.password", r.password);
+                });
         }
 
         public void AddHttpsProxy(Uri proxy)
