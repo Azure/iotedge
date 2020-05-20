@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="..\..\..\..\netcoreappVersion.props" />
+  <Import Project="..\..\..\..\netstandardVersion.props" />
 
   <PropertyGroup>
     <AzureFunctionsVersion></AzureFunctionsVersion>
