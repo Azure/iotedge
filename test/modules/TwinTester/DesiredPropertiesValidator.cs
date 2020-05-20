@@ -57,20 +57,21 @@ namespace TwinTester
             {
                 bool hasTwinUpdate = propertyUpdatesFromTwin.Contains(desiredPropertyUpdate.Key);
                 bool hasCallbackReceived = desiredPropertiesReceived.ContainsKey(desiredPropertyUpdate.Key);
+                bool isCallbackValidated = hasCallbackReceived || this.SkipCallbackValidationDueToEdgeHubRestart(this.twinTestState, desiredPropertyUpdate.Value);
                 string status;
 
-                if (hasTwinUpdate && (hasCallbackReceived || this.SkipCallbackValidationDueToEdgeHubRestart(this.twinTestState, desiredPropertyUpdate.Value)))
+                if (hasTwinUpdate && isCallbackValidated)
                 {
                     status = $"{(int)StatusCode.ValidationSuccess}: Successfully validated desired property update";
                     Logger.LogInformation(status + $" {desiredPropertyUpdate.Key}");
                 }
                 else if (this.ExceedFailureThreshold(this.twinTestState, desiredPropertyUpdate.Value))
                 {
-                    if (hasTwinUpdate && !hasCallbackReceived)
+                    if (hasTwinUpdate && !isCallbackValidated)
                     {
                         status = $"{(int)StatusCode.DesiredPropertyUpdateNoCallbackReceived}: Failure receiving desired property update in callback";
                     }
-                    else if (!hasTwinUpdate && hasCallbackReceived)
+                    else if (!hasTwinUpdate && isCallbackValidated)
                     {
                         status = $"{(int)StatusCode.DesiredPropertyUpdateNotInEdgeTwin}: Failure receiving desired property update in twin";
                     }
