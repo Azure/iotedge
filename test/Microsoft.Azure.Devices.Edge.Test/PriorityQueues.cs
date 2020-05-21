@@ -138,12 +138,21 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         {
                             int sequenceNumber = int.Parse(data.Properties["sequenceNumber"].ToString());
                             Log.Verbose($"Received message from IoTHub with sequence number: {sequenceNumber}");
-                            messages.Enqueue(new MessageTestResult("hubtest.receive", DateTime.UtcNow)
+                            if (data.Properties.ContainsKey("trackingId") &&
+                                data.Properties.ContainsKey("batchId") &&
+                                data.Properties.ContainsKey("sequenceNumber"))
                             {
-                                TrackingId = data.Properties["trackingId"].ToString(),
-                                BatchId = data.Properties["batchId"].ToString(),
-                                SequenceNumber = data.Properties["sequenceNumber"].ToString()
-                            });
+                                messages.Enqueue(new MessageTestResult("hubtest.receive", DateTime.UtcNow)
+                                {
+                                    TrackingId = data.Properties["trackingId"].ToString(),
+                                    BatchId = data.Properties["batchId"].ToString(),
+                                    SequenceNumber = data.Properties["sequenceNumber"].ToString()
+                                });
+                            }
+                            else
+                            {
+                                Log.Verbose("Message is missing information. Needs to have trackingId, batchId, and sequenceNumber. Not enqueuing.");
+                            }
 
                             results.Add(sequenceNumber);
                             return results.Count == loadGenTestStatus.ResultCount;
