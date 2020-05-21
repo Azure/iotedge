@@ -23,10 +23,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
         const string LogsUrlTailParameter = "tail";
         const string LogsUrlSinceParameter = "since";
 
+        const int MaxRetryCount = 4;
+
         static readonly TimeSpan DefaultOperationTimeout = TimeSpan.FromMinutes(5);
 
         static readonly RetryStrategy TransientRetryStrategy =
-            new ExponentialBackoff(retryCount: 3, minBackoff: TimeSpan.FromSeconds(2), maxBackoff: TimeSpan.FromSeconds(30), deltaBackoff: TimeSpan.FromSeconds(3));
+            new ExponentialBackoff(retryCount: MaxRetryCount, minBackoff: TimeSpan.FromSeconds(2), maxBackoff: TimeSpan.FromSeconds(30), deltaBackoff: TimeSpan.FromSeconds(3));
 
         readonly ITransientErrorDetectionStrategy transientErrorDetectionStrategy;
         readonly TimeSpan operationTimeout;
@@ -117,7 +119,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
             try
             {
                 Events.ExecutingOperation(operation, this.ManagementUri.ToString());
-                T result = await ExecuteWithRetry(func, r => Events.RetryingOperation(operation, this.ManagementUri.ToString(), r), this.transientErrorDetectionStrategy)
+                T result = await ExecuteWithRetry(
+                    func,
+                    (r) =>
+                    {
+                        if (r.CurrentRetryCount == MaxRetryCount)
+                        {
+                            Environment.FailFast($"ModuleManagementHttpClientVersioned failed to communicate to {this.ManagementUri.ToString()} for {operation} after {MaxRetryCount-1} retries");
+                        }
+
+                        Events.RetryingOperation(operation, this.ManagementUri.ToString(), r);
+                    },
+                    this.transientErrorDetectionStrategy)
                     .TimeoutAfter(this.operationTimeout);
                 Events.SuccessfullyExecutedOperation(operation, this.ManagementUri.ToString());
                 return result;

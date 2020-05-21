@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
                     {
                         if (r.CurrentRetryCount == MaxRetryCount)
                         {
-                            Environment.FailFast($"WorkloadClientVersioned failed to communicate to {this.WorkloadUri.ToString()} after {MaxRetryCount-1} retries");
+                            Environment.FailFast($"WorkloadClientVersioned failed to communicate to {this.WorkloadUri.ToString()} for {operation} after {MaxRetryCount-1} retries");
                         }
 
                         Events.RetryingOperation(operation, this.WorkloadUri.ToString(), r);
