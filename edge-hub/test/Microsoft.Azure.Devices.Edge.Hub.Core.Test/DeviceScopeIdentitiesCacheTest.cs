@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var store = GetEntityStore("cache");
             var serviceAuthentication = new ServiceAuthentication(ServiceAuthenticationType.None);
             var si1 = new ServiceIdentity("d1", "1234", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
-            var si2 = new ServiceIdentity("d2", "m1", "e1", "e2", "2345", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
+            var si2 = new ServiceIdentity("d2", "m1", "e1", Enumerable.Empty<string>(), "2345", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
             var storedSi1 = new DeviceScopeIdentitiesCache.StoredServiceIdentity(si1);
             await store.Put(si1.Id, storedSi1.ToJson());
             var storedSi2 = new DeviceScopeIdentitiesCache.StoredServiceIdentity(si2);
@@ -52,9 +52,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var store = GetEntityStore("cache");
             var serviceAuthentication = new ServiceAuthentication(ServiceAuthenticationType.None);
             Func<ServiceIdentity> si1 = () => new ServiceIdentity("d1", "1234", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
-            Func<ServiceIdentity> si2 = () => new ServiceIdentity("d2", "m1", "e1", "e2", "2345", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
+            Func<ServiceIdentity> si2 = () => new ServiceIdentity("d2", "m1", "e1", Enumerable.Empty<string>(), "2345", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
             Func<ServiceIdentity> si3 = () => new ServiceIdentity("d3", "5678", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
-            Func<ServiceIdentity> si4 = () => new ServiceIdentity("d2", "m4", "e1", "e2", "9898", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
+            Func<ServiceIdentity> si4 = () => new ServiceIdentity("d2", "m4", "e1", Enumerable.Empty<string>(), "9898", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
 
             var iterator1 = new Mock<IServiceIdentitiesIterator>();
             iterator1.SetupSequence(i => i.HasNext)
@@ -117,7 +117,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Empty(removedIdentities);
 
             // Wait for another refresh cycle to complete
-            await Task.Delay(TimeSpan.FromSeconds(8));
+            deviceScopeIdentitiesCache.InitiateCacheRefresh();
+            await Task.Delay(TimeSpan.FromSeconds(3));
 
             receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1");
             receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2/m1");
@@ -142,9 +143,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var store = GetEntityStore("cache");
             var serviceAuthentication = new ServiceAuthentication(ServiceAuthenticationType.None);
             Func<ServiceIdentity> si1 = () => new ServiceIdentity("d1", "1234", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
-            Func<ServiceIdentity> si2 = () => new ServiceIdentity("d2", "m1", "e1", "e2", "2345", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
+            Func<ServiceIdentity> si2 = () => new ServiceIdentity("d2", "m1", "e1", Enumerable.Empty<string>(), "2345", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
             Func<ServiceIdentity> si3 = () => new ServiceIdentity("d3", "5678", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
-            Func<ServiceIdentity> si4 = () => new ServiceIdentity("d2", "m4", "e1", "e2", "9898", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
+            Func<ServiceIdentity> si4 = () => new ServiceIdentity("d2", "m4", "e1", Enumerable.Empty<string>(), "9898", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
 
             var iterator1 = new Mock<IServiceIdentitiesIterator>();
             iterator1.SetupSequence(i => i.HasNext)
@@ -414,9 +415,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var serviceAuthenticationNone = new ServiceAuthentication(ServiceAuthenticationType.None);
             var serviceAuthenticationSas = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
 
-            var si1_initial = new ServiceIdentity("d1", "m1", "e1", "e2", "1234", Enumerable.Empty<string>(), serviceAuthenticationNone, ServiceIdentityStatus.Enabled);
-            var si1_updated = new ServiceIdentity("d1", "m1", "e1", "e2", "1234", Enumerable.Empty<string>(), serviceAuthenticationSas, ServiceIdentityStatus.Enabled);
-            var si2 = new ServiceIdentity("d2", "m2", "e1", "e2", "5678", Enumerable.Empty<string>(), serviceAuthenticationSas, ServiceIdentityStatus.Enabled);
+            var si1_initial = new ServiceIdentity("d1", "m1", "e1", Enumerable.Empty<string>(), "1234", Enumerable.Empty<string>(), serviceAuthenticationNone, ServiceIdentityStatus.Enabled);
+            var si1_updated = new ServiceIdentity("d1", "m1", "e1", Enumerable.Empty<string>(), "1234", Enumerable.Empty<string>(), serviceAuthenticationSas, ServiceIdentityStatus.Enabled);
+            var si2 = new ServiceIdentity("d2", "m2", "e1", Enumerable.Empty<string>(), "5678", Enumerable.Empty<string>(), serviceAuthenticationSas, ServiceIdentityStatus.Enabled);
 
             var iterator1 = new Mock<IServiceIdentitiesIterator>();
             iterator1.SetupSequence(i => i.HasNext)
@@ -530,10 +531,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var serviceAuthenticationNone = new ServiceAuthentication(ServiceAuthenticationType.None);
             var serviceAuthenticationSas = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
 
-            var si1_initial = new ServiceIdentity("d1", "m1", "e1", "e2", "1234", Enumerable.Empty<string>(), serviceAuthenticationNone, ServiceIdentityStatus.Enabled);
-            var si1_updated = new ServiceIdentity("d1", "m1", "e1", "e2", "1234", Enumerable.Empty<string>(), serviceAuthenticationSas, ServiceIdentityStatus.Disabled);
-            var si2 = new ServiceIdentity("d2", "m2", "e1", "e2", "5678", Enumerable.Empty<string>(), serviceAuthenticationSas, ServiceIdentityStatus.Enabled);
-            var si3 = new ServiceIdentity("d3", "m3", "e1", "e2", "0987", Enumerable.Empty<string>(), serviceAuthenticationSas, ServiceIdentityStatus.Enabled);
+            var si1_initial = new ServiceIdentity("d1", "m1", "e1", Enumerable.Empty<string>(), "1234", Enumerable.Empty<string>(), serviceAuthenticationNone, ServiceIdentityStatus.Enabled);
+            var si1_updated = new ServiceIdentity("d1", "m1", "e1", Enumerable.Empty<string>(), "1234", Enumerable.Empty<string>(), serviceAuthenticationSas, ServiceIdentityStatus.Disabled);
+            var si2 = new ServiceIdentity("d2", "m2", "e1", Enumerable.Empty<string>(), "5678", Enumerable.Empty<string>(), serviceAuthenticationSas, ServiceIdentityStatus.Enabled);
+            var si3 = new ServiceIdentity("d3", "m3", "e1", Enumerable.Empty<string>(), "0987", Enumerable.Empty<string>(), serviceAuthenticationSas, ServiceIdentityStatus.Enabled);
 
             var iterator1 = new Mock<IServiceIdentitiesIterator>();
             iterator1.SetupSequence(i => i.HasNext)
@@ -584,7 +585,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var serviceAuthenticationSas = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
 
             var si_device = new ServiceIdentity("d2", "1234", Enumerable.Empty<string>(), serviceAuthenticationNone, ServiceIdentityStatus.Enabled);
-            var si_module = new ServiceIdentity("d1", "m1", "e1", "e2", "1234", Enumerable.Empty<string>(), serviceAuthenticationSas, ServiceIdentityStatus.Disabled);
+            var si_module = new ServiceIdentity("d1", "m1", "e1", Enumerable.Empty<string>(), "1234", Enumerable.Empty<string>(), serviceAuthenticationSas, ServiceIdentityStatus.Disabled);
 
             var serviceProxy = new Mock<IServiceProxy>();
             serviceProxy.Setup(s => s.GetServiceIdentity("d2")).ReturnsAsync(Option.Some(si_device));

@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -36,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         readonly ServiceIdentity mod1 = CreateServiceIdentity("e2_L2", "mod1", null, null, false);
         readonly ServiceIdentity mod2 = CreateServiceIdentity("e4_L2", "mod2", null, null, false);
 
-        internal static ServiceIdentity CreateServiceIdentity(string deviceId, string moduleId, string deviceScope, string parentScopes, bool isEdge)
+        internal static ServiceIdentity CreateServiceIdentity(string deviceId, string moduleId, string deviceScope, string parentScope, bool isEdge)
         {
             List<string> capabilities = new List<string>();
 
@@ -49,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 deviceId,
                 moduleId,
                 deviceScope,
-                parentScopes,
+                parentScope == null ? new List<string>() : new List<string>() { parentScope },
                 "1234",
                 capabilities,
                 new ServiceAuthentication(ServiceAuthenticationType.None),

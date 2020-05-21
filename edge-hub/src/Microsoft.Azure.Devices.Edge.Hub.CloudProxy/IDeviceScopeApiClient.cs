@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
 
     public interface IDeviceScopeApiClient
     {

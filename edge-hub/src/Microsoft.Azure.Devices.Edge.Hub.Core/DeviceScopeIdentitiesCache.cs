@@ -53,6 +53,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public event EventHandler<ServiceIdentity> ServiceIdentityUpdated;
 
+        public IAuthenticationChainProvider AuthChainProvider => this.serviceIdentityTree;
+
         public static async Task<DeviceScopeIdentitiesCache> Create(
             string edgeDeviceId,
             IServiceProxy serviceProxy,

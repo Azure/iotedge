@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 module.DeviceId,
                 module.Id,
                 null,
-                null,
+                Enumerable.Empty<string>(),
                 module.GenerationId,
                 Enumerable.Empty<string>(),
                 module.Authentication.ToServiceAuthentication(),

@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Common;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
@@ -41,6 +42,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly ITokenProvider edgeHubTokenProvider;
         readonly Option<IWebProxy> proxy;
 
+        public IAuthenticationChainProvider AuthChainProvider { get; set; }
+
         public DeviceScopeApiClient(
             string iotHubHostName,
             string deviceId,
@@ -69,6 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.edgeHubTokenProvider = client.edgeHubTokenProvider;
             this.proxy = client.proxy;
             this.retryStrategy = client.retryStrategy;
+            this.AuthChainProvider = client.AuthChainProvider;
         }
 
         public IDeviceScopeApiClient CreateOnBehalfOfDeviceScopeClient(string deviceId)
@@ -173,10 +177,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 .GetOrElse(() => new HttpClient());
             using (var msg = new HttpRequestMessage(HttpMethod.Post, uri))
             {
+                if (!this.AuthChainProvider.TryGetAuthChain(this.deviceId, out string authChain))
+                {
+                    throw new ArgumentException($"No valid authentication chain for {this.deviceId}");
+                }
+
                 var payload = new NestedScopeRequest()
                 {
-                    // TODO: RICHMA - pass through the AuthChain
-                    AuthChain = "edge2;edge1;edge0",
+                    AuthChain = authChain,
                     PageSize = this.batchSize,
                     ContinuationLink = continuationLink.GetOrElse(() => string.Empty)
                 };
