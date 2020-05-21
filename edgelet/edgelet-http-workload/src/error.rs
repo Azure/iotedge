@@ -6,7 +6,6 @@ use failure::{Backtrace, Context, Fail};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Response, StatusCode};
 use log::error;
-use serde_json;
 use workload::models::ErrorResponse;
 
 use crate::IntoResponse;

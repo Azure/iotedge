@@ -179,7 +179,7 @@ mod tests {
     #[cfg(windows)]
     use tokio_uds_windows::{UnixListener, UnixStream};
 
-    use super::*;
+    use super::{Pid, UnixStreamExt};
 
     struct Pair {
         #[cfg(windows)]

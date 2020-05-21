@@ -61,7 +61,7 @@ where
         let main_task = future::select(broker_task, incoming_tasks);
 
         // Handle shutdown
-        let state = match future::select(shutdown_signal, main_task).await {
+        match future::select(shutdown_signal, main_task).await {
             Either::Left((_, tasks)) => {
                 info!("server received shutdown signal");
 
@@ -148,8 +148,7 @@ where
                     broker_state?
                 }
             },
-        };
-        Ok(state)
+        }
     }
 }
 
@@ -173,7 +172,7 @@ where
     A: ToSocketAddrs,
     F: Future<Output = ()> + Unpin,
 {
-    let mut io = transport.build().await?;
+    let io = transport.build().await?;
     let addr = io.local_addr()?;
     let span = span!(Level::INFO, "server", listener=%addr);
     let _enter = span.enter();

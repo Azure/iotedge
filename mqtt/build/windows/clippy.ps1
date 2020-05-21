@@ -37,8 +37,8 @@ if ($LastExitCode -ne 0) {
     Throw "cargo clippy --all failed with exit code $LastExitCode"
 }
 
-Write-Host "$cargo clippy --all --tests"
-Invoke-Expression "$cargo clippy --all --tests"
+Write-Host "$cargo clippy --all --tests --all-features"
+Invoke-Expression "$cargo clippy --all --tests --all-features"
 
 if ($LastExitCode -ne 0) {
     Throw "cargo clippy --all --tests failed with exit code $LastExitCode"
