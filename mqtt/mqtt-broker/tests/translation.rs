@@ -1,11 +1,13 @@
 use matches::assert_matches;
+use proptest::prelude::*;
+use tokio::runtime::Runtime;
 
 use common::{TestClient, TestClientBuilder};
 use mqtt3::{
     proto::{ClientId, QoS},
     ReceivedPublication,
 };
-use mqtt_broker::{AuthId, BrokerBuilder};
+use mqtt_broker::{proptest::arb_clientid, AuthId, BrokerBuilder};
 
 mod common;
 
@@ -196,6 +198,20 @@ async fn translation_direct_method_response() {
 
 #[tokio::test]
 async fn translation_twin_notify() {
+    test_twin_with_client_id("device_1").await;
+}
+
+proptest! {
+    #[test]
+    fn translate_clientid_proptest(client_id in arb_clientid()) {
+        let mut rt = Runtime::new().unwrap();
+        rt.block_on(test_twin_with_client_id(client_id.as_str()));
+    }
+}
+
+async fn test_twin_with_client_id(client_id: &str) {
+    println!("{:#?}", client_id);
+
     let broker = BrokerBuilder::default()
         .authenticator(|_| Ok(Some(AuthId::Anonymous)))
         .authorizer(|_| Ok(true))
@@ -207,7 +223,7 @@ async fn translation_twin_notify() {
         .client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
         .build();
     let mut device_1 = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithCleanSession("device_1".into()))
+        .client_id(ClientId::IdWithCleanSession(client_id.into()))
         .build();
 
     // Core subscribes
@@ -215,10 +231,17 @@ async fn translation_twin_notify() {
         .subscribe("$edgehub/+/twin/get/#", QoS::AtLeastOnce)
         .await;
     edge_hub_core
-        .subscribe("$edgehub/subscriptions/device_1", QoS::AtLeastOnce)
+        .subscribe(
+            format!("$edgehub/subscriptions/{}", client_id),
+            QoS::AtLeastOnce,
+        )
         .await;
-    receive_with_topic_and_payload(&mut edge_hub_core, "$edgehub/subscriptions/device_1", "[]")
-        .await;
+    receive_with_topic_and_payload(
+        &mut edge_hub_core,
+        &format!("$edgehub/subscriptions/{}", client_id),
+        "[]",
+    )
+    .await;
 
     // device requests twin update
     device_1
@@ -226,8 +249,8 @@ async fn translation_twin_notify() {
         .await;
     receive_with_topic_and_payload(
         &mut edge_hub_core,
-        "$edgehub/subscriptions/device_1",
-        "[\"$edgehub/device_1/twin/res/#\"]",
+        &format!("$edgehub/subscriptions/{}", client_id),
+        format!("[\"$edgehub/{}/twin/res/#\"]", client_id),
     )
     .await;
 
@@ -236,9 +259,17 @@ async fn translation_twin_notify() {
         .await;
 
     // Core receives request
-    receive_with_topic(&mut edge_hub_core, "$edgehub/device_1/twin/get/?rid=10").await;
+    receive_with_topic(
+        &mut edge_hub_core,
+        &format!("$edgehub/{}/twin/get/?rid=10", client_id),
+    )
+    .await;
     edge_hub_core
-        .publish_qos1("$edgehub/device_1/twin/res/200/?rid=10", "", false)
+        .publish_qos1(
+            format!("$edgehub/{}/twin/res/200/?rid=10", client_id),
+            "",
+            false,
+        )
         .await;
 
     // device receives response

@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc aaea35a5931ab6dbc2cac0d39d2523bc702d6a9cf2069403f0ceb58c1da66db9 # shrinks to client_id = ClientId("a")
