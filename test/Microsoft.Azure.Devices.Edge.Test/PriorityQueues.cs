@@ -148,13 +148,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                     BatchId = data.Properties["batchId"].ToString(),
                                     SequenceNumber = data.Properties["sequenceNumber"].ToString()
                                 });
+                                results.Add(sequenceNumber);
                             }
                             else
                             {
                                 Log.Verbose("Message is missing information. Needs to have trackingId, batchId, and sequenceNumber. Not enqueuing.");
                             }
 
-                            results.Add(sequenceNumber);
                             return results.Count == loadGenTestStatus.ResultCount;
                         },
                         token);
