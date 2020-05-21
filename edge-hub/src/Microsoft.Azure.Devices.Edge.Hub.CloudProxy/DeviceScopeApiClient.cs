@@ -36,7 +36,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly RetryStrategy retryStrategy;
 
         readonly Uri iotHubBaseHttpUri;
-        readonly string deviceId;
+        readonly string rootEdgeDeviceId;
+        readonly string targetEdgeDeviceId;
         readonly string moduleId;
         readonly int batchSize;
         readonly ITokenProvider edgeHubTokenProvider;
@@ -55,7 +56,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName));
             this.iotHubBaseHttpUri = new UriBuilder(Uri.UriSchemeHttps, iotHubHostName).Uri;
-            this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            this.rootEdgeDeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            this.targetEdgeDeviceId = this.rootEdgeDeviceId;
             this.moduleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.batchSize = Preconditions.CheckRange(batchSize, 0, 1000, nameof(batchSize));
             this.edgeHubTokenProvider = Preconditions.CheckNotNull(edgeHubTokenProvider, nameof(edgeHubTokenProvider));
@@ -63,9 +65,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.retryStrategy = retryStrategy ?? TransientRetryStrategy;
         }
 
-        public DeviceScopeApiClient(string deviceId, DeviceScopeApiClient client)
+        public DeviceScopeApiClient(string childDeviceId, DeviceScopeApiClient client)
         {
-            this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            this.targetEdgeDeviceId = Preconditions.CheckNonWhiteSpace(childDeviceId, nameof(childDeviceId));
+            this.rootEdgeDeviceId = client.rootEdgeDeviceId;
             this.iotHubBaseHttpUri = client.iotHubBaseHttpUri;
             this.moduleId = client.moduleId;
             this.batchSize = client.batchSize;
@@ -94,14 +97,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         internal Uri GetServiceUri()
         {
-            string relativeUri = GetDevicesAndModulesInTargetScopeUriFormat.FormatInvariant(this.deviceId, this.moduleId, NestedApiVersion);
+            // The URI is always always in the context of the root device
+            string relativeUri = GetDevicesAndModulesInTargetScopeUriFormat.FormatInvariant(this.rootEdgeDeviceId, this.moduleId, NestedApiVersion);
             var uri = new Uri(this.iotHubBaseHttpUri, relativeUri);
             return uri;
         }
 
         internal Uri GetServiceUri(string targetDeviceId, string targetModuleId)
         {
-            string relativeUri = InScopeTargetIdentityUriFormat.FormatInvariant(this.deviceId, this.moduleId, targetDeviceId, targetModuleId, ApiVersion);
+            // The URI is always always in the context of the root device
+            string relativeUri = InScopeTargetIdentityUriFormat.FormatInvariant(this.rootEdgeDeviceId, this.moduleId, targetDeviceId, targetModuleId, ApiVersion);
             var uri = new Uri(this.iotHubBaseHttpUri, relativeUri);
             return uri;
         }
@@ -177,9 +182,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 .GetOrElse(() => new HttpClient());
             using (var msg = new HttpRequestMessage(HttpMethod.Post, uri))
             {
-                if (!this.AuthChainProvider.TryGetAuthChain(this.deviceId, out string authChain))
+                // Get the auth-chain for the target device
+                if (!this.AuthChainProvider.TryGetAuthChain(this.targetEdgeDeviceId, out string authChain))
                 {
-                    throw new ArgumentException($"No valid authentication chain for {this.deviceId}");
+                    throw new ArgumentException($"No valid authentication chain for {this.targetEdgeDeviceId}");
                 }
 
                 var payload = new NestedScopeRequest()

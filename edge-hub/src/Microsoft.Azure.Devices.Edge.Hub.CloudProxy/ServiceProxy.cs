@@ -219,6 +219,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
                 foreach (ServiceIdentity identity in results)
                 {
+                    // TODO: RICHMA - don't enqueue the current device again
                     if (identity.IsEdgeDevice)
                     {
                         // Create a new iterator for the child Edge and enqueue it
