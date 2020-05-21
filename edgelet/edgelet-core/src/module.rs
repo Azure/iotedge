@@ -621,7 +621,7 @@ impl FromStr for ImagePullPolicy {
 
 #[cfg(test)]
 mod tests {
-    use super::{Default, BTreeMap, ImagePullPolicy, ModuleSpec, SystemInfo};
+    use super::{BTreeMap, Default, ImagePullPolicy, ModuleSpec, SystemInfo};
 
     use std::str::FromStr;
     use std::string::ToString;
