@@ -16,9 +16,7 @@ BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..}
 BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH/target}
 PUBLISH_FOLDER=$BUILD_BINARIESDIRECTORY/publish
 ROOT_FOLDER=$BUILD_REPOSITORY_LOCALPATH
-SRC_DOCKER_DIR=$ROOT_FOLDER/docker
 SRC_SCRIPTS_DIR=$ROOT_FOLDER/scripts
-SRC_STRESS_DIR=$ROOT_FOLDER/stress
 SRC_E2E_TEMPLATES_DIR=$ROOT_FOLDER/e2e_deployment_files
 SRC_E2E_TEST_FILES_DIR=$ROOT_FOLDER/e2e_test_files
 SRC_CERT_TOOLS_DIR=$ROOT_FOLDER/tools/CACertificates
@@ -246,13 +244,11 @@ publish_app "DeploymentTester"
 publish_app "EdgeHubRestartTester"
 publish_app "MetricsValidator"
 publish_app "CloudToDeviceMessageTester"
+publish_app "EdgeHubTriggerCSharp"
 
 publish_lib "Microsoft.Azure.WebJobs.Extensions.EdgeHub"
-publish_lib "EdgeHubTriggerCSharp"
 
-publish_files $SRC_DOCKER_DIR $PUBLISH_FOLDER
 publish_files $SRC_SCRIPTS_DIR $PUBLISH_FOLDER
-publish_files $SRC_STRESS_DIR $PUBLISH_FOLDER
 publish_files $SRC_E2E_TEMPLATES_DIR $PUBLISH_FOLDER
 publish_files $SRC_E2E_TEST_FILES_DIR $PUBLISH_FOLDER
 publish_files $SRC_CERT_TOOLS_DIR $PUBLISH_FOLDER

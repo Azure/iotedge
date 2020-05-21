@@ -151,6 +151,7 @@ $appProjectList.Add("DeploymentTester.csproj")
 $appProjectList.Add("EdgeHubRestartTester.csproj")
 $appProjectList.Add("MetricsValidator.csproj")
 $appProjectList.Add("CloudToDeviceMessageTester.csproj")
+$appProjectList.Add("EdgeHubTriggerCSharp.csproj")
 
 # Download latest rocksdb ARM32 library
 $rocksdbARMUri = "https://edgebuild.blob.core.windows.net/rocksdb/rocksdb-arm.dll"
@@ -191,7 +192,6 @@ Write-Host "`nPublishing .NET Core libs`n"
 
 $libProjectList = New-Object 'System.Collections.Generic.List[String]'
 $libProjectList.Add("Microsoft.Azure.WebJobs.Extensions.EdgeHub.csproj")
-$libProjectList.Add("EdgeHubTriggerCSharp.csproj")
 
 foreach ($libProjectFileName in $libProjectList) {
     $libProjectFilePath = Get-ChildItem -Include *.csproj -File -Recurse |Where-Object {$_.Name -eq "$libProjectFileName"}|Select-Object -first 1|Select -ExpandProperty "FullName"
