@@ -232,13 +232,13 @@ async fn test_twin_with_client_id(client_id: &str) {
         .await;
     edge_hub_core
         .subscribe(
-            format!("$edgehub/subscriptions/{}", client_id),
+            format!("$edgehub/{}/subscriptions", client_id),
             QoS::AtLeastOnce,
         )
         .await;
     receive_with_topic_and_payload(
         &mut edge_hub_core,
-        &format!("$edgehub/subscriptions/{}", client_id),
+        &format!("$edgehub/{}/subscriptions", client_id),
         "[]",
     )
     .await;
@@ -249,7 +249,7 @@ async fn test_twin_with_client_id(client_id: &str) {
         .await;
     receive_with_topic_and_payload(
         &mut edge_hub_core,
-        &format!("$edgehub/subscriptions/{}", client_id),
+        &format!("$edgehub/{}/subscriptions", client_id),
         format!("[\"$edgehub/{}/twin/res/#\"]", client_id),
     )
     .await;

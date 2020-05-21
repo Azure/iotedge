@@ -12,6 +12,8 @@ namespace TwinTester
         DesiredPropertyUpdateNotInEdgeTwin = 502,
         DesiredPropertyUpdateTotalFailure = 503,
         ReportedPropertyUpdateCallFailure = 504,
-        ReportedPropertyUpdateNotInCloudTwin = 505
+        ReportedPropertyUpdateNotInCloudTwin = 505,
+        ReportedPropertyUpdateNotInCloudTwinAfterCleanUpThreshold = 506,
+        ReportedPropertyReceivedAfterThreshold = 507,
     }
 }
