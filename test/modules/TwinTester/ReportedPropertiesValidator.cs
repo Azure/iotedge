@@ -112,14 +112,14 @@ namespace TwinTester
                     propertiesToRemove[reportedPropertyUpdate.Key] = null; // will later be serialized as a twin update
                 }
                 else if (!this.reportedPropertyKeysFailedToReceiveWithinThreshold.Contains(reportedPropertyUpdate.Key) &&
-                        this.ExceedFailureThreshold(this.twinState, reportedPropertyUpdate.Key, reportedPropertyUpdate.Value))
+                        this.DoesExceedFailureThreshold(this.twinState, reportedPropertyUpdate.Key, reportedPropertyUpdate.Value))
                 {
                     this.reportedPropertyKeysFailedToReceiveWithinThreshold.Add(reportedPropertyUpdate.Key);
                     status = $"{(int)StatusCode.ReportedPropertyUpdateNotInCloudTwin}: Failure receiving reported property update";
                     await this.HandleReportStatusAsync(status);
                     Logger.LogInformation($"{status} for reported property update {reportedPropertyUpdate.Key}");
                 }
-                else if (this.ExceedCleanupThreshold(this.twinState, reportedPropertyUpdate.Key, reportedPropertyUpdate.Value))
+                else if (this.DoesExceedCleanupThreshold(this.twinState, reportedPropertyUpdate.Key, reportedPropertyUpdate.Value))
                 {
                     status = $"{(int)StatusCode.ReportedPropertyUpdateNotInCloudTwinAfterCleanUpThreshold}: Failure receiving reported property update after cleanup threshold";
                     await this.HandleReportStatusAsync(status);
@@ -131,7 +131,7 @@ namespace TwinTester
             return propertiesToRemove;
         }
 
-        bool ExceedFailureThreshold(TwinState twinState, string reportedPropertyKey, DateTime reportedPropertyUpdatedAt)
+        bool DoesExceedFailureThreshold(TwinState twinState, string reportedPropertyKey, DateTime reportedPropertyUpdatedAt)
         {
             DateTime comparisonPoint = reportedPropertyUpdatedAt > twinState.LastTimeOffline ? reportedPropertyUpdatedAt : twinState.LastTimeOffline;
             bool exceedFailureThreshold = DateTime.UtcNow - comparisonPoint > Settings.Current.TwinUpdateFailureThreshold;
@@ -146,7 +146,7 @@ namespace TwinTester
             return exceedFailureThreshold;
         }
 
-        bool ExceedCleanupThreshold(TwinState twinState, string reportedPropertyKey, DateTime reportedPropertyUpdatedAt)
+        bool DoesExceedCleanupThreshold(TwinState twinState, string reportedPropertyKey, DateTime reportedPropertyUpdatedAt)
         {
             TimeSpan cleanUpThreshold = TimeSpan.FromMinutes(5);
             DateTime comparisonPoint = reportedPropertyUpdatedAt > twinState.LastTimeOffline ? reportedPropertyUpdatedAt : twinState.LastTimeOffline;
