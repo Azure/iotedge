@@ -1,7 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <CompileBlocked>true</CompileBlocked>
-  </PropertyGroup>
 
   <Import Project="..\..\..\..\..\netstandardVersion.props" />
 
