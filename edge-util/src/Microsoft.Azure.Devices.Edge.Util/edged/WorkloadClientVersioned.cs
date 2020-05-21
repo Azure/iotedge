@@ -8,10 +8,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
     abstract class WorkloadClientVersioned
     {
+        const int MaxRetryCount = 3;
+
         static readonly TimeSpan DefaultOperationTimeout = TimeSpan.FromMinutes(5);
 
         static readonly RetryStrategy TransientRetryStrategy =
-            new ExponentialBackoff(retryCount: 2, minBackoff: TimeSpan.FromSeconds(1), maxBackoff: TimeSpan.FromSeconds(3), deltaBackoff: TimeSpan.FromSeconds(2));
+            new ExponentialBackoff(retryCount: MaxRetryCount, minBackoff: TimeSpan.FromSeconds(1), maxBackoff: TimeSpan.FromSeconds(3), deltaBackoff: TimeSpan.FromSeconds(2));
 
         readonly ITransientErrorDetectionStrategy transientErrorDetectionStrategy;
         readonly TimeSpan operationTimeout;
@@ -55,14 +57,24 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
             try
             {
                 Events.ExecutingOperation(operation, this.WorkloadUri.ToString());
-                T result = await ExecuteWithRetry(func, r => Events.RetryingOperation(operation, this.WorkloadUri.ToString(), r), this.transientErrorDetectionStrategy)
+                T result = await ExecuteWithRetry(
+                    func,
+                    (r) =>
+                    {
+                        if (r.CurrentRetryCount == MaxRetryCount)
+                        {
+                            Environment.FailFast($"WorkloadClientVersioned failed to communicate to {this.WorkloadUri.ToString()} after {MaxRetryCount-1} retries");
+                        }
+
+                        Events.RetryingOperation(operation, this.WorkloadUri.ToString(), r);
+                    },
+                    this.transientErrorDetectionStrategy)
                     .TimeoutAfter(this.operationTimeout);
                 Events.SuccessfullyExecutedOperation(operation, this.WorkloadUri.ToString());
                 return result;
             }
             catch (Exception ex)
             {
-                //BEARWASHERE -- Make this throw exception after it fails the retry
                 this.HandleException(ex, operation);
                 Events.SuccessfullyExecutedOperation(operation, this.WorkloadUri.ToString());
                 return default(T);
