@@ -144,7 +144,7 @@ pub fn arb_client_id() -> impl Strategy<Value = proto::ClientId> {
     ]
 }
 pub fn arb_clientid() -> impl Strategy<Value = ClientId> {
-    "[a-zA-Z0-9]{1,23}".prop_map(Into::into)
+    "[a-zA-Z0-9_()-=*!@$%',.?+#]{1,23}".prop_map(Into::into)
 }
 
 pub fn arb_client_id_weighted() -> impl Strategy<Value = proto::ClientId> {
