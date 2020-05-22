@@ -60,12 +60,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task ProcessSubscriptionWithRetry(string id, Option<ICloudProxy> cloudProxy, DeviceSubscription deviceSubscription, bool addSubscription)
         {
+            Events.Log.LogDebug($"CUSTOM: IN ProcessSubscriptionWithRetry() for id {id}");
             Events.ProcessingSubscription(id, deviceSubscription);
             try
             {
                 await ExecuteWithRetry(
                     () => this.ProcessSubscription(id, cloudProxy, deviceSubscription, addSubscription),
                     r => Events.ErrorProcessingSubscription(id, deviceSubscription, addSubscription, r));
+                Events.Log.LogDebug($"CUSTOM: Finished execute with retry for id {id}");
             }
             catch (Exception ex)
             {
@@ -75,6 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task ProcessSubscription(string id, Option<ICloudProxy> cloudProxy, DeviceSubscription deviceSubscription, bool addSubscription)
         {
+            Events.Log.LogDebug($"CUSTOM: In ProcessSubscription() for id {id}");
             switch (deviceSubscription)
             {
                 case DeviceSubscription.C2D:
@@ -92,12 +95,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 case DeviceSubscription.Methods:
                     if (addSubscription)
                     {
+                        Events.Log.LogDebug($"CUSTOM: In ProcessSubscription(). Adding dm subscription for {id}");
                         await cloudProxy.ForEachAsync(c => c.SetupCallMethodAsync());
                         await this.invokeMethodHandler.ProcessInvokeMethodSubscription(id);
+                        Events.Log.LogDebug($"CUSTOM: In ProcessSubscription(). Finished adding dm subscription for {id}");
                     }
                     else
                     {
+                        Events.Log.LogDebug($"CUSTOM: In ProcessSubscription(). Removing dm subscription for {id}");
                         await cloudProxy.ForEachAsync(c => c.RemoveCallMethodAsync());
+                        Events.Log.LogDebug($"CUSTOM: In ProcessSubscription(). Finished removing dm subscription for {id}");
                     }
 
                     break;
@@ -113,6 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         async void CloudConnectivityEstablished(object sender, EventArgs eventArgs)
         {
             Events.DeviceConnectedProcessingSubscriptions();
+            Events.Log.LogDebug("CUSTOM: UNEXPECTED: Invoke succeeded. In CloudConnectivityEstablished()");
             async Task ProcessSubscriptionByIdentity(IIdentity identity)
             {
                 try
@@ -152,11 +160,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task ProcessExistingSubscriptions(string id)
         {
+            Events.Log.LogDebug($"CUSTOM: UNEXPECTED: In CloudConnectivityEstablished() for id {id}");
             Option<ICloudProxy> cloudProxy = await this.ConnectionManager.GetCloudConnection(id);
             Option<IReadOnlyDictionary<DeviceSubscription, bool>> subscriptions = this.ConnectionManager.GetSubscriptions(id);
             await subscriptions.ForEachAsync(
                 async s =>
                 {
+                    Events.Log.LogDebug($"CUSTOM: UNEXPECTED: Subscription detected for id {id}");
                     foreach (KeyValuePair<DeviceSubscription, bool> subscription in s)
                     {
                         await this.ProcessSubscriptionWithRetry(id, cloudProxy, subscription.Key, subscription.Value);
@@ -207,7 +217,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         static class Events
         {
             const int IdStart = HubCoreEventIds.SubscriptionProcessor;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<SubscriptionProcessor>();
+            public static readonly ILogger Log = Logger.Factory.CreateLogger<SubscriptionProcessor>();
 
             enum EventIds
             {

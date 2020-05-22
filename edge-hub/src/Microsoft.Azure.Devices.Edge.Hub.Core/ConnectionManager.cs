@@ -68,8 +68,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Events.NewDeviceConnection(identity);
             await currentDeviceConnection
                 .Filter(dc => dc.IsActive)
-                .ForEachAsync(dc => dc.CloseAsync(new MultipleConnectionsException($"Multiple connections detected for device {identity.Id}")));
+                .ForEachAsync(dc =>
+                {
+                    Events.Log.LogDebug($"CUSTOM: processing device connection for {dc.DeviceProxy.Identity.Id}");
+                    return dc.CloseAsync(new MultipleConnectionsException($"Multiple connections detected for device {identity.Id}"));
+                });
+
+            Events.Log.LogDebug("CUSTOM: About to set device connected");
             this.DeviceConnected?.Invoke(this, identity);
+            Events.Log.LogDebug("CUSTOM: Finished set device connected");
         }
 
         public Task RemoveDeviceConnection(string id)
@@ -460,7 +467,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         static class Events
         {
             const int IdStart = HubCoreEventIds.ConnectionManager;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<ConnectionManager>();
+            public static readonly ILogger Log = Logger.Factory.CreateLogger<ConnectionManager>();
 
             enum EventIds
             {
