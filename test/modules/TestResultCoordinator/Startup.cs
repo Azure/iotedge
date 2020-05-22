@@ -33,7 +33,7 @@ namespace TestResultCoordinator
         {
             Logger.LogInformation("Calling Startup.ConfigureServices");
 
-            services.AddMvc();
+            services.AddControllers().AddNewtonsoftJson();
 
             HashSet<string> sources = Settings.Current.GetResultSourcesAsync(Logger).Result;
             Logger.LogInformation($"Result sources defined:{Environment.NewLine} {string.Join(Environment.NewLine + Enumerable.Repeat(" ", 5), sources)}");
@@ -80,7 +80,11 @@ namespace TestResultCoordinator
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseMvc();
+            app.UseRouting();
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+            });
         }
 #pragma warning restore 612, 618
 

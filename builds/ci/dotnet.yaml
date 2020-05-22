@@ -8,7 +8,6 @@ trigger:
 pr: none
 variables:
   build.configuration: Release
-  dotnet.version: 2.1.x
   test.filter: Category=Integration&Category!=Stress
 jobs:
   - job: linux
@@ -32,15 +31,11 @@ jobs:
             IotDevice3ConnStr2,
             IotHubConnStr2,
             IotHubMqttHeadCert
-      - task: UseDotNet@2
-        displayName: Install .NET Core sdk
+      - template: ../templates/install-dotnet3.yaml
+      - task: Bash@3
+        displayName: Install Prerequisites
         inputs:
-          packageType: sdk
-          version: $(dotnet.version)
-      - script: |
-          sudo apt-get update
-          sudo apt-get install -y libsnappy1v5
-        displayName: Install libsnappy1v5 # Needed for rocksdb integration tests
+          filePath: scripts/linux/installPrereqs.sh
       - pwsh: |
           $store = [System.Security.Cryptography.X509Certificates.X509Store]::new('Root', 'CurrentUser')
           $store.Open('ReadWrite')
@@ -111,11 +106,7 @@ jobs:
             IotDevice3ConnStr2,
             IotHubConnStr2,
             IotHubMqttHeadCert
-      - task: UseDotNet@2
-        displayName: Install .NET Core sdk
-        inputs:
-          packageType: sdk
-          version: $(dotnet.version)
+      - template: ../templates/install-dotnet3.yaml
       - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration $(Build.Configuration) -UpdateVersion
         displayName: Build
       - powershell: scripts/windows/test/Test-Branch.ps1 -Filter "$(test.filter)&Category!=Kubernetes" -BuildConfig $(Build.Configuration)
