@@ -19,6 +19,7 @@ namespace TwinTester
         readonly ModuleClient moduleClient;
         readonly TwinEventStorage storage;
         readonly ITwinTestResultHandler reporter;
+        HashSet<string> reportedPropertyKeysFailedToReceiveWithinThreshold = new HashSet<string>();
 
         public ReportedPropertiesValidator(RegistryManager registryManager, ModuleClient moduleClient, TwinEventStorage storage, ITwinTestResultHandler reporter, TwinState twinState)
         {
@@ -52,14 +53,14 @@ namespace TwinTester
                 return;
             }
 
-            TwinCollection propertiesToRemoveFromTwin = await this.ValidatePropertiesFromTwinAsync(receivedTwin);
-            await this.RemovePropertiesFromStorage(propertiesToRemoveFromTwin);
-            await this.RemovePropertiesFromTwin(propertiesToRemoveFromTwin);
+            TwinCollection propertiesToRemove = await this.ValidatePropertiesFromTwinAsync(receivedTwin);
+            await this.RemovePropertiesFromStorage(propertiesToRemove);
+            await this.RemovePropertiesFromTwin(propertiesToRemove);
         }
 
-        async Task RemovePropertiesFromStorage(TwinCollection propertiesToRemoveFromTwin)
+        async Task RemovePropertiesFromStorage(TwinCollection propertiesToRemove)
         {
-            foreach (dynamic pair in propertiesToRemoveFromTwin)
+            foreach (dynamic pair in propertiesToRemove)
             {
                 KeyValuePair<string, object> property = (KeyValuePair<string, object>)pair;
                 try
@@ -73,11 +74,11 @@ namespace TwinTester
             }
         }
 
-        async Task RemovePropertiesFromTwin(TwinCollection propertiesToRemoveFromTwin)
+        async Task RemovePropertiesFromTwin(TwinCollection propertiesToRemove)
         {
             try
             {
-                await this.moduleClient.UpdateReportedPropertiesAsync(propertiesToRemoveFromTwin);
+                await this.moduleClient.UpdateReportedPropertiesAsync(propertiesToRemove);
             }
             catch (Exception e)
             {
@@ -89,46 +90,76 @@ namespace TwinTester
         {
             TwinCollection propertyUpdatesFromTwin = receivedTwin.Properties.Reported;
             Dictionary<string, DateTime> reportedPropertiesUpdated = await this.storage.GetAllReportedPropertiesUpdatedAsync();
-            TwinCollection propertiesToRemoveFromTwin = new TwinCollection();
+            TwinCollection propertiesToRemove = new TwinCollection();
+
             foreach (KeyValuePair<string, DateTime> reportedPropertyUpdate in reportedPropertiesUpdated)
             {
                 string status;
                 if (propertyUpdatesFromTwin.Contains(reportedPropertyUpdate.Key))
                 {
-                    try
+                    if (this.reportedPropertyKeysFailedToReceiveWithinThreshold.Contains(reportedPropertyUpdate.Key))
                     {
-                        await this.storage.RemoveReportedPropertyUpdateAsync(reportedPropertyUpdate.Key);
+                        this.reportedPropertyKeysFailedToReceiveWithinThreshold.Remove(reportedPropertyUpdate.Key);
+                        status = $"{(int)StatusCode.ReportedPropertyReceivedAfterThreshold}: Successfully validated reported property update (exceeded failure threshold)";
                     }
-                    catch (Exception e)
+                    else
                     {
-                        Logger.LogError(e, $"Failed to remove validated reported property id {reportedPropertyUpdate.Key} from storage.");
-                        continue;
+                        status = $"{(int)StatusCode.ValidationSuccess}: Successfully validated reported property update";
                     }
 
-                    status = $"{(int)StatusCode.ValidationSuccess}: Successfully validated reported property update";
-                    Logger.LogInformation(status + $" {reportedPropertyUpdate.Key}");
+                    await this.HandleReportStatusAsync(status);
+                    Logger.LogInformation($"{status} for reported property update {reportedPropertyUpdate.Key}");
+                    propertiesToRemove[reportedPropertyUpdate.Key] = null; // will later be serialized as a twin update
                 }
-                else if (this.ExceedFailureThreshold(this.twinState, reportedPropertyUpdate.Value))
+                else if (!this.reportedPropertyKeysFailedToReceiveWithinThreshold.Contains(reportedPropertyUpdate.Key) &&
+                        this.DoesExceedFailureThreshold(this.twinState, reportedPropertyUpdate.Key, reportedPropertyUpdate.Value))
                 {
+                    this.reportedPropertyKeysFailedToReceiveWithinThreshold.Add(reportedPropertyUpdate.Key);
                     status = $"{(int)StatusCode.ReportedPropertyUpdateNotInCloudTwin}: Failure receiving reported property update";
+                    await this.HandleReportStatusAsync(status);
                     Logger.LogInformation($"{status} for reported property update {reportedPropertyUpdate.Key}");
                 }
-                else
+                else if (this.DoesExceedCleanupThreshold(this.twinState, reportedPropertyUpdate.Key, reportedPropertyUpdate.Value))
                 {
-                    continue;
+                    status = $"{(int)StatusCode.ReportedPropertyUpdateNotInCloudTwinAfterCleanUpThreshold}: Failure receiving reported property update after cleanup threshold";
+                    await this.HandleReportStatusAsync(status);
+                    Logger.LogInformation($"{status} for reported property update {reportedPropertyUpdate.Key}");
+                    propertiesToRemove[reportedPropertyUpdate.Key] = null; // will later be serialized as a twin update
                 }
-
-                propertiesToRemoveFromTwin[reportedPropertyUpdate.Key] = null; // will later be serialized as a twin update
-                await this.HandleReportStatusAsync(status);
             }
 
-            return propertiesToRemoveFromTwin;
+            return propertiesToRemove;
         }
 
-        bool ExceedFailureThreshold(TwinState twinState, DateTime twinUpdateTime)
+        bool DoesExceedFailureThreshold(TwinState twinState, string reportedPropertyKey, DateTime reportedPropertyUpdatedAt)
         {
-            DateTime comparisonPoint = twinUpdateTime > twinState.LastTimeOffline ? twinUpdateTime : twinState.LastTimeOffline;
-            return DateTime.UtcNow - comparisonPoint > Settings.Current.TwinUpdateFailureThreshold;
+            DateTime comparisonPoint = reportedPropertyUpdatedAt > twinState.LastTimeOffline ? reportedPropertyUpdatedAt : twinState.LastTimeOffline;
+            bool exceedFailureThreshold = DateTime.UtcNow - comparisonPoint > Settings.Current.TwinUpdateFailureThreshold;
+
+            if (exceedFailureThreshold)
+            {
+                Logger.LogInformation(
+                    $"Reported Property [{reportedPropertyKey}] exceed failure threshold: updated at={reportedPropertyUpdatedAt}, " +
+                    $"last offline={twinState.LastTimeOffline}, threshold={Settings.Current.TwinUpdateFailureThreshold}");
+            }
+
+            return exceedFailureThreshold;
+        }
+
+        bool DoesExceedCleanupThreshold(TwinState twinState, string reportedPropertyKey, DateTime reportedPropertyUpdatedAt)
+        {
+            TimeSpan cleanUpThreshold = TimeSpan.FromMinutes(5);
+            DateTime comparisonPoint = reportedPropertyUpdatedAt > twinState.LastTimeOffline ? reportedPropertyUpdatedAt : twinState.LastTimeOffline;
+            bool exceedCleanupThreshold = DateTime.UtcNow - comparisonPoint > (Settings.Current.TwinUpdateFailureThreshold + cleanUpThreshold);
+
+            if (exceedCleanupThreshold)
+            {
+                Logger.LogInformation(
+                    $"Reported Property [{reportedPropertyKey}] exceed cleanup threshold: updated at={reportedPropertyUpdatedAt}, " +
+                    $"last offline={twinState.LastTimeOffline}, threshold={Settings.Current.TwinUpdateFailureThreshold + cleanUpThreshold}");
+            }
+
+            return exceedCleanupThreshold;
         }
 
         async Task HandleReportStatusAsync(string status)

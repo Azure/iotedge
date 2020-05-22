@@ -66,7 +66,7 @@ impl<'a> TryFrom<StateChange<'a>> for proto::Publication {
                     .unwrap_or_default();
 
                 proto::Publication {
-                    topic_name: format!("$edgehub/subscriptions/{}", client_id),
+                    topic_name: format!("$edgehub/{}/subscriptions", client_id),
                     qos: STATE_CHANGE_QOS,
                     retain: true,
                     payload,
@@ -387,7 +387,7 @@ mod tests {
     ) {
         matches_publication(
             publication,
-            &format!("$edgehub/subscriptions/{}", client_id),
+            &format!("$edgehub/{}/subscriptions", client_id),
             body,
         );
     }

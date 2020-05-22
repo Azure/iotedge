@@ -3,6 +3,7 @@ members = [
     "mqtt3",
     "mqtt-broker",
     "mqttd",
+    "mqtt-edgehub",
 ]
 
 [profile.release]
