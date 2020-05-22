@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::ops::Deref;
 use std::time::Duration;
 
@@ -60,10 +60,10 @@ pub struct DockerModuleRuntime {
 }
 
 impl DockerModuleRuntime {
-    fn merge_env(cur_env: Option<&[String]>, new_env: &HashMap<String, String>) -> Vec<String> {
-        // build a new merged hashmap containing string slices for keys and values
+    fn merge_env(cur_env: Option<&[String]>, new_env: &BTreeMap<String, String>) -> Vec<String> {
+        // build a new merged map containing string slices for keys and values
         // pointing into String instances in new_env
-        let mut merged_env = HashMap::new();
+        let mut merged_env = BTreeMap::new();
         merged_env.extend(new_env.iter().map(|(k, v)| (k.as_str(), v.as_str())));
 
         if let Some(env) = cur_env {
@@ -334,7 +334,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                 let mut labels = create_options
                     .labels()
                     .cloned()
-                    .unwrap_or_else(HashMap::new);
+                    .unwrap_or_else(BTreeMap::new);
                 labels.insert(LABEL_KEY.to_string(), LABEL_VALUE.to_string());
 
                 debug!(
@@ -717,8 +717,13 @@ impl ModuleRuntime for DockerModuleRuntime {
                             .flat_map(|container| {
                                 DockerConfig::new(
                                     container.image().to_string(),
-                                    ContainerCreateBody::new()
-                                        .with_labels(container.labels().clone()),
+                                    ContainerCreateBody::new().with_labels(
+                                        container
+                                            .labels()
+                                            .iter()
+                                            .map(|(k, v)| (k.to_string(), v.to_string()))
+                                            .collect(),
+                                    ),
                                     None,
                                 )
                                 .map(|config| {
@@ -1015,9 +1020,9 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        authenticate, future, list_with_details, parse_get_response, AuthId, Authenticator, Body,
-        CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop, Duration, Error,
-        ErrorKind, Future, GetTrustBundle, HashMap, InlineResponse200, LogOptions,
+        authenticate, future, list_with_details, parse_get_response, AuthId, Authenticator,
+        BTreeMap, Body, CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop,
+        Duration, Error, ErrorKind, Future, GetTrustBundle, InlineResponse200, LogOptions,
         MakeModuleRuntime, Module, ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid,
         ProvisioningResult, Request, Settings, Stream, SystemResources,
     };
@@ -1127,14 +1132,14 @@ mod tests {
     #[test]
     fn merge_env_empty() {
         let cur_env = Some(&[][..]);
-        let new_env = HashMap::new();
+        let new_env = BTreeMap::new();
         assert_eq!(0, DockerModuleRuntime::merge_env(cur_env, &new_env).len());
     }
 
     #[test]
     fn merge_env_new_empty() {
         let cur_env = Some(vec!["k1=v1".to_string(), "k2=v2".to_string()]);
-        let new_env = HashMap::new();
+        let new_env = BTreeMap::new();
         let mut merged_env =
             DockerModuleRuntime::merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
         merged_env.sort();
@@ -1144,7 +1149,7 @@ mod tests {
     #[test]
     fn merge_env_extend_new() {
         let cur_env = Some(vec!["k1=v1".to_string(), "k2=v2".to_string()]);
-        let mut new_env = HashMap::new();
+        let mut new_env = BTreeMap::new();
         new_env.insert("k3".to_string(), "v3".to_string());
         let mut merged_env =
             DockerModuleRuntime::merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
@@ -1155,7 +1160,7 @@ mod tests {
     #[test]
     fn merge_env_extend_replace_new() {
         let cur_env = Some(vec!["k1=v1".to_string(), "k2=v2".to_string()]);
-        let mut new_env = HashMap::new();
+        let mut new_env = BTreeMap::new();
         new_env.insert("k2".to_string(), "v02".to_string());
         new_env.insert("k3".to_string(), "v3".to_string());
         let mut merged_env =
