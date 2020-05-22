@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
     using System.Globalization;
     using System.IO;
     using System.Net.Http;
+    using System.Net.Sockets;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -23,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
         const string LogsUrlTailParameter = "tail";
         const string LogsUrlSinceParameter = "since";
 
-        const int MaxRetryCount = 4;
+        const int MaxRetryCount = 3;
 
         static readonly TimeSpan DefaultOperationTimeout = TimeSpan.FromMinutes(5);
 
@@ -45,7 +46,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
             this.Version = Preconditions.CheckNotNull(version, nameof(version));
             this.transientErrorDetectionStrategy = transientErrorDetectionStrategy;
             this.operationTimeout = operationTimeout.GetOrElse(DefaultOperationTimeout);
-            this.failedSocketCount = 0;
         }
 
         protected Uri ManagementUri { get; }
@@ -110,8 +110,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
 
         bool IsModuleManagementSocketStale(Exception ex)
         {
-            return (string.Compare(ex.GetType().ToString(), "System.Net.Internals.SocketExceptionFactory+ExtendedSocketException") == 0)
-                && ex.Message.ToString().Contains("Connection refused");
+            return (ex is SocketException)
+                && (string.Compare(ex.GetType().ToString(), "System.Net.Internals.SocketExceptionFactory+ExtendedSocketException") == 0)
+                && ex.Message.Contains("Connection refused");
         }
 
         protected Task Execute(Func<Task> func, string operation) =>
@@ -145,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                     this.failedSocketCount++;
                     if (this.failedSocketCount >= MaxRetryCount)
                     {
-                        Environment.Exit(0);
+                        Environment.Exit((ex as SocketException)?.ErrorCode ?? 110);
                     }
                 }
 

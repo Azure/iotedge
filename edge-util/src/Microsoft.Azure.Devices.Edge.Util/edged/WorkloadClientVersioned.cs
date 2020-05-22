@@ -2,13 +2,14 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Edged
 {
     using System;
+    using System.Net.Sockets;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
 
     abstract class WorkloadClientVersioned
     {
-        const int MaxRetryCount = 3;
+        const int MaxRetryCount = 2;
         int failedSocketCount = 0;
 
         static readonly TimeSpan DefaultOperationTimeout = TimeSpan.FromMinutes(5);
@@ -33,7 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
             this.ModuleGenerationId = Preconditions.CheckNonWhiteSpace(moduleGenerationId, nameof(moduleGenerationId));
             this.transientErrorDetectionStrategy = transientErrorDetectionStrategy;
             this.operationTimeout = operationTimeout.GetOrElse(DefaultOperationTimeout);
-            this.failedSocketCount = 0;
         }
 
         protected Uri WorkloadUri { get; }
@@ -70,18 +70,17 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
             }
             catch (Exception ex)
             {
+                Events.ErrorExecutingOperation(ex, operation, this.WorkloadUri.ToString());
                 if (this.IsWorkloadSocketStale(ex))
                 {
                     this.failedSocketCount++;
-                    Events.ErrorExecutingOperation(ex, operation, this.WorkloadUri.ToString());
                     if (this.failedSocketCount >= MaxRetryCount)
                     {
-                        Environment.Exit(0);
+                        Environment.Exit((ex as SocketException)?.ErrorCode ?? 110);
                     }
                 }
 
                 this.HandleException(ex, operation);
-                Events.SuccessfullyExecutedOperation(operation, this.WorkloadUri.ToString());
                 return default(T);
             }
         }
@@ -90,7 +89,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
         bool IsWorkloadSocketStale(Exception ex)
         {
-            return (string.Compare(ex.GetType().ToString(), "System.Net.Internals.SocketExceptionFactory+ExtendedSocketException") == 0)
+            return (ex is SocketException)
+                && (string.Compare(ex.GetType().ToString(), "System.Net.Internals.SocketExceptionFactory+ExtendedSocketException") == 0)
                 && ex.Message.ToString().Contains("Connection refused");
         }
 
