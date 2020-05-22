@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::cell::Cell;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
@@ -59,7 +58,7 @@ lazy_static! {
 #[derive(Clone)]
 pub struct DockerModuleRuntime {
     client: DockerClient<UrlConnector>,
-    system_resources: Arc<Mutex<Cell<System>>>,
+    system_resources: Arc<Mutex<System>>,
 }
 
 impl DockerModuleRuntime {
@@ -249,7 +248,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                         info!("Successfully initialized module runtime");
                         DockerModuleRuntime {
                             client,
-                            system_resources: Arc::new(Mutex::new(Cell::new(system_resources))),
+                            system_resources: Arc::new(Mutex::new(system_resources)),
                         }
                     });
 
@@ -654,8 +653,11 @@ impl ModuleRuntime for DockerModuleRuntime {
         #[cfg(windows)]
         let uptime: u64 = unsafe { winapi::um::sysinfoapi::GetTickCount64() / 1000 };
 
-        let mut system_resources = self.system_resources.as_ref().lock().unwrap();
-        let system_resources = system_resources.get_mut();
+        let mut system_resources = self
+            .system_resources
+            .as_ref()
+            .lock()
+            .expect("Could not acquire system resources lock");
         system_resources.refresh_all();
 
         let current_time = SystemTime::now()
