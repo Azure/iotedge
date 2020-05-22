@@ -111,7 +111,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
         bool IsModuleManagementSocketStale(Exception ex)
         {
             return (ex is SocketException)
-                && (string.Compare(ex.GetType().ToString(), "System.Net.Internals.SocketExceptionFactory+ExtendedSocketException") == 0)
                 && ex.Message.Contains("Connection refused");
         }
 
@@ -138,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 this.failedSocketCount = 0;
                 return result;
             }
-            catch (Exception ex)
+            catch (SocketException ex)
             {
                 Events.ErrorExecutingOperation(ex, operation, this.ManagementUri.ToString());
                 if (this.IsModuleManagementSocketStale(ex))
@@ -146,11 +145,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                     this.failedSocketCount++;
                     if (this.failedSocketCount >= MaxRetryCount)
                     {
-                        Environment.Exit((ex as SocketException)?.ErrorCode ?? 110);
+                        Events.StaleSocketShutdown(ex, operation, this.ManagementUri.ToString());
+                        Environment.Exit(ex.ErrorCode);
                     }
                 }
+                else
+                {
+                    this.failedSocketCount = 0;
+                }
 
+                return default(T);
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorExecutingOperation(ex, operation, this.ManagementUri.ToString());
                 this.HandleException(ex, operation);
+                this.failedSocketCount = 0;
                 return default(T);
             }
         }
@@ -172,7 +182,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 ExecutingOperation = IdStart,
                 SuccessfullyExecutedOperation,
                 RetryingOperation,
-                ErrorExecutingOperation
+                ErrorExecutingOperation,
+                StaleSocketShutdown
+            }
+
+            public static void StaleSocketShutdown(Exception ex, string operation, string url)
+            {
+                Log.LogError((int)EventIds.StaleSocketShutdown, ex, $"Shutting down because no response from {url} for {operation}");
             }
 
             public static void ErrorExecutingOperation(Exception ex, string operation, string url)
