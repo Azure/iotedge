@@ -16,9 +16,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     public class EdgeDaemon : IEdgeDaemon
     {
         Option<string> bootstrapAgentImage;
-        Option<(string address, string username, string password)> bootstrapRegistry;
+        Option<Registry> bootstrapRegistry;
 
-        public EdgeDaemon(Option<string> bootstrapAgentImage, Option<(string serverAddress, string username, string password)> bootstrapRegistry)
+        public EdgeDaemon(Option<string> bootstrapAgentImage, Option<Registry> bootstrapRegistry)
         {
             this.bootstrapAgentImage = bootstrapAgentImage;
             this.bootstrapRegistry = bootstrapRegistry;
