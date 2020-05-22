@@ -2274,7 +2274,7 @@ mod tests {
     #[test]
     fn check_settings_state_does_not_delete_other_files() {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
         let config = DockerConfig::new(
             "microsoft/test-image".to_string(),
             ContainerCreateBody::new(),
@@ -2323,7 +2323,7 @@ mod tests {
         File::create(&file1).unwrap().write_all(b"hello").unwrap();
 
         // change settings; will force update of settings_state
-        let settings1 = Settings::new(Path::new(GOOD_SETTINGS1)).unwrap();
+        let settings1 = Settings::new(Some(Path::new(GOOD_SETTINGS1))).unwrap();
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
         check_settings_state::<TestRuntime<_, Settings>, _>(
             tmp_dir.path(),
