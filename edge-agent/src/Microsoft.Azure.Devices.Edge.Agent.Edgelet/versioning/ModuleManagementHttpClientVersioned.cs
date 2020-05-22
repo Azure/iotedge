@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
 
         bool IsModuleManagementSocketStale(Exception ex)
         {
-            return (string.Compare(ex.GetType().ToString(),"System.Net.Internals.SocketExceptionFactory+ExtendedSocketException") == 0) 
+            return (string.Compare(ex.GetType().ToString(), "System.Net.Internals.SocketExceptionFactory+ExtendedSocketException") == 0)
                 && ex.Message.ToString().Contains("Connection refused");
         }
 
@@ -143,9 +143,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 if (this.IsModuleManagementSocketStale(ex))
                 {
                     this.failedSocketCount++;
-                    if (failedSocketCount >= MaxRetryCount)
+                    if (this.failedSocketCount >= MaxRetryCount)
                     {
-                        Environment.FailFast($"ModuleManagementHttpClientVersioned failed to communicate to {this.ManagementUri.ToString()} for {operation} after {MaxRetryCount} retries");
+                        Environment.Exit(0);
                     }
                 }
 

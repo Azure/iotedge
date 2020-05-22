@@ -74,9 +74,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
                 {
                     this.failedSocketCount++;
                     Events.ErrorExecutingOperation(ex, operation, this.WorkloadUri.ToString());
-                    if (failedSocketCount >= MaxRetryCount)
+                    if (this.failedSocketCount >= MaxRetryCount)
                     {
-                        Environment.FailFast($"WorkloadClientVersioned failed to communicate to {this.WorkloadUri.ToString()} for {operation} after {MaxRetryCount} retries");
+                        Environment.Exit(0);
                     }
                 }
 
@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
         bool IsWorkloadSocketStale(Exception ex)
         {
-            return (string.Compare(ex.GetType().ToString(),"System.Net.Internals.SocketExceptionFactory+ExtendedSocketException") == 0) 
+            return (string.Compare(ex.GetType().ToString(), "System.Net.Internals.SocketExceptionFactory+ExtendedSocketException") == 0)
                 && ex.Message.ToString().Contains("Connection refused");
         }
 
