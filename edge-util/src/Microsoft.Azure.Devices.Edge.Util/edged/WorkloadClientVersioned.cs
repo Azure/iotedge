@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
     abstract class WorkloadClientVersioned
     {
-        const int MaxRetryCount = 2;
+        const int MaxRetryCount = 3;
         int failedSocketCount = 0;
 
         static readonly TimeSpan DefaultOperationTimeout = TimeSpan.FromMinutes(5);
