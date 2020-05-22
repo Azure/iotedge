@@ -221,7 +221,7 @@ fn agent_labels(settings: &mut Settings) -> Result<(), LoadSettingsError> {
     let mut labels = create_options
         .labels()
         .cloned()
-        .unwrap_or_else(HashMap::new);
+        .unwrap_or_else(BTreeMap::new);
 
     // IoT Edge reserves the label prefix "net.azure-devices.edge" for its own purposes
     // so we'll simply overwrite any matching labels created by the user.
