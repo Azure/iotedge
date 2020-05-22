@@ -333,19 +333,14 @@ jobs:
         - win-rs5
         - DotNetFramework
     steps: 
-      - template: ../templates/install-dotnet3.yaml
-      - powershell: "scripts/windows/build/Publish-Branch.ps1 -Configuration:\"$(configuration)\" -PublishTests:$False -UpdateVersion"
-        displayName: "Build ($(configuration))"
-        name: build
       - script: |
             docker login $(build.registry.address) -u $(build.registry.user) -p $(build.registry.password)
             docker login $(registry.address) -u $(registry.user) -p $(registry.password)
         displayName: 'docker login'
-      - task: PowerShell@2
-        displayName: "Build iotedge-diagnostics"
-        inputs: 
-          filePath: ./edgelet/build/windows/build-diagnostics.ps1
-          targetType: filePath
+      - template: ../templates/install-dotnet3.yaml
+      - powershell: "scripts/windows/build/Publish-Branch.ps1 -Configuration:\"$(configuration)\" -PublishTests:$False -UpdateVersion"
+        displayName: "Build ($(configuration))"
+        name: build
       - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
         displayName: "Edge Agent Code Sign"
         inputs: 
@@ -583,6 +578,11 @@ jobs:
         inputs: 
           arguments: "-Name 'azureiotedge-simulated-temperature-sensor' -Project 'SimulatedTemperatureSensor' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
           filePath: ./scripts/windows/build/Publish-DockerImage.ps1
+          targetType: filePath
+      - task: PowerShell@2
+        displayName: "Build iotedge-diagnostics"
+        inputs:
+          filePath: ./edgelet/build/windows/build-diagnostics.ps1
           targetType: filePath
       - task: PowerShell@2
         displayName: "Build Image - azureiotedge-diagnostics - amd64"
