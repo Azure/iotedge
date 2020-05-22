@@ -286,7 +286,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         {
                             var edgeHubTokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubServiceAuthTokenProvider");
                             var proxy = c.Resolve<Option<IWebProxy>>();
-                            var securityScopesApiClient = new DeviceScopeApiClient(this.iothubHostName, this.edgeDeviceId, this.edgeHubModuleId, 10, edgeHubTokenProvider, proxy);
+                            var securityScopesApiClient = new NestedDeviceScopeApiClient(this.iothubHostName, this.edgeDeviceId, this.edgeHubModuleId, 10, edgeHubTokenProvider, proxy);
                             IServiceProxy serviceProxy = new ServiceProxy(securityScopesApiClient);
                             IKeyValueStore<string, string> encryptedStore = await GetEncryptedStore(c, "DeviceScopeCache");
                             var identitiesCache = await DeviceScopeIdentitiesCache.Create(this.edgeDeviceId, serviceProxy, encryptedStore, this.scopeCacheRefreshRate);

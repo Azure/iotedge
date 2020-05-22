@@ -184,14 +184,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         /// </summary>
         class NestedServiceIdentitiesIterator : IServiceIdentitiesIterator
         {
-            IDeviceScopeApiClient rootClient;
+            IDeviceScopeApiClient actorClient;
             Queue<IServiceIdentitiesIterator> remainingEdgeNodes;
 
             public NestedServiceIdentitiesIterator(IDeviceScopeApiClient securityScopesApiClient)
             {
                 this.remainingEdgeNodes = new Queue<IServiceIdentitiesIterator>();
 
-                this.rootClient = Preconditions.CheckNotNull(securityScopesApiClient);
+                this.actorClient = Preconditions.CheckNotNull(securityScopesApiClient);
                 this.remainingEdgeNodes.Enqueue(new ServiceIdentitiesIterator(securityScopesApiClient));
             }
 
@@ -219,11 +219,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
                 foreach (ServiceIdentity identity in results)
                 {
-                    // TODO: RICHMA - don't enqueue the current device again
                     if (identity.IsEdgeDevice)
                     {
                         // Create a new iterator for the child Edge and enqueue it
-                        var childClient = this.rootClient.CreateOnBehalfOfDeviceScopeClient(identity.DeviceId);
+                        var childClient = this.actorClient.CreateOnBehalfOfDeviceScopeClient(identity.DeviceId);
                         this.remainingEdgeNodes.Enqueue(new ServiceIdentitiesIterator(childClient));
                     }
                 }

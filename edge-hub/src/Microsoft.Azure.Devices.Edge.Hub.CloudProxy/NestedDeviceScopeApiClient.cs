@@ -3,24 +3,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Net;
     using System.Net.Http;
+    using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Common;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    public class DeviceScopeApiClient : IDeviceScopeApiClient
+    public class NestedDeviceScopeApiClient : IDeviceScopeApiClient
     {
         const int RetryCount = 2;
 
-        const string InScopeIdentitiesUriTemplate = "/devices/{0}/modules/{1}/devicesAndModulesInDeviceScope?deviceCount={2}&continuationToken={3}&api-version={4}";
+        const string GetDevicesAndModulesInTargetScopeUriFormat = "/devices/{0}/modules/{1}/devicesAndModulesInTargetDeviceScope?api-version={2}";
 
-        const string InScopeTargetIdentityUriFormat = "/devices/{0}/modules/{1}/deviceAndModuleInDeviceScope?targetDeviceId={2}&targetModuleId={3}&api-version={4}";
-
-        const string ApiVersion = "2018-08-30-preview";
+        const string NestedApiVersion = "2020-06-30-preview";
 
         static readonly ITransientErrorDetectionStrategy TransientErrorDetectionStrategy = new ErrorDetectionStrategy();
 
@@ -30,19 +31,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly RetryStrategy retryStrategy;
 
         readonly Uri iotHubBaseHttpUri;
+        readonly string actorEdgeDeviceId;
         readonly string moduleId;
         readonly int batchSize;
         readonly ITokenProvider edgeHubTokenProvider;
         readonly Option<IWebProxy> proxy;
 
+        // TODO: fix this
+        public IAuthenticationChainProvider AuthChainProvider { get; set; }
         public string TargetEdgeDeviceId { get; }
 
-        public IDeviceScopeApiClient CreateOnBehalfOfDeviceScopeClient(string _)
-        {
-            return null;
-        }
-
-        public DeviceScopeApiClient(
+        public NestedDeviceScopeApiClient(
             string iotHubHostName,
             string deviceId,
             string moduleId,
@@ -53,7 +52,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName));
             this.iotHubBaseHttpUri = new UriBuilder(Uri.UriSchemeHttps, iotHubHostName).Uri;
-            this.TargetEdgeDeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            this.actorEdgeDeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            this.TargetEdgeDeviceId = this.actorEdgeDeviceId;
             this.moduleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.batchSize = Preconditions.CheckRange(batchSize, 0, 1000, nameof(batchSize));
             this.edgeHubTokenProvider = Preconditions.CheckNotNull(edgeHubTokenProvider, nameof(edgeHubTokenProvider));
@@ -61,32 +61,40 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.retryStrategy = retryStrategy ?? TransientRetryStrategy;
         }
 
-        public Task<ScopeResult> GetIdentitiesInScope() =>
-            this.GetIdentitiesInScopeWithRetry(this.GetServiceUri(Option.None<string>()));
-
-        public Task<ScopeResult> GetNext(string continuationToken) =>
-            this.GetIdentitiesInScopeWithRetry(this.GetServiceUri(Option.Some(continuationToken)));
-
-        public Task<ScopeResult> GetIdentity(string targetDeviceId, string targetModuleId)
+        public NestedDeviceScopeApiClient(string childDeviceId, NestedDeviceScopeApiClient client)
         {
-            Preconditions.CheckNonWhiteSpace(targetDeviceId, nameof(targetDeviceId));
-            return this.GetIdentitiesInScopeWithRetry(this.GetServiceUri(targetDeviceId, targetModuleId));
+            this.TargetEdgeDeviceId = Preconditions.CheckNonWhiteSpace(childDeviceId, nameof(childDeviceId));
+            this.actorEdgeDeviceId = client.actorEdgeDeviceId;
+            this.iotHubBaseHttpUri = client.iotHubBaseHttpUri;
+            this.moduleId = client.moduleId;
+            this.batchSize = client.batchSize;
+            this.edgeHubTokenProvider = client.edgeHubTokenProvider;
+            this.proxy = client.proxy;
+            this.retryStrategy = client.retryStrategy;
+            this.AuthChainProvider = client.AuthChainProvider;
         }
 
-        internal Uri GetServiceUri(Option<string> continuationToken) =>
-            continuationToken
-                .Map(c => new Uri(this.iotHubBaseHttpUri, c))
-                .GetOrElse(
-                    () =>
-                    {
-                        string relativeUri = InScopeIdentitiesUriTemplate.FormatInvariant(this.TargetEdgeDeviceId, this.moduleId, this.batchSize, null, ApiVersion);
-                        var uri = new Uri(this.iotHubBaseHttpUri, relativeUri);
-                        return uri;
-                    });
-
-        internal Uri GetServiceUri(string targetDeviceId, string targetModuleId)
+        public IDeviceScopeApiClient CreateOnBehalfOfDeviceScopeClient(string deviceId)
         {
-            string relativeUri = InScopeTargetIdentityUriFormat.FormatInvariant(this.TargetEdgeDeviceId, this.moduleId, targetDeviceId, targetModuleId, ApiVersion);
+            return new NestedDeviceScopeApiClient(deviceId, this);
+        }
+
+        public Task<ScopeResult> GetIdentitiesInScope() =>
+            this.GetIdentitiesInTargetScopeWithRetry(this.GetServiceUri(), Option.None<string>());
+
+        public Task<ScopeResult> GetNext(string continuationToken) =>
+            this.GetIdentitiesInTargetScopeWithRetry(this.GetServiceUri(), Option.Some(continuationToken));
+
+        public Task<ScopeResult> GetIdentity(string _, string __)
+        {
+            // TODO: 7026875: Refreshing scopes on Connect
+            return Task.FromResult(new ScopeResult(Enumerable.Empty<Device>(), Enumerable.Empty<Module>(), string.Empty));
+        }
+
+        internal Uri GetServiceUri()
+        {
+            // The URI is always always in the context of the root device
+            string relativeUri = GetDevicesAndModulesInTargetScopeUriFormat.FormatInvariant(this.actorEdgeDeviceId, this.moduleId, NestedApiVersion);
             var uri = new Uri(this.iotHubBaseHttpUri, relativeUri);
             return uri;
         }
@@ -98,12 +106,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return transientRetryPolicy.ExecuteAsync(func);
         }
 
-        async Task<ScopeResult> GetIdentitiesInScopeWithRetry(Uri uri)
+        async Task<ScopeResult> GetIdentitiesInTargetScopeWithRetry(Uri uri, Option<string> continuationToken)
         {
             try
             {
                 return await ExecuteWithRetry(
-                    () => this.GetIdentitiesInScope(uri),
+                    () => this.GetIdentitiesInTargetScope(uri, continuationToken),
                     Events.RetryingGetIdentities,
                     this.retryStrategy);
             }
@@ -114,15 +122,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        async Task<ScopeResult> GetIdentitiesInScope(Uri uri)
+        async Task<ScopeResult> GetIdentitiesInTargetScope(Uri uri, Option<string> continuationLink)
         {
             HttpClient client = this.proxy
                 .Map(p => new HttpClient(new HttpClientHandler { Proxy = p }, disposeHandler: true))
                 .GetOrElse(() => new HttpClient());
-            using (var msg = new HttpRequestMessage(HttpMethod.Get, uri))
+            using (var msg = new HttpRequestMessage(HttpMethod.Post, uri))
             {
+                // Get the auth-chain for the target device
+                if (!this.AuthChainProvider.TryGetAuthChain(this.TargetEdgeDeviceId, out string authChain))
+                {
+                    throw new ArgumentException($"No valid authentication chain for {this.TargetEdgeDeviceId}");
+                }
+
+                var payload = new NestedScopeRequest()
+                {
+                    AuthChain = authChain,
+                    PageSize = this.batchSize,
+                    ContinuationLink = continuationLink.GetOrElse(() => string.Empty)
+                };
+
                 string token = await this.edgeHubTokenProvider.GetTokenAsync(Option.None<TimeSpan>());
                 msg.Headers.Add(HttpRequestHeader.Authorization.ToString(), token);
+                msg.Content = new StringContent(JsonConvert.SerializeObject(payload).ToString(), Encoding.Default, "application/json");
 
                 HttpResponseMessage response = await client.SendAsync(msg);
                 string content = await response.Content.ReadAsStringAsync();
@@ -177,8 +199,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         static class Events
         {
-            const int IdStart = CloudProxyEventIds.DeviceScopeApiClient;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<DeviceScopeApiClient>();
+            const int IdStart = CloudProxyEventIds.NestedDeviceScopeApiClient;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<NestedDeviceScopeApiClient>();
 
             enum EventIds
             {
