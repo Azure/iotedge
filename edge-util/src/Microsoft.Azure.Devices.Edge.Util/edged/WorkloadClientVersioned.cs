@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
     abstract class WorkloadClientVersioned
     {
         const int MaxRetryCount = 3;
+        int failedSocketCount = 0;
 
         static readonly TimeSpan DefaultOperationTimeout = TimeSpan.FromMinutes(5);
 
@@ -32,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
             this.ModuleGenerationId = Preconditions.CheckNonWhiteSpace(moduleGenerationId, nameof(moduleGenerationId));
             this.transientErrorDetectionStrategy = transientErrorDetectionStrategy;
             this.operationTimeout = operationTimeout.GetOrElse(DefaultOperationTimeout);
+            this.failedSocketCount = 0;
         }
 
         protected Uri WorkloadUri { get; }
@@ -59,22 +61,25 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
                 Events.ExecutingOperation(operation, this.WorkloadUri.ToString());
                 T result = await ExecuteWithRetry(
                     func,
-                    (r) =>
-                    {
-                        if (r.CurrentRetryCount == MaxRetryCount)
-                        {
-                            Environment.FailFast($"WorkloadClientVersioned failed to communicate to {this.WorkloadUri.ToString()} for {operation} after {MaxRetryCount-1} retries");
-                        }
-
-                        Events.RetryingOperation(operation, this.WorkloadUri.ToString(), r);
-                    },
+                    r => Events.RetryingOperation(operation, this.WorkloadUri.ToString(), r),
                     this.transientErrorDetectionStrategy)
                     .TimeoutAfter(this.operationTimeout);
                 Events.SuccessfullyExecutedOperation(operation, this.WorkloadUri.ToString());
+                this.failedSocketCount = 0;
                 return result;
             }
             catch (Exception ex)
             {
+                if (this.IsWorkloadSocketStale(ex))
+                {
+                    Events.ErrorExecutingOperation(ex, operation, this.WorkloadUri.ToString());
+                    if (failedSocketCount >= MaxRetryCount)
+                    {
+                        this.failedSocketCount++;
+                        Environment.FailFast($"WorkloadClientVersioned failed to communicate to {this.WorkloadUri.ToString()} for {operation} after {MaxRetryCount} retries");
+                    }
+                }
+
                 this.HandleException(ex, operation);
                 Events.SuccessfullyExecutedOperation(operation, this.WorkloadUri.ToString());
                 return default(T);
@@ -82,6 +87,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
         }
 
         protected abstract void HandleException(Exception ex, string operation);
+
+        bool IsWorkloadSocketStale(Exception ex)
+        {
+            return (string.Compare(ex.GetType().ToString(),"System.Net.Internals.SocketExceptionFactory+ExtendedSocketException") == 0) 
+                && ex.Message.ToString().Contains("Connection refused");
+        }
 
         static Task<T> ExecuteWithRetry<T>(Func<Task<T>> func, Action<RetryingEventArgs> onRetry, ITransientErrorDetectionStrategy transientErrorDetection)
         {
@@ -99,7 +110,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
             {
                 ExecutingOperation = IdStart,
                 SuccessfullyExecutedOperation,
-                RetryingOperation
+                RetryingOperation,
+                ErrorExecutingOperation
+            }
+
+            public static void ErrorExecutingOperation(Exception ex, string operation, string url)
+            {
+                Log.LogDebug((int)EventIds.ErrorExecutingOperation, ex, $"Error when getting an Http response from {url} for {operation}");
             }
 
             internal static void RetryingOperation(string operation, string url, RetryingEventArgs r)

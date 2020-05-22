@@ -33,6 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
         readonly ITransientErrorDetectionStrategy transientErrorDetectionStrategy;
         readonly TimeSpan operationTimeout;
 
+        int failedSocketCount = 0;
+
         protected ModuleManagementHttpClientVersioned(
             Uri managementUri,
             ApiVersion version,
@@ -43,6 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
             this.Version = Preconditions.CheckNotNull(version, nameof(version));
             this.transientErrorDetectionStrategy = transientErrorDetectionStrategy;
             this.operationTimeout = operationTimeout.GetOrElse(DefaultOperationTimeout);
+            this.failedSocketCount = 0;
         }
 
         protected Uri ManagementUri { get; }
@@ -105,6 +108,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
 
         protected abstract void HandleException(Exception ex, string operation);
 
+        bool IsModuleManagementSocketStale(Exception ex)
+        {
+            return (string.Compare(ex.GetType().ToString(),"System.Net.Internals.SocketExceptionFactory+ExtendedSocketException") == 0) 
+                && ex.Message.ToString().Contains("Connection refused");
+        }
+
         protected Task Execute(Func<Task> func, string operation) =>
             this.Execute(
                 async () =>
@@ -121,23 +130,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 Events.ExecutingOperation(operation, this.ManagementUri.ToString());
                 T result = await ExecuteWithRetry(
                     func,
-                    (r) =>
-                    {
-                        if (r.CurrentRetryCount == MaxRetryCount)
-                        {
-                            Environment.FailFast($"ModuleManagementHttpClientVersioned failed to communicate to {this.ManagementUri.ToString()} for {operation} after {MaxRetryCount-1} retries");
-                        }
-
-                        Events.RetryingOperation(operation, this.ManagementUri.ToString(), r);
-                    },
+                    (r) => Events.RetryingOperation(operation, this.ManagementUri.ToString(), r),
                     this.transientErrorDetectionStrategy)
                     .TimeoutAfter(this.operationTimeout);
                 Events.SuccessfullyExecutedOperation(operation, this.ManagementUri.ToString());
+                this.failedSocketCount = 0;
                 return result;
             }
             catch (Exception ex)
             {
                 Events.ErrorExecutingOperation(ex, operation, this.ManagementUri.ToString());
+                if (this.IsModuleManagementSocketStale(ex))
+                {
+                    this.failedSocketCount++;
+                    if (failedSocketCount >= MaxRetryCount)
+                    {
+                        Environment.FailFast($"ModuleManagementHttpClientVersioned failed to communicate to {this.ManagementUri.ToString()} for {operation} after {MaxRetryCount} retries");
+                    }
+                }
+
                 this.HandleException(ex, operation);
                 return default(T);
             }
