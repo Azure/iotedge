@@ -8,169 +8,14 @@ pr: none
 
 jobs:
 ################################################################################
-  - job: linux_dotnet_projects_arm64
-################################################################################
-    displayName: LinuxDotnet ARM64
-    pool:
-      vmImage: 'ubuntu-16.04'
-    steps:
-      - task: UseDotNet@2
-        displayName: Install .NET Core sdk
-        inputs:
-          packageType: sdk
-          version: 3.0.x
-
-      - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
-        displayName: 'Docker Login'
-
-      - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin --os Unix --dotnet_runtime netcoreapp3.0
-        name: build
-        displayName: Build ($(Build.Configuration))
-
-      - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifacts'
-        inputs:
-          PathtoPublish: '$(Build.BinariesDirectory)/publish'
-          ArtifactName: 'core-linux'
-
-      # Edge Agent - Not Using Template for ARM64 because we have 2 different .NET Core.
-      - task: Bash@3
-        displayName: Build Image - Edge Agent - aarch64
-        inputs:
-           filePath: scripts/linux/buildImage.sh
-           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-agent -n microsoft -P Microsoft.Azure.Devices.Edge.Agent.Service --target-arch aarch64
-
-     # Edge Hub - Not Using Template for ARM64 because we have 2 different .NET Core.
-      - task: Bash@3
-        displayName: Build Image - Edge Hub - aarch64
-        inputs:
-           filePath: scripts/linux/buildImage.sh
-           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-hub -n microsoft -P Microsoft.Azure.Devices.Edge.Hub.Service --target-arch aarch64
-
-     # Simulated Temperature Sensor - Not Using Template for ARM64 because we have 2 different .NET Core.
-      - task: Bash@3
-        displayName: Build Image - Temperature Sensor - aarch64
-        inputs:
-           filePath: scripts/linux/buildImage.sh
-           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-simulated-temperature-sensor -n microsoft -P SimulatedTemperatureSensor --target-arch aarch64
-
-      # Temperature Filter - Not Using Template for ARM64 because we have 2 different .NET Core.
-      - task: Bash@3
-        displayName: Build Image - Temperature Filter - aarch64
-        inputs:
-           filePath: scripts/linux/buildImage.sh
-           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-temperature-filter -n microsoft -P TemperatureFilter --target-arch aarch64
-
-      # Load Gen - Not Using Template for ARM64 because we have 2 different .NET Core.
-      - task: Bash@3
-        displayName: Build Image - Load Gen - aarch64
-        inputs:
-           filePath: scripts/linux/buildImage.sh
-           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-load-gen -n microsoft -P load-gen --target-arch aarch64
-
-      # Test Analyzer - Not Using Template for ARM64 because we have 2 different .NET Core.
-      - task: Bash@3
-        displayName: Build Image - Test Analyzer - aarch64
-        inputs:
-           filePath: scripts/linux/buildImage.sh
-           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-analyzer -n microsoft -P TestAnalyzer --target-arch aarch64
-
-      # Functions Sample - Not Using Template for ARM64 because we have 2 different .NET Core.//TODO: Enable this once Functions supports arm64v8. Right now they are not ready.
-      #- task: Bash@3
-      #  displayName: Build Image - Functions Sample - aarch64
-      #  inputs:
-      #     filePath: scripts/linux/buildImage.sh
-      #     arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-functions-filter -n azureiotedge -P EdgeHubTriggerCSharp --target-arch aarch64
-
-      # Direct Method Sender - Not Using Template for ARM64 because we have 2 different .NET Core.
-      - task: Bash@3
-        displayName: Build Image - Direct Method Sender - aarch64
-        inputs:
-           filePath: scripts/linux/buildImage.sh
-           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-direct-method-sender -n microsoft -P DirectMethodSender --target-arch aarch64
-
-      # Direct Method Receiver - Not Using Template for ARM64 because we have 2 different .NET Core.
-      - task: Bash@3
-        displayName: Build Image - Direct Method Receiver - aarch64
-        inputs:
-           filePath: scripts/linux/buildImage.sh
-           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-direct-method-receiver -n microsoft -P DirectMethodReceiver --target-arch aarch64
-
-      # Metrics Validator - Not Using Template for ARM64 because we have 2 different .NET Core.
-      - task: Bash@3
-        displayName: Build Image - Metrics Validator - aarch64
-        inputs:
-           filePath: scripts/linux/buildImage.sh
-           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-metrics-validator -n microsoft -P MetricsValidator --target-arch aarch64
-
-      # Module Restarter - Not Using Template for ARM64 because we have 2 different .NET Core.
-      - task: Bash@3
-        displayName: Build Image - Module Restarter - aarch64
-        inputs:
-           filePath: scripts/linux/buildImage.sh
-           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-module-restarter -n microsoft -P ModuleRestarter --target-arch aarch64
-
-      # Twin Tester - Not Using Template for ARM64 because we have 2 different .NET Core.
-      - task: Bash@3
-        displayName: Build Image - Twin Tester - aarch64
-        inputs:
-           filePath: scripts/linux/buildImage.sh
-           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-twin-tester -n microsoft -P TwinTester --target-arch aarch64
-
-      # Relayer - Not Using Template for ARM64 because we have 2 different .NET Core.
-      - task: Bash@3
-        displayName: Build Image - Relayer - aarch64
-        inputs:
-          filePath: scripts/linux/buildImage.sh
-          arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-relayer -n microsoft -P Relayer --target-arch aarch64
-
-      # Metrics Collector - Not Using Template for ARM64 because we have 2 different .NET Core.
-      - task: Bash@3
-        displayName: Build Image - Metrics Collector - aarch64
-        inputs:
-           filePath: scripts/linux/buildImage.sh
-           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-metrics-collector -n microsoft -P MetricsCollector --target-arch aarch64
-
-      # TestResultCoordinator - Not Using Template for ARM64 because we have 2 different .NET Core.
-      - task: Bash@3
-        displayName: Build Image - Test Result Coordinator - aarch64
-        inputs:
-          filePath: scripts/linux/buildImage.sh
-          arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-test-result-coordinator -n microsoft -P TestResultCoordinator --target-arch aarch64
-
-      # DeploymentTester - Not Using Template for ARM64 because we have 2 different .NET Core.
-      - task: Bash@3
-        displayName: Build Image - Deployment Tester - aarch64
-        inputs:
-          filePath: scripts/linux/buildImage.sh
-          arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-deployment-tester -n microsoft -P DeploymentTester --target-arch aarch64
-
-      # EdgeHubRestartTester - Not Using Template for ARM64 because we have 2 different .NET Core.
-      - task: Bash@3
-        displayName: Build Image - EdgeHub Restart Tester - aarch64
-        inputs:
-          filePath: scripts/linux/buildImage.sh
-          arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-edgehub-restart-tester -n microsoft -P EdgeHubRestartTester --target-arch aarch64
-
-      # CloudToDeviceMessageTester - Not Using Template for ARM64 because we have 2 different .NET Core.
-      - task: Bash@3
-        displayName: Build Image - Cloud To Device Message Receiver Tester - aarch64
-        inputs:
-          filePath: scripts/linux/buildImage.sh
-          arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-c2dmessage-tester -n microsoft -P CloudToDeviceMessageTester --target-arch aarch64
-          
-################################################################################
   - job: linux_dotnet_projects
 ################################################################################
     displayName: LinuxDotnet
     pool:
       vmImage: 'ubuntu-16.04'
     steps:
-      - task: UseDotNet@2
-        displayName: 'Install .NET Core sdk'
-        inputs:
-          packageType: sdk
-          version: 2.1.x
+      - template: ../templates/install-dotnet3.yaml
+
       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
         displayName: 'Docker Login'
 
@@ -229,7 +74,7 @@ jobs:
           imageName: azureiotedge-analyzer
           project: TestAnalyzer
 
-      # Functions Sample
+      # Functions Sample - Not supported on linux arm64
       - template: templates/image-linux.yaml
         parameters:
           name: Functions Sample
@@ -356,12 +201,8 @@ jobs:
         - win-rs5
     workspace:
       clean: all
-    variables:
-      NetCorePackageUri: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-win-x64.zip
     steps:
-      - powershell: scripts/windows/setup/Install-Prerequisites.ps1 -DotnetSdkUrl $(NetCorePackageUri) -Dotnet -Nuget
-        name: install
-        displayName: Install
+      - template: ../templates/install-dotnet3.yaml
 
       - script: echo $(registry.password)|docker login "edgebuilds.azurecr.io" -u "$(registry.user)" --password-stdin
         displayName: Docker Login
@@ -526,7 +367,6 @@ jobs:
       vmImage: 'ubuntu-16.04'
     dependsOn:
       - linux_dotnet_projects
-      - linux_dotnet_projects_arm64
       - linux_rust_amd64
       - linux_rust_arm32
       - linux_rust_arm64

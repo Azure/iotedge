@@ -4,10 +4,10 @@ namespace TestResultCoordinator
     using System;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.AspNetCore;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
 
     class Program
@@ -21,7 +21,7 @@ namespace TestResultCoordinator
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
             Logger.LogInformation("Creating WebHostBuilder...");
-            Task webHost = CreateWebHostBuilder(args).Build().RunAsync(cts.Token);
+            Task webHost = CreateHostBuilder(args).Build().RunAsync(cts.Token);
 
             await Task.WhenAny(cts.Token.WhenCanceled(), webHost);
 
@@ -30,10 +30,14 @@ namespace TestResultCoordinator
             Logger.LogInformation("TestResultCoordinator Main() exited.");
         }
 
-        static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
-            WebHost.CreateDefaultBuilder(args)
-                .UseUrls($"http://*:{Settings.Current.WebHostPort}")
-                .UseSockets()
-                .UseStartup<Startup>();
+        static IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder
+                        .UseUrls($"http://*:{Settings.Current.WebHostPort}")
+                        .UseSockets()
+                        .UseStartup<Startup>();
+                });
     }
 }

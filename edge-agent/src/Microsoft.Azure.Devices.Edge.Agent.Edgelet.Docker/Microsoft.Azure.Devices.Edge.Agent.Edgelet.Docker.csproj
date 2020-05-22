@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <Import Project="..\..\..\netstandardVersion.props" />
+
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <HighEntropyVA>true</HighEntropyVA>
     <Configurations>Debug;Release;CheckInBuild</Configurations>
