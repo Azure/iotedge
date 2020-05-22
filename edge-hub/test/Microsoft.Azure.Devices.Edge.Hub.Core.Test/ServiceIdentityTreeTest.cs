@@ -190,8 +190,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         public void Update_Test()
         {
             ServiceIdentityTree tree = this.SetupTree();
-            int deleteCallbackCount = 0;
-            tree.ServiceIdentityRemoved += (sender, id) => { deleteCallbackCount++; };
 
             // Re-parent e3_L2 from e2_L1 to e1_L1
             ServiceIdentity updatedIdentity = CreateServiceIdentity(
@@ -215,20 +213,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 this.e1_L1.Id + ";" +
                 this.root.Id;
             Assert.Equal(leaf2_authchain_expected, leaf2_authchain_actual);
-
-            // There shouldn't have been any deletion callbacks
-            Assert.Equal(0, deleteCallbackCount);
         }
 
         [Fact]
         public void Remove_Test()
         {
             ServiceIdentityTree tree = this.SetupTree();
-            var removedIdentities = new HashSet<string>();
-            tree.ServiceIdentityRemoved += (sender, id) => { removedIdentities.Add(id); };
 
             // Delete a subtree
             tree.Remove(this.e2_L1.Id);
+            tree.Remove(this.e3_L2.Id);
+            tree.Remove(this.e4_L2.Id);
+            tree.Remove(this.leaf2.Id);
+            tree.Remove(this.mod2.Id);
 
             // Nothing under e2_L1 should remain
             Assert.False(tree.Get(this.e2_L1.Id).HasValue);
@@ -236,13 +233,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.False(tree.Get(this.e4_L2.Id).HasValue);
             Assert.False(tree.Get(this.leaf2.Id).HasValue);
             Assert.False(tree.Get(this.mod2.Id).HasValue);
-
-            // Check for callbacks
-            Assert.Contains(this.e2_L1.Id, removedIdentities);
-            Assert.Contains(this.e3_L2.Id, removedIdentities);
-            Assert.Contains(this.e4_L2.Id, removedIdentities);
-            Assert.Contains(this.leaf2.Id, removedIdentities);
-            Assert.Contains(this.mod2.Id, removedIdentities);
         }
     }
 }

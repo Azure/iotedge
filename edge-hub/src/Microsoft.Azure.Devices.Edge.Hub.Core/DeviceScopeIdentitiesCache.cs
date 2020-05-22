@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly IServiceProxy serviceProxy;
         readonly IKeyValueStore<string, string> encryptedStore;
         readonly AsyncLock cacheLock = new AsyncLock();
-        readonly ServiceIdentityTree serviceIdentityTree;
+        readonly IServiceIdentityTree serviceIdentityTree;
         readonly Timer refreshCacheTimer;
         readonly TimeSpan refreshRate;
         readonly AsyncAutoResetEvent refreshCacheSignal = new AsyncAutoResetEvent();
@@ -29,20 +29,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         Task refreshCacheTask;
 
         DeviceScopeIdentitiesCache(
-            string edgeDeviceId,
+            IServiceIdentityTree serviceIdentityTree,
             IServiceProxy serviceProxy,
             IKeyValueStore<string, string> encryptedStorage,
             IDictionary<string, StoredServiceIdentity> initialCache,
             TimeSpan refreshRate)
         {
+            this.serviceIdentityTree = serviceIdentityTree;
             this.serviceProxy = serviceProxy;
             this.encryptedStore = encryptedStorage;
             this.refreshRate = refreshRate;
             this.refreshCacheTimer = new Timer(this.RefreshCache, null, TimeSpan.Zero, refreshRate);
 
             // Populate the ServiceIdentityTree
-            this.serviceIdentityTree = new ServiceIdentityTree(edgeDeviceId);
-            this.serviceIdentityTree.ServiceIdentityRemoved += this.HandleServiceIdentityRemoved;
             foreach (KeyValuePair<string, StoredServiceIdentity> kvp in initialCache)
             {
                 kvp.Value.ServiceIdentity.ForEach(serviceIdentity => this.serviceIdentityTree.InsertOrUpdate(serviceIdentity));
@@ -53,19 +52,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public event EventHandler<ServiceIdentity> ServiceIdentityUpdated;
 
-        public IAuthenticationChainProvider AuthChainProvider => this.serviceIdentityTree;
-
         public static async Task<DeviceScopeIdentitiesCache> Create(
-            string edgeDeviceId,
+            IServiceIdentityTree serviceIdentityTree,
             IServiceProxy serviceProxy,
             IKeyValueStore<string, string> encryptedStorage,
             TimeSpan refreshRate)
         {
             Preconditions.CheckNotNull(serviceProxy, nameof(serviceProxy));
             Preconditions.CheckNotNull(encryptedStorage, nameof(encryptedStorage));
-            Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
+            Preconditions.CheckNotNull(serviceIdentityTree, nameof(serviceIdentityTree));
             IDictionary<string, StoredServiceIdentity> cache = await ReadCacheFromStore(encryptedStorage);
-            var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(edgeDeviceId, serviceProxy, encryptedStorage, cache, refreshRate);
+            var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceIdentityTree, serviceProxy, encryptedStorage, cache, refreshRate);
             Events.Created();
             return deviceScopeIdentitiesCache;
         }
@@ -229,10 +226,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     .Filter(s => s.Status == ServiceIdentityStatus.Enabled)
                     .HasValue;
 
-                // Remove the target identity and all its children from the tree,
-                // this will invoke a callback for each deleted identity, so we
-                // can also delete them from storage.
+                // Remove the target identity
                 this.serviceIdentityTree.Remove(id);
+                await this.encryptedStore.Remove(id);
                 Events.NotInScope(id);
 
                 if (hasValidServiceIdentity)
@@ -265,11 +261,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             string serviceIdentityString = JsonConvert.SerializeObject(storedServiceIdentity);
             await this.encryptedStore.Put(id, serviceIdentityString);
-        }
-
-        async void HandleServiceIdentityRemoved(object sender, string id)
-        {
-            await this.encryptedStore.Remove(id);
         }
 
         internal class StoredServiceIdentity

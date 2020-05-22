@@ -14,10 +14,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     /// to reconstruct the hierarchy of modules/devices under the current
     /// Edge device in a nested Edge environment.
     /// </summary>
-    class ServiceIdentityTree : IAuthenticationChainProvider
+    public class ServiceIdentityTree :
+        IServiceIdentityTree,
+        IAuthenticationChainProvider
     {
-        public event EventHandler<string> ServiceIdentityRemoved;
-
         readonly string rootDeviceId;
         AtomicReference<ImmutableDictionary<string, ServiceIdentityTreeNode>> nodes;
 
@@ -36,12 +36,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             var writableSnapshot = new Dictionary<string, ServiceIdentityTreeNode>(snapshot);
             if (snapshot.ContainsKey(identity.Id))
             {
-                // Update case - this is just remove + re-insert,
-                // except we don't remove any existing children.
-                // There's no scenario where losing a link to
-                // either the parent or a child wouldn't result
-                // in a call to RemoveRecursive().
-                this.RemoveSingleNode_NoCallback(writableSnapshot, identity.Id);
+                // Update case - this is just remove + re-insert
+                this.Remove(identity.Id);
             }
 
             // Insert case
@@ -64,19 +60,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public void Remove(string id)
         {
-            // In the case of an explicit removal, the device/module is
-            // no longer part of the nested hierarchy, so we should
-            // remove any children of the device as well.
             ImmutableDictionary<string, ServiceIdentityTreeNode> snapshot = this.nodes;
             var writableSnapshot = new Dictionary<string, ServiceIdentityTreeNode>(snapshot);
 
-            this.RemoveRecursive(writableSnapshot, id);
+            if (writableSnapshot.TryGetValue(id, out ServiceIdentityTreeNode target))
+            {
+                // Unhook from the parent
+                target.Parent.ForEach(parent => parent.Children.Remove(target));
+
+                // Unhook the children
+                target.Children.ForEach(child => child.Parent = Option.None<ServiceIdentityTreeNode>());
+
+                // Remove
+                writableSnapshot.Remove(id);
+            }
 
             // Write back to the atomic field
             if (!this.nodes.CompareAndSet(snapshot, writableSnapshot.ToImmutableDictionary()))
             {
                 // There's only ever one thread calling Remove(), so this should never fail
-                throw new InvalidOperationException("Multi-threaded insert/update detected on ServiceIdentityTree");
+                throw new InvalidOperationException("Multi-threaded delete detected on ServiceIdentityTree");
             }
         }
 
@@ -196,40 +199,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 child.Parent = Option.Some(newNode);
                 newNode.Children.Add(child);
-            }
-        }
-
-        void RemoveSingleNode_NoCallback(IDictionary<string, ServiceIdentityTreeNode> nodes, string id)
-        {
-            if (nodes.TryGetValue(id, out ServiceIdentityTreeNode target))
-            {
-                // Unhook from the parent
-                target.Parent.ForEach(parent => parent.Children.Remove(target));
-
-                // Unhook the children
-                target.Children.ForEach(child => child.Parent = Option.None<ServiceIdentityTreeNode>());
-
-                // Remove
-                nodes.Remove(id);
-            }
-        }
-
-        void RemoveRecursive(IDictionary<string, ServiceIdentityTreeNode> nodes, string id)
-        {
-            if (nodes.TryGetValue(id, out ServiceIdentityTreeNode target))
-            {
-                // Unhook from the parent
-                target.Parent.ForEach(parent => parent.Children.Remove(target));
-
-                // Recursively remove each child
-                var childrenSnapshot = new List<ServiceIdentityTreeNode>(target.Children);
-                childrenSnapshot.ForEach(child => this.RemoveRecursive(nodes, child.Identity.Id));
-
-                // Remove self after recursion
-                nodes.Remove(id);
-
-                // Notify callbacks
-                this.ServiceIdentityRemoved?.Invoke(this, id);
             }
         }
 

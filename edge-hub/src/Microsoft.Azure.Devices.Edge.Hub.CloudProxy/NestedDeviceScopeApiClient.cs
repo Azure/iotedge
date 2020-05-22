@@ -35,10 +35,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly string moduleId;
         readonly int batchSize;
         readonly ITokenProvider edgeHubTokenProvider;
+        readonly IAuthenticationChainProvider authChainProvider;
         readonly Option<IWebProxy> proxy;
 
-        // TODO: fix this
-        public IAuthenticationChainProvider AuthChainProvider { get; set; }
         public string TargetEdgeDeviceId { get; }
 
         public NestedDeviceScopeApiClient(
@@ -47,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             string moduleId,
             int batchSize,
             ITokenProvider edgeHubTokenProvider,
+            IAuthenticationChainProvider authChainProvider,
             Option<IWebProxy> proxy,
             RetryStrategy retryStrategy = null)
         {
@@ -57,6 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.moduleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.batchSize = Preconditions.CheckRange(batchSize, 0, 1000, nameof(batchSize));
             this.edgeHubTokenProvider = Preconditions.CheckNotNull(edgeHubTokenProvider, nameof(edgeHubTokenProvider));
+            this.authChainProvider = Preconditions.CheckNotNull(authChainProvider, nameof(authChainProvider));
             this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
             this.retryStrategy = retryStrategy ?? TransientRetryStrategy;
         }
@@ -71,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.edgeHubTokenProvider = client.edgeHubTokenProvider;
             this.proxy = client.proxy;
             this.retryStrategy = client.retryStrategy;
-            this.AuthChainProvider = client.AuthChainProvider;
+            this.authChainProvider = client.authChainProvider;
         }
 
         public IDeviceScopeApiClient CreateOnBehalfOfDeviceScopeClient(string deviceId)
@@ -130,7 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             using (var msg = new HttpRequestMessage(HttpMethod.Post, uri))
             {
                 // Get the auth-chain for the target device
-                if (!this.AuthChainProvider.TryGetAuthChain(this.TargetEdgeDeviceId, out string authChain))
+                if (!this.authChainProvider.TryGetAuthChain(this.TargetEdgeDeviceId, out string authChain))
                 {
                     throw new ArgumentException($"No valid authentication chain for {this.TargetEdgeDeviceId}");
                 }

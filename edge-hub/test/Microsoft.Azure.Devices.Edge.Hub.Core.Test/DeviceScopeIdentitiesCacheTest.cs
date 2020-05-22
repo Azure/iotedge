@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await store.Put(si2.Id, storedSi2.ToJson());
 
             // Act
-            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create("deviceId", serviceProxy.Object, store, TimeSpan.FromHours(1));
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("deviceId"), serviceProxy.Object, store, TimeSpan.FromHours(1));
             Option<ServiceIdentity> receivedServiceIdentity1 = await deviceScopeIdentitiesCache.GetServiceIdentity("d1");
             Option<ServiceIdentity> receivedServiceIdentity2 = await deviceScopeIdentitiesCache.GetServiceIdentity("d2/m1");
 
@@ -96,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var removedIdentities = new List<string>();
 
             // Act
-            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create("deviceId", serviceProxy.Object, store, TimeSpan.FromSeconds(8));
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("deviceId"), serviceProxy.Object, store, TimeSpan.FromSeconds(8));
             deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
 
@@ -213,7 +213,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var removedIdentities = new List<string>();
 
             // Act
-            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create("deviceId", serviceProxy.Object, store, TimeSpan.FromSeconds(7));
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("deviceId"), serviceProxy.Object, store, TimeSpan.FromSeconds(7));
             deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
 
@@ -311,7 +311,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var removedIdentities = new List<string>();
 
             // Act
-            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create("deviceId", serviceProxy.Object, store, TimeSpan.FromHours(1));
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("deviceId"), serviceProxy.Object, store, TimeSpan.FromHours(1));
             deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
 
@@ -375,7 +375,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var removedIdentities = new List<string>();
 
             // Act
-            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create("deviceId", serviceProxy.Object, store, TimeSpan.FromHours(1));
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("deviceId"), serviceProxy.Object, store, TimeSpan.FromHours(1));
             deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
 
@@ -441,7 +441,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var removedIdentities = new List<string>();
 
             // Act
-            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create("deviceId", serviceProxy.Object, store, TimeSpan.FromHours(1));
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("deviceId"), serviceProxy.Object, store, TimeSpan.FromHours(1));
             deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
 
@@ -506,7 +506,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var removedIdentities = new List<string>();
 
             // Act
-            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create("deviceId", serviceProxy.Object, store, TimeSpan.FromHours(1));
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("deviceId"), serviceProxy.Object, store, TimeSpan.FromHours(1));
             deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
 
@@ -559,7 +559,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var removedIdentities = new List<string>();
 
             // Act
-            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create("deviceId", serviceProxy.Object, store, TimeSpan.FromHours(1));
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("deviceId"), serviceProxy.Object, store, TimeSpan.FromHours(1));
             deviceScopeIdentitiesCache.ServiceIdentityUpdated += (sender, identity) => updatedIdentities.Add(identity);
             deviceScopeIdentitiesCache.ServiceIdentityRemoved += (sender, s) => removedIdentities.Add(s);
 
@@ -591,7 +591,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             serviceProxy.Setup(s => s.GetServiceIdentity("d2")).ReturnsAsync(Option.Some(si_device));
             serviceProxy.Setup(s => s.GetServiceIdentity("d1", "m1")).ReturnsAsync(Option.Some(si_module));
 
-            DeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create("deviceId", serviceProxy.Object, store, TimeSpan.FromHours(1));
+            DeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("deviceId"), serviceProxy.Object, store, TimeSpan.FromHours(1));
 
             // Act
             Option<ServiceIdentity> deviceServiceIdentity = await deviceScopeIdentitiesCache.GetServiceIdentityFromService("d2");
