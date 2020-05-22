@@ -1,14 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <Import Project="..\..\..\netcoreappVersion.props" />
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
     <RootNamespace>EdgeDownstreamDevice</RootNamespace>
+    <Configurations>Debug;Release;CheckInBuild</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.*" />
-    <PackageReference Include="Portable.BouncyCastle" Version="1.8.2" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.23.1" />
+    <PackageReference Include="Portable.BouncyCastle" Version="1.8.5" />
   </ItemGroup>
 
   <ItemGroup>
