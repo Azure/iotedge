@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use config::{Config, Environment};
@@ -197,7 +197,7 @@ fn agent_networking(settings: &mut Settings) -> Result<(), LoadSettingsError> {
     let mut endpoints_config = network_config
         .endpoints_config()
         .cloned()
-        .unwrap_or_else(HashMap::new);
+        .unwrap_or_else(BTreeMap::new);
 
     if !endpoints_config.contains_key(network_id.as_str()) {
         endpoints_config.insert(network_id, EndpointSettings::new());
