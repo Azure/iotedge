@@ -722,7 +722,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                                             .labels()
                                             .iter()
                                             .map(|(k, v)| (k.to_string(), v.to_string()))
-                                            .collect::<BTreeMap<_, _>>(),
+                                            .collect(),
                                     ),
                                     None,
                                 )
