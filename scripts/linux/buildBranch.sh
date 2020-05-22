@@ -16,17 +16,14 @@ BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..}
 BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH/target}
 PUBLISH_FOLDER=$BUILD_BINARIESDIRECTORY/publish
 ROOT_FOLDER=$BUILD_REPOSITORY_LOCALPATH
-SRC_DOCKER_DIR=$ROOT_FOLDER/docker
 SRC_SCRIPTS_DIR=$ROOT_FOLDER/scripts
-SRC_STRESS_DIR=$ROOT_FOLDER/stress
 SRC_E2E_TEMPLATES_DIR=$ROOT_FOLDER/e2e_deployment_files
 SRC_E2E_TEST_FILES_DIR=$ROOT_FOLDER/e2e_test_files
 SRC_CERT_TOOLS_DIR=$ROOT_FOLDER/tools/CACertificates
 FUNCTIONS_SAMPLE_DIR=$ROOT_FOLDER/edge-modules/functions/samples
 VERSIONINFO_FILE_PATH=$BUILD_REPOSITORY_LOCALPATH/versionInfo.json
 CONNECTIVITY_TEST_SCRIPT_DIR=$ROOT_FOLDER/test/connectivity/scripts
-DOTNETBUILD_OS=
-DOTNET_RUNTIME=netcoreapp2.1
+DOTNET_RUNTIME=netcoreapp3.1
 
 usage()
 {
@@ -35,8 +32,7 @@ usage()
     echo "options"
     echo " -c, --config         Product binary configuration: Debug [default] or Release"
     echo " --no-rocksdb-bin     Do not copy the RocksDB binaries into the project's output folders"
-    echo " --os                 Sets OS Variable for dotnet build command (Used to build for .NET Core 3.0 - Linux ARM64)"
-    echo " --dotnet_runtime     Set the dotnet_runtime version to build. (Default netcoreapp2.1)"
+    echo " --dotnet_runtime     Set the dotnet_runtime version to build. (Default netcoreapp3.1)"
     exit 1;
 }
 
@@ -55,9 +51,6 @@ process_args()
             CONFIGURATION="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 2 ]; then
-            DOTNETBUILD_OS="$arg"
-            save_next_arg=0
-        elif [ $save_next_arg -eq 3 ]; then
             DOTNET_RUNTIME="$arg"
             save_next_arg=0
         else
@@ -65,8 +58,7 @@ process_args()
                 "-h" | "--help" ) usage;;
                 "-c" | "--config" ) save_next_arg=1;;
                 "--no-rocksdb-bin" ) MSBUILD_OPTIONS="-p:RocksDbAsPackage=false";;
-                "--os" ) save_next_arg=2;;
-                "--dotnet_runtime" ) save_next_arg=3;;
+                "--dotnet_runtime" ) save_next_arg=2;;
                 * ) usage;;
             esac
         fi
@@ -211,10 +203,6 @@ build_solution()
     
     build_command="$DOTNET_ROOT_PATH/dotnet build -c $CONFIGURATION -o \"$BUILD_BINARIESDIRECTORY\""
     
-    if [ -n "$DOTNETBUILD_OS" ]; then
-        build_command="$build_command -p:OS=$DOTNETBUILD_OS"
-    fi
-    
     if [ -n "$DOTNET_RUNTIME" ]; then
         build_command="$build_command -p:DotNet_Runtime=$DOTNET_RUNTIME"
     fi
@@ -225,11 +213,6 @@ build_solution()
         RES=1
     fi
 
-    echo "Building IoT Edge Samples solution"
-    $DOTNET_ROOT_PATH/dotnet build \
-        -c $CONFIGURATION \
-        -o "$BUILD_BINARIESDIRECTORY" \
-        "$ROOT_FOLDER/samples/dotnet/Microsoft.Azure.Devices.Edge.Samples.sln"
     if [ $? -gt 0 ]; then
         RES=1
     fi
@@ -261,13 +244,11 @@ publish_app "DeploymentTester"
 publish_app "EdgeHubRestartTester"
 publish_app "MetricsValidator"
 publish_app "CloudToDeviceMessageTester"
+publish_app "EdgeHubTriggerCSharp"
 
 publish_lib "Microsoft.Azure.WebJobs.Extensions.EdgeHub"
-publish_lib "EdgeHubTriggerCSharp"
 
-publish_files $SRC_DOCKER_DIR $PUBLISH_FOLDER
 publish_files $SRC_SCRIPTS_DIR $PUBLISH_FOLDER
-publish_files $SRC_STRESS_DIR $PUBLISH_FOLDER
 publish_files $SRC_E2E_TEMPLATES_DIR $PUBLISH_FOLDER
 publish_files $SRC_E2E_TEST_FILES_DIR $PUBLISH_FOLDER
 publish_files $SRC_CERT_TOOLS_DIR $PUBLISH_FOLDER
