@@ -72,10 +72,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
             {
                 if (this.IsWorkloadSocketStale(ex))
                 {
+                    this.failedSocketCount++;
                     Events.ErrorExecutingOperation(ex, operation, this.WorkloadUri.ToString());
                     if (failedSocketCount >= MaxRetryCount)
                     {
-                        this.failedSocketCount++;
                         Environment.FailFast($"WorkloadClientVersioned failed to communicate to {this.WorkloadUri.ToString()} for {operation} after {MaxRetryCount} retries");
                     }
                 }
