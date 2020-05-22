@@ -24,17 +24,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
         const string LogsUrlTailParameter = "tail";
         const string LogsUrlSinceParameter = "since";
 
-        const int MaxRetryCount = 3;
-
         static readonly TimeSpan DefaultOperationTimeout = TimeSpan.FromMinutes(5);
 
         static readonly RetryStrategy TransientRetryStrategy =
-            new ExponentialBackoff(retryCount: MaxRetryCount, minBackoff: TimeSpan.FromSeconds(2), maxBackoff: TimeSpan.FromSeconds(30), deltaBackoff: TimeSpan.FromSeconds(3));
+            new ExponentialBackoff(retryCount: 3, minBackoff: TimeSpan.FromSeconds(2), maxBackoff: TimeSpan.FromSeconds(30), deltaBackoff: TimeSpan.FromSeconds(3));
 
         readonly ITransientErrorDetectionStrategy transientErrorDetectionStrategy;
         readonly TimeSpan operationTimeout;
-
-        int failedSocketCount = 0;
 
         protected ModuleManagementHttpClientVersioned(
             Uri managementUri,
@@ -108,12 +104,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
 
         protected abstract void HandleException(Exception ex, string operation);
 
-        bool IsModuleManagementSocketStale(Exception ex)
-        {
-            return (ex is SocketException)
-                && ex.Message.Contains("Connection refused");
-        }
-
         protected Task Execute(Func<Task> func, string operation) =>
             this.Execute(
                 async () =>
@@ -134,33 +124,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                     this.transientErrorDetectionStrategy)
                     .TimeoutAfter(this.operationTimeout);
                 Events.SuccessfullyExecutedOperation(operation, this.ManagementUri.ToString());
-                this.failedSocketCount = 0;
                 return result;
             }
-            catch (SocketException ex)
+            catch (SocketException ex) when (ex.Message.Contains("Connection refused"))
             {
-                Events.ErrorExecutingOperation(ex, operation, this.ManagementUri.ToString());
-                if (this.IsModuleManagementSocketStale(ex))
-                {
-                    this.failedSocketCount++;
-                    if (this.failedSocketCount >= MaxRetryCount)
-                    {
-                        Events.StaleSocketShutdown(ex, operation, this.ManagementUri.ToString());
-                        Environment.Exit(ex.ErrorCode);
-                    }
-                }
-                else
-                {
-                    this.failedSocketCount = 0;
-                }
-
+                Events.StaleSocketShutdown(ex, operation, this.ManagementUri.ToString());
+                Environment.Exit(ex.ErrorCode);
                 return default(T);
             }
             catch (Exception ex)
             {
                 Events.ErrorExecutingOperation(ex, operation, this.ManagementUri.ToString());
                 this.HandleException(ex, operation);
-                this.failedSocketCount = 0;
                 return default(T);
             }
         }

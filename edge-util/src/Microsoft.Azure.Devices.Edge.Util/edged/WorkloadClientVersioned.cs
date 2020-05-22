@@ -9,13 +9,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
     abstract class WorkloadClientVersioned
     {
-        const int MaxRetryCount = 3;
-        int failedSocketCount = 0;
-
         static readonly TimeSpan DefaultOperationTimeout = TimeSpan.FromMinutes(5);
 
         static readonly RetryStrategy TransientRetryStrategy =
-            new ExponentialBackoff(retryCount: MaxRetryCount, minBackoff: TimeSpan.FromSeconds(1), maxBackoff: TimeSpan.FromSeconds(3), deltaBackoff: TimeSpan.FromSeconds(2));
+            new ExponentialBackoff(retryCount: 3, minBackoff: TimeSpan.FromSeconds(1), maxBackoff: TimeSpan.FromSeconds(3), deltaBackoff: TimeSpan.FromSeconds(2));
 
         readonly ITransientErrorDetectionStrategy transientErrorDetectionStrategy;
         readonly TimeSpan operationTimeout;
@@ -65,44 +62,23 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
                     this.transientErrorDetectionStrategy)
                     .TimeoutAfter(this.operationTimeout);
                 Events.SuccessfullyExecutedOperation(operation, this.WorkloadUri.ToString());
-                this.failedSocketCount = 0;
                 return result;
             }
-            catch (SocketException ex)
+            catch (SocketException ex) when (ex.Message.Contains("Connection refused"))
             {
-                Events.ErrorExecutingOperation(ex, operation, this.WorkloadUri.ToString());
-                if (this.IsWorkloadSocketStale(ex))
-                {
-                    this.failedSocketCount++;
-                    if (this.failedSocketCount >= MaxRetryCount)
-                    {
-                        Events.StaleSocketShutdown(ex, operation, this.WorkloadUri.ToString());
-                        Environment.Exit(ex.ErrorCode);
-                    }
-                }
-                else
-                {
-                    this.failedSocketCount = 0;
-                }
-
+                Events.StaleSocketShutdown(ex, operation, this.WorkloadUri.ToString());
+                Environment.Exit(ex.ErrorCode);
                 return default(T);
             }
             catch (Exception ex)
             {
                 Events.ErrorExecutingOperation(ex, operation, this.WorkloadUri.ToString());
                 this.HandleException(ex, operation);
-                this.failedSocketCount = 0;
                 return default(T);
             }
         }
 
         protected abstract void HandleException(Exception ex, string operation);
-
-        bool IsWorkloadSocketStale(Exception ex)
-        {
-            return (ex is SocketException)
-                && ex.Message.ToString().Contains("Connection refused");
-        }
 
         static Task<T> ExecuteWithRetry<T>(Func<Task<T>> func, Action<RetryingEventArgs> onRetry, ITransientErrorDetectionStrategy transientErrorDetection)
         {
