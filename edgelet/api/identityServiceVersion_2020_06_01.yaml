@@ -1,0 +1,102 @@
+swagger: '2.0'
+schemes:
+  - http
+info:
+  title: Identity Service API
+  version: '2020-02-02'
+
+paths:
+  '/identities/identity':
+    get:
+      tags:
+        - Identity operations
+      summary: 'Get primary cloud identity for authenticated workload'
+      operationId: GetCurrentIdentity
+      parameters:
+        - $ref: '#/parameters/api-version'
+      responses:
+        '200':
+          description: Ok
+          schema:
+            $ref: '#/definitions/IdentityResult'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
+definitions:
+  IdentityResult:
+    type: object
+    properties:
+      type:
+        type: string
+        description: The identity type.
+        enum:
+        - aziot
+      managedBy:
+        type: string
+        description: The owner of the identity.
+        enum:
+        - identityservice
+      spec:
+        $ref: '#/definitions/IdentitySpec'
+    required:
+      - type
+  IdentitySpec:
+    type: object
+    description: The identity specification.
+    properties:
+      hubName:
+        type: string
+        description: The name of the IoT hub where the device is provisioned.
+        example: "myhub.net"
+      deviceId:
+        type: string
+        description: The identity name of the provisioned device in the assigned IoT Hub.
+        example: "device01"
+      moduleId:
+        type: string
+        description: The identity name of the device workload in the provisioned device in the assigned IoT Hub.
+        example: "module01"
+      genId:
+        type: string
+        description: The generation ID of the device workload assigned by IoT Hub.
+        example: "12345"
+      auth:
+        $ref: '#/definitions/Credentials'
+    required:
+      - hubName
+      - deviceId
+      - managedBy
+      - auth
+  Credentials:
+    type: object
+    properties:
+      authType:
+        type: string
+        description: Indicates the type of authentication credential used.
+        enum:
+          - sas
+      keyHandle:
+        type: string
+        format: byte
+        description: Key handle used for Key Service requests.
+    required:
+      - authType
+      - keyHandle
+  ErrorResponse:
+    type: object
+    properties:
+      message:
+        type: string
+    required:
+      - message
+
+parameters:
+  api-version:
+    name: api-version
+    in: query
+    description: The version of the API.
+    required: true
+    type: string
+    default: '2020-06-28'
