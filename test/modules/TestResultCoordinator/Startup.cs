@@ -70,7 +70,7 @@ namespace TestResultCoordinator
             Logger.LogInformation("Calling Startup.ConfigureServices Completed.");
         }
 
-        // TODO: Remove warning disable for Obsolete when project is moved to dotnetcore 3.0
+        // TODO: Figure out how to use developer exception page with IWebHostEnvironment
 #pragma warning disable 612, 618
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
