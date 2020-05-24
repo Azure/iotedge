@@ -9,9 +9,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         readonly string iotHubHostname;
         readonly string deviceId;
         readonly string edgeDeviceHostname;
-        readonly string parentEdgeHostname;
+        readonly Option<string> parentEdgeHostname;
 
-        public ModuleIdentityProviderServiceBuilder(string iotHubHostname, string deviceId, string edgeDeviceHostname, string parentEdgeHostname)
+        public ModuleIdentityProviderServiceBuilder(string iotHubHostname, string deviceId, string edgeDeviceHostname, Option<string> parentEdgeHostname)
         {
             this.iotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             Preconditions.CheckNonWhiteSpace(providerUri, nameof(providerUri));
 
             ICredentials credentials = new IdentityProviderServiceCredentials(providerUri, generationId);
-            return new ModuleIdentity(this.iotHubHostname, this.edgeDeviceHostname, this.GetGatewayHostname(moduleId), this.deviceId, moduleId, credentials);
+            return new ModuleIdentity(this.iotHubHostname, this.edgeDeviceHostname, this.parentEdgeHostname, this.deviceId, moduleId, credentials);
         }
 
         public IModuleIdentity Create(string moduleId, string generationId, string providerUri, string authScheme)
@@ -37,18 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             Preconditions.CheckNonWhiteSpace(authScheme, nameof(authScheme));
 
             ICredentials credentials = new IdentityProviderServiceCredentials(providerUri, generationId, authScheme);
-            return new ModuleIdentity(this.iotHubHostname, this.edgeDeviceHostname, this.GetGatewayHostname(moduleId), this.deviceId, moduleId, credentials);
-        }
-
-        string GetGatewayHostname(string moduleId)
-        {
-            if (moduleId.Equals(Constants.EdgeAgentModuleIdentityName, StringComparison.OrdinalIgnoreCase) ||
-                moduleId.Equals(Constants.EdgeHubModuleIdentityName, StringComparison.OrdinalIgnoreCase))
-            {
-                return this.parentEdgeHostname;
-            }
-
-            return this.edgeDeviceHostname;
+            return new ModuleIdentity(this.iotHubHostname, this.edgeDeviceHostname, this.parentEdgeHostname, this.deviceId, moduleId, credentials);
         }
     }
 }

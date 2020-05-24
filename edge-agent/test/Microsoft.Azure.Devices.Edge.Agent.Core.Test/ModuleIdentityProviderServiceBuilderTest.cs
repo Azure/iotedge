@@ -19,20 +19,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         {
             // Arrange
             string defaultAuthScheme = "sasToken";
-            var builder = new ModuleIdentityProviderServiceBuilder(iotHubHostName, deviceId, edgeDeviceHostname, parentEdgeHostname);
+            var builder = new ModuleIdentityProviderServiceBuilder(iotHubHostName, deviceId, edgeDeviceHostname, Option.Maybe(parentEdgeHostname));
 
             // Act
             IModuleIdentity identity = builder.Create(moduleId, generationId, edgeletUri);
 
             // Assert
             Assert.Equal(iotHubHostName, identity.IotHubHostname);
-            if (moduleId.Equals(Constants.EdgeAgentModuleIdentityName, StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrEmpty(parentEdgeHostname))
             {
-                Assert.Equal(parentEdgeHostname, identity.GatewayHostname);
+                Assert.False(identity.ParentEdgeHostname.HasValue);
             }
             else
             {
-                Assert.Equal(edgeDeviceHostname, identity.GatewayHostname);
+                Assert.True(identity.ParentEdgeHostname.HasValue);
+                Assert.Equal(parentEdgeHostname, identity.ParentEdgeHostname.OrDefault());
             }
 
             Assert.Equal(deviceId, identity.DeviceId);
@@ -63,20 +64,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             string parentEdgeHostname = null)
         {
             // Arrange
-            var builder = new ModuleIdentityProviderServiceBuilder(iotHubHostName, deviceId, edgeDeviceHostname, parentEdgeHostname);
+            var builder = new ModuleIdentityProviderServiceBuilder(iotHubHostName, deviceId, edgeDeviceHostname, Option.Maybe(parentEdgeHostname));
 
             // Act
             IModuleIdentity identity = builder.Create(moduleId, generationId, edgeletUri, authScheme);
 
             // Assert
             Assert.Equal(iotHubHostName, identity.IotHubHostname);
-            if (moduleId.Equals(Constants.EdgeAgentModuleIdentityName, StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrEmpty(parentEdgeHostname))
             {
-                Assert.Equal(parentEdgeHostname, identity.GatewayHostname);
+                Assert.False(identity.ParentEdgeHostname.HasValue);
             }
             else
             {
-                Assert.Equal(edgeDeviceHostname, identity.GatewayHostname);
+                Assert.True(identity.ParentEdgeHostname.HasValue);
+                Assert.Equal(parentEdgeHostname, identity.ParentEdgeHostname.OrDefault());
             }
 
             Assert.Equal(deviceId, identity.DeviceId);
@@ -92,14 +94,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Fact]
         public void InvalidInputsTest()
         {
-            Assert.Throws<ArgumentException>(() => new ModuleIdentityProviderServiceBuilder(null, "1", "edgedevicehostname", "parentedgehostname"));
-            Assert.Throws<ArgumentException>(() => new ModuleIdentityProviderServiceBuilder(string.Empty, "1", "edgedevicehostname", "parentedgehostname"));
-            Assert.Throws<ArgumentException>(() => new ModuleIdentityProviderServiceBuilder("iothub", null, "edgedevicehostname", "parentedgehostname"));
-            Assert.Throws<ArgumentException>(() => new ModuleIdentityProviderServiceBuilder("iothub", string.Empty, "edgedevicehostname", "parentedgehostname"));
-            Assert.Throws<ArgumentException>(() => new ModuleIdentityProviderServiceBuilder("iothub", "1", null, "parentedgehostname"));
-            Assert.Throws<ArgumentException>(() => new ModuleIdentityProviderServiceBuilder("iothub", "1", string.Empty, "parentedgehostname"));
+            Assert.Throws<ArgumentException>(() => new ModuleIdentityProviderServiceBuilder(null, "1", "edgedevicehostname", Option.Some("parentedgehostname")));
+            Assert.Throws<ArgumentException>(() => new ModuleIdentityProviderServiceBuilder(string.Empty, "1", "edgedevicehostname", Option.Some("parentedgehostname")));
+            Assert.Throws<ArgumentException>(() => new ModuleIdentityProviderServiceBuilder("iothub", null, "edgedevicehostname", Option.Some("parentedgehostname")));
+            Assert.Throws<ArgumentException>(() => new ModuleIdentityProviderServiceBuilder("iothub", string.Empty, "edgedevicehostname", Option.Some("parentedgehostname")));
+            Assert.Throws<ArgumentException>(() => new ModuleIdentityProviderServiceBuilder("iothub", "1", null, Option.Some("parentedgehostname")));
+            Assert.Throws<ArgumentException>(() => new ModuleIdentityProviderServiceBuilder("iothub", "1", string.Empty, Option.Some("parentedgehostname")));
 
-            var builder = new ModuleIdentityProviderServiceBuilder("foo.azure.com", "device1", "edgedevicehostname", "parentedgehostname");
+            var builder = new ModuleIdentityProviderServiceBuilder("foo.azure.com", "device1", "edgedevicehostname", Option.Some("parentedgehostname"));
 
             Assert.Throws<ArgumentException>(() => builder.Create(null, "1", "xyz"));
             Assert.Throws<ArgumentException>(() => builder.Create("localhost", null, "xyz"));

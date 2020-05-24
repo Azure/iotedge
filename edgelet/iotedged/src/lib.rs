@@ -2004,10 +2004,10 @@ where
         settings.hostname().to_string().to_lowercase(),
     );
 
-    if let Some(gateway_hostname) = settings.provisioning().gateway_hostname() {
+    if let Some(parent_hostname) = settings.parent_hostname() {
         env.insert(
             GATEWAY_HOSTNAME_KEY.to_string(),
-            gateway_hostname.to_string().to_lowercase(),
+            parent_hostname.to_string().to_lowercase(),
         );
     }
 
@@ -3049,7 +3049,7 @@ mod tests {
 
         let settings = Settings::new(Path::new(GOOD_SETTINGS_NESTED_EDGE)).unwrap();
         assert_eq!(
-            settings.provisioning().gateway_hostname().unwrap(),
+            settings.parent_hostname().unwrap(),
             "parent_iotedge_device"
         );
     }

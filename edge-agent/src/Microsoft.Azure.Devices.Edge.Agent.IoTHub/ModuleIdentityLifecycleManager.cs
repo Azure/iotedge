@@ -114,24 +114,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     return new ModuleIdentity(
                         this.iothubHostName,
                         this.edgeDeviceHostname,
-                        this.GetGatewayHostname(p.Id),
+                        Option.None<string>(),
                         this.deviceId,
                         p.Id,
                         new ConnectionStringCredentials(connectionString));
                 });
 
             return moduleIdentities.ToImmutableDictionary(m => ModuleIdentityHelper.GetModuleName(m.ModuleId));
-        }
-
-        string GetGatewayHostname(string moduleId)
-        {
-            if (moduleId.Equals(Constants.EdgeAgentModuleIdentityName, StringComparison.OrdinalIgnoreCase) ||
-                moduleId.Equals(Constants.EdgeHubModuleIdentityName, StringComparison.OrdinalIgnoreCase))
-            {
-                return string.Empty;
-            }
-
-            return this.edgeDeviceHostname;
         }
 
         string GetModuleConnectionString(Module module)

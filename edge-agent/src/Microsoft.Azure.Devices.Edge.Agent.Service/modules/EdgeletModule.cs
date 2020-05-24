@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string deviceId;
         readonly string iotHubHostName;
         readonly string edgeDeviceHostname;
-        readonly string parentEdgeHostname;
+        readonly Option<string> parentEdgeHostname;
         readonly Uri managementUri;
         readonly Uri workloadUri;
         readonly string apiVersion;
@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         public EdgeletModule(
             string iotHubHostname,
             string edgeDeviceHostname,
-            string parentEdgeHostname,
+            Option<string> parentEdgeHostname,
             string deviceId,
             Uri managementUri,
             Uri workloadUri,

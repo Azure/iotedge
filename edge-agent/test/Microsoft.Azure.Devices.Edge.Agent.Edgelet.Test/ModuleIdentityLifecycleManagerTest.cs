@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         const string IothubHostName = "test.azure-devices.net";
         const string DeviceId = "edgeDevice1";
         const string EdgeDeviceHostname = "edgedevicehostname";
-        const string ParentEdgeHostname = "parentedgehostname";
+        static readonly Option<string> ParentEdgeHostname = Option.Some("parentedgehostname");
         static readonly Uri EdgeletUri = new Uri("http://localhost");
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
         static readonly ModuleIdentityProviderServiceBuilder ModuleIdentityProviderServiceBuilder = new ModuleIdentityProviderServiceBuilder(IothubHostName, DeviceId, EdgeDeviceHostname, ParentEdgeHostname);

@@ -80,14 +80,6 @@
 #                              For the external provisioning mode specifically, the daemon 
 #                              will notify the external provisioning endpoint about the
 #                              re-provisioning event before shutting down.
-#
-# Nesed Edge Settings
-#     gateway_hostname       - Optional. This entry should only be specified for the 
-#                              host name of the parent edge device for nested edge sceanrio.
-#                              This value is injected into Edge Agent and Edge Hub modules as
-#                              environment value 'IOTEDGE_GATEWAYHOSTNAME'. Regardless of case
-#                              the hostname is specified below, a lower case value is used to
-#                              configure the Edge Hub server hostname.
 ###############################################################################
 
 # Manual provisioning configuration using a connection string
@@ -235,6 +227,20 @@ agent:
 ###############################################################################
 
 hostname: "<ADD HOSTNAME HERE>"
+
+###############################################################################
+# Edge device hostname
+###############################################################################
+#
+# Optional. This entry should only be specified for the host name of the 
+# parent edge device for nested edge sceanrio. This value is injected into 
+# Edge Agent and Edge Hub modules as environment value 'IOTEDGE_GATEWAYHOSTNAME',
+# and injected into custom module as environment value 'IOTEDGE_PARENTHOSTNAME'.
+# Regardless of case the parent_hostname is specified below, a lower case value
+# is used.
+###############################################################################
+
+#parent_hostname: "<ADD PARENT HOSTNAME HERE>"
 
 ###############################################################################
 # Watchdog settings

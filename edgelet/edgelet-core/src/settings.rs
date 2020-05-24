@@ -404,8 +404,6 @@ pub struct Provisioning {
 
     #[serde(default)]
     dynamic_reprovisioning: bool,
-
-    gateway_hostname: Option<String>,
 }
 
 impl Provisioning {
@@ -415,10 +413,6 @@ impl Provisioning {
 
     pub fn dynamic_reprovisioning(&self) -> bool {
         self.dynamic_reprovisioning
-    }
-
-    pub fn gateway_hostname(&self) -> Option<&str> {
-        self.gateway_hostname.as_ref().map(AsRef::as_ref)
     }
 }
 
@@ -691,6 +685,7 @@ pub trait RuntimeSettings {
     fn agent(&self) -> &ModuleSpec<Self::Config>;
     fn agent_mut(&mut self) -> &mut ModuleSpec<Self::Config>;
     fn hostname(&self) -> &str;
+    fn parent_hostname(&self) -> Option<&str>;
     fn connect(&self) -> &Connect;
     fn listen(&self) -> &Listen;
     fn homedir(&self) -> &Path;
@@ -703,6 +698,7 @@ pub struct Settings<T> {
     provisioning: Provisioning,
     agent: ModuleSpec<T>,
     hostname: String,
+    parent_hostname: Option<String>,
     connect: Connect,
     listen: Listen,
     homedir: PathBuf,
@@ -731,6 +727,10 @@ where
 
     fn hostname(&self) -> &str {
         &self.hostname
+    }
+
+    fn parent_hostname(&self) -> Option<&str> {
+        self.parent_hostname.as_ref().map(AsRef::as_ref)
     }
 
     fn connect(&self) -> &Connect {

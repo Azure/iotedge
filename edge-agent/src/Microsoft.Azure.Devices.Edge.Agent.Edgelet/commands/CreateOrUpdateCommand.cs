@@ -123,11 +123,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
             if (identity.ModuleId.Equals(Constants.EdgeAgentModuleIdentityName) || identity.ModuleId.Equals(Constants.EdgeHubModuleIdentityName))
             {
                 envVars.Add(new EnvVar(Constants.EdgeDeviceHostNameKey, identity.EdgeDeviceHostname));
+                identity.ParentEdgeHostname.ForEach(value => envVars.Add(new EnvVar(Constants.GatewayHostnameVariableName, value)));
             }
-
-            if (!string.IsNullOrWhiteSpace(identity.GatewayHostname))
+            else
             {
-                envVars.Add(new EnvVar(Constants.GatewayHostnameVariableName, identity.GatewayHostname));
+                envVars.Add(new EnvVar(Constants.GatewayHostnameVariableName, identity.EdgeDeviceHostname));
+                identity.ParentEdgeHostname.ForEach(value => envVars.Add(new EnvVar(Constants.ParentEdgeHostnameVariableName, value)));
             }
 
             if (!string.IsNullOrWhiteSpace(identity.DeviceId))

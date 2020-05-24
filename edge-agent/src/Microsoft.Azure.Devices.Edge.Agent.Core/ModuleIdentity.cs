@@ -8,13 +8,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public ModuleIdentity(
             string iotHubHostname,
             string edgeDeviceHostname,
-            string gatewayHostname,
+            Option<string> parentEdgeHostname,
             string deviceId,
             string moduleId,
             ICredentials credentials)
         {
             this.IotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
-            this.GatewayHostname = gatewayHostname;
+            this.ParentEdgeHostname = parentEdgeHostname;
             this.EdgeDeviceHostname = Preconditions.CheckNonWhiteSpace(edgeDeviceHostname, nameof(edgeDeviceHostname));
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public string EdgeDeviceHostname { get; }
 
-        public string GatewayHostname { get; }
+        public Option<string> ParentEdgeHostname { get; }
 
         public string DeviceId { get; }
 

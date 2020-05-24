@@ -3,7 +3,6 @@
 provisioning:
   source: "manual"
   device_connection_string: "HostName=something.something.com;DeviceId=something;SharedAccessKey=QXp1cmUgSW9UIEVkZ2U="
-  gateway_hostname: "parent_iotedge_device"
 agent:
   name: "edgeAgent"
   type: "docker"
@@ -14,6 +13,7 @@ agent:
     image: "microsoft/azureiotedge-agent:1.0"
     auth: {}
 hostname: "localhost"
+parent_hostname: "parent_iotedge_device"
 
 watchdog:
   max_retries: 3
