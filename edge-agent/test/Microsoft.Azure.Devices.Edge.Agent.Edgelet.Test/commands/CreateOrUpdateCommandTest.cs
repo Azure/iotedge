@@ -196,7 +196,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
             {
                 Assert.Equal(testData.EnvironmentVariables[key].Value, environmentVariables.Where(v => v.Key.Equals(key)).First().Value);
             }
-            
+
             Assert.Equal(testData.EdgeletWorkloadUri, environmentVariables.Where(v => v.Key.Equals(Constants.EdgeletWorkloadUriVariableName)).First().Value);
             Assert.Equal(testData.EdgeletAuthScheme, environmentVariables.Where(v => v.Key.Equals(Constants.EdgeletAuthSchemeVariableName)).First().Value);
             Assert.Equal(testData.ModuleGenerationId, environmentVariables.Where(v => v.Key.Equals(Constants.EdgeletModuleGenerationIdVariableName)).First().Value);
