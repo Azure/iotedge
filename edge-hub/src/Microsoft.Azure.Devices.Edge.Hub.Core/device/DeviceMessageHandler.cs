@@ -17,7 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     class DeviceMessageHandler : IDeviceListener, IDeviceProxy
     {
         const int GenericBadRequest = 400000;
-        static readonly TimeSpan MessageResponseTimeout = TimeSpan.FromSeconds(30);
 
         readonly ConcurrentDictionary<string, TaskCompletionSource<DirectMethodResponse>> methodCallTaskCompletionSources = new ConcurrentDictionary<string, TaskCompletionSource<DirectMethodResponse>>();
         readonly ConcurrentDictionary<string, TaskCompletionSource<bool>> messageTaskCompletionSources = new ConcurrentDictionary<string, TaskCompletionSource<bool>>();
@@ -25,14 +24,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         readonly IEdgeHub edgeHub;
         readonly IConnectionManager connectionManager;
+        readonly TimeSpan messageAckTimeout;
         readonly AsyncLock serializeMessagesLock = new AsyncLock();
         IDeviceProxy underlyingProxy;
 
-        public DeviceMessageHandler(IIdentity identity, IEdgeHub edgeHub, IConnectionManager connectionManager)
+        public DeviceMessageHandler(IIdentity identity, IEdgeHub edgeHub, IConnectionManager connectionManager, TimeSpan messageAckTimeout)
         {
             this.Identity = Preconditions.CheckNotNull(identity, nameof(identity));
             this.edgeHub = Preconditions.CheckNotNull(edgeHub, nameof(edgeHub));
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
+            this.messageAckTimeout = messageAckTimeout;
         }
 
         public IIdentity Identity { get; }
@@ -416,7 +417,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                     Metrics.MessageProcessingLatency(this.Identity, message);
                     await this.underlyingProxy.SendMessageAsync(message, input);
 
-                    Task completedTask = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(MessageResponseTimeout));
+                    Task completedTask = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(this.messageAckTimeout));
                     if (completedTask != taskCompletionSource.Task)
                     {
                         Events.MessageFeedbackTimedout(this.Identity, lockToken);
