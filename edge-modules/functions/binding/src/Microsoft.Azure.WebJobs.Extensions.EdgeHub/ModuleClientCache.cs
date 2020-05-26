@@ -53,7 +53,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
 
         async Task<ModuleClient> CreateModuleClient()
         {
-            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(TransportType.Mqtt_Tcp_Only);
+            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(TransportType.Amqp_Tcp_Only);
 
             moduleClient.ProductInfo = "Microsoft.Azure.WebJobs.Extensions.EdgeHub";
             return moduleClient;
