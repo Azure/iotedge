@@ -4,7 +4,7 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(clippy::too_many_lines)]
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::str;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
@@ -776,7 +776,7 @@ fn container_create_handler(req: Request<Body>) -> ResponseFuture {
                 );
 
                 let volumes = create_options.volumes().unwrap();
-                let mut expected = ::std::collections::HashMap::new();
+                let mut expected = ::std::collections::BTreeMap::new();
                 expected.insert("test1".to_string(), json!({}));
                 assert_eq!(*volumes, expected);
 
@@ -817,13 +817,13 @@ fn container_create_succeeds() {
 
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
         .and_then(|runtime| {
-            let mut env = HashMap::new();
+            let mut env = BTreeMap::new();
             env.insert("k1".to_string(), "v1".to_string());
             env.insert("k2".to_string(), "v2".to_string());
             env.insert("k3".to_string(), "v3".to_string());
 
             // add some create options
-            let mut port_bindings = HashMap::new();
+            let mut port_bindings = BTreeMap::new();
             port_bindings.insert(
                 "22/tcp".to_string(),
                 vec![HostConfigPortBindings::new().with_host_port("11022".to_string())],
@@ -833,7 +833,7 @@ fn container_create_succeeds() {
                 vec![HostConfigPortBindings::new().with_host_port("8080".to_string())],
             );
             let memory: i64 = 3_221_225_472;
-            let mut volumes = ::std::collections::HashMap::new();
+            let mut volumes = ::std::collections::BTreeMap::new();
             volumes.insert("test1".to_string(), json!({}));
             let create_options = ContainerCreateBody::new()
                 .with_host_config(
@@ -1286,7 +1286,7 @@ fn create_fails_for_non_docker_type() {
                 name.to_string(),
                 DockerConfig::new("nginx:latest".to_string(), ContainerCreateBody::new(), None)
                     .unwrap(),
-                HashMap::new(),
+                BTreeMap::new(),
                 ImagePullPolicy::default(),
             )
             .unwrap();

@@ -30,5 +30,9 @@
     <Rule Id="SA1602" Action="None" />
     <Rule Id="SA1649" Action="None" />
     <Rule Id="SA1652" Action="None" />
+    <Rule Id="SA1414" Action="None" />
+    <Rule Id="SA1316" Action="None" />
+    <Rule Id="SA1142" Action="None" />
+    <Rule Id="SA1135" Action="None" />
   </Rules>
 </RuleSet>

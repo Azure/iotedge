@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::default::Default;
 use std::fmt;
 use std::result::Result as StdResult;
@@ -12,7 +12,7 @@ use chrono::prelude::*;
 use failure::{Fail, ResultExt};
 use futures::{Future, Stream};
 
-use edgelet_utils::{ensure_not_empty_with_context, serialize_ordered};
+use edgelet_utils::ensure_not_empty_with_context;
 
 use crate::error::{Error, ErrorKind, Result};
 use crate::settings::RuntimeSettings;
@@ -143,9 +143,8 @@ pub struct ModuleSpec<T> {
     #[serde(rename = "type")]
     type_: String,
     config: T,
-    #[serde(default = "HashMap::new")]
-    #[serde(serialize_with = "serialize_ordered")]
-    env: HashMap<String, String>,
+    #[serde(default = "BTreeMap::new")]
+    env: BTreeMap<String, String>,
     #[serde(default)]
     #[serde(rename = "imagePullPolicy")]
     image_pull_policy: ImagePullPolicy,
@@ -171,7 +170,7 @@ impl<T> ModuleSpec<T> {
         name: String,
         type_: String,
         config: T,
-        env: HashMap<String, String>,
+        env: BTreeMap<String, String>,
         image_pull_policy: ImagePullPolicy,
     ) -> Result<Self> {
         ensure_not_empty_with_context(&name, || ErrorKind::InvalidModuleName(name.clone()))?;
@@ -221,15 +220,15 @@ impl<T> ModuleSpec<T> {
         self.config = config;
     }
 
-    pub fn env(&self) -> &HashMap<String, String> {
+    pub fn env(&self) -> &BTreeMap<String, String> {
         &self.env
     }
 
-    pub fn env_mut(&mut self) -> &mut HashMap<String, String> {
+    pub fn env_mut(&mut self) -> &mut BTreeMap<String, String> {
         &mut self.env
     }
 
-    pub fn with_env(mut self, env: HashMap<String, String>) -> Self {
+    pub fn with_env(mut self, env: BTreeMap<String, String>) -> Self {
         self.env = env;
         self
     }
@@ -622,7 +621,7 @@ impl FromStr for ImagePullPolicy {
 
 #[cfg(test)]
 mod tests {
-    use super::{Default, HashMap, ImagePullPolicy, ModuleSpec, SystemInfo};
+    use super::{BTreeMap, Default, ImagePullPolicy, ModuleSpec, SystemInfo};
 
     use std::str::FromStr;
     use std::string::ToString;
@@ -662,7 +661,7 @@ mod tests {
             name.clone(),
             "docker".to_string(),
             10_i32,
-            HashMap::new(),
+            BTreeMap::new(),
             ImagePullPolicy::default(),
         ) {
             Ok(_) => panic!("Expected error"),
@@ -683,7 +682,7 @@ mod tests {
             name.clone(),
             "docker".to_string(),
             10_i32,
-            HashMap::new(),
+            BTreeMap::new(),
             ImagePullPolicy::default(),
         ) {
             Ok(_) => panic!("Expected error"),
@@ -704,7 +703,7 @@ mod tests {
             "m1".to_string(),
             type_.clone(),
             10_i32,
-            HashMap::new(),
+            BTreeMap::new(),
             ImagePullPolicy::default(),
         ) {
             Ok(_) => panic!("Expected error"),
@@ -725,7 +724,7 @@ mod tests {
             "m1".to_string(),
             type_.clone(),
             10_i32,
-            HashMap::new(),
+            BTreeMap::new(),
             ImagePullPolicy::default(),
         ) {
             Ok(_) => panic!("Expected error"),

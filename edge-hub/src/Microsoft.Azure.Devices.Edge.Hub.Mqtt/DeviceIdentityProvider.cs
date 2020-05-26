@@ -211,9 +211,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 .Select(s => s.Split(kvsep, 2)) // split each param into a key/value pair
                 .GroupBy(s => s[0]) // group duplicates (by key) together...
                 .Select(s => s.First()) // ...and keep only the first one
-                .ToDictionary( // convert to Dictionary<string, string>
+                .ToDictionary(
                     s => s[0],
-                    s => Uri.UnescapeDataString(s.ElementAtOrEmpty(1)));
+                    s => Uri.UnescapeDataString(s.ElementAtOrEmpty(1))); // convert to Dictionary<string, string>
             return queryParameters;
         }
 

@@ -205,9 +205,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 IList<X509Certificate2> certChain = chain?.ChainElements?
                         .Cast<X509ChainElement>()
-                        .Select(element => element.Certificate)
+                        .Select(element => new X509Certificate2(element.Certificate))
                         .ToList()
                     ?? new List<X509Certificate2>();
+
                 identityProvider.RegisterConnectionCertificate(new X509Certificate2(certificate), certChain);
             }
 
