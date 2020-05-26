@@ -30,14 +30,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
         public static IEnumerable<object[]> GetNeedToProcessStreamTestData()
         {
             yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), false };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), false };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<int>(), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), false };
             yield return new object[] { new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, ModuleLogFilter.Empty, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.Some(3), Option.Some("foo")), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.Some(3), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.Some("foo")), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Json, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.None<string>()), LogOutputFraming.SimpleLength, Option.None<LogsOutputGroupingConfig>(), false), true };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some(100), Option.None<int>(), Option.None<string>()), LogOutputFraming.None, Option.Some(new LogsOutputGroupingConfig(100, TimeSpan.FromMilliseconds(1000))), false), false };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.Some(3), Option.Some("foo")), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.Some(3), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<int>(), Option.Some("foo")), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Json, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<int>(), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<int>(), Option.None<string>()), LogOutputFraming.SimpleLength, Option.None<LogsOutputGroupingConfig>(), false), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<int>(), Option.None<string>()), LogOutputFraming.None, Option.Some(new LogsOutputGroupingConfig(100, TimeSpan.FromMilliseconds(1000))), false), false };
         }
 
         [Fact]
@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             string deviceId = "dev1";
             string moduleId = "mod1";
             Option<int> tail = Option.None<int>();
-            Option<int> since = Option.None<int>();
+            Option<string> since = Option.None<string>();
             CancellationToken cancellationToken = CancellationToken.None;
             string expectedLogText = TestLogTexts.Join(string.Empty);
 
@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             string deviceId = "dev1";
             string moduleId = "mod1";
             Option<int> tail = Option.None<int>();
-            Option<int> since = Option.None<int>();
+            Option<string> since = Option.None<string>();
             CancellationToken cancellationToken = CancellationToken.None;
             string expectedLogText = TestLogTexts.Join(string.Empty);
 
@@ -107,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             string deviceId = "dev1";
             string moduleId = "mod1";
             Option<int> tail = Option.None<int>();
-            Option<int> since = Option.None<int>();
+            Option<string> since = Option.None<string>();
             CancellationToken cancellationToken = CancellationToken.None;
 
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
@@ -148,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             string deviceId = "dev1";
             string moduleId = "mod1";
             Option<int> tail = Option.None<int>();
-            Option<int> since = Option.None<int>();
+            Option<string> since = Option.None<string>();
             CancellationToken cancellationToken = CancellationToken.None;
 
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
@@ -190,7 +190,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             string deviceId = "dev1";
             string moduleId = "mod1";
             Option<int> tail = Option.None<int>();
-            Option<int> since = Option.None<int>();
+            Option<string> since = Option.None<string>();
             CancellationToken cancellationToken = CancellationToken.None;
 
             byte[] dockerLogsStreamBytes = DockerFraming.Frame(TestLogTexts);
@@ -229,7 +229,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             string deviceId = "dev1";
             string moduleId = "mod1";
             Option<int> tail = Option.Some(10);
-            Option<int> since = Option.Some(1552887267);
+            Option<string> since = Option.Some("1552887267");
             CancellationToken cancellationToken = CancellationToken.None;
 
             byte[] dockerLogsStreamBytes = DockerFraming.Frame(TestLogTexts);
@@ -272,14 +272,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             string iotHub = "foo.azure-devices.net";
             string deviceId = "dev1";
             Option<int> tail = Option.Some(10);
-            Option<int> since = Option.Some(1552887267);
+            Option<string> since = Option.Some("1552887267");
             CancellationToken cancellationToken = CancellationToken.None;
 
             string moduleId1 = "mod1";
             string moduleId2 = "mod2";
 
             var filter1 = new ModuleLogFilter(tail, since, Option.Some(6), Option.Some("Starting"));
-            var filter2 = new ModuleLogFilter(Option.None<int>(), Option.None<int>(), Option.None<int>(), Option.Some("bad"));
+            var filter2 = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<int>(), Option.Some("bad"));
 
             byte[] dockerLogsStreamBytes1 = DockerFraming.Frame(TestLogTexts);
             byte[] dockerLogsStreamBytes2 = DockerFraming.Frame(TestLogTexts);
@@ -293,7 +293,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
             runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId1, true, tail, since, cancellationToken))
                 .ReturnsAsync(new MemoryStream(dockerLogsStreamBytes1));
-            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId2, true, Option.None<int>(), Option.None<int>(), cancellationToken))
+            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId2, true, Option.None<int>(), Option.None<string>(), cancellationToken))
                 .ReturnsAsync(new MemoryStream(dockerLogsStreamBytes2));
             runtimeInfoProvider.Setup(r => r.GetModules(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(modulesList);
@@ -345,7 +345,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             string iotHub = "foo.azure-devices.net";
             string deviceId = "dev1";
             Option<int> tail = Option.None<int>();
-            Option<int> since = Option.None<int>();
+            Option<string> since = Option.None<string>();
             CancellationToken cancellationToken = CancellationToken.None;
 
             string moduleId1 = "mod1";

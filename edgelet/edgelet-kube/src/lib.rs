@@ -3,6 +3,7 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
+    clippy::missing_errors_doc,
     clippy::module_name_repetitions,
     clippy::must_use_candidate,
     clippy::too_many_arguments,
@@ -81,8 +82,8 @@ impl TryFrom<Deployment> for KubeModuleOwner {
                 .as_ref()
                 .map(String::to_string)
                 .ok_or(ErrorKind::MissingMetadata(MissingMetadataReason::Name))?,
-            api_version: Deployment::api_version().to_string(),
-            kind: Deployment::kind().to_string(),
+            api_version: Deployment::API_VERSION.to_string(),
+            kind: Deployment::KIND.to_string(),
             uid: metadata
                 .uid
                 .as_ref()

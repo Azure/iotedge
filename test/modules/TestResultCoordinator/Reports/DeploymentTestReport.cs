@@ -11,6 +11,7 @@ namespace TestResultCoordinator.Reports
     class DeploymentTestReport : TestResultReportBase
     {
         public DeploymentTestReport(
+            string testDescription,
             string trackingId,
             string expectedSource,
             string actualSource,
@@ -20,7 +21,7 @@ namespace TestResultCoordinator.Reports
             ulong totalMatchedDeployments,
             Option<TestOperationResult> lastActualDeploymentTestResult,
             IReadOnlyList<TestOperationResult> unmatchedResults)
-            : base(trackingId, resultType)
+            : base(testDescription, trackingId, resultType)
         {
             this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
             this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
@@ -45,7 +46,7 @@ namespace TestResultCoordinator.Reports
 
         public IReadOnlyList<TestOperationResult> UnmatchedResults { get; }
 
-        public override bool IsPassed => this.TotalExpectedDeployments == this.TotalMatchedDeployments;
+        public override bool IsPassed => this.TotalExpectedDeployments == this.TotalMatchedDeployments && this.TotalExpectedDeployments > 0;
 
         public override string Title => $"Deployment Test Report between [{this.ExpectedSource}] and [{this.ActualSource}] ({this.ResultType})";
     }

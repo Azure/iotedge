@@ -3,6 +3,7 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
+    clippy::missing_errors_doc,
     clippy::module_name_repetitions,
     clippy::must_use_candidate,
     clippy::too_many_lines,
@@ -24,6 +25,7 @@ mod identity;
 mod logs;
 mod module;
 mod network;
+mod parse_since;
 mod settings;
 pub mod watchdog;
 pub mod workload;
@@ -46,6 +48,7 @@ pub use module::{
     SystemResources,
 };
 pub use network::{Ipam, IpamConfig, MobyNetwork, Network};
+pub use parse_since::parse_since;
 pub use settings::{
     AttestationMethod, Certificates, Connect, Dps, External, Listen, Manual, ManualAuthMethod,
     ManualDeviceConnectionString, ManualX509Auth, Protocol, Provisioning, ProvisioningType,

@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Routing.Core
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
 
@@ -11,9 +12,9 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         EndpointExecutorStatus Status { get; }
 
-        Task Invoke(IMessage message);
+        Task Invoke(IMessage message, uint priority, uint timeToLiveSecs);
 
-        Task SetEndpoint(Endpoint endpoint);
+        Task SetEndpoint(Endpoint endpoint, IList<uint> priorities);
 
         Task CloseAsync();
     }

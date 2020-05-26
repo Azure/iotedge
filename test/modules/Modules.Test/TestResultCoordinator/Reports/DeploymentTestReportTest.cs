@@ -7,16 +7,21 @@ namespace Modules.Test.TestResultCoordinator.Reports
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
+    [Unit]
     public class DeploymentTestReportTest
     {
+        static readonly string TestDescription = "dummy description";
+
         [Fact]
         public void TestConstructorSuccess()
         {
             DeploymentTestResult testResult = GetDeploymentTestResult();
 
             var report = new DeploymentTestReport(
+                TestDescription,
                 "trackingId123",
                 "expectedSource",
                 "actualSource",
@@ -31,6 +36,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     new TestOperationResult("expectedSource", "resultType1", "FakeValue2", new DateTime(2019, 12, 4, 10, 15, 18)),
                 });
 
+            Assert.Equal(TestDescription, report.TestDescription);
             Assert.Equal("trackingId123", report.TrackingId);
             Assert.Equal("actualSource", report.ActualSource);
             Assert.Equal("expectedSource", report.ExpectedSource);
@@ -54,12 +60,40 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [Theory]
         [InlineData(null)]
         [InlineData("")]
+        public void TestConstructorThrowsWhenTestDescriptionIsNotProvided(string testDescription)
+        {
+            DeploymentTestResult testResult = GetDeploymentTestResult();
+
+            ArgumentException ex = Assert.Throws<ArgumentException>(
+                () => new DeploymentTestReport(
+                    testDescription,
+                    Guid.NewGuid().ToString(),
+                    "expectedSource",
+                    "actualSource",
+                    "resultType1",
+                    15,
+                    10,
+                    13,
+                    Option.Some(testResult.ToTestOperationResult()),
+                    new List<TestOperationResult>
+                    {
+                        new TestOperationResult("expectedSource", "resultType1", "FakeValue1", new DateTime(2019, 12, 4, 10, 15, 15)),
+                        new TestOperationResult("expectedSource", "resultType1", "FakeValue2", new DateTime(2019, 12, 4, 10, 15, 18)),
+                    }));
+
+            Assert.StartsWith("testDescription", ex.Message);
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
         public void TestConstructorThrowsWhenTrackingIdIsNotProvided(string trackingId)
         {
             DeploymentTestResult testResult = GetDeploymentTestResult();
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DeploymentTestReport(
+                    TestDescription,
                     trackingId,
                     "expectedSource",
                     "actualSource",
@@ -86,6 +120,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DeploymentTestReport(
+                    TestDescription,
                     "trackingId123",
                     expectedSource,
                     "actualSource",
@@ -112,6 +147,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DeploymentTestReport(
+                    TestDescription,
                     "trackingId123",
                     "expectedSource",
                     actualSource,
@@ -138,6 +174,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DeploymentTestReport(
+                    TestDescription,
                     "trackingId123",
                     "expectedSource",
                     "actualSource",

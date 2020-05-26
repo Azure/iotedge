@@ -9,7 +9,7 @@ Make sure the following dependencies are installed in your environment before yo
 
 | Dependency        | Notes                |
 |-------------------|----------------------|
-| .NET Core 2.1     | Installation instructions [here](https://www.microsoft.com/net/core). |
+| .NET Core 3.1     | Installation instructions [here](https://www.microsoft.com/net/core). |
 | Java              | Not needed if building in VS IDE (Windows). Otherwise, a JRE is required to compile the Antlr4 grammar files into C# classes, and `java` must be on your path. |
 
 ## Build
@@ -39,7 +39,7 @@ scripts/linux/runTests.sh
 
 ### Windows
 ```powershell
-scripts\windows\runTests.bat
+dotnet test --filter Category=Unit
 ```
 
 ## Run integration tests
@@ -88,10 +88,14 @@ scripts/linux/runTests.sh "--filter Category=Integration"
 
 ### Windows
 ```powershell
-scripts\windows\runTests.bat "--filter Category=Integration"
+dotnet test --filter Category=Integration
 ```
 
 The syntax of the "filter" argument is described [here](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-test#filter-option-details). All IoT Edge tests are categorized as one of `Unit`, `Integration`, or `Bvt`.
+
+## Run the end-to-end tests
+
+The end-to-end tests are documented [here](../test/README.md).
 
 ## Build Manifest Image
 There is a script in the repo to build multi-architecture images.

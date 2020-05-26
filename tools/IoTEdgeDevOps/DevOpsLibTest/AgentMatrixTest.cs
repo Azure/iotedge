@@ -182,6 +182,12 @@ namespace DevOpsLibTest
                 {
                     new AgentCapability("run-e2e-tests", "true"),
                 });
+            var connectivityTestsds = new AgentDemandSet(
+                "Connectivity Tests",
+                new HashSet<AgentCapability>
+                {
+                    new AgentCapability("run-connectivity", "true"),
+                });
 
             var agentMatrix = new AgentMatrix();
 
@@ -189,7 +195,7 @@ namespace DevOpsLibTest
             var columns = agentMatrix.Columns;
 
             Assert.AreEqual(7, rows.Count);
-            Assert.AreEqual(3, columns.Count);
+            Assert.AreEqual(4, columns.Count);
 
             Assert.True(linuxAMD64ds.Equals(rows[0]));
             Assert.True(linuxARM32ds.Equals(rows[1]));
@@ -202,6 +208,7 @@ namespace DevOpsLibTest
             Assert.True(longHaulds.Equals(columns[0]));
             Assert.True(stressTestds.Equals(columns[1]));
             Assert.True(e2eTestsds.Equals(columns[2]));
+            Assert.True(connectivityTestsds.Equals(columns[3]));
         }
     }
 }

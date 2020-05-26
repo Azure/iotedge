@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             return daemonLog;
         }
 
-        public IEdgeDaemon CreateEdgeDaemon(Option<string> _) => new EdgeDaemon();
+        public IEdgeDaemon CreateEdgeDaemon(Option<string> _, Option<string> bootstrapAgentImage, Option<Registry> bootstrapRegistry) => new EdgeDaemon(bootstrapAgentImage, bootstrapRegistry);
 
         public async Task<IdCertificates> GenerateIdentityCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
         {
@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         public CaCertificates GetEdgeQuickstartCertificates() =>
             this.GetEdgeQuickstartCertificates("/var/lib/iotedge/hsm");
 
-        public void InstallCaCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings _) =>
+        public void InstallCaCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings transportSettings) =>
             this.InstallTrustedCertificates(certs, StoreName.Root);
 
         public Task InstallRootCertificateAsync(string certPath, string keyPath, string password, string scriptPath, CancellationToken token)

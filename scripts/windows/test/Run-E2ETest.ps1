@@ -100,18 +100,12 @@
 
     .PARAMETER DpsMasterSymmetricKey
         DPS master symmetric key. Required only when using DPS symmetric key to provision the Edge device.
-    
-    .PARAMETER LogAnalyticsEnabled
-        Optional Log Analytics enable string for the Analyzer module. If LogAnalyticsEnabled is set to enable (true), the rest of Log Analytics parameters must be provided.
 
     .PARAMETER LogAnalyticsWorkspaceId
         Optional Log Analytics workspace ID for metrics collection and reporting.
 
     .PARAMETER LogAnalyticsSharedKey
         Optional Log Analytics shared key for metrics collection and reporting.
-
-    .PARAMETER LogAnalyticsLogType
-        Optional Log Analytics log type for the Analyzer module.
 
     .PARAMETER TwinUpdateSize
         Specifies the char count (i.e. size) of each twin update. Default is 1 for long haul and 100 for stress test.
@@ -122,6 +116,9 @@
     .PARAMETER TwinUpdateFailureThreshold
         Specifies the longest period of time a twin update can take before being marked as a failure. This should be specified in DateTime format. Default is 00:01:00
 
+    .PARAMETER EdgeHubRestartFailureTolerance
+        Specifies how close to an edgehub restart desired property callback tests will be ignored. This should be specified in DateTime format. Default is 00:01:00
+
     .PARAMETER MetricsEndpointsCSV
         Optional CSV of exposed endpoints for which to scrape metrics.
 
@@ -130,6 +127,12 @@
 
     .PARAMETER MetricsUploadTarget
         Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics. 
+
+    .PARAMETER InitializeWithAgentArtifact
+         Boolean specifying if the iotedge installation should initialize edge agent with the official 1.0 image or the desired artifact. If false, the deployment after installation will start the desired agent artifact.
+
+    .PARAMETER TestStartDelay
+         Tests start after delay for applicable modules
 
     .EXAMPLE
         .\Run-E2ETest.ps1
@@ -301,20 +304,23 @@ Param (
     [ValidateSet("true", "false")]
     [string] $MqttSettingsEnabled = "true",
 
-    [ValidateSet("true", "false")]
-    [string] $LogAnalyticsEnabled = "false",
-
     [string] $LogAnalyticsWorkspaceId = $null,
 
     [string] $LogAnalyticsSharedKey = $null,
-
-    [string] $LogAnalyticsLogType = $null,
 
     [string] $TwinUpdateSize = $null,
 
     [string] $TwinUpdateFrequency = $null,
 
     [string] $TwinUpdateFailureThreshold = $null,
+
+    [string] $EdgeHubRestartFailureTolerance = $null,
+
+    [string] $InitializeWithAgentArtifact = "false",
+    
+    [string] $TestInfo = $null,
+
+    [string] $TestStartDelay = $null,
 
     [switch] $BypassEdgeInstallation
 )
@@ -498,8 +504,7 @@ Function PrepareTestFromArtifacts
 
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.ConsumerGroupId>',$EventHubConsumerGroupId) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.EventHubConnectionString>',$EventHubConnectionString) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.LogAnalyticsEnabled>',$LogAnalyticsEnabled) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.LogAnalyticsLogType>',$LogAnalyticsLogType) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<TestInfo>',$TestInfo) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LogAnalyticsWorkspaceId>',$LogAnalyticsWorkspaceId) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LogAnalyticsSharedKey>',$LogAnalyticsSharedKey) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen.MessageFrequency>',$LoadGenMessageFrequency) | Set-Content $DeploymentWorkingFilePath
@@ -522,7 +527,7 @@ Function PrepareTestFromArtifacts
                 (Get-Content $DeploymentWorkingFilePath).replace('<TwinUpdateSize>',$TwinUpdateSize) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<TwinUpdateFrequency>',$TwinUpdateFrequency) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<TwinUpdateFailureThreshold>',$TwinUpdateFailureThreshold) | Set-Content $DeploymentWorkingFilePath
-                $TrackingId = New-Guid
+                (Get-Content $DeploymentWorkingFilePath).replace('<EdgeHubRestartFailureTolerance>',$EdgeHubRestartFailureTolerance) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<TrackingId>',$TrackingId) | Set-Content $DeploymentWorkingFilePath
             }
             "TempFilter"
@@ -554,6 +559,7 @@ Function PrepareTestFromArtifacts
         (Get-Content $DeploymentWorkingFilePath).replace('<CR.Password>', $ContainerRegistryPassword) | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('-linux-', '-windows-') | Set-Content $DeploymentWorkingFilePath
         (Get-Content $DeploymentWorkingFilePath).replace('<Container_Registry>', $ContainerRegistry) | Set-Content $DeploymentWorkingFilePath
+        (Get-Content $DeploymentWorkingFilePath).replace('<TestStartDelay>', $TestStartDelay) | Set-Content $DeploymentWorkingFilePath
 
         If ($ProxyUri)
         {
@@ -762,6 +768,7 @@ Function RunDirectMethodAmqpTest
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`" ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -795,6 +802,7 @@ Function RunDirectMethodAmqpMqttTest
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`" ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -828,6 +836,7 @@ Function RunDirectMethodMqttTest
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`" ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -861,6 +870,7 @@ Function RunDirectMethodMqttAmqpTest
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"DirectMethodSender`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`" ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -900,6 +910,7 @@ Function RunDpsProvisioningTest
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`" ``
             --dps-scope-id `"$DpsScopeId`" ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
 
     switch ($provisioningType) {
@@ -969,6 +980,7 @@ Function RunQuickstartCertsTest
         --optimize_for_performance=`"$OptimizeForPerformance`" ``
         --leave-running=All ``
         --no-verify ``
+        --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
         $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -1021,6 +1033,7 @@ Function RunLongHaulTest
             -l `"$DeploymentWorkingFilePath`" ``
             --runtime-log-level `"Info`" ``
             --no-verify ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
@@ -1052,6 +1065,7 @@ Function RunStressTest
             -l `"$DeploymentWorkingFilePath`" ``
             --runtime-log-level `"Info`" ``
             --no-verify ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
     $testCommand = AppendInstallationOption($testCommand)
     Invoke-Expression $testCommand | Out-Host
@@ -1080,6 +1094,7 @@ Function RunTempFilterTest
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"tempFilter`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`" ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -1119,6 +1134,7 @@ Function RunTempFilterFunctionsTest
             -p `"$ContainerRegistryPassword`" --verify-data-from-module `"tempFilterFunctions`" ``
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             -l `"$DeploymentWorkingFilePath`" ``
+            --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
     If ($ProxyUri) {
         $testCommand = "$testCommand ``
@@ -1153,6 +1169,7 @@ Function RunTempSensorTest
         -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
         -tw `"$TwinTestFileArtifactFilePath`" ``
         --optimize_for_performance=`"$OptimizeForPerformance`" ``
+        --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
         $BypassInstallationFlag"
 
     If ($ProxyUri) {
@@ -1310,6 +1327,7 @@ Function RunTransparentGatewayTest
         --optimize_for_performance=`"$OptimizeForPerformance`" ``
         --leave-running=All ``
         --no-verify ``
+        --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
         $BypassInstallationFlag"
 
     If ($ProxyUri) {
@@ -1496,6 +1514,9 @@ Function ValidateTestParameters
         If ([string]::IsNullOrEmpty($SnitchStorageAccount)) {Throw "Required snitch storage account."}
         If ([string]::IsNullOrEmpty($SnitchStorageMasterKey)) {Throw "Required snitch storage master key."}
         If ($ProxyUri) {Throw "Proxy not supported for $TestName test"}
+        If ([string]::IsNullOrEmpty($TestInfo)) {Throw "Required test info."}
+        If ([string]::IsNullOrEmpty($LogAnalyticsWorkspaceId)) {Throw "Required log analytics workspace id."}
+        If ([string]::IsNullOrEmpty($LogAnalyticsSharedKey)) {Throw "Required log analytics shared key."}
     }
 }
 
@@ -1554,29 +1575,17 @@ $IotEdgeQuickstartExeTestPath = (Join-Path $QuickstartWorkingFolder "IotEdgeQuic
 $LeafDeviceExeTestPath = (Join-Path $LeafDeviceWorkingFolder "LeafDevice.exe")
 $DeploymentWorkingFilePath = Join-Path $TestWorkingFolder "deployment.json"
 
-If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCACertRSAFile))
-{
-    $EdgeE2ERootCACertRSAFile=$DefaultInstalledRSARootCACert
-}
+If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCACertRSAFile)) {$EdgeE2ERootCACertRSAFile=$DefaultInstalledRSARootCACert;}
+If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCAKeyRSAFile)) {$EdgeE2ERootCAKeyRSAFile=$DefaultInstalledRSARootCAKey;}
 
-If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCAKeyRSAFile))
+If ($TestName -eq "LongHaul" -Or $TestName -eq "Stress")
 {
-    $EdgeE2ERootCAKeyRSAFile=$DefaultInstalledRSARootCAKey
-}
-
-If ([string]::IsNullOrWhiteSpace($TwinUpdateFailureThreshold))
-{
-    $TwinUpdateFailureThreshold="00:00:01"
-}
-
-If ([string]::IsNullOrWhiteSpace($MetricsScrapeFrequencyInSecs))
-{
-    $MetricsScrapeFrequencyInSecs=300;
-}
-
-If ([string]::IsNullOrWhiteSpace($MetricsUploadTarget))
-{
-    $MetricsScrapeFrequencyInSecs="AzureLogAnalytics";
+    $TrackingId = New-Guid
+    $TestInfo=$TestInfo+",TestId=$TrackingId"
+    If ([string]::IsNullOrWhiteSpace($TwinUpdateFailureThreshold)) {$TwinUpdateFailureThreshold="00:00:01";}
+    If ([string]::IsNullOrWhiteSpace($EdgeHubRestartFailureTolerance)) {$EdgeHubRestartFailureTolerance="00:01:00"}
+    If ([string]::IsNullOrWhiteSpace($MetricsScrapeFrequencyInSecs)) {$MetricsScrapeFrequencyInSecs=300;}
+    If ([string]::IsNullOrWhiteSpace($MetricsUploadTarget)) {$MetricsUploadTarget="AzureLogAnalytics";}
 }
 
 If ($TestName -eq "LongHaul")
@@ -1588,6 +1597,7 @@ If ($TestName -eq "LongHaul")
     If ([string]::IsNullOrEmpty($SnitchTestDurationInSecs)) {$SnitchTestDurationInSecs = "604800"}
     If ([string]::IsNullOrEmpty($TwinUpdateFrequency)) {$TwinUpdateSize = "00:00:15"}
     If ([string]::IsNullOrEmpty($TwinUpdateSize)) {$TwinUpdateSize = "1"}
+    If ([string]::IsNullOrWhiteSpace($TestStartDelay)) {$TestStartDelay="00:00:00";}
 }
 
 If ($TestName -eq "Stress")

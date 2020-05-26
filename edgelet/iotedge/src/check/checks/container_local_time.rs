@@ -34,11 +34,6 @@ impl ContainerLocalTime {
             return Ok(CheckResult::Skipped);
         };
 
-        let expected_duration = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .context("Could not query local time of host")?;
-        self.expected_duration = Some(expected_duration);
-
         let output = super::docker(
             docker_host_arg,
             vec![
@@ -51,12 +46,19 @@ impl ContainerLocalTime {
         )
         .map_err(|(_, err)| err)
         .context("Could not query local time inside container")?;
+
         let output = std::str::from_utf8(&output)
             .map_err(failure::Error::from)
             .and_then(|output| output.trim_end().parse::<u64>().map_err(Into::into))
             .context("Could not parse container output")?;
+
         let actual_duration = std::time::Duration::from_secs(output);
         self.actual_duration = Some(actual_duration);
+
+        let expected_duration = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .context("Could not query local time of host")?;
+        self.expected_duration = Some(expected_duration);
 
         let diff = std::cmp::max(actual_duration, expected_duration)
             - std::cmp::min(actual_duration, expected_duration);

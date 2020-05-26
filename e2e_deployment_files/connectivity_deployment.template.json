@@ -25,21 +25,24 @@
                 "value": "<UpstreamProtocol>"
               },
               "experimentalfeatures__enabled": {
-                  "value": "true"
+                "value": "true"
               },
               "experimentalfeatures__enableMetrics": {
+                "value": "true"
+              },
+              "ExperimentalFeatures__EnableUploadLogs": {
                   "value": "true"
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-agent:<EdgeRuntime.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"PortBindings\": {\"9600/tcp\": [{\"HostPort\": \"9600\"}]}}}"
             }
           },
           "edgeHub": {
             "type": "docker",
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-hub:<EdgeRuntime.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}],\"9600/tcp\": [{\"HostPort\": \"9601\"}]}}}"
             },
             "env": {
@@ -47,10 +50,10 @@
                 "value": "true"
               },
               "experimentalfeatures__enabled": {
-                  "value": "true"
+                "value": "true"
               },
               "experimentalfeatures__enableMetrics": {
-                  "value": "true"
+                "value": "true"
               }
             },
             "status": "running",
@@ -205,8 +208,7 @@
               "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "ReportingEndpointUrl":
-              {
+              "ReportingEndpointUrl": {
                 "value": "http://localhost:5001"
               },
               "trackingId": {
@@ -266,8 +268,7 @@
               "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "ReportingEndpointUrl":
-              {
+              "ReportingEndpointUrl": {
                 "value": "http://localhost:5001"
               },
               "trackingId": {
@@ -368,6 +369,18 @@
               },
               "IOT_HUB_CONNECTION_STRING": {
                 "value": "<IoTHubConnectionString>"
+              },
+              "logUploadEnabled": {
+                "value": "<TestResultCoordinator.logUploadEnabled>"
+              },
+              "STORAGE_ACCOUNT_CONNECTION_STRING": {
+                "value": "<TestResultCoordinator.StorageAccountConnectionString>"
+              },
+              "NetworkControllerRunProfile": {
+                "value": "<NetworkController.RunProfile>"
+              },
+              "TEST_INFO": {
+                "value": "<TestInfo>"
               }
             },
             "settings": {
@@ -384,16 +397,16 @@
               "trackingId": {
                 "value": "<TrackingId>"
               },
-              "TestResultCoordinatorUrl": {
+              "testResultCoordinatorUrl": {
                 "value": "http://localhost:5001"
               },
               "TwinTestMode": {
                 "value": "TwinCloudOperations"
               },
-              "TestStartDelay": {
+              "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "TestDuration": {
+              "testDuration": {
                 "value": "<TestDuration>"
               },
               "ServiceClientConnectionString": {
@@ -417,22 +430,22 @@
               "trackingId": {
                 "value": "<TrackingId>"
               },
-              "TestResultCoordinatorUrl": {
+              "testResultCoordinatorUrl": {
                 "value": "http://testResultCoordinator:5001"
               },
               "TwinTestMode": {
                 "value": "TwinEdgeOperations"
               },
-              "TestStartDelay": {
+              "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "TestDuration": {
+              "testDuration": {
                 "value": "<TestDuration>"
               },
               "ServiceClientConnectionString": {
                 "value": "<IoTHubConnectionString>"
               },
-              "TransportType" : {
+              "TransportType": {
                 "value": "Amqp"
               }
             },
@@ -450,16 +463,16 @@
               "trackingId": {
                 "value": "<TrackingId>"
               },
-              "TestResultCoordinatorUrl": {
+              "testResultCoordinatorUrl": {
                 "value": "http://localhost:5001"
               },
               "TwinTestMode": {
                 "value": "TwinCloudOperations"
               },
-              "TestStartDelay": {
+              "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "TestDuration": {
+              "testDuration": {
                 "value": "<TestDuration>"
               },
               "ServiceClientConnectionString": {
@@ -483,22 +496,22 @@
               "trackingId": {
                 "value": "<TrackingId>"
               },
-              "TestResultCoordinatorUrl": {
+              "testResultCoordinatorUrl": {
                 "value": "http://testResultCoordinator:5001"
               },
               "TwinTestMode": {
                 "value": "TwinEdgeOperations"
               },
-              "TestStartDelay": {
+              "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "TestDuration": {
+              "testDuration": {
                 "value": "<TestDuration>"
               },
               "ServiceClientConnectionString": {
                 "value": "<IoTHubConnectionString>"
               },
-              "TransportType" : {
+              "TransportType": {
                 "value": "Mqtt"
               }
             },
@@ -516,10 +529,10 @@
               "DEPLOYMENT_TESTER_MODE": {
                 "value": "Sender"
               },
-              "TestStartDelay": {
+              "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "TestDuration": {
+              "testDuration": {
                 "value": "<TestDuration>"
               },
               "IOT_HUB_CONNECTION_STRING": {
@@ -534,7 +547,7 @@
               "testResultCoordinatorUrl": {
                 "value": "http://localhost:5001"
               },
-              "DEPLOYMENT_UPDATE_PERIOD" : {
+              "DEPLOYMENT_UPDATE_PERIOD": {
                 "value": "<DeploymentTester1.DeploymentUpdatePeriod>"
               }
             },
@@ -564,6 +577,117 @@
               "createOptions": ""
             }
           },
+          "cloudToDeviceMessageSender1": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "C2DMESSAGE_TESTER_MODE": {
+                "value": "Sender"
+              },
+              "IOT_HUB_CONNECTION_STRING": {
+                "value": "<IoTHubConnectionString>"
+              },
+              "trackingId": {
+                "value": "<TrackingId>"
+              },
+              "testDuration": {
+                "value": "<TestDuration>"
+              },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
+              },
+              "ReportingEndpointUrl": {
+                "value": "http://localhost:5001"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+            }
+          },
+          "cloudToDeviceMessageReceiver1": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "C2DMESSAGE_TESTER_MODE": {
+                "value": "Receiver"
+              },
+              "IOT_HUB_CONNECTION_STRING": {
+                "value": "<IoTHubConnectionString>"
+              },
+              "transportType": {
+                "value": "Amqp"
+              },
+              "ReportingEndpointUrl": {
+                "value": "http://testResultCoordinator:5001"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
+          "cloudToDeviceMessageSender2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "C2DMESSAGE_TESTER_MODE": {
+                "value": "Sender"
+              },
+              "IOT_HUB_CONNECTION_STRING": {
+                "value": "<IoTHubConnectionString>"
+              },
+              "trackingId": {
+                "value": "<TrackingId>"
+              },
+              "testDuration": {
+                "value": "<TestDuration>"
+              },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
+              },
+              "transportType": {
+                "value": "Mqtt"
+              },
+              "ReportingEndpointUrl": {
+                "value": "http://localhost:5001"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+            }
+          },
+          "cloudToDeviceMessageReceiver2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "C2DMESSAGE_TESTER_MODE": {
+                "value": "Receiver"
+              },
+              "IOT_HUB_CONNECTION_STRING": {
+                "value": "<IoTHubConnectionString>"
+              },
+              "transportType": {
+                "value": "Mqtt"
+              },
+              "ReportingEndpointUrl": {
+                "value": "http://testResultCoordinator:5001"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
           "networkController": {
             "version": "1.0",
             "type": "docker",
@@ -585,8 +709,8 @@
               "RunFrequencies__0__RunsCount": {
                 "value": "<NetworkController.RunsCount0>"
               },
-              "NetworkControllerMode": {
-                "value": "<NetworkController.Mode>"
+              "NetworkControllerRunProfile": {
+                "value": "<NetworkController.RunProfile>"
               },
               "StartAfter": {
                 "value": "<TestStartDelay>"
@@ -603,28 +727,28 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-                "logAnalyticsWorkspaceId": {
-                    "value": "<LogAnalyticsWorkspaceId>"
-                },
-                "logAnalyticsSharedKey": {
-                    "value": "<LogAnalyticsSharedKey>"
-                },
-                "logAnalyticsLogType": {
-                  "value": "testMetrics"
-                },
-                "MetricsEndpointsCSV": {
-                  "value": "<MetricsCollector.MetricsEndpointsCSV>"
-                },
-                "ScrapeFrequencyInSecs": {
-                    "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
-                },
-                "UploadTarget": {
-                  "value": "<MetricsCollector.UploadTarget>"
-                }
+              "LogAnalyticsWorkspaceId": {
+                "value": "<LogAnalyticsWorkspaceId>"
+              },
+              "LogAnalyticsSharedKey": {
+                "value": "<LogAnalyticsSharedKey>"
+              },
+              "LogAnalyticsLogType": {
+                "value": "testMetricsV2"
+              },
+              "MetricsEndpointsCSV": {
+                "value": "<MetricsCollector.MetricsEndpointsCSV>"
+              },
+              "ScrapeFrequencyInSecs": {
+                "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
+              },
+              "UploadTarget": {
+                "value": "<MetricsCollector.UploadTarget>"
+              }
             },
             "settings": {
-                "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
-                "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           }
         }
@@ -646,13 +770,7 @@
     },
     "metricsCollector": {
       "properties.desired": {
-        "testType": "connectivity",
-        "testId": "<TrackingId>",
-        "upstreamProtocol": "<UpstreamProtocol>",
-        "networkControllerOfflineFrequency": "<NetworkController.OfflineFrequency0>",
-        "networkControllerOnlineFrequency": "<NetworkController.OnlineFrequency0>",
-        "networkControllerRunsCount": "<NetworkController.RunsCount0>",
-        "testDuration": "<TestDuration>"
+        "additionalTags": "<TestInfo>"
       }
     },
     "testResultCoordinator": {
@@ -663,75 +781,110 @@
             "TestReportType": "CountingReport",
             "TestOperationResultType": "Messages",
             "ExpectedSource": "loadGen1.send",
-            "ActualSource": "relayer1.receive"
+            "ActualSource": "relayer1.receive",
+            "TestDescription": "messages | local | amqp"
           },
           "reportMetadata2": {
             "TestReportType": "CountingReport",
             "TestOperationResultType": "Messages",
             "ExpectedSource": "relayer1.send",
-            "ActualSource": "relayer1.eventHub"
+            "ActualSource": "relayer1.eventHub",
+            "TestDescription": "messages | upstream | amqp"
           },
           "reportMetadata3": {
             "TestReportType": "CountingReport",
             "TestOperationResultType": "Messages",
             "ExpectedSource": "loadGen2.send",
-            "ActualSource": "relayer2.receive"
+            "ActualSource": "relayer2.receive",
+            "TestDescription": "messages | local | mqtt"
           },
           "reportMetadata4": {
             "TestReportType": "CountingReport",
             "TestOperationResultType": "Messages",
             "ExpectedSource": "relayer2.send",
-            "ActualSource": "relayer2.eventHub"
+            "ActualSource": "relayer2.eventHub",
+            "TestDescription": "messages | upstream | mqtt"
           },
           "reportMetadata5": {
             "TestReportType": "TwinCountingReport",
             "TwinTestPropertyType": "Desired",
             "ExpectedSource": "twinTester1.desiredUpdated",
-            "ActualSource": "twinTester2.desiredReceived"
+            "ActualSource": "twinTester2.desiredReceived",
+            "TestDescription": "twin | desired property | amqp"
           },
           "reportMetadata6": {
             "TestReportType": "TwinCountingReport",
             "TwinTestPropertyType": "Reported",
             "ExpectedSource": "twinTester2.reportedReceived",
-            "ActualSource": "twinTester2.reportedUpdated"
+            "ActualSource": "twinTester2.reportedUpdated",
+            "TestDescription": "twin | reported property | amqp"
           },
           "reportMetadata7": {
             "TestReportType": "TwinCountingReport",
             "TwinTestPropertyType": "Desired",
             "ExpectedSource": "twinTester3.desiredUpdated",
-            "ActualSource": "twinTester4.desiredReceived"
+            "ActualSource": "twinTester4.desiredReceived",
+            "TestDescription": "twin | desired property | mqtt"
           },
           "reportMetadata8": {
             "TestReportType": "TwinCountingReport",
             "TwinTestPropertyType": "Reported",
             "ExpectedSource": "twinTester4.reportedReceived",
-            "ActualSource": "twinTester4.reportedUpdated"
+            "ActualSource": "twinTester4.reportedUpdated",
+            "TestDescription": "twin | reported property | mqtt"
           },
           "reportMetadata9": {
             "TestReportType": "DeploymentTestReport",
             "ExpectedSource": "deploymentTester1.send",
-            "ActualSource": "deploymentTester2.receive"
+            "ActualSource": "deploymentTester2.receive",
+            "TestDescription": "deployment"
           },
           "reportMetadata10": {
             "TestReportType": "DirectMethodReport",
             "SenderSource": "directMethodSender1.send",
             "ReceiverSource": "directMethodReceiver1.receive",
-            "TolerancePeriod": "00:00:00.005"
+            "TolerancePeriod": "00:01:00",
+            "TestDescription": "direct method | cloud | amqp"
           },
           "reportMetadata11": {
             "TestReportType": "DirectMethodReport",
             "SenderSource": "directMethodSender2.send",
             "ReceiverSource": "directMethodReceiver2.receive",
-            "TolerancePeriod": "00:00:00.005"
+            "TolerancePeriod": "00:01:00",
+            "TestDescription": "direct method | cloud | mqtt"
           },
           "reportMetadata12": {
             "TestReportType": "DirectMethodReport",
             "SenderSource": "directMethodSender3.send",
-            "TolerancePeriod": "00:00:00.005"
+            "TolerancePeriod": "00:01:00",
+            "TestDescription": "edge agent ping"
           },
-          "reportMetadata12": {
+          "reportMetadata13": {
+            "TestReportType": "CountingReport",
+            "TestOperationResultType": "Messages",
+            "ExpectedSource": "cloudToDeviceMessageSender1.send",
+            "ActualSource": "cloudToDeviceMessageReceiver1.receive",
+            "TestDescription": "C2D | amqp"
+          },
+          "reportMetadata14": {
+            "TestReportType": "CountingReport",
+            "TestOperationResultType": "Messages",
+            "ExpectedSource": "cloudToDeviceMessageSender2.send",
+            "ActualSource": "cloudToDeviceMessageReceiver2.receive",
+            "TestDescription": "C2D | mqtt"
+          },
+          "reportMetadata15": {
             "TestReportType": "NetworkControllerReport",
-            "Source": "networkController"
+            "Source": "networkController",
+            "TestDescription": "network controller"
+          },
+          "reportMetadata16": {
+            "TestReportType": "ErrorReport",
+            "TestDescription": "test configuration"
+          },
+          "reportMetadata17": {
+            "TestReportType": "TestInfoReport",
+            "TestDescription": "test info"
           }
         }
       }

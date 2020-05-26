@@ -5,6 +5,7 @@ namespace DirectMethodSender
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -13,7 +14,7 @@ namespace DirectMethodSender
         readonly ILogger logger;
         readonly string deviceId;
         readonly string targetModuleId;
-        long directMethodCount = 0;
+        ulong directMethodCount = 0;
 
         protected DirectMethodSenderBase(
             ILogger logger,
@@ -27,7 +28,7 @@ namespace DirectMethodSender
 
         public abstract void Dispose();
 
-        public async Task<Tuple<HttpStatusCode, long>> InvokeDirectMethodAsync(string methodName, CancellationTokenSource cts)
+        public async Task<Tuple<HttpStatusCode, ulong>> InvokeDirectMethodAsync(string methodName, CancellationTokenSource cts)
         {
             ILogger logger = this.logger;
             logger.LogDebug("Invoke DirectMethod: started.");
@@ -49,12 +50,17 @@ namespace DirectMethodSender
                 }
 
                 logger.LogInformation($"Invoke DirectMethod with count {this.directMethodCount}: finished.");
-                return new Tuple<HttpStatusCode, long>((HttpStatusCode)resultStatus, this.directMethodCount);
+                return new Tuple<HttpStatusCode, ulong>((HttpStatusCode)resultStatus, this.directMethodCount);
+            }
+            catch (DeviceNotFoundException e)
+            {
+                logger.LogInformation(e, $"Transient exception caught with count {this.directMethodCount}");
+                return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.NotFound, this.directMethodCount);
             }
             catch (Exception e)
             {
                 logger.LogError(e, $"Exception caught with count {this.directMethodCount}");
-                return new Tuple<HttpStatusCode, long>(HttpStatusCode.InternalServerError, this.directMethodCount);
+                return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.InternalServerError, this.directMethodCount);
             }
         }
 
@@ -62,7 +68,7 @@ namespace DirectMethodSender
             string deviceId,
             string targetModuleId,
             string methodName,
-            long directMethodCount,
+            ulong directMethodCount,
             CancellationToken none);
     }
 }

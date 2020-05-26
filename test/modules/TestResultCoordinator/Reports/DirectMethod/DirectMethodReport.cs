@@ -10,6 +10,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
     class DirectMethodReport : TestResultReportBase
     {
         public DirectMethodReport(
+            string testDescription,
             string trackingId,
             string senderSource,
             Option<string> receiverSource,
@@ -22,7 +23,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
             ulong networkOffFailure,
             ulong mismatchSuccess,
             ulong mismatchFailure)
-            : base(trackingId, resultType)
+            : base(testDescription, trackingId, resultType)
         {
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
             this.ReceiverSource = receiverSource;
@@ -68,6 +69,6 @@ namespace TestResultCoordinator.Reports.DirectMethod
             $"DirectMethod Report for [{this.SenderSource}] and [{this.ReceiverSource.OrDefault()}] ({this.ResultType})" : $"DirectMethod Report for [{this.SenderSource}] ({this.ResultType})";
 
         public override bool IsPassed =>
-            this.MismatchFailure == 0 && this.NetworkOffFailure == 0 && this.NetworkOnFailure == 0;
+            this.MismatchFailure == 0 && this.NetworkOffFailure == 0 && this.NetworkOnFailure == 0 && (this.NetworkOnSuccess + this.NetworkOffSuccess + this.NetworkOnToleratedSuccess + this.NetworkOffToleratedSuccess > 0);
     }
 }

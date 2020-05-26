@@ -16,8 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util
         // https://prometheus.io/docs/concepts/data_model/
         // Example:
         // edgeagent_total_disk_read_bytes{iothub="lefitche-hub-3.azure-devices.net",edge_device="device4",instance_number="1",module="edgeHub"} 32908854
-        const string PrometheusMetricSchema = @"^(?<metricname>[^#\{\}]+)(\{((?<tagname>[^="",]+)=(\""(?<tagvalue>[^="",]+)\"")(,(?<tagname>[^="",]+)=(\""(?<tagvalue>[^="",]+)\""))*)\})?\s(?<metricvalue>.+)$";
-        static readonly Regex PrometheusSchemaRegex = new Regex(PrometheusMetricSchema, RegexOptions.Compiled);
+        static readonly Regex PrometheusSchemaRegex = new Regex(@"^(?<metricname>[^#\{\}]+)(\{((?<tagname>[^="",]+)=(\""(?<tagvalue>[^="",]*)\"")(,(?<tagname>[^="",]+)=(\""(?<tagvalue>[^="",]*)\""))*)\})?\s(?<metricvalue>[\d\.]+)$", RegexOptions.Compiled);
 
         public static IEnumerable<Metric> ParseMetrics(DateTime timeGeneratedUtc, string prometheusMessage)
         {

@@ -1,5 +1,10 @@
 parameters:
   release.label: ''
+  test.buildNumber: ''
+  test.buildId: ''
+  build.source.branch: ''
+  edgelet.source.branch: ''
+  images.source.branch: ''
   edgelet.artifact.name: ''
   images.artifact.name: ''
   container.registry: ''
@@ -19,16 +24,16 @@ parameters:
   transportType3: 'Mqtt_Tcp_Only'
   transportType4: 'Mqtt_Tcp_Only'
   analyzer.consumerGroupId: ''
-  analyzer.logAnalytics.enabled: ''
-  analyzer.logAnalytics.logType: ''
   logAnalytics.workspaceId: ''
   logAnalytics.sharedKey: ''
   twinTester.twinUpdateSize: ''
   twinTester.twinUpdateFrequency: ''
   twinTester.twinUpdateFailureThreshold: ''
+  twinTester.edgeHubRestartFailureTolerance: ''
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''
+  metricsCollector.hostPlatform: ''
 
 steps:
   - task: CopyFiles@2
@@ -50,6 +55,16 @@ steps:
       script: |
         #Requires -RunAsAdministrator
         $testName="Stress"
+        
+        $testInfo="TestBuildNumber=${{ parameters['test.buildNumber'] }}"
+        $testInfo=$testInfo+",TestBuildId=${{ parameters['test.buildId'] }}"
+        $testInfo=$testInfo+",BuildSourceBranch=${{ parameters['build.source.branch'] }}"
+        $testInfo=$testInfo+",EdgeletSourceBranch=${{ parameters['edgelet.source.branch'] }}"
+        $testInfo=$testInfo+",ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
+        $testInfo=$testInfo+",HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
+        $testInfo=$testInfo+",TestName=$testName"
+        $testInfo=$testInfo+",UpstreamProtocol=amqp"
+        
         $ArtifactInfo=convertfrom-stringdata (get-content $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt -raw)
         $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/windows/test/Run-E2ETest.ps1 `
           -E2ETestFolder "$(Agent.HomeDirectory)/.." `
@@ -73,16 +88,16 @@ steps:
           -MqttSettingsEnabled "${{ parameters['mqtt.settings.enabled'] }}" `
           -LoadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" `
           -EventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}" `
-          -LogAnalyticsEnabled "${{ parameters['analyzer.logAnalytics.enabled'] }}" `
-          -LogAnalyticsLogType "${{ parameters['analyzer.logAnalytics.logType'] }}" `
           -LogAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" `
           -LogAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" `
           -TwinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" `
           -TwinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" `
           -TwinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" `
+          -EdgeHubRestartFailureTolerance "${{ parameters['twinTester.edgeHubRestartFailureTolerance'] }}" `
           -MetricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" `
           -MetricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" `
-          -MetricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}"
+          -MetricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" `
+          -TestInfo "$testInfo"
         # schedule a task to stop iotedge service (terminate the test) in 4:30h
         $ScheduleDatetime = [DateTime]::Now.AddMinutes(270)
         $ScheduleDate=$ScheduleDatetime.ToString("MM/dd/yyyy")

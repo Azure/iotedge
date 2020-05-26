@@ -5,21 +5,22 @@
 #![allow(clippy::similar_names)]
 
 use std::borrow::Cow;
-use std::convert::TryInto;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process;
 
-use chrono::{DateTime, Duration, Local};
 use clap::{crate_description, crate_name, App, AppSettings, Arg, SubCommand};
 use failure::{Fail, ResultExt};
 use futures::Future;
 use url::Url;
 
-use edgelet_core::{LogOptions, LogTail};
+use edgelet_core::{parse_since, LogOptions, LogTail};
 use edgelet_http_mgmt::ModuleClient;
 
-use iotedge::*;
+use iotedge::{
+    Check, Command, Error, ErrorKind, List, Logs, OutputFormat, OutputLocation, Restart,
+    SupportBundle, Unknown, Version,
+};
 
 fn main() {
     if let Err(ref error) = run() {
@@ -244,7 +245,7 @@ fn run() -> Result<(), Error> {
                 .about("Bundles troubleshooting information")
                 .arg(
                     Arg::with_name("output")
-                        .help("Path of output file")
+                        .help("Location to output file. Use - for stdout")
                         .long("output")
                         .short("o")
                         .takes_value(true)
@@ -273,7 +274,7 @@ fn run() -> Result<(), Error> {
                         .takes_value(true),
                 ).arg(
                     Arg::with_name("quiet")
-                        .help("Suppress output")
+                        .help("Suppress status output")
                         .long("quiet")
                         .short("q")
                         .takes_value(false),
@@ -362,7 +363,8 @@ fn run() -> Result<(), Error> {
             let since = args
                 .value_of("since")
                 .map(|s| parse_since(s))
-                .transpose()?
+                .transpose()
+                .context(ErrorKind::BadSinceParameter)?
                 .expect("arg has a default value");
             let options = LogOptions::new()
                 .with_follow(follow)
@@ -375,7 +377,8 @@ fn run() -> Result<(), Error> {
             let since = args
                 .value_of("since")
                 .map(|s| parse_since(s))
-                .transpose()?
+                .transpose()
+                .context(ErrorKind::BadSinceParameter)?
                 .expect("arg has a default value");
             let options = LogOptions::new()
                 .with_follow(false)
@@ -384,13 +387,19 @@ fn run() -> Result<(), Error> {
             let include_ms_only = args.is_present("include-edge-runtime-only");
             let verbose = !args.is_present("quiet");
             let iothub_hostname = args.value_of("iothub-hostname").map(ToOwned::to_owned);
+            let output_location = if location == "-" {
+                OutputLocation::Console
+            } else {
+                OutputLocation::File(location.to_owned())
+            };
+
             tokio_runtime.block_on(
                 SupportBundle::new(
                     options,
-                    location.to_owned(),
                     include_ms_only,
                     verbose,
                     iothub_hostname,
+                    output_location,
                     runtime()?,
                 )
                 .execute(),
@@ -398,81 +407,5 @@ fn run() -> Result<(), Error> {
         }
         ("version", _) => tokio_runtime.block_on(Version::new().execute()),
         (command, _) => tokio_runtime.block_on(Unknown::new(command.to_string()).execute()),
-    }
-}
-
-fn parse_since(since: &str) -> Result<i32, Error> {
-    if let Ok(datetime) = DateTime::parse_from_rfc3339(since) {
-        let temp: Result<i32, _> = datetime.timestamp().try_into();
-        Ok(temp.context(ErrorKind::BadSinceParameter)?)
-    } else if let Ok(epoch) = since.parse() {
-        Ok(epoch)
-    } else if let Ok(duration) = parse_duration::parse(since) {
-        let nano: Result<i64, _> = duration.as_nanos().try_into();
-        let nano = nano.context(ErrorKind::BadSinceParameter)?;
-
-        let temp: Result<i32, _> = (Local::now() - Duration::nanoseconds(nano))
-            .timestamp()
-            .try_into();
-        Ok(temp.context(ErrorKind::BadSinceParameter)?)
-    } else {
-        Err(Error::from(ErrorKind::BadSinceParameter))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parse_rfc3339() {
-        assert_eq!(
-            parse_since("2019-09-27T16:00:00+00:00").unwrap(),
-            1_569_600_000
-        );
-    }
-
-    #[test]
-    fn parse_english() {
-        assert_near(
-            parse_since("1 hour").unwrap(),
-            (Local::now() - Duration::hours(1))
-                .timestamp()
-                .try_into()
-                .unwrap(),
-            10,
-        );
-
-        assert_near(
-            parse_since("1 hour 20 minutes").unwrap(),
-            (Local::now() - Duration::hours(1) - Duration::minutes(20))
-                .timestamp()
-                .try_into()
-                .unwrap(),
-            10,
-        );
-
-        assert_near(
-            parse_since("1 day").unwrap(),
-            (Local::now() - Duration::days(1))
-                .timestamp()
-                .try_into()
-                .unwrap(),
-            10,
-        );
-    }
-
-    #[test]
-    fn parse_unix() {
-        assert_eq!(parse_since("1569600000").unwrap(), 1_569_600_000);
-    }
-
-    #[test]
-    fn parse_default() {
-        let _ = parse_since("asdfasdf").unwrap_err();
-    }
-
-    fn assert_near(a: i32, b: i32, tol: i32) {
-        assert!((a - b).abs() < tol)
     }
 }

@@ -37,14 +37,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             Preconditions.CheckNotNull(configProvider, nameof(configProvider));
             try
             {
-                configProvider.SetConfigUpdatedCallback(this.UpdateConfig);
+                configProvider.SetConfigUpdatedCallback(this.HandleUpdateConfig);
                 this.configProvider = Option.Some(configProvider);
 
-                // Get the config and initialize the EdgeHub now.
-                await this.PullConfig();
+                // first try to update config with the cached config
+                await this.PullConfig(c => c.GetCachedConfig());
+
+                // Get the config and initialize the EdgeHub
+                // but don't wait if it has a prefetched config
+                Task pullTask = this.PullConfig(c => c.GetConfig());
+                await this.currentConfig.Match(
+                    (config) =>
+                    {
+                        Events.InitializedWithPrefetchedConfig();
+                        return Task.FromResult(this.currentConfig);
+                    },
+                    async () =>
+                    {
+                        Events.GettingConfig();
+                        await pullTask;
+                        return this.currentConfig;
+                    });
 
                 // Start a periodic task to pull the config.
-                this.configUpdater = Option.Some(new PeriodicTask(this.PullConfig, this.configUpdateFrequency, this.configUpdateFrequency, Events.Log, "Get EdgeHub config"));
+                this.configUpdater = Option.Some(new PeriodicTask(() => this.PullConfig(c => c.GetConfig()), this.configUpdateFrequency, this.configUpdateFrequency, Events.Log, "Get EdgeHub config"));
                 Events.Initialized();
             }
             catch (Exception ex)
@@ -54,12 +70,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             }
         }
 
-        async Task PullConfig()
+        async Task PullConfig(Func<IConfigSource, Task<Option<EdgeHubConfig>>> configGetter)
         {
             try
             {
                 Option<EdgeHubConfig> edgeHubConfig = await this.configProvider
-                    .Map(c => c.GetConfig())
+                    .Map(c => configGetter(c))
                     .GetOrElse(Task.FromResult(Option.None<EdgeHubConfig>()));
                 if (!edgeHubConfig.HasValue)
                 {
@@ -67,20 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 }
                 else
                 {
-                    using (await this.updateLock.LockAsync())
-                    {
-                        await edgeHubConfig.ForEachAsync(
-                            async ehc =>
-                            {
-                                bool hasUpdates = this.currentConfig.Map(cc => !cc.Equals(ehc)).GetOrElse(true);
-                                if (hasUpdates)
-                                {
-                                    await this.UpdateRoutes(ehc.Routes, this.currentConfig.HasValue);
-                                    this.UpdateStoreAndForwardConfig(ehc.StoreAndForwardConfiguration);
-                                    this.currentConfig = Option.Some(ehc);
-                                }
-                            });
-                    }
+                    await this.UpdateConfig(edgeHubConfig);
                 }
             }
             catch (Exception ex)
@@ -89,17 +92,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             }
         }
 
-        async Task UpdateConfig(EdgeHubConfig edgeHubConfig)
+        async Task UpdateConfig(Option<EdgeHubConfig> edgeHubConfig)
+        {
+            using (await this.updateLock.LockAsync())
+            {
+                await edgeHubConfig.ForEachAsync(
+                    async ehc =>
+                    {
+                        bool hasUpdates = this.currentConfig.Map(cc => !cc.Equals(ehc)).GetOrElse(true);
+                        Events.ConfigReceived(hasUpdates);
+                        if (hasUpdates)
+                        {
+                            await this.UpdateRoutes(ehc.Routes, this.currentConfig.HasValue);
+                            this.UpdateStoreAndForwardConfig(ehc.StoreAndForwardConfiguration);
+                            this.currentConfig = Option.Some(ehc);
+                        }
+                    });
+            }
+        }
+
+        async Task HandleUpdateConfig(EdgeHubConfig edgeHubConfig)
         {
             Preconditions.CheckNotNull(edgeHubConfig, nameof(edgeHubConfig));
             Events.UpdatingConfig();
             try
             {
-                using (await this.updateLock.LockAsync())
-                {
-                    await this.UpdateRoutes(edgeHubConfig.Routes, true);
-                    this.UpdateStoreAndForwardConfig(edgeHubConfig.StoreAndForwardConfiguration);
-                }
+                await this.UpdateConfig(Option.Some(edgeHubConfig));
             }
             catch (Exception ex)
             {
@@ -161,7 +179,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 UpdatedRoutes,
                 UpdatedStoreAndForwardConfig,
                 EmptyConfig,
-                ErrorPullingConfig
+                ErrorPullingConfig,
+                ConfigReceived,
+                GettingConfig,
+                InitializedWithPrefechedConfig
             }
 
             public static void ErrorPullingConfig(Exception ex)
@@ -219,6 +240,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             internal static void EmptyConfigReceived()
             {
                 Log.LogWarning((int)EventIds.EmptyConfig, FormattableString.Invariant($"Empty edge hub configuration received. Ignoring..."));
+            }
+
+            internal static void ConfigReceived(bool hasUpdates)
+            {
+                string hasUpdatesMessage = hasUpdates ? string.Empty : "no";
+                Log.LogDebug((int)EventIds.ConfigReceived, $"Received edge hub configuration with {hasUpdatesMessage} updates");
+            }
+
+            internal static void GettingConfig()
+            {
+                Log.LogDebug((int)EventIds.GettingConfig, $"Getting configuration");
+            }
+
+            internal static void InitializedWithPrefetchedConfig()
+            {
+                Log.LogDebug((int)EventIds.InitializedWithPrefechedConfig, $"Initialized with prefetched configuration");
             }
         }
     }

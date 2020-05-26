@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
     public class KubernetesModule : Module
     {
-        static readonly TimeSpan SystemInfoTimeout = TimeSpan.FromSeconds(3);
+        static readonly TimeSpan SystemInfoTimeout = TimeSpan.FromSeconds(120);
         readonly ResourceName resourceName;
         readonly string edgeDeviceHostName;
         readonly string proxyImage;
@@ -54,12 +54,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Option<string> productInfo;
         readonly PortMapServiceType defaultMapServiceType;
         readonly bool enableServiceCallTracing;
-        readonly string persistentVolumeName;
+        readonly bool useMountSourceForVolumeName;
         readonly string storageClassName;
         readonly Option<uint> persistentVolumeClaimSizeMb;
         readonly Option<IWebProxy> proxy;
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
+        readonly bool useServerHeartbeat;
         readonly KubernetesExperimentalFeatures experimentalFeatures;
         readonly KubernetesModuleOwner moduleOwner;
         readonly bool runAsNonRoot;
@@ -85,12 +86,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             Option<string> productInfo,
             PortMapServiceType defaultMapServiceType,
             bool enableServiceCallTracing,
-            string persistentVolumeName,
+            bool useMountSourceForVolumeName,
             string storageClassName,
             Option<uint> persistentVolumeClaimSizeMb,
             Option<IWebProxy> proxy,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
+            bool useServerHeartbeat,
             KubernetesExperimentalFeatures experimentalFeatures,
             KubernetesModuleOwner moduleOwner,
             bool runAsNonRoot)
@@ -106,21 +108,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.proxyTrustBundleVolumeName = Preconditions.CheckNonWhiteSpace(proxyTrustBundleVolumeName, nameof(proxyTrustBundleVolumeName));
             this.proxyTrustBundleConfigMapName = Preconditions.CheckNonWhiteSpace(proxyTrustBundleConfigMapName, nameof(proxyTrustBundleConfigMapName));
             this.apiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
-            this.deviceSelector = $"{Constants.K8sEdgeDeviceLabel}={KubeUtils.SanitizeK8sValue(this.resourceName.DeviceId)},{Constants.K8sEdgeHubNameLabel}={KubeUtils.SanitizeK8sValue(this.resourceName.Hostname)}";
+            this.deviceSelector = $"{Constants.K8sEdgeDeviceLabel}={KubeUtils.SanitizeLabelValue(this.resourceName.DeviceId)},{Constants.K8sEdgeHubNameLabel}={KubeUtils.SanitizeLabelValue(this.resourceName.Hostname)}";
             this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace));
             this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
             this.dockerAuthConfig = Preconditions.CheckNotNull(dockerAuthConfig, nameof(dockerAuthConfig));
             this.upstreamProtocol = Preconditions.CheckNotNull(upstreamProtocol, nameof(upstreamProtocol));
-            this.productInfo = productInfo;
+            this.productInfo = productInfo.Map(p => $"{p} (Kubernetes)");
             this.defaultMapServiceType = defaultMapServiceType;
             this.enableServiceCallTracing = enableServiceCallTracing;
-            this.persistentVolumeName = persistentVolumeName;
+            this.useMountSourceForVolumeName = useMountSourceForVolumeName;
             this.storageClassName = storageClassName;
             this.persistentVolumeClaimSizeMb = persistentVolumeClaimSizeMb;
             this.proxy = proxy;
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
+            this.useServerHeartbeat = useServerHeartbeat;
             this.experimentalFeatures = experimentalFeatures;
             this.moduleOwner = moduleOwner;
             this.runAsNonRoot = runAsNonRoot;
@@ -161,7 +164,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         this.proxy,
                         this.productInfo.OrDefault(),
                         this.closeOnIdleTimeout,
-                        this.idleTimeout))
+                        this.idleTimeout,
+                        this.useServerHeartbeat))
                 .As<IModuleClientProvider>()
                 .SingleInstance();
 
@@ -252,7 +256,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             this.proxyTrustBundleVolumeName,
                             this.proxyTrustBundleConfigMapName,
                             this.defaultMapServiceType,
-                            this.persistentVolumeName,
+                            this.useMountSourceForVolumeName,
                             this.storageClassName,
                             this.persistentVolumeClaimSizeMb,
                             this.apiVersion,
@@ -268,7 +272,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<IKubernetesServiceMapper>();
 
             // KubernetesPvcMapper
-            builder.Register(c => new KubernetesPvcMapper(this.persistentVolumeName, this.storageClassName, this.persistentVolumeClaimSizeMb.OrDefault()))
+            builder.Register(c => new KubernetesPvcMapper(this.useMountSourceForVolumeName, this.storageClassName, this.persistentVolumeClaimSizeMb.OrDefault()))
                 .As<IKubernetesPvcMapper>();
 
             // KubernetesServiceAccountProvider
@@ -335,6 +339,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         return kubernetesEnvironmentProvider;
                     })
                 .As<Task<IEnvironmentProvider>>()
+                .SingleInstance();
+
+            // ISystemResourcesMetrics
+            builder.Register(c => new Edgelet.Docker.NullSystemResourcesMetrics())
+                .As<Edgelet.Docker.ISystemResourcesMetrics>()
                 .SingleInstance();
         }
     }

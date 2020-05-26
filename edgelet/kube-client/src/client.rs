@@ -18,8 +18,11 @@ use k8s_openapi::api::authorization::v1 as api_authorize;
 use k8s_openapi::api::core::v1 as api_core;
 use k8s_openapi::api::rbac::v1 as api_rbac;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
-use k8s_openapi::{http, DeleteOptional, ListOptional, Response as K8sResponse, ResponseBody};
-use log::debug;
+use k8s_openapi::{
+    http, CreateOptional, CreateResponse, DeleteOptional, DeleteResponse, List, ListOptional,
+    ListResponse, ReplaceOptional, ReplaceResponse, Response as K8sResponse, ResponseBody,
+};
+use log::{debug, trace};
 
 use crate::config::{Config, TokenSource};
 use crate::error::{Error, ErrorKind, RequestType};
@@ -94,11 +97,10 @@ where
             },
             ..api_authorize::SelfSubjectAccessReview::default()
         };
-        let params = api_authorize::CreateSelfSubjectAccessReviewOptional::default();
 
         api_authorize::SelfSubjectAccessReview::create_self_subject_access_review(
             &subject_access_review,
-            params,
+            CreateOptional::default(),
         )
         .map_err(|err| {
             Error::from(err.context(ErrorKind::Request(
@@ -106,11 +108,11 @@ where
             )))
         })
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
-                    api_authorize::CreateSelfSubjectAccessReviewResponse::Accepted(s)
-                    | api_authorize::CreateSelfSubjectAccessReviewResponse::Created(s)
-                    | api_authorize::CreateSelfSubjectAccessReviewResponse::Ok(s) => Ok(s),
+                    CreateResponse::Accepted(s)
+                    | CreateResponse::Created(s)
+                    | CreateResponse::Ok(s) => Ok(s),
                     _ => Err(Error::from(ErrorKind::Response(
                         RequestType::SelfSubjectAccessReviewCreate,
                     ))),
@@ -131,7 +133,7 @@ where
         namespace: &str,
         name: Option<&str>,
         label_selector: Option<&str>,
-    ) -> impl Future<Item = api_core::ConfigMapList, Error = Error> {
+    ) -> impl Future<Item = List<api_core::ConfigMap>, Error = Error> {
         let field_selector = name.map(|name| format!("metadata.name={}", name));
         let params = ListOptional {
             field_selector: field_selector.as_ref().map(String::as_ref),
@@ -142,9 +144,9 @@ where
         api_core::ConfigMap::list_namespaced_config_map(namespace, params)
             .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::ConfigMapList))))
             .map(|req| {
-                self.request(req)
+                self.request(req, true)
                     .and_then(|response| match response {
-                        api_core::ListNamespacedConfigMapResponse::Ok(list) => Ok(list),
+                        ListResponse::Ok(list) => Ok(list),
                         _ => Err(Error::from(ErrorKind::Response(RequestType::ConfigMapList))),
                     })
                     .map_err(|err| {
@@ -163,15 +165,15 @@ where
         api_core::ConfigMap::create_namespaced_config_map(
             namespace,
             &config_map,
-            api_core::CreateNamespacedConfigMapOptional::default(),
+            CreateOptional::default(),
         )
         .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::ConfigMapCreate))))
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
-                    api_core::CreateNamespacedConfigMapResponse::Accepted(config_map)
-                    | api_core::CreateNamespacedConfigMapResponse::Created(config_map)
-                    | api_core::CreateNamespacedConfigMapResponse::Ok(config_map) => Ok(config_map),
+                    CreateResponse::Accepted(config_map)
+                    | CreateResponse::Created(config_map)
+                    | CreateResponse::Ok(config_map) => Ok(config_map),
                     _ => Err(Error::from(ErrorKind::Response(
                         RequestType::ConfigMapCreate,
                     ))),
@@ -194,14 +196,13 @@ where
             name,
             namespace,
             config_map,
-            api_core::ReplaceNamespacedConfigMapOptional::default(),
+            ReplaceOptional::default(),
         )
         .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::ConfigMapReplace))))
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
-                    api_core::ReplaceNamespacedConfigMapResponse::Ok(config_map)
-                    | api_core::ReplaceNamespacedConfigMapResponse::Created(config_map) => {
+                    ReplaceResponse::Ok(config_map) | ReplaceResponse::Created(config_map) => {
                         Ok(config_map)
                     }
                     _ => Err(Error::from(ErrorKind::Response(
@@ -228,10 +229,9 @@ where
         )
         .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::ConfigMapDelete))))
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
-                    api_core::DeleteNamespacedConfigMapResponse::OkStatus(_)
-                    | api_core::DeleteNamespacedConfigMapResponse::OkValue(_) => Ok(()),
+                    DeleteResponse::OkStatus(_) | DeleteResponse::OkValue(_) => Ok(()),
                     _ => Err(Error::from(ErrorKind::Response(
                         RequestType::ConfigMapDelete,
                     ))),
@@ -249,7 +249,7 @@ where
         namespace: &str,
         name: Option<&str>,
         label_selector: Option<&str>,
-    ) -> impl Future<Item = api_apps::DeploymentList, Error = Error> {
+    ) -> impl Future<Item = List<api_apps::Deployment>, Error = Error> {
         let field_selector =
             name.map(|deployment_name| format!("metadata.name={}", deployment_name));
         let params = ListOptional {
@@ -262,11 +262,9 @@ where
                 Error::from(err.context(ErrorKind::Request(RequestType::DeploymentList)))
             })
             .map(|req| {
-                self.request(req)
+                self.request(req, true)
                     .and_then(|response| match response {
-                        api_apps::ListNamespacedDeploymentResponse::Ok(deployments) => {
-                            Ok(deployments)
-                        }
+                        ListResponse::Ok(deployments) => Ok(deployments),
                         _ => Err(Error::from(ErrorKind::Response(
                             RequestType::DeploymentList,
                         ))),
@@ -287,17 +285,15 @@ where
         api_apps::Deployment::create_namespaced_deployment(
             namespace,
             &deployment,
-            api_apps::CreateNamespacedDeploymentOptional::default(),
+            CreateOptional::default(),
         )
         .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::DeploymentCreate))))
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
-                    api_apps::CreateNamespacedDeploymentResponse::Accepted(deployment)
-                    | api_apps::CreateNamespacedDeploymentResponse::Created(deployment)
-                    | api_apps::CreateNamespacedDeploymentResponse::Ok(deployment) => {
-                        Ok(deployment)
-                    }
+                    CreateResponse::Accepted(deployment)
+                    | CreateResponse::Created(deployment)
+                    | CreateResponse::Ok(deployment) => Ok(deployment),
                     _ => Err(Error::from(ErrorKind::Response(
                         RequestType::DeploymentCreate,
                     ))),
@@ -320,14 +316,13 @@ where
             name,
             namespace,
             deployment,
-            api_apps::ReplaceNamespacedDeploymentOptional::default(),
+            ReplaceOptional::default(),
         )
         .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::DeploymentReplace))))
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
-                    api_apps::ReplaceNamespacedDeploymentResponse::Created(deployment)
-                    | api_apps::ReplaceNamespacedDeploymentResponse::Ok(deployment) => {
+                    ReplaceResponse::Created(deployment) | ReplaceResponse::Ok(deployment) => {
                         Ok(deployment)
                     }
                     _ => Err(Error::from(ErrorKind::Response(
@@ -354,10 +349,9 @@ where
         )
         .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::DeploymentDelete))))
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
-                    api_apps::DeleteNamespacedDeploymentResponse::OkStatus(_)
-                    | api_apps::DeleteNamespacedDeploymentResponse::OkValue(_) => Ok(()),
+                    DeleteResponse::OkStatus(_) | DeleteResponse::OkValue(_) => Ok(()),
                     _ => Err(Error::from(ErrorKind::Response(
                         RequestType::DeploymentDelete,
                     ))),
@@ -374,7 +368,7 @@ where
         &mut self,
         namespace: &str,
         label_selector: Option<&str>,
-    ) -> impl Future<Item = api_core::PodList, Error = Error> {
+    ) -> impl Future<Item = List<api_core::Pod>, Error = Error> {
         let params = ListOptional {
             label_selector,
             ..ListOptional::default()
@@ -382,9 +376,9 @@ where
         api_core::Pod::list_namespaced_pod(namespace, params)
             .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::PodList))))
             .map(|req| {
-                self.request(req)
+                self.request(req, true)
                     .and_then(|response| match response {
-                        api_core::ListNamespacedPodResponse::Ok(list) => Ok(list),
+                        ListResponse::Ok(list) => Ok(list),
                         _ => Err(Error::from(ErrorKind::Response(RequestType::PodList))),
                     })
                     .map_err(|err| {
@@ -395,13 +389,13 @@ where
             .flatten()
     }
 
-    pub fn list_nodes(&mut self) -> impl Future<Item = api_core::NodeList, Error = Error> {
+    pub fn list_nodes(&mut self) -> impl Future<Item = List<api_core::Node>, Error = Error> {
         api_core::Node::list_node(ListOptional::default())
             .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::NodeList))))
             .map(|req| {
-                self.request(req)
+                self.request(req, true)
                     .and_then(|response| match response {
-                        api_core::ListNodeResponse::Ok(list) => Ok(list),
+                        ListResponse::Ok(list) => Ok(list),
                         _ => Err(Error::from(ErrorKind::Response(RequestType::NodeList))),
                     })
                     .map_err(|err| {
@@ -416,7 +410,7 @@ where
         &mut self,
         namespace: &str,
         name: Option<&str>,
-    ) -> impl Future<Item = api_core::SecretList, Error = Error> {
+    ) -> impl Future<Item = List<api_core::Secret>, Error = Error> {
         let field_selector = name.map(|name| format!("metadata.name={}", name));
         let params = ListOptional {
             field_selector: field_selector.as_ref().map(String::as_ref),
@@ -425,9 +419,9 @@ where
         api_core::Secret::list_namespaced_secret(namespace, params)
             .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::SecretList))))
             .map(|req| {
-                self.request(req)
+                self.request(req, false)
                     .and_then(|response| match response {
-                        api_core::ListNamespacedSecretResponse::Ok(list) => Ok(list),
+                        ListResponse::Ok(list) => Ok(list),
                         _ => Err(Error::from(ErrorKind::Response(RequestType::SecretList))),
                     })
                     .map_err(|err| {
@@ -443,26 +437,22 @@ where
         namespace: &str,
         secret: &api_core::Secret,
     ) -> impl Future<Item = api_core::Secret, Error = Error> {
-        api_core::Secret::create_namespaced_secret(
-            namespace,
-            secret,
-            api_core::CreateNamespacedSecretOptional::default(),
-        )
-        .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::SecretCreate))))
-        .map(|req| {
-            self.request(req)
-                .and_then(|response| match response {
-                    api_core::CreateNamespacedSecretResponse::Accepted(s)
-                    | api_core::CreateNamespacedSecretResponse::Created(s)
-                    | api_core::CreateNamespacedSecretResponse::Ok(s) => Ok(s),
-                    _ => Err(Error::from(ErrorKind::Response(RequestType::SecretCreate))),
-                })
-                .map_err(|err| {
-                    Error::from(err.context(ErrorKind::Response(RequestType::SecretCreate)))
-                })
-        })
-        .into_future()
-        .flatten()
+        api_core::Secret::create_namespaced_secret(namespace, secret, CreateOptional::default())
+            .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::SecretCreate))))
+            .map(|req| {
+                self.request(req, false)
+                    .and_then(|response| match response {
+                        CreateResponse::Accepted(s)
+                        | CreateResponse::Created(s)
+                        | CreateResponse::Ok(s) => Ok(s),
+                        _ => Err(Error::from(ErrorKind::Response(RequestType::SecretCreate))),
+                    })
+                    .map_err(|err| {
+                        Error::from(err.context(ErrorKind::Response(RequestType::SecretCreate)))
+                    })
+            })
+            .into_future()
+            .flatten()
     }
 
     pub fn replace_secret(
@@ -475,14 +465,13 @@ where
             name,
             namespace,
             secret,
-            api_core::ReplaceNamespacedSecretOptional::default(),
+            ReplaceOptional::default(),
         )
         .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::SecretReplace))))
         .map(|req| {
-            self.request(req)
+            self.request(req, false)
                 .and_then(|response| match response {
-                    api_core::ReplaceNamespacedSecretResponse::Created(s)
-                    | api_core::ReplaceNamespacedSecretResponse::Ok(s) => Ok(s),
+                    ReplaceResponse::Created(s) | ReplaceResponse::Ok(s) => Ok(s),
                     _ => Err(Error::from(ErrorKind::Response(RequestType::SecretReplace))),
                 })
                 .map_err(|err| {
@@ -510,24 +499,20 @@ where
             ..api_auth::TokenReview::default()
         };
 
-        api_auth::TokenReview::create_token_review(
-            &token,
-            api_auth::CreateTokenReviewOptional::default(),
-        )
-        .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::TokenReview))))
-        .map(|req| {
-            self.request(req)
-                .and_then(|response| match response {
-                    api_auth::CreateTokenReviewResponse::Created(t)
-                    | api_auth::CreateTokenReviewResponse::Ok(t) => Ok(t),
-                    _ => Err(Error::from(ErrorKind::Response(RequestType::TokenReview))),
-                })
-                .map_err(|err| {
-                    Error::from(err.context(ErrorKind::Response(RequestType::TokenReview)))
-                })
-        })
-        .into_future()
-        .flatten()
+        api_auth::TokenReview::create_token_review(&token, CreateOptional::default())
+            .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::TokenReview))))
+            .map(|req| {
+                self.request(req, false)
+                    .and_then(|response| match response {
+                        CreateResponse::Created(t) | CreateResponse::Ok(t) => Ok(t),
+                        _ => Err(Error::from(ErrorKind::Response(RequestType::TokenReview))),
+                    })
+                    .map_err(|err| {
+                        Error::from(err.context(ErrorKind::Response(RequestType::TokenReview)))
+                    })
+            })
+            .into_future()
+            .flatten()
     }
 
     pub fn list_service_accounts(
@@ -535,7 +520,7 @@ where
         namespace: &str,
         name: Option<&str>,
         label_selector: Option<&str>,
-    ) -> impl Future<Item = api_core::ServiceAccountList, Error = Error> {
+    ) -> impl Future<Item = List<api_core::ServiceAccount>, Error = Error> {
         let field_selector = name.map(|name| format!("metadata.name={}", name));
         let params = ListOptional {
             field_selector: field_selector.as_ref().map(String::as_ref),
@@ -548,9 +533,9 @@ where
                 Error::from(err.context(ErrorKind::Request(RequestType::ServiceAccountList)))
             })
             .map(|req| {
-                self.request(req)
+                self.request(req, true)
                     .and_then(|response| match response {
-                        api_core::ListNamespacedServiceAccountResponse::Ok(list) => Ok(list),
+                        ListResponse::Ok(list) => Ok(list),
                         _ => Err(Error::from(ErrorKind::Response(
                             RequestType::ServiceAccountList,
                         ))),
@@ -573,19 +558,17 @@ where
         api_core::ServiceAccount::create_namespaced_service_account(
             namespace,
             &service_account,
-            api_core::CreateNamespacedServiceAccountOptional::default(),
+            CreateOptional::default(),
         )
         .map_err(|err| {
             Error::from(err.context(ErrorKind::Request(RequestType::ServiceAccountCreate)))
         })
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
-                    api_core::CreateNamespacedServiceAccountResponse::Accepted(service_account)
-                    | api_core::CreateNamespacedServiceAccountResponse::Created(service_account)
-                    | api_core::CreateNamespacedServiceAccountResponse::Ok(service_account) => {
-                        Ok(service_account)
-                    }
+                    CreateResponse::Accepted(service_account)
+                    | CreateResponse::Created(service_account)
+                    | CreateResponse::Ok(service_account) => Ok(service_account),
                     _ => Err(Error::from(ErrorKind::Response(
                         RequestType::ServiceAccountCreate,
                     ))),
@@ -610,7 +593,7 @@ where
         )
         .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::ServiceAccountGet))))
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
                     api_core::ReadNamespacedServiceAccountResponse::Ok(service_account) => {
                         Ok(service_account)
@@ -637,18 +620,16 @@ where
             name,
             namespace,
             service_account,
-            api_core::ReplaceNamespacedServiceAccountOptional::default(),
+            ReplaceOptional::default(),
         )
         .map_err(|err| {
             Error::from(err.context(ErrorKind::Request(RequestType::ServiceAccountReplace)))
         })
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
-                    api_core::ReplaceNamespacedServiceAccountResponse::Created(service_account)
-                    | api_core::ReplaceNamespacedServiceAccountResponse::Ok(service_account) => {
-                        Ok(service_account)
-                    }
+                    ReplaceResponse::Created(service_account)
+                    | ReplaceResponse::Ok(service_account) => Ok(service_account),
                     _ => Err(Error::from(ErrorKind::Response(
                         RequestType::ServiceAccountReplace,
                     ))),
@@ -677,10 +658,9 @@ where
             Error::from(err.context(ErrorKind::Request(RequestType::ServiceAccountDelete)))
         })
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
-                    api_core::DeleteNamespacedServiceAccountResponse::OkStatus(_)
-                    | api_core::DeleteNamespacedServiceAccountResponse::OkValue(_) => Ok(()),
+                    DeleteResponse::OkStatus(_) | DeleteResponse::OkValue(_) => Ok(()),
                     _ => Err(Error::from(ErrorKind::Response(
                         RequestType::ServiceAccountDelete,
                     ))),
@@ -703,16 +683,15 @@ where
             name,
             namespace,
             role_binding,
-            api_rbac::ReplaceNamespacedRoleBindingOptional::default(),
+            ReplaceOptional::default(),
         )
         .map_err(|err| {
             Error::from(err.context(ErrorKind::Request(RequestType::RoleBindingReplace)))
         })
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
-                    api_rbac::ReplaceNamespacedRoleBindingResponse::Created(role_binding)
-                    | api_rbac::ReplaceNamespacedRoleBindingResponse::Ok(role_binding) => {
+                    ReplaceResponse::Created(role_binding) | ReplaceResponse::Ok(role_binding) => {
                         Ok(role_binding)
                     }
                     _ => Err(Error::from(ErrorKind::Response(
@@ -739,10 +718,9 @@ where
         )
         .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::RoleBindingDelete))))
         .map(|req| {
-            self.request(req)
+            self.request(req, true)
                 .and_then(|response| match response {
-                    api_rbac::DeleteNamespacedRoleBindingResponse::OkStatus(_)
-                    | api_rbac::DeleteNamespacedRoleBindingResponse::OkValue(_) => Ok(()),
+                    DeleteResponse::OkStatus(_) | DeleteResponse::OkValue(_) => Ok(()),
                     _ => Err(Error::from(ErrorKind::Response(
                         RequestType::RoleBindingDelete,
                     ))),
@@ -762,8 +740,9 @@ where
             http::Request<Vec<u8>>,
             fn(http::StatusCode) -> ResponseBody<R>,
         ),
+        should_log_trace: bool,
     ) -> impl Future<Item = R, Error = Error> {
-        let next = |response: http::Response<Body>| {
+        let next = |response: hyper::Response<Body>, log_trace: bool| {
             let status_code = response.status();
             response
                 .into_body()
@@ -773,27 +752,35 @@ where
                 })
                 .map_err(|err| Error::from(err.context(ErrorKind::Hyper)))
                 .and_then(move |buf| {
-                    debug!("HTTP Response:\n{}", ::std::str::from_utf8(&buf).unwrap());
-                    R::try_from_parts(status_code, &buf)
+                    debug!("HTTP Status: {}", status_code);
+                    if log_trace {
+                        trace!("HTTP Response:\n{}", ::std::str::from_utf8(&buf).unwrap());
+                    }
+                    http::StatusCode::from_u16(status_code.as_u16())
                         .map_err(|err| Error::from(err.context(ErrorKind::KubeOpenApi)))
+                        .and_then(|status_code| {
+                            R::try_from_parts(status_code, &buf)
+                                .map_err(|err| Error::from(err.context(ErrorKind::KubeOpenApi)))
+                        })
                         .map(|(result, _)| result)
                         .into_future()
                 })
         };
 
-        self.execute(req).and_then(next)
+        self.execute(req)
+            .and_then(move |response| next(response, should_log_trace))
     }
 
     fn execute(
         &mut self,
-        mut req: http::Request<Vec<u8>>,
-    ) -> impl Future<Item = http::Response<Body>, Error = Error> {
+        req: http::Request<Vec<u8>>,
+    ) -> impl Future<Item = hyper::Response<Body>, Error = Error> {
         let path = req
             .uri()
             .path_and_query()
             .map_or("", |p| p.as_str())
             .to_string();
-
+        debug!("HTTP request path: {}", path);
         self.config
             .host()
             .join(&path)
@@ -804,8 +791,31 @@ where
                 Error::from(err.context(ErrorKind::UrlJoin(self.config.host().clone(), path)))
             })
             .and_then(|url| {
-                // set the full URL on the request including API path
-                *req.uri_mut() = url.as_str().parse::<Uri>().context(ErrorKind::Uri(url))?;
+                // req is an http 0.2 Request but hyper uses http 0.1, so destructure req and reassemble it.
+
+                let (req_parts, body) = req.into_parts();
+
+                let mut builder = hyper::Request::builder();
+
+                builder.uri(url.as_str().parse::<Uri>().context(ErrorKind::Uri(url))?);
+
+                builder.method(match req_parts.method {
+                    http::Method::DELETE => hyper::Method::DELETE,
+                    http::Method::GET => hyper::Method::GET,
+                    http::Method::PATCH => hyper::Method::PATCH,
+                    http::Method::POST => hyper::Method::POST,
+                    http::Method::PUT => hyper::Method::PUT,
+                    method => {
+                        let err = failure::format_err!("unrecognized http::Method {}", method);
+                        return Err(err.context(ErrorKind::Hyper).into());
+                    }
+                });
+
+                for (name, value) in req_parts.headers {
+                    if let Some(name) = name {
+                        builder.header(name.as_str(), value.as_bytes());
+                    }
+                }
 
                 // add the authorization bearer token to the request if we have one
                 if let Some(token) = self.config.token_source().get()? {
@@ -813,18 +823,19 @@ where
                         .parse::<HeaderValue>()
                         .context(ErrorKind::HeaderValue("Authorization".to_owned()))?;
 
-                    req.headers_mut().append(http::header::AUTHORIZATION, token);
+                    builder.header(hyper::header::AUTHORIZATION, token);
                 }
 
-                Ok(req)
-            })
-            .map(|req| {
-                // NOTE: The req.map call below converts from Request<Vec<u8>> into a
-                // Request<Body>. The res.map call converts from S::ResBody to Body.
-                self.client
-                    .call(req.map(From::from))
+                let req = builder
+                    .body(body.into())
+                    .map_err(|err| Error::from(err.context(ErrorKind::Hyper)))?;
+
+                let res = self
+                    .client
+                    .call(req)
                     .map_err(|err| Error::from(err.context(ErrorKind::Hyper)))
-                    .map(|res| res.map(From::from))
+                    .map(|res| res.map(From::from));
+                Ok(res)
             })
             .into_future()
             .flatten()
@@ -844,7 +855,6 @@ mod tests {
     use k8s_openapi::api::apps::v1 as api_apps;
     use k8s_openapi::api::core::v1 as api_core;
     use native_tls::TlsConnector;
-    use serde_json;
     use tokio::runtime::Runtime;
     use url::percent_encoding::{utf8_percent_encode, USERINFO_ENCODE_SET};
     use url::Url;

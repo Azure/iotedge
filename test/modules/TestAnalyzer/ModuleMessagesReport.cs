@@ -9,17 +9,12 @@ namespace TestAnalyzer
     [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
     class ModuleMessagesReport
     {
-        public ModuleMessagesReport(string moduleId, StatusCode statusCode, long receivedMessagesCount, string statusMessage)
-            : this(moduleId, statusCode, receivedMessagesCount, statusMessage, DateTime.MinValue, new List<MissedMessagesDetails>())
+        public ModuleMessagesReport(string moduleId, StatusCode statusCode, long receivedMessagesCount, string statusMessage, IDictionary<string, string> testInfo)
+            : this(moduleId, statusCode, receivedMessagesCount, statusMessage, DateTime.MinValue, new List<MissedMessagesDetails>(), testInfo)
         {
         }
 
-        public ModuleMessagesReport(string moduleId, StatusCode statusCode, long receivedMessagesCount, string statusMessage, DateTime lastMessageReceivedAt)
-            : this(moduleId, statusCode, receivedMessagesCount, statusMessage, lastMessageReceivedAt, new List<MissedMessagesDetails>())
-        {
-        }
-
-        public ModuleMessagesReport(string moduleId, StatusCode statusCode, long receivedMessagesCount, string statusMessage, DateTime lastMessageReceivedAt, IList<MissedMessagesDetails> missedMessages)
+        public ModuleMessagesReport(string moduleId, StatusCode statusCode, long receivedMessagesCount, string statusMessage, DateTime lastMessageReceivedAt, IList<MissedMessagesDetails> missedMessages, IDictionary<string, string> testInfo)
         {
             this.ModuleId = moduleId;
             this.StatusCode = statusCode;
@@ -27,6 +22,7 @@ namespace TestAnalyzer
             this.StatusMessage = statusMessage;
             this.MissedMessages = missedMessages;
             this.LastMessageReceivedAt = lastMessageReceivedAt;
+            this.TestInfo = testInfo;
         }
 
         public string ModuleId { get; }
@@ -40,6 +36,10 @@ namespace TestAnalyzer
         public DateTime LastMessageReceivedAt { get; }
 
         public IList<MissedMessagesDetails> MissedMessages { get; }
+
+        public bool IsPassed => this.StatusCode == StatusCode.AllMessages || this.StatusCode == StatusCode.OldMessages;
+
+        public IDictionary<string, string> TestInfo { get; }
 
         public override string ToString()
         {

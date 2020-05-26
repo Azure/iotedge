@@ -111,11 +111,19 @@ namespace IotEdgeQuickstart.Details
             return Task.CompletedTask;
         }
 
-        public async Task Configure(DeviceProvisioningMethod method, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
+        public async Task Configure(DeviceProvisioningMethod method, Option<string> agentImage, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
         {
             const string HidePowerShellProgressBar = "$ProgressPreference='SilentlyContinue'";
 
-            Console.WriteLine($"Setting up iotedged with agent image '{image}'");
+            agentImage.ForEach(
+                image =>
+                {
+                    Console.WriteLine($"Setting up iotedged with agent image {image}");
+                },
+                () =>
+                {
+                    Console.WriteLine("Setting up iotedged with agent image 1.0");
+                });
 
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
             {
@@ -138,8 +146,7 @@ namespace IotEdgeQuickstart.Details
                 if (this.requireEdgeInstallation)
                 {
                     Console.WriteLine("Installing iotedge...");
-                    args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Install-SecurityDaemon " +
-                           $"-ContainerOs Windows -AgentImage '{image}'";
+                    args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Install-SecurityDaemon " + $"-ContainerOs Windows";
 
                     this.proxy.ForEach(proxy => { args += $" -Proxy '{proxy}'"; });
 
@@ -152,8 +159,17 @@ namespace IotEdgeQuickstart.Details
                 {
                     Console.WriteLine("Initializing iotedge...");
                     args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Initialize-IoTEdge " +
-                           $"-ContainerOs Windows -AgentImage '{image}'";
+                           $"-ContainerOs Windows";
                 }
+
+                agentImage.ForEach(image =>
+                {
+                    args += $" -AgentImage '{image}'";
+                    foreach (RegistryCredentials c in this.credentials)
+                    {
+                        args += $" -Username '{c.User}' -Password (ConvertTo-SecureString '{c.Password}' -AsPlainText -Force)";
+                    }
+                });
 
                 args += method.Dps.Map(
                     dps =>
@@ -174,11 +190,6 @@ namespace IotEdgeQuickstart.Details
 
                 args += method.ManualConnectionString.Map(
                     cs => { return $" -Manual -DeviceConnectionString '{cs}'"; }).GetOrElse(string.Empty);
-
-                foreach (RegistryCredentials c in this.credentials)
-                {
-                    args += $" -Username '{c.User}' -Password (ConvertTo-SecureString '{c.Password}' -AsPlainText -Force)";
-                }
 
                 // note: ignore hostname for now
                 string[] result = await Process.RunAsync("powershell", $"{HidePowerShellProgressBar}; {args}", cts.Token);

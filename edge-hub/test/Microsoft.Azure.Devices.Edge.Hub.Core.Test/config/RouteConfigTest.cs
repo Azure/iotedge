@@ -21,15 +21,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
 
         public static IEnumerable<object[]> GetEqualityTest()
         {
-            var r1 = new Route("id", string.Empty, "iotHub", Mock.Of<IMessageSource>(), new HashSet<Endpoint>());
-            var r2 = new Route("id", string.Empty, "iotHub", Mock.Of<IMessageSource>(), new HashSet<Endpoint>());
+            var r1 = new Route("id", string.Empty, "iotHub", Mock.Of<IMessageSource>(), new Mock<Endpoint>("endpoint1").Object, 0, 3600);
+            var r2 = new Route("id", string.Empty, "iotHub", Mock.Of<IMessageSource>(), new Mock<Endpoint>("endpoint2").Object, 0, 3600);
             var routeConfig1 = new RouteConfig("r1", "FROM /* INTO $upstream", r1);
             var routeConfig2 = new RouteConfig("r1", "FROM /* INTO $upstream", r2);
             var routeConfig3 = new RouteConfig("r2", "FROM /* INTO $upstream", r2);
             var routeConfig4 = new RouteConfig("r2", "FROM /messages/* INTO $upstream", r2);
             var routeConfig5 = new RouteConfig("r2", "FROM /messages/* INTO $upstream", r2);
 
-            yield return new object[] { routeConfig1, routeConfig2, true };
+            yield return new object[] { routeConfig1, routeConfig2, false };
             yield return new object[] { routeConfig2, routeConfig3, false };
             yield return new object[] { routeConfig3, routeConfig4, false };
             yield return new object[] { routeConfig4, routeConfig5, true };

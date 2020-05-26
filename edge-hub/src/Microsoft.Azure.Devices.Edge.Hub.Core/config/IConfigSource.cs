@@ -7,6 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
     public interface IConfigSource
     {
+        Task<Option<EdgeHubConfig>> GetCachedConfig();
+
         Task<Option<EdgeHubConfig>> GetConfig();
 
         void SetConfigUpdatedCallback(Func<EdgeHubConfig, Task> callback);

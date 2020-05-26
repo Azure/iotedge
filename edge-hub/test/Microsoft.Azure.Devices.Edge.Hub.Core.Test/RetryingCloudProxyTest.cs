@@ -80,6 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(10),
                 false,
                 TimeSpan.FromMinutes(10),
+                false,
                 Option.None<IWebProxy>(),
                 productInfoStore.Object);
             connectionProvider.BindEdgeHub(edgeHub.Object);
@@ -179,6 +180,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(10),
                 false,
                 TimeSpan.FromMinutes(10),
+                false,
                 Option.None<IWebProxy>(),
                 productInfoStore.Object);
             connectionProvider.BindEdgeHub(edgeHub.Object);
@@ -262,6 +264,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(10),
                 false,
                 TimeSpan.FromMinutes(10),
+                false,
                 Option.None<IWebProxy>(),
                 productInfoStore.Object);
             connectionProvider.BindEdgeHub(edgeHub.Object);

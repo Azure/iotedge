@@ -1,6 +1,12 @@
 parameters:
   testName: ''
   release.label: ''
+  test.buildNumber: ''
+  test.buildId: ''
+  test.startDelay: ''
+  build.source.branch: ''
+  edgelet.source.branch: ''
+  images.source.branch: ''
   edgelet.artifact.name: ''
   images.artifact.name: ''
   container.registry: ''
@@ -27,9 +33,11 @@ parameters:
   twinTester.twinUpdateSize: ''
   twinTester.twinUpdateFrequency: ''
   twinTester.twinUpdateFailureThreshold: ''
+  twinTester.edgeHubRestartFailureTolerance: ''
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''
+  metricsCollector.hostPlatform: ''
 
 steps:
   - task: CopyFiles@2
@@ -94,7 +102,26 @@ steps:
           $ScheduleTime=$ScheduleDatetime.ToString("HH:mm")
           Write-Host "Schedule to stop iotedge service at $ScheduleDate $ScheduleTime"
           SchTasks.exe /Create /RU "SYSTEM" /SC ONCE /TN “StopStressTest” /TR "net stop iotedge" /SD $ScheduleDate /ST $ScheduleTime /F
+
+          # Stress tests are not configured to make use of a test start delay variable (only for long haul)
+          # The shell script below will expect a parameter defined because it is also used for long haul
+          # We can hardcode a 0 second delay to get around this.
+          $testStartDelay = "00:00:00"
         }
+        else
+        {
+          $testStartDelay = "${{ parameters['test.startDelay'] }}"
+        }
+        
+        $testInfo="TestBuildNumber=${{ parameters['test.buildNumber'] }}"
+        $testInfo=$testInfo+",TestBuildId=${{ parameters['test.buildId'] }}"
+        $testInfo=$testInfo+",BuildSourceBranch=${{ parameters['build.source.branch'] }}"
+        $testInfo=$testInfo+",EdgeletSourceBranch=${{ parameters['edgelet.source.branch'] }}"
+        $testInfo=$testInfo+",ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
+        $testInfo=$testInfo+",HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
+        $testInfo=$testInfo+",TestName=${{ parameters['testName'] }}"
+        $testInfo=$testInfo+",UpstreamProtocol=amqp"
+        
         $ArtifactInfo=convertfrom-stringdata (get-content C:\Data\e2etests\artifacts\${{ parameters['images.artifact.name'] }}\artifactInfo.txt -raw)
         C:\Data\e2etests\artifacts\${{ parameters['images.artifact.name'] }}\scripts\windows\test\Run-E2ETest.ps1 `
           -E2ETestFolder "C:\Data\e2etests" `
@@ -125,8 +152,11 @@ steps:
           -TwinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" `
           -TwinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" `
           -TwinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" `
+          -EdgeHubRestartFailureTolerance "${{ parameters['twinTester.edgeHubRestartFailureTolerance'] }}" `
           -MetricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" `
           -MetricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" `
           -MetricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" `
+          -TestInfo "$testInfo" `
+          -TestStartDelay "$testStartDelay" `
           -BypassEdgeInstallation
       CommunicationProtocol: Http

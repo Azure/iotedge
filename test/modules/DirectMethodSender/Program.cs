@@ -28,7 +28,7 @@ namespace DirectMethodSender
             {
                 Guid batchId = Guid.NewGuid();
                 Logger.LogInformation($"Batch Id={batchId}");
-                Logger.LogInformation($"Load gen delay start for {Settings.Current.TestStartDelay}.");
+                Logger.LogInformation($"DirectMethodSender delay start for {Settings.Current.TestStartDelay}.");
                 await Task.Delay(Settings.Current.TestStartDelay, cts.Token);
 
                 DateTime testStartAt = DateTime.UtcNow;
@@ -41,16 +41,20 @@ namespace DirectMethodSender
 
                 while (!cts.Token.IsCancellationRequested && IsTestTimeUp(testStartAt))
                 {
-                    (HttpStatusCode result, long dmCounter) = await directMethodClient.InvokeDirectMethodAsync(Settings.Current.DirectMethodName, cts);
+                    (HttpStatusCode resultStatusCode, ulong dmCounter) = await directMethodClient.InvokeDirectMethodAsync(Settings.Current.DirectMethodName, cts);
+                    DirectMethodResultType resultType = Settings.Current.DirectMethodResultType;
 
-                    // Generate a testResult type depending on the reporting endpoint
-                    TestResultBase testResult = ConstructTestResult(
-                        Settings.Current.DirectMethodResultType,
-                        batchId,
-                        dmCounter,
-                        result);
+                    if (ShouldReportResults(resultType, resultStatusCode))
+                    {
+                        // Generate a testResult type depending on the reporting endpoint
+                        TestResultBase testResult = ConstructTestResult(
+                            resultType,
+                            batchId,
+                            dmCounter,
+                            resultStatusCode);
 
-                    await reportClient.SendTestResultAsync(testResult);
+                        await reportClient.SendTestResultAsync(testResult);
+                    }
 
                     await Task.Delay(Settings.Current.DirectMethodDelay, cts.Token);
                 }
@@ -109,7 +113,7 @@ namespace DirectMethodSender
         }
 
         // Create reporting result depending on which endpoint is being used.
-        public static TestResultBase ConstructTestResult(DirectMethodResultType directMethodResultType, Guid batchId, long counter, HttpStatusCode result)
+        public static TestResultBase ConstructTestResult(DirectMethodResultType directMethodResultType, Guid batchId, ulong counter, HttpStatusCode result)
         {
             string source = Settings.Current.ModuleId + ".send";
             switch (directMethodResultType)
@@ -120,7 +124,7 @@ namespace DirectMethodSender
                         DateTime.UtcNow,
                         Settings.Current.TrackingId.Expect(() => new ArgumentException("TrackingId is empty")),
                         batchId,
-                        counter.ToString(),
+                        counter,
                         result);
 
                 case DirectMethodResultType.LegacyDirectMethodTestResult:
@@ -132,6 +136,11 @@ namespace DirectMethodSender
                 default:
                     throw new NotImplementedException("Reporting Endpoint has an unknown type");
             }
+        }
+
+        static bool ShouldReportResults(DirectMethodResultType resultType, HttpStatusCode statusCode)
+        {
+            return !(resultType == DirectMethodResultType.LegacyDirectMethodTestResult && statusCode == HttpStatusCode.NotFound);
         }
     }
 }

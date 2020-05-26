@@ -14,19 +14,24 @@ namespace TestResultCoordinator.Reports
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(DeploymentTestReportGenerator));
 
         readonly string trackingId;
+        readonly ushort unmatchedResultsMaxSize;
 
         internal DeploymentTestReportGenerator(
+            string testDescription,
             string trackingId,
             string expectedSource,
             ITestResultCollection<TestOperationResult> expectedTestResults,
             string actualSource,
-            ITestResultCollection<TestOperationResult> actualTestResults)
+            ITestResultCollection<TestOperationResult> actualTestResults,
+            ushort unmatchedResultsMaxSize)
         {
+            this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.ExpectedTestResults = Preconditions.CheckNotNull(expectedTestResults, nameof(expectedTestResults));
             this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
             this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
             this.ActualTestResults = Preconditions.CheckNotNull(actualTestResults, nameof(actualTestResults));
+            this.unmatchedResultsMaxSize = Preconditions.CheckRange<ushort>(unmatchedResultsMaxSize, 1);
 
             this.TestResultComparer = new DeploymentTestResultComparer();
             this.ResultType = TestOperationResultType.Deployment.ToString();
@@ -41,6 +46,8 @@ namespace TestResultCoordinator.Reports
         internal ITestResultCollection<TestOperationResult> ExpectedTestResults { get; }
 
         internal string ResultType { get; }
+
+        internal string TestDescription { get; }
 
         internal ITestResultComparer<TestOperationResult> TestResultComparer { get; }
 
@@ -59,7 +66,7 @@ namespace TestResultCoordinator.Reports
             ulong totalExpectedDeployments = 0;
             ulong totalActualDeployments = 0;
             ulong totalMatchedDeployments = 0;
-            var unmatchedResults = new List<TestOperationResult>();
+            var unmatchedResults = new Queue<TestOperationResult>();
 
             bool hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
             if (hasExpectedResult)
@@ -102,7 +109,7 @@ namespace TestResultCoordinator.Reports
 
             while (hasExpectedResult)
             {
-                unmatchedResults.Add(this.ExpectedTestResults.Current);
+                TestReportUtil.EnqueueAndEnforceMaxSize(unmatchedResults, this.ExpectedTestResults.Current, this.unmatchedResultsMaxSize);
                 hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
                 if (hasExpectedResult)
                 {
@@ -134,6 +141,7 @@ namespace TestResultCoordinator.Reports
             }
 
             return new DeploymentTestReport(
+                this.TestDescription,
                 this.trackingId,
                 this.ExpectedSource,
                 this.ActualSource,
@@ -142,7 +150,7 @@ namespace TestResultCoordinator.Reports
                 totalActualDeployments,
                 totalMatchedDeployments,
                 Option.Maybe(lastActualDeploymentTestResult),
-                unmatchedResults.AsReadOnly());
+                new List<TestOperationResult>(unmatchedResults).AsReadOnly());
         }
 
         void ValidateResult(TestOperationResult current, string expectedSource)

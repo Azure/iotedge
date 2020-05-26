@@ -4,6 +4,7 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
+    clippy::missing_errors_doc,
     clippy::module_name_repetitions,
     clippy::must_use_candidate,
     clippy::shadow_unrelated,
@@ -25,7 +26,7 @@ pub mod unix;
 pub mod windows;
 
 use futures::sync::mpsc;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::env;
 use std::fs;
 use std::fs::{DirBuilder, File, OpenOptions};
@@ -1356,7 +1357,6 @@ where
     M::Settings: Serialize,
     C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
-    // Remove all edge containers and destroy the cache (settings and dps backup)
     info!("Removing all modules...");
     tokio_runtime
         .block_on(runtime.remove_all())
@@ -1365,22 +1365,13 @@ where
         ))?;
     info!("Finished removing modules.");
 
-    // Ignore errors from this operation because we could be recovering from a previous bad
-    // configuration and shouldn't stall the current configuration because of that
-    let _u = fs::remove_dir_all(subdir);
-
     let path = subdir.join(filename);
-
-    DirBuilder::new()
-        .recursive(true)
-        .create(subdir)
-        .context(ErrorKind::Initialize(
-            InitializeErrorReason::CreateSettingsDirectory,
-        ))?;
 
     // regenerate the workload CA certificate
     destroy_workload_ca(crypto)?;
     prepare_workload_ca(crypto)?;
+
+    // regenerate settings_state
     let mut file =
         File::create(path).context(ErrorKind::Initialize(InitializeErrorReason::SaveSettings))?;
     let digest = compute_settings_digest(settings, id_cert_thumbprint)
@@ -1994,15 +1985,15 @@ where
 
 // Add the environment variables needed by the EdgeAgent.
 fn build_env<S>(
-    spec_env: &HashMap<String, String>,
+    spec_env: &BTreeMap<String, String>,
     hostname: &str,
     device_id: &str,
     settings: &S,
-) -> HashMap<String, String>
+) -> BTreeMap<String, String>
 where
     S: RuntimeSettings,
 {
-    let mut env = HashMap::new();
+    let mut env = BTreeMap::new();
     env.insert(HOSTNAME_KEY.to_string(), hostname.to_string());
     env.insert(
         GATEWAY_HOSTNAME_KEY.to_string(),
@@ -2171,14 +2162,23 @@ mod tests {
     use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings};
     use edgelet_test_utils::cert::TestCert;
     use edgelet_test_utils::crypto::TestHsm;
-    use edgelet_test_utils::module::*;
+    use edgelet_test_utils::module::{TestModule, TestProvisioningResult, TestRuntime};
 
     use provisioning::provisioning::{
         AuthType, CredentialSource, Credentials, ProvisioningResult, ReprovisioningStatus,
         SymmetricKeyCredential, X509Credential,
     };
 
-    use super::*;
+    use super::{
+        check_settings_state, compute_settings_digest, diff_with_cached, env,
+        get_provisioning_auth_method, get_proxy_uri, prepare_master_hybrid_identity_key, signal,
+        CertificateIssuer, CertificateProperties, CreateCertificate, Decrypt, Digest, Encrypt,
+        ErrorKind, ExternalProvisioningErrorReason, Fail, File, Future, GetIssuerAlias,
+        InitializeErrorReason, Main, MakeModuleRuntime, MakeRandom, MasterEncryptionKey,
+        ProvisioningAuthMethod, RuntimeSettings, Sha256, Uri, Write,
+        EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+        IDENTITY_MASTER_KEY_LEN_BYTES, IOTEDGED_CRYPTO_IV_LEN_BYTES,
+    };
     use docker::models::ContainerCreateBody;
 
     #[cfg(unix)]
@@ -2242,6 +2242,7 @@ mod tests {
         }
     }
 
+    #[allow(clippy::struct_excessive_bools)]
     struct TestCrypto {
         use_expired_ca: bool,
         fail_device_ca_alias: bool,
@@ -2651,6 +2652,76 @@ mod tests {
 
         assert_eq!(expected_base64, written1);
         assert_ne!(written1, written);
+    }
+
+    #[test]
+    fn check_settings_state_does_not_delete_other_files() {
+        let tmp_dir = TempDir::new("blah").unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
+        let config = DockerConfig::new(
+            "microsoft/test-image".to_string(),
+            ContainerCreateBody::new(),
+            None,
+        )
+        .unwrap();
+
+        // create baseline settings_state
+        let state = ModuleRuntimeState::default();
+        let module: TestModule<Error, _> =
+            TestModule::new_with_config("test-module".to_string(), config, Ok(state));
+        let runtime = TestRuntime::make_runtime(
+            settings.clone(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
+        let crypto = TestCrypto {
+            use_expired_ca: false,
+            fail_device_ca_alias: false,
+            fail_decrypt: false,
+            fail_encrypt: true,
+        };
+        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
+        check_settings_state::<TestRuntime<_, Settings>, _>(
+            tmp_dir.path(),
+            "settings_state",
+            &settings,
+            &runtime,
+            &crypto,
+            &mut tokio_runtime,
+            None,
+        )
+        .unwrap();
+
+        // create a couple extra files in the same folder as settings_state
+        let provisioning_backup_json = tmp_dir.path().join("provisioning_backup.json");
+        File::create(&provisioning_backup_json)
+            .unwrap()
+            .write_all(b"{}")
+            .unwrap();
+
+        let file1 = tmp_dir.path().join("file1.txt");
+        File::create(&file1).unwrap().write_all(b"hello").unwrap();
+
+        // change settings; will force update of settings_state
+        let settings1 = Settings::new(Path::new(GOOD_SETTINGS1)).unwrap();
+        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
+        check_settings_state::<TestRuntime<_, Settings>, _>(
+            tmp_dir.path(),
+            "settings_state",
+            &settings1,
+            &runtime,
+            &crypto,
+            &mut tokio_runtime,
+            None,
+        )
+        .unwrap();
+
+        // verify extra files weren't deleted
+        assert!(provisioning_backup_json.exists());
+        assert!(file1.exists());
     }
 
     #[test]

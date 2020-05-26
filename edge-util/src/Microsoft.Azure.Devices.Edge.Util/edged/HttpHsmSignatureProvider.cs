@@ -33,7 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
                 switch (ex)
                 {
                     case WorkloadCommunicationException errorResponseException:
-                        throw new HttpHsmCommunicationException(errorResponseException.Message, errorResponseException.StatusCode);
+                        throw new SignatureProviderException(
+                            new HttpHsmCommunicationException(errorResponseException.Message, errorResponseException.StatusCode));
                     default:
                         throw;
                 }

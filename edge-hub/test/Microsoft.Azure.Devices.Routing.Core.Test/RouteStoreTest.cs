@@ -23,8 +23,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test
             Endpoint endpoint1 = new NullEndpoint("endpoint1");
             Endpoint endpoint2 = new NullEndpoint("endpoint2");
             IEnumerable<Endpoint> allEndpoints = new List<Endpoint> { endpoint1, endpoint2 };
-            var route1 = new Route("id1", "true", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint1 });
-            var route2 = new Route("id2", "false", "hub", TelemetryMessageSource.Instance, new HashSet<Endpoint> { endpoint2 });
+            var route1 = new Route("id1", "true", "hub", TelemetryMessageSource.Instance, endpoint1, 0, 0);
+            var route2 = new Route("id2", "false", "hub", TelemetryMessageSource.Instance, endpoint2, 0, 0);
             IEnumerable<Route> allRoutes = new List<Route> { route1, route2 };
             var store2 = new RouteStore(
                 new Dictionary<string, RouterConfig>

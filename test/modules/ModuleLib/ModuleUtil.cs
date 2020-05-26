@@ -2,6 +2,9 @@
 namespace Microsoft.Azure.Devices.Edge.ModuleUtil
 {
     using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
@@ -56,16 +59,28 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             return new LoggerFactory().AddSerilog().CreateLogger(categoryName);
         }
 
-        public static async Task ReportTestResultAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult)
+        public static async Task ReportTestResultAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult, CancellationToken cancellationToken = default(CancellationToken))
         {
-            try
+            logger.LogInformation($"Sending test result: Source={testResult.Source}, Type={testResult.ResultType}, CreatedAt={testResult.CreatedAt}, Result={testResult.GetFormattedResult()}");
+            await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto(), cancellationToken);
+        }
+
+        // TODO: Remove this function once the TRC support the two new endpoint properly.
+        public static async Task ReportTestResultUntilSuccessAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult, CancellationToken cancellationToken)
+        {
+            bool isSuccessful = false;
+            while (!isSuccessful && !cancellationToken.IsCancellationRequested)
             {
-                logger.LogInformation($"Sending test result: Source={testResult.Source}, Type={testResult.ResultType}, CreatedAt={testResult.CreatedAt}, Result={testResult.GetFormattedResult()}");
-                await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto());
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Failed call to report status to TestResultCoordinator");
+                try
+                {
+                    logger.LogInformation($"Sending test result: Source={testResult.Source}, Type={testResult.ResultType}, CreatedAt={testResult.CreatedAt}, Result={testResult.GetFormattedResult()}");
+                    await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto(), cancellationToken);
+                    isSuccessful = true;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogDebug(ex, "Exception caught in ReportTestResultAsync()");
+                }
             }
         }
 
@@ -106,6 +121,29 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             {
                 logger.Log(logLevel, message);
             }
+        }
+
+        // Test info is used in the longhaul, stress, and connectivity tests to provide contextual information when reporting.
+        // This info is passed from the vsts pipeline and needs to be parsed by the test modules.
+        // Includes information such as build numbers, ids, host platform, etc.
+        // Argument should be in the format key=value[,key=value]
+        public static SortedDictionary<string, string> ParseKeyValuePairs(string keyValuePairs, ILogger logger, bool shouldBeNonEmpty)
+        {
+            WriteLog(logger, LogLevel.Information, $"Parsing key value pairs: {keyValuePairs}");
+
+            Dictionary<string, string> unsortedParsedTestInfo = keyValuePairs.Split(",", StringSplitOptions.RemoveEmptyEntries)
+                                .Select(x => (KeyAndValue: x, SplitIndex: x.IndexOf('=')))
+                                .Where(x => x.SplitIndex >= 1)
+                                .ToDictionary(
+                                    x => x.KeyAndValue.Substring(0, x.SplitIndex),
+                                    x => x.KeyAndValue.Substring(x.SplitIndex + 1, x.KeyAndValue.Length - x.SplitIndex - 1));
+
+            if (shouldBeNonEmpty)
+            {
+                Preconditions.CheckArgument(unsortedParsedTestInfo.Count > 0, $"Key value pairs not in correct format: {keyValuePairs}");
+            }
+
+            return new SortedDictionary<string, string>(unsortedParsedTestInfo);
         }
     }
 }

@@ -1,10 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::ops::Deref;
 use std::time::Duration;
 
-use base64;
 use failure::{Fail, ResultExt};
 use futures::future::Either;
 use futures::prelude::*;
@@ -12,7 +11,6 @@ use futures::{future, stream, Async, Stream};
 use hyper::{Body, Chunk as HyperChunk, Client, Request};
 use lazy_static::lazy_static;
 use log::{debug, info, Level};
-use serde_json;
 use url::Url;
 
 use docker::apis::client::APIClient;
@@ -35,17 +33,12 @@ use crate::module::{
 };
 use crate::settings::Settings;
 
-#[cfg(not(windows))]
 use edgelet_core::DiskInfo;
-#[cfg(not(windows))]
 use std::convert::TryInto;
 #[cfg(target_os = "linux")]
 use std::mem;
-#[cfg(not(windows))]
 use std::process;
-#[cfg(not(windows))]
 use std::time::{SystemTime, UNIX_EPOCH};
-#[cfg(not(windows))]
 use sysinfo::{DiskExt, ProcessExt, ProcessorExt, SystemExt};
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
@@ -67,10 +60,10 @@ pub struct DockerModuleRuntime {
 }
 
 impl DockerModuleRuntime {
-    fn merge_env(cur_env: Option<&[String]>, new_env: &HashMap<String, String>) -> Vec<String> {
-        // build a new merged hashmap containing string slices for keys and values
+    fn merge_env(cur_env: Option<&[String]>, new_env: &BTreeMap<String, String>) -> Vec<String> {
+        // build a new merged map containing string slices for keys and values
         // pointing into String instances in new_env
-        let mut merged_env = HashMap::new();
+        let mut merged_env = BTreeMap::new();
         merged_env.extend(new_env.iter().map(|(k, v)| (k.as_str(), v.as_str())));
 
         if let Some(env) = cur_env {
@@ -341,7 +334,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                 let mut labels = create_options
                     .labels()
                     .cloned()
-                    .unwrap_or_else(HashMap::new);
+                    .unwrap_or_else(BTreeMap::new);
                 labels.insert(LABEL_KEY.to_string(), LABEL_VALUE.to_string());
 
                 debug!(
@@ -636,85 +629,71 @@ impl ModuleRuntime for DockerModuleRuntime {
                 })
             });
 
-        #[cfg(not(windows))]
-        {
-            #[cfg(target_os = "linux")]
-            let uptime = {
-                let mut info: libc::sysinfo = unsafe { mem::zeroed() };
-                let ret = unsafe { libc::sysinfo(&mut info) };
-                if ret == 0 {
-                    info.uptime.try_into().unwrap_or_default()
-                } else {
-                    0
-                }
-            };
-            #[cfg(not(target_os = "linux"))]
-            let uptime = 0;
+        #[cfg(not(any(windows, target_os = "linux")))]
+        let uptime: u64 = 0;
 
-            let mut system_info = sysinfo::System::new();
-            system_info.refresh_all();
-            let current_time = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_secs();
-            let start_time = process::id()
-                .try_into()
-                .map(|id| {
-                    system_info
-                        .get_process_list()
-                        .get(&id)
-                        .map(|p| p.start_time())
-                        .unwrap_or_default()
-                })
-                .unwrap_or_default();
-
-            let used_cpu = system_info
-                .get_processor_list()
-                .iter()
-                .find(|p| p.get_name() == "Total CPU")
-                .map_or_else(|| -1.0, |p| p.get_cpu_usage());
-
-            let total_memory = system_info.get_total_memory() * 1000;
-            let used_memory = system_info.get_used_memory() * 1000;
-
-            let disks = system_info
-                .get_disks()
-                .iter()
-                .map(|disk| {
-                    DiskInfo::new(
-                        disk.get_name().to_string_lossy().into_owned(),
-                        disk.get_available_space(),
-                        disk.get_total_space(),
-                        String::from_utf8_lossy(disk.get_file_system()).into_owned(),
-                        format!("{:?}", disk.get_type()),
-                    )
-                })
-                .collect();
-
-            let result = docker_stats.map(move |stats: String| {
-                SystemResources::new(
-                    uptime,
-                    current_time - start_time,
-                    used_cpu.into(),
-                    used_memory,
-                    total_memory,
-                    disks,
-                    stats,
-                )
-            });
-
-            Box::new(result)
-        }
+        #[cfg(target_os = "linux")]
+        let uptime: u64 = {
+            let mut info: libc::sysinfo = unsafe { mem::zeroed() };
+            let ret = unsafe { libc::sysinfo(&mut info) };
+            if ret == 0 {
+                info.uptime.try_into().unwrap_or_default()
+            } else {
+                0
+            }
+        };
 
         #[cfg(windows)]
-        {
-            let uptime = unsafe { winapi::um::sysinfoapi::GetTickCount() };
-            let result = docker_stats.map(move |stats: String| {
-                SystemResources::new(uptime.into(), 0, 0.0, 0, 0, vec![], stats)
-            });
+        let uptime: u64 = unsafe { winapi::um::sysinfoapi::GetTickCount64() / 1000 };
 
-            Box::new(result)
-        }
+        let mut system_info = sysinfo::System::new();
+        system_info.refresh_all();
+        let current_time = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        let start_time = process::id()
+            .try_into()
+            .map(|id| {
+                system_info
+                    .get_process(id)
+                    .map(|p| p.start_time())
+                    .unwrap_or_default()
+            })
+            .unwrap_or_default();
+
+        let used_cpu = system_info.get_global_processor_info().get_cpu_usage();
+
+        let total_memory = system_info.get_total_memory() * 1000;
+        let used_memory = system_info.get_used_memory() * 1000;
+
+        let disks = system_info
+            .get_disks()
+            .iter()
+            .map(|disk| {
+                DiskInfo::new(
+                    disk.get_name().to_string_lossy().into_owned(),
+                    disk.get_available_space(),
+                    disk.get_total_space(),
+                    String::from_utf8_lossy(disk.get_file_system()).into_owned(),
+                    format!("{:?}", disk.get_type()),
+                )
+            })
+            .collect();
+
+        let result = docker_stats.map(move |stats: String| {
+            SystemResources::new(
+                uptime,
+                current_time - start_time,
+                used_cpu.into(),
+                used_memory,
+                total_memory,
+                disks,
+                stats,
+            )
+        });
+
+        Box::new(result)
     }
 
     fn list(&self) -> Self::ListFuture {
@@ -738,8 +717,13 @@ impl ModuleRuntime for DockerModuleRuntime {
                             .flat_map(|container| {
                                 DockerConfig::new(
                                     container.image().to_string(),
-                                    ContainerCreateBody::new()
-                                        .with_labels(container.labels().clone()),
+                                    ContainerCreateBody::new().with_labels(
+                                        container
+                                            .labels()
+                                            .iter()
+                                            .map(|(k, v)| (k.to_string(), v.to_string()))
+                                            .collect(),
+                                    ),
                                     None,
                                 )
                                 .map(|config| {
@@ -1035,7 +1019,13 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{
+        authenticate, future, list_with_details, parse_get_response, AuthId, Authenticator,
+        BTreeMap, Body, CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop,
+        Duration, Error, ErrorKind, Future, GetTrustBundle, InlineResponse200, LogOptions,
+        MakeModuleRuntime, Module, ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid,
+        ProvisioningResult, Request, Settings, Stream, SystemResources,
+    };
 
     use std::path::Path;
 
@@ -1142,14 +1132,14 @@ mod tests {
     #[test]
     fn merge_env_empty() {
         let cur_env = Some(&[][..]);
-        let new_env = HashMap::new();
+        let new_env = BTreeMap::new();
         assert_eq!(0, DockerModuleRuntime::merge_env(cur_env, &new_env).len());
     }
 
     #[test]
     fn merge_env_new_empty() {
         let cur_env = Some(vec!["k1=v1".to_string(), "k2=v2".to_string()]);
-        let new_env = HashMap::new();
+        let new_env = BTreeMap::new();
         let mut merged_env =
             DockerModuleRuntime::merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
         merged_env.sort();
@@ -1159,7 +1149,7 @@ mod tests {
     #[test]
     fn merge_env_extend_new() {
         let cur_env = Some(vec!["k1=v1".to_string(), "k2=v2".to_string()]);
-        let mut new_env = HashMap::new();
+        let mut new_env = BTreeMap::new();
         new_env.insert("k3".to_string(), "v3".to_string());
         let mut merged_env =
             DockerModuleRuntime::merge_env(cur_env.as_ref().map(AsRef::as_ref), &new_env);
@@ -1170,7 +1160,7 @@ mod tests {
     #[test]
     fn merge_env_extend_replace_new() {
         let cur_env = Some(vec!["k1=v1".to_string(), "k2=v2".to_string()]);
-        let mut new_env = HashMap::new();
+        let mut new_env = BTreeMap::new();
         new_env.insert("k2".to_string(), "v02".to_string());
         new_env.insert("k3".to_string(), "v3".to_string());
         let mut merged_env =

@@ -11,6 +11,7 @@ namespace TestResultCoordinator.Reports
     class CountingReport : TestResultReportBase
     {
         public CountingReport(
+            string testDescription,
             string trackingId,
             string expectedSource,
             string actualSource,
@@ -19,7 +20,7 @@ namespace TestResultCoordinator.Reports
             ulong totalMatchCount,
             ulong totalDuplicateResultCount,
             IReadOnlyList<TestOperationResult> unmatchedResults)
-            : base(trackingId, resultType)
+            : base(testDescription, trackingId, resultType)
         {
             this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
             this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
@@ -41,7 +42,7 @@ namespace TestResultCoordinator.Reports
 
         public IReadOnlyList<TestOperationResult> UnmatchedResults { get; }
 
-        public override bool IsPassed => this.TotalExpectCount == this.TotalMatchCount;
+        public override bool IsPassed => this.TotalExpectCount == this.TotalMatchCount && this.TotalExpectCount > 0;
 
         public override string Title => $"Counting Report between [{this.ExpectedSource}] and [{this.ActualSource}] ({this.ResultType})";
     }

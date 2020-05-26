@@ -134,25 +134,8 @@ public class FactoryMetrics
         this.commandCounters[command].Increment(1, new[] { module.Name, module.Version, true.ToString() });
     }
 
-    public DurationSetter MeasureTime(string command)
+    public IDisposable MeasureTime(string command)
     {
-        return new DurationSetter(duration => this.commandTiming.Set(duration, new string[] { command, true.ToString() }));
-    }
-
-    public class DurationSetter : IDisposable
-    {
-        Stopwatch timer = Stopwatch.StartNew();
-        Action<double> setDuration;
-
-        internal DurationSetter(Action<double> setDuration)
-        {
-            this.setDuration = setDuration;
-        }
-
-        public void Dispose()
-        {
-            this.timer.Stop();
-            this.setDuration(this.timer.Elapsed.TotalSeconds);
-        }
+        return DurationMeasurer.MeasureDuration(duration => this.commandTiming.Set(duration.TotalSeconds, new string[] { command, true.ToString() }));
     }
 }

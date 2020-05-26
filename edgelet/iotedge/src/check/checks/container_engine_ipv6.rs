@@ -31,8 +31,8 @@ impl Checker for ContainerEngineIPv6 {
 impl ContainerEngineIPv6 {
     fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         const MESSAGE: &str =
-        "Container engine is not configured for IPv6 communication.\n\
-         Please see https://aka.ms/iotedge-docker-ipv6 for a guide on how to enable IPv6 support.";
+            "Container engine is not configured for IPv6 communication.\n\
+             Please see https://aka.ms/iotedge-docker-ipv6 for a guide on how to enable IPv6 support.";
 
         let is_edge_ipv6_configured = check.settings.as_ref().map_or(false, |settings| {
             let moby_network = settings.moby_runtime().network();

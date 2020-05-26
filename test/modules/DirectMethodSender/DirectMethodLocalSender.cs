@@ -50,7 +50,7 @@ namespace DirectMethodSender
             string deviceId,
             string targetModuleId,
             string methodName,
-            long directMethodCount,
+            ulong directMethodCount,
             CancellationToken none)
         {
             MethodRequest request = new MethodRequest(methodName, Encoding.UTF8.GetBytes($"{{ \"Message\": \"Hello\", \"DirectMethodCount\": \"{directMethodCount.ToString()}\" }}"));

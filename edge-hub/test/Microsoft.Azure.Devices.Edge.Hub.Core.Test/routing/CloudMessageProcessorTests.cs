@@ -199,6 +199,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         }
 
         [Fact]
+        [Unit]
         public async Task ProcessInBatchesTest()
         {
             // Arrange
@@ -269,6 +270,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         }
 
         [Fact]
+        [Unit]
         public async Task ProcessInBatchesWithBatchSizeTest()
         {
             // Arrange
@@ -505,6 +507,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         [InlineData(10, 1024, 10)]
         [InlineData(10, 64 * 1024, 4)]
         [InlineData(20, 50 * 1024, 5)]
+        [Unit]
         public void GetBatchSizeTest(int maxBatchSize, int maxMessageSize, int expectedBatchSize)
         {
             Assert.Equal(expectedBatchSize, CloudEndpoint.CloudMessageProcessor.GetBatchSize(maxBatchSize, maxMessageSize));

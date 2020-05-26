@@ -9,23 +9,23 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
     {
         readonly string deviceId;
         readonly Dictionary<string, IModuleConfigBuilder> moduleBuilders;
-        readonly List<(string address, string username, string password)> registries;
+        readonly List<Registry> registries;
 
         public EdgeConfigBuilder(string deviceId)
         {
             this.deviceId = deviceId;
             this.moduleBuilders = new Dictionary<string, IModuleConfigBuilder>();
-            this.registries = new List<(string, string, string)>();
+            this.registries = new List<Registry>();
         }
 
-        public void AddRegistryCredentials(string address, string username, string password) =>
-            this.registries.Add((address, username, password));
+        public void AddRegistry(Registry registry) =>
+            this.registries.Add(registry);
 
-        public void AddRegistryCredentials(IEnumerable<(string address, string username, string password)> credentials)
+        public void AddRegistries(IEnumerable<Registry> credentials)
         {
-            foreach ((string address, string username, string password) in credentials)
+            foreach (Registry registry in credentials)
             {
-                this.AddRegistryCredentials(address, username, password);
+                this.AddRegistry(registry);
             }
         }
 
@@ -52,53 +52,54 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             return builder;
         }
 
-        /* Will output edgeHub and edgeAgent configurations, then a full configuration at the end.
-           This is done to assure routes are set up for the most recent $edgeHub deployment before the test modules start sending messages (i.e. assure messages won't get dropped).
-           Another way to handle this is to define all possible routes at the very beginning of the test, but there is added complexity as module names are assigned dynamically. */
-        public IEnumerable<EdgeConfiguration> BuildConfigurationStages()
+        // By default, returns two configurations: one with just the system modules; the other with
+        // the full configuration (if it contains more than just system modules). The first
+        // configuration can be deployed in advance to ensure edgeHub's routes are ready before the
+        // test modules start sending messages, to avoid dropped messages.
+        // Note: Another option would be to define all possible routes at the beginning of the test
+        // run, but then module names would need to be statically defined as well (currently they're
+        // dynamic).
+        // If stageSystemModules is false, returns one (full) configuration.
+        public IEnumerable<EdgeConfiguration> Build(bool stageSystemModules = true)
         {
-            // Build all modules *except* edge agent
-            List<ModuleConfiguration> modules = this.moduleBuilders
-                .Where(b => b.Key != "$edgeAgent")
+            // Edge agent is not optional; add if necessary
+            if (!this.moduleBuilders.ContainsKey(ModuleName.EdgeAgent))
+            {
+                this.AddEdgeAgent();
+            }
+
+            ILookup<string, ModuleConfiguration> moduleConfigs = this.moduleBuilders
+                .Where(b => b.Key != ModuleName.EdgeAgent) // delay building edge agent
                 .Select(b => b.Value.Build())
-                .ToList();
+                .ToLookup(m => m.IsSystemModule() ? "system" : "other");
 
-            // Build edge agent
-            modules.Insert(0, this.BuildEdgeAgent(modules));
-
-            // Find the $edgeAgent and $edgeHub match, then immediately compose and return a configuration
-            var config = new ConfigurationContent
+            EdgeConfiguration BuildEdgeConfiguration(List<ModuleConfiguration> modules)
             {
-                ModulesContent = new Dictionary<string, IDictionary<string, object>>()
-            };
-
-            var moduleNames = new List<string>();
-            var moduleImages = new List<string>();
-
-            // Return a configuration for $edgeHub and $edgeAgent
-            foreach (ModuleConfiguration module in modules.Where(m => this.IsSystemModule(m)))
-            {
-                this.AddModuleToConfiguration(module, moduleNames, moduleImages, config);
+                modules.Insert(0, this.BuildEdgeAgent(modules));
+                return EdgeConfiguration.Create(this.deviceId, modules);
             }
 
-            Dictionary<string, IDictionary<string, object>> copyModulesContent = config.ModulesContent.ToDictionary(entry => entry.Key, entry => entry.Value);
-            yield return new EdgeConfiguration(this.deviceId, new List<string>(moduleNames), new List<string>(moduleImages), new ConfigurationContent { ModulesContent = copyModulesContent });
-
-            // Return a configuration for other modules
-            foreach (ModuleConfiguration module in modules.Where(m => !this.IsSystemModule(m)))
+            if (stageSystemModules)
             {
-                this.AddModuleToConfiguration(module, moduleNames, moduleImages, config);
-            }
+                // Return a configuration for $edgeHub and $edgeAgent
+                yield return BuildEdgeConfiguration(moduleConfigs["system"].ToList());
 
-            yield return new EdgeConfiguration(this.deviceId, moduleNames, moduleImages, config);
+                if (moduleConfigs.Contains("other"))
+                {
+                    // Return a configuration for all modules
+                    yield return BuildEdgeConfiguration(moduleConfigs.SelectMany(m => m).ToList());
+                }
+            }
+            else
+            {
+                yield return BuildEdgeConfiguration(moduleConfigs.SelectMany(m => m).ToList());
+            }
         }
 
         ModuleConfiguration BuildEdgeAgent(IEnumerable<ModuleConfiguration> configs)
         {
-            if (!this.moduleBuilders.TryGetValue("$edgeAgent", out IModuleConfigBuilder agentBuilder))
-            {
-                agentBuilder = this.AddEdgeAgent();
-            }
+            // caller guarantees that $edgeAgent exists in moduleBuilders
+            IModuleConfigBuilder agentBuilder = this.moduleBuilders[ModuleName.EdgeAgent];
 
             // Settings boilerplate
             var settings = new Dictionary<string, object>()
@@ -112,14 +113,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 var credentials = new Dictionary<string, object>();
                 for (int i = 0; i < this.registries.Count; ++i)
                 {
-                    (string address, string username, string password) = this.registries[i];
+                    Registry registry = this.registries[i];
                     credentials.Add(
                         $"reg{i}",
                         new
                         {
-                            username,
-                            password,
-                            address
+                            registry.Username,
+                            registry.Password,
+                            registry.Address
                         });
                 }
 
@@ -171,28 +172,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             return agentBuilder.Build();
         }
 
-        bool IsSystemModule(ModuleConfiguration module)
-        {
-            return module.Name.Equals("$edgeHub") || module.Name.Equals("$edgeAgent");
-        }
-
-        void AddModuleToConfiguration(ModuleConfiguration module, List<string> moduleNames, List<string> moduleImages, ConfigurationContent config)
-        {
-            moduleNames.Add(module.Name);
-            moduleImages.Add(module.Image);
-
-            if (module.DesiredProperties.Count != 0)
-            {
-                config.ModulesContent[module.Name] = new Dictionary<string, object>
-                {
-                    ["properties.desired"] = module.DesiredProperties
-                };
-            }
-        }
-
         public IModuleConfigBuilder GetModule(string name)
         {
             return this.moduleBuilders[name];
+        }
+
+        public void RemoveModule(string name)
+        {
+            this.moduleBuilders.Remove(name);
         }
 
         static (string name, bool system) ParseModuleName(string name) =>

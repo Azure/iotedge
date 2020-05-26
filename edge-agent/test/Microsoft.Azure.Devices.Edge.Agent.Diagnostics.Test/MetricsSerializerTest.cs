@@ -6,11 +6,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using System.Runtime.InteropServices;
-    using System.Text;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
+    [Unit]
     public class MetricsSerializerTest
     {
         readonly Random rand = new Random();

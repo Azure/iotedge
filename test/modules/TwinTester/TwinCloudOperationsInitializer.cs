@@ -2,7 +2,6 @@
 namespace TwinTester
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
@@ -18,25 +17,21 @@ namespace TwinTester
         readonly DesiredPropertyUpdater desiredPropertyUpdater;
         PeriodicTask periodicUpdate;
 
-        TwinCloudOperationsInitializer(RegistryManager registryManager, ITwinTestResultHandler resultHandler, TwinState twinState)
+        TwinCloudOperationsInitializer(RegistryManager registryManager, ITwinTestResultHandler resultHandler, TwinTestState twinTestState)
         {
-            this.desiredPropertyUpdater = new DesiredPropertyUpdater(registryManager, resultHandler, twinState);
+            this.desiredPropertyUpdater = new DesiredPropertyUpdater(registryManager, resultHandler, twinTestState);
         }
 
         public static async Task<TwinCloudOperationsInitializer> CreateAsync(RegistryManager registryManager, ITwinTestResultHandler resultHandler)
         {
             try
             {
-                TwinState initializedState;
+                TwinTestState initializedState;
                 Twin twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId);
 
-                // reset desired properties
-                twin.Properties.Desired = null;
-                Twin desiredPropertyResetTwin = await registryManager.ReplaceTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId, twin, twin.ETag);
+                initializedState = new TwinTestState(twin.ETag);
 
-                initializedState = new TwinState { TwinETag = desiredPropertyResetTwin.ETag };
-
-                Logger.LogInformation($"Start state of module twin: {JsonConvert.SerializeObject(desiredPropertyResetTwin, Formatting.Indented)}");
+                Logger.LogInformation($"Start state of module twin: {JsonConvert.SerializeObject(twin, Formatting.Indented)}");
                 return new TwinCloudOperationsInitializer(registryManager, resultHandler, initializedState);
             }
             catch (Exception e)
@@ -47,6 +42,7 @@ namespace TwinTester
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
+            Logger.LogInformation($"Waiting for {Settings.Current.TestStartDelay} based on TestStartDelay setting before starting.");
             await Task.Delay(Settings.Current.TestStartDelay, cancellationToken);
             this.periodicUpdate = new PeriodicTask(this.UpdateAsync, Settings.Current.TwinUpdateFrequency, Settings.Current.TwinUpdateFrequency, Logger, "TwinDesiredPropertiesUpdate");
         }

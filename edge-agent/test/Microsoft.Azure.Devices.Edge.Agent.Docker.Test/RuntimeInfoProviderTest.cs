@@ -143,7 +143,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     await Client.CleanupContainerAsync(Name, Image);
 
                     string createOptions = @"{""Env"": [ ""k1=v1"", ""k2=v2""]}";
-                    var config = new DockerConfig(Image, createOptions);
+                    var config = new DockerConfig(Image, createOptions, Option.None<NotaryContentTrust>());
                     var loggingConfig = new DockerLoggingConfig("json-file");
                     var module = new DockerModule(Name, "1.0", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.OnUnhealthy, config, ImagePullPolicy.OnCreate, Constants.DefaultPriority, null, null);
 
@@ -285,7 +285,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(dockerClient);
 
             // Act
-            Stream receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, false, Option.None<int>(), Option.None<int>(), CancellationToken.None);
+            Stream receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, false, Option.None<int>(), Option.None<string>(), CancellationToken.None);
 
             // Assert
             Assert.NotNull(receivedContainerLogsParameters);
@@ -301,7 +301,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(dummyLogs, receivedLogs);
 
             // Act
-            receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, true, Option.Some(1000), Option.None<int>(), CancellationToken.None);
+            receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, true, Option.Some(1000), Option.None<string>(), CancellationToken.None);
 
             // Assert
             Assert.NotNull(receivedContainerLogsParameters);
@@ -317,7 +317,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(dummyLogs, receivedLogs);
 
             // Act
-            receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, true, Option.None<int>(), Option.Some(1552887267), CancellationToken.None);
+            receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, true, Option.None<int>(), Option.Some("1552887267"), CancellationToken.None);
 
             // Assert
             Assert.NotNull(receivedContainerLogsParameters);

@@ -39,15 +39,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             }
         }
 
-        protected void WithSettings(IEnumerable<(string, string)> settings)
+        public IModuleConfigBuilder WithSettings(params (string, string)[] settings)
         {
             foreach ((string key, string value) in settings)
             {
                 this.settings[key] = value; // for duplicate keys, last save wins!
             }
+
+            return this;
         }
 
-        public IModuleConfigBuilder WithEnvironment(IEnumerable<(string, string)> env)
+        public IModuleConfigBuilder WithEnvironment(params (string, string)[] env)
         {
             foreach ((string key, string value) in env)
             {

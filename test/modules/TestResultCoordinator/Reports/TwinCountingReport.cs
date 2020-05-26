@@ -6,8 +6,8 @@ namespace TestResultCoordinator.Reports
 
     class TwinCountingReport : TestResultReportBase
     {
-        public TwinCountingReport(string trackingId, string expectedSource, string actualSource, string resultType, ulong totalExpectCount, ulong totalMatchCount, ulong totalPatches, ulong totalDuplicates, ReadOnlyCollection<string> unmatchedResults)
-            : base(trackingId, resultType)
+        public TwinCountingReport(string testDescription, string trackingId, string expectedSource, string actualSource, string resultType, ulong totalExpectCount, ulong totalMatchCount, ulong totalPatches, ulong totalDuplicates, ReadOnlyCollection<string> unmatchedResults)
+            : base(testDescription, trackingId, resultType)
         {
             this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
             this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
@@ -32,7 +32,7 @@ namespace TestResultCoordinator.Reports
 
         public ReadOnlyCollection<string> UnmatchedResults { get; }
 
-        public override bool IsPassed => this.TotalExpectCount == this.TotalMatchCount;
+        public override bool IsPassed => this.TotalExpectCount == this.TotalMatchCount && this.TotalExpectCount > 0;
 
         public override string Title => $"Twin Counting Report between [{this.ExpectedSource}] and [{this.ActualSource}] ({this.ResultType})";
     }

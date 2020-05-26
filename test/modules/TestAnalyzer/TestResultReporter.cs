@@ -37,7 +37,7 @@ namespace TestAnalyzer
             foreach (KeyValuePair<string, IDictionary<string, Tuple<int, DateTime>>> obj in cache)
             {
                 Logger.LogInformation($"{reportDescription} {obj.Key}");
-                report.Add(new AggregateCloudOperationReport(obj.Key, obj.Value));
+                report.Add(new AggregateCloudOperationReport(obj.Key, obj.Value, Settings.Current.TestInfo));
             }
 
             return report;
@@ -67,7 +67,7 @@ namespace TestAnalyzer
 
             if (batchesSnapshot.Count == 0)
             {
-                return new ModuleMessagesReport(moduleId, StatusCode.NoMessages, totalMessagesCounter, "No messages received for module");
+                return new ModuleMessagesReport(moduleId, StatusCode.NoMessages, totalMessagesCounter, "No messages received for module", Settings.Current.TestInfo);
             }
 
             DateTime lastMessageDateTime = DateTime.MinValue;
@@ -101,16 +101,54 @@ namespace TestAnalyzer
                 }
             }
 
-            // check if last message is older
-            if (DateTime.Compare(lastMessageDateTime.AddMilliseconds(toleranceInMilliseconds), endDateTime) < 0)
+            bool areMessagesMissing = missingCounter > 0;
+            bool isLastMessageTooOld = DateTime.Compare(lastMessageDateTime.AddMilliseconds(toleranceInMilliseconds), endDateTime) < 0;
+
+            if (areMessagesMissing)
             {
-                Logger.LogInformation($"Module {moduleId}: last message datetime={lastMessageDateTime} and end datetime={endDateTime}");
-                return new ModuleMessagesReport(moduleId, StatusCode.OldMessages, totalMessagesCounter, $"Missing messages: {missingCounter}. No messages received for the past {toleranceInMilliseconds} milliseconds.", lastMessageDateTime, missedMessages);
+                Logger.LogInformation($"Module {moduleId}: missing messages");
             }
 
-            return missingCounter > 0
-                ? new ModuleMessagesReport(moduleId, StatusCode.SkippedMessages, totalMessagesCounter, $"Missing messages: {missingCounter}.", lastMessageDateTime, missedMessages)
-                : new ModuleMessagesReport(moduleId, StatusCode.AllMessages, totalMessagesCounter, "All messages received.", lastMessageDateTime);
+            if (isLastMessageTooOld)
+            {
+                Logger.LogInformation($"Module {moduleId}: last message datetime={lastMessageDateTime} and end datetime={endDateTime}");
+            }
+
+            (StatusCode statusCode, string statusMessage) = GetStatus(areMessagesMissing, isLastMessageTooOld, missingCounter, toleranceInMilliseconds);
+
+            return new ModuleMessagesReport(moduleId, statusCode, totalMessagesCounter, statusMessage, lastMessageDateTime, missedMessages, Settings.Current.TestInfo);
+        }
+
+        static (StatusCode, string) GetStatus(bool areMessagesMissing, bool isLastMessageTooOld, long missingCounter, double toleranceInMilliseconds)
+        {
+            string missingMessagesStatus = $"Missing messages: {missingCounter}.";
+            string messagesTooOldStatus = $"No messages received for the past {toleranceInMilliseconds} milliseconds.";
+            string noMissingMessagesStatus = "All messages received. ";
+
+            StatusCode statusCode;
+            string statusMessage;
+            if (areMessagesMissing && isLastMessageTooOld)
+            {
+                statusCode = StatusCode.SkippedAndOldMessages;
+                statusMessage = $"{missingMessagesStatus} {messagesTooOldStatus}";
+            }
+            else if (areMessagesMissing)
+            {
+                statusCode = StatusCode.SkippedMessages;
+                statusMessage = $"{missingMessagesStatus}";
+            }
+            else if (isLastMessageTooOld)
+            {
+                statusCode = StatusCode.OldMessages;
+                statusMessage = $"{messagesTooOldStatus} {noMissingMessagesStatus}";
+            }
+            else
+            {
+                statusCode = StatusCode.AllMessages;
+                statusMessage = $"{noMissingMessagesStatus}";
+            }
+
+            return (statusCode, statusMessage);
         }
     }
 }
