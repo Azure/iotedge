@@ -37,11 +37,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public string TargetEdgeDeviceId { get; }
 
-        public IDeviceScopeApiClient CreateOnBehalfOfDeviceScopeClient(string _)
-        {
-            return null;
-        }
-
         public DeviceScopeApiClient(
             string iotHubHostName,
             string deviceId,

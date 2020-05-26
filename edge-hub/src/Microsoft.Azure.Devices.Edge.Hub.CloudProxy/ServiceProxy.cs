@@ -12,23 +12,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
     public class ServiceProxy : IServiceProxy
     {
-        readonly IDeviceScopeApiClient securityScopesApiClient;
+        readonly IDeviceScopeApiClientProvider securityScopesApiClientProvider;
+        readonly IDeviceScopeApiClient defaultSecurityScopesApiClient;
 
-        public ServiceProxy(IDeviceScopeApiClient securityScopesApiClient)
+        public ServiceProxy(IDeviceScopeApiClientProvider securityScopesApiClientProvider)
         {
-            this.securityScopesApiClient = Preconditions.CheckNotNull(securityScopesApiClient, nameof(securityScopesApiClient));
+            this.securityScopesApiClientProvider = Preconditions.CheckNotNull(securityScopesApiClientProvider, nameof(securityScopesApiClientProvider));
+            this.defaultSecurityScopesApiClient = this.securityScopesApiClientProvider.CreateDeviceScopeClient();
         }
 
-        public IServiceIdentitiesIterator GetServiceIdentitiesIterator() => new ServiceIdentitiesIterator(this.securityScopesApiClient);
+        public IServiceIdentitiesIterator GetServiceIdentitiesIterator() => new ServiceIdentitiesIterator(this.securityScopesApiClientProvider.CreateDeviceScopeClient());
 
-        public IServiceIdentitiesIterator GetNestedServiceIdentitiesIterator() => new NestedServiceIdentitiesIterator(this.securityScopesApiClient);
+        public IServiceIdentitiesIterator GetNestedServiceIdentitiesIterator() => new NestedServiceIdentitiesIterator(this.securityScopesApiClientProvider);
 
         public async Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId)
         {
             Option<ScopeResult> scopeResult = Option.None<ScopeResult>();
             try
             {
-                ScopeResult res = await this.securityScopesApiClient.GetIdentity(deviceId, null);
+                ScopeResult res = await this.defaultSecurityScopesApiClient.GetIdentity(deviceId, null);
                 scopeResult = Option.Maybe(res);
                 Events.IdentityScopeResultReceived(deviceId);
             }
@@ -78,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Option<ScopeResult> scopeResult = Option.None<ScopeResult>();
             try
             {
-                ScopeResult res = await this.securityScopesApiClient.GetIdentity(deviceId, moduleId);
+                ScopeResult res = await this.defaultSecurityScopesApiClient.GetIdentity(deviceId, moduleId);
                 scopeResult = Option.Maybe(res);
                 Events.IdentityScopeResultReceived(id);
             }
@@ -179,55 +181,81 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         /// <summary>
         /// This is a helper class used to pull down the devices/modules in scope for every nested Edge Device.
-        /// It maintains a queue of ServiceIdentitiesIterator, each representating a child Edge device
-        /// in the subtree, and uses these iterators to perform breadth-first-expansion on the tree.
+        /// It maintains a queue of IDeviceScopeApiClient, each representating a child Edge device
+        /// in the subtree, and uses them to perform breadth-first-expansion on the tree.
         /// </summary>
         class NestedServiceIdentitiesIterator : IServiceIdentitiesIterator
         {
+            IDeviceScopeApiClientProvider clientProvider;
             IDeviceScopeApiClient actorClient;
-            Queue<IServiceIdentitiesIterator> remainingEdgeNodes;
+            Queue<IDeviceScopeApiClient> remainingEdgeNodes;
 
-            public NestedServiceIdentitiesIterator(IDeviceScopeApiClient securityScopesApiClient)
+            public NestedServiceIdentitiesIterator(IDeviceScopeApiClientProvider securityScopesApiClientProvider)
             {
-                this.remainingEdgeNodes = new Queue<IServiceIdentitiesIterator>();
+                this.clientProvider = Preconditions.CheckNotNull(securityScopesApiClientProvider);
 
-                this.actorClient = Preconditions.CheckNotNull(securityScopesApiClient);
-                this.remainingEdgeNodes.Enqueue(new ServiceIdentitiesIterator(securityScopesApiClient));
+                // Put the first node (the actor device) into the queue
+                this.actorClient = this.clientProvider.CreateNestedDeviceScopeClient(Option.None<string>());
+                this.remainingEdgeNodes = new Queue<IDeviceScopeApiClient>();
+                this.remainingEdgeNodes.Enqueue(this.actorClient);
             }
 
             public bool HasNext => this.remainingEdgeNodes.Count > 0;
 
-            public Task<IEnumerable<ServiceIdentity>> GetNext()
+            public async Task<IEnumerable<ServiceIdentity>> GetNext()
             {
                 // Check for the empty-case
                 if (this.remainingEdgeNodes.Count == 0)
                 {
-                    return Task.FromResult(Enumerable.Empty<ServiceIdentity>());
+                    return Enumerable.Empty<ServiceIdentity>();
                 }
 
-                // Get the head without popping, as each iterator could potentially require
-                // multiple calls to GetNext() to fully drain, we can't remove it from
-                // the queue until it's fully completed
-                IServiceIdentitiesIterator currentNode = this.remainingEdgeNodes.Peek();
-                IList<ServiceIdentity> results = currentNode.GetNext().Result.ToList();
+                // Get the next item in the queue
+                IDeviceScopeApiClient currentNode = this.remainingEdgeNodes.Dequeue();
+                var serviceIdentities = new List<ServiceIdentity>();
 
-                if (!currentNode.HasNext)
+                // Make the call to upstream and fetch the next batch of identities
+                ScopeResult scopeResult = await currentNode.GetIdentitiesInScope();
+                if (scopeResult != null)
                 {
-                    // We're done with this iterator, it's safe to pop it now
-                    this.remainingEdgeNodes.Dequeue();
-                }
-
-                foreach (ServiceIdentity identity in results)
-                {
-                    if (identity.IsEdgeDevice)
+                    Events.ScopeResultReceived(scopeResult);
+                    if (scopeResult.Devices != null)
                     {
-                        // Create a new iterator for the child Edge and enqueue it
-                        var childClient = this.actorClient.CreateOnBehalfOfDeviceScopeClient(identity.DeviceId);
-                        this.remainingEdgeNodes.Enqueue(new ServiceIdentitiesIterator(childClient));
+                        serviceIdentities.AddRange(scopeResult.Devices.Select(d => d.ToServiceIdentity()));
+                    }
+
+                    if (scopeResult.Modules != null)
+                    {
+                        serviceIdentities.AddRange(scopeResult.Modules.Select(m => m.ToServiceIdentity()));
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(scopeResult.ContinuationLink))
+                    {
+                        // Since there's a continuation link, we're not done enumerating
+                        // the identities under the current device scope. Enqueue another
+                        // item in the queue to handle the continuation
+                        IDeviceScopeApiClient continuationClient = this.clientProvider.CreateOnBehalfOf(currentNode.TargetEdgeDeviceId, Option.Some(scopeResult.ContinuationLink));
+                        this.remainingEdgeNodes.Enqueue(continuationClient);
+                    }
+                }
+                else
+                {
+                    Events.NullResult();
+                }
+
+                foreach (ServiceIdentity identity in serviceIdentities)
+                {
+                    // The current device itself will come back as part of the query,
+                    // make sure we don't re-enqueue it again
+                    if (identity.IsEdgeDevice && identity.DeviceId != currentNode.TargetEdgeDeviceId)
+                    {
+                        // Enqueue a new item for every child Edge in this batch.
+                        IDeviceScopeApiClient childClient = this.clientProvider.CreateOnBehalfOf(identity.DeviceId, Option.None<string>());
+                        this.remainingEdgeNodes.Enqueue(childClient);
                     }
                 }
 
-                return Task.FromResult(results.AsEnumerable());
+                return serviceIdentities.AsEnumerable();
             }
         }
 
