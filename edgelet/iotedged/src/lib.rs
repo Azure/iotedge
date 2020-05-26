@@ -153,7 +153,7 @@ const EXTERNAL_PROVISIONING_ENDPOINT_KEY: &str = "IOTEDGE_EXTERNAL_PROVISIONING_
 /// This is the key for the largest API version that this edgelet supports
 const API_VERSION_KEY: &str = "IOTEDGE_APIVERSION";
 
-const IOTHUB_API_VERSION: &str = "2017-11-08-preview";
+const IOTHUB_API_VERSION: &str = "2019-10-01";
 
 /// This is the name of the provisioning backup file
 const EDGE_PROVISIONING_BACKUP_FILENAME: &str = "provisioning_backup.json";
@@ -362,7 +362,7 @@ where
                 )?;
 
                 let cfg = WorkloadData::new(
-                    $provisioning_result.hub_name().to_string(),
+                    (&settings.parent_hostname().unwrap_or($provisioning_result.hub_name())).to_string(),
                     $provisioning_result.device_id().to_string(),
                     IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                     IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
@@ -1421,10 +1421,10 @@ where
     <M::ModuleRuntime as Authenticator>::Error: Fail + Sync,
     for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
 {
-    let hub_name = workload_config.iot_hub_name().to_string();
+    let upstream_hostname = workload_config.upstream_hostname().to_string();
     let device_id = workload_config.device_id().to_string();
-    let hostname = format!("https://{}", hub_name);
-    let token_source = SasTokenSource::new(hub_name.clone(), device_id.clone(), root_key);
+    let hostname = format!("https://{}", upstream_hostname);
+    let token_source = SasTokenSource::new(upstream_hostname.clone(), device_id.clone(), root_key);
     let http_client = HttpClient::new(
         hyper_client,
         Some(token_source),
@@ -1494,7 +1494,7 @@ where
     let edge_rt = start_runtime::<_, _, M>(
         runtime.clone(),
         &id_man,
-        &hub_name,
+        &upstream_hostname,
         &device_id,
         &settings,
         runt_rx,

@@ -206,8 +206,8 @@ mod tests {
     }
 
     impl WorkloadConfig for TestWorkloadData {
-        fn iot_hub_name(&self) -> &str {
-            self.data.iot_hub_name.as_str()
+        fn upstream_hostname(&self) -> &str {
+            self.data.upstream_hostname.as_str()
         }
 
         fn device_id(&self) -> &str {

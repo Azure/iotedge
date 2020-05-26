@@ -49,7 +49,7 @@ where
                 let cn = module_id.to_string();
                 let alias = format!("{}identity", module_id);
                 let module_uri =
-                    prepare_cert_uri_module(cfg.iot_hub_name(), cfg.device_id(), module_id);
+                    prepare_cert_uri_module(cfg.upstream_hostname(), cfg.device_id(), module_id);
 
                 req.into_body().concat2().then(|body| {
                     let body =
@@ -195,8 +195,8 @@ mod tests {
     }
 
     impl WorkloadConfig for TestWorkloadData {
-        fn iot_hub_name(&self) -> &str {
-            self.data.iot_hub_name.as_str()
+        fn upstream_hostname(&self) -> &str {
+            self.data.upstream_hostname.as_str()
         }
 
         fn device_id(&self) -> &str {
