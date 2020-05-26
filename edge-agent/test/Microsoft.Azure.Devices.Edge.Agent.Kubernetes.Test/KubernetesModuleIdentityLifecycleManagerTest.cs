@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         const string DeviceId = "edgeDevice1";
         static readonly Uri EdgeletUri = new Uri("http://localhost");
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
-        static readonly ModuleIdentityProviderServiceBuilder ModuleIdentityProviderServiceBuilder = new ModuleIdentityProviderServiceBuilder(IothubHostName, DeviceId, "edgedevicehostname", Option.Some("edgedevicehostname"));
+        static readonly ModuleIdentityProviderServiceBuilder ModuleIdentityProviderServiceBuilder = new ModuleIdentityProviderServiceBuilder(IothubHostName, DeviceId, "edgedevicehostname", Option.Some("parentedgehostname"));
 
         [Fact]
         public async Task TestGetModulesIdentityIIdentityManagerExceptionShouldReturnEmptyIdentities()

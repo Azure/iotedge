@@ -229,7 +229,7 @@ agent:
 hostname: "<ADD HOSTNAME HERE>"
 
 ###############################################################################
-# Edge device hostname
+# Nested Edge parent hostname
 ###############################################################################
 #
 # Optional. This entry should only be specified for the host name of the 
