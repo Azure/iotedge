@@ -31,7 +31,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
         public static IEnumerable<object[]> TestDataCollection =>
             new List<object[]>
             {
-                new object[] {
+                new object[]
+                {
                     new CreateOrUpdateCommandTestData(
                         "edgeAgent",
                         "type1",
@@ -55,7 +56,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                         "2020.01.01",
                         new object())
                 },
-                new object[] {
+                new object[]
+                {
                     new CreateOrUpdateCommandTestData(
                         "edgeAgent",
                         "type1",
@@ -79,7 +81,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                         "2020.01.01",
                         new object())
                 },
-                new object[] {
+                new object[]
+                {
                     new CreateOrUpdateCommandTestData(
                         "edgeHub",
                         "type1",
@@ -103,7 +106,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                         "2020.01.01",
                         new object())
                 },
-                new object[] {
+                new object[]
+                {
                     new CreateOrUpdateCommandTestData(
                         "edgeHub",
                         "type1",
@@ -127,7 +131,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                         "2020.01.01",
                         new object())
                 },
-                new object[] {
+                new object[]
+                {
                     new CreateOrUpdateCommandTestData(
                         "tempSensor",
                         "type1",
@@ -151,7 +156,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                         "2020.01.01",
                         new object())
                 },
-                new object[] {
+                new object[]
+                {
                     new CreateOrUpdateCommandTestData(
                         "tempSensor",
                         "type1",
@@ -190,7 +196,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
             {
                 Assert.Equal(testData.EnvironmentVariables[key].Value, environmentVariables.Where(v => v.Key.Equals(key)).First().Value);
             }
-
             
             Assert.Equal(testData.EdgeletWorkloadUri, environmentVariables.Where(v => v.Key.Equals(Constants.EdgeletWorkloadUriVariableName)).First().Value);
             Assert.Equal(testData.EdgeletAuthScheme, environmentVariables.Where(v => v.Key.Equals(Constants.EdgeletAuthSchemeVariableName)).First().Value);
