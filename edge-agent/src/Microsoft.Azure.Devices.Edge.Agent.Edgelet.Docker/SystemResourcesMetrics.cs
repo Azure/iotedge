@@ -144,7 +144,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             // edgelet sets used cpu to -1 on error
             if (systemResources.UsedCpu > 0)
             {
-                Console.WriteLine($"host cpu {systemResources.UsedCpu}");
                 this.cpuPercentage.Update(systemResources.UsedCpu, hostTags);
             }
 
@@ -159,7 +158,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             }
 
             this.SetModuleStats(systemResources);
-            Console.WriteLine();
         }
 
         void SetModuleStats(SystemResources systemResources)
@@ -178,7 +176,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
                 this.GetCpuUsage(module).ForEach(usedCpu =>
                 {
                     this.cpuPercentage.Update(usedCpu, tags);
-                    Console.WriteLine($"{name} cpu {usedCpu}");
                 });
                 module.MemoryStats.ForEach(ms =>
                 {
@@ -217,7 +214,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             }
         }
 
-        // Modeled after https://github.com/docker/cli/blob/master/cli/command/container/stats_helpers.go#L166
+        // Modeled after https://github.com/docker/cli/blob/v19.03.9/cli/command/container/stats_helpers.go#L166
         Option<double> GetCpuLinux(DockerStats module)
         {
             Option<double> currentTotal = module.CpuStats.AndThen(s => s.CpuUsage).AndThen(s => s.TotalUsage);
@@ -252,7 +249,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             }));
         }
 
-        // Modeled after https://github.com/docker/cli/blob/master/cli/command/container/stats_helpers.go#L185
+        // Modeled after https://github.com/docker/cli/blob/v19.03.9/cli/command/container/stats_helpers.go#L185
         Option<double> GetCpuWindows(DockerStats module)
         {
             Option<DateTime> previousRead = module.Name.AndThen(this.previousReadTime.GetOption);
