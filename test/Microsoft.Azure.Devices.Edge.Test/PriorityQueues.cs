@@ -215,7 +215,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                        .WithEnvironment(new[]
                        {
                            ("trackingId", trackingId),
-                           ("eventHubConnectionString", "Unnecessary"),
                            ("IOT_HUB_CONNECTION_STRING", Context.Current.ConnectionString),
                            ("logAnalyticsWorkspaceId", "Unnecessary"),
                            ("logAnalyticsSharedKey", "Unnecessary"),

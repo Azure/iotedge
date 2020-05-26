@@ -34,7 +34,7 @@ namespace TestResultCoordinator.Services
             this.logger.LogInformation("Test Result Event Receiving Service running.");
 
             DateTime eventEnqueuedFrom = DateTime.UtcNow;
-            var builder = new EventHubsConnectionStringBuilder(Settings.Current.EventHubConnectionString);
+            var builder = new EventHubsConnectionStringBuilder(Settings.Current.EventHubConnectionString.Expect(() => new ArgumentException("Event Hub connection string must be supplied")));
             this.logger.LogDebug($"Receiving events from device '{Settings.Current.DeviceId}' on Event Hub '{builder.EntityPath}' enqueued on or after {eventEnqueuedFrom}");
 
             EventHubClient eventHubClient = EventHubClient.CreateFromConnectionString(builder.ToString());

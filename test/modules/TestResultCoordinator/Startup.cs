@@ -65,7 +65,7 @@ namespace TestResultCoordinator
                     sources).Result);
 
             services.AddHostedService<TestResultReportingService>();
-            services.AddHostedService<TestResultEventReceivingService>();
+            Settings.Current.EventHubConnectionString.ForEach(s => services.AddHostedService<TestResultEventReceivingService>());
 
             Logger.LogInformation("Calling Startup.ConfigureServices Completed.");
         }

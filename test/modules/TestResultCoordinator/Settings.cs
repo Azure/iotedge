@@ -51,7 +51,7 @@ namespace TestResultCoordinator
             Preconditions.CheckRange(testDuration.Ticks, 1);
 
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
-            this.EventHubConnectionString = Preconditions.CheckNonWhiteSpace(eventHubConnectionString, nameof(eventHubConnectionString));
+            this.EventHubConnectionString = Option.Maybe(eventHubConnectionString);
             this.IoTHubConnectionString = Preconditions.CheckNonWhiteSpace(iotHubConnectionString, nameof(iotHubConnectionString));
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
@@ -118,7 +118,7 @@ namespace TestResultCoordinator
                 configuration.GetValue<string>("TEST_INFO"));
         }
 
-        public string EventHubConnectionString { get; }
+        public Option<string> EventHubConnectionString { get; }
 
         public string IoTHubConnectionString { get; }
 
