@@ -1,3 +1,8 @@
+# 1.0.9.2 (2020-05-26)
+## iotedged
+### Bug Fixes
+* Don't delete provisioning backup when configuration changes ([377e51b](https://github.com/Azure/iotedge/commit/377e51bdb4e2415bd89d04abc404d16c3fab5103))
+
 # 1.0.9.1 (2020-05-11)
 ## Edge Agent
 ### Bug Fixes
