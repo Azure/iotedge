@@ -41,16 +41,16 @@ definitions:
       keyHandle:
         type: string
         description: Key handle returned by Identity Service.
-      algo:
+      algorithm:
         type: string
         description: Sign algorithm to be used.
         enum:
-          - HMACSHA256
+          - HMAC-SHA256
       parameters:
         $ref: '#/definitions/SignParameters'
     required:
       - keyHandle
-      - algo
+      - algorithm
       - parameters
   SignResponse:
     type: object
