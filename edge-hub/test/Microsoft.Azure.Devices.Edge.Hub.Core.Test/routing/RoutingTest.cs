@@ -30,6 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     [Integration]
     public class RoutingTest
     {
+        static readonly TimeSpan DefaultMessageAckTimeout = TimeSpan.FromSeconds(30);
         static readonly Random Rand = new Random();
 
         [Fact]
@@ -522,7 +523,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 Try<ICloudProxy> cloudProxy = await connectionManager.CreateCloudConnectionAsync(deviceCredentials);
                 Assert.True(cloudProxy.Success);
                 var deviceProxy = Mock.Of<IDeviceProxy>();
-                var deviceListener = new DeviceMessageHandler(deviceCredentials.Identity, edgeHub, connectionManager);
+                var deviceListener = new DeviceMessageHandler(deviceCredentials.Identity, edgeHub, connectionManager, DefaultMessageAckTimeout);
+
                 deviceListener.BindDeviceProxy(deviceProxy);
                 return new TestDevice(deviceCredentials.Identity as IDeviceIdentity, deviceListener);
             }
@@ -562,7 +564,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 IClientCredentials moduleCredentials = SetupModuleCredentials(moduleId, deviceId);
                 Try<ICloudProxy> cloudProxy = await connectionManager.CreateCloudConnectionAsync(moduleCredentials);
                 Assert.True(cloudProxy.Success);
-                var deviceListener = new DeviceMessageHandler(moduleCredentials.Identity, edgeHub, connectionManager);
+                var deviceListener = new DeviceMessageHandler(moduleCredentials.Identity, edgeHub, connectionManager, DefaultMessageAckTimeout);
+
                 var receivedMessages = new List<IMessage>();
                 var deviceProxy = new Mock<IDeviceProxy>();
                 deviceProxy.Setup(d => d.SendMessageAsync(It.IsAny<IMessage>(), It.Is<string>(e => inputEndpointIds.Contains(e))))
