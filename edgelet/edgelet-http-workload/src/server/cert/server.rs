@@ -174,7 +174,7 @@ mod tests {
     }
 
     struct TestWorkloadConfig {
-        iot_hub_name: String,
+        upstream_hostname: String,
         device_id: String,
         duration: i64,
     }
@@ -185,7 +185,7 @@ mod tests {
             assert!(MAX_DURATION_SEC < (i64::max_value() as u64));
 
             TestWorkloadConfig {
-                iot_hub_name: String::from("zaphods_hub"),
+                upstream_hostname: String::from("zaphods_hub"),
                 device_id: String::from("marvins_device"),
                 duration: MAX_DURATION_SEC as i64,
             }
