@@ -32,7 +32,7 @@ jobs:
           args: "-c Release"
           scriptPath: scripts/linux/buildBranch.sh
       - task: DotNetCoreInstaller@0
-        displayName: "Install .NET Core 2.1"
+        displayName: "Install .NET Core 2.1 - Needed for code sign on linux"
         inputs: 
           version: "2.1.700"
       - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
@@ -267,7 +267,7 @@ jobs:
           versionEnvVar: version
           versioningScheme: byEnvVar
       - task: DotNetCoreInstaller@0
-        displayName: "Install .NET Core 2.1"
+        displayName: "Install .NET Core 2.1 - Needed for code sign on linux"
         inputs:
           version: "2.1.700"
       - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
