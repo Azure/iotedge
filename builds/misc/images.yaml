@@ -203,6 +203,7 @@ jobs:
     workspace:
       clean: all
     steps:
+      - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
 
       - script: echo $(registry.password)|docker login "edgebuilds.azurecr.io" -u "$(registry.user)" --password-stdin
