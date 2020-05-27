@@ -5,6 +5,11 @@ jobs:
     displayName: LinuxDotnet
     pool: 
       name: "Hosted Ubuntu 1604"
+    variables:
+      build.registry.address: edgebuilds.azurecr.io
+      build.registry.user: EdgeBuilds
+      registry.address: edgerelease.azurecr.io
+      registry.user: EdgeRelease
     steps: 
       - bash: |
             docker login '$(build.registry.address)' --username '$(build.registry.user)' --password '$(build.registry.password)'
@@ -317,11 +322,6 @@ jobs:
             scripts/linux/buildEdgelet.sh -i azureiotedge-diagnostics -n microsoft -P iotedge-diagnostics -c $(configuration) --target-arch aarch64 &&
             scripts/linux/buildImage.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(version) -i azureiotedge-diagnostics -n $(namespace) -P azureiotedge-diagnostics --target-arch aarch64
         displayName: 'Build Image - azureiotedge-diagnostics - ARM64'
-    variables: 
-      build.registry.address: edgebuilds.azurecr.io
-      build.registry.user: EdgeBuilds
-      registry.address: edgerelease.azurecr.io
-      registry.user: EdgeRelease
 ################################################################################
   - job: windows
 ################################################################################
@@ -332,6 +332,11 @@ jobs:
         - "Build-Image -equals true"
         - win-rs5
         - DotNetFramework
+    variables:
+      build.registry.address: edgebuilds.azurecr.io
+      build.registry.user: EdgeBuilds
+      registry.address: edgerelease.azurecr.io
+      registry.user: EdgeRelease
     steps: 
       - script: |
             docker login $(build.registry.address) -u $(build.registry.user) -p $(build.registry.password)
@@ -595,8 +600,3 @@ jobs:
         inputs: 
           ArtifactName: publish-win
           PathtoPublish: $(Build.BinariesDirectory)\publish
-    variables: 
-      build.registry.address: edgebuilds.azurecr.io
-      build.registry.user: EdgeBuilds
-      registry.address: edgerelease.azurecr.io
-      registry.user: EdgeRelease
