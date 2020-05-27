@@ -730,7 +730,7 @@ where
     }
 
     fn parent_hostname(&self) -> Option<&str> {
-        self.parent_hostname.as_deref();
+        self.parent_hostname.as_ref().map(AsRef::as_ref)
     }
 
     fn connect(&self) -> &Connect {
