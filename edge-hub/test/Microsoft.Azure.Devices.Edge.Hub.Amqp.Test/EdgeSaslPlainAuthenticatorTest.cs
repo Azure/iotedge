@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using System.Security.Principal;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -90,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var authenticator = Mock.Of<IAuthenticator>();
             var clientCredentialsFactory = Mock.Of<IClientCredentialsFactory>();
             var saslAuthenticator = new EdgeSaslPlainAuthenticator(authenticator, clientCredentialsFactory, "hub1.azure-devices.net");
-            var identity = new ModuleIdentity("hub1", "dev1", "mod1");
+            var identity = new ModuleIdentity("hub1", Option.None<string>(), "dev1", "mod1");
             var clientCredentials = Mock.Of<IClientCredentials>(c => c.Identity == identity);
             const string UserId = "dev1/modules/mod1@sas.hub1";
             const string Password = "pwd";
@@ -117,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var authenticator = Mock.Of<IAuthenticator>();
             var clientCredentialsFactory = Mock.Of<IClientCredentialsFactory>();
             var saslAuthenticator = new EdgeSaslPlainAuthenticator(authenticator, clientCredentialsFactory, "hub1.azure-devices.net");
-            var identity = new DeviceIdentity("hub1", "dev1");
+            var identity = new DeviceIdentity("hub1", Option.None<string>(), "dev1");
             var clientCredentials = Mock.Of<IClientCredentials>(c => c.Identity == identity);
             const string UserId = "dev1@sas.hub1";
             const string Password = "pwd";

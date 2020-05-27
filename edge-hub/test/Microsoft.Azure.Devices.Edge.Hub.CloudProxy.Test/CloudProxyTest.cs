@@ -333,7 +333,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var clientTokenProvider = new ClientTokenProvider(new SharedAccessKeySignatureProvider(sasKey), iotHubHostName, deviceId, TimeSpan.FromHours(1));
             string token = await clientTokenProvider.GetTokenAsync(Option.None<TimeSpan>());
-            var deviceIdentity = new DeviceIdentity(iotHubHostName, deviceId);
+            var deviceIdentity = new DeviceIdentity(iotHubHostName, Option.None<string>(), deviceId);
             var clientCredentials = new TokenCredentials(deviceIdentity, token, string.Empty, false);
 
             Try<ICloudConnection> cloudConnection = await cloudConnectionProvider.Connect(clientCredentials, (_, __) => { });

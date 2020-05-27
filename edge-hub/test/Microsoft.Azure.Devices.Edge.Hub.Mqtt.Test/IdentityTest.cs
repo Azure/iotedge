@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -252,7 +253,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.NotNull(clientCredentials);
             Assert.IsType(expectedCredentialsType, clientCredentials);
             Assert.IsType(expectedIdentityType, clientCredentials.Identity);
-            Assert.Equal(iotHubHostName, ((Identity)clientCredentials.Identity).IotHubHostName);
+            Assert.Equal(iotHubHostName, ((Identity)clientCredentials.Identity).IotHubHostname);
             Assert.Equal(ProductInfo, clientCredentials.ProductInfo);
             Assert.Equal(expected, clientCredentials.AuthenticationType);
         }
@@ -322,7 +323,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             productInfoStore = productInfoStore ?? Mock.Of<IProductInfoStore>();
             var authenticator = Mock.Of<IAuthenticator>(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>()) == Task.FromResult(true));
             var usernameParser = new MqttUsernameParser();
-            var factory = new ClientCredentialsFactory(new IdentityProvider(iotHubHostName), productInfo);
+            var factory = new ClientCredentialsFactory(new IdentityProvider(iotHubHostName, Option.None<string>()), productInfo);
             var credentialIdentityProvider = new DeviceIdentityProvider(authenticator, usernameParser, factory, productInfoStore, isCertAuthAllowed);
             if (certificate != null && chain != null)
             {

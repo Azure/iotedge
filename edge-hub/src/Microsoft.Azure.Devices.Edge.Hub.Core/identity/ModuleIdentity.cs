@@ -7,25 +7,61 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 
     public class ModuleIdentity : Identity, IModuleIdentity
     {
-        readonly Lazy<string> asString;
-
         public ModuleIdentity(
-            string iotHubHostName,
+            string iotHubHostname,
+            Option<string> gatewayHostname,
             string deviceId,
             string moduleId)
-            : base(iotHubHostName)
+            : base(iotHubHostname, gatewayHostname, FormattableString.Invariant($"{deviceId}/{moduleId}"))
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
-            this.asString = new Lazy<string>(() => $"DeviceId: {this.DeviceId}; ModuleId: {this.ModuleId} [IotHubHostName: {this.IotHubHostName}]");
         }
 
         public string DeviceId { get; }
 
         public string ModuleId { get; }
 
-        public override string Id => FormattableString.Invariant($"{this.DeviceId}/{this.ModuleId}");
+        protected bool Equals(ModuleIdentity other) =>
+            base.Equals(other) &&
+            string.Equals(this.DeviceId, other.DeviceId) &&
+            string.Equals(this.ModuleId, other.ModuleId);
 
-        public override string ToString() => this.asString.Value;
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            if (obj.GetType() != this.GetType())
+            {
+                return false;
+            }
+
+            return this.Equals((ModuleIdentity)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = base.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.DeviceId.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.ModuleId.GetHashCode();
+                return hashCode;
+            }
+        }
+
+        public override string ToString() =>
+            $"DeviceId: {this.DeviceId}; " +
+            $"ModuleId: {this.ModuleId} " +
+            $"[IotHubHostName: {this.IotHubHostname}]" +
+            $"{this.GatewayHostname.Map(v => $" [GatewayHostname: {v}]")}";
     }
 }

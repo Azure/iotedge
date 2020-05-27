@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.WorkloadTestServer;
     using Xunit;
@@ -37,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public void Test_Create_DeviceIdentity_WithAuthMethod_ShouldCreateDeviceClient()
         {
             string token = TokenHelper.CreateSasToken(IotHubHostName);
-            IIdentity identity = new DeviceIdentity(IotHubHostName, DeviceId);
+            IIdentity identity = new DeviceIdentity(IotHubHostName, Option.None<string>(), DeviceId);
             var authenticationMethod = new DeviceAuthenticationWithToken(DeviceId, token);
 
             var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
@@ -51,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public void Test_Create_DeviceIdentity_WithConnectionString_ShouldCreateDeviceClient()
         {
             string connectionString = $"HostName={IotHubHostName};DeviceId=device1;SharedAccessKey={this.authKey}";
-            IIdentity identity = new DeviceIdentity(IotHubHostName, DeviceId);
+            IIdentity identity = new DeviceIdentity(IotHubHostName, Option.None<string>(), DeviceId);
 
             var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
             IClient client = new ClientProvider().Create(identity, connectionString, transportSettings);
@@ -63,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [Fact]
         public async Task Test_Create_DeviceIdentity_WithEnv_ShouldThrow()
         {
-            IIdentity identity = new DeviceIdentity(IotHubHostName, DeviceId);
+            IIdentity identity = new DeviceIdentity(IotHubHostName, Option.None<string>(), DeviceId);
 
             var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
 
@@ -74,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public void Test_Create_ModuleIdentity_WithAuthMethod_ShouldCreateModuleClient()
         {
             string token = TokenHelper.CreateSasToken(IotHubHostName);
-            IIdentity identity = new ModuleIdentity(IotHubHostName, DeviceId, ModuleId);
+            IIdentity identity = new ModuleIdentity(IotHubHostName, Option.None<string>(), DeviceId, ModuleId);
             var authenticationMethod = new ModuleAuthenticationWithToken(DeviceId, ModuleId, token);
 
             var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
@@ -88,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public void Test_Create_ModuleIdentity_WithConnectionString_ShouldCreateModuleClient()
         {
             string connectionString = $"HostName={IotHubHostName};DeviceId={DeviceId};ModuleId={ModuleId};SharedAccessKey={this.authKey}";
-            IIdentity identity = new ModuleIdentity(IotHubHostName, DeviceId, ModuleId);
+            IIdentity identity = new ModuleIdentity(IotHubHostName, Option.None<string>(), DeviceId, ModuleId);
 
             var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
             IClient client = new ClientProvider().Create(identity, connectionString, transportSettings);
@@ -108,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Environment.SetEnvironmentVariable(ModuleGeneratioIdVariableName, "1");
             Environment.SetEnvironmentVariable(AuthSchemeVariableName, "sasToken");
 
-            IIdentity identity = new ModuleIdentity(IotHubHostName, DeviceId, ModuleId);
+            IIdentity identity = new ModuleIdentity(IotHubHostName, Option.None<string>(), DeviceId, ModuleId);
 
             var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
 

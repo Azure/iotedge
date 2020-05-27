@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -147,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var messageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
             var twinMessageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
             var methodMessageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
-            var identityProvider = new IdentityProvider("foo.bar");
+            var identityProvider = new IdentityProvider("foo.bar", Option.None<string>());
             var productInfoStore = Mock.Of<IProductInfoStore>();
             var linkHandlerProvider = new LinkHandlerProvider(messageConverter, twinMessageConverter, methodMessageConverter, identityProvider, productInfoStore);
 
@@ -170,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var messageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
             var twinMessageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
             var methodMessageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
-            var identityProvider = new IdentityProvider("foo.bar");
+            var identityProvider = new IdentityProvider("foo.bar", Option.None<string>());
             var productInfoStore = Mock.Of<IProductInfoStore>();
             var linkHandlerProvider = new LinkHandlerProvider(messageConverter, twinMessageConverter, methodMessageConverter, identityProvider, productInfoStore);
 
@@ -189,7 +190,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var messageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
             var twinMessageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
             var methodMessageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
-            var identityProvider = new IdentityProvider("foo.bar");
+            var identityProvider = new IdentityProvider("foo.bar", Option.None<string>());
             var productInfoStore = Mock.Of<IProductInfoStore>();
             var linkHandlerProvider = new LinkHandlerProvider(messageConverter, twinMessageConverter, methodMessageConverter, identityProvider, productInfoStore);
 
@@ -221,7 +222,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var messageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
             var twinMessageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
             var methodMessageConverter = Mock.Of<IMessageConverter<AmqpMessage>>();
-            var identityProvider = new IdentityProvider("foo.azure-device.net");
+            var identityProvider = new IdentityProvider("foo.azure-device.net", Option.None<string>());
             var productInfoStore = Mock.Of<IProductInfoStore>();
             var linkHandlerProvider = new LinkHandlerProvider(messageConverter, twinMessageConverter, methodMessageConverter, identityProvider, productInfoStore);
 

@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using System.Security.Cryptography.X509Certificates;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
     using TestCertificateHelper = Microsoft.Azure.Devices.Edge.Util.Test.Common.CertificateHelper;
@@ -22,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             string key = GetRandomString(44);
             string deviceConnectionstring = $"HostName={iotHubHostName};DeviceId={deviceId};SharedAccessKey={key}";
 
-            IClientCredentialsFactory identityFactory = new ClientCredentialsFactory(new IdentityProvider(iotHubHostName));
+            IClientCredentialsFactory identityFactory = new ClientCredentialsFactory(new IdentityProvider(iotHubHostName, Option.None<string>()));
             IClientCredentials identityTry = identityFactory.GetWithConnectionString(deviceConnectionstring);
             Assert.NotNull(identityTry);
             IIdentity identity = identityTry.Identity;
@@ -41,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             string key = GetRandomString(44);
             string deviceConnectionstring = $"HostName={iotHubHostName};DeviceId={deviceId};ModuleId={moduleId};SharedAccessKey={key}";
 
-            IClientCredentialsFactory identityFactory = new ClientCredentialsFactory(new IdentityProvider(iotHubHostName));
+            IClientCredentialsFactory identityFactory = new ClientCredentialsFactory(new IdentityProvider(iotHubHostName, Option.None<string>()));
             IClientCredentials identityTry = identityFactory.GetWithConnectionString(deviceConnectionstring);
             Assert.NotNull(identityTry);
             var identity = identityTry.Identity as IModuleIdentity;
@@ -59,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             string callerProductInfo = "productInfo";
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/device1/modules/moduleId");
 
-            var identityFactory = new ClientCredentialsFactory(new IdentityProvider(iothubHostName), callerProductInfo);
+            var identityFactory = new ClientCredentialsFactory(new IdentityProvider(iothubHostName, Option.None<string>()), callerProductInfo);
 
             // device test
             string deviceId = "device1";
@@ -96,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var clientCertificate = TestCertificateHelper.GenerateSelfSignedCert("some_cert");
             var clientCertChain = new List<X509Certificate2>() { clientCertificate };
 
-            var identityFactory = new ClientCredentialsFactory(new IdentityProvider(iothubHostName), callerProductInfo);
+            var identityFactory = new ClientCredentialsFactory(new IdentityProvider(iothubHostName, Option.None<string>()), callerProductInfo);
 
             // device test
             IClientCredentials identityTry1 = identityFactory.GetWithX509Cert(deviceId, null, deviceClientType, clientCertificate, clientCertChain);

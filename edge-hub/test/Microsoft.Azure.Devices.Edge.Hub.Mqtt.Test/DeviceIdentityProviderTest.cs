@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
     using Moq;
@@ -109,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var authenticator = new Mock<IAuthenticator>();
             var productInfoStore = Mock.Of<IProductInfoStore>();
             authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(authRetVal);
-            var deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new MqttUsernameParser(), new ClientCredentialsFactory(new IdentityProvider(iotHubHostName)), productInfoStore, true);
+            var deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new MqttUsernameParser(), new ClientCredentialsFactory(new IdentityProvider(iotHubHostName, Option.None<string>())), productInfoStore, true);
             if (certificate != null)
             {
                 deviceIdentityProvider.RegisterConnectionCertificate(certificate, chain);
@@ -127,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var authenticator = new Mock<IAuthenticator>();
             var productInfoStore = Mock.Of<IProductInfoStore>();
             authenticator.Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(true);
-            var deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new MqttUsernameParser(), new ClientCredentialsFactory(new IdentityProvider(iotHubHostName)), productInfoStore, false);
+            var deviceIdentityProvider = new DeviceIdentityProvider(authenticator.Object, new MqttUsernameParser(), new ClientCredentialsFactory(new IdentityProvider(iotHubHostName, Option.None<string>())), productInfoStore, false);
             deviceIdentityProvider.RegisterConnectionCertificate(new X509Certificate2(), new List<X509Certificate2> { new X509Certificate2() });
             IDeviceIdentity deviceIdentity = await deviceIdentityProvider.GetAsync(
                 "Device_2",

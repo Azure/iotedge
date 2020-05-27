@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await registryManager.OpenAsync();
 
             string iothubHostName = iotHubConnectionStringBuilder.HostName;
-            var identityProvider = new IdentityProvider(iothubHostName);
+            var identityProvider = new IdentityProvider(iothubHostName, Option.None<string>());
             var identityFactory = new ClientCredentialsFactory(identityProvider);
 
             (string edgeDeviceId, string deviceConnStr) = await RegistryManagerHelper.CreateDevice(EdgeDeviceId, iotHubConnectionString, registryManager, true, false);

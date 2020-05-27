@@ -1,27 +1,59 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 {
-    using System;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class DeviceIdentity : Identity, IDeviceIdentity
     {
-        readonly Lazy<string> asString;
-
         public DeviceIdentity(
             string iotHubHostName,
+            Option<string> gatewayHostname,
             string deviceId)
-            : base(iotHubHostName)
+            : base(iotHubHostName, gatewayHostname, deviceId)
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            this.asString = new Lazy<string>(() => $"DeviceId: {this.DeviceId} [IotHubHostName: {this.IotHubHostName}]");
         }
 
         public string DeviceId { get; }
 
-        public override string Id => this.DeviceId;
+        protected bool Equals(DeviceIdentity other) =>
+            base.Equals(other) &&
+            string.Equals(this.DeviceId, other.DeviceId);
 
-        public override string ToString() => this.asString.Value;
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            if (obj.GetType() != this.GetType())
+            {
+                return false;
+            }
+
+            return this.Equals((DeviceIdentity)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hashCode = base.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.DeviceId.GetHashCode();
+                return hashCode;
+            }
+        }
+
+        public override string ToString() =>
+            $"DeviceId: {this.DeviceId} " +
+            $"[IotHubHostName: {this.IotHubHostname}]" +
+            $"{this.GatewayHostname.Map(v => $" [GatewayHostname: {v}]")}";
     }
 }
