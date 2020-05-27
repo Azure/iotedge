@@ -3048,10 +3048,7 @@ mod tests {
         let _guard = LOCK.lock().unwrap();
 
         let settings = Settings::new(Path::new(GOOD_SETTINGS_NESTED_EDGE)).unwrap();
-        assert_eq!(
-            settings.parent_hostname(),
-            Some("parent_iotedge_device")
-        );
+        assert_eq!(settings.parent_hostname(), Some("parent_iotedge_device"));
     }
 
     #[test]
