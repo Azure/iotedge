@@ -31,16 +31,6 @@ jobs:
         inputs: 
           args: "-c Release"
           scriptPath: scripts/linux/buildBranch.sh
-      - task: DotNetCoreCLI@2
-        displayName: "Functions Binding nuget package"
-        inputs: 
-          buildProperties: OutDir=$(Build.BinariesDirectory)/publish/Microsoft.Azure.WebJobs.Extensions.EdgeHub
-          command: pack
-          nobuild: true
-          packDirectory: $(Build.BinariesDirectory)/publish/
-          packagesToPack: "**/Microsoft.Azure.WebJobs.Extensions.EdgeHub.csproj"
-          versionEnvVar: version
-          versioningScheme: byEnvVar
       - task: DotNetCoreInstaller@0
         displayName: "Install .NET Core 2.1"
         inputs: 
@@ -265,9 +255,24 @@ jobs:
                 }
               ]
           signConfigType: inlineSignParams
+      - template: ../templates/install-dotnet3.yaml
+      - task: DotNetCoreCLI@2
+        displayName: "Functions Binding nuget package"
+        inputs:
+          buildProperties: OutDir=$(Build.BinariesDirectory)/publish/Microsoft.Azure.WebJobs.Extensions.EdgeHub
+          command: pack
+          nobuild: true
+          packDirectory: $(Build.BinariesDirectory)/publish/
+          packagesToPack: "**/Microsoft.Azure.WebJobs.Extensions.EdgeHub.csproj"
+          versionEnvVar: version
+          versioningScheme: byEnvVar
+      - task: DotNetCoreInstaller@0
+        displayName: "Install .NET Core 2.1"
+        inputs:
+          version: "2.1.700"
       - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
         displayName: "Functions Binding nuget package Sign"
-        inputs: 
+        inputs:
           ConnectedServiceName: "Azure IoT Edge Code Sign 2"
           FolderPath: $(Build.BinariesDirectory)/publish
           Pattern: Microsoft.Azure.WebJobs.Extensions*.nupkg
