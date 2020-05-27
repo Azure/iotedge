@@ -1,3 +1,12 @@
+# 1.0.9.2 (2020-05-26)
+## Edge Hub
+### Features
+* Make module response timeout configurable in Edge Hub ([288ed4b](https://github.com/Azure/iotedge/commit/288ed4b7483207909edb10ea83e59a19e9d51100))
+
+## iotedged
+### Bug Fixes
+* Don't delete provisioning backup when configuration changes ([377e51b](https://github.com/Azure/iotedge/commit/377e51bdb4e2415bd89d04abc404d16c3fab5103))
+
 # 1.0.9.1 (2020-05-11)
 ## Edge Agent
 ### Bug Fixes
