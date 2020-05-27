@@ -3049,8 +3049,8 @@ mod tests {
 
         let settings = Settings::new(Path::new(GOOD_SETTINGS_NESTED_EDGE)).unwrap();
         assert_eq!(
-            settings.parent_hostname().unwrap(),
-            "parent_iotedge_device"
+            settings.parent_hostname(),
+            Some("parent_iotedge_device")
         );
     }
 
