@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
         }
 
-        [Test]
+        // [Test]
         public async Task DpsSymmetricKey()
         {
             string idScope = Context.Current.DpsIdScope.Expect(() => new InvalidOperationException("Missing DPS ID scope"));
@@ -74,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     $"Device '{registrationId}' should have been created by DPS, but was not found in '{this.iotHub.Hostname}'")));
         }
 
-        [Test]
+        // [Test]
         public async Task DpsX509()
         {
             (string, string, string) rootCa =

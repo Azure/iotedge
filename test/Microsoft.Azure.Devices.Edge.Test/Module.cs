@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string SensorName = "tempSensor";
         const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
 
-        [Test]
+        // [Test]
         public async Task TempSensor()
         {
             string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 token);
         }
 
-        [Test]
+        // [Test]
         public async Task TempFilter()
         {
             const string filterName = "tempFilter";
@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);
         }
 
-        [Test]
+        // [Test]
         // Test Temperature Filter Function: https://docs.microsoft.com/en-us/azure/iot-edge/tutorial-deploy-function
         public async Task TempFilterFunc()
         {
@@ -134,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);
         }
 
-        [Test]
+        // [Test]
         public async Task ModuleToModuleDirectMethod(
             [Values] Protocol protocol)
         {

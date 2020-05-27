@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string LoadGenTestDuration = "00:00:20";
         const string LoadGenTestStartDelay = "00:00:20";
 
-        [Test]
+        // [Test]
         public async Task PriorityQueueModuleToModuleMessages()
         {
             // TODO: Fix PriorityQueue E2E tests for Windows and ARM32
@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.ValidateResultsAsync();
         }
 
-        [Test]
+        // [Test]
         public async Task PriorityQueueModuleToHubMessages()
         {
             // TODO: Add Windows and ARM32. Windows won't be able to work for this test until we add NetworkController Windows implementation
@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.ValidateResultsAsync();
         }
 
-        [Test]
+        // [Test]
         public async Task PriorityQueueTimeToLive()
         {
             // TODO: Fix PriorityQueue TTL E2E tests for Windows and ARM32
