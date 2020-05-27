@@ -304,12 +304,6 @@ jobs:
           imageName: azureiotedge-simulated-temperature-sensor
           name: "Temperature Sensor"
           project: SimulatedTemperatureSensor
-      - task: Bash@3
-        displayName: "Build iotedge-diagnostics"
-        inputs: 
-          arguments: "-i azureiotedge-diagnostics -n microsoft -P iotedge-diagnostics -c $(configuration)"
-          filePath: ./scripts/linux/buildEdgelet.sh
-          targetType: filePath
       - bash: |
             scripts/linux/buildEdgelet.sh -i azureiotedge-diagnostics -n microsoft -P iotedge-diagnostics -c $(configuration) &&
             scripts/linux/buildImage.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(version) -i azureiotedge-diagnostics -n $(namespace) -P azureiotedge-diagnostics
@@ -329,7 +323,7 @@ jobs:
     pool:
       name: Azure-IoT-Edge-Core
       demands: 
-        - "Build-Image -equals true"
+        - Build-Image -equals true
         - win-rs5
         - DotNetFramework
     variables:
