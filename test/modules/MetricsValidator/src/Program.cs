@@ -61,7 +61,7 @@ namespace MetricsValidator
                             List<TestBase> tests = new List<TestBase>
                             {
                                 // new ValidateMessages(testReporter, scraper, moduleClient, transportType),
-                                // new ValidateDocumentedMetrics(testReporter, scraper, moduleClient),
+                                 new ValidateDocumentedMetrics(testReporter, scraper, moduleClient),
                                 //// new ValidateHostRanges(testReporter, scraper, moduleClient),
                             };
 
