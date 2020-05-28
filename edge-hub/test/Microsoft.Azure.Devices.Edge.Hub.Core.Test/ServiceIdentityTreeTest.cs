@@ -220,8 +220,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             ServiceIdentityTree tree = this.SetupTree();
 
-            // Delete a subtree
+            // Delete a node
             tree.Remove(this.e2_L1.Id);
+
+            // Auth-chains for everything in its subtree should be invalidated
+            Assert.False(tree.TryGetAuthChain(this.e2_L1.Id, out string _));
+            Assert.False(tree.TryGetAuthChain(this.e3_L2.Id, out string _));
+            Assert.False(tree.TryGetAuthChain(this.e4_L2.Id, out string _));
+            Assert.False(tree.TryGetAuthChain(this.leaf2.Id, out string _));
+            Assert.False(tree.TryGetAuthChain(this.mod2.Id, out string _));
+
+            // Delete the rest of the subtree
             tree.Remove(this.e3_L2.Id);
             tree.Remove(this.e4_L2.Id);
             tree.Remove(this.leaf2.Id);

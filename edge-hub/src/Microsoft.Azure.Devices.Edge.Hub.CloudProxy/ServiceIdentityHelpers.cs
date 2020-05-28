@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 device.Id,
                 null,
                 device.Scope,
-                device.ParentScopes,
+                device.ParentScopes != null ? device.ParentScopes : Enumerable.Empty<string>(),
                 device.GenerationId,
                 device.Capabilities.ToServiceCapabilities(),
                 device.Authentication.ToServiceAuthentication(),

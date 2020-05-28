@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.defaultSecurityScopesApiClient = this.securityScopesApiClientProvider.CreateDeviceScopeClient();
         }
 
-        public IServiceIdentitiesIterator GetServiceIdentitiesIterator() => new ServiceIdentitiesIterator(this.securityScopesApiClientProvider.CreateDeviceScopeClient());
+        public IServiceIdentitiesIterator GetServiceIdentitiesIterator() => new ServiceIdentitiesIterator(this.defaultSecurityScopesApiClient);
 
         public IServiceIdentitiesIterator GetNestedServiceIdentitiesIterator() => new NestedServiceIdentitiesIterator(this.securityScopesApiClientProvider);
 

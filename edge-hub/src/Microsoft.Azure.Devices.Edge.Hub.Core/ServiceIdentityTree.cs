@@ -33,12 +33,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Preconditions.CheckNotNull(identity, nameof(identity));
 
             ImmutableDictionary<string, ServiceIdentityTreeNode> snapshot = this.nodes;
-            var writableSnapshot = new Dictionary<string, ServiceIdentityTreeNode>(snapshot);
             if (snapshot.ContainsKey(identity.Id))
             {
                 // Update case - this is just remove + re-insert
                 this.Remove(identity.Id);
+
+                // Take another snapshot since an item was removed
+                snapshot = this.nodes;
             }
+
+            var writableSnapshot = new Dictionary<string, ServiceIdentityTreeNode>(snapshot);
 
             // Insert case
             if (identity.IsModule)
@@ -65,13 +69,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             if (writableSnapshot.TryGetValue(id, out ServiceIdentityTreeNode target))
             {
-                // Unhook from the parent
-                target.Parent.ForEach(parent => parent.Children.Remove(target));
+                // Unhook from parent
+                target.Parent.ForEach(p => p.RemoveChild(target));
 
                 // Unhook the children
-                target.Children.ForEach(child => child.Parent = Option.None<ServiceIdentityTreeNode>());
+                target.RemoveAllChildren();
 
-                // Remove
+                // Remove the node itself
                 writableSnapshot.Remove(id);
             }
 
@@ -108,8 +112,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
             authChain = string.Empty;
 
-            // Auth-chain for root
-            if (this.rootDeviceId == id)
+            // Auth-chain for the root (when there aren't any nodes in the tree yet)
+            if (id == this.rootDeviceId)
             {
                 authChain = this.rootDeviceId;
                 return true;
@@ -117,48 +121,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             // Auth-chain for a child somewhere in the tree
             ImmutableDictionary<string, ServiceIdentityTreeNode> snapshot = this.nodes;
-            if (snapshot.TryGetValue(id, out ServiceIdentityTreeNode treeNode))
+            if (snapshot.TryGetValue(id, out ServiceIdentityTreeNode treeNode) &&
+                treeNode.AuthChain.HasValue)
             {
                 // Auth chain starts with the originating device
-                authChain = treeNode.Identity.Id;
-
-                // Walk the parents up to the root
-                while (treeNode.Parent.HasValue)
-                {
-                    // Accumulate the auth chain per parent visited in the format:
-                    // "leaf1;edge1;edge2;...;rootEdge"
-                    ServiceIdentityTreeNode parent = treeNode.Parent.Expect(() => new InvalidOperationException());
-                    authChain += ";" + parent.Identity.Id;
-
-                    if (parent.Identity.DeviceId == this.rootDeviceId)
-                    {
-                        // We've reached the root device, we're done
-                        return true;
-                    }
-
-                    // Move on to the next parent
-                    treeNode = parent;
-                }
-
-                // If we walked the parent chain up to a dead-end, i.e. topmost node does not
-                // match tree root device ID, then it means this subtree is dangling.
-                // This is a possible scenario, we just treat it as if there's no auth chain.
+                authChain = treeNode.AuthChain.Expect(() => new InvalidOperationException());
+                return true;
             }
 
-            // No valid auth chain
             return false;
         }
 
         void InsertModuleIdentity(IDictionary<string, ServiceIdentityTreeNode> nodes, ServiceIdentity module)
         {
-            var newNode = new ServiceIdentityTreeNode(module);
+            var newNode = new ServiceIdentityTreeNode(module, Option.None<string>());
             nodes.Add(module.Id, newNode);
 
             if (nodes.TryGetValue(module.DeviceId, out ServiceIdentityTreeNode parentDeviceNode))
             {
                 // Hook up the module to the parent device
-                newNode.Parent = Option.Some(parentDeviceNode);
-                parentDeviceNode.Children.Add(newNode);
+                parentDeviceNode.AddChild(newNode);
             }
             else
             {
@@ -170,7 +152,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         void InsertDeviceIdentity(IDictionary<string, ServiceIdentityTreeNode> nodes, ServiceIdentity device)
         {
-            var newNode = new ServiceIdentityTreeNode(device);
+            // Root device is the base-case for constructing the authchain,
+            // child devices derive their authchain from the parent
+            var newNode = device.Id == this.rootDeviceId ?
+                new ServiceIdentityTreeNode(device, Option.Some(this.rootDeviceId)) :
+                new ServiceIdentityTreeNode(device, Option.None<string>());
+
             nodes.Add(device.Id, newNode);
 
             // Check if there's an existing parent for this device
@@ -183,8 +170,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Option<ServiceIdentityTreeNode> parentNode = this.FindDeviceByScopeId(nodes, parentScopeId);
 
                 // Hook up the new node into the tree
-                newNode.Parent = parentNode;
-                parentNode.ForEach(node => node.Children.Add(newNode));
+                parentNode.ForEach(p =>
+                {
+                    p.AddChild(newNode);
+                });
             }
 
             // Check if there are any dangling children that can now be hooked up,
@@ -197,8 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             foreach (ServiceIdentityTreeNode child in danglingChildren)
             {
-                child.Parent = Option.Some(newNode);
-                newNode.Children.Add(child);
+                newNode.AddChild(child);
             }
         }
 
@@ -229,15 +217,60 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         /// </summary>
         internal class ServiceIdentityTreeNode
         {
-            public ServiceIdentity Identity { get; private set; }
-            public Option<ServiceIdentityTreeNode> Parent;
-            public List<ServiceIdentityTreeNode> Children;
+            public ServiceIdentity Identity { get; }
+            public Option<string> AuthChain { get; private set; }
+            public Option<ServiceIdentityTreeNode> Parent { get; private set; }
+            List<ServiceIdentityTreeNode> children;
 
-            public ServiceIdentityTreeNode(ServiceIdentity identity)
+            public ServiceIdentityTreeNode(ServiceIdentity identity, Option<string> authChain)
             {
                 this.Identity = Preconditions.CheckNotNull(identity);
                 this.Parent = Option.None<ServiceIdentityTreeNode>();
-                this.Children = new List<ServiceIdentityTreeNode>();
+                this.children = new List<ServiceIdentityTreeNode>();
+                this.AuthChain = authChain;
+            }
+
+            public void AddChild(ServiceIdentityTreeNode childNode)
+            {
+                // TODO: Enforce tree depth
+                this.children.Add(childNode);
+                childNode.Parent = Option.Some(this);
+                childNode.UpdateAuthChainFromParent(this);
+            }
+
+            public void RemoveChild(ServiceIdentityTreeNode childNode)
+            {
+                this.children.Remove(childNode);
+                childNode.Parent = Option.None<ServiceIdentityTreeNode>();
+                childNode.RemoveAuthChain();
+            }
+
+            public void RemoveAllChildren()
+            {
+                var snapshot = new List<ServiceIdentityTreeNode>(this.children);
+                snapshot.ForEach(child => this.RemoveChild(child));
+            }
+
+            void UpdateAuthChainFromParent(ServiceIdentityTreeNode parentNode)
+            {
+                // Our auth chain is inherited from the parent's chain
+                this.AuthChain = parentNode.AuthChain.Map(parentChain => this.MakeAuthChainFromParent(parentChain));
+
+                // Recurisvely update all children to re-calculate their authchains
+                this.children.ForEach(child => child.UpdateAuthChainFromParent(this));
+            }
+
+            void RemoveAuthChain()
+            {
+                this.AuthChain = Option.None<string>();
+
+                // Recursively remove the authchains of children
+                this.children.ForEach(child => child.RemoveAuthChain());
+            }
+
+            private string MakeAuthChainFromParent(string parentAuthChain)
+            {
+                return this.Identity.Id + ";" + parentAuthChain;
             }
         }
     }
