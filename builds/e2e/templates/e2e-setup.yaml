@@ -76,7 +76,7 @@ steps:
     $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
     dotnet build $testDir
 
-    $binDir = Convert-Path "$testDir/bin/Debug/netcoreapp2.1"
+    $binDir = Convert-Path "$testDir/bin/Debug/netcoreapp3.1"
     Write-Output "##vso[task.setvariable variable=binDir]$binDir"
   displayName: Build tests
 
@@ -97,9 +97,10 @@ steps:
       methodReceiverImage = "$imagePrefix-direct-method-receiver:$imageTag";
       loadGenImage = "$imagePrefix-load-gen:$imageTag";
       relayerImage = "$imagePrefix-relayer:$imageTag";
-      networkControllerImage = "$imagePrefix-networkController:$imageTag";
+      networkControllerImage = "$imagePrefix-network-controller:$imageTag";
       testResultCoordinatorImage = "$imagePrefix-test-result-coordinator:$imageTag";
       metricsValidatorImage = "$imagePrefix-metrics-validator:$imageTag";
+      edgeAgentBootstrapImage = "$imagePrefix-agent-bootstrap-e2e-$(os)-$(arch)";
       registries = @(
         @{
           address = '$(cr.address)';

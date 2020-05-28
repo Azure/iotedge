@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models
             this.UsedRam = Preconditions.CheckNotNull(usedRam, nameof(usedRam));
             this.TotalRam = Preconditions.CheckNotNull(totalRam, nameof(totalRam));
             this.Disks = Preconditions.CheckNotNull(disks, nameof(disks));
-            this.ModuleStats = Preconditions.CheckNotNull(dockerStats, nameof(dockerStats));
+            this.DockerStats = Preconditions.CheckNotNull(dockerStats, nameof(dockerStats));
         }
 
         public long HostUptime { get; }
@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models
 
         public Disk[] Disks { get; }
 
-        public string ModuleStats { get; }
+        public string DockerStats { get; }
     }
 
     public class Disk
