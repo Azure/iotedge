@@ -47,10 +47,10 @@
                 "value": "true"
               },
               "experimentalfeatures__enabled": {
-                  "value": "true"
+                "value": "true"
               },
               "experimentalfeatures__enableMetrics": {
-                  "value": "true"
+                "value": "true"
               },
               "RuntimeLogLevel": {
                 "value": "<LongHaul.RuntimeLogLevel>"
