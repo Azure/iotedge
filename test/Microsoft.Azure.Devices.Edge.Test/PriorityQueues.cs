@@ -224,15 +224,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                        .WithEnvironment(new[]
                        {
                            ("trackingId", trackingId),
-                           ("eventHubConnectionString", "Unnecessary"),
+                           ("useTestResultReportingService", "false"),
+                           ("useResultEventReceivingService", "false"),
                            ("IOT_HUB_CONNECTION_STRING", Context.Current.ConnectionString),
-                           ("logAnalyticsWorkspaceId", "Unnecessary"),
-                           ("logAnalyticsSharedKey", "Unnecessary"),
-                           ("logAnalyticsLogType", "Unnecessary"),
                            ("testStartDelay", "00:00:00"),
                            ("testDuration", "00:20:00"),
                            ("verificationDelay", "00:00:00"),
-                           ("STORAGE_ACCOUNT_CONNECTION_STRING", "Unnecessary"),
                            ("NetworkControllerRunProfile", "Online"),
                            ("TEST_INFO", "key=unnecessary")
                        })
