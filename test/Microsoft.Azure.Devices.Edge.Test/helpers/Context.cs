@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.RelayerImage = Option.Maybe(Get("relayerImage"));
             this.NetworkControllerImage = Option.Maybe(Get("networkControllerImage"));
             this.EdgeAgentBootstrapImage = Option.Maybe(Get("edgeAgentBootstrapImage"));
-            this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5));
+            this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 15));
             this.Verbose = context.GetValue<bool>("verbose");
         }
 
