@@ -30,6 +30,9 @@
               },
               "experimentalfeatures__enableMetrics": {
                   "value": "true"
+              },
+              "RuntimeLogLevel": {
+                "value": "<LongHaul.RuntimeLogLevel>"
               }
             }
           },
@@ -48,6 +51,9 @@
               },
               "experimentalfeatures__enableMetrics": {
                   "value": "true"
+              },
+              "RuntimeLogLevel": {
+                "value": "<LongHaul.RuntimeLogLevel>"
               }
             },
             "status": "running",

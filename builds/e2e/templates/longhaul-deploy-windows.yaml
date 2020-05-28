@@ -31,6 +31,7 @@ parameters:
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''
   metricsCollector.hostPlatform: ''
+  longHaul.runtimeLogLevel: ''
 
 steps:
   - task: CopyFiles@2
@@ -61,6 +62,7 @@ steps:
         $testInfo=$testInfo+",HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
         $testInfo=$testInfo+",TestName=$testName"
         $testInfo=$testInfo+",UpstreamProtocol=amqp"
+        $testInfo=$testInfo+",RuntimeLogLevel=${{ parameters['longHaul.runtimeLogLevel'] }}"
         
         $ArtifactInfo=convertfrom-stringdata (get-content $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt -raw)
         $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/windows/test/Run-E2ETest.ps1 `
@@ -91,5 +93,6 @@ steps:
           -MetricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" `
           -MetricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" `
           -TestInfo "$testInfo" `
-          -TestStartDelay "${{ parameters['test.startDelay'] }}"
+          -TestStartDelay "${{ parameters['test.startDelay'] }}" `
+          -RuntimeLogLevel "${{ parameters['longHaul.runtimeLogLevel'] }}"
       workingDirectory: "$(Agent.HomeDirectory)/.."

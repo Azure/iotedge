@@ -196,6 +196,7 @@ function prepare_test_from_artifacts() {
                 sed -i -e "s@<TwinUpdateSize>@$TWIN_UPDATE_SIZE@g" "$deployment_working_file"
                 sed -i -e "s@<TwinUpdateFrequency>@$TWIN_UPDATE_FREQUENCY@g" "$deployment_working_file"
                 sed -i -e "s@<TwinUpdateFailureThreshold>@$TWIN_UPDATE_FAILURE_THRESHOLD@g" "$deployment_working_file"
+                sed -i -e "s@<LongHaul.RuntimeLogLevel>@$RUNTIME_LOG_LEVEL@g" "$deployment_working_file"
                 sed -i -e "s@<EdgeHubRestartFailureTolerance>@$EDGEHUB_RESTART_FAILURE_TOLERANCE@g" "$deployment_working_file";;
             'tempfilter')
                 echo "Copy deployment file from $module_to_module_deployment_artifact_file"
@@ -411,6 +412,9 @@ function process_args() {
         elif [ $saveNextArg -eq 43 ]; then
             TEST_START_DELAY="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 44 ]; then
+            RUNTIME_LOG_LEVEL="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -457,6 +461,7 @@ function process_args() {
                 '-initializeWithAgentArtifact' ) saveNextArg=41;;
                 '-testInfo' ) saveNextArg=42;;
                 '-testStartDelay' ) saveNextArg=43;;
+                '-runtimeLogLevel' ) saveNextArg=44;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -1071,6 +1076,7 @@ function usage() {
     echo ' -initializeWithAgentArtifact                   Boolean specifying if the iotedge installation should initialize edge agent with the official 1.0 image or the desired artifact. If false, the deployment after installation will start the desired agent artifact.'
     echo ' -testInfo                                      Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.' 
     echo ' -testStartDelay                                Tests start after delay for applicable modules'
+    echo ' -runtimeLogLevel                               EdgeAgent & EdgeHub RuntimeLogLevel'
     exit 1;
 }
 
@@ -1104,6 +1110,7 @@ if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
     TWIN_UPDATE_SIZE="${TWIN_UPDATE_SIZE:-1}"
     TWIN_UPDATE_FREQUENCY="${TWIN_UPDATE_FREQUENCY:-00:00:15}"
     TEST_START_DELAY="${TEST_START_DELAY:-00:00:00}"
+    RUNTIME_LOG_LEVEL="${RUNTIME_LOG_LEVEL:-debug}"
 fi
 if [[ "${TEST_NAME,,}" == "stress" ]]; then
     LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:00.03}"
