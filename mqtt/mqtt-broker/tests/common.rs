@@ -1,9 +1,11 @@
 use std::{
+    convert::Infallible,
     sync::atomic::{AtomicU32, Ordering},
     task::{Context, Poll},
     time::{Duration, Instant},
 };
 
+use async_trait::async_trait;
 use bytes::Bytes;
 use futures::{future::select, pin_mut, Stream};
 use futures_util::{sink::SinkExt, FutureExt, StreamExt};
@@ -24,7 +26,8 @@ use mqtt3::{
     Client, Event, PublishError, PublishHandle, ReceivedPublication, ShutdownHandle,
     UpdateSubscriptionHandle, PROTOCOL_LEVEL, PROTOCOL_NAME,
 };
-use mqtt_broker::{Authenticator, Authorizer, Broker, BrokerState, Error, Server};
+use mqtt_broker::{Broker, BrokerState, Error, Server};
+use mqtt_broker_core::auth::{AuthId, Authenticator, Authorizer, Credentials};
 
 /// A wrapper on the [`mqtt3::Client`] to help simplify client event loop management.
 #[derive(Debug)]
@@ -440,5 +443,26 @@ where
         address,
         shutdown: Some(shutdown),
         task: Some(task),
+    }
+}
+
+pub struct DummyAuthenticator(AuthId);
+
+impl DummyAuthenticator {
+    pub fn anonymous() -> Self {
+        Self(AuthId::Anonymous)
+    }
+}
+
+#[async_trait]
+impl Authenticator for DummyAuthenticator {
+    type Error = Infallible;
+
+    async fn authenticate(
+        &self,
+        _: Option<String>,
+        _: Credentials,
+    ) -> Result<Option<AuthId>, Self::Error> {
+        Ok(Some(self.0.clone()))
     }
 }

@@ -16,17 +16,18 @@ use tracing_futures::Instrument;
 use uuid::Uuid;
 
 use mqtt3::proto::{self, DecodeError, EncodeError, Packet, PacketCodec};
-use mqtt_edgehub::{
+use mqtt_broker_core::{
+    auth::{Authenticator, Certificate, Credentials},
+    ClientId,
+};
+use mqtt_edgehub::translation::{
     translate_incoming_publish, translate_incoming_subscribe, translate_incoming_unsubscribe,
     translate_outgoing_publish,
 };
 
-use crate::auth::Credentials;
 use crate::broker::BrokerHandle;
 use crate::transport::GetPeerCertificate;
-use crate::{
-    Auth, Authenticator, Certificate, ClientEvent, ClientId, ConnReq, Error, Message, Publish,
-};
+use crate::{Auth, ClientEvent, ConnReq, Error, Message, Publish};
 
 lazy_static! {
     static ref DEFAULT_TIMEOUT: Duration = Duration::from_secs(5);
@@ -263,18 +264,18 @@ where
                     Packet::PubAck(puback) => ClientEvent::PubAck(puback),
                     Packet::PubComp(pubcomp) => ClientEvent::PubComp(pubcomp),
                     Packet::Publish(publish) => {
-                        let publish = translate_incoming_publish(&client_id.0, publish);
+                        let publish = translate_incoming_publish(&client_id, publish);
                         ClientEvent::PublishFrom(publish)
                     }
                     Packet::PubRec(pubrec) => ClientEvent::PubRec(pubrec),
                     Packet::PubRel(pubrel) => ClientEvent::PubRel(pubrel),
                     Packet::Subscribe(subscribe) => {
-                        let subscribe = translate_incoming_subscribe(&client_id.0, subscribe);
+                        let subscribe = translate_incoming_subscribe(&client_id, subscribe);
                         ClientEvent::Subscribe(subscribe)
                     }
                     Packet::SubAck(suback) => ClientEvent::SubAck(suback),
                     Packet::Unsubscribe(unsubscribe) => {
-                        let unsubscribe = translate_incoming_unsubscribe(&client_id.0, unsubscribe);
+                        let unsubscribe = translate_incoming_unsubscribe(&client_id, unsubscribe);
                         ClientEvent::Unsubscribe(unsubscribe)
                     }
                     Packet::UnsubAck(unsuback) => ClientEvent::UnsubAck(unsuback),
@@ -378,5 +379,5 @@ fn client_id(client_id: &proto::ClientId) -> ClientId {
         proto::ClientId::IdWithCleanSession(ref id) => id.to_owned(),
         proto::ClientId::IdWithExistingSession(ref id) => id.to_owned(),
     };
-    ClientId(Arc::new(id))
+    ClientId::from(id)
 }

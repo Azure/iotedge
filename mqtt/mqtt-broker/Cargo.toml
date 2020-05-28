@@ -35,6 +35,7 @@ uuid = { version = "0.8", features = ["v4"] }
 
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
 mqtt-edgehub = { path = "../mqtt-edgehub" }
+mqtt-broker-core = { path = "../mqtt-broker-core" }
 
 [dev-dependencies]
 atty = "0.2"

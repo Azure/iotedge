@@ -3,17 +3,20 @@ use std::convert::TryInto;
 use std::panic;
 
 use mqtt3::proto;
+use mqtt_broker_core::{
+    auth::{Activity, AuthId, Authorizer, DefaultAuthorizer, Operation},
+    ClientId,
+};
 use serde::{Deserialize, Serialize};
+use tokio::sync::mpsc::{self, Receiver, Sender};
 use tracing::{debug, error, info, span, warn, Level};
 
-use crate::auth::{Activity, Authorizer, DefaultAuthorizer, Operation};
-use crate::session::{ConnectedSession, Session, SessionState};
-use crate::state_change::StateChange;
 use crate::{
-    subscription::Subscription, Auth, AuthId, ClientEvent, ClientId, ConnReq, Error, Message,
-    SystemEvent,
+    session::{ConnectedSession, Session, SessionState},
+    state_change::StateChange,
+    subscription::Subscription,
+    Auth, ClientEvent, ConnReq, Error, Message, SystemEvent,
 };
-use tokio::sync::mpsc::{self, Receiver, Sender};
 
 static EXPECTED_PROTOCOL_NAME: &str = mqtt3::PROTOCOL_NAME;
 const EXPECTED_PROTOCOL_LEVEL: u8 = mqtt3::PROTOCOL_LEVEL;
@@ -1047,10 +1050,10 @@ pub(crate) mod tests {
     use uuid::Uuid;
 
     use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
+    use mqtt_broker_core::auth::{Activity, AuthorizeError, Operation};
 
     use super::OpenSession;
     use crate::{
-        auth::{Activity, AuthorizeError, Operation},
         broker::{BrokerBuilder, BrokerHandle},
         error::Error,
         session::Session,

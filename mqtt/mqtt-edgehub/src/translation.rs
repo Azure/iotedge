@@ -1,7 +1,7 @@
 //! This module translates between the old sdk iothub topics which lack a client id
 //! into newly designed topics that include a client id.
 //!
-//! IotHub currently relies on the connection information to identify a device.
+//! IoTHub currently relies on the connection information to identify a device.
 //! This does not work well in he broker message since edgehub core doesn't hold the connection to the device/module.
 //!
 //! This translation allows edgehub core to subscribe to the new topics that include client id to identify requests
@@ -10,6 +10,7 @@ use regex::Regex;
 use tracing::debug;
 
 use mqtt3::proto;
+use mqtt_broker_core::ClientId;
 
 lazy_static! {
     static ref TRANSLATED2C: TranslateD2C =
@@ -19,7 +20,7 @@ lazy_static! {
 }
 
 pub fn translate_incoming_subscribe(
-    client_id: &str,
+    client_id: &ClientId,
     mut subscribe: proto::Subscribe,
 ) -> proto::Subscribe {
     for mut sub_to in &mut subscribe.subscribe_to {
@@ -36,7 +37,7 @@ pub fn translate_incoming_subscribe(
 }
 
 pub fn translate_incoming_unsubscribe(
-    client_id: &str,
+    client_id: &ClientId,
     mut unsubscribe: proto::Unsubscribe,
 ) -> proto::Unsubscribe {
     for unsub_from in &mut unsubscribe.unsubscribe_from {
@@ -48,7 +49,10 @@ pub fn translate_incoming_unsubscribe(
     unsubscribe
 }
 
-pub fn translate_incoming_publish(client_id: &str, mut publish: proto::Publish) -> proto::Publish {
+pub fn translate_incoming_publish(
+    client_id: &ClientId,
+    mut publish: proto::Publish,
+) -> proto::Publish {
     if let Some(new_topic) = TRANSLATED2C.translate_to_new(&publish.topic_name, client_id) {
         debug!(
             "Translating incoming publication {} to {}",
@@ -94,7 +98,7 @@ macro_rules! translate_d2c {
                 })
             }
 
-            fn translate_to_new(&self, topic: &str, client_id: &str) -> Option<String> {
+            fn translate_to_new(&self, topic: &str, client_id: &ClientId) -> Option<String> {
                 if topic.starts_with("$iothub") || topic.starts_with("devices") {
                     $(
                         if let Some(captures) = self.$translate_name.captures(topic) {
@@ -143,7 +147,7 @@ macro_rules! translate_c2d {
                 })
             }
 
-            fn translate_to_new(&self, topic: &str, client_id: &str) -> Option<String> {
+            fn translate_to_new(&self, topic: &str, client_id: &ClientId) -> Option<String> {
                 if topic.starts_with("$iothub/") || topic.starts_with("devices/") {
                     $(
                         if let Some(captures) = self.to_new.$translate_name.captures(topic) {
@@ -251,37 +255,41 @@ translate_c2d! {
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
-    use super::*;
+mod tests {
+    use crate::translation::{TranslateC2D, TranslateD2C};
+
     #[test]
     fn test_translater() {
         let d2c = TranslateD2C::new().unwrap();
         let c2d = TranslateC2D::new().unwrap();
 
+        let client_a = "client_a".into();
+        let device_1 = "device_1".into();
+
         // None
-        assert_eq!(d2c.translate_to_new("blagh", "client_a"), None);
-        assert_eq!(d2c.translate_to_new("$iothub/blagh", "client_a"), None);
+        assert_eq!(d2c.translate_to_new("blagh", &client_a), None);
+        assert_eq!(d2c.translate_to_new("$iothub/blagh", &client_a), None);
 
         // Messages d2c
         assert_eq!(
-            d2c.translate_to_new("devices/device_1/messages/events", "device_1"),
+            d2c.translate_to_new("devices/device_1/messages/events", &device_1),
             Some("$edgehub/device_1/messages/events".to_owned())
         );
         assert_eq!(
-            d2c.translate_to_new("devices/device_1/messages/events/route_1/input", "device_1"),
+            d2c.translate_to_new("devices/device_1/messages/events/route_1/input", &device_1),
             Some("$edgehub/device_1/messages/events/route_1/input".to_owned())
         );
         assert_eq!(
             d2c.translate_to_new(
                 "devices/device_1/modules/client_a/messages/events",
-                "client_a"
+                &client_a
             ),
             Some("$edgehub/device_1/modules/client_a/messages/events".to_owned())
         );
 
         // Messages c2d
         assert_eq!(
-            c2d.translate_to_new("devices/device_1/messages/devicebound", "device_1"),
+            c2d.translate_to_new("devices/device_1/messages/devicebound", &device_1),
             Some("$edgehub/device_1/messages/c2d/post".to_owned())
         );
         assert_eq!(
@@ -292,7 +300,7 @@ pub(crate) mod tests {
         assert_eq!(
             c2d.translate_to_new(
                 "devices/device_1/messages/devicebound/route_1/input",
-                "device_1"
+                &device_1
             ),
             Some("$edgehub/device_1/messages/c2d/post/route_1/input".to_owned())
         );
@@ -304,7 +312,7 @@ pub(crate) mod tests {
         assert_eq!(
             c2d.translate_to_new(
                 "devices/device_1/modules/client_a/messages/devicebound",
-                "client_a"
+                &client_a
             ),
             Some("$edgehub/device_1/modules/client_a/messages/c2d/post".to_owned())
         );
@@ -315,17 +323,17 @@ pub(crate) mod tests {
 
         // Twin d2c
         assert_eq!(
-            d2c.translate_to_new("$iothub/twin/PATCH/properties/reported/?rid=1", "client_a"),
+            d2c.translate_to_new("$iothub/twin/PATCH/properties/reported/?rid=1", &client_a),
             Some("$edgehub/client_a/twin/reported/?rid=1".to_owned())
         );
         assert_eq!(
-            d2c.translate_to_new("$iothub/twin/GET/?rid=2", "client_a"),
+            d2c.translate_to_new("$iothub/twin/GET/?rid=2", &client_a),
             Some("$edgehub/client_a/twin/get/?rid=2".to_owned())
         );
 
         // Twin c2d
         assert_eq!(
-            c2d.translate_to_new("$iothub/twin/PATCH/properties/desired/?rid=1", "client_a"),
+            c2d.translate_to_new("$iothub/twin/PATCH/properties/desired/?rid=1", &client_a),
             Some("$edgehub/client_a/twin/desired/?rid=1".to_owned())
         );
         assert_eq!(
@@ -334,7 +342,7 @@ pub(crate) mod tests {
         );
 
         assert_eq!(
-            c2d.translate_to_new("$iothub/twin/res/#", "client_a"),
+            c2d.translate_to_new("$iothub/twin/res/#", &client_a),
             Some("$edgehub/client_a/twin/res/#".to_owned())
         );
         assert_eq!(
@@ -344,13 +352,13 @@ pub(crate) mod tests {
 
         // Direct Method d2c
         assert_eq!(
-            d2c.translate_to_new("$iothub/methods/res/200/?rid=4", "client_a"),
+            d2c.translate_to_new("$iothub/methods/res/200/?rid=4", &client_a),
             Some("$edgehub/client_a/methods/res/200/?rid=4".to_owned())
         );
 
         // Direct Method c2d
         assert_eq!(
-            c2d.translate_to_new("$iothub/methods/POST/#", "client_a"),
+            c2d.translate_to_new("$iothub/methods/POST/#", &client_a),
             Some("$edgehub/client_a/methods/post/#".to_owned())
         );
         assert_eq!(

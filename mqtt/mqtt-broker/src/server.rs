@@ -8,7 +8,8 @@ use tokio::{net::ToSocketAddrs, sync::oneshot};
 use tracing::{debug, error, info, span, warn, Level};
 use tracing_futures::Instrument;
 
-use crate::auth::{Authenticator, Authorizer};
+use mqtt_broker_core::auth::{Authenticator, Authorizer};
+
 use crate::broker::{Broker, BrokerHandle, BrokerState};
 use crate::transport::TransportBuilder;
 use crate::{connection, Error, InitializeBrokerError, Message, SystemEvent};

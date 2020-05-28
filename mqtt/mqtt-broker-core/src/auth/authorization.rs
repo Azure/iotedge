@@ -2,7 +2,7 @@
 
 use mqtt3::proto;
 
-use crate::{AuthId, ClientId};
+use crate::{auth::AuthId, ClientId};
 
 /// A trait to check a MQTT client permissions to perform some actions.
 pub trait Authorizer {

@@ -1,12 +1,16 @@
-use std::{convert::TryInto, env, io};
+use std::{
+    convert::{Infallible, TryInto},
+    env, io,
+};
 
 use clap::{crate_description, crate_name, crate_version, App, Arg};
 use futures_util::pin_mut;
-use mqtt_broker::*;
 use tokio::time::{Duration, Instant};
 use tracing::{info, warn, Level};
 use tracing_subscriber::{fmt, EnvFilter};
 
+use mqtt_broker::*;
+use mqtt_broker_core::auth::AuthId;
 use mqttd::{shutdown, snapshot, Terminate};
 
 #[tokio::main]
@@ -73,7 +77,9 @@ async fn run() -> Result<(), Error> {
 
     info!("Starting server...");
     let state = Server::from_broker(broker)
-        .serve(transports, shutdown, |_, _| Ok(Some(AuthId::Anonymous)))
+        .serve(transports, shutdown, |_, _| {
+            Ok::<_, Infallible>(Some(AuthId::Anonymous))
+        })
         .await?;
 
     // Stop snapshotting

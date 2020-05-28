@@ -1,3 +1,5 @@
+mod common;
+
 use std::time::Duration;
 
 use bytes::Bytes;
@@ -11,16 +13,14 @@ use mqtt3::{
     Event, ReceivedPublication, PROTOCOL_LEVEL, PROTOCOL_NAME,
 };
 
-use common::{PacketStream, TestClientBuilder};
-use mqtt_broker::{AuthId, BrokerBuilder};
-
-mod common;
+use common::{DummyAuthenticator, PacketStream, TestClientBuilder};
+use mqtt_broker::BrokerBuilder;
 
 #[tokio::test]
 async fn basic_connect_clean_session() {
     let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+    let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
@@ -46,7 +46,7 @@ async fn basic_connect_clean_session() {
 async fn basic_connect_existing_session() {
     let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+    let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests".into()))
@@ -88,7 +88,7 @@ async fn basic_pub_sub() {
 
     let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+    let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
@@ -136,7 +136,7 @@ async fn retained_messages() {
 
     let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let mut server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+    let mut server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
@@ -204,7 +204,7 @@ async fn retained_messages_zero_payload() {
 
     let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let mut server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+    let mut server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
@@ -255,7 +255,7 @@ async fn retained_messages_persisted_on_broker_restart() {
 
     let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let mut server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+    let mut server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
@@ -277,7 +277,7 @@ async fn retained_messages_persisted_on_broker_restart() {
         .authorizer(|_| Ok(true))
         .build();
 
-    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+    let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
@@ -315,7 +315,7 @@ async fn will_message() {
 
     let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+    let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client_b = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-b".into()))
@@ -367,7 +367,7 @@ async fn offline_messages() {
 
     let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+    let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client_a = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests-a".into()))
@@ -425,7 +425,7 @@ async fn offline_messages_persisted_on_broker_restart() {
 
     let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let mut server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+    let mut server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client_a = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests-a".into()))
@@ -455,7 +455,7 @@ async fn offline_messages_persisted_on_broker_restart() {
         .authorizer(|_| Ok(true))
         .build();
 
-    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+    let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client_a = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests-a".into()))
@@ -504,7 +504,7 @@ async fn overlapping_subscriptions() {
 
     let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+    let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client_a = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-a".into()))
@@ -553,7 +553,7 @@ async fn overlapping_subscriptions() {
 async fn wrong_first_packet_connection_dropped() {
     let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+    let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client = PacketStream::open(server_handle.address()).await;
     client.send_packet(Packet::PingReq(PingReq)).await;
@@ -565,7 +565,7 @@ async fn wrong_first_packet_connection_dropped() {
 async fn duplicate_connect_packet_connection_dropped() {
     let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+    let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client = PacketStream::open(server_handle.address()).await;
     client
@@ -607,7 +607,7 @@ async fn duplicate_connect_packet_connection_dropped() {
 async fn wrong_protocol_name_connection_dropped() {
     let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+    let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client = PacketStream::open(server_handle.address()).await;
     client
@@ -629,7 +629,7 @@ async fn wrong_protocol_name_connection_dropped() {
 async fn wrong_protocol_version_rejected() {
     let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+    let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client = PacketStream::open(server_handle.address()).await;
     client
@@ -659,7 +659,7 @@ async fn wrong_protocol_version_rejected() {
 async fn qos1_puback_should_be_in_order() {
     let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+    let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client = PacketStream::connect(
         ClientId::IdWithCleanSession("test-client".into()),

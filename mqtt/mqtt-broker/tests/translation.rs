@@ -1,20 +1,20 @@
+mod common;
+
 use matches::assert_matches;
 
-use common::{TestClient, TestClientBuilder};
+use common::{DummyAuthenticator, TestClient, TestClientBuilder};
 use mqtt3::{
     proto::{ClientId, QoS},
     ReceivedPublication,
 };
-use mqtt_broker::{AuthId, BrokerBuilder};
-
-mod common;
+use mqtt_broker::BrokerBuilder;
 
 // https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-mqtt-support#retrieving-a-device-twins-properties
 #[tokio::test]
 async fn translation_twin_retrieve() {
     let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+    let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut edge_hub_core = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
@@ -54,7 +54,7 @@ async fn translation_twin_retrieve() {
 async fn translation_twin_update() {
     let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+    let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut edge_hub_core = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
@@ -98,7 +98,7 @@ async fn translation_twin_update() {
 async fn translation_twin_receive() {
     let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+    let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut edge_hub_core = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
@@ -133,7 +133,7 @@ async fn translation_twin_receive() {
 async fn translation_direct_method_response() {
     let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+    let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut edge_hub_core = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
@@ -182,7 +182,7 @@ async fn translation_direct_method_response() {
 async fn translation_twin_notify() {
     let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
+    let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut edge_hub_core = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
