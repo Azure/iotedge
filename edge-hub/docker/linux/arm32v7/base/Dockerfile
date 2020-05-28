@@ -1,5 +1,5 @@
-ARG base_tag=2.1.16-bionic-arm32v7
-FROM mcr.microsoft.com/dotnet/core/runtime:${base_tag}
+ARG base_tag=3.1.4-bionic-arm32v7
+FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}
 
 # Add an unprivileged user account for running Edge Hub
 ARG EDGEHUBUSER_ID=1000
