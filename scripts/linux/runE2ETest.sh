@@ -196,7 +196,7 @@ function prepare_test_from_artifacts() {
                 sed -i -e "s@<TwinUpdateSize>@$TWIN_UPDATE_SIZE@g" "$deployment_working_file"
                 sed -i -e "s@<TwinUpdateFrequency>@$TWIN_UPDATE_FREQUENCY@g" "$deployment_working_file"
                 sed -i -e "s@<TwinUpdateFailureThreshold>@$TWIN_UPDATE_FAILURE_THRESHOLD@g" "$deployment_working_file"
-                sed -i -e "s@<LongHaul.RuntimeLogLevel>@$RUNTIME_LOG_LEVEL@g" "$deployment_working_file"
+                sed -i -e "s@<Test.RuntimeLogLevel>@$RUNTIME_LOG_LEVEL@g" "$deployment_working_file"
                 sed -i -e "s@<EdgeHubRestartFailureTolerance>@$EDGEHUB_RESTART_FAILURE_TOLERANCE@g" "$deployment_working_file";;
             'tempfilter')
                 echo "Copy deployment file from $module_to_module_deployment_artifact_file"

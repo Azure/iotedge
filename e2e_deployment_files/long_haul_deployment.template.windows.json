@@ -50,7 +50,7 @@
                 "value": "true"
               },
               "RuntimeLogLevel": {
-                "value": "<LongHaul.RuntimeLogLevel>"
+                "value": "<Test.RuntimeLogLevel>"
               }
             },
             "status": "running",
