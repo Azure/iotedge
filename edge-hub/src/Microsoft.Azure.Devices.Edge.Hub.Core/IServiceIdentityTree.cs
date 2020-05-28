@@ -12,6 +12,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public bool Contains(string id);
         public Option<ServiceIdentity> Get(string id);
         public IList<string> GetAllIds();
-        public bool TryGetAuthChain(string id, out string authChain);
     }
 }

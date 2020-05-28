@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
-    using System;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public interface IAuthenticationChainProvider
     {
-        bool TryGetAuthChain(string id, out string authChain);
+        public Option<string> GetAuthChain(string id);
     }
 }

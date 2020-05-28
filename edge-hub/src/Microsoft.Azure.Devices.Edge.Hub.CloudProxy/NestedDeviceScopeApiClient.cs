@@ -134,10 +134,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             using (var msg = new HttpRequestMessage(HttpMethod.Post, uri))
             {
                 // Get the auth-chain for the target device
-                if (!this.authChainProvider.TryGetAuthChain(this.TargetEdgeDeviceId, out string authChain))
-                {
-                    throw new ArgumentException($"No valid authentication chain for {this.TargetEdgeDeviceId}");
-                }
+                string authChain = this.authChainProvider
+                        .GetAuthChain(this.TargetEdgeDeviceId)
+                        .Expect(() => new ArgumentException($"No valid authentication chain for {this.TargetEdgeDeviceId}"));
 
                 var payload = new NestedScopeRequest()
                 {

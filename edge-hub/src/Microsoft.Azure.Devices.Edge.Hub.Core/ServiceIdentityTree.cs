@@ -1,13 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
-    using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using System.Collections.Immutable;
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Org.BouncyCastle.Security;
 
     /// <summary>
     /// This is a tree implementation that uses the ParentScopes property
@@ -19,12 +18,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         IAuthenticationChainProvider
     {
         readonly string rootDeviceId;
-        AtomicReference<ImmutableDictionary<string, ServiceIdentityTreeNode>> nodes;
+        ConcurrentDictionary<string, ServiceIdentityTreeNode> nodes;
 
         public ServiceIdentityTree(string rootDeviceId)
         {
             this.rootDeviceId = Preconditions.CheckNonWhiteSpace(rootDeviceId, nameof(rootDeviceId));
-            this.nodes = new AtomicReference<ImmutableDictionary<string, ServiceIdentityTreeNode>>(ImmutableDictionary<string, ServiceIdentityTreeNode>.Empty);
+            this.nodes = new ConcurrentDictionary<string, ServiceIdentityTreeNode>();
         }
 
         public void InsertOrUpdate(ServiceIdentity identity)
@@ -32,42 +31,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             // There should always be a valid ServiceIdentity
             Preconditions.CheckNotNull(identity, nameof(identity));
 
-            ImmutableDictionary<string, ServiceIdentityTreeNode> snapshot = this.nodes;
-            if (snapshot.ContainsKey(identity.Id))
+            if (this.nodes.ContainsKey(identity.Id))
             {
                 // Update case - this is just remove + re-insert
                 this.Remove(identity.Id);
-
-                // Take another snapshot since an item was removed
-                snapshot = this.nodes;
             }
-
-            var writableSnapshot = new Dictionary<string, ServiceIdentityTreeNode>(snapshot);
 
             // Insert case
             if (identity.IsModule)
             {
-                this.InsertModuleIdentity(writableSnapshot, identity);
+                this.InsertModuleIdentity(identity);
             }
             else
             {
-                this.InsertDeviceIdentity(writableSnapshot, identity);
-            }
-
-            // Write back to the atomic field
-            if (!this.nodes.CompareAndSet(snapshot, writableSnapshot.ToImmutableDictionary()))
-            {
-                // There's only ever one thread calling InsertOrUpdate, so this should never fail
-                throw new InvalidOperationException("Multi-threaded insert/update detected on ServiceIdentityTree");
+                this.InsertDeviceIdentity(identity);
             }
         }
 
         public void Remove(string id)
         {
-            ImmutableDictionary<string, ServiceIdentityTreeNode> snapshot = this.nodes;
-            var writableSnapshot = new Dictionary<string, ServiceIdentityTreeNode>(snapshot);
-
-            if (writableSnapshot.TryGetValue(id, out ServiceIdentityTreeNode target))
+            if (this.nodes.TryGetValue(id, out ServiceIdentityTreeNode target))
             {
                 // Unhook from parent
                 target.Parent.ForEach(p => p.RemoveChild(target));
@@ -76,68 +59,56 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 target.RemoveAllChildren();
 
                 // Remove the node itself
-                writableSnapshot.Remove(id);
-            }
-
-            // Write back to the atomic field
-            if (!this.nodes.CompareAndSet(snapshot, writableSnapshot.ToImmutableDictionary()))
-            {
-                // There's only ever one thread calling Remove(), so this should never fail
-                throw new InvalidOperationException("Multi-threaded delete detected on ServiceIdentityTree");
+                this.nodes.TryRemove(id, out ServiceIdentityTreeNode _);
             }
         }
 
         public bool Contains(string id)
         {
-            ImmutableDictionary<string, ServiceIdentityTreeNode> snapshot = this.nodes;
-            return snapshot.ContainsKey(id);
+            return this.nodes.ContainsKey(id);
         }
 
         public Option<ServiceIdentity> Get(string id)
         {
-            ImmutableDictionary<string, ServiceIdentityTreeNode> snapshot = this.nodes;
-            return snapshot.TryGetValue(id, out ServiceIdentityTreeNode treeNode)
+            return this.nodes.TryGetValue(id, out ServiceIdentityTreeNode treeNode)
                     ? Option.Some(treeNode.Identity)
                     : Option.None<ServiceIdentity>();
         }
 
         public IList<string> GetAllIds()
         {
-            ImmutableDictionary<string, ServiceIdentityTreeNode> snapshot = this.nodes;
-            return snapshot.Select(kvp => kvp.Value.Identity.Id).ToList();
+            return this.nodes.Select(kvp => kvp.Value.Identity.Id).ToList();
         }
 
-        public bool TryGetAuthChain(string id, out string authChain)
+        public Option<string> GetAuthChain(string id)
         {
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
-            authChain = string.Empty;
 
             // Auth-chain for the root (when there aren't any nodes in the tree yet)
             if (id == this.rootDeviceId)
             {
-                authChain = this.rootDeviceId;
-                return true;
+                return Option.Some(this.rootDeviceId);
             }
 
             // Auth-chain for a child somewhere in the tree
-            ImmutableDictionary<string, ServiceIdentityTreeNode> snapshot = this.nodes;
-            if (snapshot.TryGetValue(id, out ServiceIdentityTreeNode treeNode) &&
-                treeNode.AuthChain.HasValue)
+            if (this.nodes.TryGetValue(id, out ServiceIdentityTreeNode treeNode))
             {
-                // Auth chain starts with the originating device
-                authChain = treeNode.AuthChain.Expect(() => new InvalidOperationException());
-                return true;
+                return treeNode.AuthChain;
             }
 
-            return false;
+            return Option.None<string>();
         }
 
-        void InsertModuleIdentity(IDictionary<string, ServiceIdentityTreeNode> nodes, ServiceIdentity module)
+        void InsertModuleIdentity(ServiceIdentity module)
         {
             var newNode = new ServiceIdentityTreeNode(module, Option.None<string>());
-            nodes.Add(module.Id, newNode);
 
-            if (nodes.TryGetValue(module.DeviceId, out ServiceIdentityTreeNode parentDeviceNode))
+            if (!this.nodes.TryAdd(module.Id, newNode))
+            {
+                throw new InvalidParameterException($"Duplicate node detected: {module.Id}");
+            }
+
+            if (this.nodes.TryGetValue(module.DeviceId, out ServiceIdentityTreeNode parentDeviceNode))
             {
                 // Hook up the module to the parent device
                 parentDeviceNode.AddChild(newNode);
@@ -150,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        void InsertDeviceIdentity(IDictionary<string, ServiceIdentityTreeNode> nodes, ServiceIdentity device)
+        void InsertDeviceIdentity(ServiceIdentity device)
         {
             // Root device is the base-case for constructing the authchain,
             // child devices derive their authchain from the parent
@@ -158,7 +129,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 new ServiceIdentityTreeNode(device, Option.Some(this.rootDeviceId)) :
                 new ServiceIdentityTreeNode(device, Option.None<string>());
 
-            nodes.Add(device.Id, newNode);
+            if (!this.nodes.TryAdd(device.Id, newNode))
+            {
+                throw new InvalidParameterException($"Duplicate node detected: {device.Id}");
+            }
 
             // Check if there's an existing parent for this device
             foreach (string parentScopeId in device.ParentScopes)
@@ -167,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 // node. It's possible that the identity for the parent hasn't came in yet.
                 // In this case we'll just leave the new identity as a dangling node, and
                 // the parent device identity should come in at a later point.
-                Option<ServiceIdentityTreeNode> parentNode = this.FindDeviceByScopeId(nodes, parentScopeId);
+                Option<ServiceIdentityTreeNode> parentNode = this.FindDeviceByScopeId(parentScopeId);
 
                 // Hook up the new node into the tree
                 parentNode.ForEach(p =>
@@ -179,7 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             // Check if there are any dangling children that can now be hooked up,
             // this include placing the new node as the new root.
             List<ServiceIdentityTreeNode> danglingChildren =
-                nodes
+                this.nodes
                 .Select(kvp => kvp.Value)
                 .Where(s => s.Identity.ParentScopes.Count() > 0 && s.Identity.ParentScopes.Contains(device.DeviceScope.OrDefault()))
                 .ToList();
@@ -190,13 +164,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        Option<ServiceIdentityTreeNode> FindDeviceByScopeId(IDictionary<string, ServiceIdentityTreeNode> nodes, string scopeId)
+        Option<ServiceIdentityTreeNode> FindDeviceByScopeId(string scopeId)
         {
             Preconditions.CheckNonWhiteSpace(scopeId, nameof(scopeId));
 
             // Look for Edge devices with a matching scope ID
             List<ServiceIdentityTreeNode> devices =
-                nodes
+                this.nodes
                 .Select(kvp => kvp.Value)
                 .Where(serviceIdentity => serviceIdentity.Identity.IsEdgeDevice && serviceIdentity.Identity.DeviceScope.Contains(scopeId))
                 .ToList();
