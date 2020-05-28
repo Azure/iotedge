@@ -719,7 +719,7 @@ function run_longhaul_test() {
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --leave-running=All \
         -l "$deployment_working_file" \
-        --runtime-log-level "Info" \
+        --runtime-log-level "$RUNTIME_LOG_LEVEL" \
         --no-verify && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS

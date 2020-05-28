@@ -31,7 +31,7 @@ parameters:
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''
   metricsCollector.hostPlatform: ''
-  longHaul.runtimeLogLevel: ''
+  test.runtimeLogLevel: ''
 
 steps:
   - task: CopyFiles@2
@@ -94,6 +94,6 @@ steps:
           -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
           -testInfo "$testInfo" \
           -testStartDelay "${{ parameters['test.startDelay'] }}" \
-          -runtimeLogLevel "${{ parameters['longHaul.runtimeLogLevel'] }}" \
+          -runtimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
           -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."

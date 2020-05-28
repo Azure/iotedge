@@ -513,7 +513,6 @@ Function PrepareTestFromArtifacts
                 (Get-Content $DeploymentWorkingFilePath).replace('<LogAnalyticsWorkspaceId>',$LogAnalyticsWorkspaceId) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LogAnalyticsSharedKey>',$LogAnalyticsSharedKey) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen.MessageFrequency>',$LoadGenMessageFrequency) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen.MessageFrequency>',$LoadGenMessageFrequency) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LongHaul.RuntimeLogLevel>',$RuntimeLogLevel) | Set-Content $DeploymentWorkingFilePath
                 $escapedBuildId= $ArtifactImageBuildNumber -replace "\.",""
                 (Get-Content $DeploymentWorkingFilePath).replace('<ServiceClientConnectionString>',$IoTHubConnectionString) | Set-Content $DeploymentWorkingFilePath
@@ -1038,7 +1037,7 @@ Function RunLongHaulTest
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             --leave-running=All ``
             -l `"$DeploymentWorkingFilePath`" ``
-            --runtime-log-level `"Info`" ``
+            --runtime-log-level `"$RuntimeLogLevel`" ``
             --no-verify ``
             --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
