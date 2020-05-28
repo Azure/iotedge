@@ -513,7 +513,6 @@ Function PrepareTestFromArtifacts
                 (Get-Content $DeploymentWorkingFilePath).replace('<LogAnalyticsWorkspaceId>',$LogAnalyticsWorkspaceId) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LogAnalyticsSharedKey>',$LogAnalyticsSharedKey) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen.MessageFrequency>',$LoadGenMessageFrequency) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<Test.RuntimeLogLevel>',$RuntimeLogLevel) | Set-Content $DeploymentWorkingFilePath
                 $escapedBuildId= $ArtifactImageBuildNumber -replace "\.",""
                 (Get-Content $DeploymentWorkingFilePath).replace('<ServiceClientConnectionString>',$IoTHubConnectionString) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.MetricsEndpointsCSV>',$MetricsEndpointsCSV) | Set-Content $DeploymentWorkingFilePath

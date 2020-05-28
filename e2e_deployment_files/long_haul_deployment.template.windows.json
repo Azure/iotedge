@@ -48,9 +48,6 @@
               },
               "experimentalfeatures__enableMetrics": {
                 "value": "true"
-              },
-              "RuntimeLogLevel": {
-                "value": "<Test.RuntimeLogLevel>"
               }
             },
             "status": "running",
