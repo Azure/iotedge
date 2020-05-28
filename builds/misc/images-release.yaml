@@ -321,6 +321,11 @@ jobs:
             scripts/linux/buildEdgelet.sh -i azureiotedge-diagnostics -n microsoft -P iotedge-diagnostics -c $(configuration) --target-arch aarch64 &&
             scripts/linux/buildImage.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(version) -i azureiotedge-diagnostics -n $(namespace) -P azureiotedge-diagnostics --target-arch aarch64
         displayName: 'Build Image - azureiotedge-diagnostics - ARM64'
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifacts to VSTS'
+      inputs:
+        PathtoPublish: '$(Build.BinariesDirectory)\publish'
+        ArtifactName: 'publish-linux'
 ################################################################################
   - job: windows
 ################################################################################
