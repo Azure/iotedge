@@ -3,6 +3,7 @@
 use mqtt3::proto;
 
 use crate::{auth::AuthId, ClientId};
+use std::convert::Infallible;
 
 /// A trait to check a MQTT client permissions to perform some actions.
 pub trait Authorizer {
@@ -13,28 +14,29 @@ pub trait Authorizer {
     fn authorize(&self, activity: Activity) -> Result<bool, Self::Error>;
 }
 
-impl<F> Authorizer for F
+impl<F, E> Authorizer for F
 where
-    F: Fn(Activity) -> Result<bool, AuthorizeError> + Sync,
+    F: Fn(Activity) -> Result<bool, E> + Sync,
+    E: std::error::Error + Send,
 {
-    type Error = AuthorizeError;
+    type Error = E;
 
     fn authorize(&self, activity: Activity) -> Result<bool, Self::Error> {
         self(activity)
     }
 }
 
-/// Authorization error type placeholder.
-#[derive(Debug, thiserror::Error)]
-#[error("An error occurred checking client permissions.")]
-pub struct AuthorizeError;
+// /// Authorization error type placeholder.
+// #[derive(Debug, thiserror::Error)]
+// #[error("An error occurred checking client permissions.")]
+// pub struct AuthorizeError;
 
 /// Default implementation that always denies any operation a client intends to perform.
 /// This implementation will be used if custom authorization mechanism was not provided.
 pub struct DefaultAuthorizer;
 
 impl Authorizer for DefaultAuthorizer {
-    type Error = AuthorizeError;
+    type Error = Infallible;
 
     fn authorize(&self, _: Activity) -> Result<bool, Self::Error> {
         Ok(false)
@@ -186,7 +188,7 @@ impl From<proto::Publication> for Receive {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
+    use std::{convert::Infallible, time::Duration};
 
     use matches::assert_matches;
 
@@ -220,7 +222,7 @@ mod tests {
     }
 
     fn authorizer_wrapper_around_function() {
-        let auth = |_| Ok(true);
+        let auth = |_| Ok::<_, Infallible>(true);
         let activity = Activity::new(
             "client-auth-id",
             "client-id",

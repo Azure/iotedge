@@ -13,12 +13,14 @@ use mqtt3::{
     Event, ReceivedPublication, PROTOCOL_LEVEL, PROTOCOL_NAME,
 };
 
-use common::{DummyAuthenticator, PacketStream, TestClientBuilder};
+use common::{DummyAuthenticator, DummyAuthorizer, PacketStream, TestClientBuilder};
 use mqtt_broker::BrokerBuilder;
 
 #[tokio::test]
 async fn basic_connect_clean_session() {
-    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+    let broker = BrokerBuilder::default()
+        .authorizer(DummyAuthorizer::allow())
+        .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
@@ -44,7 +46,9 @@ async fn basic_connect_clean_session() {
 ///	- Expects to see `reset_session` flag = false (existing session on the server).
 #[tokio::test]
 async fn basic_connect_existing_session() {
-    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+    let broker = BrokerBuilder::default()
+        .authorizer(DummyAuthorizer::allow())
+        .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
@@ -86,7 +90,9 @@ async fn basic_connect_existing_session() {
 async fn basic_pub_sub() {
     let topic = "topic/A";
 
-    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+    let broker = BrokerBuilder::default()
+        .authorizer(DummyAuthorizer::allow())
+        .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
@@ -134,7 +140,9 @@ async fn retained_messages() {
     let topic_b = "topic/B";
     let topic_c = "topic/C";
 
-    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+    let broker = BrokerBuilder::default()
+        .authorizer(DummyAuthorizer::allow())
+        .build();
 
     let mut server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
@@ -202,7 +210,9 @@ async fn retained_messages_zero_payload() {
     let topic_b = "topic/B";
     let topic_c = "topic/C";
 
-    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+    let broker = BrokerBuilder::default()
+        .authorizer(DummyAuthorizer::allow())
+        .build();
 
     let mut server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
@@ -253,7 +263,9 @@ async fn retained_messages_persisted_on_broker_restart() {
     let topic_b = "topic/B";
     let topic_c = "topic/C";
 
-    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+    let broker = BrokerBuilder::default()
+        .authorizer(DummyAuthorizer::allow())
+        .build();
 
     let mut server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
@@ -274,7 +286,7 @@ async fn retained_messages_persisted_on_broker_restart() {
     // restart broker with saved state
     let broker = BrokerBuilder::default()
         .state(state)
-        .authorizer(|_| Ok(true))
+        .authorizer(DummyAuthorizer::allow())
         .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
@@ -313,7 +325,9 @@ async fn retained_messages_persisted_on_broker_restart() {
 async fn will_message() {
     let topic = "topic/A";
 
-    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+    let broker = BrokerBuilder::default()
+        .authorizer(DummyAuthorizer::allow())
+        .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
@@ -365,7 +379,9 @@ async fn offline_messages() {
     let topic_b = "topic/B";
     let topic_c = "topic/C";
 
-    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+    let broker = BrokerBuilder::default()
+        .authorizer(DummyAuthorizer::allow())
+        .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
@@ -423,7 +439,9 @@ async fn offline_messages_persisted_on_broker_restart() {
     let topic_b = "topic/B";
     let topic_c = "topic/C";
 
-    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+    let broker = BrokerBuilder::default()
+        .authorizer(DummyAuthorizer::allow())
+        .build();
 
     let mut server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
@@ -452,7 +470,7 @@ async fn offline_messages_persisted_on_broker_restart() {
     // restart broker with saved state
     let broker = BrokerBuilder::default()
         .state(state)
-        .authorizer(|_| Ok(true))
+        .authorizer(DummyAuthorizer::allow())
         .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
@@ -502,7 +520,9 @@ async fn overlapping_subscriptions() {
     let topic_filter_pound = "topic/#";
     let topic_filter_plus = "topic/+";
 
-    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+    let broker = BrokerBuilder::default()
+        .authorizer(DummyAuthorizer::allow())
+        .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
@@ -551,7 +571,9 @@ async fn overlapping_subscriptions() {
 
 #[tokio::test]
 async fn wrong_first_packet_connection_dropped() {
-    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+    let broker = BrokerBuilder::default()
+        .authorizer(DummyAuthorizer::allow())
+        .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
@@ -563,7 +585,9 @@ async fn wrong_first_packet_connection_dropped() {
 
 #[tokio::test]
 async fn duplicate_connect_packet_connection_dropped() {
-    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+    let broker = BrokerBuilder::default()
+        .authorizer(DummyAuthorizer::allow())
+        .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
@@ -605,7 +629,9 @@ async fn duplicate_connect_packet_connection_dropped() {
 
 #[tokio::test]
 async fn wrong_protocol_name_connection_dropped() {
-    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+    let broker = BrokerBuilder::default()
+        .authorizer(DummyAuthorizer::allow())
+        .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
@@ -627,7 +653,9 @@ async fn wrong_protocol_name_connection_dropped() {
 
 #[tokio::test]
 async fn wrong_protocol_version_rejected() {
-    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+    let broker = BrokerBuilder::default()
+        .authorizer(DummyAuthorizer::allow())
+        .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
@@ -657,7 +685,9 @@ async fn wrong_protocol_version_rejected() {
 
 #[tokio::test]
 async fn qos1_puback_should_be_in_order() {
-    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+    let broker = BrokerBuilder::default()
+        .authorizer(DummyAuthorizer::allow())
+        .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 

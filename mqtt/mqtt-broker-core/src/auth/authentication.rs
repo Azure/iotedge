@@ -95,17 +95,21 @@ mod tests {
         let authenticator = DefaultAuthenticator;
         let credentials = Credentials::Password(Some("password".into()));
 
-        let auth_id = authenticator.authenticate(Some("username".into()), credentials).await;
+        let auth_id = authenticator
+            .authenticate(Some("username".into()), credentials)
+            .await;
 
         assert_matches!(auth_id, Ok(None));
     }
 
     #[tokio::test]
     async fn authenticator_wrapper_around_function() {
-        let authenticator = |_,_|  { Ok::<_, Infallible>(Some(AuthId::Anonymous))};
+        let authenticator = |_, _| Ok::<_, Infallible>(Some(AuthId::Anonymous));
         let credentials = Credentials::Password(Some("password".into()));
 
-        let auth_id = authenticator.authenticate(Some("username".into()), credentials).await;
+        let auth_id = authenticator
+            .authenticate(Some("username".into()), credentials)
+            .await;
 
         assert_matches!(auth_id, Ok(Some(AuthId::Anonymous)));
     }

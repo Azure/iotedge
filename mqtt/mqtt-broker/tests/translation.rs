@@ -2,7 +2,7 @@ mod common;
 
 use matches::assert_matches;
 
-use common::{DummyAuthenticator, TestClient, TestClientBuilder};
+use common::{DummyAuthenticator, DummyAuthorizer, TestClient, TestClientBuilder};
 use mqtt3::{
     proto::{ClientId, QoS},
     ReceivedPublication,
@@ -12,7 +12,9 @@ use mqtt_broker::BrokerBuilder;
 // https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-mqtt-support#retrieving-a-device-twins-properties
 #[tokio::test]
 async fn translation_twin_retrieve() {
-    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+    let broker = BrokerBuilder::default()
+        .authorizer(DummyAuthorizer::allow())
+        .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
@@ -52,7 +54,9 @@ async fn translation_twin_retrieve() {
 // https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-mqtt-support#update-device-twins-reported-properties
 #[tokio::test]
 async fn translation_twin_update() {
-    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+    let broker = BrokerBuilder::default()
+        .authorizer(DummyAuthorizer::allow())
+        .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
@@ -96,7 +100,9 @@ async fn translation_twin_update() {
 // https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-mqtt-support#receiving-desired-properties-update-notifications
 #[tokio::test]
 async fn translation_twin_receive() {
-    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+    let broker = BrokerBuilder::default()
+        .authorizer(DummyAuthorizer::allow())
+        .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
@@ -131,7 +137,9 @@ async fn translation_twin_receive() {
 // https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-mqtt-support#respond-to-a-direct-method
 #[tokio::test]
 async fn translation_direct_method_response() {
-    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+    let broker = BrokerBuilder::default()
+        .authorizer(DummyAuthorizer::allow())
+        .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
@@ -180,7 +188,9 @@ async fn translation_direct_method_response() {
 
 #[tokio::test]
 async fn translation_twin_notify() {
-    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
+    let broker = BrokerBuilder::default()
+        .authorizer(DummyAuthorizer::allow())
+        .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 

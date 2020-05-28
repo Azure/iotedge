@@ -1,4 +1,7 @@
+use std::convert::{TryFrom, TryInto};
+
 use async_trait::async_trait;
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_repr::Deserialize_repr;
 
@@ -7,8 +10,14 @@ use mqtt_broker_core::auth::{AuthId, Authenticator, Credentials};
 const API_VERSION: &str = "2020-04-20";
 
 #[derive(Clone)]
-pub struct EdgeHubAuthenticator {
-    url: String,
+pub struct EdgeHubAuthenticator(Client, String);
+
+impl EdgeHubAuthenticator {
+    #[allow(dead_code)]
+    pub fn new(url: String) -> Self {
+        let client = reqwest::Client::new();
+        Self(client, url)
+    }
 }
 
 #[async_trait]
@@ -20,20 +29,10 @@ impl Authenticator for EdgeHubAuthenticator {
         username: Option<String>,
         credentials: Credentials,
     ) -> Result<Option<AuthId>, Self::Error> {
-        self.authenticate_client(EdgeHubAuthRequest::new(username, credentials))
-            .await?
-            .into()
-    }
-}
-
-impl EdgeHubAuthenticator {
-    async fn authenticate_client(
-        &self,
-        request: EdgeHubAuthRequest,
-    ) -> Result<EdgeHubAuthResponse, AuthenticateError> {
-        let response = reqwest::Client::new()
-            .post(&self.url)
-            .json(&request)
+        let response = self
+            .0
+            .post(&self.1)
+            .json(&EdgeHubAuthRequest::new(username, credentials))
             .send()
             .await
             .map_err(AuthenticateError::SendRequest)?;
@@ -51,7 +50,7 @@ impl EdgeHubAuthenticator {
             return Err(AuthenticateError::ApiVersion(response.version));
         }
 
-        Ok(response)
+        response.try_into()
     }
 }
 
@@ -97,10 +96,12 @@ pub struct EdgeHubAuthResponse {
     identity: Option<String>,
 }
 
-impl From<EdgeHubAuthResponse> for Result<Option<AuthId>, AuthenticateError> {
-    fn from(item: EdgeHubAuthResponse) -> Self {
-        match item.result {
-            EdgeHubResultCode::Authenticated => item
+impl TryFrom<EdgeHubAuthResponse> for Option<AuthId> {
+    type Error = AuthenticateError;
+
+    fn try_from(value: EdgeHubAuthResponse) -> Result<Self, Self::Error> {
+        match value.result {
+            EdgeHubResultCode::Authenticated => value
                 .identity
                 .map_or(Err(AuthenticateError::ProcessResponse), |i| {
                     Ok(Some(AuthId::Identity(i)))
@@ -110,7 +111,7 @@ impl From<EdgeHubAuthResponse> for Result<Option<AuthId>, AuthenticateError> {
     }
 }
 
-/// Authorization error type placeholder.
+/// Authentication error.
 #[derive(Debug, thiserror::Error)]
 pub enum AuthenticateError {
     #[error("failed to send request: {0}.")]
@@ -137,7 +138,7 @@ mod tests {
                         HzEdMBsGA1UEAwwUVGh1bWJwcmludCBUZXN0IENlcnQwWTATBgcqhkjOPQIBBggq\
                         hkjOPQMBBwNCAARDJJBtVlgM0mBWMhAYagF7Wuc2aQYefhj0cG4wAmn3M4XcxJ39\
                         XkEup2RRAj7SSdOYhTmRpg5chhpZX/4/eF8gMAoGCCqGSM49BAMCA0kAMEYCIQD/\
-                        wNzMjU1B8De5/jEif8rkLDtqnohmVRXuAE5dCfbvAIhAJTJFyg19uLSKVyOK8R\
+                        wNzMjU1B8De5/+jEif8rkLDtqnohmVRXuAE5dCfbvAIhAJTJ+Fyg19uLSKVyOK8R\
                         5q87sIqhJXhTfNYvIt77Dq4J";
 
     #[tokio::test]
@@ -149,7 +150,7 @@ mod tests {
             )
             .create();
 
-        let authenticator = EdgeHubAuthenticator::for_test();
+        let authenticator = authenticator();
         let result = authenticator
             .authenticate(
                 Some("somehub/somedevice/api-version=2018-06-30".to_string()),
@@ -170,7 +171,7 @@ mod tests {
             .with_body(r#"{"result": 200,"version": "2020-04-20"}"#)
             .create();
 
-        let authenticator = EdgeHubAuthenticator::for_test();
+        let authenticator = authenticator();
         let result = authenticator
             .authenticate(
                 Some("somehub/somedevice/api-version=2018-06-30".to_string()),
@@ -188,7 +189,7 @@ mod tests {
             .with_body(r#"{"result": 403, "version": "2020-04-20"}"#)
             .create();
 
-        let authenticator = EdgeHubAuthenticator::for_test();
+        let authenticator = authenticator();
         let result = authenticator
             .authenticate(
                 Some("somehub/somedevice/api-version=2018-06-30".to_string()),
@@ -209,7 +210,7 @@ mod tests {
             )
             .create();
 
-        let authenticator = EdgeHubAuthenticator::for_test();
+        let authenticator = authenticator();
         let result = authenticator
             .authenticate(
                 Some("somehub/somedevice/api-version=2018-06-30".to_string()),
@@ -229,7 +230,7 @@ mod tests {
             )
             .create();
 
-        let authenticator = EdgeHubAuthenticator::for_test();
+        let authenticator = authenticator();
         let result = authenticator
             .authenticate(
                 Some("somehub/somedevice/api-version=2018-06-30".to_string()),
@@ -247,7 +248,7 @@ mod tests {
             .with_body(r#"{"identity":"somehub/somedevice","version": "2222-22-22"}"#)
             .create();
 
-        let authenticator = EdgeHubAuthenticator::for_test();
+        let authenticator = authenticator();
         let result = authenticator
             .authenticate(
                 Some("somehub/somedevice/api-version=2018-06-30".to_string()),
@@ -268,7 +269,7 @@ mod tests {
             )
             .create();
 
-        let authenticator = EdgeHubAuthenticator::for_test();
+        let authenticator = authenticator();
         let result = authenticator
             .authenticate(
                 Some("somehub/somedevice/api-version=2018-06-30".to_string()),
@@ -292,7 +293,7 @@ mod tests {
         let credentials =
             Credentials::ClientCertificate(Certificate::from(decode(CERT.to_string()).unwrap()));
 
-        let authenticator = EdgeHubAuthenticator::for_test();
+        let authenticator = authenticator();
         let result = authenticator
             .authenticate(
                 Some("somehub/somedevice/api-version=2018-06-30".to_string()),
@@ -316,7 +317,7 @@ mod tests {
             )
             .create();
 
-        let authenticator = EdgeHubAuthenticator::for_test();
+        let authenticator = authenticator();
         let result = authenticator
             .authenticate(
                 Some("somehub/somedevice/api-version=2018-06-30".to_string()),
@@ -327,12 +328,8 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    impl EdgeHubAuthenticator {
-        fn for_test() -> Self {
-            EdgeHubAuthenticator {
-                url: mockito::server_url() + "/authenticate/",
-            }
-        }
+    fn authenticator() -> EdgeHubAuthenticator {
+        EdgeHubAuthenticator::new(mockito::server_url() + "/authenticate/")
     }
 
     fn password(password: &str) -> Credentials {
