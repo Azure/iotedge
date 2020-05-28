@@ -61,12 +61,13 @@ namespace MetricsValidator
                             List<TestBase> tests = new List<TestBase>
                             {
                                 // new ValidateMessages(testReporter, scraper, moduleClient, transportType),
-                                 new ValidateDocumentedMetrics(testReporter, scraper, moduleClient),
+                                // new ValidateDocumentedMetrics(testReporter, scraper, moduleClient),
                                 //// new ValidateHostRanges(testReporter, scraper, moduleClient),
                             };
 
                             using (testReporter.MeasureDuration())
                             {
+                                await Task.Delay(TimeSpan.FromMinutes(2));
                                 await Task.WhenAll(tests.Select(test => test.Start(cts.Token)));
                             }
 
