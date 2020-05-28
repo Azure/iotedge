@@ -12,12 +12,9 @@ mod common;
 // https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-mqtt-support#retrieving-a-device-twins-properties
 #[tokio::test]
 async fn translation_twin_retrieve() {
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let mut server_handle = common::start_server(broker);
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut edge_hub_core = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
@@ -50,18 +47,14 @@ async fn translation_twin_retrieve() {
 
     edge_hub_core.shutdown().await;
     device_1.shutdown().await;
-    server_handle.shutdown().await;
 }
 
 // https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-mqtt-support#update-device-twins-reported-properties
 #[tokio::test]
 async fn translation_twin_update() {
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let mut server_handle = common::start_server(broker);
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut edge_hub_core = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
@@ -98,18 +91,14 @@ async fn translation_twin_update() {
 
     edge_hub_core.shutdown().await;
     device_1.shutdown().await;
-    server_handle.shutdown().await;
 }
 
 // https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-mqtt-support#receiving-desired-properties-update-notifications
 #[tokio::test]
 async fn translation_twin_receive() {
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let mut server_handle = common::start_server(broker);
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut edge_hub_core = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
@@ -137,18 +126,14 @@ async fn translation_twin_receive() {
 
     edge_hub_core.shutdown().await;
     device_1.shutdown().await;
-    server_handle.shutdown().await;
 }
 
 // https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-mqtt-support#respond-to-a-direct-method
 #[tokio::test]
 async fn translation_direct_method_response() {
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let mut server_handle = common::start_server(broker);
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut edge_hub_core = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
@@ -191,17 +176,13 @@ async fn translation_direct_method_response() {
 
     edge_hub_core.shutdown().await;
     device_1.shutdown().await;
-    server_handle.shutdown().await;
 }
 
 #[tokio::test]
 async fn translation_twin_notify() {
-    let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let broker = BrokerBuilder::default().authorizer(|_| Ok(true)).build();
 
-    let mut server_handle = common::start_server(broker);
+    let server_handle = common::start_server(broker, |_, _| Ok(Some(AuthId::Anonymous)));
 
     let mut edge_hub_core = TestClientBuilder::new(server_handle.address())
         .client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
@@ -246,7 +227,6 @@ async fn translation_twin_notify() {
 
     edge_hub_core.shutdown().await;
     device_1.shutdown().await;
-    server_handle.shutdown().await;
 }
 
 async fn receive_with_topic(client: &mut TestClient, topic: &str) {
