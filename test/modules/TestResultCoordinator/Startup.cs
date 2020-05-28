@@ -33,7 +33,7 @@ namespace TestResultCoordinator
         {
             Logger.LogInformation("Calling Startup.ConfigureServices");
 
-            services.AddMvc();
+            services.AddControllers().AddNewtonsoftJson();
 
             HashSet<string> sources = Settings.Current.GetResultSourcesAsync(Logger).Result;
             Logger.LogInformation($"Result sources defined:{Environment.NewLine} {string.Join(Environment.NewLine + Enumerable.Repeat(" ", 5), sources)}");
@@ -70,7 +70,7 @@ namespace TestResultCoordinator
             Logger.LogInformation("Calling Startup.ConfigureServices Completed.");
         }
 
-        // TODO: Remove warning disable for Obsolete when project is moved to dotnetcore 3.0
+        // TODO: Figure out how to use developer exception page with IWebHostEnvironment
 #pragma warning disable 612, 618
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
@@ -80,7 +80,11 @@ namespace TestResultCoordinator
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseMvc();
+            app.UseRouting();
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+            });
         }
 #pragma warning restore 612, 618
 
