@@ -225,6 +225,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             string deviceId = "id1";
 
+            // sets up device proxy that:
+            // is active
+            // if throws async throws exception then make not active
             var deviceProxyMock1 = new Mock<IDeviceProxy>();
             deviceProxyMock1.SetupGet(dp => dp.IsActive).Returns(true);
             deviceProxyMock1.Setup(dp => dp.CloseAsync(It.IsAny<Exception>()))
@@ -235,6 +238,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             var edgeHub = new Mock<IEdgeHub>();
 
+            // creates device client that:
+            // is active and if closed and is not active
+
+            // a device client provider return this client
             IClient client = GetDeviceClient();
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
             var deviceClientProvider = new Mock<IClientProvider>();
@@ -268,27 +275,138 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(cloudProxyTry.Success);
             var deviceListener = new DeviceMessageHandler(deviceCredentials.Identity, edgeHub.Object, connectionManager);
 
+            // create cloud proxy  and assert that is active
             Option<ICloudProxy> cloudProxy = await connectionManager.GetCloudConnection(deviceId);
             Assert.True(cloudProxy.HasValue);
             Assert.True(cloudProxy.OrDefault().IsActive);
 
+            // bind device proxy
             deviceListener.BindDeviceProxy(deviceProxyMock1.Object);
 
+            // assert device proxy is active
             Option<IDeviceProxy> deviceProxy = connectionManager.GetDeviceConnection(deviceId);
             Assert.True(deviceProxy.HasValue);
             Assert.True(deviceProxy.OrDefault().IsActive);
             Assert.True(deviceProxyMock1.Object.IsActive);
 
+            // assert cloud connection is still active after bind of device proxy
             cloudProxy = await connectionManager.GetCloudConnection(deviceId);
             Assert.True(cloudProxy.HasValue);
             Assert.True(cloudProxy.OrDefault().IsActive);
 
+            // close the device listener
             await deviceListener.CloseAsync();
 
+            // assert device proxy is not active
             deviceProxy = connectionManager.GetDeviceConnection(deviceId);
             Assert.False(deviceProxy.HasValue);
             Assert.False(deviceProxyMock1.Object.IsActive);
 
+            // assert cloud connection is still active
+            cloudProxy = await connectionManager.GetCloudConnection(deviceId);
+            Assert.True(cloudProxy.HasValue);
+            Assert.True(client.IsActive);
+        }
+
+        [Fact]
+        [Integration]
+        public async Task TestAddRemoveAddDeviceConnectionTest()
+        {
+            string deviceId = "id1";
+
+            // sets up device proxy that:
+            //   is active
+            //   if throws async throws exception then make not active
+            var deviceProxyMock1 = new Mock<IDeviceProxy>();
+            deviceProxyMock1.SetupGet(dp => dp.IsActive).Returns(true);
+            deviceProxyMock1.Setup(dp => dp.CloseAsync(It.IsAny<Exception>()))
+                .Callback(() => deviceProxyMock1.SetupGet(dp => dp.IsActive).Returns(false))
+                .Returns(Task.FromResult(true));
+
+            var deviceCredentials = new TokenCredentials(new DeviceIdentity("iotHub", deviceId), "token", "abc", false);
+
+            var edgeHub = new Mock<IEdgeHub>();
+
+            // creates device client that:
+            //   is active and if closed and is not active
+            // creates a device client provider return this client
+            IClient client = GetDeviceClient();
+            var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
+            var deviceClientProvider = new Mock<IClientProvider>();
+            deviceClientProvider.Setup(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>()))
+                .Returns(client);
+
+            var productInfoStore = Mock.Of<IProductInfoStore>();
+            var credentialsManager = Mock.Of<ICredentialsCache>();
+            var edgeHubIdentity = Mock.Of<IIdentity>(i => i.Id == "edgeDevice/$edgeHub");
+            var cloudConnectionProvider = new CloudConnectionProvider(
+                messageConverterProvider,
+                1,
+                deviceClientProvider.Object,
+                Option.None<UpstreamProtocol>(),
+                Mock.Of<ITokenProvider>(),
+                Mock.Of<IDeviceScopeIdentitiesCache>(),
+                credentialsManager,
+                edgeHubIdentity,
+                TimeSpan.FromMinutes(60),
+                true,
+                TimeSpan.FromSeconds(20),
+                false,
+                Option.None<IWebProxy>(),
+                productInfoStore);
+
+            cloudConnectionProvider.BindEdgeHub(edgeHub.Object);
+
+            var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
+            IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsManager, GetIdentityProvider(), deviceConnectivityManager);
+            Try<ICloudProxy> cloudProxyTry = await connectionManager.CreateCloudConnectionAsync(deviceCredentials);
+            Assert.True(cloudProxyTry.Success);
+            var deviceListener = new DeviceMessageHandler(deviceCredentials.Identity, edgeHub.Object, connectionManager);
+
+            // create cloud proxy  and assert that is active
+            Option<ICloudProxy> cloudProxy = await connectionManager.GetCloudConnection(deviceId);
+            Assert.True(cloudProxy.HasValue);
+            Assert.True(cloudProxy.OrDefault().IsActive);
+
+            // bind device proxy
+            deviceListener.BindDeviceProxy(deviceProxyMock1.Object);
+
+            // assert device proxy is active
+            Option<IDeviceProxy> deviceProxy = connectionManager.GetDeviceConnection(deviceId);
+            Assert.True(deviceProxy.HasValue);
+            Assert.True(deviceProxy.OrDefault().IsActive);
+            Assert.True(deviceProxyMock1.Object.IsActive);
+
+            // assert cloud connection is still active after bind of device proxy
+            cloudProxy = await connectionManager.GetCloudConnection(deviceId);
+            Assert.True(cloudProxy.HasValue);
+            Assert.True(cloudProxy.OrDefault().IsActive);
+
+            // close the device listener
+            await deviceListener.CloseAsync();
+
+            // assert device proxy is not active
+            deviceProxy = connectionManager.GetDeviceConnection(deviceId);
+            Assert.False(deviceProxy.HasValue);
+            Assert.False(deviceProxyMock1.Object.IsActive);
+
+            // assert cloud connection is still active
+            cloudProxy = await connectionManager.GetCloudConnection(deviceId);
+            Assert.True(cloudProxy.HasValue);
+            Assert.True(client.IsActive);
+
+            // ------ NEW LOGIC BELOW ------
+
+            // bind device proxy again
+            deviceListener.BindDeviceProxy(deviceProxyMock1.Object);
+
+            // get device connection again and assert device proxy is active
+            deviceProxy = connectionManager.GetDeviceConnection(deviceId);
+            Assert.True(deviceProxy.HasValue);
+            Assert.True(deviceProxy.OrDefault().IsActive);
+            Assert.True(deviceProxyMock1.Object.IsActive);
+
+            // assert cloud connection is still active
             cloudProxy = await connectionManager.GetCloudConnection(deviceId);
             Assert.True(cloudProxy.HasValue);
             Assert.True(client.IsActive);
