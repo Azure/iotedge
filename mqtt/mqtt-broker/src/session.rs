@@ -920,7 +920,7 @@ pub(crate) mod tests {
     use crate::{
         auth::AuthId,
         session::{PacketIdentifiers, Session, SessionState},
-        AuthResult, ClientId, ConnReq, ConnectionHandle, Error,
+        Auth, ClientId, ConnReq, ConnectionHandle, Error,
     };
 
     fn connection_handle() -> ConnectionHandle {
@@ -947,7 +947,7 @@ pub(crate) mod tests {
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
-        let req1 = ConnReq::new(client_id, connect1, AuthResult::Successful(None), handle1);
+        let req1 = ConnReq::new(client_id, connect1, Auth::Unknown, handle1);
         let auth_id = "auth-id1".into();
         let mut session = Session::new_transient(auth_id, req1);
         let subscribe_to = proto::SubscribeTo {
@@ -997,7 +997,7 @@ pub(crate) mod tests {
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
-        let req1 = ConnReq::new(client_id, connect1, AuthResult::Successful(None), handle1);
+        let req1 = ConnReq::new(client_id, connect1, Auth::Unknown, handle1);
         let auth_id = "auth-id1".into();
         let mut session = Session::new_transient(auth_id, req1);
         let subscribe_to = proto::SubscribeTo {
@@ -1017,7 +1017,7 @@ pub(crate) mod tests {
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
-        let req1 = ConnReq::new(client_id, connect1, AuthResult::Successful(None), handle1);
+        let req1 = ConnReq::new(client_id, connect1, Auth::Unknown, handle1);
         let auth_id = AuthId::Anonymous;
         let mut session = Session::new_transient(auth_id, req1);
 

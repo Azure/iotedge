@@ -25,8 +25,7 @@ use crate::auth::Credentials;
 use crate::broker::BrokerHandle;
 use crate::transport::GetPeerCertificate;
 use crate::{
-    AuthResult, AuthenticationError, Authenticator, Certificate, ClientEvent, ClientId, ConnReq,
-    Error, Message, Publish,
+    Auth, Authenticator, Certificate, ClientEvent, ClientId, ConnReq, Error, Message, Publish,
 };
 
 lazy_static! {
@@ -87,7 +86,6 @@ pub async fn process<I, N>(
 where
     I: AsyncRead + AsyncWrite + GetPeerCertificate<Certificate = Certificate> + Unpin,
     N: Authenticator + Send + Sync + 'static,
-    N::Error: Into<AuthenticationError>,
 {
     let certificate = io.peer_certificate()?;
 
@@ -143,12 +141,16 @@ where
                     Credentials::ClientCertificate,
                 );
 
-                let auth_result = match authenticator.authenticate(connect.username.clone(), credentials).await {
-                                            Ok(result) => AuthResult::Successful(result),
-                                            Err(e) => AuthResult::Failed(e.into())
-                                        };
+                let auth = match authenticator.authenticate(connect.username.clone(), credentials).await {
+                    Ok(Some(auth_id)) => Auth::Identity(auth_id),
+                    Ok(None) => Auth::Unknown,
+                    Err(e) => {
+                        warn!(message = "error authenticating client: {}", error = %e);
+                        Auth::Failure
+                    }
+                };
 
-                let req = ConnReq::new(client_id.clone(), connect, auth_result, connection_handle);
+                let req = ConnReq::new(client_id.clone(), connect, auth, connection_handle);
                 let event = ClientEvent::ConnReq(req);
                 let message = Message::Client(client_id.clone(), event);
                 broker_handle.send(message).await?;

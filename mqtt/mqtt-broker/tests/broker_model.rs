@@ -7,7 +7,7 @@ use uuid::Uuid;
 use mqtt3::proto;
 use mqtt_broker::{
     proptest::{arb_client_id_weighted, arb_connect, arb_subscribe, arb_unsubscribe},
-    AuthId, AuthResult, BrokerBuilder, ClientEvent, ClientId, ConnReq, ConnectionHandle, Message,
+    Auth, AuthId, BrokerBuilder, ClientEvent, ClientId, ConnReq, ConnectionHandle, Message,
 };
 
 proptest! {
@@ -84,7 +84,7 @@ fn into_events(
             let connreq = ConnReq::new(
                 client_id.clone(),
                 connect.clone(),
-                AuthResult::Successful(Some(AuthId::Anonymous)),
+                Auth::Successful(Some(AuthId::Anonymous)),
                 connection_handle,
             );
             (

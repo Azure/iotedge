@@ -68,16 +68,17 @@ impl std::fmt::Display for ClientId {
 }
 
 #[derive(Debug)]
-pub enum AuthResult {
-    Successful(Option<AuthId>),
-    Failed(AuthenticationError),
+pub enum Auth {
+    Identity(AuthId),
+    Unknown,
+    Failure,
 }
 
 #[derive(Debug)]
 pub struct ConnReq {
     client_id: ClientId,
     connect: proto::Connect,
-    auth: AuthResult,
+    auth: Auth,
     handle: ConnectionHandle,
 }
 
@@ -85,7 +86,7 @@ impl ConnReq {
     pub fn new(
         client_id: ClientId,
         connect: proto::Connect,
-        auth: AuthResult,
+        auth: Auth,
         handle: ConnectionHandle,
     ) -> Self {
         Self {
@@ -108,7 +109,7 @@ impl ConnReq {
         &self.handle
     }
 
-    pub fn auth(&self) -> &AuthResult {
+    pub fn auth(&self) -> &Auth {
         &self.auth
     }
 

@@ -10,7 +10,7 @@ use crate::auth::{Activity, Authorizer, DefaultAuthorizer, Operation};
 use crate::session::{ConnectedSession, Session, SessionState};
 use crate::state_change::StateChange;
 use crate::{
-    subscription::Subscription, AuthId, AuthResult, ClientEvent, ClientId, ConnReq, Error, Message,
+    subscription::Subscription, Auth, AuthId, ClientEvent, ClientId, ConnReq, Error, Message,
     SystemEvent,
 };
 use tokio::sync::mpsc::{self, Receiver, Sender};
@@ -246,20 +246,19 @@ where
         // appropriate CONNACK response with a non-zero return code as described in
         // section 3.2 and it MUST close the Network Connection.
         let auth_id = match connreq.auth() {
-            AuthResult::Successful(Some(auth_id)) => {
+            Auth::Identity(auth_id) => {
                 debug!(
                     "client {} successfully authenticated: {}",
                     client_id, auth_id
                 );
                 auth_id.clone()
             }
-            AuthResult::Successful(None) => {
+            Auth::Unknown => {
                 warn!("unable to authenticate client: {}", client_id);
                 refuse_connection!(proto::ConnectionRefusedReason::BadUserNameOrPassword);
                 return Ok(());
             }
-            AuthResult::Failed(e) => {
-                warn!(message = "error authenticating client: {}", error = %e);
+            Auth::Failure => {
                 refuse_connection!(proto::ConnectionRefusedReason::ServerUnavailable);
                 return Ok(());
             }
@@ -1055,8 +1054,7 @@ pub(crate) mod tests {
         broker::{BrokerBuilder, BrokerHandle},
         error::Error,
         session::Session,
-        AuthId, AuthResult, AuthenticationError, ClientEvent, ClientId, ConnReq, ConnectionHandle,
-        Message, Publish,
+        Auth, AuthId, ClientEvent, ClientId, ConnReq, ConnectionHandle, Message, Publish,
     };
 
     pub fn connection_handle() -> ConnectionHandle {
@@ -1124,13 +1122,13 @@ pub(crate) mod tests {
         let req1 = ConnReq::new(
             client_id.clone(),
             connect1,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             conn1,
         );
         let req2 = ConnReq::new(
             client_id.clone(),
             connect2,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             conn2,
         );
 
@@ -1194,13 +1192,13 @@ pub(crate) mod tests {
         let req1 = ConnReq::new(
             client_id.clone(),
             connect1,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             conn1,
         );
         let req2 = ConnReq::new(
             client_id.clone(),
             connect2,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             conn2,
         );
 
@@ -1257,7 +1255,7 @@ pub(crate) mod tests {
         let req1 = ConnReq::new(
             client_id.clone(),
             connect1,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             conn1,
         );
 
@@ -1298,7 +1296,7 @@ pub(crate) mod tests {
         let req1 = ConnReq::new(
             client_id.clone(),
             connect1,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             conn1,
         );
 
@@ -1350,7 +1348,7 @@ pub(crate) mod tests {
         let req1 = ConnReq::new(
             client_id.clone(),
             connect1,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             conn1,
         );
 
@@ -1392,12 +1390,7 @@ pub(crate) mod tests {
         let (tx1, mut rx1) = mpsc::unbounded_channel();
         let conn1 = ConnectionHandle::from_sender(tx1);
         let client_id = ClientId::from("blah".to_string());
-        let req1 = ConnReq::new(
-            client_id.clone(),
-            connect1,
-            AuthResult::Successful(None),
-            conn1,
-        );
+        let req1 = ConnReq::new(client_id.clone(), connect1, Auth::Unknown, conn1);
 
         broker_handle
             .send(Message::Client(
@@ -1444,12 +1437,7 @@ pub(crate) mod tests {
         let (tx1, mut rx1) = mpsc::unbounded_channel();
         let conn1 = ConnectionHandle::from_sender(tx1);
         let client_id = ClientId::from("blah".to_string());
-        let req1 = ConnReq::new(
-            client_id.clone(),
-            connect1,
-            AuthResult::Failed(AuthenticationError::GeneralError),
-            conn1,
-        );
+        let req1 = ConnReq::new(client_id.clone(), connect1, Auth::Failure, conn1);
 
         broker_handle
             .send(Message::Client(
@@ -1499,7 +1487,7 @@ pub(crate) mod tests {
         let req1 = ConnReq::new(
             client_id.clone(),
             connect1,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             conn1,
         );
 
@@ -1553,7 +1541,7 @@ pub(crate) mod tests {
         let req1 = ConnReq::new(
             client_id.clone(),
             connect1,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             conn1,
         );
 
@@ -1593,7 +1581,7 @@ pub(crate) mod tests {
         let req = ConnReq::new(
             client_id.clone(),
             connect,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             handle,
         );
         let auth_id = AuthId::Anonymous;
@@ -1621,7 +1609,7 @@ pub(crate) mod tests {
         let req = ConnReq::new(
             client_id.clone(),
             connect,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             handle,
         );
         let auth_id = AuthId::Anonymous;
@@ -1655,13 +1643,13 @@ pub(crate) mod tests {
         let req1 = ConnReq::new(
             client_id.clone(),
             connect1,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             handle1,
         );
         let req2 = ConnReq::new(
             client_id,
             connect2,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             handle2,
         );
         let auth_id = AuthId::Anonymous;
@@ -1691,13 +1679,13 @@ pub(crate) mod tests {
         let req1 = ConnReq::new(
             client_id.clone(),
             connect1,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             handle1,
         );
         let req2 = ConnReq::new(
             client_id,
             connect2,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             handle2,
         );
         let auth_id = AuthId::Anonymous;
@@ -1723,7 +1711,7 @@ pub(crate) mod tests {
         let req1 = ConnReq::new(
             client_id.clone(),
             connect1,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             handle1,
         );
         let auth_id = AuthId::Anonymous;
@@ -1734,7 +1722,7 @@ pub(crate) mod tests {
         let req2 = ConnReq::new(
             client_id.clone(),
             connect2,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             handle2,
         );
         let result = broker.open_session(auth_id, req2);
@@ -1756,7 +1744,7 @@ pub(crate) mod tests {
         let req1 = ConnReq::new(
             client_id.clone(),
             connect1,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             handle1,
         );
         let auth_id = AuthId::Anonymous;
@@ -1767,7 +1755,7 @@ pub(crate) mod tests {
         let req2 = ConnReq::new(
             client_id.clone(),
             connect2,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             handle2,
         );
         let result = broker.open_session(auth_id, req2);
@@ -1789,7 +1777,7 @@ pub(crate) mod tests {
         let req1 = ConnReq::new(
             client_id.clone(),
             connect1,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             handle1,
         );
         let auth_id = AuthId::Anonymous;
@@ -1800,7 +1788,7 @@ pub(crate) mod tests {
         let req2 = ConnReq::new(
             client_id.clone(),
             connect2,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             handle2,
         );
         let result = broker.open_session(auth_id, req2);
@@ -1822,13 +1810,13 @@ pub(crate) mod tests {
         let req1 = ConnReq::new(
             client_id.clone(),
             connect1,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             handle1,
         );
         let req2 = ConnReq::new(
             client_id.clone(),
             connect2,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             handle2,
         );
         let auth_id = AuthId::Anonymous;
@@ -1855,13 +1843,13 @@ pub(crate) mod tests {
         let req1 = ConnReq::new(
             client_id.clone(),
             connect1,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             handle1,
         );
         let req2 = ConnReq::new(
             client_id.clone(),
             connect2,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             handle2,
         );
         let auth_id = AuthId::Anonymous;
@@ -1896,7 +1884,7 @@ pub(crate) mod tests {
         let req1 = ConnReq::new(
             client_id.clone(),
             connect1,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             handle1,
         );
         let auth_id = AuthId::Anonymous;
@@ -1917,7 +1905,7 @@ pub(crate) mod tests {
         let req2 = ConnReq::new(
             client_id.clone(),
             connect2,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             handle2,
         );
         broker.open_session(auth_id, req2).unwrap();
@@ -2279,7 +2267,7 @@ pub(crate) mod tests {
         let req = ConnReq::new(
             client_id.clone(),
             connect,
-            AuthResult::Successful(Some(AuthId::Anonymous)),
+            Auth::Identity(AuthId::Anonymous),
             conn,
         );
         broker_handle

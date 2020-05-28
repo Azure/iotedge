@@ -11,7 +11,7 @@ use tracing_futures::Instrument;
 use crate::auth::{Authenticator, Authorizer};
 use crate::broker::{Broker, BrokerHandle, BrokerState};
 use crate::transport::TransportBuilder;
-use crate::{connection, AuthenticationError, Error, InitializeBrokerError, Message, SystemEvent};
+use crate::{connection, Error, InitializeBrokerError, Message, SystemEvent};
 
 pub struct Server<Z>
 where
@@ -39,7 +39,6 @@ where
         F: Future<Output = ()> + Unpin,
         I: IntoIterator<Item = TransportBuilder<A>>,
         N: Authenticator + Send + Sync + 'static,
-        N::Error: Into<AuthenticationError>,
     {
         let Server { broker } = self;
         let mut handle = broker.handle();
@@ -182,7 +181,6 @@ where
     A: ToSocketAddrs,
     F: Future<Output = ()> + Unpin,
     N: Authenticator + Send + Sync + 'static,
-    N::Error: Into<AuthenticationError>,
 {
     let io = transport.build().await?;
     let addr = io.local_addr()?;
