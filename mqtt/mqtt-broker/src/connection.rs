@@ -15,12 +15,13 @@ use tracing::{debug, info, span, trace, warn, Level};
 use tracing_futures::Instrument;
 use uuid::Uuid;
 
-use crate::auth::Credentials;
+use mqtt3::proto::{self, DecodeError, EncodeError, Packet, PacketCodec};
 use mqtt_edgehub::{
     translate_incoming_publish, translate_incoming_subscribe, translate_incoming_unsubscribe,
     translate_outgoing_publish,
 };
 
+use crate::auth::Credentials;
 use crate::broker::BrokerHandle;
 use crate::transport::GetPeerCertificate;
 use crate::{

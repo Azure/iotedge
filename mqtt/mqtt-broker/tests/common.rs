@@ -45,6 +45,7 @@ pub struct TestClient {
     event_loop_handle: JoinHandle<()>,
 }
 
+#[allow(dead_code)]
 impl TestClient {
     pub async fn publish(&mut self, publication: Publication) -> Result<(), PublishError> {
         self.publish_handle.publish(publication).await
@@ -297,6 +298,7 @@ pub struct PacketStream {
     codec: Framed<TimeoutStream<TcpStream>, PacketCodec>,
 }
 
+#[allow(dead_code)]
 impl PacketStream {
     /// Creates a client and opens TCP connection to the server.
     /// No MQTT packets are sent at this moment.
@@ -387,6 +389,7 @@ pub struct ServerHandle {
     task: Option<JoinHandle<Result<BrokerState, Error>>>,
 }
 
+#[allow(dead_code)]
 impl ServerHandle {
     pub fn address(&self) -> String {
         self.address.clone()
