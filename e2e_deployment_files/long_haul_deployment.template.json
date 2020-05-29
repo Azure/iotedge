@@ -25,12 +25,6 @@
               "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
             },
             "env": {
-              "experimentalfeatures__enabled": {
-                "value": "true"
-              },
-              "experimentalfeatures__enableMetrics": {
-                "value": "true"
-              }
             }
           },
           "edgeHub": {
@@ -41,12 +35,6 @@
             },
             "env": {
               "CollectMetrics": {
-                "value": "true"
-              },
-              "experimentalfeatures__enabled": {
-                "value": "true"
-              },
-              "experimentalfeatures__enableMetrics": {
                 "value": "true"
               }
             },
