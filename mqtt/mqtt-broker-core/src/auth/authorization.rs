@@ -1,9 +1,9 @@
 #![allow(dead_code)]
+use std::convert::Infallible;
 
 use mqtt3::proto;
 
 use crate::{auth::AuthId, ClientId};
-use std::convert::Infallible;
 
 /// A trait to check a MQTT client permissions to perform some actions.
 pub trait Authorizer {
@@ -25,11 +25,6 @@ where
         self(activity)
     }
 }
-
-// /// Authorization error type placeholder.
-// #[derive(Debug, thiserror::Error)]
-// #[error("An error occurred checking client permissions.")]
-// pub struct AuthorizeError;
 
 /// Default implementation that always denies any operation a client intends to perform.
 /// This implementation will be used if custom authorization mechanism was not provided.
@@ -208,6 +203,7 @@ mod tests {
         }
     }
 
+    #[test]
     fn default_auth_always_deny_any_action() {
         let auth = DefaultAuthorizer;
         let activity = Activity::new(
@@ -221,6 +217,7 @@ mod tests {
         assert_matches!(res, Ok(false));
     }
 
+    #[test]
     fn authorizer_wrapper_around_function() {
         let auth = |_| Ok::<_, Infallible>(true);
         let activity = Activity::new(
