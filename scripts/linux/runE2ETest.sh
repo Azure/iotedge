@@ -1075,7 +1075,7 @@ function usage() {
     echo ' -initializeWithAgentArtifact                   Boolean specifying if the iotedge installation should initialize edge agent with the official 1.0 image or the desired artifact. If false, the deployment after installation will start the desired agent artifact.'
     echo ' -testInfo                                      Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.' 
     echo ' -testStartDelay                                Tests start after delay for applicable modules'
-    echo ' -runtimeLogLevel                               Value of RuntimeLogLevel envivronment variable for EdgeAgent (EdgeHub RuntimeLogLevel is set implicitly set to be the same with edgeAgent)'
+    echo ' -runtimeLogLevel                               Value of RuntimeLogLevel envivronment variable for EdgeAgent in Long Haul and Stress tests [Default: debug] (EdgeHub RuntimeLogLevel is set implicitly set to be the same with edgeAgent)'
     exit 1;
 }
 

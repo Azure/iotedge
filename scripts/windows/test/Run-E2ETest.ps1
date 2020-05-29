@@ -135,7 +135,7 @@
         Tests start after delay for applicable modules
 
     .PARAMETER RuntimeLogLevel
-        Optional Value of RuntimeLogLevel envivronment variable for EdgeAgent (EdgeHub RuntimeLogLevel is set implicitly set to be the same with edgeAgent)
+        Optional Value of RuntimeLogLevel envivronment variable for EdgeAgent in Long Haul and Stress tests  [Default: debug] (EdgeHub RuntimeLogLevel is set implicitly set to be the same with edgeAgent)
 
     .EXAMPLE
         .\Run-E2ETest.ps1
