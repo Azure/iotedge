@@ -18,8 +18,10 @@ use tokio::{
 use tokio_native_tls::{TlsAcceptor, TlsStream};
 use tracing::{debug, error, info, warn};
 
+use mqtt_broker_core::auth::Certificate;
+
 use crate::configuration::Transport as TransportConfig;
-use crate::{Certificate, Error, InitializeBrokerError};
+use crate::{Error, InitializeBrokerError};
 
 pub enum TransportBuilder<A> {
     Tcp(A),

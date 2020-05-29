@@ -1,7 +1,8 @@
+use std::convert::Infallible;
+
 use async_trait::async_trait;
 
 use crate::auth::AuthId;
-use crate::AuthenticationError;
 
 /// Describes a MQTT client credentials.
 pub enum Credentials {
@@ -48,11 +49,12 @@ pub trait Authenticator {
 }
 
 #[async_trait]
-impl<F> Authenticator for F
+impl<F, E> Authenticator for F
 where
-    F: Fn(Option<String>, Credentials) -> Result<Option<AuthId>, AuthenticationError> + Sync,
+    F: Fn(Option<String>, Credentials) -> Result<Option<AuthId>, E> + Sync,
+    E: std::error::Error + Send + 'static,
 {
-    type Error = AuthenticationError;
+    type Error = E;
 
     async fn authenticate(
         &self,
@@ -69,7 +71,7 @@ pub struct DefaultAuthenticator;
 
 #[async_trait]
 impl Authenticator for DefaultAuthenticator {
-    type Error = AuthenticationError;
+    type Error = Infallible;
 
     async fn authenticate(
         &self,
@@ -82,6 +84,8 @@ impl Authenticator for DefaultAuthenticator {
 
 #[cfg(test)]
 mod tests {
+    use std::convert::Infallible;
+
     use matches::assert_matches;
 
     use crate::auth::{AuthId, Authenticator, Credentials, DefaultAuthenticator};
@@ -100,7 +104,7 @@ mod tests {
 
     #[tokio::test]
     async fn authenticator_wrapper_around_function() {
-        let authenticator = |_, _| Ok(Some(AuthId::Anonymous));
+        let authenticator = |_, _| Ok::<_, Infallible>(Some(AuthId::Anonymous));
         let credentials = Credentials::Password(Some("password".into()));
 
         let auth_id = authenticator

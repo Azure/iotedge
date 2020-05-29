@@ -11,12 +11,10 @@
     clippy::missing_errors_doc
 )]
 
-use std::sync::Arc;
-
 use mqtt3::proto;
+use mqtt_broker_core::{auth::AuthId, ClientId};
 use serde::{Deserialize, Serialize};
 
-mod auth;
 mod broker;
 mod configuration;
 mod connection;
@@ -29,11 +27,10 @@ mod state_change;
 mod subscription;
 mod transport;
 
-pub use crate::auth::{AuthId, Authenticator, Authorizer, Certificate};
 pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle, BrokerState};
 pub use crate::configuration::BrokerConfig;
 pub use crate::connection::ConnectionHandle;
-pub use crate::error::{AuthenticationError, Error, InitializeBrokerError};
+pub use crate::error::{Error, InitializeBrokerError};
 pub use crate::persist::{
     FileFormat, FilePersistor, NullPersistor, Persist, PersistError, VersionedFileFormat,
 };
@@ -46,38 +43,11 @@ pub use crate::transport::TransportBuilder;
 #[cfg(any(test, feature = "proptest"))]
 pub mod proptest;
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
-pub struct ClientId(Arc<String>);
-
-impl ClientId {
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-impl<T: Into<String>> From<T> for ClientId {
-    fn from(s: T) -> ClientId {
-        ClientId(Arc::new(s.into()))
-    }
-}
-
-impl std::fmt::Display for ClientId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_str())
-    }
-}
-
-#[derive(Debug)]
-pub enum AuthResult {
-    Successful(Option<AuthId>),
-    Failed(AuthenticationError),
-}
-
 #[derive(Debug)]
 pub struct ConnReq {
     client_id: ClientId,
     connect: proto::Connect,
-    auth: AuthResult,
+    auth: Auth,
     handle: ConnectionHandle,
 }
 
@@ -85,7 +55,7 @@ impl ConnReq {
     pub fn new(
         client_id: ClientId,
         connect: proto::Connect,
-        auth: AuthResult,
+        auth: Auth,
         handle: ConnectionHandle,
     ) -> Self {
         Self {
@@ -108,7 +78,7 @@ impl ConnReq {
         &self.handle
     }
 
-    pub fn auth(&self) -> &AuthResult {
+    pub fn auth(&self) -> &Auth {
         &self.auth
     }
 
@@ -123,6 +93,13 @@ impl ConnReq {
     pub fn into_parts(self) -> (proto::Connect, ConnectionHandle) {
         (self.connect, self.handle)
     }
+}
+
+#[derive(Debug)]
+pub enum Auth {
+    Identity(AuthId),
+    Unknown,
+    Failure,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
