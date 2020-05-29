@@ -475,7 +475,6 @@ impl DummyAuthorizer {
     }
 }
 
-#[async_trait]
 impl Authorizer for DummyAuthorizer {
     type Error = Infallible;
 

@@ -1538,7 +1538,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_connect_authorization_failed() {
         let broker = BrokerBuilder::default()
-            .authorizer(authorize_fn(|_| Err(AuthorizeError)))
+            .authorizer(|_| Err(AuthorizeError))
             .build();
 
         let mut broker_handle = broker.handle();
@@ -2309,14 +2309,6 @@ pub(crate) mod tests {
         F: Fn(Activity) -> bool + Sync + 'static,
     {
         move |activity| Ok::<_, Infallible>(f(activity))
-    }
-
-    fn authorize_fn<F, E>(f: F) -> impl Authorizer
-    where
-        F: Fn(Activity) -> Result<bool, E> + Sync + 'static,
-        E: std::error::Error + Send,
-    {
-        move |activity| f(activity)
     }
 
     #[derive(Debug, thiserror::Error)]
