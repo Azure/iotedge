@@ -135,7 +135,7 @@
         Tests start after delay for applicable modules
 
     .PARAMETER RuntimeLogLevel
-        Optional RuntimeLogLevel for EdgeAgent & EdgeHub (Default: debug)
+        Optional Value of RuntimeLogLevel envivronment variable for EdgeAgent (EdgeHub RuntimeLogLevel is set implicitely set to be the same with edgeAgent)
 
     .EXAMPLE
         .\Run-E2ETest.ps1
@@ -1068,7 +1068,7 @@ Function RunStressTest
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             --leave-running=All ``
             -l `"$DeploymentWorkingFilePath`" ``
-            --runtime-log-level `"Info`" ``
+            --runtime-log-level `"$RuntimeLogLevel`" ``
             --no-verify ``
             --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
