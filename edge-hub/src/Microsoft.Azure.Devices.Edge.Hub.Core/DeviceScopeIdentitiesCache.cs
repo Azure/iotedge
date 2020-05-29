@@ -13,18 +13,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Nito.AsyncEx;
-    using AsyncLock = Microsoft.Azure.Devices.Edge.Util.Concurrency.AsyncLock;
 
     public sealed class DeviceScopeIdentitiesCache : IDeviceScopeIdentitiesCache
     {
         readonly IServiceProxy serviceProxy;
         readonly IKeyValueStore<string, string> encryptedStore;
-        readonly AsyncLock cacheLock = new AsyncLock();
         readonly IServiceIdentityTree serviceIdentityTree;
         readonly Timer refreshCacheTimer;
         readonly TimeSpan refreshRate;
         readonly AsyncAutoResetEvent refreshCacheSignal = new AsyncAutoResetEvent();
         readonly object refreshCacheLock = new object();
+        readonly bool nestedEdgeEnabled;
 
         Task refreshCacheTask;
 
@@ -33,18 +32,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             IServiceProxy serviceProxy,
             IKeyValueStore<string, string> encryptedStorage,
             IDictionary<string, StoredServiceIdentity> initialCache,
-            TimeSpan refreshRate)
+            TimeSpan refreshRate,
+            bool nestedEdgeEnabled)
         {
             this.serviceIdentityTree = serviceIdentityTree;
             this.serviceProxy = serviceProxy;
             this.encryptedStore = encryptedStorage;
             this.refreshRate = refreshRate;
             this.refreshCacheTimer = new Timer(this.RefreshCache, null, TimeSpan.Zero, refreshRate);
+            this.nestedEdgeEnabled = nestedEdgeEnabled;
 
             // Populate the ServiceIdentityTree
             foreach (KeyValuePair<string, StoredServiceIdentity> kvp in initialCache)
             {
-                kvp.Value.ServiceIdentity.ForEach(serviceIdentity => this.serviceIdentityTree.InsertOrUpdate(serviceIdentity));
+                kvp.Value.ServiceIdentity.ForEach(serviceIdentity => this.serviceIdentityTree.InsertOrUpdate(serviceIdentity).Wait());
             }
         }
 
@@ -56,13 +57,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             IServiceIdentityTree serviceIdentityTree,
             IServiceProxy serviceProxy,
             IKeyValueStore<string, string> encryptedStorage,
-            TimeSpan refreshRate)
+            TimeSpan refreshRate,
+            bool nestedEdgeEnabled = false)
         {
             Preconditions.CheckNotNull(serviceProxy, nameof(serviceProxy));
             Preconditions.CheckNotNull(encryptedStorage, nameof(encryptedStorage));
             Preconditions.CheckNotNull(serviceIdentityTree, nameof(serviceIdentityTree));
             IDictionary<string, StoredServiceIdentity> cache = await ReadCacheFromStore(encryptedStorage);
-            var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceIdentityTree, serviceProxy, encryptedStorage, cache, refreshRate);
+            var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceIdentityTree, serviceProxy, encryptedStorage, cache, refreshRate, nestedEdgeEnabled);
             Events.Created();
             return deviceScopeIdentitiesCache;
         }
@@ -104,6 +106,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Events.GettingServiceIdentity(id);
             return await this.GetServiceIdentityInternal(id);
         }
+
+        public async Task<Option<string>> GetAuthChain(string id) => await this.serviceIdentityTree.GetAuthChain(id);
 
         public void Dispose()
         {
@@ -159,7 +163,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     Events.StartingRefreshCycle();
                     var currentCacheIds = new List<string>();
-                    IServiceIdentitiesIterator iterator = this.serviceProxy.GetNestedServiceIdentitiesIterator();
+
+                    IServiceIdentitiesIterator iterator;
+                    if (this.nestedEdgeEnabled)
+                    {
+                        iterator = this.serviceProxy.GetNestedServiceIdentitiesIterator();
+                    }
+                    else
+                    {
+                        iterator = this.serviceProxy.GetServiceIdentitiesIterator();
+                    }
+
                     while (iterator.HasNext)
                     {
                         IEnumerable<ServiceIdentity> batch = await iterator.GetNext();
@@ -178,10 +192,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     }
 
                     // Diff and update
-                    List<string> removedIds = this.serviceIdentityTree
-                        .GetAllIds()
-                        .Except(currentCacheIds)
-                        .ToList();
+                    IList<string> allIds = await this.serviceIdentityTree.GetAllIds();
+                    IList<string> removedIds = allIds.Except(currentCacheIds).ToList();
                     await Task.WhenAll(removedIds.Select(id => this.HandleNoServiceIdentity(id)));
                 }
                 catch (Exception e)
@@ -212,48 +224,38 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         async Task<Option<ServiceIdentity>> GetServiceIdentityInternal(string id)
         {
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
-            using (await this.cacheLock.LockAsync())
-            {
-                return this.serviceIdentityTree.Get(id);
-            }
+            return await this.serviceIdentityTree.Get(id);
         }
 
         async Task HandleNoServiceIdentity(string id)
         {
-            using (await this.cacheLock.LockAsync())
+            Option<ServiceIdentity> identity = await this.serviceIdentityTree.Get(id);
+            bool hasValidServiceIdentity = identity.Filter(s => s.Status == ServiceIdentityStatus.Enabled).HasValue;
+
+            // Remove the target identity
+            await this.serviceIdentityTree.Remove(id);
+            await this.encryptedStore.Remove(id);
+            Events.NotInScope(id);
+
+            if (hasValidServiceIdentity)
             {
-                bool hasValidServiceIdentity = this.serviceIdentityTree.Get(id)
-                    .Filter(s => s.Status == ServiceIdentityStatus.Enabled)
-                    .HasValue;
-
-                // Remove the target identity
-                this.serviceIdentityTree.Remove(id);
-                await this.encryptedStore.Remove(id);
-                Events.NotInScope(id);
-
-                if (hasValidServiceIdentity)
-                {
-                    // Remove device if connected, if service identity existed and then was removed.
-                    this.ServiceIdentityRemoved?.Invoke(this, id);
-                }
+                // Remove device if connected, if service identity existed and then was removed.
+                this.ServiceIdentityRemoved?.Invoke(this, id);
             }
         }
 
         async Task HandleNewServiceIdentity(ServiceIdentity serviceIdentity)
         {
-            using (await this.cacheLock.LockAsync())
+            Option<ServiceIdentity> existing = await this.serviceIdentityTree.Get(serviceIdentity.Id);
+            bool hasUpdated = existing.HasValue && !existing.Contains(serviceIdentity);
+
+            await this.serviceIdentityTree.InsertOrUpdate(serviceIdentity);
+            await this.SaveServiceIdentityToStore(serviceIdentity.Id, new StoredServiceIdentity(serviceIdentity));
+            Events.AddInScope(serviceIdentity.Id);
+
+            if (hasUpdated)
             {
-                Option<ServiceIdentity> existing = this.serviceIdentityTree.Get(serviceIdentity.Id);
-                bool hasUpdated = existing.HasValue && !existing.Contains(serviceIdentity);
-
-                this.serviceIdentityTree.InsertOrUpdate(serviceIdentity);
-                await this.SaveServiceIdentityToStore(serviceIdentity.Id, new StoredServiceIdentity(serviceIdentity));
-                Events.AddInScope(serviceIdentity.Id);
-
-                if (hasUpdated)
-                {
-                    this.ServiceIdentityUpdated?.Invoke(this, serviceIdentity);
-                }
+                this.ServiceIdentityUpdated?.Invoke(this, serviceIdentity);
             }
         }
 

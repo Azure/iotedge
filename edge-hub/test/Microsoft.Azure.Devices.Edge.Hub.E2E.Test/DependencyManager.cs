@@ -168,7 +168,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     enableNonPersistentStorageBackup,
                     backupFolder,
                     Option.None<ulong>(),
-                    Option.None<StorageLogLevel>()));
+                    Option.None<StorageLogLevel>(),
+                    false));
 
             builder.RegisterModule(
                 new RoutingModule(

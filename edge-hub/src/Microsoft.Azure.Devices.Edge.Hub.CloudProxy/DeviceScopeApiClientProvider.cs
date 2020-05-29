@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly string moduleId;
         readonly int batchSize;
         readonly ITokenProvider edgeHubTokenProvider;
-        readonly IAuthenticationChainProvider authChainProvider;
+        readonly IServiceIdentityTree serviceIdentityTree;
         readonly Option<IWebProxy> proxy;
         readonly RetryStrategy retryStrategy;
 
@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             string moduleId,
             int batchSize,
             ITokenProvider edgeHubTokenProvider,
-            IAuthenticationChainProvider authChainProvider,
+            IServiceIdentityTree serviceIdentityTree,
             Option<IWebProxy> proxy,
             RetryStrategy retryStrategy = null)
         {
@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.moduleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.batchSize = Preconditions.CheckRange(batchSize, 0, 1000, nameof(batchSize));
             this.edgeHubTokenProvider = Preconditions.CheckNotNull(edgeHubTokenProvider, nameof(edgeHubTokenProvider));
-            this.authChainProvider = Preconditions.CheckNotNull(authChainProvider, nameof(authChainProvider));
+            this.serviceIdentityTree = Preconditions.CheckNotNull(serviceIdentityTree, nameof(serviceIdentityTree));
             this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
             this.retryStrategy = retryStrategy;
         }
@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 continuationToken,
                 this.batchSize,
                 this.edgeHubTokenProvider,
-                this.authChainProvider,
+                this.serviceIdentityTree,
                 this.proxy,
                 this.retryStrategy);
         }
@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 continuationToken,
                 this.batchSize,
                 this.edgeHubTokenProvider,
-                this.authChainProvider,
+                this.serviceIdentityTree,
                 this.proxy,
                 this.retryStrategy);
         }

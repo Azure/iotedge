@@ -201,6 +201,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             Option<string> workloadUri = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadUri);
             Option<string> workloadApiVersion = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadAPiVersion);
             Option<string> moduleGenerationId = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.ModuleGenerationId);
+            bool nestedEdgeEnabled = this.configuration.GetValue<bool>(Constants.ConfigKey.NestedEdgeEnabled);
 
             if (!Enum.TryParse(this.configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode))
             {
@@ -237,7 +238,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     storeAndForward.useBackupAndRestore,
                     storeAndForward.storageBackupPath,
                     storeAndForward.storageMaxTotalWalSize,
-                    storeAndForward.storageLogLevel));
+                    storeAndForward.storageLogLevel,
+                    nestedEdgeEnabled));
         }
 
         static string GetProductInfo()

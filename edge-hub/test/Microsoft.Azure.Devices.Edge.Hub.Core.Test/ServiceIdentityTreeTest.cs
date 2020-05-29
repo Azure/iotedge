@@ -60,17 +60,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         internal ServiceIdentityTree SetupTree()
         {
             var tree = new ServiceIdentityTree(this.root.Id);
-            tree.InsertOrUpdate(this.root);
-            tree.InsertOrUpdate(this.e1_L1);
-            tree.InsertOrUpdate(this.e2_L1);
-            tree.InsertOrUpdate(this.e1_L2);
-            tree.InsertOrUpdate(this.e2_L2);
-            tree.InsertOrUpdate(this.e3_L2);
-            tree.InsertOrUpdate(this.e4_L2);
-            tree.InsertOrUpdate(this.leaf1);
-            tree.InsertOrUpdate(this.leaf2);
-            tree.InsertOrUpdate(this.mod1);
-            tree.InsertOrUpdate(this.mod2);
+            tree.InsertOrUpdate(this.root).Wait();
+            tree.InsertOrUpdate(this.e1_L1).Wait();
+            tree.InsertOrUpdate(this.e2_L1).Wait();
+            tree.InsertOrUpdate(this.e1_L2).Wait();
+            tree.InsertOrUpdate(this.e2_L2).Wait();
+            tree.InsertOrUpdate(this.e3_L2).Wait();
+            tree.InsertOrUpdate(this.e4_L2).Wait();
+            tree.InsertOrUpdate(this.leaf1).Wait();
+            tree.InsertOrUpdate(this.leaf2).Wait();
+            tree.InsertOrUpdate(this.mod1).Wait();
+            tree.InsertOrUpdate(this.mod2).Wait();
 
             return tree;
         }
@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         internal void CheckValidAuthChains(ServiceIdentityTree tree)
         {
             // Check leaf1
-            Option<string> authChainActual = tree.GetAuthChain(this.leaf1.Id);
+            Option<string> authChainActual = tree.GetAuthChain(this.leaf1.Id).Result;
             string leaf1_authchain_expected =
                 this.leaf1.Id + ";" +
                 this.e1_L2.Id + ";" +
@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(authChainActual.Contains(leaf1_authchain_expected));
 
             // Check leaf2
-            authChainActual = tree.GetAuthChain(this.leaf2.Id);
+            authChainActual = tree.GetAuthChain(this.leaf2.Id).Result;
             string leaf2_authchain_expected =
                 this.leaf2.Id + ";" +
                 this.e3_L2.Id + ";" +
@@ -96,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(authChainActual.Contains(leaf2_authchain_expected));
 
             // Check mod1
-            authChainActual = tree.GetAuthChain(this.mod1.Id);
+            authChainActual = tree.GetAuthChain(this.mod1.Id).Result;
             string mod1_authchain_expected =
                 this.mod1.Id + ";" +
                 this.e2_L2.Id + ";" +
@@ -105,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(authChainActual.Contains(mod1_authchain_expected));
 
             // Check mod2
-            authChainActual = tree.GetAuthChain(this.mod2.Id);
+            authChainActual = tree.GetAuthChain(this.mod2.Id).Result;
             string mod2_authchain_expected =
                 this.mod2.Id + ";" +
                 this.e4_L2.Id + ";" +
@@ -124,12 +124,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             this.CheckValidAuthChains(tree);
 
             // Check non-existent auth chain
-            Assert.False(tree.GetAuthChain("nonexistent").HasValue);
+            Assert.False(tree.GetAuthChain("nonexistent").Result.HasValue);
 
             // Insert an orphaned node and check for its invalid auth chain
             ServiceIdentity orphan = CreateServiceIdentity("orphan", null, null, null, false);
-            tree.InsertOrUpdate(orphan);
-            Assert.False(tree.GetAuthChain(orphan.Id).HasValue);
+            tree.InsertOrUpdate(orphan).Wait();
+            Assert.False(tree.GetAuthChain(orphan.Id).Result.HasValue);
         }
 
         [Fact]
@@ -138,49 +138,49 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var tree = new ServiceIdentityTree(this.root.Id);
 
             // Insert L2 identities
-            tree.InsertOrUpdate(this.e1_L2);
-            tree.InsertOrUpdate(this.e2_L2);
-            tree.InsertOrUpdate(this.e3_L2);
-            tree.InsertOrUpdate(this.e4_L2);
+            tree.InsertOrUpdate(this.e1_L2).Wait();
+            tree.InsertOrUpdate(this.e2_L2).Wait();
+            tree.InsertOrUpdate(this.e3_L2).Wait();
+            tree.InsertOrUpdate(this.e4_L2).Wait();
 
             // Should have no valid auth chains
-            Assert.False(tree.GetAuthChain(this.e1_L2.Id).HasValue);
-            Assert.False(tree.GetAuthChain(this.e2_L2.Id).HasValue);
-            Assert.False(tree.GetAuthChain(this.e3_L2.Id).HasValue);
-            Assert.False(tree.GetAuthChain(this.e4_L2.Id).HasValue);
+            Assert.False(tree.GetAuthChain(this.e1_L2.Id).Result.HasValue);
+            Assert.False(tree.GetAuthChain(this.e2_L2.Id).Result.HasValue);
+            Assert.False(tree.GetAuthChain(this.e3_L2.Id).Result.HasValue);
+            Assert.False(tree.GetAuthChain(this.e4_L2.Id).Result.HasValue);
 
             // Insert L1 identities
-            tree.InsertOrUpdate(this.e1_L1);
-            tree.InsertOrUpdate(this.e2_L1);
+            tree.InsertOrUpdate(this.e1_L1).Wait();
+            tree.InsertOrUpdate(this.e2_L1).Wait();
 
             // Should have no valid auth chains
-            Assert.False(tree.GetAuthChain(this.e1_L2.Id).HasValue);
-            Assert.False(tree.GetAuthChain(this.e2_L2.Id).HasValue);
-            Assert.False(tree.GetAuthChain(this.e3_L2.Id).HasValue);
-            Assert.False(tree.GetAuthChain(this.e4_L2.Id).HasValue);
-            Assert.False(tree.GetAuthChain(this.e1_L1.Id).HasValue);
-            Assert.False(tree.GetAuthChain(this.e2_L1.Id).HasValue);
+            Assert.False(tree.GetAuthChain(this.e1_L2.Id).Result.HasValue);
+            Assert.False(tree.GetAuthChain(this.e2_L2.Id).Result.HasValue);
+            Assert.False(tree.GetAuthChain(this.e3_L2.Id).Result.HasValue);
+            Assert.False(tree.GetAuthChain(this.e4_L2.Id).Result.HasValue);
+            Assert.False(tree.GetAuthChain(this.e1_L1.Id).Result.HasValue);
+            Assert.False(tree.GetAuthChain(this.e2_L1.Id).Result.HasValue);
 
             // Insert leaf identities
-            tree.InsertOrUpdate(this.leaf1);
-            tree.InsertOrUpdate(this.leaf2);
-            tree.InsertOrUpdate(this.mod1);
-            tree.InsertOrUpdate(this.mod2);
+            tree.InsertOrUpdate(this.leaf1).Wait();
+            tree.InsertOrUpdate(this.leaf2).Wait();
+            tree.InsertOrUpdate(this.mod1).Wait();
+            tree.InsertOrUpdate(this.mod2).Wait();
 
             // Should have no valid auth chains
-            Assert.False(tree.GetAuthChain(this.e1_L2.Id).HasValue);
-            Assert.False(tree.GetAuthChain(this.e2_L2.Id).HasValue);
-            Assert.False(tree.GetAuthChain(this.e3_L2.Id).HasValue);
-            Assert.False(tree.GetAuthChain(this.e4_L2.Id).HasValue);
-            Assert.False(tree.GetAuthChain(this.e1_L1.Id).HasValue);
-            Assert.False(tree.GetAuthChain(this.e2_L1.Id).HasValue);
-            Assert.False(tree.GetAuthChain(this.leaf1.Id).HasValue);
-            Assert.False(tree.GetAuthChain(this.leaf2.Id).HasValue);
-            Assert.False(tree.GetAuthChain(this.mod1.Id).HasValue);
-            Assert.False(tree.GetAuthChain(this.mod2.Id).HasValue);
+            Assert.False(tree.GetAuthChain(this.e1_L2.Id).Result.HasValue);
+            Assert.False(tree.GetAuthChain(this.e2_L2.Id).Result.HasValue);
+            Assert.False(tree.GetAuthChain(this.e3_L2.Id).Result.HasValue);
+            Assert.False(tree.GetAuthChain(this.e4_L2.Id).Result.HasValue);
+            Assert.False(tree.GetAuthChain(this.e1_L1.Id).Result.HasValue);
+            Assert.False(tree.GetAuthChain(this.e2_L1.Id).Result.HasValue);
+            Assert.False(tree.GetAuthChain(this.leaf1.Id).Result.HasValue);
+            Assert.False(tree.GetAuthChain(this.leaf2.Id).Result.HasValue);
+            Assert.False(tree.GetAuthChain(this.mod1.Id).Result.HasValue);
+            Assert.False(tree.GetAuthChain(this.mod2.Id).Result.HasValue);
 
             // Insert root
-            tree.InsertOrUpdate(this.root);
+            tree.InsertOrUpdate(this.root).Wait();
 
             // All auth chains should now be valid because root is available
             this.CheckValidAuthChains(tree);
@@ -199,14 +199,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 this.e1_L1.DeviceScope.Expect(() => new InvalidOperationException()),
                 true);
 
-            tree.InsertOrUpdate(updatedIdentity);
+            tree.InsertOrUpdate(updatedIdentity).Wait();
 
             // Equality check
-            Option<ServiceIdentity> roundTripIdentity = tree.Get(updatedIdentity.Id);
+            Option<ServiceIdentity> roundTripIdentity = tree.Get(updatedIdentity.Id).Result;
             Assert.True(roundTripIdentity.Contains(updatedIdentity));
 
             // The child of e3_L2, leaf2, should also go through a different path for authchain now
-            Option<string> authChainActual = tree.GetAuthChain(this.leaf2.Id);
+            Option<string> authChainActual = tree.GetAuthChain(this.leaf2.Id).Result;
             string leaf2_authchain_expected =
                 this.leaf2.Id + ";" +
                 this.e3_L2.Id + ";" +
@@ -221,27 +221,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             ServiceIdentityTree tree = this.SetupTree();
 
             // Delete a node
-            tree.Remove(this.e2_L1.Id);
+            tree.Remove(this.e2_L1.Id).Wait();
 
             // Auth-chains for everything in its subtree should be invalidated
-            Assert.False(tree.GetAuthChain(this.e2_L1.Id).HasValue);
-            Assert.False(tree.GetAuthChain(this.e3_L2.Id).HasValue);
-            Assert.False(tree.GetAuthChain(this.e4_L2.Id).HasValue);
-            Assert.False(tree.GetAuthChain(this.leaf2.Id).HasValue);
-            Assert.False(tree.GetAuthChain(this.mod2.Id).HasValue);
+            Assert.False(tree.GetAuthChain(this.e2_L1.Id).Result.HasValue);
+            Assert.False(tree.GetAuthChain(this.e3_L2.Id).Result.HasValue);
+            Assert.False(tree.GetAuthChain(this.e4_L2.Id).Result.HasValue);
+            Assert.False(tree.GetAuthChain(this.leaf2.Id).Result.HasValue);
+            Assert.False(tree.GetAuthChain(this.mod2.Id).Result.HasValue);
 
             // Delete the rest of the subtree
-            tree.Remove(this.e3_L2.Id);
-            tree.Remove(this.e4_L2.Id);
-            tree.Remove(this.leaf2.Id);
-            tree.Remove(this.mod2.Id);
+            tree.Remove(this.e3_L2.Id).Wait();
+            tree.Remove(this.e4_L2.Id).Wait();
+            tree.Remove(this.leaf2.Id).Wait();
+            tree.Remove(this.mod2.Id).Wait();
 
             // Nothing under e2_L1 should remain
-            Assert.False(tree.Get(this.e2_L1.Id).HasValue);
-            Assert.False(tree.Get(this.e3_L2.Id).HasValue);
-            Assert.False(tree.Get(this.e4_L2.Id).HasValue);
-            Assert.False(tree.Get(this.leaf2.Id).HasValue);
-            Assert.False(tree.Get(this.mod2.Id).HasValue);
+            Assert.False(tree.Get(this.e2_L1.Id).Result.HasValue);
+            Assert.False(tree.Get(this.e3_L2.Id).Result.HasValue);
+            Assert.False(tree.Get(this.e4_L2.Id).Result.HasValue);
+            Assert.False(tree.Get(this.leaf2.Id).Result.HasValue);
+            Assert.False(tree.Get(this.mod2.Id).Result.HasValue);
         }
     }
 }

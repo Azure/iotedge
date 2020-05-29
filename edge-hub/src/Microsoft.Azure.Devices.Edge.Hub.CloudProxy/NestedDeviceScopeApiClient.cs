@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly Option<string> continuationLink;
         readonly int batchSize;
         readonly ITokenProvider edgeHubTokenProvider;
-        readonly IAuthenticationChainProvider authChainProvider;
+        readonly IServiceIdentityTree serviceIdentityTree;
         readonly Option<IWebProxy> proxy;
 
         public string TargetEdgeDeviceId { get; }
@@ -48,10 +48,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Option<string> continuationLink,
             int batchSize,
             ITokenProvider edgeHubTokenProvider,
-            IAuthenticationChainProvider authChainProvider,
+            IServiceIdentityTree serviceIdentityTree,
             Option<IWebProxy> proxy,
             RetryStrategy retryStrategy = null)
-            : this(iotHubHostName, deviceId, deviceId, moduleId, continuationLink, batchSize, edgeHubTokenProvider, authChainProvider, proxy, retryStrategy)
+            : this(iotHubHostName, deviceId, deviceId, moduleId, continuationLink, batchSize, edgeHubTokenProvider, serviceIdentityTree, proxy, retryStrategy)
         {
         }
 
@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Option<string> continuationLink,
             int batchSize,
             ITokenProvider edgeHubTokenProvider,
-            IAuthenticationChainProvider authChainProvider,
+            IServiceIdentityTree serviceIdentityTree,
             Option<IWebProxy> proxy,
             RetryStrategy retryStrategy = null)
         {
@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.continuationLink = Preconditions.CheckNotNull(continuationLink);
             this.batchSize = Preconditions.CheckRange(batchSize, 0, 1000, nameof(batchSize));
             this.edgeHubTokenProvider = Preconditions.CheckNotNull(edgeHubTokenProvider, nameof(edgeHubTokenProvider));
-            this.authChainProvider = Preconditions.CheckNotNull(authChainProvider, nameof(authChainProvider));
+            this.serviceIdentityTree = Preconditions.CheckNotNull(serviceIdentityTree, nameof(serviceIdentityTree));
             this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
             this.retryStrategy = retryStrategy ?? TransientRetryStrategy;
         }
@@ -134,13 +134,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             using (var msg = new HttpRequestMessage(HttpMethod.Post, uri))
             {
                 // Get the auth-chain for the target device
-                string authChain = this.authChainProvider
-                        .GetAuthChain(this.TargetEdgeDeviceId)
-                        .Expect(() => new ArgumentException($"No valid authentication chain for {this.TargetEdgeDeviceId}"));
+                Option<string> authChain = await this.serviceIdentityTree.GetAuthChain(this.TargetEdgeDeviceId);
 
                 var payload = new NestedScopeRequest()
                 {
-                    AuthChain = authChain,
+                    AuthChain = authChain.Expect(() => new ArgumentException($"No valid authentication chain for {this.TargetEdgeDeviceId}")),
                     PageSize = this.batchSize,
                     ContinuationLink = continuationLink.OrDefault()
                 };

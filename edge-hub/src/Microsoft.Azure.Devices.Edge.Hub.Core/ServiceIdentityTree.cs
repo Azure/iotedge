@@ -1,86 +1,90 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
-    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Org.BouncyCastle.Security;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
 
     /// <summary>
     /// This is a tree implementation that uses the ParentScopes property
     /// to reconstruct the hierarchy of modules/devices under the current
     /// Edge device in a nested Edge environment.
     /// </summary>
-    public class ServiceIdentityTree :
-        IServiceIdentityTree,
-        IAuthenticationChainProvider
+    public class ServiceIdentityTree : IServiceIdentityTree
     {
         readonly string rootDeviceId;
-        ConcurrentDictionary<string, ServiceIdentityTreeNode> nodes;
+        AsyncLock nodesLock = new AsyncLock();
+        Dictionary<string, ServiceIdentityTreeNode> nodes;
 
         public ServiceIdentityTree(string rootDeviceId)
         {
             this.rootDeviceId = Preconditions.CheckNonWhiteSpace(rootDeviceId, nameof(rootDeviceId));
-            this.nodes = new ConcurrentDictionary<string, ServiceIdentityTreeNode>();
+            this.nodes = new Dictionary<string, ServiceIdentityTreeNode>();
         }
 
-        public void InsertOrUpdate(ServiceIdentity identity)
+        public async Task InsertOrUpdate(ServiceIdentity identity)
         {
             // There should always be a valid ServiceIdentity
             Preconditions.CheckNotNull(identity, nameof(identity));
 
-            if (this.nodes.ContainsKey(identity.Id))
+            using (await this.nodesLock.LockAsync())
             {
-                // Update case - this is just remove + re-insert
-                this.Remove(identity.Id);
-            }
+                if (this.nodes.ContainsKey(identity.Id))
+                {
+                    // Update case - this is just remove + re-insert
+                    this.RemoveSingleNode(identity.Id);
+                }
 
-            // Insert case
-            if (identity.IsModule)
-            {
-                this.InsertModuleIdentity(identity);
-            }
-            else
-            {
-                this.InsertDeviceIdentity(identity);
-            }
-        }
-
-        public void Remove(string id)
-        {
-            if (this.nodes.TryGetValue(id, out ServiceIdentityTreeNode target))
-            {
-                // Unhook from parent
-                target.Parent.ForEach(p => p.RemoveChild(target));
-
-                // Unhook the children
-                target.RemoveAllChildren();
-
-                // Remove the node itself
-                this.nodes.TryRemove(id, out ServiceIdentityTreeNode _);
+                // Insert case
+                if (identity.IsModule)
+                {
+                    this.InsertModuleIdentity(identity);
+                }
+                else
+                {
+                    this.InsertDeviceIdentity(identity);
+                }
             }
         }
 
-        public bool Contains(string id)
+        public async Task Remove(string id)
         {
-            return this.nodes.ContainsKey(id);
+            using (await this.nodesLock.LockAsync())
+            {
+                this.RemoveSingleNode(id);
+            }
         }
 
-        public Option<ServiceIdentity> Get(string id)
+        public async Task<bool> Contains(string id)
         {
-            return this.nodes.TryGetValue(id, out ServiceIdentityTreeNode treeNode)
+            using (await this.nodesLock.LockAsync())
+            {
+                return this.nodes.ContainsKey(id);
+            }
+        }
+
+        public async Task<Option<ServiceIdentity>> Get(string id)
+        {
+            using (await this.nodesLock.LockAsync())
+            {
+                return this.nodes.TryGetValue(id, out ServiceIdentityTreeNode treeNode)
                     ? Option.Some(treeNode.Identity)
                     : Option.None<ServiceIdentity>();
+            }
         }
 
-        public IList<string> GetAllIds()
+        public async Task<IList<string>> GetAllIds()
         {
-            return this.nodes.Select(kvp => kvp.Value.Identity.Id).ToList();
+            using (await this.nodesLock.LockAsync())
+            {
+                return this.nodes.Select(kvp => kvp.Value.Identity.Id).ToList();
+            }
         }
 
-        public Option<string> GetAuthChain(string id)
+        public async Task<Option<string>> GetAuthChain(string id)
         {
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
 
@@ -90,10 +94,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 return Option.Some(this.rootDeviceId);
             }
 
-            // Auth-chain for a child somewhere in the tree
-            if (this.nodes.TryGetValue(id, out ServiceIdentityTreeNode treeNode))
+            using (await this.nodesLock.LockAsync())
             {
-                return treeNode.AuthChain;
+                // Auth-chain for a child somewhere in the tree
+                if (this.nodes.TryGetValue(id, out ServiceIdentityTreeNode treeNode))
+                {
+                    return treeNode.AuthChain;
+                }
             }
 
             return Option.None<string>();
@@ -102,11 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         void InsertModuleIdentity(ServiceIdentity module)
         {
             var newNode = new ServiceIdentityTreeNode(module, Option.None<string>());
-
-            if (!this.nodes.TryAdd(module.Id, newNode))
-            {
-                throw new InvalidParameterException($"Duplicate node detected: {module.Id}");
-            }
+            this.nodes.Add(module.Id, newNode);
 
             if (this.nodes.TryGetValue(module.DeviceId, out ServiceIdentityTreeNode parentDeviceNode))
             {
@@ -129,10 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 new ServiceIdentityTreeNode(device, Option.Some(this.rootDeviceId)) :
                 new ServiceIdentityTreeNode(device, Option.None<string>());
 
-            if (!this.nodes.TryAdd(device.Id, newNode))
-            {
-                throw new InvalidParameterException($"Duplicate node detected: {device.Id}");
-            }
+            this.nodes.Add(device.Id, newNode);
 
             // Check if there's an existing parent for this device
             foreach (string parentScopeId in device.ParentScopes)
@@ -161,6 +161,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             foreach (ServiceIdentityTreeNode child in danglingChildren)
             {
                 newNode.AddChild(child);
+            }
+        }
+
+        void RemoveSingleNode(string id)
+        {
+            if (this.nodes.TryGetValue(id, out ServiceIdentityTreeNode target))
+            {
+                // Unhook from parent
+                target.Parent.ForEach(p => p.RemoveChild(target));
+
+                // Unhook the children
+                target.RemoveAllChildren();
+
+                // Remove the node itself
+                this.nodes.Remove(id);
             }
         }
 

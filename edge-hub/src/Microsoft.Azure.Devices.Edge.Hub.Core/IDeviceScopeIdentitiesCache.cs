@@ -15,6 +15,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         Task<Option<ServiceIdentity>> GetServiceIdentity(string id);
 
+        Task<Option<string>> GetAuthChain(string id);
+
         void InitiateCacheRefresh();
 
         Task RefreshServiceIdentities(IEnumerable<string> ids);
