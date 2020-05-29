@@ -1041,7 +1041,7 @@ pub struct NoSessionError;
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use std::{convert::Infallible, time::Duration};
+    use std::time::Duration;
 
     use bytes::Bytes;
     use futures_util::future::FutureExt;
@@ -1050,7 +1050,7 @@ pub(crate) mod tests {
     use uuid::Uuid;
 
     use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
-    use mqtt_broker_core::auth::{Activity, Authorizer, Operation};
+    use mqtt_broker_core::auth::{authorize_fn_ok, Operation};
 
     use super::OpenSession;
     use crate::{
@@ -2302,13 +2302,6 @@ pub(crate) mod tests {
         .await;
 
         check_notify_received(&mut a_rx, &["foo", "bar", "baz"]).await;
-    }
-
-    fn authorize_fn_ok<F>(f: F) -> impl Authorizer
-    where
-        F: Fn(Activity) -> bool + Sync + 'static,
-    {
-        move |activity| Ok::<_, Infallible>(f(activity))
     }
 
     #[derive(Debug, thiserror::Error)]

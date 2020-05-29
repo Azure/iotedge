@@ -20,6 +20,8 @@ use mqtt_broker_core::{
     auth::{Authenticator, Certificate, Credentials},
     ClientId,
 };
+
+#[cfg(feature = "edgehub")]
 use mqtt_edgehub::translation::{
     translate_incoming_publish, translate_incoming_subscribe, translate_incoming_unsubscribe,
     translate_outgoing_publish,
@@ -264,17 +266,20 @@ where
                     Packet::PubAck(puback) => ClientEvent::PubAck(puback),
                     Packet::PubComp(pubcomp) => ClientEvent::PubComp(pubcomp),
                     Packet::Publish(publish) => {
+                        #[cfg(feature = "edgehub")]
                         let publish = translate_incoming_publish(&client_id, publish);
                         ClientEvent::PublishFrom(publish)
                     }
                     Packet::PubRec(pubrec) => ClientEvent::PubRec(pubrec),
                     Packet::PubRel(pubrel) => ClientEvent::PubRel(pubrel),
                     Packet::Subscribe(subscribe) => {
+                        #[cfg(feature = "edgehub")]
                         let subscribe = translate_incoming_subscribe(&client_id, subscribe);
                         ClientEvent::Subscribe(subscribe)
                     }
                     Packet::SubAck(suback) => ClientEvent::SubAck(suback),
                     Packet::Unsubscribe(unsubscribe) => {
+                        #[cfg(feature = "edgehub")]
                         let unsubscribe = translate_incoming_unsubscribe(&client_id, unsubscribe);
                         ClientEvent::Unsubscribe(unsubscribe)
                     }
@@ -329,10 +334,12 @@ where
                 ClientEvent::Unsubscribe(unsub) => Some(Packet::Unsubscribe(unsub)),
                 ClientEvent::UnsubAck(unsuback) => Some(Packet::UnsubAck(unsuback)),
                 ClientEvent::PublishTo(Publish::QoS12(_id, publish)) => {
+                    #[cfg(feature = "edgehub")]
                     let publish = translate_outgoing_publish(publish);
                     Some(Packet::Publish(publish))
                 }
                 ClientEvent::PublishTo(Publish::QoS0(id, publish)) => {
+                    #[cfg(feature = "edgehub")]
                     let publish = translate_outgoing_publish(publish);
                     let result = outgoing.send(Packet::Publish(publish)).await;
 

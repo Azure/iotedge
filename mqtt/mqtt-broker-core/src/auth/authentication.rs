@@ -48,6 +48,15 @@ pub trait Authenticator {
     ) -> Result<Option<AuthId>, Self::Error>;
 }
 
+/// Creates a authenticator from a function.
+/// It wraps any provided function with an interface aligned with authenticator.
+pub fn authenticate_fn_ok<F>(f: F) -> impl Authenticator
+where
+    F: Fn(Option<String>, Credentials) -> Option<AuthId> + Sync + 'static,
+{
+    move |username, credentials| Ok::<_, Infallible>(f(username, credentials))
+}
+
 #[async_trait]
 impl<F, E> Authenticator for F
 where
@@ -84,11 +93,11 @@ impl Authenticator for DefaultAuthenticator {
 
 #[cfg(test)]
 mod tests {
-    use std::convert::Infallible;
-
     use matches::assert_matches;
 
-    use crate::auth::{AuthId, Authenticator, Credentials, DefaultAuthenticator};
+    use crate::auth::{
+        authenticate_fn_ok, AuthId, Authenticator, Credentials, DefaultAuthenticator,
+    };
 
     #[tokio::test]
     async fn default_auth_always_return_unknown_client_identity() {
@@ -104,7 +113,7 @@ mod tests {
 
     #[tokio::test]
     async fn authenticator_wrapper_around_function() {
-        let authenticator = |_, _| Ok::<_, Infallible>(Some(AuthId::Anonymous));
+        let authenticator = authenticate_fn_ok(|_, _| Some(AuthId::Anonymous));
         let credentials = Credentials::Password(Some("password".into()));
 
         let auth_id = authenticator

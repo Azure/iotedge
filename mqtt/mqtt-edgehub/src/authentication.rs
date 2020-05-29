@@ -13,7 +13,6 @@ const API_VERSION: &str = "2020-04-20";
 pub struct EdgeHubAuthenticator(Client, String);
 
 impl EdgeHubAuthenticator {
-    #[allow(dead_code)]
     pub fn new(url: String) -> Self {
         let client = reqwest::Client::new();
         Self(client, url)
