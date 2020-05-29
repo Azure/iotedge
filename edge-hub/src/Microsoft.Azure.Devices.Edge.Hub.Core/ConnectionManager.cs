@@ -308,6 +308,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         ConnectedDevice GetOrCreateConnectedDevice(IIdentity identity)
         {
             string deviceId = Preconditions.CheckNotNull(identity, nameof(identity)).Id;
+
+            // if devices contains this key and it is inactive then remove
+            /*
+            Option<ConnectedDevice> device = this.devices.Get(deviceId);
+            device.ForEach(connectedDevice =>
+            {
+                connectedDevice.DeviceConnection.ForEach(deviceConnection =>
+                {
+                    if (!deviceConnection.IsActive)
+                    {
+                        ConnectedDevice tmp = new ConnectedDevice(identity);
+                        this.devices.TryRemove(deviceId, out tmp);
+                    }
+                });
+            });
+            */
+
             return this.devices.GetOrAdd(
                 Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)),
                 id => this.CreateNewConnectedDevice(identity));

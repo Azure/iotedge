@@ -397,6 +397,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             // ------ NEW LOGIC BELOW ------
 
+            // create new deviceproxy according to what happens in GetDeviceListener:
+            //   is active
+            //   if throws async throws exception then make not active
+            deviceProxyMock1 = new Mock<IDeviceProxy>();
+            deviceProxyMock1.SetupGet(dp => dp.IsActive).Returns(true);
+            deviceProxyMock1.Setup(dp => dp.CloseAsync(It.IsAny<Exception>()))
+                .Callback(() => deviceProxyMock1.SetupGet(dp => dp.IsActive).Returns(false))
+                .Returns(Task.FromResult(true));
+
             // bind device proxy again
             deviceListener.BindDeviceProxy(deviceProxyMock1.Object);
 
