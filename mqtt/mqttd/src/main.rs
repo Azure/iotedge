@@ -7,7 +7,7 @@ use tracing::{info, warn, Level};
 use tracing_subscriber::{fmt, EnvFilter};
 
 use mqtt_broker::*;
-use mqtt_broker_core::auth::{authenticate_fn_ok, authorize_fn_ok, AuthId, Authorizer};
+use mqtt_broker_core::auth::Authorizer;
 use mqttd::{shutdown, snapshot, Terminate};
 
 #[tokio::main]
@@ -39,7 +39,7 @@ async fn run() -> Result<(), Error> {
     info!("Loading state...");
     let state = persistor.load().await?.unwrap_or_else(BrokerState::default);
     let broker = BrokerBuilder::default()
-        .authorizer(authorize_fn_ok(|_| true))
+        .authorizer(authorizer())
         .state(state)
         .build();
     info!("state loaded.");
@@ -92,14 +92,8 @@ where
     let shutdown = shutdown::shutdown();
     pin_mut!(shutdown);
 
-    #[cfg(feature = "edgehub")]
-    let authenticator = mqtt_edgehub::authentication::EdgeHubAuthenticator::new();
-
-    #[cfg(not(feature = "edgehub"))]
-    let authenticator = authenticate_fn_ok(|_, _| Some(AuthId::Anonymous));
-
     let state = Server::from_broker(broker)
-        .serve(transports, shutdown, authenticator)
+        .serve(transports, shutdown, authenticator())
         .await?;
 
     Ok(state)
