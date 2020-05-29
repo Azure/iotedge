@@ -20,7 +20,7 @@ namespace ModuleRestarter
         {
             this.ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, nameof(serviceClientConnectionString));
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            this.RestartInterval = TimeSpan.FromMinutes(Preconditions.CheckRange(restartIntervalInMins, 0));
+            this.RestartInterval = TimeSpan.FromMinutes(Preconditions.CheckRange(restartIntervalInMins, 1));
 
             // mitigate unintended repeated commas
             this.DesiredModulesToRestart = new List<string>();

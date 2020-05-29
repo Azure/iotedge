@@ -57,15 +57,15 @@ namespace ModuleRestarter
 
                     if (!cts.IsCancellationRequested)
                     {
-                        string moduleToBeRetarted = moduleNames[random.Next(0, moduleNames.Count)];
-                        string payload = string.Format(payloadSchema, moduleToBeRetarted);
+                        string moduleToBeRestarted = moduleNames[random.Next(0, moduleNames.Count)];
+                        string payload = string.Format(payloadSchema, moduleToBeRestarted);
                         Logger.LogInformation("RestartModule Method Payload: {0}", payload);
 
                         try
                         {
                             c2dMethod.SetPayloadJson(payload);
                             CloudToDeviceMethodResult response = await iotHubServiceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", c2dMethod);
-                            Logger.LogInformation($"Successfully invoke direct method to restart module {moduleToBeRetarted}.");
+                            Logger.LogInformation($"Successfully invoke direct method to restart module {moduleToBeRestarted}.");
 
                             if (response.Status != (int)HttpStatusCode.OK)
                             {
