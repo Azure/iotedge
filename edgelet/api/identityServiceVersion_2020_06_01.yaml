@@ -3,14 +3,14 @@ schemes:
   - http
 info:
   title: Identity Service API
-  version: '2020-02-02'
+  version: '2020-06-01'
 
 paths:
-  '/identities/identity':
+  '/identity':
     get:
       tags:
         - Identity operations
-      summary: 'Get primary cloud identity for authenticated workload'
+      summary: 'Get primary cloud identity for authenticated workload (caller)'
       operationId: GetCurrentIdentity
       parameters:
         - $ref: '#/parameters/api-version'
@@ -33,11 +33,6 @@ definitions:
         description: The identity type.
         enum:
         - aziot
-      managedBy:
-        type: string
-        description: The owner of the identity.
-        enum:
-        - identityservice
       spec:
         $ref: '#/definitions/IdentitySpec'
     required:
@@ -67,7 +62,6 @@ definitions:
     required:
       - hubName
       - deviceId
-      - managedBy
       - auth
   Credentials:
     type: object
@@ -99,4 +93,4 @@ parameters:
     description: The version of the API.
     required: true
     type: string
-    default: '2020-06-28'
+    default: '2020-06-01'

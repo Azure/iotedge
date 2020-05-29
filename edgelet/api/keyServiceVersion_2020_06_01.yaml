@@ -3,7 +3,7 @@ schemes:
   - http
 info:
   title: Key Service API
-  version: '2020-02-02'
+  version: '2020-06-01'
 
 paths:
   '/sign':
@@ -85,4 +85,4 @@ parameters:
     description: The version of the API.
     required: true
     type: string
-    default: '2020-06-28'
+    default: '2020-06-01'
