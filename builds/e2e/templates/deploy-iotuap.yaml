@@ -38,6 +38,7 @@ parameters:
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''
   metricsCollector.hostPlatform: ''
+  test.runtimeLogLevel: ''
 
 steps:
   - task: CopyFiles@2
@@ -158,5 +159,6 @@ steps:
           -MetricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" `
           -TestInfo "$testInfo" `
           -TestStartDelay "$testStartDelay" `
+          -RuntimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" `
           -BypassEdgeInstallation
       CommunicationProtocol: Http
