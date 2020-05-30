@@ -14,7 +14,7 @@ pub trait Authorizer {
     fn authorize(&self, activity: Activity) -> Result<bool, Self::Error>;
 }
 
-/// Creates a authorizer from a function.
+/// Creates an authorizer from a function.
 /// It wraps any provided function with an interface aligned with authorizer.
 pub fn authorize_fn_ok<F>(f: F) -> impl Authorizer
 where
