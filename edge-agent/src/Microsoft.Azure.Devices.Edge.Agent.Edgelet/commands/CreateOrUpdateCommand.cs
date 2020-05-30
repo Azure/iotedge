@@ -120,6 +120,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
                 envVars.Add(new EnvVar(Constants.IotHubHostnameVariableName, identity.IotHubHostname));
             }
 
+            // In nested edge scenario, EdgeAgent and EdgeHub will use parent edge as upstream gateway,
+            // Other modules use current edge hub as upstream gateway and have parent edge hostname in environment variable.
             if (identity.ModuleId.Equals(Constants.EdgeAgentModuleIdentityName) || identity.ModuleId.Equals(Constants.EdgeHubModuleIdentityName))
             {
                 envVars.Add(new EnvVar(Constants.EdgeDeviceHostNameKey, identity.EdgeDeviceHostname));
