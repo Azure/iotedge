@@ -48,7 +48,7 @@ pub trait Authenticator {
     ) -> Result<Option<AuthId>, Self::Error>;
 }
 
-/// Creates a authenticator from a function.
+/// Creates an authenticator from a function.
 /// It wraps any provided function with an interface aligned with authenticator.
 pub fn authenticate_fn_ok<F>(f: F) -> impl Authenticator
 where
