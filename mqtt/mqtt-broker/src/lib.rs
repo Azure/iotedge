@@ -146,7 +146,9 @@ pub enum ClientEvent {
     UnsubAck(proto::UnsubAck),
 
     /// PublishFrom - publish packet from a client
-    PublishFrom(proto::Publish),
+    /// Contains optional permit for managing max number of
+    /// incoming messages per publisher.
+    PublishFrom(proto::Publish, Option<tokio::sync::OwnedSemaphorePermit>),
 
     /// PublishTo - publish packet to a client
     PublishTo(Publish),

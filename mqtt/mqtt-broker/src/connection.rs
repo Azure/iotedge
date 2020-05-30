@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, time::Duration};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 use futures_util::future::{select, Either};
 use futures_util::pin_mut;
@@ -6,7 +6,10 @@ use futures_util::sink::{Sink, SinkExt};
 use futures_util::stream::{Stream, StreamExt};
 use lazy_static::lazy_static;
 use tokio::io::{AsyncRead, AsyncWrite};
-use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+use tokio::sync::{
+    mpsc::{self, UnboundedReceiver, UnboundedSender},
+    Semaphore,
+};
 use tokio_io_timeout::TimeoutStream;
 use tokio_util::codec::Framed;
 use tracing::{debug, info, span, trace, warn, Level};
@@ -239,6 +242,9 @@ async fn incoming_task<S>(
 where
     S: Stream<Item = Result<Packet, DecodeError>> + Unpin,
 {
+    // TODO: take from config.
+    let inflight_guard = Arc::new(Semaphore::new(10));
+
     debug!("incoming_task start");
     while let Some(maybe_packet) = incoming.next().await {
         match maybe_packet {
@@ -264,9 +270,9 @@ where
                     Packet::PubAck(puback) => ClientEvent::PubAck(puback),
                     Packet::PubComp(pubcomp) => ClientEvent::PubComp(pubcomp),
                     Packet::Publish(publish) => {
-                        #[cfg(feature = "edgehub")]
                         let publish = translate_incoming_publish(&client_id, publish);
-                        ClientEvent::PublishFrom(publish)
+                        let perm = inflight_guard.clone().acquire_owned().await;
+                        ClientEvent::PublishFrom(publish, Some(perm))
                     }
                     Packet::PubRec(pubrec) => ClientEvent::PubRec(pubrec),
                     Packet::PubRel(pubrel) => ClientEvent::PubRel(pubrel),

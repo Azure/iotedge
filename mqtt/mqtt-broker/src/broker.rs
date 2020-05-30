@@ -153,7 +153,7 @@ where
                 info!("broker received UNSUBACK, ignoring");
                 Ok(())
             }
-            ClientEvent::PublishFrom(publish) => self.process_publish(&client_id, publish),
+            ClientEvent::PublishFrom(publish, _) => self.process_publish(&client_id, publish),
             ClientEvent::PublishTo(_publish) => {
                 info!("broker received a PublishTo, ignoring");
                 Ok(())
