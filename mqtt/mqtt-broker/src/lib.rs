@@ -15,6 +15,7 @@ use mqtt3::proto;
 use mqtt_broker_core::{auth::AuthId, ClientId};
 use serde::{Deserialize, Serialize};
 
+mod auth;
 mod broker;
 mod configuration;
 mod connection;
@@ -27,6 +28,10 @@ mod state_change;
 mod subscription;
 mod transport;
 
+#[cfg(any(test, feature = "proptest"))]
+pub mod proptest;
+
+pub use crate::auth::{authenticator, authorizer};
 pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle, BrokerState};
 pub use crate::configuration::BrokerConfig;
 pub use crate::connection::ConnectionHandle;
@@ -39,9 +44,6 @@ pub use crate::session::SessionState;
 pub use crate::snapshot::{Snapshotter, StateSnapshotHandle};
 pub use crate::subscription::{Segment, Subscription, TopicFilter};
 pub use crate::transport::TransportBuilder;
-
-#[cfg(any(test, feature = "proptest"))]
-pub mod proptest;
 
 #[derive(Debug)]
 pub struct ConnReq {

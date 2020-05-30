@@ -11,7 +11,8 @@ FROM ${BASE_IMAGE} AS builder
 ADD . ./
 
 # Build our application.
-RUN cargo build -p mqttd --release && musl-strip /home/rust/src/target/armv7-unknown-linux-musleabihf/release/mqttd
+RUN cargo build --release --manifest-path mqttd/Cargo.toml --no-default-features \ 
+    && musl-strip /home/rust/src/target/armv7-unknown-linux-musleabihf/release/mqttd
 
 FROM busybox
 

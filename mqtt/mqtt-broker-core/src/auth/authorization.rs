@@ -14,6 +14,15 @@ pub trait Authorizer {
     fn authorize(&self, activity: Activity) -> Result<bool, Self::Error>;
 }
 
+/// Creates an authorizer from a function.
+/// It wraps any provided function with an interface aligned with authorizer.
+pub fn authorize_fn_ok<F>(f: F) -> impl Authorizer
+where
+    F: Fn(Activity) -> bool + Sync + 'static,
+{
+    move |activity| Ok::<_, Infallible>(f(activity))
+}
+
 impl<F, E> Authorizer for F
 where
     F: Fn(Activity) -> Result<bool, E> + Sync,
@@ -183,13 +192,13 @@ impl From<proto::Publication> for Receive {
 
 #[cfg(test)]
 mod tests {
-    use std::{convert::Infallible, time::Duration};
+    use std::time::Duration;
 
     use matches::assert_matches;
 
     use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
 
-    use crate::auth::{Activity, Authorizer, DefaultAuthorizer, Operation};
+    use crate::auth::{authorize_fn_ok, Activity, Authorizer, DefaultAuthorizer, Operation};
 
     fn connect() -> proto::Connect {
         proto::Connect {
@@ -219,7 +228,7 @@ mod tests {
 
     #[test]
     fn authorizer_wrapper_around_function() {
-        let auth = |_| Ok::<_, Infallible>(true);
+        let auth = authorize_fn_ok(|_| true);
         let activity = Activity::new(
             "client-auth-id",
             "client-id",

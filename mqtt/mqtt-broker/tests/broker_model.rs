@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    convert::Infallible,
-};
+use std::collections::{HashMap, HashSet};
 
 use proptest::{prop_oneof, proptest, strategy::Strategy};
 use tokio::sync::mpsc::{self, UnboundedReceiver};
@@ -12,7 +9,10 @@ use mqtt_broker::{
     proptest::{arb_client_id_weighted, arb_connect, arb_subscribe, arb_unsubscribe},
     Auth, BrokerBuilder, ClientEvent, ConnReq, ConnectionHandle, Message,
 };
-use mqtt_broker_core::{auth::AuthId, ClientId};
+use mqtt_broker_core::{
+    auth::{authorize_fn_ok, AuthId},
+    ClientId,
+};
 
 proptest! {
     /// Model based test to check whether broker can manage arbitrary packet sequence while
@@ -41,7 +41,7 @@ proptest! {
 
 async fn test_broker_manages_sessions(events: impl IntoIterator<Item = BrokerEvent>) {
     let mut broker = BrokerBuilder::default()
-        .authorizer(|_| Ok::<_, Infallible>(true))
+        .authorizer(authorize_fn_ok(|_| (true)))
         .build();
 
     let mut model = BrokerModel::default();
