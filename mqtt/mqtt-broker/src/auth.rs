@@ -20,7 +20,9 @@ mod imp {
 
 #[cfg(not(feature = "edgehub"))]
 mod imp {
+    use mqtt_broker_core::auth::{authenticate_fn_ok, AuthId, Authenticator};
+
     pub(super) fn authenticator() -> impl Authenticator {
-        authenticate_fn_ok(|_, _| Some(AuthId::Anonymous));
+        authenticate_fn_ok(|_, _| Some(AuthId::Anonymous))
     }
 }
