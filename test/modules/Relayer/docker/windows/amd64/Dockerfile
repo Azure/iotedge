@@ -3,6 +3,8 @@ FROM mcr.microsoft.com/dotnet/core/runtime:${base_tag}
 
 ENV MODULE_NAME "Relayer.dll"
 
+USER ContainerAdministrator
+
 ARG EXE_DIR=.
 
 WORKDIR /app
@@ -10,3 +12,5 @@ WORKDIR /app
 COPY $EXE_DIR/ ./
 
 CMD ["dotnet", "Relayer.dll"]
+
+RUN REG add "HKLM\SYSTEM\CurrentControlSet\services\Dnscache" /v Start /t REG_DWORD /d 4 /f
