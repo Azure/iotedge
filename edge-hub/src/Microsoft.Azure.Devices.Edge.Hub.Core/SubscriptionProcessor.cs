@@ -166,7 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task ProcessExistingSubscriptions(string id)
         {
-            Events.Log.LogDebug($"CUSTOM: UNEXPECTED: In CloudConnectivityEstablished() for id {id}");
+            Events.Log.LogDebug($"CUSTOM: UNEXPECTED: In ProcessExistingSubscriptions for id {id}");
             Option<ICloudProxy> cloudProxy = await this.ConnectionManager.GetCloudConnection(id);
             Option<IReadOnlyDictionary<DeviceSubscription, bool>> subscriptions = this.ConnectionManager.GetSubscriptions(id);
             await subscriptions.ForEachAsync(
