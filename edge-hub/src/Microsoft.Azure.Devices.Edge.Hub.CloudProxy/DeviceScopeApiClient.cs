@@ -56,13 +56,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.retryStrategy = retryStrategy ?? TransientRetryStrategy;
         }
 
-        public Task<ScopeResult> GetIdentitiesInScope() =>
+        public Task<ScopeResult> GetIdentitiesInScopeAsync() =>
             this.GetIdentitiesInScopeWithRetry(this.GetServiceUri(Option.None<string>()));
 
-        public Task<ScopeResult> GetNext(string continuationToken) =>
+        public Task<ScopeResult> GetNextAsync(string continuationToken) =>
             this.GetIdentitiesInScopeWithRetry(this.GetServiceUri(Option.Some(continuationToken)));
 
-        public Task<ScopeResult> GetIdentity(string targetDeviceId, string targetModuleId)
+        public Task<ScopeResult> GetIdentityAsync(string targetDeviceId, string targetModuleId)
         {
             Preconditions.CheckNonWhiteSpace(targetDeviceId, nameof(targetDeviceId));
             return this.GetIdentitiesInScopeWithRetry(this.GetServiceUri(targetDeviceId, targetModuleId));

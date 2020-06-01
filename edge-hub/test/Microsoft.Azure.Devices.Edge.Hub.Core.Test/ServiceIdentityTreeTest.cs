@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Org.BouncyCastle.Security;
     using Xunit;
 
     [Unit]
@@ -242,6 +243,37 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.False(tree.Get(this.e4_L2.Id).Result.HasValue);
             Assert.False(tree.Get(this.leaf2.Id).Result.HasValue);
             Assert.False(tree.Get(this.mod2.Id).Result.HasValue);
+        }
+
+        [Fact]
+        public void MaxDepth_test()
+        {
+            ServiceIdentityTree tree = this.SetupTree();
+
+            // Fill up all 5 layers to reach the maximum
+            ServiceIdentity e1_L3 = CreateServiceIdentity("e1_L3", null, "e1_L3_scope", "e1_L2_scope", true);
+            ServiceIdentity e1_L4 = CreateServiceIdentity("e1_L4", null, "e1_L4_scope", "e1_L3_scope", true);
+            tree.InsertOrUpdate(e1_L3).Wait();
+            tree.InsertOrUpdate(e1_L4).Wait();
+
+            // Try adding yet another layer with an Edge device, this shouldn't yield a valid chain
+            ServiceIdentity e1_L5 = CreateServiceIdentity("e1_L5", null, "e1_L5_scope", "e1_L4_scope", true);
+            tree.InsertOrUpdate(e1_L5).Wait();
+            Assert.False(tree.GetAuthChain(e1_L5.Id).Result.HasValue);
+
+            // But we should still be able to add a leaf device
+            ServiceIdentity leaf = CreateServiceIdentity("leaf", null, null, "e1_L4_scope", false);
+            tree.InsertOrUpdate(leaf).Wait();
+
+            Option<string> authChainActual = tree.GetAuthChain(leaf.Id).Result;
+            string leaf_authchain_expected =
+                leaf.Id + ";" +
+                e1_L4.Id + ";" +
+                e1_L3.Id + ";" +
+                this.e1_L2.Id + ";" +
+                this.e1_L1.Id + ";" +
+                this.root.Id;
+            Assert.True(authChainActual.Contains(leaf_authchain_expected));
         }
     }
 }

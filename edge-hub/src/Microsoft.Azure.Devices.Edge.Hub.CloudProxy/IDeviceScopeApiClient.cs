@@ -8,10 +8,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     {
         string TargetEdgeDeviceId { get;  }
 
-        Task<ScopeResult> GetIdentitiesInScope();
+        Task<ScopeResult> GetIdentitiesInScopeAsync();
 
-        Task<ScopeResult> GetNext(string continuationToken);
+        Task<ScopeResult> GetNextAsync(string continuationToken);
 
-        Task<ScopeResult> GetIdentity(string deviceId, string moduleId);
+        Task<ScopeResult> GetIdentityAsync(string deviceId, string moduleId);
     }
 }

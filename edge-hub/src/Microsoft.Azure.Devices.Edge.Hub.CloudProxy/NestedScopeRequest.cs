@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
+    using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
     /// <summary>
@@ -10,12 +11,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     class NestedScopeRequest
     {
         [JsonProperty(PropertyName = "pageSize")]
-        public int PageSize { get; set; }
+        public int PageSize { get; private set; }
 
         [JsonProperty(PropertyName = "continuationLink", NullValueHandling = NullValueHandling.Ignore)]
-        public string ContinuationLink;
+        public string ContinuationLink { get; private set; }
 
         [JsonProperty(PropertyName = "authChain", Required = Required.Always)]
-        public string AuthChain { get; set; }
+        public string AuthChain { get; private set; }
+
+        public NestedScopeRequest(int pageSize, string continuationLink, string authChain)
+        {
+            this.PageSize = pageSize;
+            this.ContinuationLink = continuationLink;
+            this.AuthChain = Preconditions.CheckNonWhiteSpace(authChain, nameof(authChain));
+        }
     }
 }

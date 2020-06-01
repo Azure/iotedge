@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Option<ScopeResult> scopeResult = Option.None<ScopeResult>();
             try
             {
-                ScopeResult res = await this.defaultSecurityScopesApiClient.GetIdentity(deviceId, null);
+                ScopeResult res = await this.defaultSecurityScopesApiClient.GetIdentityAsync(deviceId, null);
                 scopeResult = Option.Maybe(res);
                 Events.IdentityScopeResultReceived(deviceId);
             }
@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Option<ScopeResult> scopeResult = Option.None<ScopeResult>();
             try
             {
-                ScopeResult res = await this.defaultSecurityScopesApiClient.GetIdentity(deviceId, moduleId);
+                ScopeResult res = await this.defaultSecurityScopesApiClient.GetIdentityAsync(deviceId, moduleId);
                 scopeResult = Option.Maybe(res);
                 Events.IdentityScopeResultReceived(id);
             }
@@ -215,7 +215,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 var serviceIdentities = new List<ServiceIdentity>();
 
                 // Make the call to upstream and fetch the next batch of identities
-                ScopeResult scopeResult = await currentNode.GetIdentitiesInScope();
+                ScopeResult scopeResult = await currentNode.GetIdentitiesInScopeAsync();
                 if (scopeResult != null)
                 {
                     Events.ScopeResultReceived(scopeResult);
@@ -281,8 +281,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 }
 
                 var serviceIdentities = new List<ServiceIdentity>();
-                ScopeResult scopeResult = await this.continuationLink.Map(c => this.securityScopesApiClient.GetNext(c))
-                    .GetOrElse(() => this.securityScopesApiClient.GetIdentitiesInScope());
+                ScopeResult scopeResult = await this.continuationLink.Map(c => this.securityScopesApiClient.GetNextAsync(c))
+                    .GetOrElse(() => this.securityScopesApiClient.GetIdentitiesInScopeAsync());
                 if (scopeResult == null)
                 {
                     Events.NullResult();

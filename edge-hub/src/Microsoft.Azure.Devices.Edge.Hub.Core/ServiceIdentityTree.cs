@@ -1,12 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Extensions.Logging;
 
     /// <summary>
     /// This is a tree implementation that uses the ParentScopes property
@@ -15,13 +17,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     /// </summary>
     public class ServiceIdentityTree : IServiceIdentityTree
     {
-        readonly string rootDeviceId;
+        readonly string actorDeviceId;
         AsyncLock nodesLock = new AsyncLock();
         Dictionary<string, ServiceIdentityTreeNode> nodes;
 
-        public ServiceIdentityTree(string rootDeviceId)
+        public ServiceIdentityTree(string actorDeviceId)
         {
-            this.rootDeviceId = Preconditions.CheckNonWhiteSpace(rootDeviceId, nameof(rootDeviceId));
+            this.actorDeviceId = Preconditions.CheckNonWhiteSpace(actorDeviceId, nameof(actorDeviceId));
             this.nodes = new Dictionary<string, ServiceIdentityTreeNode>();
         }
 
@@ -89,9 +91,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
 
             // Auth-chain for the root (when there aren't any nodes in the tree yet)
-            if (id == this.rootDeviceId)
+            if (id == this.actorDeviceId)
             {
-                return Option.Some(this.rootDeviceId);
+                return Option.Some(this.actorDeviceId);
             }
 
             using (await this.nodesLock.LockAsync())
@@ -128,8 +130,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             // Root device is the base-case for constructing the authchain,
             // child devices derive their authchain from the parent
-            var newNode = device.Id == this.rootDeviceId ?
-                new ServiceIdentityTreeNode(device, Option.Some(this.rootDeviceId)) :
+            var newNode = device.Id == this.actorDeviceId ?
+                new ServiceIdentityTreeNode(device, Option.Some(this.actorDeviceId)) :
                 new ServiceIdentityTreeNode(device, Option.None<string>());
 
             this.nodes.Add(device.Id, newNode);
@@ -192,8 +194,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             if (devices.Count() > 0)
             {
-                // There shouldn't be more than one device, but even if there is
-                // for some reason, we can just use the first one
                 return Option.Some(devices.First());
             }
 
@@ -206,10 +206,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         /// </summary>
         internal class ServiceIdentityTreeNode
         {
+            // Only allow up to 5 Edge devices to be linked together
+            static readonly int MaxNestingDepth = 4;
+
             public ServiceIdentity Identity { get; }
             public Option<string> AuthChain { get; private set; }
             public Option<ServiceIdentityTreeNode> Parent { get; private set; }
+
             List<ServiceIdentityTreeNode> children;
+            int currentDepth;
 
             public ServiceIdentityTreeNode(ServiceIdentity identity, Option<string> authChain)
             {
@@ -217,14 +222,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 this.Parent = Option.None<ServiceIdentityTreeNode>();
                 this.children = new List<ServiceIdentityTreeNode>();
                 this.AuthChain = authChain;
+                this.currentDepth = 0;
             }
 
             public void AddChild(ServiceIdentityTreeNode childNode)
             {
-                // TODO: Enforce tree depth
+                if (!this.Identity.IsEdgeDevice)
+                {
+                    throw new ArgumentException($"{this.Identity.Id} is not an Edge device, only Edge devices can have children");
+                }
+
+                if (this.currentDepth >= MaxNestingDepth && childNode.Identity.IsEdgeDevice)
+                {
+                    // Don't add Edge devices greater than the max depth.
+                    // If the customer configured more layers than the max,
+                    // we'll just ignore anything beyond the max and
+                    // continue working with the what we have.
+                    Events.MaxDepthExceeded(childNode.Identity.Id);
+                    return;
+                }
+
                 this.children.Add(childNode);
                 childNode.Parent = Option.Some(this);
-                childNode.UpdateAuthChainFromParent(this);
+                childNode.UpdateAuthChainFromParent(this, this.currentDepth);
             }
 
             public void RemoveChild(ServiceIdentityTreeNode childNode)
@@ -240,13 +260,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 snapshot.ForEach(child => this.RemoveChild(child));
             }
 
-            void UpdateAuthChainFromParent(ServiceIdentityTreeNode parentNode)
+            void UpdateAuthChainFromParent(ServiceIdentityTreeNode parentNode, int traveled)
             {
-                // Our auth chain is inherited from the parent's chain
+                if (traveled > MaxNestingDepth)
+                {
+                    // Something went wrong, we should never have more than max layers linked together
+                    throw new InvalidOperationException($"Nesting depth exceeded maximum at {this.Identity.Id}, check for potential cyclic dependencies");
+                }
+
+                // Our auth chain and depth is inherited from the parent's chain
                 this.AuthChain = parentNode.AuthChain.Map(parentChain => this.MakeAuthChainFromParent(parentChain));
 
-                // Recurisvely update all children to re-calculate their authchains
-                this.children.ForEach(child => child.UpdateAuthChainFromParent(this));
+                if (this.Identity.IsEdgeDevice)
+                {
+                    this.currentDepth = parentNode.currentDepth + 1;
+                }
+
+                // Recursively update all children to re-calculate their authchains
+                this.children.ForEach(child => child.UpdateAuthChainFromParent(this, traveled++));
             }
 
             void RemoveAuthChain()
@@ -262,5 +293,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 return this.Identity.Id + ";" + parentAuthChain;
             }
         }
+    }
+
+    static class Events
+    {
+        const int IdStart = HubCoreEventIds.ServiceIdentityTree;
+        static readonly ILogger Log = Logger.Factory.CreateLogger<IDeviceScopeIdentitiesCache>();
+
+        enum EventIds
+        {
+            Created = IdStart,
+            MaxDepthExceeded
+        }
+
+        public static void Created() =>
+            Log.LogInformation((int)EventIds.Created, "Created device scope identities cache");
+
+        public static void MaxDepthExceeded(string edgeDeviceId) =>
+            Log.LogWarning((int)EventIds.MaxDepthExceeded, $"Nested hierarchy contains more than maximum allowed layers, discarding {edgeDeviceId}");
     }
 }
