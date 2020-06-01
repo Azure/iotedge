@@ -152,7 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                             else
                             {
-                                Log.Verbose("Message is missing information. Needs to have trackingId, batchId, and sequenceNumber. Not enqueuing.");
+                                Log.Warning("Message is missing information. Needs to have trackingId, batchId, and sequenceNumber. Not enqueuing.");
                             }
 
                             return results.Count == loadGenTestStatus.ResultCount;
