@@ -31,6 +31,7 @@ parameters:
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''
   metricsCollector.hostPlatform: ''
+  test.runtimeLogLevel: ''
 
 steps:
   - task: CopyFiles@2
@@ -91,5 +92,6 @@ steps:
           -MetricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" `
           -MetricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" `
           -TestInfo "$testInfo" `
-          -TestStartDelay "${{ parameters['test.startDelay'] }}"
+          -TestStartDelay "${{ parameters['test.startDelay'] }}" `
+          -RuntimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}"
       workingDirectory: "$(Agent.HomeDirectory)/.."
