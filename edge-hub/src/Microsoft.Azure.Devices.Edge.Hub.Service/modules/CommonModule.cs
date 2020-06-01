@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly TimeSpan scopeCacheRefreshRate;
         readonly Option<string> workloadUri;
         readonly Option<string> workloadApiVersion;
-        readonly int workloadStaleScoketErrCode;
+        readonly int workloadStaleSocketErrCode;
         readonly bool persistTokens;
         readonly IList<X509Certificate2> trustBundle;
         readonly string proxy;
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             string storagePath,
             Option<string> workloadUri,
             Option<string> workloadApiVersion,
-            int workloadStaleScoketErrCode,
+            int workloadStaleSocketErrCode,
             TimeSpan scopeCacheRefreshRate,
             bool persistTokens,
             IList<X509Certificate2> trustBundle,
@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.scopeCacheRefreshRate = scopeCacheRefreshRate;
             this.workloadUri = workloadUri;
             this.workloadApiVersion = workloadApiVersion;
-            this.workloadStaleScoketErrCode = workloadStaleScoketErrCode;
+            this.workloadStaleSocketErrCode = workloadStaleSocketErrCode;
             this.persistTokens = persistTokens;
             this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
             this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
@@ -134,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                     string edgeHubGenerationId = this.edgeHubGenerationId.Expect(() => new InvalidOperationException("Generation ID missing"));
                                     string workloadUri = this.workloadUri.Expect(() => new InvalidOperationException("workloadUri is missing"));
                                     string workloadApiVersion = this.workloadApiVersion.Expect(() => new InvalidOperationException("workloadUri version is missing"));
-                                    return new HttpHsmSignatureProvider(this.edgeHubModuleId, edgeHubGenerationId, workloadUri, workloadApiVersion, Constants.WorkloadApiVersion) as ISignatureProvider;
+                                    return new HttpHsmSignatureProvider(this.edgeHubModuleId, edgeHubGenerationId, workloadUri, workloadApiVersion, Constants.WorkloadApiVersion, this.workloadStaleSocketErrCode) as ISignatureProvider;
                                 });
                         return signatureProvider;
                     })
@@ -221,6 +221,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                         new Uri(uri),
                                         this.workloadApiVersion.Expect(() => new InvalidOperationException("Missing workload API version")),
                                         Constants.WorkloadApiVersion,
+                                        this.workloadStaleSocketErrCode,
                                         this.edgeHubModuleId,
                                         this.edgeHubGenerationId.Expect(() => new InvalidOperationException("Missing generation ID")),
                                         Constants.InitializationVectorFileName) as IEncryptionProvider;
