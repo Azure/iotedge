@@ -95,16 +95,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 case DeviceSubscription.Methods:
                     if (addSubscription)
                     {
+                        cloudProxy.ForEach(c => Events.Log.LogDebug($"CUSTOM: cloud proxy status {c.IsActive}"));
                         Events.Log.LogDebug($"CUSTOM: In ProcessSubscription(). Adding dm subscription for {id}");
+                        cloudProxy.ForEach(c => Events.Log.LogDebug($"CUSTOM: cloud proxy status {c.IsActive}"));
                         await cloudProxy.ForEachAsync(c => c.SetupCallMethodAsync());
                         await this.invokeMethodHandler.ProcessInvokeMethodSubscription(id);
                         Events.Log.LogDebug($"CUSTOM: In ProcessSubscription(). Finished adding dm subscription for {id}");
+                        cloudProxy.ForEach(c => Events.Log.LogDebug($"CUSTOM: cloud proxy status {c.IsActive}"));
                     }
                     else
                     {
+                        cloudProxy.ForEach(c => Events.Log.LogDebug($"CUSTOM: cloud proxy status {c.IsActive}"));
                         Events.Log.LogDebug($"CUSTOM: In ProcessSubscription(). Removing dm subscription for {id}");
+                        cloudProxy.ForEach(c => Events.Log.LogDebug($"CUSTOM: cloud proxy status {c.IsActive}"));
                         await cloudProxy.ForEachAsync(c => c.RemoveCallMethodAsync());
                         Events.Log.LogDebug($"CUSTOM: In ProcessSubscription(). Finished removing dm subscription for {id}");
+                        cloudProxy.ForEach(c => Events.Log.LogDebug($"CUSTOM: cloud proxy status {c.IsActive}"));
                     }
 
                     break;
