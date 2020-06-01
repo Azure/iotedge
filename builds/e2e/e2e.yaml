@@ -38,6 +38,7 @@ jobs:
     - task: CmdLine@2
       inputs:
         script: 'sudo find . -type f -group root -execdir rm {} + && sudo find . -type d -group root -execdir rm -r {} \;' 
+        continueOnError: true
       displayName: Clean up files (as sudo)
 
     - template: templates/e2e-setup.yaml
