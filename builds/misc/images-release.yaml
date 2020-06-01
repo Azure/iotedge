@@ -324,7 +324,7 @@ jobs:
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts to VSTS'
         inputs:
-          PathtoPublish: '$(Build.BinariesDirectory)\publish'
+          PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'publish-linux'
 ################################################################################
   - job: windows
