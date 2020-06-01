@@ -66,7 +66,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                             .Children<JProperty>()
                             .ToDictionary(
                                 p => p.Name,
-                                p => CreateExpectedModuleConfig((JObject)p.Value))
+                                p => p.Name == ModuleName.EdgeAgent.Substring(1)
+                                    ? CreateExpectedAgentModuleConfig((JObject)p.Value)
+                                    : CreateExpectedModuleConfig((JObject)p.Value))
             };
 
             if (desired.ContainsKey("modules"))
@@ -101,6 +103,27 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             };
 
             return module;
+        }
+
+        static object CreateExpectedAgentModuleConfig(JObject source)
+        {
+            source.TryAdd("settings", new JObject());
+            JObject settings = source.Value<JObject>("settings");
+
+            settings.TryAdd("createOptions", new JObject());
+            JObject createOptions = settings.Value<JObject>("createOptions");
+            string createOptionsLabel = JsonConvert.SerializeObject(createOptions);
+
+            createOptions.TryAdd("Labels", new JObject());
+            JObject labels = createOptions.Value<JObject>("Labels");
+
+            JToken env = source.SelectToken("env") ?? new JObject();
+
+            labels.TryAdd("net.azure-devices.edge.create-options", new JValue(createOptionsLabel));
+            labels.TryAdd("net.azure-devices.edge.env", JsonConvert.SerializeObject(env));
+            labels.TryAdd("net.azure-devices.edge.owner", new JValue("Microsoft.Azure.Devices.Edge.Agent"));
+
+            return CreateExpectedModuleConfig(source);
         }
 
         public Task DeployAsync(IotHub iotHub, CancellationToken token) => Profiler.Run(

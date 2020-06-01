@@ -1,6 +1,6 @@
 use fail::FailScenario;
 
-use mqtt_broker::{BrokerState, ConsolidatedStateFormat, FilePersistor, Persist, PersistError};
+use mqtt_broker::{BrokerState, FilePersistor, Persist, PersistError, VersionedFileFormat};
 use proptest::collection::vec;
 use proptest::prelude::*;
 use tempfile::TempDir;
@@ -49,7 +49,7 @@ async fn test_persistor(count: usize, ops: Vec<Op>) {
     let tmp_dir = TempDir::new().unwrap();
     let path = tmp_dir.path().to_owned();
     let mut persistor =
-        FilePersistor::new(path, ConsolidatedStateFormat::default()).with_previous_count(count);
+        FilePersistor::new(path, VersionedFileFormat::default()).with_previous_count(count);
 
     // Make sure we've stored at least one state
     tear_down_failpoints();
@@ -88,7 +88,7 @@ fn test_failpoints_smoketest() {
 
             let tmp_dir = TempDir::new().unwrap();
             let path = tmp_dir.path().to_owned();
-            let mut persistor = FilePersistor::new(path, ConsolidatedStateFormat::default());
+            let mut persistor = FilePersistor::new(path, VersionedFileFormat::default());
 
             let result = persistor.load().await;
             matches::assert_matches!(result, Err(PersistError::TaskJoin(_)));
@@ -97,7 +97,7 @@ fn test_failpoints_smoketest() {
 }
 
 // Generates random sequences of events and failures and ensures
-// that the last commited snapshot isn't corrupted.
+// that the last committed snapshot isn't corrupted.
 proptest! {
     #[test]
     fn test_failpoints(count in 0usize..10, ops in vec(arb_op(), 0..50)) {

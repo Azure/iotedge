@@ -18,8 +18,8 @@ cd (Get-MqttFolder)
 
 $env:IOTEDGE_HOMEDIR = $env:Temp
 
-Write-Host "$cargo test --all $(if ($Release) { '--release' })"
-Invoke-Expression "$cargo test --all $(if ($Release) { '--release' })"
+Write-Host "$cargo test --all --all-features $(if ($Release) { '--release' })"
+Invoke-Expression "$cargo test --all --all-features $(if ($Release) { '--release' })"
 if ($LastExitCode) {
     Throw "cargo test failed with exit code $LastExitCode"
 }

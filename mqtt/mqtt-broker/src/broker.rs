@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::convert::TryInto;
 use std::panic;
 
 use mqtt3::proto;
@@ -10,6 +11,7 @@ use crate::auth::{
     Operation,
 };
 use crate::session::{ConnectedSession, Session, SessionState};
+use crate::state_change::StateChange;
 use crate::{
     subscription::Subscription, AuthId, ClientEvent, ClientId, ConnReq, Error, Message, SystemEvent,
 };
@@ -103,7 +105,28 @@ where
         BrokerState { retained, sessions }
     }
 
-    fn process_message(&mut self, client_id: ClientId, event: ClientEvent) -> Result<(), Error> {
+    #[cfg(any(test, feature = "proptest"))]
+    pub fn clone_state(&self) -> BrokerState {
+        let retained = self.retained.clone();
+        let sessions = self
+            .sessions
+            .values()
+            .filter_map(|session| match session {
+                Session::Transient(session) => Some(session.state().clone()),
+                Session::Persistent(session) => Some(session.state().clone()),
+                Session::Offline(session) => Some(session.state().clone()),
+                _ => None,
+            })
+            .collect();
+
+        BrokerState { retained, sessions }
+    }
+
+    pub fn process_message(
+        &mut self,
+        client_id: ClientId,
+        event: ClientEvent,
+    ) -> Result<(), Error> {
         debug!("incoming: {:?}", event);
         let result = match event {
             ClientEvent::ConnReq(connreq) => self.process_connect(client_id, connreq),
@@ -155,7 +178,7 @@ where
         let client_ids = self.sessions.keys().cloned().collect::<Vec<ClientId>>();
 
         for client_id in client_ids {
-            if let Some(session) = self.close_session(&client_id) {
+            if let Some(session) = self.close_session(&client_id)? {
                 sessions.push(session)
             }
         }
@@ -184,7 +207,7 @@ where
                 let message = Message::Client(client_id.clone(), event);
                 try_send!(connreq.handle_mut(), message);
 
-                debug!("dropping connection due to authentication error");
+                debug!("dropping connection due to connect packet error");
                 let message = Message::Client(client_id, ClientEvent::DropConnection);
                 try_send!(connreq.handle_mut(), message);
             };
@@ -274,8 +297,8 @@ where
 
         // Process the CONNECT packet after it has been validated
         // TODO - fix ConnAck return_code != accepted to not add session to sessions map
-        match self.open_session(auth_id, connreq) {
-            Ok((ack, events)) => {
+        match self.open_session(auth_id, connreq)? {
+            OpenSession::OpenedSession(ack, events) => {
                 // Send ConnAck on new session
                 let session = self
                     .get_session_mut(&client_id)
@@ -285,8 +308,10 @@ where
                 for event in events {
                     session.send(event)?;
                 }
+
+                self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?)?;
             }
-            Err(SessionError::DuplicateSession(mut old_session, ack)) => {
+            OpenSession::DuplicateSession(mut old_session, ack) => {
                 // Drop the old connection
                 old_session.send(ClientEvent::DropConnection)?;
 
@@ -301,11 +326,8 @@ where
                     session.send(ClientEvent::DropConnection)?;
                 }
             }
-            Err(SessionError::ProtocolViolation(mut old_session)) => {
+            OpenSession::ProtocolViolation(mut old_session) => {
                 old_session.send(ClientEvent::DropConnection)?
-            }
-            Err(SessionError::PacketIdentifiersExhausted) => {
-                panic!("Session identifiers exhausted, this can only be caused by a bug.");
             }
         }
 
@@ -315,7 +337,7 @@ where
 
     fn process_disconnect(&mut self, client_id: &ClientId) -> Result<(), Error> {
         debug!("handling disconnect...");
-        if let Some(mut session) = self.close_session(client_id) {
+        if let Some(mut session) = self.close_session(client_id)? {
             session.send(ClientEvent::Disconnect(proto::Disconnect))?;
         } else {
             debug!("no session for {}", client_id);
@@ -330,7 +352,7 @@ where
 
     fn drop_connection(&mut self, client_id: &ClientId) -> Result<(), Error> {
         debug!("handling drop connection...");
-        if let Some(mut session) = self.close_session(client_id) {
+        if let Some(mut session) = self.close_session(client_id)? {
             session.send(ClientEvent::DropConnection)?;
 
             // Ungraceful disconnect - send the will
@@ -346,7 +368,7 @@ where
 
     fn process_close_session(&mut self, client_id: &ClientId) -> Result<(), Error> {
         debug!("handling close session...");
-        if let Some(session) = self.close_session(client_id) {
+        if let Some(session) = self.close_session(client_id)? {
             debug!("session removed");
 
             // Ungraceful disconnect - send the will
@@ -406,6 +428,10 @@ where
                 publication.retain = true;
                 publish_to(&self.authorizer, session, &publication)?;
             }
+
+            let change =
+                StateChange::new_subscription_change(client_id, Some(&session)).try_into()?;
+            self.publish_all(change)?;
         } else {
             debug!("no session for {}", client_id);
         }
@@ -421,7 +447,13 @@ where
         match self.get_session_mut(client_id) {
             Ok(session) => {
                 let unsuback = session.unsubscribe(unsubscribe)?;
-                session.send(ClientEvent::UnsubAck(unsuback))
+                session.send(ClientEvent::UnsubAck(unsuback))?;
+
+                let change =
+                    StateChange::new_subscription_change(client_id, Some(&session)).try_into()?;
+                self.publish_all(change)?;
+
+                Ok(())
             }
             Err(NoSessionError) => {
                 debug!("no session for {}", client_id);
@@ -602,14 +634,10 @@ where
             .ok_or_else(|| NoSessionError)
     }
 
-    fn open_session(
-        &mut self,
-        auth_id: AuthId,
-        connreq: ConnReq,
-    ) -> Result<(proto::ConnAck, Vec<ClientEvent>), SessionError> {
+    fn open_session(&mut self, auth_id: AuthId, connreq: ConnReq) -> Result<OpenSession, Error> {
         let client_id = connreq.client_id().clone();
 
-        match self.sessions.remove(&client_id) {
+        let session = match self.sessions.remove(&client_id) {
             Some(Session::Transient(current_connected)) => {
                 self.open_session_connected(auth_id, connreq, current_connected)
             }
@@ -622,11 +650,14 @@ where
                 let (new_session, events, session_present) =
                     if let proto::ClientId::IdWithExistingSession(_) = connreq.connect().client_id {
                         debug!("moving offline session to online for {}", client_id);
-                        let (state, events) = offline
-                            .into_online()
-                            .map_err(|_| SessionError::PacketIdentifiersExhausted)?;
-                        let new_session = Session::new_persistent(auth_id, connreq, state);
-                        (new_session, events, true)
+                        if let Ok((state, events)) = offline.into_online() {
+                            let new_session = Session::new_persistent(auth_id, connreq, state);
+                            (new_session, events, true)
+                        } else {
+                            panic!(
+                                "Session identifiers exhausted, this can only be caused by a bug."
+                            );
+                        }
                     } else {
                         info!("cleaning offline session for {}", client_id);
                         let new_session = Session::new_transient(auth_id, connreq);
@@ -640,11 +671,11 @@ where
                     return_code: proto::ConnectReturnCode::Accepted,
                 };
 
-                Ok((ack, events))
+                OpenSession::OpenedSession(ack, events)
             }
-            Some(Session::Disconnecting(disconnecting)) => Err(SessionError::ProtocolViolation(
-                Session::Disconnecting(disconnecting),
-            )),
+            Some(Session::Disconnecting(disconnecting)) => {
+                OpenSession::ProtocolViolation(Session::Disconnecting(disconnecting))
+            }
             None => {
                 // No session present - create a new one.
                 let new_session = if let proto::ClientId::IdWithExistingSession(_) =
@@ -658,6 +689,9 @@ where
                     Session::new_transient(auth_id, connreq)
                 };
 
+                let subscription_change =
+                    StateChange::new_subscription_change(&client_id, Some(&new_session))
+                        .try_into()?;
                 self.sessions.insert(client_id.clone(), new_session);
 
                 let ack = proto::ConnAck {
@@ -666,9 +700,14 @@ where
                 };
                 let events = vec![];
 
-                Ok((ack, events))
+                self.publish_all(StateChange::new_session_change(&self.sessions).try_into()?)?;
+                self.publish_all(subscription_change)?;
+
+                OpenSession::OpenedSession(ack, events)
             }
-        }
+        };
+
+        Ok(session)
     }
 
     fn open_session_connected(
@@ -676,7 +715,7 @@ where
         auth_id: AuthId,
         connreq: ConnReq,
         current_connected: ConnectedSession,
-    ) -> Result<(proto::ConnAck, Vec<ClientEvent>), SessionError> {
+    ) -> OpenSession {
         if current_connected.handle() == connreq.handle() {
             // [MQTT-3.1.0-2] - The Server MUST process a second CONNECT Packet
             // sent from a Client as a protocol violation and disconnect the Client.
@@ -722,14 +761,20 @@ where
                 return_code: proto::ConnectReturnCode::Accepted,
             };
 
-            Err(SessionError::DuplicateSession(old_session, ack))
+            OpenSession::DuplicateSession(old_session, ack)
         }
     }
 
-    fn close_session(&mut self, client_id: &ClientId) -> Option<Session> {
-        match self.sessions.remove(client_id) {
+    fn close_session(&mut self, client_id: &ClientId) -> Result<Option<Session>, Error> {
+        let new_session = match self.sessions.remove(client_id) {
             Some(Session::Transient(connected)) => {
                 info!("closing transient session for {}", client_id);
+                self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?)?;
+                self.publish_all(StateChange::new_session_change(&self.sessions).try_into()?)?;
+                self.publish_all(
+                    StateChange::new_subscription_change(client_id, None).try_into()?,
+                )?;
+
                 let (auth_id, _state, will, handle) = connected.into_parts();
                 Some(Session::new_disconnecting(
                     auth_id,
@@ -744,6 +789,8 @@ where
                 // to be sent on the connection
 
                 info!("moving persistent session to offline for {}", client_id);
+                self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?)?;
+
                 let (auth_id, state, will, handle) = connected.into_parts();
                 let new_session = Session::new_offline(state);
                 self.sessions.insert(client_id.clone(), new_session);
@@ -761,7 +808,9 @@ where
                 None
             }
             _ => None,
-        }
+        };
+
+        Ok(new_session)
     }
 
     fn publish_all(&mut self, mut publication: proto::Publication) -> Result<(), Error> {
@@ -1005,8 +1054,8 @@ impl BrokerHandle {
 }
 
 #[derive(Debug)]
-pub enum SessionError {
-    PacketIdentifiersExhausted,
+enum OpenSession {
+    OpenedSession(proto::ConnAck, Vec<ClientEvent>),
     ProtocolViolation(Session),
     DuplicateSession(Session, proto::ConnAck),
 }
@@ -1022,36 +1071,21 @@ pub(crate) mod tests {
     use bytes::Bytes;
     use futures_util::future::FutureExt;
     use matches::assert_matches;
-    use proptest::collection::{hash_map, vec};
-    use proptest::prelude::*;
-    use tokio::sync::mpsc::error::TryRecvError;
-    use tokio::sync::mpsc::{self, UnboundedReceiver};
+    use tokio::sync::mpsc::{self, error::TryRecvError, UnboundedReceiver};
     use uuid::Uuid;
 
     use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
 
+    use super::OpenSession;
     use crate::{
         auth::{Activity, AuthenticateError, AuthorizeError, Operation},
-        broker::{BrokerBuilder, BrokerHandle, BrokerState, SessionError},
+        broker::{BrokerBuilder, BrokerHandle},
         error::Error,
-        session::{tests::arb_session_state, Session},
-        tests::{arb_publication, arb_topic},
-        AuthId, ClientEvent, ClientId, ConnReq, ConnectionHandle, Message,
+        session::Session,
+        AuthId, ClientEvent, ClientId, ConnReq, ConnectionHandle, Message, Publish,
     };
 
-    prop_compose! {
-        pub fn arb_broker_state()(
-            retained in hash_map(arb_topic(), arb_publication(), 0..20),
-            sessions in vec(arb_session_state(), 0..10),
-        ) -> BrokerState {
-            BrokerState {
-                retained,
-                sessions,
-            }
-        }
-    }
-
-    fn connection_handle() -> ConnectionHandle {
+    pub fn connection_handle() -> ConnectionHandle {
         let id = Uuid::new_v4();
         let (tx1, _rx1) = mpsc::unbounded_channel();
         ConnectionHandle::new(id, tx1)
@@ -1069,7 +1103,7 @@ pub(crate) mod tests {
         }
     }
 
-    fn persistent_connect(id: String) -> proto::Connect {
+    pub fn persistent_connect(id: String) -> proto::Connect {
         proto::Connect {
             username: None,
             password: None,
@@ -1566,7 +1600,7 @@ pub(crate) mod tests {
 
         // close session and check behavior
         let old_session = broker.close_session(&client_id);
-        assert_matches!(old_session, Some(Session::Disconnecting(_)));
+        assert_matches!(old_session, Ok(Some(Session::Disconnecting(_))));
         assert_eq!(0, broker.sessions.len());
     }
 
@@ -1591,7 +1625,7 @@ pub(crate) mod tests {
 
         // close session and check behavior
         let old_session = broker.close_session(&client_id);
-        assert_matches!(old_session, Some(Session::Disconnecting(_)));
+        assert_matches!(old_session, Ok(Some(Session::Disconnecting(_))));
         assert_eq!(1, broker.sessions.len());
         assert_matches!(broker.sessions[&client_id], Session::Offline(_));
     }
@@ -1621,7 +1655,7 @@ pub(crate) mod tests {
         assert_eq!(1, broker.sessions.len());
 
         let result = broker.open_session(auth_id, req2);
-        assert_matches!(result, Err(SessionError::ProtocolViolation(_)));
+        assert_matches!(result, Ok(OpenSession::ProtocolViolation(_)));
         assert_eq!(0, broker.sessions.len());
     }
 
@@ -1650,7 +1684,7 @@ pub(crate) mod tests {
         assert_eq!(1, broker.sessions.len());
 
         let result = broker.open_session(auth_id, req2);
-        assert_matches!(result, Err(SessionError::ProtocolViolation(_)));
+        assert_matches!(result, Ok(OpenSession::ProtocolViolation(_)));
         assert_eq!(0, broker.sessions.len());
     }
 
@@ -1675,7 +1709,7 @@ pub(crate) mod tests {
 
         let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
         let result = broker.open_session(auth_id, req2);
-        assert_matches!(result, Err(SessionError::DuplicateSession(_, _)));
+        assert_matches!(result, Ok(OpenSession::DuplicateSession(_, _)));
         assert_matches!(broker.sessions[&client_id], Session::Transient(_));
         assert_eq!(1, broker.sessions.len());
     }
@@ -1701,7 +1735,7 @@ pub(crate) mod tests {
 
         let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
         let result = broker.open_session(auth_id, req2);
-        assert_matches!(result, Err(SessionError::DuplicateSession(_, _)));
+        assert_matches!(result, Ok(OpenSession::DuplicateSession(_, _)));
         assert_matches!(broker.sessions[&client_id], Session::Persistent(_));
         assert_eq!(1, broker.sessions.len());
     }
@@ -1727,7 +1761,7 @@ pub(crate) mod tests {
 
         let req2 = ConnReq::new(client_id.clone(), connect2, None, handle2);
         let result = broker.open_session(auth_id, req2);
-        assert_matches!(result, Err(SessionError::DuplicateSession(_, _)));
+        assert_matches!(result, Ok(OpenSession::DuplicateSession(_, _)));
         assert_matches!(broker.sessions[&client_id], Session::Transient(_));
         assert_eq!(1, broker.sessions.len());
     }
@@ -1753,7 +1787,7 @@ pub(crate) mod tests {
         assert_eq!(1, broker.sessions.len());
 
         let result = broker.open_session(auth_id, req2);
-        assert_matches!(result, Err(SessionError::DuplicateSession(_, _)));
+        assert_matches!(result, Ok(OpenSession::DuplicateSession(_, _)));
         assert_matches!(broker.sessions[&client_id], Session::Persistent(_));
         assert_eq!(1, broker.sessions.len());
     }
@@ -1782,7 +1816,7 @@ pub(crate) mod tests {
 
         // close session and check behavior
         let old_session = broker.close_session(&client_id);
-        assert_matches!(old_session, Some(Session::Disconnecting(_)));
+        assert_matches!(old_session, Ok(Some(Session::Disconnecting(_))));
         assert_eq!(1, broker.sessions.len());
         assert_matches!(broker.sessions[&client_id], Session::Offline(_));
 
@@ -1815,7 +1849,7 @@ pub(crate) mod tests {
 
         // close session and check behavior
         let old_session = broker.close_session(&client_id);
-        assert_matches!(old_session, Some(Session::Disconnecting(_)));
+        assert_matches!(old_session, Ok(Some(Session::Disconnecting(_))));
         assert_eq!(1, broker.sessions.len());
         assert_matches!(broker.sessions[&client_id], Session::Offline(_));
 
@@ -1969,6 +2003,227 @@ pub(crate) mod tests {
         assert_matches!(sub_rx.try_recv(), Err(TryRecvError::Empty))
     }
 
+    #[tokio::test]
+    async fn test_notify_state_change_single_connection() {
+        let broker = BrokerBuilder::default()
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authorizer(|_| Ok(true))
+            .build();
+
+        let mut broker_handle = broker.handle();
+        tokio::spawn(broker.run().map(drop));
+
+        let (a_id, mut a_rx) = connect_client("client_a", &mut broker_handle)
+            .await
+            .unwrap();
+
+        send_subscribe(
+            &mut broker_handle,
+            &mut a_rx,
+            a_id.clone(),
+            &["$edgehub/connected"],
+        )
+        .await;
+
+        if let Some(Message::Client(_, ClientEvent::PublishTo(Publish::QoS12(_, message)))) =
+            a_rx.recv().await
+        {
+            assert_eq!(
+                message,
+                proto::Publish {
+                    packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtLeastOnce(
+                        proto::PacketIdentifier::new(1).unwrap(),
+                        false
+                    ),
+                    retain: true,
+                    topic_name: "$edgehub/connected".to_owned(),
+                    payload: "[\"client_a\"]".into(),
+                }
+            );
+        } else {
+            panic!();
+        }
+    }
+
+    #[tokio::test]
+    async fn test_notify_state_change_multiple_connection() {
+        let broker = BrokerBuilder::default()
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authorizer(|_| Ok(true))
+            .build();
+
+        let mut broker_handle = broker.handle();
+        tokio::spawn(broker.run().map(drop));
+
+        let (a_id, mut a_rx) = connect_client("client_a", &mut broker_handle)
+            .await
+            .unwrap();
+
+        connect_client("client_b", &mut broker_handle)
+            .await
+            .unwrap();
+        connect_client("client_c", &mut broker_handle)
+            .await
+            .unwrap();
+
+        send_subscribe(
+            &mut broker_handle,
+            &mut a_rx,
+            a_id.clone(),
+            &["$edgehub/connected"],
+        )
+        .await;
+
+        check_notify_received(&mut a_rx, &["client_a", "client_b", "client_c"]).await;
+    }
+
+    #[tokio::test]
+    async fn test_notify_state_change_add_remove_connection() {
+        let broker = BrokerBuilder::default()
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authorizer(|_| Ok(true))
+            .build();
+
+        let mut broker_handle = broker.handle();
+        tokio::spawn(broker.run().map(drop));
+
+        let (a_id, mut a_rx) = connect_client("client_a", &mut broker_handle)
+            .await
+            .unwrap();
+
+        connect_client("client_b", &mut broker_handle)
+            .await
+            .unwrap();
+        connect_client("client_c", &mut broker_handle)
+            .await
+            .unwrap();
+
+        send_subscribe(
+            &mut broker_handle,
+            &mut a_rx,
+            a_id.clone(),
+            &["$edgehub/connected"],
+        )
+        .await;
+        check_notify_received(&mut a_rx, &["client_a", "client_b", "client_c"]).await;
+
+        connect_client("client_d", &mut broker_handle)
+            .await
+            .unwrap();
+        check_notify_received(&mut a_rx, &["client_a", "client_b", "client_c", "client_d"]).await;
+
+        disconnect_client("client_c", &mut broker_handle).await;
+        check_notify_received(&mut a_rx, &["client_a", "client_b", "client_d"]).await;
+    }
+
+    #[tokio::test]
+    async fn test_notify_state_change_add_remove_subscription() {
+        let broker = BrokerBuilder::default()
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authorizer(|_| Ok(true))
+            .build();
+
+        let mut broker_handle = broker.handle();
+        tokio::spawn(broker.run().map(drop));
+
+        let (a_id, mut a_rx) = connect_client("client_a", &mut broker_handle)
+            .await
+            .unwrap();
+
+        let (b_id, mut b_rx) = connect_client("client_b", &mut broker_handle)
+            .await
+            .unwrap();
+
+        send_subscribe(
+            &mut broker_handle,
+            &mut a_rx,
+            a_id.clone(),
+            &["$edgehub/client_b/subscriptions"],
+        )
+        .await;
+        check_notify_received(&mut a_rx, &[]).await;
+
+        send_subscribe(&mut broker_handle, &mut b_rx, b_id.clone(), &["foo"]).await;
+        check_notify_received(&mut a_rx, &["foo"]).await;
+
+        send_subscribe(&mut broker_handle, &mut b_rx, b_id.clone(), &["bar"]).await;
+        check_notify_received(&mut a_rx, &["foo", "bar"]).await;
+
+        send_unsubscribe(&mut broker_handle, &mut b_rx, b_id.clone(), &["foo"]).await;
+        check_notify_received(&mut a_rx, &["bar"]).await;
+    }
+
+    #[tokio::test]
+    async fn test_notify_state_change_add_remove_multiple_subscriptions() {
+        let broker = BrokerBuilder::default()
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authorizer(|_| Ok(true))
+            .build();
+
+        let mut broker_handle = broker.handle();
+        tokio::spawn(broker.run().map(drop));
+
+        let (a_id, mut a_rx) = connect_client("client_a", &mut broker_handle)
+            .await
+            .unwrap();
+
+        let (b_id, mut b_rx) = connect_client("client_b", &mut broker_handle)
+            .await
+            .unwrap();
+
+        send_subscribe(
+            &mut broker_handle,
+            &mut a_rx,
+            a_id.clone(),
+            &["$edgehub/client_b/subscriptions"],
+        )
+        .await;
+        check_notify_received(&mut a_rx, &[]).await;
+
+        send_subscribe(
+            &mut broker_handle,
+            &mut b_rx,
+            b_id.clone(),
+            &["foo", "bar", "baz"],
+        )
+        .await;
+        check_notify_received(&mut a_rx, &["foo", "bar", "baz"]).await;
+
+        send_unsubscribe(&mut broker_handle, &mut b_rx, b_id.clone(), &["foo", "baz"]).await;
+        check_notify_received(&mut a_rx, &["bar"]).await;
+    }
+
+    #[tokio::test]
+    async fn test_notify_state_change_existing_subscriptions() {
+        let broker = BrokerBuilder::default()
+            .authenticator(|_| Ok(Some(AuthId::Anonymous)))
+            .authorizer(|_| Ok(true))
+            .build();
+
+        let mut broker_handle = broker.handle();
+        tokio::spawn(broker.run().map(drop));
+
+        let (a_id, mut a_rx) = connect_client("client_a", &mut broker_handle)
+            .await
+            .unwrap();
+
+        let (b_id, mut b_rx) = connect_client("client_b", &mut broker_handle)
+            .await
+            .unwrap();
+
+        send_subscribe(&mut broker_handle, &mut b_rx, b_id.clone(), &["foo", "bar"]).await;
+        send_subscribe(&mut broker_handle, &mut b_rx, b_id.clone(), &["baz"]).await;
+        send_subscribe(
+            &mut broker_handle,
+            &mut a_rx,
+            a_id.clone(),
+            &["$edgehub/client_b/subscriptions"],
+        )
+        .await;
+
+        check_notify_received(&mut a_rx, &["foo", "bar", "baz"]).await;
+    }
+
     async fn connect_client(
         client_id: &str,
         broker_handle: &mut BrokerHandle,
@@ -1996,5 +2251,83 @@ pub(crate) mod tests {
         );
 
         Ok((client_id, rx))
+    }
+
+    async fn disconnect_client(client_id: &str, broker_handle: &mut BrokerHandle) {
+        let event = ClientEvent::Disconnect(proto::Disconnect {});
+
+        broker_handle
+            .send(Message::Client(client_id.into(), event))
+            .await
+            .unwrap();
+    }
+
+    async fn send_subscribe(
+        handle: &mut BrokerHandle,
+        rx: &mut UnboundedReceiver<Message>,
+        client_id: ClientId,
+        topics: &[&str],
+    ) {
+        let subscribe = proto::Subscribe {
+            packet_identifier: proto::PacketIdentifier::new(1).unwrap(),
+            subscribe_to: topics
+                .iter()
+                .map(|t| proto::SubscribeTo {
+                    topic_filter: (*t).to_owned(),
+                    qos: proto::QoS::AtLeastOnce,
+                })
+                .collect(),
+        };
+
+        let message = Message::Client(client_id, ClientEvent::Subscribe(subscribe));
+        handle.send(message).await.unwrap();
+
+        assert_matches!(
+            rx.recv().await,
+            Some(Message::Client(_, ClientEvent::SubAck(_)))
+        );
+    }
+
+    async fn send_unsubscribe(
+        handle: &mut BrokerHandle,
+        rx: &mut UnboundedReceiver<Message>,
+        client_id: ClientId,
+        topics: &[&str],
+    ) {
+        let unsubscribe = proto::Unsubscribe {
+            packet_identifier: proto::PacketIdentifier::new(1).unwrap(),
+            unsubscribe_from: topics.iter().map(|t| (*t).to_owned()).collect(),
+        };
+
+        let message = Message::Client(client_id, ClientEvent::Unsubscribe(unsubscribe));
+        handle.send(message).await.unwrap();
+
+        assert_matches!(
+            rx.recv().await,
+            Some(Message::Client(_, ClientEvent::UnsubAck(_)))
+        );
+    }
+
+    async fn check_notify_received(rx: &mut UnboundedReceiver<Message>, expected: &[&str]) {
+        if let Some(Message::Client(
+            _,
+            ClientEvent::PublishTo(Publish::QoS12(_, proto::Publish { payload, .. })),
+        )) = rx.recv().await
+        {
+            is_notify_equal(&payload, expected);
+        } else {
+            panic!("Expected to receive a QOS12 PublishTo");
+        }
+    }
+
+    pub fn is_notify_equal(payload: &Bytes, expected: &[&str]) {
+        let payload: String = String::from_utf8(payload.to_vec()).unwrap();
+        let mut payload: Vec<&str> = serde_json::from_str(&payload).unwrap();
+        payload.sort();
+
+        let mut expected: Vec<&str> = expected.into();
+        expected.sort();
+
+        assert_eq!(payload, expected);
     }
 }

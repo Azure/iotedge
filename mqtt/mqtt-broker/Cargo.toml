@@ -19,9 +19,11 @@ humantime = "2.0"
 humantime-serde = "1.0"
 lazy_static = "1.4"
 native-tls = "0.2"
+proptest = { version = "0.9", optional = true }
 rand = { version = "0.7", optional = true }
 regex = "1"
 serde = { version = "1.0", features = ["derive", "rc"] }
+serde_json = "1.0"
 thiserror = "1.0"
 tokio = { version = "0.2", features = ["blocking", "stream", "sync", "tcp"] }
 tokio-io-timeout = "0.4"
@@ -32,6 +34,7 @@ tracing-futures = "0.2"
 uuid = { version = "0.8", features = ["v4"] }
 
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
+mqtt-edgehub = { path = "../mqtt-edgehub" }
 
 [dev-dependencies]
 atty = "0.2"
@@ -49,6 +52,11 @@ tracing-subscriber = "0.1"
 [[test]]
 name = "persist_failpoints"
 required-features = ["fail/failpoints"]
+
+[[test]]
+name = "broker_model"
+path = "tests/broker_model.rs"
+required-features = ["proptest"]
 
 [[bench]]
 name = "persist_broker_state"

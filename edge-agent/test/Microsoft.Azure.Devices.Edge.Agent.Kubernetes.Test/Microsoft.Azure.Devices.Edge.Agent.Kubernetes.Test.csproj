@@ -1,12 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup Condition="'$(DotNet_Runtime)' != 'netcoreapp3.0'">
-    <TargetFramework>netcoreapp2.1</TargetFramework>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(OS)|$(DotNet_Runtime)' == 'Unix|netcoreapp3.0'">
-    <TargetFramework>netcoreapp3.0</TargetFramework>
-  </PropertyGroup>
+  <Import Project="..\..\..\netcoreappVersion.props" />
 
   <PropertyGroup>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
@@ -22,11 +16,8 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(DotNet_Runtime)' != 'netcoreapp3.0'">
-    <PackageReference Include="Microsoft.AspNetCore.All" Version="2.0.9" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(DotNet_Runtime)' == 'netcoreapp3.0'">
-    <PackageReference Include="Microsoft.AspNetCore.App" Version="2.2.2" />
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <ItemGroup>
