@@ -99,6 +99,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string WorkloadApiVersion = "2019-01-30";
 
+        public const string WorkloadStaleSocketExceptionKey = "WorkloadStaleSocketExceptionCode";
+
         public const uint HighestPriority = 0;
 
         public const uint DefaultPriority = uint.MaxValue;

@@ -20,6 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
         protected WorkloadClientVersioned(
             Uri serverUri,
             ApiVersion apiVersion,
+            int workloadStaleSocketErrCode,
             string moduleId,
             string moduleGenerationId,
             ITransientErrorDetectionStrategy transientErrorDetectionStrategy,
@@ -27,6 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
         {
             this.WorkloadUri = Preconditions.CheckNotNull(serverUri, nameof(serverUri));
             this.Version = Preconditions.CheckNotNull(apiVersion, nameof(apiVersion));
+            this.WorkloadStaleSocketErrCode = workloadStaleSocketErrCode;
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.ModuleGenerationId = Preconditions.CheckNonWhiteSpace(moduleGenerationId, nameof(moduleGenerationId));
             this.transientErrorDetectionStrategy = transientErrorDetectionStrategy;
@@ -36,6 +38,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
         protected Uri WorkloadUri { get; }
 
         protected ApiVersion Version { get; }
+
+        protected int WorkloadStaleSocketErrCode { get; }
 
         protected string ModuleId { get; }
 
@@ -64,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
                 Events.SuccessfullyExecutedOperation(operation, this.WorkloadUri.ToString());
                 return result;
             }
-            catch (SocketException ex) when (ex.Message.Contains("Connection refused"))
+            catch (SocketException ex) when (ex.ErrorCode == this.WorkloadStaleSocketErrCode)
             {
                 Events.StaleSocketShutdown(ex, operation, this.WorkloadUri.ToString());
                 Environment.Exit(ex.ErrorCode);

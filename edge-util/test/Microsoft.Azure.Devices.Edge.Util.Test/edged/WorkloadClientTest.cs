@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Edged
         const string ModuleId = "testModule";
         const string ModulegenerationId = "1";
         const string Iv = "7826a0b7e6de4a84bd39c8e69c46d2a6";
+        const int workloadStaleSocketErrCode = 111;
         readonly Uri serverUri;
 
         public WorkloadClientTest(WorkloadFixture workloadFixture)
@@ -31,25 +32,25 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Edged
             string workloadApiVersion = "2018-06-28";
             string workloadClientApiVersion = "2018-06-28";
 
-            var client = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId).GetVersionedWorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId);
+            var client = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, ModulegenerationId).GetVersionedWorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId);
             Assert.True(client is Util.Edged.Version_2018_06_28.WorkloadClient);
 
             workloadApiVersion = "2018-06-28";
             workloadClientApiVersion = "2019-01-30";
 
-            client = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId).GetVersionedWorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId);
+            client = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, ModulegenerationId).GetVersionedWorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId);
             Assert.True(client is Util.Edged.Version_2018_06_28.WorkloadClient);
 
             workloadApiVersion = "2019-01-30";
             workloadClientApiVersion = "2018-06-28";
 
-            client = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId).GetVersionedWorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId);
+            client = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, ModulegenerationId).GetVersionedWorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId);
             Assert.True(client is Util.Edged.Version_2018_06_28.WorkloadClient);
 
             workloadApiVersion = "2019-01-30";
             workloadClientApiVersion = "2019-01-30";
 
-            client = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId).GetVersionedWorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId);
+            client = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, ModulegenerationId).GetVersionedWorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId);
             Assert.True(client is Util.Edged.Version_2019_01_30.WorkloadClient);
         }
 
@@ -60,13 +61,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Edged
         [InlineData("2019-01-30", "2019-01-30")]
         public void InstantiateInvalidArgumentsShouldThrow(string workloadApiVersion, string workloadClientApiVersion)
         {
-            Assert.Throws<ArgumentNullException>(() => new WorkloadClient(null, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId));
-            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, null, workloadClientApiVersion, ModuleId, ModulegenerationId));
-            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, string.Empty, workloadClientApiVersion, ModuleId, ModulegenerationId));
-            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, workloadApiVersion, null, ModuleId, ModulegenerationId));
-            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, workloadApiVersion, string.Empty, ModuleId, ModulegenerationId));
-            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, string.Empty, ModulegenerationId));
-            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, string.Empty));
+            Assert.Throws<ArgumentNullException>(() => new WorkloadClient(null, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, ModulegenerationId));
+            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, null, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, ModulegenerationId));
+            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, string.Empty, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, ModulegenerationId));
+            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, workloadApiVersion, null, workloadStaleSocketErrCode, ModuleId, ModulegenerationId));
+            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, workloadApiVersion, string.Empty, workloadStaleSocketErrCode, ModuleId, ModulegenerationId));
+            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, string.Empty, ModulegenerationId));
+            Assert.Throws<ArgumentException>(() => new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, string.Empty));
         }
 
         [Theory]
@@ -76,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Edged
         [InlineData("2019-01-30", "2019-01-30")]
         public async Task GetServerCertificatesFromEdgeletShouldReturnCert(string workloadApiVersion, string workloadClientApiVersion)
         {
-            var workloadClient = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId);
+            var workloadClient = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, ModulegenerationId);
             var response = await workloadClient.CreateServerCertificateAsync("hostname", DateTime.UtcNow.AddDays(1));
 
             Assert.Equal(new X509Certificate2(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem)), new X509Certificate2(Encoding.UTF8.GetBytes(response.Certificate)));
@@ -90,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Edged
         [InlineData("2019-01-30", "2019-01-30")]
         public async Task EncryptShouldReturnEncryptedTest(string workloadApiVersion, string workloadClientApiVersion)
         {
-            var workloadClient = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId);
+            var workloadClient = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, ModulegenerationId);
             string response = await workloadClient.EncryptAsync(Iv, "text");
 
             string encrypted = Iv + "text";
@@ -104,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Edged
         [InlineData("2019-01-30", "2019-01-30")]
         public async Task DecryptShouldReturnEncryptedTest(string workloadApiVersion, string workloadClientApiVersion)
         {
-            var workloadClient = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId);
+            var workloadClient = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, ModulegenerationId);
             string response = await workloadClient.DecryptAsync(Iv, Convert.ToBase64String(Encoding.UTF8.GetBytes("text")));
 
             string expected = Iv + "text";
@@ -120,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Edged
         {
             string payload = "some text";
             var data = Encoding.UTF8.GetBytes(payload);
-            var workload = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId);
+            var workload = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, ModulegenerationId);
 
             string response = await workload.SignAsync("key", "HMACSHA256", payload);
 
@@ -140,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Edged
         [InlineData("2019-01-30", "2019-01-30")]
         public async Task GetTrustBundleAsyncShouldReturnCert(string workloadApiVersion, string workloadClientApiVersion)
         {
-            var workloadClient = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId);
+            var workloadClient = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, ModulegenerationId);
             string response = await workloadClient.GetTrustBundleAsync();
             Assert.Equal(new X509Certificate2(Encoding.UTF8.GetBytes(TestCertificateHelper.CertificatePem)), new X509Certificate2(Encoding.UTF8.GetBytes(response)));
         }
@@ -149,7 +150,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Edged
         public async Task ExecuteTimeoutTest_Version_2018_06_28()
         {
             // Arrange
-            var client = new Util.Edged.Version_2018_06_28.WorkloadClient(this.serverUri, ApiVersion.Version20180628, "m1", Guid.NewGuid().ToString(), Option.Some(TimeSpan.FromSeconds(10)));
+            var client = new Util.Edged.Version_2018_06_28.WorkloadClient(this.serverUri, ApiVersion.Version20180628, workloadStaleSocketErrCode, "m1", Guid.NewGuid().ToString(), Option.Some(TimeSpan.FromSeconds(10)));
 
             async Task<int> LongOperation()
             {
@@ -169,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Edged
         public async Task ExecuteTimeoutTest_Version_2019_01_30()
         {
             // Arrange
-            var client = new Util.Edged.Version_2019_01_30.WorkloadClient(this.serverUri, ApiVersion.Version20190130, "m1", Guid.NewGuid().ToString(), Option.Some(TimeSpan.FromSeconds(10)));
+            var client = new Util.Edged.Version_2019_01_30.WorkloadClient(this.serverUri, ApiVersion.Version20190130, workloadStaleSocketErrCode, "m1", Guid.NewGuid().ToString(), Option.Some(TimeSpan.FromSeconds(10)));
 
             async Task<int> LongOperation()
             {
