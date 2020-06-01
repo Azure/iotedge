@@ -16,10 +16,12 @@ namespace TestResultCoordinator.Services
     {
         readonly ILogger logger = ModuleUtil.CreateLogger(nameof(TestResultEventReceivingService));
         readonly ITestOperationResultStorage storage;
+        readonly TestResultEventReceivingServiceSettings serviceSpecificSettings;
 
         public TestResultEventReceivingService(ITestOperationResultStorage storage)
         {
             this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
+            this.serviceSpecificSettings = Settings.Current.TestResultEventReceivingServiceSettings.Expect(() => new ArgumentException("TestResultEventReceivingServiceSettings must be supplied."));
         }
 
         public override async Task StopAsync(CancellationToken stoppingToken)
@@ -34,12 +36,12 @@ namespace TestResultCoordinator.Services
             this.logger.LogInformation("Test Result Event Receiving Service running.");
 
             DateTime eventEnqueuedFrom = DateTime.UtcNow;
-            var builder = new EventHubsConnectionStringBuilder(Settings.Current.EventHubConnectionString);
+            var builder = new EventHubsConnectionStringBuilder(this.serviceSpecificSettings.EventHubConnectionString);
             this.logger.LogDebug($"Receiving events from device '{Settings.Current.DeviceId}' on Event Hub '{builder.EntityPath}' enqueued on or after {eventEnqueuedFrom}");
 
             EventHubClient eventHubClient = EventHubClient.CreateFromConnectionString(builder.ToString());
             PartitionReceiver eventHubReceiver = eventHubClient.CreateReceiver(
-                Settings.Current.ConsumerGroupName,
+                this.serviceSpecificSettings.ConsumerGroupName,
                 EventHubPartitionKeyResolver.ResolveToPartition(Settings.Current.DeviceId, (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
                 EventPosition.FromEnqueuedTime(eventEnqueuedFrom));
             eventHubReceiver.SetReceiveHandler(new PartitionReceiveHandler(Settings.Current.TrackingId, Settings.Current.DeviceId, this.storage));
