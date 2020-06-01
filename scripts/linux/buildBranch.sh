@@ -23,6 +23,7 @@ SRC_CERT_TOOLS_DIR=$ROOT_FOLDER/tools/CACertificates
 FUNCTIONS_SAMPLE_DIR=$ROOT_FOLDER/edge-modules/functions/samples
 VERSIONINFO_FILE_PATH=$BUILD_REPOSITORY_LOCALPATH/versionInfo.json
 CONNECTIVITY_TEST_SCRIPT_DIR=$ROOT_FOLDER/test/connectivity/scripts
+MQTT_DIR=$ROOT_FOLDER/mqtt
 DOTNET_RUNTIME=netcoreapp3.1
 
 usage()
@@ -253,6 +254,7 @@ publish_files $SRC_E2E_TEMPLATES_DIR $PUBLISH_FOLDER
 publish_files $SRC_E2E_TEST_FILES_DIR $PUBLISH_FOLDER
 publish_files $SRC_CERT_TOOLS_DIR $PUBLISH_FOLDER
 publish_files $CONNECTIVITY_TEST_SCRIPT_DIR $PUBLISH_FOLDER
+publish_files $MQTT_DIR $PUBLISH_FOLDER
 
 publish_quickstart linux-arm
 publish_quickstart linux-x64
