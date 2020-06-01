@@ -1,9 +1,11 @@
 use std::{
+    convert::Infallible,
     sync::atomic::{AtomicU32, Ordering},
     task::{Context, Poll},
     time::{Duration, Instant},
 };
 
+use async_trait::async_trait;
 use bytes::Bytes;
 use futures::{future::select, pin_mut, Stream};
 use futures_util::{sink::SinkExt, FutureExt, StreamExt};
@@ -24,7 +26,8 @@ use mqtt3::{
     Client, Event, PublishError, PublishHandle, ReceivedPublication, ShutdownHandle,
     UpdateSubscriptionHandle, PROTOCOL_LEVEL, PROTOCOL_NAME,
 };
-use mqtt_broker::{Authenticator, Authorizer, Broker, BrokerState, Error, Server};
+use mqtt_broker::{Broker, BrokerState, Error, Server};
+use mqtt_broker_core::auth::{Activity, AuthId, Authenticator, Authorizer, Credentials};
 
 /// A wrapper on the [`mqtt3::Client`] to help simplify client event loop management.
 #[derive(Debug)]
@@ -43,6 +46,7 @@ pub struct TestClient {
     event_loop_handle: JoinHandle<()>,
 }
 
+#[allow(dead_code)]
 impl TestClient {
     pub async fn publish(&mut self, publication: Publication) -> Result<(), PublishError> {
         self.publish_handle.publish(publication).await
@@ -295,6 +299,7 @@ pub struct PacketStream {
     codec: Framed<TimeoutStream<TcpStream>, PacketCodec>,
 }
 
+#[allow(dead_code)]
 impl PacketStream {
     /// Creates a client and opens TCP connection to the server.
     /// No MQTT packets are sent at this moment.
@@ -385,6 +390,7 @@ pub struct ServerHandle {
     task: Option<JoinHandle<Result<BrokerState, Error>>>,
 }
 
+#[allow(dead_code)]
 impl ServerHandle {
     pub fn address(&self) -> String {
         self.address.clone()
@@ -416,7 +422,7 @@ impl Drop for ServerHandle {
 
 /// Starts a test server with a provided broker and returns
 /// shutdown handle, broker task and server binding.
-pub fn start_server<N, Z>(broker: Broker<N, Z>) -> ServerHandle
+pub fn start_server<N, Z>(broker: Broker<Z>, authenticator: N) -> ServerHandle
 where
     N: Authenticator + Send + Sync + 'static,
     Z: Authorizer + Send + Sync + 'static,
@@ -430,11 +436,49 @@ where
 
     let (shutdown, rx) = oneshot::channel::<()>();
     let transports = vec![mqtt_broker::TransportBuilder::Tcp(address.clone())];
-    let task = tokio::spawn(Server::from_broker(broker).serve(transports, rx.map(drop)));
+    let task =
+        tokio::spawn(Server::from_broker(broker).serve(transports, rx.map(drop), authenticator));
 
     ServerHandle {
         address,
         shutdown: Some(shutdown),
         task: Some(task),
+    }
+}
+
+pub struct DummyAuthenticator(AuthId);
+
+impl DummyAuthenticator {
+    pub fn anonymous() -> Self {
+        Self(AuthId::Anonymous)
+    }
+}
+
+#[async_trait]
+impl Authenticator for DummyAuthenticator {
+    type Error = Infallible;
+
+    async fn authenticate(
+        &self,
+        _: Option<String>,
+        _: Credentials,
+    ) -> Result<Option<AuthId>, Self::Error> {
+        Ok(Some(self.0.clone()))
+    }
+}
+
+pub struct DummyAuthorizer(bool);
+
+impl DummyAuthorizer {
+    pub fn allow() -> Self {
+        Self(true)
+    }
+}
+
+impl Authorizer for DummyAuthorizer {
+    type Error = Infallible;
+
+    fn authorize(&self, _: Activity) -> Result<bool, Self::Error> {
+        Ok(self.0)
     }
 }

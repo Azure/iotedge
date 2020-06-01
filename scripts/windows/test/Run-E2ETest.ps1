@@ -129,10 +129,13 @@
         Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics. 
 
     .PARAMETER InitializeWithAgentArtifact
-         Boolean specifying if the iotedge installation should initialize edge agent with the official 1.0 image or the desired artifact. If false, the deployment after installation will start the desired agent artifact.
+        Boolean specifying if the iotedge installation should initialize edge agent with the official 1.0 image or the desired artifact. If false, the deployment after installation will start the desired agent artifact.
 
     .PARAMETER TestStartDelay
-         Tests start after delay for applicable modules
+        Tests start after delay for applicable modules
+
+    .PARAMETER RuntimeLogLevel
+        Optional Value of RuntimeLogLevel envivronment variable for EdgeAgent in Long Haul and Stress tests  [Default: debug] (EdgeHub RuntimeLogLevel is set implicitly set to be the same with edgeAgent)
 
     .EXAMPLE
         .\Run-E2ETest.ps1
@@ -321,6 +324,8 @@ Param (
     [string] $TestInfo = $null,
 
     [string] $TestStartDelay = $null,
+
+    [string] $RuntimeLogLevel = "debug",
 
     [switch] $BypassEdgeInstallation
 )
@@ -1031,7 +1036,7 @@ Function RunLongHaulTest
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             --leave-running=All ``
             -l `"$DeploymentWorkingFilePath`" ``
-            --runtime-log-level `"Info`" ``
+            --runtime-log-level `"$RuntimeLogLevel`" ``
             --no-verify ``
             --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
@@ -1063,7 +1068,7 @@ Function RunStressTest
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             --leave-running=All ``
             -l `"$DeploymentWorkingFilePath`" ``
-            --runtime-log-level `"Info`" ``
+            --runtime-log-level `"$RuntimeLogLevel`" ``
             --no-verify ``
             --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"

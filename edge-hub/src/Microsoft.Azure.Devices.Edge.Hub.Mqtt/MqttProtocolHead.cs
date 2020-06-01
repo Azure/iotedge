@@ -40,6 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
         readonly ISessionStatePersistenceProvider sessionProvider;
         readonly IMqttConnectionProvider mqttConnectionProvider;
         readonly IAuthenticator authenticator;
+        readonly IUsernameParser usernameParser;
         readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly IWebSocketListenerRegistry webSocketListenerRegistry;
         readonly IByteBufferAllocator byteBufferAllocator;
@@ -55,6 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             X509Certificate tlsCertificate,
             IMqttConnectionProvider mqttConnectionProvider,
             IAuthenticator authenticator,
+            IUsernameParser usernameParser,
             IClientCredentialsFactory clientCredentialsFactory,
             ISessionStatePersistenceProvider sessionProvider,
             IWebSocketListenerRegistry webSocketListenerRegistry,
@@ -67,6 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             this.tlsCertificate = Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate));
             this.mqttConnectionProvider = Preconditions.CheckNotNull(mqttConnectionProvider, nameof(mqttConnectionProvider));
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
+            this.usernameParser = Preconditions.CheckNotNull(usernameParser, nameof(usernameParser));
             this.clientCredentialsFactory = Preconditions.CheckNotNull(clientCredentialsFactory, nameof(clientCredentialsFactory));
             this.sessionProvider = Preconditions.CheckNotNull(sessionProvider, nameof(sessionProvider));
             this.webSocketListenerRegistry = Preconditions.CheckNotNull(webSocketListenerRegistry, nameof(webSocketListenerRegistry));
@@ -153,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                     new ActionChannelInitializer<ISocketChannel>(
                         channel =>
                         {
-                            var identityProvider = new DeviceIdentityProvider(this.authenticator, this.clientCredentialsFactory, this.productInfoStore, this.clientCertAuthAllowed);
+                            var identityProvider = new DeviceIdentityProvider(this.authenticator, this.usernameParser, this.clientCredentialsFactory, this.productInfoStore, this.clientCertAuthAllowed);
                             // configure the channel pipeline of the new Channel by adding handlers
                             TlsSettings serverSettings = new ServerTlsSettings(
                                 certificate: this.tlsCertificate,
@@ -185,6 +188,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 settings,
                 bridgeFactory,
                 this.authenticator,
+                this.usernameParser,
                 this.clientCredentialsFactory,
                 () => this.sessionProvider,
                 new MultithreadEventLoopGroup(Environment.ProcessorCount),
@@ -205,9 +209,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 IList<X509Certificate2> certChain = chain?.ChainElements?
                         .Cast<X509ChainElement>()
-                        .Select(element => element.Certificate)
+                        .Select(element => new X509Certificate2(element.Certificate))
                         .ToList()
                     ?? new List<X509Certificate2>();
+
                 identityProvider.RegisterConnectionCertificate(new X509Certificate2(certificate), certChain);
             }
 

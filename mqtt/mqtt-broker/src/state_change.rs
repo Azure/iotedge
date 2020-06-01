@@ -100,7 +100,7 @@ mod tests {
     use crate::session::{Session, SessionState};
     use crate::state_change::{StateChange, STATE_CHANGE_QOS};
     use crate::subscription::{Subscription, TopicFilter};
-    use crate::{AuthId, ClientId, ConnReq};
+    use crate::{Auth, AuthId, ClientId, ConnReq};
 
     #[test]
     fn test_subscriptions() {
@@ -370,7 +370,7 @@ mod tests {
                 ConnReq::new(
                     id.into(),
                     persistent_connect(id.to_owned()),
-                    None,
+                    Auth::Identity(AuthId::Anonymous),
                     connection_handle(),
                 ),
                 state,

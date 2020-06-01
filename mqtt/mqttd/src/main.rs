@@ -2,11 +2,12 @@ use std::{convert::TryInto, env, io};
 
 use clap::{crate_description, crate_name, crate_version, App, Arg};
 use futures_util::pin_mut;
-use mqtt_broker::*;
 use tokio::time::{Duration, Instant};
 use tracing::{info, warn, Level};
 use tracing_subscriber::{fmt, EnvFilter};
 
+use mqtt_broker::*;
+use mqtt_broker_core::auth::Authorizer;
 use mqttd::{shutdown, snapshot, Terminate};
 
 #[tokio::main]
@@ -30,10 +31,6 @@ async fn run() -> Result<(), Error> {
         .map_or(BrokerConfig::new(), BrokerConfig::from_file)
         .map_err(InitializeBrokerError::LoadConfiguration)?;
 
-    // Setup the shutdown handle
-    let shutdown = shutdown::shutdown();
-    pin_mut!(shutdown);
-
     // Setup the snapshotter
     let mut persistor = FilePersistor::new(
         env::current_dir().expect("can't get cwd").join("state"),
@@ -42,8 +39,7 @@ async fn run() -> Result<(), Error> {
     info!("Loading state...");
     let state = persistor.load().await?.unwrap_or_else(BrokerState::default);
     let broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
+        .authorizer(authorizer())
         .state(state)
         .build();
     info!("state loaded.");
@@ -65,17 +61,8 @@ async fn run() -> Result<(), Error> {
     let snapshot = snapshot::snapshot(broker.handle(), snapshot_handle.clone());
     tokio::spawn(snapshot);
 
-    // Create configured transports
-    let transports = config
-        .transports()
-        .iter()
-        .map(|transport| transport.clone().try_into())
-        .collect::<Result<Vec<_>, _>>()?;
-
     info!("Starting server...");
-    let state = Server::from_broker(broker)
-        .serve(transports, shutdown)
-        .await?;
+    let state = run_broker_server(broker, config).await?;
 
     // Stop snapshotting
     shutdown_handle.shutdown().await?;
@@ -88,6 +75,28 @@ async fn run() -> Result<(), Error> {
     info!("exiting... goodbye");
 
     Ok(())
+}
+
+async fn run_broker_server<Z>(broker: Broker<Z>, config: BrokerConfig) -> Result<BrokerState, Error>
+where
+    Z: Authorizer + Send + Sync + 'static,
+{
+    // Create configured transports
+    let transports = config
+        .transports()
+        .iter()
+        .map(|transport| transport.clone().try_into())
+        .collect::<Result<Vec<_>, _>>()?;
+
+    // Setup the shutdown handle
+    let shutdown = shutdown::shutdown();
+    pin_mut!(shutdown);
+
+    let state = Server::from_broker(broker)
+        .serve(transports, shutdown, authenticator())
+        .await?;
+
+    Ok(state)
 }
 
 async fn tick_snapshot(

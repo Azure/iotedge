@@ -602,7 +602,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
                 new object[] { "as_number(\"3\") = 3", Bool.True },
                 new object[] { "AS_NUMBER(\"3\") = 3", Bool.True },
                 new object[] { "AS_NUMBER('10e10') = 10e10", Bool.True },
-                new object[] { "AS_NUMBER('10e1000') = 1/0", Bool.Undefined },
+                new object[] { "AS_NUMBER('10e1000') = 10e1000", Bool.True },
+                new object[] { "AS_NUMBER('10e1000') = 1/0", Bool.True },
                 new object[] { "AS_NUMBER('10000000000000000000000000') = 1e25", Bool.True },
                 new object[] { "as_number(key2) = 3", Bool.True },
                 new object[] { "as_number(key1) = 3", Bool.Undefined },
@@ -634,7 +635,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
                 new object[] { "is_defined(as_number(\"apple\"))", Bool.False },
                 new object[] { "is_defined(null_value)", Bool.True },
                 new object[] { "is_defined(null)", Bool.True },
-                new object[] { "is_defined(10e1000)", Bool.False },
+                new object[] { "is_defined(10e1000)", Bool.True },
 
                 // is_null
                 new object[] { "is_null(12.34)", Bool.False },

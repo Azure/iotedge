@@ -1,4 +1,5 @@
 use std::future::Future;
+use std::sync::Arc;
 
 use futures_util::future::{self, Either, FutureExt};
 use futures_util::pin_mut;
@@ -7,41 +8,44 @@ use tokio::{net::ToSocketAddrs, sync::oneshot};
 use tracing::{debug, error, info, span, warn, Level};
 use tracing_futures::Instrument;
 
-use crate::auth::{Authenticator, Authorizer};
+use mqtt_broker_core::auth::{Authenticator, Authorizer};
+
 use crate::broker::{Broker, BrokerHandle, BrokerState};
 use crate::transport::TransportBuilder;
 use crate::{connection, Error, InitializeBrokerError, Message, SystemEvent};
 
-pub struct Server<N, Z>
+pub struct Server<Z>
 where
-    N: Authenticator,
     Z: Authorizer,
 {
-    broker: Broker<N, Z>,
+    broker: Broker<Z>,
 }
 
-impl<N, Z> Server<N, Z>
+impl<Z> Server<Z>
 where
-    N: Authenticator + Send + Sync + 'static,
     Z: Authorizer + Send + Sync + 'static,
 {
-    pub fn from_broker(broker: Broker<N, Z>) -> Self {
+    pub fn from_broker(broker: Broker<Z>) -> Self {
         Self { broker }
     }
 
-    pub async fn serve<A, F, I>(
+    pub async fn serve<A, F, I, N>(
         self,
         transports: I,
         shutdown_signal: F,
+        authenticator: N,
     ) -> Result<BrokerState, Error>
     where
         A: ToSocketAddrs,
         F: Future<Output = ()> + Unpin,
         I: IntoIterator<Item = TransportBuilder<A>>,
+        N: Authenticator + Send + Sync + 'static,
     {
         let Server { broker } = self;
         let mut handle = broker.handle();
         let broker_task = tokio::spawn(broker.run());
+
+        let authenticator = Arc::new(authenticator);
 
         let mut incoming_tasks = Vec::new();
         let mut shutdown_handles = Vec::new();
@@ -49,7 +53,12 @@ where
             let (itx, irx) = oneshot::channel::<()>();
             shutdown_handles.push(itx);
 
-            let incoming_task = incoming_task(transport, handle.clone(), irx.map(drop));
+            let incoming_task = incoming_task(
+                transport,
+                handle.clone(),
+                irx.map(drop),
+                authenticator.clone(),
+            );
 
             let incoming_task = Box::pin(incoming_task);
             incoming_tasks.push(incoming_task);
@@ -163,14 +172,16 @@ where
     }
 }
 
-async fn incoming_task<A, F>(
+async fn incoming_task<A, F, N>(
     transport: TransportBuilder<A>,
     handle: BrokerHandle,
     mut shutdown_signal: F,
+    authenticator: Arc<N>,
 ) -> Result<(), Error>
 where
     A: ToSocketAddrs,
     F: Future<Output = ()> + Unpin,
+    N: Authenticator + Send + Sync + 'static,
 {
     let io = transport.build().await?;
     let addr = io.local_addr()?;
@@ -190,8 +201,9 @@ where
 
                 let broker_handle = handle.clone();
                 let span = span.clone();
+                let authenticator = authenticator.clone();
                 tokio::spawn(async move {
-                    if let Err(e) = connection::process(stream, peer, broker_handle)
+                    if let Err(e) = connection::process(stream, peer, broker_handle, authenticator)
                         .instrument(span)
                         .await
                     {

@@ -1,14 +1,16 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::{cmp, fmt, mem};
 
-use mqtt3::proto;
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeTuple;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use tracing::{debug, warn};
 
+use mqtt3::proto;
+use mqtt_broker_core::auth::AuthId;
+
 use crate::subscription::Subscription;
-use crate::{AuthId, ClientEvent, ClientId, ConnReq, ConnectionHandle, Error, Message, Publish};
+use crate::{ClientEvent, ClientId, ConnReq, ConnectionHandle, Error, Message, Publish};
 
 const MAX_INFLIGHT_MESSAGES: usize = 16;
 
@@ -916,11 +918,11 @@ pub(crate) mod tests {
     use uuid::Uuid;
 
     use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
+    use mqtt_broker_core::auth::AuthId;
 
     use crate::{
-        auth::AuthId,
         session::{PacketIdentifiers, Session, SessionState},
-        ClientId, ConnReq, ConnectionHandle, Error,
+        Auth, ClientId, ConnReq, ConnectionHandle, Error,
     };
 
     fn connection_handle() -> ConnectionHandle {
@@ -947,7 +949,7 @@ pub(crate) mod tests {
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
-        let req1 = ConnReq::new(client_id, connect1, None, handle1);
+        let req1 = ConnReq::new(client_id, connect1, Auth::Unknown, handle1);
         let auth_id = "auth-id1".into();
         let mut session = Session::new_transient(auth_id, req1);
         let subscribe_to = proto::SubscribeTo {
@@ -997,7 +999,7 @@ pub(crate) mod tests {
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
-        let req1 = ConnReq::new(client_id, connect1, None, handle1);
+        let req1 = ConnReq::new(client_id, connect1, Auth::Unknown, handle1);
         let auth_id = "auth-id1".into();
         let mut session = Session::new_transient(auth_id, req1);
         let subscribe_to = proto::SubscribeTo {
@@ -1017,7 +1019,7 @@ pub(crate) mod tests {
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
-        let req1 = ConnReq::new(client_id, connect1, None, handle1);
+        let req1 = ConnReq::new(client_id, connect1, Auth::Unknown, handle1);
         let auth_id = AuthId::Anonymous;
         let mut session = Session::new_transient(auth_id, req1);
 

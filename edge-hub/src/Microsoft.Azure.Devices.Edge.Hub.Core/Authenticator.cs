@@ -21,15 +21,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(ICredentialsCache));
         }
 
-        /// <summary>
-        /// Authenticates the client credentials
-        /// </summary>
         public Task<bool> AuthenticateAsync(IClientCredentials clientCredentials)
             => this.AuthenticateAsync(clientCredentials, false);
 
-        /// <summary>
-        /// Reauthenticates the client credentials
-        /// </summary>
         public Task<bool> ReauthenticateAsync(IClientCredentials clientCredentials)
             => this.AuthenticateAsync(clientCredentials, true);
 
@@ -78,14 +72,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void AuthResult(IClientCredentials clientCredentials, bool reAuthenticating, bool result)
             {
-                string operation = reAuthenticating ? "re-authenticated" : "authenticated";
+                string operation = reAuthenticating ? "re-authentication" : "authentication";
                 if (result)
                 {
-                    Log.LogDebug((int)EventIds.AuthResult, Invariant($"Client {clientCredentials.Identity.Id} {operation} successfully"));
+                    Log.LogDebug((int)EventIds.AuthResult, Invariant($"Client {clientCredentials.Identity.Id} {operation} successful"));
                 }
                 else
                 {
-                    Log.LogDebug((int)EventIds.AuthResult, Invariant($"Unable to {operation} client {clientCredentials.Identity.Id}"));
+                    Log.LogDebug((int)EventIds.AuthResult, Invariant($"{clientCredentials.Identity.Id} {operation} failure"));
                 }
             }
         }

@@ -1,8 +1,9 @@
 #![allow(dead_code)]
+use std::convert::Infallible;
 
 use mqtt3::proto;
 
-use crate::{AuthId, ClientId};
+use crate::{auth::AuthId, ClientId};
 
 /// A trait to check a MQTT client permissions to perform some actions.
 pub trait Authorizer {
@@ -13,28 +14,33 @@ pub trait Authorizer {
     fn authorize(&self, activity: Activity) -> Result<bool, Self::Error>;
 }
 
-impl<F> Authorizer for F
+/// Creates an authorizer from a function.
+/// It wraps any provided function with an interface aligned with authorizer.
+pub fn authorize_fn_ok<F>(f: F) -> impl Authorizer
 where
-    F: Fn(Activity) -> Result<bool, AuthorizeError> + Sync,
+    F: Fn(Activity) -> bool + Sync + 'static,
 {
-    type Error = AuthorizeError;
+    move |activity| Ok::<_, Infallible>(f(activity))
+}
+
+impl<F, E> Authorizer for F
+where
+    F: Fn(Activity) -> Result<bool, E> + Sync,
+    E: std::error::Error + Send,
+{
+    type Error = E;
 
     fn authorize(&self, activity: Activity) -> Result<bool, Self::Error> {
         self(activity)
     }
 }
 
-/// Authorization error type placeholder.
-#[derive(Debug, thiserror::Error)]
-#[error("An error occurred checking client permissions.")]
-pub struct AuthorizeError;
-
 /// Default implementation that always denies any operation a client intends to perform.
 /// This implementation will be used if custom authorization mechanism was not provided.
 pub struct DefaultAuthorizer;
 
 impl Authorizer for DefaultAuthorizer {
-    type Error = AuthorizeError;
+    type Error = Infallible;
 
     fn authorize(&self, _: Activity) -> Result<bool, Self::Error> {
         Ok(false)
@@ -192,7 +198,7 @@ mod tests {
 
     use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
 
-    use crate::auth::{Activity, Authorizer, DefaultAuthorizer, Operation};
+    use crate::auth::{authorize_fn_ok, Activity, Authorizer, DefaultAuthorizer, Operation};
 
     fn connect() -> proto::Connect {
         proto::Connect {
@@ -206,6 +212,7 @@ mod tests {
         }
     }
 
+    #[test]
     fn default_auth_always_deny_any_action() {
         let auth = DefaultAuthorizer;
         let activity = Activity::new(
@@ -219,8 +226,9 @@ mod tests {
         assert_matches!(res, Ok(false));
     }
 
+    #[test]
     fn authorizer_wrapper_around_function() {
-        let auth = |_| Ok(true);
+        let auth = authorize_fn_ok(|_| true);
         let activity = Activity::new(
             "client-auth-id",
             "client-id",

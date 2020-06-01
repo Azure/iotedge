@@ -170,6 +170,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
         }
 
         [Pure]
+        public Option<TResult> AndThen<TResult>(Func<T, Option<TResult>> mapping)
+        {
+            return this.HasValue
+                ? mapping(this.Value)
+                : Option.None<TResult>();
+        }
+
+        [Pure]
         public Option<TResult> FlatMap<TResult>(Func<T, Option<TResult>> mapping) => this.Match(
             some: mapping,
             none: Option.None<TResult>);
@@ -241,6 +249,11 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     yield return item.OrDefault();
                 }
             }
+        }
+
+        public static Option<TV> GetOption<TK, TV>(this IDictionary<TK, TV> dict, TK key)
+        {
+            return dict.TryGetValue(key, out TV o) ? Some(o) : None<TV>();
         }
 
         /// <summary>
