@@ -78,28 +78,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int mainPort = configuration.GetValue("httpSettings:port", 443);
             int metricsPort = configuration.GetValue("httpSettings:metrics_port", 9600);
             IWebHostBuilder webHostBuilder = new WebHostBuilder()
-    .UseKestrel(
-        options =>
-        {
-            options.Listen(
-                !Socket.OSSupportsIPv6 ? IPAddress.Any : IPAddress.IPv6Any,
-                mainPort,
-                listenOptions =>
-                {
-                    listenOptions.UseHttps(connectionAdapterOptions);
-                });
+                .UseKestrel(
+                    options =>
+                    {
+                        options.Listen(
+                            !Socket.OSSupportsIPv6 ? IPAddress.Any : IPAddress.IPv6Any,
+                            mainPort,
+                            listenOptions =>
+                            {
+                                listenOptions.UseHttps(connectionAdapterOptions);
+                            });
 
-            options.Listen(!Socket.OSSupportsIPv6 ? IPAddress.Any : IPAddress.IPv6Any, metricsPort);
-        })
-    .UseSockets()
-    .ConfigureServices(
-        serviceCollection =>
-        {
-            serviceCollection.AddSingleton(configuration);
-            serviceCollection.AddSingleton(dependencyManager);
-        })
-    .UseStartup<Startup>()
-    .UseSetting(WebHostDefaults.ApplicationKey, typeof(TwinsController).Assembly.GetName().Name);
+                        options.Listen(!Socket.OSSupportsIPv6 ? IPAddress.Any : IPAddress.IPv6Any, metricsPort);
+                    })
+                .UseSockets()
+                .ConfigureServices(
+                    serviceCollection =>
+                    {
+                        serviceCollection.AddSingleton(configuration);
+                        serviceCollection.AddSingleton(dependencyManager);
+                    })
+                .UseStartup<Startup>()
+                .UseSetting(WebHostDefaults.ApplicationKey, typeof(TwinsController).Assembly.GetName().Name);
             IWebHost webHost = webHostBuilder.Build();
             IContainer container = webHost.Services.GetService(typeof(IStartup)) is Startup startup ? startup.Container : null;
             return new Hosting(webHost, container);
