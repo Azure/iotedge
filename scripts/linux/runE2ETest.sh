@@ -411,6 +411,9 @@ function process_args() {
         elif [ $saveNextArg -eq 43 ]; then
             TEST_START_DELAY="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 44 ]; then
+            RUNTIME_LOG_LEVEL="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -457,6 +460,7 @@ function process_args() {
                 '-initializeWithAgentArtifact' ) saveNextArg=41;;
                 '-testInfo' ) saveNextArg=42;;
                 '-testStartDelay' ) saveNextArg=43;;
+                '-runtimeLogLevel' ) saveNextArg=44;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -714,7 +718,7 @@ function run_longhaul_test() {
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --leave-running=All \
         -l "$deployment_working_file" \
-        --runtime-log-level "Info" \
+        --runtime-log-level "$RUNTIME_LOG_LEVEL" \
         --no-verify && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -792,7 +796,7 @@ function run_stress_test() {
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --leave-running=All \
         -l "$deployment_working_file" \
-        --runtime-log-level "Info" \
+        --runtime-log-level "$RUNTIME_LOG_LEVEL" \
         --no-verify && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -1071,6 +1075,7 @@ function usage() {
     echo ' -initializeWithAgentArtifact                   Boolean specifying if the iotedge installation should initialize edge agent with the official 1.0 image or the desired artifact. If false, the deployment after installation will start the desired agent artifact.'
     echo ' -testInfo                                      Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.' 
     echo ' -testStartDelay                                Tests start after delay for applicable modules'
+    echo ' -runtimeLogLevel                               Value of RuntimeLogLevel envivronment variable for EdgeAgent in Long Haul and Stress tests [Default: debug] (EdgeHub RuntimeLogLevel is set implicitly set to be the same with edgeAgent)'
     exit 1;
 }
 
@@ -1094,6 +1099,7 @@ if [[ "${TEST_NAME,,}" == "longhaul" ]] ||
     EDGEHUB_RESTART_FAILURE_TOLERANCE="${EDGEHUB_RESTART_FAILURE_TOLERANCE:-00:01:00}"
     METRICS_SCRAPE_FREQUENCY_IN_SECS="${METRICS_SCRAPE_FREQUENCY_IN_SECS:-300}"
     METRICS_UPLOAD_TARGET="${METRICS_UPLOAD_TARGET:-AzureLogAnalytics}"
+    RUNTIME_LOG_LEVEL="${RUNTIME_LOG_LEVEL:-debug}"
 fi
 if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
     DESIRED_MODULES_TO_RESTART_CSV="${DESIRED_MODULES_TO_RESTART_CSV:-,}"
