@@ -11,7 +11,8 @@ FROM ${BASE_IMAGE} AS builder
 ADD . ./
 
 # Build our application.
-RUN cargo build -p mqttd --release && strip /home/rust/src/target/x86_64-unknown-linux-musl/release/mqttd
+RUN cargo build --release --manifest-path mqttd/Cargo.toml --no-default-features \
+    && strip /home/rust/src/target/x86_64-unknown-linux-musl/release/mqttd
 
 FROM busybox
 

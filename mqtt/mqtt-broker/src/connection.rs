@@ -7,7 +7,6 @@ use futures_util::pin_mut;
 use futures_util::sink::{Sink, SinkExt};
 use futures_util::stream::{Stream, StreamExt};
 use lazy_static::lazy_static;
-use mqtt3::proto::{self, DecodeError, EncodeError, Packet, PacketCodec};
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tokio_io_timeout::TimeoutStream;
@@ -16,13 +15,21 @@ use tracing::{debug, info, span, trace, warn, Level};
 use tracing_futures::Instrument;
 use uuid::Uuid;
 
-use crate::auth::Credentials;
+use mqtt3::proto::{self, DecodeError, EncodeError, Packet, PacketCodec};
+use mqtt_broker_core::{
+    auth::{Authenticator, Certificate, Credentials},
+    ClientId,
+};
+
+#[cfg(feature = "edgehub")]
+use mqtt_edgehub::translation::{
+    translate_incoming_publish, translate_incoming_subscribe, translate_incoming_unsubscribe,
+    translate_outgoing_publish,
+};
+
 use crate::broker::BrokerHandle;
 use crate::transport::GetPeerCertificate;
-use crate::{
-    AuthResult, AuthenticationError, Authenticator, Certificate, ClientEvent, ClientId, ConnReq,
-    Error, Message, Publish,
-};
+use crate::{Auth, ClientEvent, ConnReq, Error, Message, Publish};
 
 lazy_static! {
     static ref DEFAULT_TIMEOUT: Duration = Duration::from_secs(5);
@@ -82,7 +89,6 @@ pub async fn process<I, N>(
 where
     I: AsyncRead + AsyncWrite + GetPeerCertificate<Certificate = Certificate> + Unpin,
     N: Authenticator + Send + Sync + 'static,
-    N::Error: Into<AuthenticationError>,
 {
     let certificate = io.peer_certificate()?;
 
@@ -138,12 +144,16 @@ where
                     Credentials::ClientCertificate,
                 );
 
-                let auth_result = match authenticator.authenticate(connect.username.clone(), credentials).await {
-                                            Ok(result) => AuthResult::Successful(result),
-                                            Err(e) => AuthResult::Failed(e.into())
-                                        };
+                let auth = match authenticator.authenticate(connect.username.clone(), credentials).await {
+                    Ok(Some(auth_id)) => Auth::Identity(auth_id),
+                    Ok(None) => Auth::Unknown,
+                    Err(e) => {
+                        warn!(message = "error authenticating client: {}", error = %e);
+                        Auth::Failure
+                    }
+                };
 
-                let req = ConnReq::new(client_id.clone(), connect, auth_result, connection_handle);
+                let req = ConnReq::new(client_id.clone(), connect, auth, connection_handle);
                 let event = ClientEvent::ConnReq(req);
                 let message = Message::Client(client_id.clone(), event);
                 broker_handle.send(message).await?;
@@ -255,12 +265,24 @@ where
                     Packet::PingResp(pingresp) => ClientEvent::PingResp(pingresp),
                     Packet::PubAck(puback) => ClientEvent::PubAck(puback),
                     Packet::PubComp(pubcomp) => ClientEvent::PubComp(pubcomp),
-                    Packet::Publish(publish) => ClientEvent::PublishFrom(publish),
+                    Packet::Publish(publish) => {
+                        #[cfg(feature = "edgehub")]
+                        let publish = translate_incoming_publish(&client_id, publish);
+                        ClientEvent::PublishFrom(publish)
+                    }
                     Packet::PubRec(pubrec) => ClientEvent::PubRec(pubrec),
                     Packet::PubRel(pubrel) => ClientEvent::PubRel(pubrel),
-                    Packet::Subscribe(subscribe) => ClientEvent::Subscribe(subscribe),
+                    Packet::Subscribe(subscribe) => {
+                        #[cfg(feature = "edgehub")]
+                        let subscribe = translate_incoming_subscribe(&client_id, subscribe);
+                        ClientEvent::Subscribe(subscribe)
+                    }
                     Packet::SubAck(suback) => ClientEvent::SubAck(suback),
-                    Packet::Unsubscribe(unsubscribe) => ClientEvent::Unsubscribe(unsubscribe),
+                    Packet::Unsubscribe(unsubscribe) => {
+                        #[cfg(feature = "edgehub")]
+                        let unsubscribe = translate_incoming_unsubscribe(&client_id, unsubscribe);
+                        ClientEvent::Unsubscribe(unsubscribe)
+                    }
                     Packet::UnsubAck(unsuback) => ClientEvent::UnsubAck(unsuback),
                 };
 
@@ -312,9 +334,13 @@ where
                 ClientEvent::Unsubscribe(unsub) => Some(Packet::Unsubscribe(unsub)),
                 ClientEvent::UnsubAck(unsuback) => Some(Packet::UnsubAck(unsuback)),
                 ClientEvent::PublishTo(Publish::QoS12(_id, publish)) => {
+                    #[cfg(feature = "edgehub")]
+                    let publish = translate_outgoing_publish(publish);
                     Some(Packet::Publish(publish))
                 }
                 ClientEvent::PublishTo(Publish::QoS0(id, publish)) => {
+                    #[cfg(feature = "edgehub")]
+                    let publish = translate_outgoing_publish(publish);
                     let result = outgoing.send(Packet::Publish(publish)).await;
 
                     if let Err(e) = result {
@@ -360,5 +386,5 @@ fn client_id(client_id: &proto::ClientId) -> ClientId {
         proto::ClientId::IdWithCleanSession(ref id) => id.to_owned(),
         proto::ClientId::IdWithExistingSession(ref id) => id.to_owned(),
     };
-    ClientId(Arc::new(id))
+    ClientId::from(id)
 }

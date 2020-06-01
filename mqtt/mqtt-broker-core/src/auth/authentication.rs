@@ -1,7 +1,8 @@
+use std::convert::Infallible;
+
 use async_trait::async_trait;
 
 use crate::auth::AuthId;
-use crate::AuthenticationError;
 
 /// Describes a MQTT client credentials.
 pub enum Credentials {
@@ -47,12 +48,22 @@ pub trait Authenticator {
     ) -> Result<Option<AuthId>, Self::Error>;
 }
 
-#[async_trait]
-impl<F> Authenticator for F
+/// Creates an authenticator from a function.
+/// It wraps any provided function with an interface aligned with authenticator.
+pub fn authenticate_fn_ok<F>(f: F) -> impl Authenticator
 where
-    F: Fn(Option<String>, Credentials) -> Result<Option<AuthId>, AuthenticationError> + Sync,
+    F: Fn(Option<String>, Credentials) -> Option<AuthId> + Sync + 'static,
 {
-    type Error = AuthenticationError;
+    move |username, credentials| Ok::<_, Infallible>(f(username, credentials))
+}
+
+#[async_trait]
+impl<F, E> Authenticator for F
+where
+    F: Fn(Option<String>, Credentials) -> Result<Option<AuthId>, E> + Sync,
+    E: std::error::Error + Send + 'static,
+{
+    type Error = E;
 
     async fn authenticate(
         &self,
@@ -69,7 +80,7 @@ pub struct DefaultAuthenticator;
 
 #[async_trait]
 impl Authenticator for DefaultAuthenticator {
-    type Error = AuthenticationError;
+    type Error = Infallible;
 
     async fn authenticate(
         &self,
@@ -84,7 +95,9 @@ impl Authenticator for DefaultAuthenticator {
 mod tests {
     use matches::assert_matches;
 
-    use crate::auth::{AuthId, Authenticator, Credentials, DefaultAuthenticator};
+    use crate::auth::{
+        authenticate_fn_ok, AuthId, Authenticator, Credentials, DefaultAuthenticator,
+    };
 
     #[tokio::test]
     async fn default_auth_always_return_unknown_client_identity() {
@@ -100,7 +113,7 @@ mod tests {
 
     #[tokio::test]
     async fn authenticator_wrapper_around_function() {
-        let authenticator = |_, _| Ok(Some(AuthId::Anonymous));
+        let authenticator = authenticate_fn_ok(|_, _| Some(AuthId::Anonymous));
         let credentials = Credentials::Password(Some("password".into()));
 
         let auth_id = authenticator
