@@ -31,11 +31,17 @@ pub enum ErrorKind {
     #[fail(display = "The device has been de-provisioned")]
     DeviceDeprovisioned,
 
+    #[fail(display = "The identity service encountered an error")]
+    IdentityService,
+
     #[fail(display = "The daemon could not start up successfully: {}", _0)]
     Initialize(InitializeErrorReason),
 
     #[fail(display = "Invalid signed token was provided.")]
     InvalidSignedToken,
+
+    #[fail(display = "The key service encountered an error")]
+    KeyService,
 
     #[fail(display = "The management service encountered an error")]
     ManagementService,
@@ -178,6 +184,7 @@ pub enum InitializeErrorReason {
     HybridAuthKeyLoad,
     HybridAuthKeyInvalid,
     HybridAuthKeySign,
+    IdentityService,
     IncompatibleHsmVersion,
     IdentityCertificateSettings,
     InvalidDeviceCertCredentials,
@@ -185,6 +192,7 @@ pub enum InitializeErrorReason {
     InvalidHubConfig,
     InvalidProxyUri,
     IssuerCAExpiration,
+    KeyService,
     LoadSettings,
     ManagementService,
     ManualProvisioningClient,
@@ -288,6 +296,8 @@ impl fmt::Display for InitializeErrorReason {
                 write!(f, "Could not sign using the hybrid identity key")
             }
 
+            InitializeErrorReason::IdentityService => write!(f, "Could not start identity service"),
+
             InitializeErrorReason::IncompatibleHsmVersion => {
                 write!(f, "Incompatible HSM lib version")
             }
@@ -315,6 +325,8 @@ impl fmt::Display for InitializeErrorReason {
             }
 
             InitializeErrorReason::LoadSettings => write!(f, "Could not load settings"),
+
+            InitializeErrorReason::KeyService => write!(f, "Could not start key service"),
 
             InitializeErrorReason::ManagementService => {
                 write!(f, "Could not start management service")

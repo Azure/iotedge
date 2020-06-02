@@ -68,6 +68,8 @@ use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
 use edgelet_http::{HyperExt, MaybeProxyClient, PemCertificate, TlsAcceptorParams, API_VERSION};
 use edgelet_http_external_provisioning::ExternalProvisioningClient;
+use edgelet_http_identity::IdentityService;
+use edgelet_http_keyservice::KeyService;
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
@@ -1435,6 +1437,8 @@ where
     let (mgmt_tx, mgmt_rx) = oneshot::channel();
     let (mgmt_stop_and_reprovision_tx, mgmt_stop_and_reprovision_rx) = mpsc::unbounded();
     let (work_tx, work_rx) = oneshot::channel();
+    let (ident_tx, ident_rx) = oneshot::channel();
+    let (key_tx, key_rx) = oneshot::channel();
 
     let edgelet_cert_props = CertificateProperties::new(
         settings.certificates().auto_generated_ca_lifetime_seconds(),
@@ -1478,13 +1482,28 @@ where
 
     let workload = start_workload::<_, _, _, _, M>(
         settings,
-        key_store,
+        &key_store.clone(),
         runtime,
         work_rx,
         crypto,
-        cert_manager,
-        workload_config,
+        cert_manager.clone(),
+        workload_config.clone(),
     );
+
+    let identity_svc = start_identity::<M, _, _>(
+        settings,
+        runtime,
+        workload_config.clone(),
+        ident_rx,
+        cert_manager.clone());
+
+    let key_svc = start_key_service::<M,_,_,_>(
+        settings,
+        runtime,
+        workload_config,
+        &key_store.clone(),
+        key_rx,
+        cert_manager);
 
     let (runt_tx, runt_rx) = oneshot::channel();
     let edge_rt = start_runtime::<_, _, M>(
@@ -1546,6 +1565,8 @@ where
         .then(move |res| {
             mgmt_tx.send(()).unwrap_or(());
             work_tx.send(()).unwrap_or(());
+            ident_tx.send(()).unwrap_or(());
+            key_tx.send(()).unwrap_or(());
 
             // A -> EdgeRt + Mgmt Stop and Reprovision Signal Future
             // B -> Restart Signal Future
@@ -1568,9 +1589,9 @@ where
     tokio_runtime.spawn(shutdown);
 
     let services = mgmt
-        .join4(workload, edge_rt_with_cleanup, expiration_timer)
+        .join(workload.join5(edge_rt_with_cleanup, expiration_timer, key_svc, identity_svc))
         .then(|result| match result {
-            Ok(((), (), (code, should_reprovision), ())) => Ok((code, should_reprovision)),
+            Ok(((), ((), (restart_code, should_reprovision), (), (), ()))) => Ok((restart_code, should_reprovision)),
             Err(err) => Err(err),
         });
     let (restart_code, should_reprovision) = tokio_runtime.block_on(services)?;
@@ -2138,6 +2159,111 @@ where
                 .run_until(shutdown.map_err(|_| ()))
                 .map_err(|err| Error::from(err.context(ErrorKind::WorkloadService)));
             info!("Listening on {} with 1 thread for workload API.", url);
+            Ok(run)
+        })
+        .flatten()
+}
+
+fn start_identity<M, W, CE>(
+    settings: &M::Settings,
+    runtime: &M::ModuleRuntime,
+    config: W,
+    shutdown: Receiver<()>,
+    cert_manager: Arc<CertificateManager<CE>>,
+) -> impl Future<Item = (), Error = Error>
+    where
+        CE: CreateCertificate + Clone,
+        M: MakeModuleRuntime + 'static,
+        M::Settings: 'static,
+        M::ModuleRuntime: 'static + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
+        <<M::ModuleRuntime as Authenticator>::AuthenticateFuture as Future>::Error: Fail,
+        for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+        <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
+        Clone + DeserializeOwned + Serialize,
+        <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
+        W: WorkloadConfig + Clone + Send + Sync + 'static,
+{
+    info!("Starting identity API...");
+
+    let label = "ident".to_string();
+    //TODO: Add identity service socket configuration
+    let url = Url::parse("http://172.17.0.1:8082").unwrap();
+
+    let min_protocol_version = settings.listen().min_tls_version();
+
+    IdentityService::new(runtime, config)
+        .then(move |service| -> Result<_, Error> {
+            let service = service.context(ErrorKind::Initialize(
+                InitializeErrorReason::IdentityService,
+            ))?;
+            let service = LoggingService::new(label, service);
+
+            let tls_params = TlsAcceptorParams::new(&cert_manager, min_protocol_version);
+
+            let run = Http::new()
+                .bind_url(url.clone(), service, Some(tls_params))
+                .map_err(|err| {
+                    err.context(ErrorKind::Initialize(
+                        InitializeErrorReason::IdentityService,
+                    ))
+                })?
+                .run_until(shutdown.map_err(|_| ()))
+                .map_err(|err| Error::from(err.context(ErrorKind::IdentityService)));
+            info!("Listening on {} with 1 thread for identity API.", url);
+            Ok(run)
+        })
+        .flatten()
+}
+
+fn start_key_service<M, W, K, CE>(
+    settings: &M::Settings,
+    runtime: &M::ModuleRuntime,
+    config: W,
+    key_store: &K,
+    shutdown: Receiver<()>,
+    cert_manager: Arc<CertificateManager<CE>>,
+) -> impl Future<Item = (), Error = Error>
+where
+    CE: CreateCertificate + Clone,
+    K: KeyStore + Clone + Send + Sync + 'static,
+    M: MakeModuleRuntime + 'static,
+    M::Settings: 'static,
+    M::ModuleRuntime: 'static + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
+    <<M::ModuleRuntime as Authenticator>::AuthenticateFuture as Future>::Error: Fail,
+    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+    <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
+    Clone + DeserializeOwned + Serialize,
+    <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
+    W: WorkloadConfig + Clone + Send + Sync + 'static,
+
+{
+    info!("Starting key service API...");
+
+    let label = "key".to_string();
+    //TODO: Add identity service socket configuration
+    let url = Url::parse("http://172.17.0.1:8083").unwrap();
+
+    let min_protocol_version = settings.listen().min_tls_version();
+
+    KeyService::new(runtime, config, key_store)
+        .then(move |service| -> Result<_, Error> {
+            let service = service.context(ErrorKind::Initialize(
+                InitializeErrorReason::KeyService,
+            ))?;
+            let service = LoggingService::new(label, service);
+
+            let tls_params = TlsAcceptorParams::new(&cert_manager, min_protocol_version);
+
+            let run = Http::new()
+                .bind_url(url.clone(), service, Some(tls_params))
+                .map_err(|err| {
+                    err.context(ErrorKind::Initialize(
+                        InitializeErrorReason::KeyService,
+                    ))
+                })?
+                .run_until(shutdown.map_err(|_|()))
+                .map_err(|err| Error::from(err.context(ErrorKind::KeyService)));
+            info!("Listening on {} with 1 thread for key service API.", url);
             Ok(run)
         })
         .flatten()
