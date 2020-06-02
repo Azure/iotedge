@@ -84,6 +84,7 @@ mod tests {
     use futures::{Future, Stream};
     use hyper::{Request, StatusCode};
     use keyservice::models::{ErrorResponse, SignParameters, SignRequest, SignResponse};
+    use url::percent_encoding::{define_encode_set, percent_encode, PATH_SEGMENT_ENCODE_SET};
 
     #[derive(Clone, Debug)]
     struct TestKeyStore {
@@ -124,7 +125,7 @@ mod tests {
     #[test]
     fn bad_body_not_json() {
         // arrange
-        let key = MemoryKey::new("");
+        let key = MemoryKey::new(base64::decode("primarykey").unwrap());
         let key_store = TestKeyStore::new(key);
         let handler = SignHandler::new(key_store);
 
@@ -198,7 +199,7 @@ mod tests {
     #[test]
     fn bad_body_invalid_encoding() {
         // arrange
-        let key = MemoryKey::new("");
+        let key = MemoryKey::new(base64::decode("primarykey").unwrap());
         let key_store = TestKeyStore::new(key);
         let handler = SignHandler::new(key_store);
 
@@ -237,15 +238,26 @@ mod tests {
 
     #[test]
     fn success() {
+        define_encode_set! {
+            pub IOTHUB_ENCODE_SET = [PATH_SEGMENT_ENCODE_SET] | { '=' }
+        }
+
         // arrange
-        let key = MemoryKey::new("");
+        let key = MemoryKey::new(base64::decode("primarykey").unwrap());
         let key_store = TestKeyStore::new(key);
         let handler = SignHandler::new(key_store);
+
+        let expiry = "1593707071";
+        let audience = format!("{}/devices/{}", "hubname.azure-devices.net", "test-device");
+
+        let resource_uri =
+            percent_encode(audience.to_lowercase().as_bytes(), IOTHUB_ENCODE_SET).to_string();
+        let sig_data = format!("{}\n{}", &resource_uri, expiry);
 
         let sign_request = SignRequest::new(
             "primary".to_string(),
             "HMAC-SHA256".to_string(),
-            SignParameters::new(base64::encode("12345")),
+            SignParameters::new(base64::encode(&sig_data)),
         );
 
         let body = serde_json::to_string(&sign_request).unwrap();
@@ -261,7 +273,7 @@ mod tests {
             .unwrap();
 
         // assert
-        let expected = "riPI9XPTbHodbLyLC+vlLgZm3PFPoEQHMo+5RLj3qC0=";
+        let expected = "viM8puBDserBSVa0vIrXVP5QGj2x1x7an9WeQytsYwE=";
         assert_eq!(StatusCode::OK, response.status());
         response
             .into_body()

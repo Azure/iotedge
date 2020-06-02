@@ -166,7 +166,7 @@ pub mod impl_macos {
     use libc::getpeereid;
     use tokio_uds::UnixStream;
 
-    use super::*;
+    use super::Pid;
 
     pub fn get_pid(sock: &UnixStream) -> io::Result<Pid> {
         unsafe {
