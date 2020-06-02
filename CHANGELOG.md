@@ -1,3 +1,35 @@
+# 1.0.9.2 (2020-05-26)
+## Edge Hub
+### Features
+* Make module response timeout configurable in Edge Hub ([288ed4b](https://github.com/Azure/iotedge/commit/288ed4b7483207909edb10ea83e59a19e9d51100))
+
+## iotedged
+### Bug Fixes
+* Don't delete provisioning backup when configuration changes ([377e51b](https://github.com/Azure/iotedge/commit/377e51bdb4e2415bd89d04abc404d16c3fab5103))
+
+# 1.0.9.1 (2020-05-11)
+## Edge Agent
+### Bug Fixes
+* Update [Windows IoT Core ARM32 version compatibility issue](https://support.microsoft.com/en-us/help/4542617/you-might-encounter-issues-when-using-windows-server-containers-with-t) to OS version 10.0.17763.1158 ([3f42583](https://github.com/Azure/iotedge/commit/3f425836720c07b522da19bf582351e1afba4bf6))
+* Update [Windows Server 2019 AMD64 version compatibility issue](https://support.microsoft.com/en-us/help/4542617/you-might-encounter-issues-when-using-windows-server-containers-with-t) to tag version 2.1.17-nanoserver-1809 ([9552413](https://github.com/Azure/iotedge/commit/9552413925b370abb74ac6a35ebf54556842fb3f))
+* Hotfix [Linux AMD64 security vulnerability](https://people.canonical.com/~ubuntu-security/cve/2020/CVE-2020-1967.html) by updating the dotnet core runtime image to use 2.1.17-alpine3.11 ([9c3d240](https://github.com/Azure/iotedge/commit/9c3d240eb733ae5d6b3fc3dd1a5a6b2b94275b96))
+
+## Edge Hub
+### Bug Fixes
+* Update [Window IoT Core ARM32 version compatibility issue](https://support.microsoft.com/en-us/help/4542617/you-might-encounter-issues-when-using-windows-server-containers-with-t) to OS version 10.0.17763.1158 ([3f42583](https://github.com/Azure/iotedge/commit/3f425836720c07b522da19bf582351e1afba4bf6))
+* Update [Windows Server 2019 AMD64 version compatibility issue](https://support.microsoft.com/en-us/help/4542617/you-might-encounter-issues-when-using-windows-server-containers-with-t) to tag version 2.1.17-nanoserver-1809 ([9552413](https://github.com/Azure/iotedge/commit/9552413925b370abb74ac6a35ebf54556842fb3f))
+* Hotfix [Linux AMD64 security vulnerability](https://people.canonical.com/~ubuntu-security/cve/2020/CVE-2020-1967.html) by updating the dotnet core runtime image to use 2.1.17-alpine3.11 ([9c3d240](https://github.com/Azure/iotedge/commit/9c3d240eb733ae5d6b3fc3dd1a5a6b2b94275b96))
+
+## Other Module Images
+### Bug Fixes
+* Update [Window IoT Core ARM32 version compatibility issue](https://support.microsoft.com/en-us/help/4542617/you-might-encounter-issues-when-using-windows-server-containers-with-t) to OS version 10.0.17763.1158 ([3f42583](https://github.com/Azure/iotedge/commit/3f425836720c07b522da19bf582351e1afba4bf6))
+* Update [Windows Server 2019 AMD64 version compatibility issue](https://support.microsoft.com/en-us/help/4542617/you-might-encounter-issues-when-using-windows-server-containers-with-t) to tag version 2.1.17-nanoserver-1809 ([9552413](https://github.com/Azure/iotedge/commit/9552413925b370abb74ac6a35ebf54556842fb3f))
+* Hotfix [Linux AMD64 security vulnerability](https://people.canonical.com/~ubuntu-security/cve/2020/CVE-2020-1967.html) by updating the dotnet core runtime image to use 2.1.17-alpine3.11 ([9c3d240](https://github.com/Azure/iotedge/commit/9c3d240eb733ae5d6b3fc3dd1a5a6b2b94275b96))
+
+## iotedged
+### Bug fixes
+* Update Support Bundle timestamp ([a8f0f62](https://github.com/Azure/iotedge/commit/a8f0f6241223def4a82aaaec01a98102cecca1b7))
+
 # 1.0.9 (2020-03-18)
 ## Edge Hub
 ### Bug fixes
