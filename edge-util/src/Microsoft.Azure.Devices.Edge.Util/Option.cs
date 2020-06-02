@@ -140,6 +140,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
+        public void ForEach(Action action)
+        {
+            if (this.HasValue)
+            {
+                action();
+            }
+        }
+
         public void ForEach(Action<T> action, Action none)
         {
             if (this.HasValue)
@@ -153,6 +161,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
         }
 
         public Task ForEachAsync(Func<T, Task> action) => this.HasValue ? action(this.Value) : Task.CompletedTask;
+
+        public Task ForEachAsync(Func<Task> action) => this.HasValue ? action() : Task.CompletedTask;
 
         public Task ForEachAsync(Func<T, Task> action, Func<Task> none) => this.HasValue ? action(this.Value) : none();
 
