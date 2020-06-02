@@ -1,5 +1,6 @@
 steps:
   - task: Bash@3
+    displayName: 'Use dotnet 2'
     inputs:
       targetType: 'inline'
       script: 'dotnet new globaljson --sdk-version 2.1.806'
