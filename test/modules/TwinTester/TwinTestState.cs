@@ -26,7 +26,7 @@ namespace TwinTester
         {
             this.ReportedPropertyUpdateCounter = reportedPropertyUpdateCounter;
             this.DesiredPropertyUpdateCounter = desiredPropertyUpdateCounter;
-            this.twinETag = twinETag;
+            this.TwinETag = twinETag;
             this.edgeHubLastStarted.Set(edgeHubLastStarted.Ticks);
             this.edgeHubLastStopped.Set(edgeHubLastStopped.Ticks);
             this.lastNetworkOffline.Set(lastNetworkOffline.Ticks);
