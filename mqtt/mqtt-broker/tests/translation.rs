@@ -195,7 +195,7 @@ async fn translation_twin_notify() {
 
 #[tokio::test]
 #[ignore] // Re-enable when wildcards are handled
-async fn translation_twin_notify+with_wildcards() {
+async fn translation_twin_notify_with_wildcards() {
     test_twin_with_client_id("device+1#325").await;
 }
 
