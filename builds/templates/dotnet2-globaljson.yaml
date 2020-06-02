@@ -1,4 +1,5 @@
 steps:
-  - task: DotNetCoreCLI@2
+  - task: Bash@3
     inputs:
-      command: 'new globaljson --sdk-version 2.1.806'
+      targetType: 'inline'
+      script: 'dotnet new globaljson --sdk-version 2.1.806'
