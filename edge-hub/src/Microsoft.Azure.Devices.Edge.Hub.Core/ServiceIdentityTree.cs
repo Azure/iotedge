@@ -302,12 +302,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         enum EventIds
         {
-            Created = IdStart,
+            NodeAdded = IdStart,
+            NodeRemoved,
             MaxDepthExceeded
         }
 
-        public static void Created() =>
-            Log.LogInformation((int)EventIds.Created, "Created device scope identities cache");
+        public static void NodeAdded(string id) =>
+            Log.LogDebug((int)EventIds.NodeAdded, $"Add node: {id}");
+
+        public static void NodeRemoved(string id) =>
+            Log.LogDebug((int)EventIds.NodeRemoved, $"Removed node: {id}");
 
         public static void MaxDepthExceeded(string edgeDeviceId) =>
             Log.LogWarning((int)EventIds.MaxDepthExceeded, $"Nested hierarchy contains more than maximum allowed layers, discarding {edgeDeviceId}");

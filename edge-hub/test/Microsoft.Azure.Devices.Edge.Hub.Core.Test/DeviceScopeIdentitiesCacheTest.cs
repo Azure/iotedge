@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             iterator.Setup(i => i.HasNext).Returns(true);
             iterator.Setup(i => i.GetNext()).ThrowsAsync(new InvalidOperationException("Some error"));
             var serviceProxy = new Mock<IServiceProxy>();
-            serviceProxy.Setup(s => s.GetNestedServiceIdentitiesIterator()).Returns(iterator.Object);
+            serviceProxy.Setup(s => s.GetServiceIdentitiesIterator()).Returns(iterator.Object);
 
             var store = GetEntityStore("cache");
             var serviceAuthentication = new ServiceAuthentication(ServiceAuthenticationType.None);
@@ -89,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                     });
 
             var serviceProxy = new Mock<IServiceProxy>();
-            serviceProxy.SetupSequence(s => s.GetNestedServiceIdentitiesIterator())
+            serviceProxy.SetupSequence(s => s.GetServiceIdentitiesIterator())
                 .Returns(iterator1.Object)
                 .Returns(iterator2.Object);
             var updatedIdentities = new List<ServiceIdentity>();
@@ -204,7 +204,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                     });
 
             var serviceProxy = new Mock<IServiceProxy>();
-            serviceProxy.SetupSequence(s => s.GetNestedServiceIdentitiesIterator())
+            serviceProxy.SetupSequence(s => s.GetServiceIdentitiesIterator())
                 .Returns(iterator1.Object)
                 .Returns(iterator2.Object)
                 .Returns(iterator3.Object)
@@ -302,7 +302,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                     });
 
             var serviceProxy = new Mock<IServiceProxy>();
-            serviceProxy.Setup(s => s.GetNestedServiceIdentitiesIterator())
+            serviceProxy.Setup(s => s.GetServiceIdentitiesIterator())
                 .Returns(iterator1.Object);
             serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d1"))).ReturnsAsync(Option.Some(si1_updated));
             serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d2"))).ReturnsAsync(Option.None<ServiceIdentity>());
@@ -365,7 +365,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                     });
 
             var serviceProxy = new Mock<IServiceProxy>();
-            serviceProxy.Setup(s => s.GetNestedServiceIdentitiesIterator())
+            serviceProxy.Setup(s => s.GetServiceIdentitiesIterator())
                 .Returns(iterator1.Object);
             serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d1"))).ReturnsAsync(Option.Some(si1_updated));
             serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d2"))).ReturnsAsync(Option.None<ServiceIdentity>());
@@ -432,7 +432,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                     });
 
             var serviceProxy = new Mock<IServiceProxy>();
-            serviceProxy.Setup(s => s.GetNestedServiceIdentitiesIterator())
+            serviceProxy.Setup(s => s.GetServiceIdentitiesIterator())
                 .Returns(iterator1.Object);
             serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d1"), It.Is<string>(id => id == "m1"))).ReturnsAsync(Option.Some(si1_updated));
             serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d2"), It.Is<string>(id => id == "m2"))).ReturnsAsync(Option.None<ServiceIdentity>());
@@ -496,7 +496,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                     });
 
             var serviceProxy = new Mock<IServiceProxy>();
-            serviceProxy.Setup(s => s.GetNestedServiceIdentitiesIterator())
+            serviceProxy.Setup(s => s.GetServiceIdentitiesIterator())
                 .Returns(iterator1.Object);
             serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d1"))).ReturnsAsync(Option.Some(si1_updated));
             serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d2"))).ReturnsAsync(Option.None<ServiceIdentity>());
@@ -549,7 +549,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                     });
 
             var serviceProxy = new Mock<IServiceProxy>();
-            serviceProxy.Setup(s => s.GetNestedServiceIdentitiesIterator())
+            serviceProxy.Setup(s => s.GetServiceIdentitiesIterator())
                 .Returns(iterator1.Object);
             serviceProxy.Setup(s => s.GetServiceIdentity("d1", "m1")).ReturnsAsync(Option.Some(si1_updated));
             serviceProxy.Setup(s => s.GetServiceIdentity("d2", "m2")).ReturnsAsync(Option.None<ServiceIdentity>());
