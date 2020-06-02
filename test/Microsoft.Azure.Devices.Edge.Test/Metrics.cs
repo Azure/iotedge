@@ -93,9 +93,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             builder.GetModule("$edgeAgent")
                 .WithEnvironment(
+                    ("PerformanceMetricsUpdateFrequency", "00:00:20"),
                     ("experimentalfeatures__enabled", "true"),
-                    ("experimentalfeatures__enableMetrics", "true"),
-                    ("PerformanceMetricsUpdateFrequency", "00:00:20"));
+                    ("experimentalfeatures__enableMetrics", "true"));
         }
     }
 }
