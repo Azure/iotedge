@@ -23,6 +23,10 @@ jobs:
           targetType: filePath
       - bash: "echo \"##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH\""
         displayName: "Modify path"
+      - task: DotNetCoreInstaller@0
+        displayName: "Install .NET Core 2.1 - Needed for code sign on linux"
+        inputs: 
+          version: "2.1.700"
       - template: ../templates/install-dotnet3.yaml
       - bash: "cargo install --git https://github.com/arsing/cross.git --branch set-path"
         displayName: "Install cross (fork with docker fix)"
@@ -31,10 +35,6 @@ jobs:
         inputs: 
           args: "-c Release"
           scriptPath: scripts/linux/buildBranch.sh
-      - task: DotNetCoreInstaller@0
-        displayName: "Install .NET Core 2.1 - Needed for code sign on linux"
-        inputs: 
-          version: "2.1.700"
       - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
         displayName: "Edge Agent Code Sign"
         inputs: 
@@ -255,7 +255,6 @@ jobs:
                 }
               ]
           signConfigType: inlineSignParams
-      - template: ../templates/install-dotnet3.yaml
       - task: DotNetCoreCLI@2
         displayName: "Functions Binding nuget package"
         inputs:
@@ -266,10 +265,6 @@ jobs:
           packagesToPack: "**/Microsoft.Azure.WebJobs.Extensions.EdgeHub.csproj"
           versionEnvVar: version
           versioningScheme: byEnvVar
-      - task: DotNetCoreInstaller@0
-        displayName: "Install .NET Core 2.1 - Needed for code sign on linux"
-        inputs:
-          version: "2.1.700"
       - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
         displayName: "Functions Binding nuget package Sign"
         inputs:
