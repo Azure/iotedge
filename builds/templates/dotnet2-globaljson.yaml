@@ -1,0 +1,4 @@
+steps:
+  - task: DotNetCoreCLI@2
+    inputs:
+      command: 'new globaljson --sdk-version 2.1.806'

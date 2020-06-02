@@ -28,6 +28,7 @@ jobs:
         inputs: 
           version: "2.1.700"
       - template: ../templates/install-dotnet3.yaml
+      - template: ../templates/dotnet3-globaljson.yaml
       - bash: "cargo install --git https://github.com/arsing/cross.git --branch set-path"
         displayName: "Install cross (fork with docker fix)"
       - task: ShellScript@2
@@ -35,6 +36,7 @@ jobs:
         inputs: 
           args: "-c Release"
           scriptPath: scripts/linux/buildBranch.sh
+      - template: ../templates/dotnet2-globaljson.yaml
       - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
         displayName: "Edge Agent Code Sign"
         inputs: 
@@ -255,6 +257,7 @@ jobs:
                 }
               ]
           signConfigType: inlineSignParams
+      - template: ../templates/dotnet3-globaljson.yaml
       - task: DotNetCoreCLI@2
         displayName: "Functions Binding nuget package"
         inputs:
@@ -265,6 +268,7 @@ jobs:
           packagesToPack: "**/Microsoft.Azure.WebJobs.Extensions.EdgeHub.csproj"
           versionEnvVar: version
           versioningScheme: byEnvVar
+      - template: ../templates/dotnet2-globaljson.yaml
       - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
         displayName: "Functions Binding nuget package Sign"
         inputs:
