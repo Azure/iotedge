@@ -23,13 +23,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
 
     class ModuleManagementHttpClient : ModuleManagementHttpClientVersioned
     {
-        public ModuleManagementHttpClient(Uri managementUri)
-            : this(managementUri, Option.None<TimeSpan>())
+        public ModuleManagementHttpClient(Uri managementUri, int workloadStaleSocketErrCode)
+            : this(managementUri, workloadStaleSocketErrCode, Option.None<TimeSpan>())
         {
         }
 
-        internal ModuleManagementHttpClient(Uri managementUri, Option<TimeSpan> operationTimeout)
-            : base(managementUri, ApiVersion.Version20190130, new ErrorDetectionStrategy(), operationTimeout)
+        internal ModuleManagementHttpClient(Uri managementUri, int workloadStaleSocketErrCode, Option<TimeSpan> operationTimeout)
+            : base(managementUri, ApiVersion.Version20190130, workloadStaleSocketErrCode, new ErrorDetectionStrategy(), operationTimeout)
         {
         }
 

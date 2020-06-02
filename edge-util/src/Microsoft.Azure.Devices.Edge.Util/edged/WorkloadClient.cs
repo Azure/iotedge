@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
     {
         readonly WorkloadClientVersioned inner;
 
-        // BEARWASHERE -- WorkloadClient()
         public WorkloadClient(Uri serverUri, string serverSupportedApiVersion, string clientSupportedApiVersion, int workloadStaleSocketErrCode, string moduleId, string moduleGenerationId)
         {
             Preconditions.CheckNotNull(serverUri, nameof(serverUri));

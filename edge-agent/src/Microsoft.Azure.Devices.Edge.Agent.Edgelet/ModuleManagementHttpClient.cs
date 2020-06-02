@@ -17,12 +17,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     {
         readonly ModuleManagementHttpClientVersioned inner;
 
-        public ModuleManagementHttpClient(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion)
+        public ModuleManagementHttpClient(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion, int workloadStaleSocketErrCode)
         {
             Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             Preconditions.CheckNonWhiteSpace(serverSupportedApiVersion, nameof(serverSupportedApiVersion));
             Preconditions.CheckNonWhiteSpace(clientSupportedApiVersion, nameof(clientSupportedApiVersion));
-            this.inner = GetVersionedModuleManagement(managementUri, serverSupportedApiVersion, clientSupportedApiVersion);
+            this.inner = GetVersionedModuleManagement(managementUri, serverSupportedApiVersion, clientSupportedApiVersion, workloadStaleSocketErrCode);
         }
 
         public Task<Identity> CreateIdentityAsync(string name, string managedBy) => this.inner.CreateIdentityAsync(name, managedBy);
@@ -60,30 +60,30 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         public Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail, Option<string> since, CancellationToken cancellationToken) =>
             this.inner.GetModuleLogs(name, follow, tail, since, cancellationToken);
 
-        internal static ModuleManagementHttpClientVersioned GetVersionedModuleManagement(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion)
+        internal static ModuleManagementHttpClientVersioned GetVersionedModuleManagement(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion, int workloadStaleSocketErrCode)
         {
             ApiVersion supportedVersion = GetSupportedVersion(serverSupportedApiVersion, clientSupportedApiVersion);
             if (supportedVersion == ApiVersion.Version20180628)
             {
-                return new Version_2018_06_28.ModuleManagementHttpClient(managementUri);
+                return new Version_2018_06_28.ModuleManagementHttpClient(managementUri, workloadStaleSocketErrCode);
             }
 
             if (supportedVersion == ApiVersion.Version20190130)
             {
-                return new Version_2019_01_30.ModuleManagementHttpClient(managementUri);
+                return new Version_2019_01_30.ModuleManagementHttpClient(managementUri, workloadStaleSocketErrCode);
             }
 
             if (supportedVersion == ApiVersion.Version20191022)
             {
-                return new Version_2019_10_22.ModuleManagementHttpClient(managementUri);
+                return new Version_2019_10_22.ModuleManagementHttpClient(managementUri, workloadStaleSocketErrCode);
             }
 
             if (supportedVersion == ApiVersion.Version20191105)
             {
-                return new Version_2019_11_05.ModuleManagementHttpClient(managementUri);
+                return new Version_2019_11_05.ModuleManagementHttpClient(managementUri, workloadStaleSocketErrCode);
             }
 
-            return new Version_2018_06_28.ModuleManagementHttpClient(managementUri);
+            return new Version_2018_06_28.ModuleManagementHttpClient(managementUri, workloadStaleSocketErrCode);
         }
 
         static ApiVersion GetSupportedVersion(string serverSupportedApiVersion, string clientSupportedApiVersion)

@@ -35,11 +35,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
         protected ModuleManagementHttpClientVersioned(
             Uri managementUri,
             ApiVersion version,
+            int workloadStaleSocketErrCode,
             ITransientErrorDetectionStrategy transientErrorDetectionStrategy,
             Option<TimeSpan> operationTimeout)
         {
+            //BEARWASHERE
             this.ManagementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             this.Version = Preconditions.CheckNotNull(version, nameof(version));
+            this.WorkloadStaleSocketErrCode = workloadStaleSocketErrCode;
             this.transientErrorDetectionStrategy = transientErrorDetectionStrategy;
             this.operationTimeout = operationTimeout.GetOrElse(DefaultOperationTimeout);
         }
@@ -47,6 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
         protected Uri ManagementUri { get; }
 
         protected ApiVersion Version { get; }
+
+        protected int WorkloadStaleSocketErrCode { get; }
 
         public abstract Task<Identity> CreateIdentityAsync(string name, string managedBy);
 
@@ -126,7 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 Events.SuccessfullyExecutedOperation(operation, this.ManagementUri.ToString());
                 return result;
             }
-            catch (SocketException ex) when (ex.Message.Contains("Connection refused"))
+            catch (SocketException ex) when (ex.ErrorCode == this.WorkloadStaleSocketErrCode)
             {
                 Events.StaleSocketShutdown(ex, operation, this.ManagementUri.ToString());
                 Environment.Exit(ex.ErrorCode);
