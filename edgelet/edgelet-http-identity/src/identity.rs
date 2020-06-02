@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use crate::error::{Error, ErrorKind};
 use edgelet_core::WorkloadConfig;
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
@@ -8,14 +9,12 @@ use futures::{Future, Stream};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
 use identity::models::{IdentityResult, IdentitySpec};
-use crate::error::{Error, ErrorKind};
 
 use crate::IntoResponse;
 
 const DEVICE_IDENTITY_TYPE: &str = "aziot";
 const DEVICE_IDENTITY_AUTH_TYPE: &str = "sas";
 const DEVICE_IDENTITY_KEY_HANDLE: &str = "primary";
-
 
 pub struct IdentityHandler<W: WorkloadConfig> {
     config: W,
@@ -41,15 +40,18 @@ where
         let response = req
             .into_body()
             .concat2()
-            .then(move|_| {
-                let identity_auth =
-                    identity::models::Credentials::new(DEVICE_IDENTITY_AUTH_TYPE.parse().unwrap(), DEVICE_IDENTITY_KEY_HANDLE.parse().unwrap());
+            .then(move |_| {
+                let identity_auth = identity::models::Credentials::new(
+                    DEVICE_IDENTITY_AUTH_TYPE.parse().unwrap(),
+                    DEVICE_IDENTITY_KEY_HANDLE.parse().unwrap(),
+                );
                 let identity_spec = IdentitySpec::new(
                     config.iot_hub_name().to_string(),
                     config.device_id().to_string(),
                     identity_auth,
                 );
-                let identity_result = IdentityResult::new(DEVICE_IDENTITY_TYPE.parse().unwrap(), identity_spec);
+                let identity_result =
+                    IdentityResult::new(DEVICE_IDENTITY_TYPE.parse().unwrap(), identity_spec);
 
                 let body = serde_json::to_string(&identity_result)
                     .context(ErrorKind::GetIdentity)
@@ -64,7 +66,7 @@ where
 
                 Ok(response)
             })
-            .or_else(|e:Error| Ok(e.into_response()));
+            .or_else(|e: Error| Ok(e.into_response()));
 
         Box::new(response)
     }
@@ -72,14 +74,14 @@ where
 
 #[cfg(test)]
 mod tests {
-    use edgelet_core::{WorkloadConfig, CertificateType};
     use crate::identity::IdentityHandler;
-    use std::sync::Arc;
-    use hyper::{Request, Body};
+    use edgelet_core::{CertificateType, WorkloadConfig};
     use edgelet_http::route::{Handler, Parameters};
     use futures::future::Future;
     use futures::Stream;
+    use hyper::{Body, Request};
     use identity::models::IdentityResult;
+    use std::sync::Arc;
 
     struct TestWorkloadConfig {
         iot_hub_name: String,
@@ -148,6 +150,5 @@ mod tests {
             })
             .wait()
             .unwrap();
-
     }
 }

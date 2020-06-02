@@ -4,9 +4,9 @@ use failure::{Backtrace, Context, Fail};
 use std::fmt::{self, Display};
 
 use crate::IntoResponse;
-use hyper::{Response, Body, StatusCode};
-use keyservice::models::ErrorResponse;
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Response, StatusCode};
+use keyservice::models::ErrorResponse;
 use log::error;
 
 #[derive(Debug)]

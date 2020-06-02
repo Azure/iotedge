@@ -41,12 +41,11 @@ where
                 let b = b.context(ErrorKind::MalformedRequestBody)?;
                 let request = serde_json::from_slice::<SignRequest>(&b)
                     .context(ErrorKind::MalformedRequestBody)?;
-                let message = base64::decode(
-                    request.parameters().message())
+                let message = base64::decode(request.parameters().message())
                     .context(ErrorKind::MalformedRequestBody)?;
                 let key_handle = request.key_handle();
-                let device_key = key_store.get(
-                    &KeyIdentity::Device, key_handle)
+                let device_key = key_store
+                    .get(&KeyIdentity::Device, key_handle)
                     .context(ErrorKind::DeviceKeyNotFound)?;
                 let signature = device_key
                     .sign(SignatureAlgorithm::HMACSHA256, &message)
@@ -77,14 +76,14 @@ where
 
 #[cfg(test)]
 mod tests {
-    use edgelet_core::crypto::MemoryKey;
     use crate::sign::SignHandler;
-    use edgelet_http::route::{Parameters, Handler};
-    use futures::{Stream, Future};
-    use keyservice::models::{ErrorResponse, SignRequest, SignParameters, SignResponse};
-    use edgelet_core::{KeyStore, KeyIdentity, ErrorKind as CoreErrorKind};
-    use hyper::{Request, StatusCode};
+    use edgelet_core::crypto::MemoryKey;
     use edgelet_core::Error as CoreError;
+    use edgelet_core::{ErrorKind as CoreErrorKind, KeyIdentity, KeyStore};
+    use edgelet_http::route::{Handler, Parameters};
+    use futures::{Future, Stream};
+    use hyper::{Request, StatusCode};
+    use keyservice::models::{ErrorResponse, SignParameters, SignRequest, SignResponse};
 
     #[derive(Clone, Debug)]
     struct TestKeyStore {
@@ -93,9 +92,7 @@ mod tests {
 
     impl TestKeyStore {
         pub fn new(key: MemoryKey) -> Self {
-            TestKeyStore {
-                key,
-            }
+            TestKeyStore { key }
         }
     }
 
@@ -138,7 +135,10 @@ mod tests {
             .unwrap();
 
         // act
-        let response = handler.handle(request, Parameters::default()).wait().unwrap();
+        let response = handler
+            .handle(request, Parameters::default())
+            .wait()
+            .unwrap();
 
         // assert
         assert_eq!(StatusCode::BAD_REQUEST, response.status());
@@ -175,7 +175,10 @@ mod tests {
             .unwrap();
 
         // act
-        let response = handler.handle(request, Parameters::default()).wait().unwrap();
+        let response = handler
+            .handle(request, Parameters::default())
+            .wait()
+            .unwrap();
 
         // assert
         assert_eq!(StatusCode::NOT_FOUND, response.status());
@@ -184,8 +187,7 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                let expected =
-                    "Device key not found\n\tcaused by: Item not found.";
+                let expected = "Device key not found\n\tcaused by: Item not found.";
                 assert_eq!(expected, error_response.message());
                 Ok(())
             })
@@ -213,7 +215,10 @@ mod tests {
             .unwrap();
 
         // act
-        let response = handler.handle(request, Parameters::default()).wait().unwrap();
+        let response = handler
+            .handle(request, Parameters::default())
+            .wait()
+            .unwrap();
 
         // assert
         assert_eq!(StatusCode::BAD_REQUEST, response.status());
@@ -222,8 +227,7 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                let expected =
-                    "Request body is malformed\n\tcaused by: Invalid byte 95, offset 3.";
+                let expected = "Request body is malformed\n\tcaused by: Invalid byte 95, offset 3.";
                 assert_eq!(expected, error_response.message());
                 Ok(())
             })
@@ -251,7 +255,10 @@ mod tests {
             .unwrap();
 
         // act
-        let response = handler.handle(request, Parameters::default()).wait().unwrap();
+        let response = handler
+            .handle(request, Parameters::default())
+            .wait()
+            .unwrap();
 
         // assert
         let expected = "riPI9XPTbHodbLyLC+vlLgZm3PFPoEQHMo+5RLj3qC0=";

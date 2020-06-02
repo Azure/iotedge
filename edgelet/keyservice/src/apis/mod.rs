@@ -11,17 +11,19 @@ pub struct ApiError<T> {
     pub content: Option<T>,
 }
 
-impl<'de, T> From<(hyper::StatusCode, &'de [u8])> for Error<T> 
-    where T: serde::Deserialize<'de> {
+impl<'de, T> From<(hyper::StatusCode, &'de [u8])> for Error<T>
+where
+    T: serde::Deserialize<'de>,
+{
     fn from(e: (hyper::StatusCode, &'de [u8])) -> Self {
         if e.1.is_empty() {
-            return Error::ApiError(ApiError{
+            return Error::ApiError(ApiError {
                 code: e.0,
                 content: None,
             });
         }
         match serde_json::from_slice::<T>(e.1) {
-            Ok(t) => Error::ApiError(ApiError{
+            Ok(t) => Error::ApiError(ApiError {
                 code: e.0,
                 content: Some(t),
             }),
@@ -43,7 +45,7 @@ impl<T> From<serde_json::Error> for Error<T> {
 }
 
 mod key_operations_api;
-pub use self::key_operations_api::{ KeyOperationsApi, KeyOperationsApiClient };
+pub use self::key_operations_api::{KeyOperationsApi, KeyOperationsApiClient};
 
-pub mod configuration;
 pub mod client;
+pub mod configuration;

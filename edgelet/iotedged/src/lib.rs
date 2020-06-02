@@ -1495,15 +1495,17 @@ where
         runtime,
         workload_config.clone(),
         ident_rx,
-        cert_manager.clone());
+        cert_manager.clone(),
+    );
 
-    let key_svc = start_key_service::<M,_,_,_>(
+    let key_svc = start_key_service::<M, _, _, _>(
         settings,
         runtime,
         workload_config,
         &key_store.clone(),
         key_rx,
-        cert_manager);
+        cert_manager,
+    );
 
     let (runt_tx, runt_rx) = oneshot::channel();
     let edge_rt = start_runtime::<_, _, M>(
@@ -1589,9 +1591,16 @@ where
     tokio_runtime.spawn(shutdown);
 
     let services = mgmt
-        .join(workload.join5(edge_rt_with_cleanup, expiration_timer, key_svc, identity_svc))
+        .join(workload.join5(
+            edge_rt_with_cleanup,
+            expiration_timer,
+            key_svc,
+            identity_svc,
+        ))
         .then(|result| match result {
-            Ok(((), ((), (restart_code, should_reprovision), (), (), ()))) => Ok((restart_code, should_reprovision)),
+            Ok(((), ((), (restart_code, should_reprovision), (), (), ()))) => {
+                Ok((restart_code, should_reprovision))
+            }
             Err(err) => Err(err),
         });
     let (restart_code, should_reprovision) = tokio_runtime.block_on(services)?;
@@ -2171,17 +2180,17 @@ fn start_identity<M, W, CE>(
     shutdown: Receiver<()>,
     cert_manager: Arc<CertificateManager<CE>>,
 ) -> impl Future<Item = (), Error = Error>
-    where
-        CE: CreateCertificate + Clone,
-        M: MakeModuleRuntime + 'static,
-        M::Settings: 'static,
-        M::ModuleRuntime: 'static + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
-        <<M::ModuleRuntime as Authenticator>::AuthenticateFuture as Future>::Error: Fail,
-        for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
-        <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
+where
+    CE: CreateCertificate + Clone,
+    M: MakeModuleRuntime + 'static,
+    M::Settings: 'static,
+    M::ModuleRuntime: 'static + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
+    <<M::ModuleRuntime as Authenticator>::AuthenticateFuture as Future>::Error: Fail,
+    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+    <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
         Clone + DeserializeOwned + Serialize,
-        <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
-        W: WorkloadConfig + Clone + Send + Sync + 'static,
+    <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
+    W: WorkloadConfig + Clone + Send + Sync + 'static,
 {
     info!("Starting identity API...");
 
@@ -2232,10 +2241,9 @@ where
     <<M::ModuleRuntime as Authenticator>::AuthenticateFuture as Future>::Error: Fail,
     for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
     <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
-    Clone + DeserializeOwned + Serialize,
+        Clone + DeserializeOwned + Serialize,
     <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
     W: WorkloadConfig + Clone + Send + Sync + 'static,
-
 {
     info!("Starting key service API...");
 
@@ -2247,9 +2255,8 @@ where
 
     KeyService::new(runtime, config, key_store)
         .then(move |service| -> Result<_, Error> {
-            let service = service.context(ErrorKind::Initialize(
-                InitializeErrorReason::KeyService,
-            ))?;
+            let service =
+                service.context(ErrorKind::Initialize(InitializeErrorReason::KeyService))?;
             let service = LoggingService::new(label, service);
 
             let tls_params = TlsAcceptorParams::new(&cert_manager, min_protocol_version);
@@ -2257,11 +2264,9 @@ where
             let run = Http::new()
                 .bind_url(url.clone(), service, Some(tls_params))
                 .map_err(|err| {
-                    err.context(ErrorKind::Initialize(
-                        InitializeErrorReason::KeyService,
-                    ))
+                    err.context(ErrorKind::Initialize(InitializeErrorReason::KeyService))
                 })?
-                .run_until(shutdown.map_err(|_|()))
+                .run_until(shutdown.map_err(|_| ()))
                 .map_err(|err| Error::from(err.context(ErrorKind::KeyService)));
             info!("Listening on {} with 1 thread for key service API.", url);
             Ok(run)

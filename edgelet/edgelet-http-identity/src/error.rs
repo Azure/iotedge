@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::{Backtrace, Context, Fail};
-use std::fmt::{self, Display};
 use crate::IntoResponse;
-use hyper::{Response, Body, StatusCode};
-use identity::models::ErrorResponse;
+use failure::{Backtrace, Context, Fail};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::{Body, Response, StatusCode};
+use identity::models::ErrorResponse;
 use log::error;
+use std::fmt::{self, Display};
 
 #[derive(Debug)]
 pub struct Error {
