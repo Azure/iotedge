@@ -95,10 +95,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
 
-            // Auth-chain for the root (when there aren't any nodes in the tree yet)
+            // Auth-chain for the acting device (when there aren't any nodes in the tree yet)
             if (id == this.actorDeviceId)
             {
                 return Option.Some(this.actorDeviceId);
+            }
+            else if (id == this.actorDeviceId + "/$edgeHub")
+            {
+                // TODO: richma - make this better
+                return Option.Some(this.actorDeviceId + "/$edgeHub" + ";" + this.actorDeviceId);
             }
 
             using (await this.nodesLock.LockAsync())
