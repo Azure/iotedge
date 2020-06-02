@@ -82,7 +82,6 @@ jobs:
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-x64.tar.gz
             $(images.artifact.name.linux)/e2e_deployment_files/long_haul_deployment.template.json
             $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
-            $(images.artifact.name.linux)/scripts/testHelper.sh
             $(images.artifact.name.linux)/artifactInfo.txt
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
@@ -168,7 +167,6 @@ jobs:
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm.tar.gz
             $(images.artifact.name.linux)/e2e_deployment_files/long_haul_deployment.template.json
             $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
-            $(images.artifact.name.linux)/scripts/testHelper.sh
             $(images.artifact.name.linux)/artifactInfo.txt
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
@@ -254,7 +252,6 @@ jobs:
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm64.tar.gz
             $(images.artifact.name.linux)/e2e_deployment_files/long_haul_deployment.template.json
             $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
-            $(images.artifact.name.linux)/scripts/testHelper.sh
             $(images.artifact.name.linux)/artifactInfo.txt
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
