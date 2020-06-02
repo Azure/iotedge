@@ -37,6 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             string edgeHubDockerCertPFXPath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubServerCertificateFile);
             string edgeHubDockerCaChainCertPath = configuration.GetValue<string>(Constants.ConfigKey.EdgeHubServerCAChainCertificateFile);
             string edgeHubConnectionString = configuration.GetValue<string>(Constants.ConfigKey.IotHubConnectionString);
+            int workloadStaleSocketErrCode = configuration.GetValue(Constants.ConfigKey.WorkloadStaleSocketExceptionKey, 111);
 
             if (string.IsNullOrEmpty(edgeHubConnectionString))
             {
@@ -51,8 +52,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 string edgeletApiVersion = configuration.GetValue<string>(Constants.ConfigKey.WorkloadAPiVersion);
                 DateTime expiration = DateTime.UtcNow.AddDays(Constants.CertificateValidityDays);
 
-                certificates = await CertificateHelper.GetServerCertificatesFromEdgelet(workloadUri, edgeletApiVersion, Constants.WorkloadApiVersion, moduleId, generationId, edgeHubHostname, expiration);
-                IEnumerable<X509Certificate2> trustBundle = await CertificateHelper.GetTrustBundleFromEdgelet(workloadUri, edgeletApiVersion, Constants.WorkloadApiVersion, moduleId, generationId);
+                certificates = await CertificateHelper.GetServerCertificatesFromEdgelet(workloadUri, edgeletApiVersion, Constants.WorkloadApiVersion, workloadStaleSocketErrCode, moduleId, generationId, edgeHubHostname, expiration);
+                IEnumerable<X509Certificate2> trustBundle = await CertificateHelper.GetTrustBundleFromEdgelet(workloadUri, edgeletApiVersion, Constants.WorkloadApiVersion, workloadStaleSocketErrCode, moduleId, generationId);
 
                 result = new EdgeHubCertificates(
                     certificates.ServerCertificate,
