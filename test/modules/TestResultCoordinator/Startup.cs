@@ -64,13 +64,13 @@ namespace TestResultCoordinator
                     storeProvider,
                     sources).Result);
 
-            services.AddHostedService<TestResultReportingService>();
-            services.AddHostedService<TestResultEventReceivingService>();
+            Settings.Current.TestResultReportingServiceSettings.ForEach(() => services.AddHostedService<TestResultReportingService>());
+            Settings.Current.TestResultEventReceivingServiceSettings.ForEach(() => services.AddHostedService<TestResultEventReceivingService>());
 
             Logger.LogInformation("Calling Startup.ConfigureServices Completed.");
         }
 
-        // TODO: Remove warning disable for Obsolete when project is moved to dotnetcore 3.0
+        // TODO: Figure out how to use developer exception page with IWebHostEnvironment
 #pragma warning disable 612, 618
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
