@@ -193,6 +193,12 @@ async fn translation_twin_notify() {
     test_twin_with_client_id("device_1").await;
 }
 
+#[tokio::test]
+#[ignore] // Re-enable when wildcards are handled
+async fn translation_twin_notify+with_wildcards() {
+    test_twin_with_client_id("device+1#325").await;
+}
+
 proptest! {
     #[test]
     fn translate_clientid_proptest(client_id in arb_clientid()) {
