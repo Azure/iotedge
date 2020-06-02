@@ -28,7 +28,8 @@ parameters:
   metricsCollector.hostPlatform: ''
   edgeRuntime.buildNumber: ''
   customEdgeAgent.image: ''
-  cusotmEdgeHub.image: ''
+  customEdgeHub.image: ''
+  runtimeLogLevel: ''
 
 steps:
   - task: CopyFiles@2
