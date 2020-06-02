@@ -39,7 +39,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
             ITransientErrorDetectionStrategy transientErrorDetectionStrategy,
             Option<TimeSpan> operationTimeout)
         {
-            //BEARWASHERE
             this.ManagementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             this.Version = Preconditions.CheckNotNull(version, nameof(version));
             this.WorkloadStaleSocketErrCode = workloadStaleSocketErrCode;
