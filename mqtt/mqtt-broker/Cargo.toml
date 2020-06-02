@@ -59,6 +59,11 @@ name = "broker_model"
 path = "tests/broker_model.rs"
 required-features = ["proptest"]
 
+[[test]]
+name = "translation"
+path = "tests/translation.rs"
+required-features = ["proptest"]
+
 [[bench]]
 name = "persist_broker_state"
 harness = false
