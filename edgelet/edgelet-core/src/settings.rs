@@ -449,6 +449,10 @@ pub struct Listen {
     workload_uri: Url,
     #[serde(with = "url_serde")]
     management_uri: Url,
+    #[serde(with = "url_serde")]
+    identity_uri: Url,
+    #[serde(with = "url_serde")]
+    keyservice_uri: Url,
     #[serde(default = "Protocol::default")]
     min_tls_version: Protocol,
 }
@@ -459,6 +463,14 @@ impl Listen {
     }
 
     pub fn management_uri(&self) -> &Url {
+        &self.management_uri
+    }
+
+    pub fn identity_uri(&self) -> &Url {
+        &self.workload_uri
+    }
+
+    pub fn keyservice_uri(&self) -> &Url {
         &self.management_uri
     }
 
