@@ -29,6 +29,8 @@ jobs:
     displayName: Linux amd64
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
+    variables:
+      system.debug: true
     pool:
       vmImage: "ubuntu-16.04"
     steps:
