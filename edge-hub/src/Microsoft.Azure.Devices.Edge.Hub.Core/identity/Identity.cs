@@ -5,10 +5,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 
     public abstract class Identity : IIdentity
     {
-        protected Identity(string iotHubHostname, Option<string> gatewayHostname, string id)
+        protected Identity(string iotHubHostname, string id)
         {
             this.IotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
-            this.GatewayHostname = gatewayHostname;
             this.Id = Preconditions.CheckNonWhiteSpace(id, nameof(id));
         }
 
@@ -16,12 +15,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 
         public string Id { get; }
 
-        public Option<string> GatewayHostname { get; }
-
         protected bool Equals(Identity other) =>
             string.Equals(this.IotHubHostname, other.IotHubHostname) &&
-            string.Equals(this.Id, other.Id) &&
-            this.GatewayHostname.Equals(other.GatewayHostname);
+            string.Equals(this.Id, other.Id);
 
         public override bool Equals(object obj)
         {
@@ -49,7 +45,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
             {
                 int hashCode = this.IotHubHostname.GetHashCode();
                 hashCode = (hashCode * 397) ^ this.Id.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.GatewayHostname.GetHashCode();
                 return hashCode;
             }
         }

@@ -29,9 +29,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             TimeSpan reauthFrequency = TimeSpan.FromSeconds(3);
 
-            var deviceIdentity = new DeviceIdentity(IoTHubHostName, Option.None<string>(), "d2");
-            var moduleIdentity = new ModuleIdentity(IoTHubHostName, Option.None<string>(), "d1", "m1");
-            var edgeHubIdentity = new ModuleIdentity(IoTHubHostName, Option.None<string>(), "d1", "$edgeHub");
+            var deviceIdentity = new DeviceIdentity(IoTHubHostName, "d2");
+            var moduleIdentity = new ModuleIdentity(IoTHubHostName, "d1", "m1");
+            var edgeHubIdentity = new ModuleIdentity(IoTHubHostName, "d1", "$edgeHub");
             var clients = new List<IIdentity>
             {
                 deviceIdentity,
@@ -80,8 +80,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             TimeSpan reauthFrequency = TimeSpan.FromSeconds(3);
 
-            var deviceIdentity = new DeviceIdentity(IoTHubHostName, Option.None<string>(), "d1");
-            var moduleIdentity = new ModuleIdentity(IoTHubHostName, Option.None<string>(), "d1", "m1");
+            var deviceIdentity = new DeviceIdentity(IoTHubHostName, "d1");
+            var moduleIdentity = new ModuleIdentity(IoTHubHostName, "d1", "m1");
             var clients = new List<IIdentity>
             {
                 deviceIdentity,
@@ -132,8 +132,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             TimeSpan reauthFrequency = TimeSpan.FromSeconds(5);
 
-            var deviceIdentity = new DeviceIdentity(IoTHubHostName, Option.None<string>(), "d1");
-            var moduleIdentity = new ModuleIdentity(IoTHubHostName, Option.None<string>(), "d1", "m1");
+            var deviceIdentity = new DeviceIdentity(IoTHubHostName, "d1");
+            var moduleIdentity = new ModuleIdentity(IoTHubHostName, "d1", "m1");
             var clients = new List<IIdentity>
             {
                 deviceIdentity,
@@ -256,8 +256,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             TimeSpan reauthFrequency = TimeSpan.FromSeconds(3);
 
-            var deviceIdentity = new DeviceIdentity(IoTHubHostName, Option.None<string>(), "d1");
-            var moduleIdentity = new ModuleIdentity(IoTHubHostName, Option.None<string>(), "d1", "m1");
+            var deviceIdentity = new DeviceIdentity(IoTHubHostName, "d1");
+            var moduleIdentity = new ModuleIdentity(IoTHubHostName, "d1", "m1");
 
             var deviceCredentials = Mock.Of<IClientCredentials>(c => c.Identity == deviceIdentity && c.AuthenticationType == AuthenticationType.SasKey);
             var moduleCredentials = Mock.Of<IClientCredentials>(c => c.Identity == moduleIdentity && c.AuthenticationType == AuthenticationType.SasKey);
@@ -312,8 +312,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             TimeSpan reauthFrequency = TimeSpan.FromSeconds(3);
 
-            var deviceIdentity = new DeviceIdentity(IoTHubHostName, Option.None<string>(), "d1");
-            var moduleIdentity = new ModuleIdentity(IoTHubHostName, Option.None<string>(), "d1", "m1");
+            var deviceIdentity = new DeviceIdentity(IoTHubHostName, "d1");
+            var moduleIdentity = new ModuleIdentity(IoTHubHostName, "d1", "m1");
 
             var deviceCredentials = Mock.Of<IClientCredentials>(c => c.Identity == deviceIdentity && c.AuthenticationType == AuthenticationType.SasKey);
             var moduleCredentials = Mock.Of<IClientCredentials>(c => c.Identity == moduleIdentity && c.AuthenticationType == AuthenticationType.SasKey);
@@ -369,7 +369,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             TimeSpan reauthFrequency = TimeSpan.FromSeconds(3);
 
-            var edgeHubIdentity = new ModuleIdentity(IoTHubHostName, Option.None<string>(), "d1", "$edgeHub");
+            var edgeHubIdentity = new ModuleIdentity(IoTHubHostName, "d1", "$edgeHub");
             var edgeHubCredentials = Mock.Of<IClientCredentials>(c => c.Identity == edgeHubIdentity && c.AuthenticationType == AuthenticationType.SasKey);
             credentialsStore.Setup(c => c.Get(edgeHubIdentity)).ReturnsAsync(Option.Some(edgeHubCredentials));
 

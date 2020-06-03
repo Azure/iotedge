@@ -451,7 +451,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             var authenticator = Mock.Of<IAuthenticator>();
             var usernameParser = new MqttUsernameParser();
-            var credFactory = new ClientCredentialsFactory(new IdentityProvider(hubname, Option.None<string>()));
+            var credFactory = new ClientCredentialsFactory(new IdentityProvider(hubname));
 
             Mock.Get(authenticator).Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).Returns(Task.FromResult(true));
            

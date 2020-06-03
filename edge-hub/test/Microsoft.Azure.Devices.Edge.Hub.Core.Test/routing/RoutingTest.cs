@@ -431,7 +431,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             cloudConnectionProvider.Setup(c => c.Connect(It.IsAny<IClientCredentials>(), It.IsAny<Action<string, CloudConnectionStatus>>())).ReturnsAsync(Try.Success(cloudConnection));
 
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
-            IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider.Object, Mock.Of<ICredentialsCache>(), new IdentityProvider(iotHubName, Option.None<string>()), deviceConnectivityManager);
+            IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider.Object, Mock.Of<ICredentialsCache>(), new IdentityProvider(iotHubName), deviceConnectivityManager);
             var routingMessageConverter = new RoutingMessageConverter();
             RouteFactory routeFactory = new EdgeRouteFactory(new EndpointFactory(connectionManager, routingMessageConverter, edgeDeviceId, 10, 10));
             IEnumerable<Route> routesList = routeFactory.Create(routes).ToList();
@@ -486,10 +486,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         }
 
         static IClientCredentials SetupDeviceIdentity(string deviceId) =>
-            new TokenCredentials(new DeviceIdentity("iotHub", Option.None<string>(), deviceId), Guid.NewGuid().ToString(), string.Empty, false);
+            new TokenCredentials(new DeviceIdentity("iotHub", deviceId), Guid.NewGuid().ToString(), string.Empty, false);
 
         static IClientCredentials SetupModuleCredentials(string moduleId, string deviceId) =>
-            new TokenCredentials(new ModuleIdentity("iotHub", Option.None<string>(), deviceId, moduleId), Guid.NewGuid().ToString(), string.Empty, false);
+            new TokenCredentials(new ModuleIdentity("iotHub", deviceId, moduleId), Guid.NewGuid().ToString(), string.Empty, false);
 
         class IoTHub
         {

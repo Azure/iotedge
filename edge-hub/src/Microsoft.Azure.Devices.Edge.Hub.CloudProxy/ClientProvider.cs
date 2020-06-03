@@ -10,6 +10,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
     public class ClientProvider : IClientProvider
     {
+        private readonly Option<string> gatewayHostname;
+
+        public ClientProvider(Option<string> gatewayHostname)
+        {
+            this.gatewayHostname = gatewayHostname;
+        }
+
         public IClient Create(IIdentity identity, IAuthenticationMethod authenticationMethod, ITransportSettings[] transportSettings)
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
@@ -18,14 +25,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             if (identity is IModuleIdentity)
             {
-                ModuleClient moduleClient = identity.GatewayHostname.Match(
+                ModuleClient moduleClient = this.gatewayHostname.Match(
                     v => ModuleClient.Create(identity.IotHubHostname, v, authenticationMethod, transportSettings),
                     () => ModuleClient.Create(identity.IotHubHostname, authenticationMethod, transportSettings));
                 return new ModuleClientWrapper(moduleClient);
             }
             else if (identity is IDeviceIdentity)
             {
-                DeviceClient deviceClient = identity.GatewayHostname.Match(
+                DeviceClient deviceClient = this.gatewayHostname.Match(
                     v => DeviceClient.Create(identity.IotHubHostname, v, authenticationMethod, transportSettings),
                     () => DeviceClient.Create(identity.IotHubHostname, authenticationMethod, transportSettings));
                 return new DeviceClientWrapper(deviceClient);

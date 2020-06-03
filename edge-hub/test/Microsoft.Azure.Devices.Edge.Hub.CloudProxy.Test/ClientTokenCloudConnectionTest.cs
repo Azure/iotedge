@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             ITokenCredentials GetClientCredentialsWithNonExpiringToken()
             {
                 string token = TokenHelper.CreateSasToken(iothubHostName, DateTime.UtcNow.AddMinutes(10));
-                var identity = new DeviceIdentity(iothubHostName, Option.None<string>(), deviceId);
+                var identity = new DeviceIdentity(iothubHostName, deviceId);
                 return new TokenCredentials(identity, token, string.Empty, false);
             }
 
@@ -141,14 +141,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             ITokenCredentials GetClientCredentialsWithExpiringToken()
             {
                 string token = TokenHelper.CreateSasToken(iothubHostName, DateTime.UtcNow.AddMinutes(3));
-                var identity = new DeviceIdentity(iothubHostName, Option.None<string>(), deviceId);
+                var identity = new DeviceIdentity(iothubHostName, deviceId);
                 return new TokenCredentials(identity, token, string.Empty, false);
             }
 
             ITokenCredentials GetClientCredentialsWithNonExpiringToken()
             {
                 string token = TokenHelper.CreateSasToken(iothubHostName, DateTime.UtcNow.AddMinutes(10));
-                var identity = new DeviceIdentity(iothubHostName, Option.None<string>(), deviceId);
+                var identity = new DeviceIdentity(iothubHostName, deviceId);
                 return new TokenCredentials(identity, token, string.Empty, false);
             }
 
@@ -209,14 +209,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             ITokenCredentials GetClientCredentialsWithExpiringToken()
             {
                 string token = TokenHelper.CreateSasToken(iothubHostName, DateTime.UtcNow.AddMinutes(3));
-                var identity = new DeviceIdentity(iothubHostName, Option.None<string>(), deviceId);
+                var identity = new DeviceIdentity(iothubHostName, deviceId);
                 return new TokenCredentials(identity, token, string.Empty, false);
             }
 
             ITokenCredentials GetClientCredentialsWithNonExpiringToken()
             {
                 string token = TokenHelper.CreateSasToken(iothubHostName, DateTime.UtcNow.AddMinutes(10));
-                var identity = new DeviceIdentity(iothubHostName, Option.None<string>(), deviceId);
+                var identity = new DeviceIdentity(iothubHostName, deviceId);
                 return new TokenCredentials(identity, token, string.Empty, false);
             }
 
@@ -375,7 +375,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             ITokenCredentials GetClientCredentials(TimeSpan tokenExpiryDuration)
             {
                 string token = TokenHelper.CreateSasToken(hostname, DateTime.UtcNow.AddSeconds(tokenExpiryDuration.TotalSeconds));
-                var identity = new DeviceIdentity(hostname, Option.None<string>(), deviceId);
+                var identity = new DeviceIdentity(hostname, deviceId);
                 return new TokenCredentials(identity, token, string.Empty, false);
             }
 
@@ -440,7 +440,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 productInfoStore);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
-            IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, Mock.Of<ICredentialsCache>(), new IdentityProvider(hostname, Option.None<string>()), deviceConnectivityManager);
+            IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, Mock.Of<ICredentialsCache>(), new IdentityProvider(hostname), deviceConnectivityManager);
 
             ITokenCredentials clientCredentials1 = GetClientCredentials(TimeSpan.FromSeconds(10));
             Try<ICloudProxy> cloudProxyTry1 = await connectionManager.CreateCloudConnectionAsync(clientCredentials1);
@@ -501,7 +501,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             string deviceId = "device1")
         {
             string token = TokenHelper.CreateSasToken(hostname);
-            var identity = new DeviceIdentity(hostname, Option.None<string>(), deviceId);
+            var identity = new DeviceIdentity(hostname, deviceId);
             return new TokenCredentials(identity, token, string.Empty, false);
         }
     }

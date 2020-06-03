@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await registryManager.OpenAsync();
 
             string iothubHostName = iotHubConnectionStringBuilder.HostName;
-            var identityProvider = new IdentityProvider(iothubHostName, Option.None<string>());
+            var identityProvider = new IdentityProvider(iothubHostName);
             var identityFactory = new ClientCredentialsFactory(identityProvider);
 
             (string edgeDeviceId, string deviceConnStr) = await RegistryManagerHelper.CreateDevice(EdgeDeviceId, iotHubConnectionString, registryManager, true, false);
@@ -66,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var cloudConnectionProvider = new CloudConnectionProvider(
                 messageConverterProvider,
                 1,
-                new ClientProvider(),
+                new ClientProvider(Option.None<string>()),
                 Option.None<UpstreamProtocol>(),
                 new ClientTokenProvider(signatureProvider, iothubHostName, edgeDeviceId, TimeSpan.FromMinutes(60)),
                 Mock.Of<IDeviceScopeIdentitiesCache>(),

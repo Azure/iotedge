@@ -8,7 +8,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
         string Id { get; }
 
         string IotHubHostname { get; }
-
-        Option<string> GatewayHostname { get; }
     }
 }

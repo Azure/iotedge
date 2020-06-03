@@ -8,9 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
     {
         public DeviceIdentity(
             string iotHubHostName,
-            Option<string> gatewayHostname,
             string deviceId)
-            : base(iotHubHostName, gatewayHostname, deviceId)
+            : base(iotHubHostName, deviceId)
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
         }
@@ -53,7 +52,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 
         public override string ToString() =>
             $"DeviceId: {this.DeviceId} " +
-            $"[IotHubHostName: {this.IotHubHostname}]" +
-            $"{this.GatewayHostname.Map(v => $" [GatewayHostname: {v}]")}";
+            $"[IotHubHostName: {this.IotHubHostname}]";
     }
 }

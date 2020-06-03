@@ -201,7 +201,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     c =>
                     {
-                        IClientProvider underlyingClientProvider = new ClientProvider();
+                        IClientProvider underlyingClientProvider = new ClientProvider(this.gatewayHostname);
                         IClientProvider connectivityAwareClientProvider = new ConnectivityAwareClientProvider(underlyingClientProvider, c.Resolve<IDeviceConnectivityManager>());
                         return connectivityAwareClientProvider;
                     })
@@ -243,7 +243,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // IIdentityProvider
-            builder.Register(_ => new IdentityProvider(this.iotHubName, this.gatewayHostname))
+            builder.Register(_ => new IdentityProvider(this.iotHubName))
                 .As<IIdentityProvider>()
                 .SingleInstance();
 

@@ -9,10 +9,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
     {
         public ModuleIdentity(
             string iotHubHostname,
-            Option<string> gatewayHostname,
             string deviceId,
             string moduleId)
-            : base(iotHubHostname, gatewayHostname, FormattableString.Invariant($"{deviceId}/{moduleId}"))
+            : base(iotHubHostname, FormattableString.Invariant($"{deviceId}/{moduleId}"))
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
@@ -61,7 +60,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
         public override string ToString() =>
             $"DeviceId: {this.DeviceId}; " +
             $"ModuleId: {this.ModuleId} " +
-            $"[IotHubHostName: {this.IotHubHostname}]" +
-            $"{this.GatewayHostname.Map(v => $" [GatewayHostname: {v}]")}";
+            $"[IotHubHostName: {this.IotHubHostname}]";
     }
 }
