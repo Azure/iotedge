@@ -64,7 +64,13 @@ namespace MetricsValidator.Tests
                 if (expected.TryGetValue(metric.Name, out ExpectedMetric expectedMetric))
                 {
                     // Make sure all tags are returned
-                    this.testReporter.Assert(metricId, expectedMetric.Tags.All(metric.Tags.ContainsKey), $"Expected metric {metric.Name} to contain tags {string.Join(", ", expectedMetric.Tags)}.\nActual tags: {JsonConvert.SerializeObject(metric.Tags)}");
+                    this.testReporter.Assert($"{metricId} tags", expectedMetric.Tags.All(metric.Tags.ContainsKey), $"Expected metric {metric.Name} to contain tags {string.Join(", ", expectedMetric.Tags)}.\nActual tags: {JsonConvert.SerializeObject(metric.Tags)}");
+
+                    // Make sure values are in bounds
+                    if (expectedMetric.Bounds != null)
+                    {
+                        this.testReporter.Assert($"{metricId} value", expectedMetric.Tags.All(metric.Tags.ContainsKey), $"Expected metric {metric.Name} to contain tags {string.Join(", ", expectedMetric.Tags)}.\nActual tags: {JsonConvert.SerializeObject(metric.Tags)}");
+                    }
                 }
                 else
                 {
@@ -94,46 +100,95 @@ namespace MetricsValidator.Tests
 
         class ExpectedMetric
         {
-            static readonly Regex Single = new Regex(@"`(\w*)`", RegexOptions.Compiled);
+            static readonly Regex Word = new Regex(@"`(\w*)`", RegexOptions.Compiled);
+            static readonly Regex Any = new Regex(@"`(.*)`", RegexOptions.Compiled);
 
             public string Name { get; }
             public string[] Tags { get; }
             public string Type { get; }
+            public RangeBound Bounds { get; }
 
-            ExpectedMetric(string name, string[] tags, string type)
+
+            ExpectedMetric(string name, string[] tags, string type, RangeBound bounds)
             {
                 this.Name = name;
                 this.Tags = tags;
                 this.Type = type;
+                this.Bounds = bounds;
             }
 
             public static IEnumerable<ExpectedMetric> ParseDoc(IEnumerable<string> lines)
             {
                 var columns = lines.Select(line => line.Split('|'))
-                    .Where(rows => rows.Length == 6);
+                    .Where(rows => rows.Length == 7);
 
                 foreach (var column in columns)
                 {
-                    var nameMatch = Single.Match(column[1]);
-                    var tagsMatch = Single.Matches(column[2]);
-                    var typeMatch = Single.Match(column[4]);
+                    var nameMatch = Word.Match(column[1]);
+                    var tagsMatch = Word.Matches(column[2]);
+                    var typeMatch = Word.Match(column[4]);
+                    var boundsMatch = Any.Match(column[5]);
 
                     if (nameMatch.Success && typeMatch.Success)
                     {
                         string name = nameMatch.Groups[1].Value;
                         string[] tags = tagsMatch.Select(match => match.Groups[1].Value).ToArray();
                         string type = typeMatch.Groups[1].Value;
+                        RangeBound bounds = boundsMatch.Success ? RangeBound.ParseBound(boundsMatch.Value) : null;
 
                         if (type == "Histogram")
                         {
-                            string[] histTags = tags.Where(t => t != "quantile").ToArray();
-                            yield return new ExpectedMetric(name + "_sum", histTags, type);
-                            yield return new ExpectedMetric(name + "_count", histTags, type);
+                            string[] sumCountTags = tags.Where(t => t != "quantile").ToArray();
+                            yield return new ExpectedMetric(name + "_sum", sumCountTags, type, bounds);
+                            yield return new ExpectedMetric(name + "_count", sumCountTags, type, bounds);
                         }
 
-                        yield return new ExpectedMetric(name, tags, type);
+                        yield return new ExpectedMetric(name, tags, type, bounds);
                     }
                 }
+            }
+        }
+
+        class RangeBound
+        {
+            static readonly Regex Range = new Regex(@"`(?<lowerInclusive>[\[\(])(?<lowerBound>\-?\d*\.?\d*)\s*,\s*(?<upperBound>\-?\d*\.?\d*)(?<upperInclusive>[\]\)])`", RegexOptions.Compiled);
+
+            bool lowerInclusive { get; }
+            double lowerBound { get; }
+            bool upperInclusive { get; }
+            double upperBound { get; }
+            string referance { get; }
+
+            RangeBound(bool lowerInclusive, double lowerBound, bool upperInclusive, double upperBound, string referance)
+            {
+                this.lowerInclusive = lowerInclusive;
+                this.lowerBound = lowerBound;
+                this.upperInclusive = upperInclusive;
+                this.upperBound = upperBound;
+                this.referance = referance;
+            }
+
+            public static RangeBound ParseBound(string text)
+            {
+                var match = Range.Match(text);
+
+                if (!match.Success)
+                {
+                    throw new Exception($"Could not parse range: {text}");
+                }
+
+                bool lowerInclusive = match.Groups["lowerInclusive"].Value == "[";
+                double lowerBound = match.Groups["lowerBound"].Value == string.Empty ? double.MinValue : double.Parse(match.Groups["lowerBound"].Value);
+                bool upperInclusive = match.Groups["upperInclusive"].Value == "]";
+                double upperBound = match.Groups["upperBound"].Value == string.Empty ? double.MaxValue : double.Parse(match.Groups["upperBound"].Value);
+
+                return new RangeBound(lowerInclusive, lowerBound, upperInclusive, upperBound, text);
+            }
+
+            public bool InRange(double value)
+            {
+                return this.lowerInclusive ? value >= this.lowerBound : value > this.lowerBound &&
+                    this.upperInclusive ? value <= this.upperBound : value < this.upperBound;
             }
         }
 
