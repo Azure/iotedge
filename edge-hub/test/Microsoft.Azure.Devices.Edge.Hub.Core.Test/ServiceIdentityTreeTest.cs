@@ -192,6 +192,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             ServiceIdentityTree tree = this.SetupTree();
 
+            // Re-insert the same node, nothing should have changed
+            tree.InsertOrUpdate(this.e2_L2).Wait();
+            this.CheckValidAuthChains(tree);
+
             // Re-parent e3_L2 from e2_L1 to e1_L1
             ServiceIdentity updatedIdentity = CreateServiceIdentity(
                 this.e3_L2.DeviceId,

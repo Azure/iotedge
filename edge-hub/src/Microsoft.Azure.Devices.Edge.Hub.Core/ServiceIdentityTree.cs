@@ -152,13 +152,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 });
             }
 
-            // Check if there are any dangling children that can now be hooked up,
+            // Check if there are any dangling child devices that can now be hooked up,
             // this include placing the new node as the new root.
             List<ServiceIdentityTreeNode> danglingChildren =
                 this.nodes
                 .Select(kvp => kvp.Value)
                 .Where(s => s.Identity.ParentScopes.Count() > 0 && s.Identity.ParentScopes.Contains(device.DeviceScope.OrDefault()))
                 .ToList();
+
+            // Also check for any modules that should be parented to this new device
+            danglingChildren.AddRange(this.nodes
+                .Select(kvp => kvp.Value)
+                .Where(s => s.Identity.IsModule && s.Identity.DeviceId == device.DeviceId)
+                .ToList()
+                .AsEnumerable());
 
             foreach (ServiceIdentityTreeNode child in danglingChildren)
             {
@@ -277,7 +284,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
 
                 // Recursively update all children to re-calculate their authchains
-                this.children.ForEach(child => child.UpdateAuthChainFromParent(this, traveled++));
+                this.children.ForEach(child => child.UpdateAuthChainFromParent(this, traveled + 1));
             }
 
             void RemoveAuthChain()
