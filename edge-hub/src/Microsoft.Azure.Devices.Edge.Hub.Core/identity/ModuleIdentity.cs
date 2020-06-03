@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
             string iotHubHostname,
             string deviceId,
             string moduleId)
-            : base(iotHubHostname, FormattableString.Invariant($"{deviceId}/{moduleId}"))
+            : base(iotHubHostname, $"{deviceId}/{moduleId}")
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));

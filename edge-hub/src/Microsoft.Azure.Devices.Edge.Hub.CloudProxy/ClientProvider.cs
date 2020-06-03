@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
     public class ClientProvider : IClientProvider
     {
-        private readonly Option<string> gatewayHostname;
+        readonly Option<string> gatewayHostname;
 
         public ClientProvider(Option<string> gatewayHostname)
         {

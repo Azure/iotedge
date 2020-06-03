@@ -7,13 +7,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Middleware;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Primitives;
     using Microsoft.Net.Http.Headers;
     using Moq;
     using Xunit;
-    using CertificateHelper = Util.Test.Common.CertificateHelper;
 
     [Unit]
     public class AuthenticationMiddlewareTest
