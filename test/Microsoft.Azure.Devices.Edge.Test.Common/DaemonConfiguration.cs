@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         readonly string configYamlFile;
         readonly YamlDocument config;
 
-        public DaemonConfiguration(string configYamlFile, Option<string> agentImage, Option<(string address, string username, string password)> agentRegistry)
+        public DaemonConfiguration(string configYamlFile, Option<string> agentImage, Option<Registry> agentRegistry)
         {
             this.configYamlFile = configYamlFile;
             string contents = File.ReadAllText(this.configYamlFile);
@@ -23,15 +23,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 agentRegistry);
         }
 
-        public void UpdateAgentImage(string agentImage, Option<(string address, string username, string password)> agentRegistry)
+        public void UpdateAgentImage(string agentImage, Option<Registry> agentRegistry)
         {
             this.config.ReplaceOrAdd("agent.config.image", agentImage);
             agentRegistry.ForEach(
                 r =>
                 {
-                    this.config.ReplaceOrAdd("agent.config.auth.serveraddress", r.address);
-                    this.config.ReplaceOrAdd("agent.config.auth.username", r.username);
-                    this.config.ReplaceOrAdd("agent.config.auth.password", r.password);
+                    this.config.ReplaceOrAdd("agent.config.auth.serveraddress", r.Address);
+                    this.config.ReplaceOrAdd("agent.config.auth.username", r.Username);
+                    this.config.ReplaceOrAdd("agent.config.auth.password", r.Password);
                 });
         }
 

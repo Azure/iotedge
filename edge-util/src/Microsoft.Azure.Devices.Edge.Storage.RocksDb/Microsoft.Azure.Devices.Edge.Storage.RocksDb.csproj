@@ -1,8 +1,9 @@
 ﻿<!--EXTERNAL_PROPERTIES: RocksDbAsPackage-->
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <Import Project="..\..\..\netstandardVersion.props" />
+
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <Configurations>Debug;Release;CheckInBuild</Configurations>
     <HighEntropyVA>true</HighEntropyVA>

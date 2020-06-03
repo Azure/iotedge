@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use failure::Fail;
 use serde::de::DeserializeOwned;
@@ -45,7 +45,7 @@ where
 {
     let name = spec.name().to_string();
     let type_ = spec.type_().to_string();
-    let env = spec.config().env().map_or_else(HashMap::new, |vars| {
+    let env = spec.config().env().map_or_else(BTreeMap::new, |vars| {
         vars.iter()
             .map(|var| (var.key().clone(), var.value().clone()))
             .collect()

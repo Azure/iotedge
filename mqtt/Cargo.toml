@@ -2,6 +2,8 @@
 members = [
     "mqtt3",
     "mqtt-broker",
+    "mqtt-broker-core",
+    "mqtt-edgehub",
     "mqttd",
 ]
 
