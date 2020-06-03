@@ -118,7 +118,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Serv
                     Labels = new Dictionary<string, string>
                     {
                         [KubernetesConstants.K8sEdgeDeviceLabel] = "device1",
-                        [Kube] = "hostname"
                     },
                     Name = "object1"
                 }
