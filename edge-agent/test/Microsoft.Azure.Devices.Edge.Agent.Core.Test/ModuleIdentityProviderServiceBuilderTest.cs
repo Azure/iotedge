@@ -72,7 +72,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.Throws<ArgumentException>(() => new ModuleIdentityProviderServiceBuilder(string.Empty, "1"));
             Assert.Throws<ArgumentException>(() => new ModuleIdentityProviderServiceBuilder("iothub", null));
             Assert.Throws<ArgumentException>(() => new ModuleIdentityProviderServiceBuilder("iothub", string.Empty));
-            Assert.Throws<ArgumentException>(() => new ModuleIdentityProviderServiceBuilder("iothub", "1"));
 
             var builder = new ModuleIdentityProviderServiceBuilder("foo.azure.com", "device1");
 

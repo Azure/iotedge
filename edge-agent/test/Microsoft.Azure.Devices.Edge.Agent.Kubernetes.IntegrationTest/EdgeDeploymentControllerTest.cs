@@ -396,8 +396,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
 
         private DummyModuleIdentityLifecycleManager CreateModuleLifeCycleManager(string moduleName) => new DummyModuleIdentityLifecycleManager(
                 "hostname",
-                "edgeDeviceHostname",
-                Option.None<string>(),
                 "deviceid",
                 moduleName,
                 new ConnectionStringCredentials("connectionString"));

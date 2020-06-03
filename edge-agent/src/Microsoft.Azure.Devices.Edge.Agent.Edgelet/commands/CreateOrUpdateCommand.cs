@@ -19,10 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
         readonly Lazy<string> id;
         readonly Operation operation;
 
-        CreateOrUpdateCommand(
-            IModuleManager moduleManager,
-            ModuleSpec moduleSpec,
-            Operation operation)
+        CreateOrUpdateCommand(IModuleManager moduleManager, ModuleSpec moduleSpec, Operation operation)
         {
             this.moduleManager = Preconditions.CheckNotNull(moduleManager, nameof(moduleManager));
             this.moduleSpec = Preconditions.CheckNotNull(moduleSpec, nameof(moduleSpec));

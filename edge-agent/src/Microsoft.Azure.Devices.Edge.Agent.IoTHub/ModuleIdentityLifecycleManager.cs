@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
-    using System.Data;
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -16,18 +15,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly IServiceClient serviceClient;
         readonly string iothubHostName;
         readonly string deviceId;
-        readonly string edgeDeviceHostname;
+        readonly string gatewayHostName;
 
         public ModuleIdentityLifecycleManager(
             IServiceClient serviceClient,
             string iothubHostName,
             string deviceId,
-            string edgeDeviceHostname)
+            string gatewayHostName)
         {
             this.serviceClient = Preconditions.CheckNotNull(serviceClient, nameof(serviceClient));
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            this.edgeDeviceHostname = Preconditions.CheckNonWhiteSpace(edgeDeviceHostname, nameof(edgeDeviceHostname));
+            this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
         }
 
         // Modules in IoTHub can be created in one of two ways - 1. single deployment:
@@ -134,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
             return module.Id.Equals(Constants.EdgeHubModuleIdentityName, StringComparison.OrdinalIgnoreCase)
                 ? moduleConnectionString
-                : moduleConnectionString.WithGatewayHostName(this.edgeDeviceHostname);
+                : moduleConnectionString.WithGatewayHostName(this.gatewayHostName);
         }
 
         async Task<Module[]> UpdateServiceModulesIdentityAsync(IEnumerable<string> removeIdentities, IEnumerable<string> createIdentities, IEnumerable<Module> updateIdentities)

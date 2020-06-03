@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.IotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
-            this.Credentials = Preconditions.CheckNotNull(credentials, nameof(this.Credentials));
+            this.Credentials = Preconditions.CheckNotNull(credentials, nameof(credentials));
         }
 
         public string IotHubHostname { get; }
