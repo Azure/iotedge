@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 {
     using Microsoft.AspNetCore.Builder;
+    using Microsoft.AspNetCore.Http;
 
     public class AuthAgentStartup
     {
@@ -14,13 +15,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public void Configure(IApplicationBuilder app)
         {
-            app.UseMvc(routes =>
-            {
-                routes.MapRoute(
-                    "authenticate",
-                    this.config.BaseUrl,
-                    defaults: new { controller = "AuthAgent", action = "HandleAsync" });
-            });
+            app.UseRouting()
+               .UseEndpoints(endpoints =>
+                {
+                    endpoints.MapControllerRoute(
+                        "authenticate",
+                        this.config.BaseUrl,
+                        defaults: new { controller = "AuthAgent", action = "Handle" });
+                });
         }
     }
 }
