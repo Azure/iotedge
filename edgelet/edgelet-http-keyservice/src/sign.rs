@@ -231,7 +231,8 @@ mod tests {
             .concat2()
             .and_then(|b| {
                 let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();
-                let expected = "Invalid signature algorithm\n\tcaused by: Signature algorithm is unsupported.";
+                let expected =
+                    "Invalid signature algorithm\n\tcaused by: Signature algorithm is unsupported.";
                 assert_eq!(expected, error_response.message());
                 Ok(())
             })
