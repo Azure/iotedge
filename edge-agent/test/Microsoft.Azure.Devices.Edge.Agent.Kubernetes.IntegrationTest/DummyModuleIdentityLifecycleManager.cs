@@ -34,6 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             .Select(name => new { Name = name, ModuleId = this.CreateModuleIdentity() })
             .ToImmutableDictionary(id => id.Name, id => id.ModuleId);
 
-        IModuleIdentity CreateModuleIdentity() => new ModuleIdentity(this.hostName, this.edgeDeviceHostname, this.parentEdgeHostname, this.deviceId, this.moduleId, this.credentials);
+        IModuleIdentity CreateModuleIdentity() => new ModuleIdentity(this.hostName, this.deviceId, this.moduleId, this.credentials);
     }
 }

@@ -12,12 +12,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         readonly IConfigSource configSource;
         readonly IModuleManager moduleManager;
         readonly ICombinedConfigProvider<T> combinedConfigProvider;
+        readonly string edgeDeviceHostname;
+        readonly Option<string> parentEdgeHostname;
 
-        public EdgeletCommandFactory(IModuleManager moduleManager, IConfigSource configSource, ICombinedConfigProvider<T> combinedConfigProvider)
+        public EdgeletCommandFactory(
+            IModuleManager moduleManager,
+            IConfigSource configSource,
+            ICombinedConfigProvider<T> combinedConfigProvider,
+            string edgeDeviceHostname,
+            Option<string> parentEdgeHostname)
         {
             this.moduleManager = Preconditions.CheckNotNull(moduleManager, nameof(moduleManager));
             this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
             this.combinedConfigProvider = Preconditions.CheckNotNull(combinedConfigProvider, nameof(combinedConfigProvider));
+            this.edgeDeviceHostname = Preconditions.CheckNonWhiteSpace(edgeDeviceHostname, nameof(edgeDeviceHostname));
+            this.parentEdgeHostname = parentEdgeHostname;
         }
 
         public Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo) =>
@@ -27,7 +36,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                     module.Module,
                     module.ModuleIdentity,
                     this.configSource,
-                    this.combinedConfigProvider.GetCombinedConfig(module.Module, runtimeInfo)) as ICommand);
+                    this.combinedConfigProvider.GetCombinedConfig(module.Module, runtimeInfo),
+                    this.edgeDeviceHostname,
+                    this.parentEdgeHostname)
+                as ICommand);
 
         public Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo) =>
             this.UpdateAsync(Option.Some(current), next, runtimeInfo, false);
@@ -57,7 +69,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
                     next.ModuleIdentity,
                     this.configSource,
                     config,
-                    start) as ICommand);
+                    start,
+                    this.edgeDeviceHostname,
+                    this.parentEdgeHostname)
+                as ICommand);
         }
     }
 }

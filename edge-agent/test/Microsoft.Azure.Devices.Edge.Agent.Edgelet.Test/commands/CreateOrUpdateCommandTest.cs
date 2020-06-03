@@ -23,7 +23,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
             var mocks = new CreateOrUpdateCommandMocks(testData);
 
             CreateOrUpdateCommand command = CreateOrUpdateCommand.BuildCreate(
-                mocks.ModuleManager.Object, mocks.EdgeAgentModule.Object, mocks.EdgeAgentModuleIdentity.Object, mocks.ConfigSource.Object, testData.Settings);
+                mocks.ModuleManager.Object,
+                mocks.EdgeAgentModule.Object,
+                mocks.EdgeAgentModuleIdentity.Object,
+                mocks.ConfigSource.Object,
+                testData.Settings,
+                testData.EdgeDeviceHostname,
+                testData.ParentEdgeHostname);
 
             this.VerifyResult(testData, command);
         }
@@ -258,8 +264,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                 this.EdgeAgentModuleIdentity.Setup(id => id.ModuleId).Returns(testData.ModuleId);
                 this.EdgeAgentModuleIdentity.Setup(id => id.Credentials).Returns(testData.ModuleCredentials);
                 this.EdgeAgentModuleIdentity.Setup(id => id.IotHubHostname).Returns(testData.IoTHubHostname);
-                this.EdgeAgentModuleIdentity.Setup(id => id.EdgeDeviceHostname).Returns(testData.EdgeDeviceHostname);
-                this.EdgeAgentModuleIdentity.Setup(id => id.ParentEdgeHostname).Returns(testData.ParentEdgeHostname);
 
                 this.ConfigSource.Setup(cs => cs.Configuration).Returns(this.Configuration.Object);
                 var upstreamProtocolConfig = new Mock<IConfigurationSection>();

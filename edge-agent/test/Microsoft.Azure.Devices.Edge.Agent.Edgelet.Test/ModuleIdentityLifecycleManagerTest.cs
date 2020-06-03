@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         static readonly Option<string> ParentEdgeHostname = Option.Some("parentedgehostname");
         static readonly Uri EdgeletUri = new Uri("http://localhost");
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
-        static readonly ModuleIdentityProviderServiceBuilder ModuleIdentityProviderServiceBuilder = new ModuleIdentityProviderServiceBuilder(IothubHostName, DeviceId, EdgeDeviceHostname, ParentEdgeHostname);
+        static readonly ModuleIdentityProviderServiceBuilder ModuleIdentityProviderServiceBuilder = new ModuleIdentityProviderServiceBuilder(IothubHostName, DeviceId);
 
         [Fact]
         public async Task TestGetModulesIdentity_WithEmptyDiff_ShouldReturnEmptyIdentities()

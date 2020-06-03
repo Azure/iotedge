@@ -106,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IModuleIdentityLifecycleManager
-            var identityBuilder = new ModuleIdentityProviderServiceBuilder(this.iotHubHostName, this.deviceId, this.edgeDeviceHostname, this.parentEdgeHostname);
+            var identityBuilder = new ModuleIdentityProviderServiceBuilder(this.iotHubHostName, this.deviceId);
             builder.Register(c => new ModuleIdentityLifecycleManager(c.Resolve<IIdentityManager>(), identityBuilder, this.workloadUri))
                 .As<IModuleIdentityLifecycleManager>()
                 .SingleInstance();
@@ -132,7 +132,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var loggerFactory = c.Resolve<ILoggerFactory>();
                         IConfigSource configSource = await configSourceTask;
                         ICombinedConfigProvider<CombinedDockerConfig> combinedDockerConfigProvider = await combinedDockerConfigProviderTask;
-                        ICommandFactory factory = new EdgeletCommandFactory<CombinedDockerConfig>(moduleManager, configSource, combinedDockerConfigProvider);
+                        ICommandFactory factory = new EdgeletCommandFactory<CombinedDockerConfig>(
+                            moduleManager,
+                            configSource,
+                            combinedDockerConfigProvider,
+                            this.edgeDeviceHostname,
+                            this.parentEdgeHostname);
                         factory = new MetricsCommandFactory(factory, metricsProvider);
                         return new LoggingCommandFactory(factory, loggerFactory) as ICommandFactory;
                     })

@@ -8,15 +8,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     {
         readonly string iotHubHostname;
         readonly string deviceId;
-        readonly string edgeDeviceHostname;
-        readonly Option<string> parentEdgeHostname;
 
-        public ModuleIdentityProviderServiceBuilder(string iotHubHostname, string deviceId, string edgeDeviceHostname, Option<string> parentEdgeHostname)
+        public ModuleIdentityProviderServiceBuilder(string iotHubHostname, string deviceId)
         {
             this.iotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            this.edgeDeviceHostname = Preconditions.CheckNonWhiteSpace(edgeDeviceHostname, nameof(edgeDeviceHostname));
-            this.parentEdgeHostname = parentEdgeHostname;
         }
 
         public IModuleIdentity Create(string moduleId, string generationId, string providerUri)
@@ -26,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             Preconditions.CheckNonWhiteSpace(providerUri, nameof(providerUri));
 
             ICredentials credentials = new IdentityProviderServiceCredentials(providerUri, generationId);
-            return new ModuleIdentity(this.iotHubHostname, this.edgeDeviceHostname, this.parentEdgeHostname, this.deviceId, moduleId, credentials);
+            return new ModuleIdentity(this.iotHubHostname, this.deviceId, moduleId, credentials);
         }
 
         public IModuleIdentity Create(string moduleId, string generationId, string providerUri, string authScheme)
@@ -37,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             Preconditions.CheckNonWhiteSpace(authScheme, nameof(authScheme));
 
             ICredentials credentials = new IdentityProviderServiceCredentials(providerUri, generationId, authScheme);
-            return new ModuleIdentity(this.iotHubHostname, this.edgeDeviceHostname, this.parentEdgeHostname, this.deviceId, moduleId, credentials);
+            return new ModuleIdentity(this.iotHubHostname, this.deviceId, moduleId, credentials);
         }
     }
 }
