@@ -479,6 +479,14 @@ function process_args() {
     echo 'Required parameters are provided'
 }
 
+function get_hash() {
+    # TODO: testHelper.sh needs to be shared across build pipelines
+    local length=$1
+    local hash=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c $length)
+
+    echo "$hash"
+}
+
 function run_all_tests()
 {
     local funcRet=0
@@ -698,7 +706,7 @@ function run_longhaul_test() {
     print_highlighted_message "Run Long Haul test for $image_architecture_label"
     test_setup
 
-    local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-longhaul"
+    local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-longhaul-$(get_hash 8)"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run Long Haul test with -d '$device_id' started at $test_start_time"
@@ -776,7 +784,7 @@ function run_stress_test() {
     print_highlighted_message "Run Stress test for $image_architecture_label"
     test_setup
 
-    local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-stress"
+    local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-stress-$(get_hash 8)"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run Stress test with -d '$device_id' started at $test_start_time"
