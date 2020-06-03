@@ -160,7 +160,7 @@ jobs:
           edgeRuntime.buildNumber: '$(edgeRuntime.buildNumber)'
           customEdgeAgent.image: '$(customEdgeAgent.image)'
           customEdgeHub.image: '$(customEdgeHub.image)'
-          runtimeLogLevel: '$(runtimeLogLevel)'
+          runtimeLogLevel: '$(test.runtimeLogLevel)'
 
 
 ################################################################################
@@ -318,4 +318,4 @@ jobs:
           edgeRuntime.buildNumber: '$(edgeRuntime.buildNumber)'
           customEdgeAgent.image: '$(customEdgeAgent.image)'
           customEdgeHub.image: '$(customEdgeHub.image)'
-          runtimeLogLevel: '$(runtimeLogLevel)'
+          runtimeLogLevel: '$(test.runtimeLogLevel)'
