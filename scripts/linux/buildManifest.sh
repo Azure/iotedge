@@ -156,14 +156,13 @@ sed "s/__REGISTRY__/${DOCKER_REGISTRY}/g; s/__VERSION__/${DOCKER_IMAGEVERSION}/g
 echo "Build image with following manifest:"
 cat $manifest
 
-echo "Done Building And Pushing Docker Images"
-
-
 if [ $WIN_ARM32_ENABLED -eq 1 ]; then
-    curl -Lo /tmp/manifest-tool 'https://edgebuild.blob.core.windows.net/iotedge-win-arm32v7-tools/manifest-tool-linux-amd64' &&
-        chmod +x /tmp/manifest-tool &&
-        /tmp/manifest-tool --debug push from-spec $IGNORE_MISSING $manifest
+    curl -Lo /tmp/manifest-tool 'https://edgebuild.blob.core.windows.net/iotedge-win-arm32v7-tools/manifest-tool-linux-amd64' && chmod +x /tmp/manifest-tool
 fi
+
+/tmp/manifest-tool --debug push from-spec $IGNORE_MISSING $manifest
+
+echo "Done Building And Pushing Docker Images"
 
 [ $? -eq 0 ] || exit $?
 
