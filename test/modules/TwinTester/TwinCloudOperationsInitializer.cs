@@ -2,7 +2,6 @@
 namespace TwinTester
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
@@ -18,19 +17,19 @@ namespace TwinTester
         readonly DesiredPropertyUpdater desiredPropertyUpdater;
         PeriodicTask periodicUpdate;
 
-        TwinCloudOperationsInitializer(RegistryManager registryManager, ITwinTestResultHandler resultHandler, TwinState twinState)
+        TwinCloudOperationsInitializer(RegistryManager registryManager, ITwinTestResultHandler resultHandler, TwinTestState twinTestState)
         {
-            this.desiredPropertyUpdater = new DesiredPropertyUpdater(registryManager, resultHandler, twinState);
+            this.desiredPropertyUpdater = new DesiredPropertyUpdater(registryManager, resultHandler, twinTestState);
         }
 
         public static async Task<TwinCloudOperationsInitializer> CreateAsync(RegistryManager registryManager, ITwinTestResultHandler resultHandler)
         {
             try
             {
-                TwinState initializedState;
+                TwinTestState initializedState;
                 Twin twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId);
 
-                initializedState = new TwinState { TwinETag = twin.ETag };
+                initializedState = new TwinTestState(twin.ETag);
 
                 Logger.LogInformation($"Start state of module twin: {JsonConvert.SerializeObject(twin, Formatting.Indented)}");
                 return new TwinCloudOperationsInitializer(registryManager, resultHandler, initializedState);

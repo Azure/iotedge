@@ -26,7 +26,7 @@ pub mod unix;
 pub mod windows;
 
 use futures::sync::mpsc;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::env;
 use std::fs;
 use std::fs::{DirBuilder, File, OpenOptions};
@@ -1989,15 +1989,15 @@ where
 
 // Add the environment variables needed by the EdgeAgent.
 fn build_env<S>(
-    spec_env: &HashMap<String, String>,
+    spec_env: &BTreeMap<String, String>,
     hostname: &str,
     device_id: &str,
     settings: &S,
-) -> HashMap<String, String>
+) -> BTreeMap<String, String>
 where
     S: RuntimeSettings,
 {
-    let mut env = HashMap::new();
+    let mut env = BTreeMap::new();
     env.insert(HOSTNAME_KEY.to_string(), hostname.to_string());
     env.insert(
         EDGEDEVICE_HOSTNAME_KEY.to_string(),
