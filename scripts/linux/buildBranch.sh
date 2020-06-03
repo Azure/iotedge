@@ -201,6 +201,9 @@ build_solution()
     echo "Building IoT Edge solution"
     dotnet --version
     
+    echo "###DEBUG LOGS FOR DOTNET RESTORE###"
+    dotnet restore -v d
+    
     build_command="$DOTNET_ROOT_PATH/dotnet build -c $CONFIGURATION -o \"$BUILD_BINARIESDIRECTORY\""
     
     if [ -n "$DOTNET_RUNTIME" ]; then
