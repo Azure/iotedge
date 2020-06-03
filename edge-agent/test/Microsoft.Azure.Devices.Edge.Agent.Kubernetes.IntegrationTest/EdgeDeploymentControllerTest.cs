@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         public async Task CheckIfCreateDeploymentIsSuccessfulWithNoResources()
         {
             var moduleName = "module-a";
-            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
+            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid";
             var moduleLifeCycleManager = this.CreateModuleLifeCycleManager(moduleName);
             var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, string.Empty);
             KubernetesModule km1 = this.CreateDefaultKubernetesModule(moduleName);
@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         public async Task CheckIfCreateDeploymentNoServiceWithPvcIsSuccessful()
         {
             var moduleName = "module-a";
-            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
+            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid";
             var moduleLifeCycleManager = this.CreateModuleLifeCycleManager(moduleName);
             var persistentVolumeName = "pvname";
             var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, "storagename");
@@ -82,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         public async Task CheckIfCreateDeploymentWithServiceNoPvcIsSuccessful()
         {
             var moduleName = "module-a";
-            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
+            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid";
             var moduleLifeCycleManager = this.CreateModuleLifeCycleManager(moduleName);
             var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, string.Empty);
             KubernetesModule km1 = this.CreateKubernetesModuleWithExposedPorts(moduleName);
@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         public async Task CheckIfDeleteDeploymentIsSuccessful()
         {
             var moduleName = "module-a";
-            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
+            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid";
             var moduleLifeCycleManager = this.CreateModuleLifeCycleManager(moduleName);
             var persistentVolumeName = "pvname";
             var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, "storagename");
@@ -121,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         public async Task CheckIfDeploymentIsHealthyWithDeploymentDeletion()
         {
             var moduleName = "module-a";
-            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
+            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid";
             var moduleLifeCycleManager = this.CreateModuleLifeCycleManager(moduleName);
             var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, string.Empty);
             KubernetesModule km1 = this.CreateDefaultKubernetesModule(moduleName);
@@ -142,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         public async Task CheckIfDeploymentIsHealthyWithMissingPvc()
         {
             var moduleName = "module-a";
-            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
+            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid";
             var moduleLifeCycleManager = this.CreateModuleLifeCycleManager(moduleName);
             var persistentVolumeName = "pvname";
             var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, "storagename");
@@ -165,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         public async Task CheckIfDeploymentIsHealthyWithMissingServiceAccount()
         {
             var moduleName = "module-a";
-            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
+            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid";
             var moduleLifeCycleManager = this.CreateModuleLifeCycleManager(moduleName);
             var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, string.Empty);
             KubernetesModule km1 = this.CreateDefaultKubernetesModule(moduleName);
@@ -185,7 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         public async Task CheckIfDeploymentIsHealthyWithMissingService()
         {
             var moduleName = "module-a";
-            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
+            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid";
             var moduleLifeCycleManager = this.CreateModuleLifeCycleManager(moduleName);
             var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, string.Empty);
             KubernetesModule km1 = this.CreateKubernetesModuleWithExposedPorts(moduleName);
@@ -205,7 +205,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         public async Task CheckIfUpdateDeploymentWithAddedPvcIsSuccessful()
         {
             var moduleName = "module-a";
-            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
+            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid";
             var moduleLifeCycleManager = this.CreateModuleLifeCycleManager(moduleName);
             var persistentVolumeName = "pvname";
             var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, "storagename");
@@ -229,7 +229,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         public async Task CheckIfUpdateDeploymentWithAddedServiceIsSuccessful()
         {
             var moduleName = "module-a";
-            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
+            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid";
             var moduleLifeCycleManager = this.CreateModuleLifeCycleManager(moduleName);
             var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, string.Empty);
             KubernetesModule km1 = this.CreateDefaultKubernetesModule(moduleName);
@@ -250,7 +250,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         public async Task CheckIfUpdateDeploymentWithImageUpdateIsSuccessful()
         {
             var moduleName = "module-a";
-            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid,{Kubernetes.Constants.K8sEdgeHubNameLabel}=hostname";
+            var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid";
             var moduleLifeCycleManager = this.CreateModuleLifeCycleManager(moduleName);
             var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, string.Empty);
             KubernetesModule km1 = this.CreateDefaultKubernetesModule(moduleName);
@@ -389,7 +389,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             return new Dictionary<string, string>
             {
                 [Kubernetes.Constants.K8sEdgeDeviceLabel] = "deviceid",
-                [Kubernetes.Constants.K8sEdgeHubNameLabel] = "hostname",
                 [Kubernetes.Constants.K8sEdgeModuleLabel] = moduleName
             };
         }
