@@ -61,18 +61,14 @@ namespace MetricsValidator.Tests
                 unreturnedMetrics.Remove(metric.Name);
 
                 string metricId = $"{metric.Name}:{JsonConvert.SerializeObject(metric.Tags)}";
-                if (expected.TryGetValue(metric.Name, out string[] expectedTags))
+                if (expected.TryGetValue(metric.Name, out ExpectedMetric expectedMetric))
                 {
                     // Make sure all tags are returned
-                    this.testReporter.Assert(metricId, expectedTags.All(metric.Tags.ContainsKey), $"Expected metric {metric.Name} to contain tags {string.Join(", ", expectedTags)}.\nActual tags: {JsonConvert.SerializeObject(metric.Tags)}");
+                    this.testReporter.Assert(metricId, expectedMetric.Tags.All(metric.Tags.ContainsKey), $"Expected metric {metric.Name} to contain tags {string.Join(", ", expectedMetric.Tags)}.\nActual tags: {JsonConvert.SerializeObject(metric.Tags)}");
                 }
                 else
                 {
-                    // Histogram added metrics. If histogram metric doesn't exist, it will fail earlier
-                    if (!(metric.Name.EndsWith("_sum") || metric.Name.EndsWith("_count")))
-                    {
-                        this.testReporter.Assert(metricId, false, "Metric is not documented.");
-                    }
+                    this.testReporter.Assert(metricId, false, "Metric is not documented.");
                 }
             }
 
@@ -82,36 +78,76 @@ namespace MetricsValidator.Tests
             }
         }
 
-        static readonly Regex Matcher = new Regex(@"`(\w*)`", RegexOptions.Compiled);
-
-        Dictionary<string, string[]> GetExpectedMetrics()
+        Dictionary<string, ExpectedMetric> GetExpectedMetrics()
         {
             try
             {
-                return File.ReadAllLines(Path.Combine("doc", "BuiltInMetrics.md"))
-                    .Select(line => line.Split('|'))
-                    .Where(rows => rows.Length == 6)
-                    .Select(line => (Matcher.Match(line[1]), Matcher.Matches(line[2])))
-                    .Where(matches => matches.Item1.Success)
-                    .ToDictionary(
-                        matches => matches.Item1.Groups[1].Value,
-                        matches => matches.Item2.Select(match => match.Groups[1].Value).ToArray());
+                var lines = File.ReadAllLines(Path.Combine("doc", "BuiltInMetrics.md"));
+                return ExpectedMetric.ParseDoc(lines).ToDictionary(m => m.Name, m => m);
             }
             catch (Exception ex)
             {
                 this.testReporter.Assert("Read metrics docs", false, ex.Message);
-                return new Dictionary<string, string[]>();
+                return new Dictionary<string, ExpectedMetric>();
+            }
+        }
+
+        class ExpectedMetric
+        {
+            static readonly Regex Single = new Regex(@"`(\w*)`", RegexOptions.Compiled);
+
+            public string Name { get; }
+            public string[] Tags { get; }
+            public string Type { get; }
+
+            ExpectedMetric(string name, string[] tags, string type)
+            {
+                this.Name = name;
+                this.Tags = tags;
+                this.Type = type;
+            }
+
+            public static IEnumerable<ExpectedMetric> ParseDoc(IEnumerable<string> lines)
+            {
+                var columns = lines.Select(line => line.Split('|'))
+                    .Where(rows => rows.Length == 6);
+
+                foreach (var column in columns)
+                {
+                    var nameMatch = Single.Match(column[1]);
+                    var tagsMatch = Single.Matches(column[2]);
+                    var typeMatch = Single.Match(column[4]);
+
+                    if (nameMatch.Success && typeMatch.Success)
+                    {
+                        string name = nameMatch.Groups[1].Value;
+                        string[] tags = tagsMatch.Select(match => match.Groups[1].Value).ToArray();
+                        string type = typeMatch.Groups[1].Value;
+
+                        if (type == "Histogram")
+                        {
+                            string[] histTags = tags.Where(t => t != "quantile").ToArray();
+                            yield return new ExpectedMetric(name + "_sum", histTags, type);
+                            yield return new ExpectedMetric(name + "_count", histTags, type);
+                        }
+
+                        yield return new ExpectedMetric(name, tags, type);
+                    }
+                }
             }
         }
 
         async Task SeedMetrics(CancellationToken cancellationToken)
         {
+            // Send at least 1 message
             await this.moduleClient.SendEventAsync(new Message(Encoding.UTF8.GetBytes("Test message to seed metrics")), cancellationToken);
 
+            // Send and receive 1 direct method
             const string methodName = "FakeDirectMethod";
             await this.moduleClient.SetMethodHandlerAsync(methodName, (_, __) => Task.FromResult(new MethodResponse(200)), null);
             await this.moduleClient.InvokeMethodAsync(Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID"), Environment.GetEnvironmentVariable("IOTEDGE_MODULEID"), new MethodRequest(methodName), cancellationToken);
 
+            // Get at least 1 twin update
             await this.moduleClient.UpdateReportedPropertiesAsync(new TwinCollection(), cancellationToken);
             await this.moduleClient.GetTwinAsync(cancellationToken);
 
