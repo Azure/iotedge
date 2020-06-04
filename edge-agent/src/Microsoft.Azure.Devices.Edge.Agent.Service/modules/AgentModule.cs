@@ -28,7 +28,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string storagePath;
         readonly Option<Uri> workloadUri;
         readonly Option<string> workloadApiVersion;
-        readonly int workloadStaleSocketErrCode;
         readonly string moduleId;
         readonly Option<string> moduleGenerationId;
         readonly bool useBackupAndRestore;
@@ -36,8 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Option<ulong> storageTotalMaxWalSize;
         readonly Option<StorageLogLevel> storageLogLevel;
 
-        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, bool usePersistentStorage, string storagePath, bool useBackupAndRestore, int workloadStaleSocketErrCode, Option<string> storageBackupPath, Option<ulong> storageTotalMaxWalSize, Option<StorageLogLevel> storageLogLevel)
-            : this(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.None<Uri>(), Option.None<string>(), workloadStaleSocketErrCode, Constants.EdgeAgentModuleIdentityName, Option.None<string>(), useBackupAndRestore, storageBackupPath, storageTotalMaxWalSize, storageLogLevel)
+        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, bool usePersistentStorage, string storagePath, bool useBackupAndRestore, Option<string> storageBackupPath, Option<ulong> storageTotalMaxWalSize, Option<StorageLogLevel> storageLogLevel)
+            : this(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.None<Uri>(), Option.None<string>(), Constants.EdgeAgentModuleIdentityName, Option.None<string>(), useBackupAndRestore, storageBackupPath, storageTotalMaxWalSize, storageLogLevel)
         {
         }
 
@@ -49,7 +48,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string storagePath,
             Option<Uri> workloadUri,
             Option<string> workloadApiVersion,
-            int workloadStaleSocketErrCode,
             string moduleId,
             Option<string> moduleGenerationId,
             bool useBackupAndRestore,
@@ -64,7 +62,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.storagePath = Preconditions.CheckNonWhiteSpace(storagePath, nameof(storagePath));
             this.workloadUri = workloadUri;
             this.workloadApiVersion = workloadApiVersion;
-            this.workloadStaleSocketErrCode = workloadStaleSocketErrCode;
             this.moduleId = moduleId;
             this.moduleGenerationId = moduleGenerationId;
             this.useBackupAndRestore = useBackupAndRestore;
@@ -259,7 +256,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                                     uri,
                                     this.workloadApiVersion.Expect(() => new InvalidOperationException("Missing workload API version")),
                                     Constants.EdgeletClientApiVersion,
-                                    this.workloadStaleSocketErrCode,
                                     this.moduleId,
                                     this.moduleGenerationId.Expect(() => new InvalidOperationException("Missing generation ID")),
                                     Constants.EdgeletInitializationVectorFileName);
