@@ -1,32 +1,52 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 {
-    using System.Collections.Generic;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public abstract class Identity : IIdentity
     {
-        protected Identity(string iotHubHostName)
+        protected Identity(string iotHubHostname, string id)
         {
-            this.IotHubHostName = iotHubHostName;
+            this.IotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
+            this.Id = Preconditions.CheckNonWhiteSpace(id, nameof(id));
         }
 
-        public string IotHubHostName { get; }
+        public string IotHubHostname { get; }
 
-        public abstract string Id { get; }
+        public string Id { get; }
+
+        protected bool Equals(Identity other) =>
+            string.Equals(this.IotHubHostname, other.IotHubHostname) &&
+            string.Equals(this.Id, other.Id);
 
         public override bool Equals(object obj)
         {
-            return obj is Identity identity &&
-                this.IotHubHostName == identity.IotHubHostName &&
-                this.Id == identity.Id;
+            if (ReferenceEquals(null, obj))
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            if (obj.GetType() != this.GetType())
+            {
+                return false;
+            }
+
+            return this.Equals((Identity)obj);
         }
 
         public override int GetHashCode()
         {
-            int hashCode = -1379229077;
-            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(this.IotHubHostName);
-            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(this.Id);
-            return hashCode;
+            unchecked
+            {
+                int hashCode = this.IotHubHostname.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.Id.GetHashCode();
+                return hashCode;
+            }
         }
     }
 }
