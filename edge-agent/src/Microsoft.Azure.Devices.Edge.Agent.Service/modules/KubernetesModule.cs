@@ -45,7 +45,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string proxyTrustBundleVolumeName;
         readonly string proxyTrustBundleConfigMapName;
         readonly string apiVersion;
-        readonly int workloadStaleSocketErrCode;
         readonly string deviceNamespace;
         readonly string deviceSelector;
         readonly Uri managementUri;
@@ -79,7 +78,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string proxyTrustBundleVolumeName,
             string proxyTrustBundleConfigMapName,
             string apiVersion,
-            int workloadStaleSocketErrCode,
             string deviceNamespace,
             Uri managementUri,
             Uri workloadUri,
@@ -110,7 +108,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.proxyTrustBundleVolumeName = Preconditions.CheckNonWhiteSpace(proxyTrustBundleVolumeName, nameof(proxyTrustBundleVolumeName));
             this.proxyTrustBundleConfigMapName = Preconditions.CheckNonWhiteSpace(proxyTrustBundleConfigMapName, nameof(proxyTrustBundleConfigMapName));
             this.apiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
-            this.workloadStaleSocketErrCode = workloadStaleSocketErrCode;
             this.deviceSelector = $"{Constants.K8sEdgeDeviceLabel}={KubeUtils.SanitizeLabelValue(this.resourceName.DeviceId)},{Constants.K8sEdgeHubNameLabel}={KubeUtils.SanitizeLabelValue(this.resourceName.Hostname)}";
             this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace));
             this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
@@ -173,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IModuleManager
-            builder.Register(c => new ModuleManagementHttpClient(this.managementUri, this.apiVersion, Core.Constants.EdgeletClientApiVersion, this.workloadStaleSocketErrCode))
+            builder.Register(c => new ModuleManagementHttpClient(this.managementUri, this.apiVersion, Core.Constants.EdgeletClientApiVersion))
                 .As<IModuleManager>()
                 .As<IIdentityManager>()
                 .As<IDeviceManager>()

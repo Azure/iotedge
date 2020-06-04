@@ -36,7 +36,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Uri managementUri;
         readonly Uri workloadUri;
         readonly string apiVersion;
-        readonly int workloadStaleSocketErrCode;
         readonly IEnumerable<AuthConfig> dockerAuthConfig;
         readonly Option<UpstreamProtocol> upstreamProtocol;
         readonly Option<IWebProxy> proxy;
@@ -54,7 +53,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             Uri managementUri,
             Uri workloadUri,
             string apiVersion,
-            int workloadStaleSocketErrCode,
             IEnumerable<AuthConfig> dockerAuthConfig,
             Option<UpstreamProtocol> upstreamProtocol,
             Option<IWebProxy> proxy,
@@ -71,7 +69,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
             this.apiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
-            this.workloadStaleSocketErrCode = workloadStaleSocketErrCode;
             this.dockerAuthConfig = Preconditions.CheckNotNull(dockerAuthConfig, nameof(dockerAuthConfig));
             this.upstreamProtocol = upstreamProtocol;
             this.proxy = proxy;
@@ -99,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IModuleManager
-            builder.Register(c => new ModuleManagementHttpClient(this.managementUri, this.apiVersion, Constants.EdgeletClientApiVersion, this.workloadStaleSocketErrCode))
+            builder.Register(c => new ModuleManagementHttpClient(this.managementUri, this.apiVersion, Constants.EdgeletClientApiVersion))
                 .As<IModuleManager>()
                 .As<IIdentityManager>()
                 .As<IDeviceManager>()

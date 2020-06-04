@@ -22,7 +22,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     public class ModuleManagementHttpClientTest : IClassFixture<EdgeletFixture>
     {
         static readonly string[] Versions = new string[] { "2018-06-28", "2019-01-30", "2019-10-22" };
-        const int workloadStaleSocketErrCode = 111;
         readonly Uri serverUrl;
         readonly EdgeletFixture edgeletFixture;
 
@@ -39,54 +38,54 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         {
             string serverApiVersion = "2018-06-28";
             string clientApiVersion = "2018-06-28";
-            var versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion, workloadStaleSocketErrCode);
+            var versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2018_06_28.ModuleManagementHttpClient);
 
             serverApiVersion = "2018-06-28";
             clientApiVersion = "2019-01-30";
-            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion, workloadStaleSocketErrCode);
+            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2018_06_28.ModuleManagementHttpClient);
 
             serverApiVersion = "2019-01-30";
             clientApiVersion = "2018-06-28";
-            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion, workloadStaleSocketErrCode);
+            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2018_06_28.ModuleManagementHttpClient);
 
             serverApiVersion = "2019-01-30";
             clientApiVersion = "2019-01-30";
-            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion, workloadStaleSocketErrCode);
+            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2019_01_30.ModuleManagementHttpClient);
 
             serverApiVersion = "2019-01-30";
             clientApiVersion = "2019-10-22";
-            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion, workloadStaleSocketErrCode);
+            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2019_01_30.ModuleManagementHttpClient);
 
             serverApiVersion = "2019-10-22";
             clientApiVersion = "2018-06-28";
-            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion, workloadStaleSocketErrCode);
+            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2018_06_28.ModuleManagementHttpClient);
 
             serverApiVersion = "2019-10-22";
             clientApiVersion = "2019-01-30";
-            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion, workloadStaleSocketErrCode);
+            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2019_01_30.ModuleManagementHttpClient);
 
             serverApiVersion = "2019-10-22";
             clientApiVersion = "2019-10-22";
-            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion, workloadStaleSocketErrCode);
+            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2019_10_22.ModuleManagementHttpClient);
 
             // Unsupported server.
             serverApiVersion = "2019-02-30";
             clientApiVersion = "2019-01-30";
-            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion, workloadStaleSocketErrCode);
+            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2019_01_30.ModuleManagementHttpClient);
 
             // Unsupported client.
             serverApiVersion = "2019-01-30";
             clientApiVersion = "2019-02-30";
-            Assert.Throws<InvalidOperationException>(() => new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion, workloadStaleSocketErrCode));
+            Assert.Throws<InvalidOperationException>(() => new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion));
         }
 
         [Theory]
@@ -94,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         public async Task IdentityTest(string serverApiVersion, string clientApiVersion)
         {
             // Arrange
-            IIdentityManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion, workloadStaleSocketErrCode);
+            IIdentityManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
 
             // Act
             Identity identity1 = await client.CreateIdentityAsync("Foo", Constants.ModuleIdentityEdgeManagedByValue);
@@ -169,7 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         public async Task ModulesTest(string serverApiVersion, string clientApiVersion)
         {
             // Arrange
-            IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion, workloadStaleSocketErrCode);
+            IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
             var moduleSpec = new ModuleSpec("Module1", "Docker", ImagePullPolicy.OnCreate, JObject.Parse("{ \"image\": \"testimage\" }"), new ObservableCollection<EnvVar> { new EnvVar("E1", "P1") });
 
             // Act
@@ -251,7 +250,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
                 ImagePullPolicy.OnCreate,
                 JObject.Parse("{ \"image\": \"testimage\" }"),
                 new ObservableCollection<EnvVar> { new EnvVar("E1", "P1") });
-            IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion, workloadStaleSocketErrCode);
+            IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
             await client.PrepareUpdateAsync(moduleSpec);
         }
 
@@ -260,7 +259,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         public async Task ModuleLogsTest(string serverApiVersion, string clientApiVersion)
         {
             // Arrange
-            IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion, workloadStaleSocketErrCode);
+            IModuleManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
 
             // Act
             Stream logsStream = await client.GetModuleLogs("edgeHub", false, Option.None<int>(), Option.None<string>(), CancellationToken.None);
@@ -277,7 +276,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         public async Task Test_ReprovisionDevice_ShouldSucceed(string serverApiVersion, string clientApiVersion)
         {
             // Arrange
-            IDeviceManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion, workloadStaleSocketErrCode);
+            IDeviceManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
 
             // Act and Assert
             await client.ReprovisionDeviceAsync();
@@ -307,7 +306,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         public async Task ExecuteTimeoutTest_Version_2018_06_28()
         {
             // Arrange
-            var client = new Version_2018_06_28.ModuleManagementHttpClient(this.serverUrl, 111, Option.Some(TimeSpan.FromSeconds(10)));
+            var client = new Version_2018_06_28.ModuleManagementHttpClient(this.serverUrl, Option.Some(TimeSpan.FromSeconds(10)));
             await this.ExecuteTimeoutTest_Version_Base(client);
         }
 
@@ -315,7 +314,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         public async Task ExecuteTimeoutTest_Version_2019_01_30()
         {
             // Arrange
-            var client = new Version_2019_01_30.ModuleManagementHttpClient(this.serverUrl, 111, Option.Some(TimeSpan.FromSeconds(10)));
+            var client = new Version_2019_01_30.ModuleManagementHttpClient(this.serverUrl, Option.Some(TimeSpan.FromSeconds(10)));
             await this.ExecuteTimeoutTest_Version_Base(client);
         }
 
@@ -323,7 +322,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         public async Task ExecuteTimeoutTest_Version_2019_10_22()
         {
             // Arrange
-            var client = new Version_2019_10_22.ModuleManagementHttpClient(this.serverUrl, 111, Option.Some(TimeSpan.FromSeconds(10)));
+            var client = new Version_2019_10_22.ModuleManagementHttpClient(this.serverUrl, Option.Some(TimeSpan.FromSeconds(10)));
             await this.ExecuteTimeoutTest_Version_Base(client);
         }
 
