@@ -5,6 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
     {
         string Id { get; }
 
-        string IotHubHostName { get; }
+        string IotHubHostname { get; }
     }
 }

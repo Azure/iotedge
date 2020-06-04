@@ -7,25 +7,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 
     public class ModuleIdentity : Identity, IModuleIdentity
     {
-        readonly Lazy<string> asString;
-
         public ModuleIdentity(
-            string iotHubHostName,
+            string iotHubHostname,
             string deviceId,
             string moduleId)
-            : base(iotHubHostName)
+            : base(iotHubHostname, $"{deviceId}/{moduleId}")
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
-            this.asString = new Lazy<string>(() => $"DeviceId: {this.DeviceId}; ModuleId: {this.ModuleId} [IotHubHostName: {this.IotHubHostName}]");
         }
 
         public string DeviceId { get; }
 
         public string ModuleId { get; }
 
-        public override string Id => FormattableString.Invariant($"{this.DeviceId}/{this.ModuleId}");
-
-        public override string ToString() => this.asString.Value;
+        public override string ToString() => $"DeviceId: {this.DeviceId}; ModuleId: {this.ModuleId} [IotHubHostName: {this.IotHubHostname}]";
     }
 }

@@ -66,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var cloudConnectionProvider = new CloudConnectionProvider(
                 messageConverterProvider,
                 1,
-                new ClientProvider(),
+                new ClientProvider(Option.None<string>()),
                 Option.None<UpstreamProtocol>(),
                 new ClientTokenProvider(signatureProvider, iothubHostName, edgeDeviceId, TimeSpan.FromMinutes(60)),
                 Mock.Of<IDeviceScopeIdentitiesCache>(),
