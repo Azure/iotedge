@@ -28,7 +28,6 @@ jobs:
         inputs: 
           version: "2.1.700"
       - template: ../templates/install-dotnet3.yaml
-      - template: ../templates/dotnet3-globaljson.yaml
       - bash: "cargo install --git https://github.com/arsing/cross.git --branch set-path"
         displayName: "Install cross (fork with docker fix)"
       - task: ShellScript@2
