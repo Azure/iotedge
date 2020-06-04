@@ -18,7 +18,7 @@ connect:
 listen:
   management_uri: "unix:///var/run/iotedge/mgmt.sock"
   workload_uri: "unix:///var/run/iotedge/workload.sock"
-  identity_uri: "unix:///var/lib/idservice/identity.sock"
+  identityservice_uri: "unix:///var/lib/idservice/identity.sock"
   keyservice_uri: "unix:///var/lib/keyservice/keyservice.sock"
 
 homedir: "/var/lib/iotedge"

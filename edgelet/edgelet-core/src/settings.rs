@@ -450,7 +450,7 @@ pub struct Listen {
     #[serde(with = "url_serde")]
     management_uri: Url,
     #[serde(with = "url_serde")]
-    identity_uri: Url,
+    identityservice_uri: Url,
     #[serde(with = "url_serde")]
     keyservice_uri: Url,
     #[serde(default = "Protocol::default")]
@@ -466,12 +466,12 @@ impl Listen {
         &self.management_uri
     }
 
-    pub fn identity_uri(&self) -> &Url {
-        &self.workload_uri
+    pub fn identityservice_uri(&self) -> &Url {
+        &self.identityservice_uri
     }
 
     pub fn keyservice_uri(&self) -> &Url {
-        &self.management_uri
+        &self.keyservice_uri
     }
 
     pub fn min_tls_version(&self) -> Protocol {

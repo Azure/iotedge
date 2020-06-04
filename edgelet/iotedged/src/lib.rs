@@ -2195,7 +2195,7 @@ where
     info!("Starting identity API...");
 
     let label = "ident".to_string();
-    let url = settings.listen().identity_uri().clone();
+    let url = settings.listen().identityservice_uri().clone();
 
     let min_protocol_version = settings.listen().min_tls_version();
 
