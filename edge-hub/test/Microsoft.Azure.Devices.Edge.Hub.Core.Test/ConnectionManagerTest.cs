@@ -219,6 +219,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         /// 3. Device disconnects - the device connection is removed. Cloud connection stays.
         /// 4. Connection manager should have a cloud connection, but no device connection.
         /// </summary>
+        /// <returns>A <see cref="Task"/> result from test.</returns>
         [Fact]
         [Integration]
         public async Task TestAddRemoveDeviceConnectionTest()
