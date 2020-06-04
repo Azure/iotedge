@@ -32,25 +32,25 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Edged
             string workloadApiVersion = "2018-06-28";
             string workloadClientApiVersion = "2018-06-28";
 
-            var client = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, ModulegenerationId).GetVersionedWorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, ModulegenerationId);
+            var client = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, ModulegenerationId).GetVersionedWorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId);
             Assert.True(client is Util.Edged.Version_2018_06_28.WorkloadClient);
 
             workloadApiVersion = "2018-06-28";
             workloadClientApiVersion = "2019-01-30";
 
-            client = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, ModulegenerationId).GetVersionedWorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, ModulegenerationId);
+            client = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, ModulegenerationId).GetVersionedWorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId);
             Assert.True(client is Util.Edged.Version_2018_06_28.WorkloadClient);
 
             workloadApiVersion = "2019-01-30";
             workloadClientApiVersion = "2018-06-28";
 
-            client = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, ModulegenerationId).GetVersionedWorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, ModulegenerationId);
+            client = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, ModulegenerationId).GetVersionedWorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId);
             Assert.True(client is Util.Edged.Version_2018_06_28.WorkloadClient);
 
             workloadApiVersion = "2019-01-30";
             workloadClientApiVersion = "2019-01-30";
 
-            client = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, ModulegenerationId).GetVersionedWorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, ModulegenerationId);
+            client = new WorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, ModuleId, ModulegenerationId).GetVersionedWorkloadClient(this.serverUri, workloadApiVersion, workloadClientApiVersion, ModuleId, ModulegenerationId);
             Assert.True(client is Util.Edged.Version_2019_01_30.WorkloadClient);
         }
 

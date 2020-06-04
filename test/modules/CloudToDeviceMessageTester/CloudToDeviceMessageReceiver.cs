@@ -27,7 +27,6 @@ namespace CloudToDeviceMessageTester
         readonly string workloadUri;
         readonly string apiVersion;
         readonly string workloadClientApiVersion = "2019-01-30";
-        readonly int workloadStaleSocketErrCode = 111;
         readonly string moduleGenerationId;
         readonly string iotHubHostName;
         DeviceClient deviceClient;
@@ -70,7 +69,7 @@ namespace CloudToDeviceMessageTester
         public async Task StartAsync(CancellationToken ct)
         {
             // TODO: You cannot install certificate on Windows by script - we need to implement certificate verification callback handler.
-            IEnumerable<X509Certificate2> certs = await CertificateHelper.GetTrustBundleFromEdgelet(new Uri(this.workloadUri), this.apiVersion, this.workloadClientApiVersion, this.workloadStaleSocketErrCode, this.moduleId, this.moduleGenerationId);
+            IEnumerable<X509Certificate2> certs = await CertificateHelper.GetTrustBundleFromEdgelet(new Uri(this.workloadUri), this.apiVersion, this.workloadClientApiVersion, this.moduleId, this.moduleGenerationId);
             ITransportSettings transportSettings = ((Protocol)Enum.Parse(typeof(Protocol), this.transportType.ToString())).ToTransportSettings();
             OsPlatform.Current.InstallCaCertificates(certs, transportSettings);
             Microsoft.Azure.Devices.RegistryManager registryManager = null;

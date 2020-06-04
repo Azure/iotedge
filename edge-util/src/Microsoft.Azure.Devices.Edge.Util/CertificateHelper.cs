@@ -245,20 +245,20 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 .Select(c => new X509Certificate2(c))
                 .ToList();
 
-        public static async Task<(X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, int workloadStaleSocketErrCode, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration)
+        public static async Task<(X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain)> GetServerCertificatesFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId, string edgeHubHostname, DateTime expiration)
         {
             if (string.IsNullOrEmpty(edgeHubHostname))
             {
                 throw new InvalidOperationException($"{nameof(edgeHubHostname)} is required.");
             }
 
-            ServerCertificateResponse response = await new WorkloadClient(workloadUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, moduleId, moduleGenerationId).CreateServerCertificateAsync(edgeHubHostname, expiration);
+            ServerCertificateResponse response = await new WorkloadClient(workloadUri, workloadApiVersion, workloadClientApiVersion, moduleId, moduleGenerationId).CreateServerCertificateAsync(edgeHubHostname, expiration);
             return ParseCertificateResponse(response);
         }
 
-        public static async Task<IEnumerable<X509Certificate2>> GetTrustBundleFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, int workloadStaleSocketErrCode, string moduleId, string moduleGenerationId)
+        public static async Task<IEnumerable<X509Certificate2>> GetTrustBundleFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId)
         {
-            string response = await new WorkloadClient(workloadUri, workloadApiVersion, workloadClientApiVersion, workloadStaleSocketErrCode, moduleId, moduleGenerationId).GetTrustBundleAsync();
+            string response = await new WorkloadClient(workloadUri, workloadApiVersion, workloadClientApiVersion, moduleId, moduleGenerationId).GetTrustBundleAsync();
             return ParseTrustedBundleCerts(response);
         }
 
