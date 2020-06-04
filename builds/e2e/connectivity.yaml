@@ -160,6 +160,8 @@ jobs:
           edgeRuntime.buildNumber: '$(edgeRuntime.buildNumber)'
           customEdgeAgent.image: '$(customEdgeAgent.image)'
           customEdgeHub.image: '$(customEdgeHub.image)'
+          runtimeLogLevel: '$(test.runtimeLogLevel)'
+
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -316,3 +318,4 @@ jobs:
           edgeRuntime.buildNumber: '$(edgeRuntime.buildNumber)'
           customEdgeAgent.image: '$(customEdgeAgent.image)'
           customEdgeHub.image: '$(customEdgeHub.image)'
+          runtimeLogLevel: '$(test.runtimeLogLevel)'
