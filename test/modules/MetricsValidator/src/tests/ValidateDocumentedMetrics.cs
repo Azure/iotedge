@@ -108,7 +108,6 @@ namespace MetricsValidator.Tests
             public string Type { get; }
             public RangeBound Bounds { get; }
 
-
             ExpectedMetric(string name, string[] tags, string type, RangeBound bounds)
             {
                 this.Name = name;
@@ -153,19 +152,19 @@ namespace MetricsValidator.Tests
         {
             static readonly Regex Range = new Regex(@"`(?<lowerInclusive>[\[\(])(?<lowerBound>\-?\d*\.?\d*)\s*,\s*(?<upperBound>\-?\d*\.?\d*)(?<upperInclusive>[\]\)])`", RegexOptions.Compiled);
 
-            bool lowerInclusive { get; }
-            double lowerBound { get; }
-            bool upperInclusive { get; }
-            double upperBound { get; }
-            string referance { get; }
+            bool LowerInclusive { get; }
+            double LowerBound { get; }
+            bool UpperInclusive { get; }
+            double UpperBound { get; }
+            string Referance { get; }
 
             RangeBound(bool lowerInclusive, double lowerBound, bool upperInclusive, double upperBound, string referance)
             {
-                this.lowerInclusive = lowerInclusive;
-                this.lowerBound = lowerBound;
-                this.upperInclusive = upperInclusive;
-                this.upperBound = upperBound;
-                this.referance = referance;
+                this.LowerInclusive = lowerInclusive;
+                this.LowerBound = lowerBound;
+                this.UpperInclusive = upperInclusive;
+                this.UpperBound = upperBound;
+                this.Referance = referance;
             }
 
             public static RangeBound ParseBound(string text)
@@ -187,8 +186,8 @@ namespace MetricsValidator.Tests
 
             public bool InRange(double value)
             {
-                return this.lowerInclusive ? value >= this.lowerBound : value > this.lowerBound &&
-                    this.upperInclusive ? value <= this.upperBound : value < this.upperBound;
+                return this.LowerInclusive ? value >= this.LowerBound : value > this.LowerBound &&
+                    this.UpperInclusive ? value <= this.UpperBound : value < this.UpperBound;
             }
         }
 
