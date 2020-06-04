@@ -61,8 +61,7 @@ where
 impl<F, E> Authenticator for F
 where
     F: Fn(Option<String>, Credentials) -> Result<Option<AuthId>, E> + Sync,
-    // E: std::fmt::Display + 'static,
-    E: std::ops::Deref<Target = dyn StdError> + 'static,
+    E: Deref<Target = dyn StdError> + 'static,
 {
     type Error = E;
 
