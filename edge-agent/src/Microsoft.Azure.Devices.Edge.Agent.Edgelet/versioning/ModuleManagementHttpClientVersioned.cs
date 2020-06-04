@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
     using System.IO;
     using System.Net.Http;
     using System.Net.Sockets;
+    using System.Runtime.InteropServices;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -126,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 Events.SuccessfullyExecutedOperation(operation, this.ManagementUri.ToString());
                 return result;
             }
-            catch (SocketException ex) when (ex.Message.Contains("Connection refused"))
+            catch (SocketException ex) when (ex.ErrorCode == (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? (int)SocketError.ConnectionRefused : 111))
             {
                 Events.StaleSocketShutdown(ex, operation, this.ManagementUri.ToString());
                 Environment.Exit(ex.ErrorCode);
