@@ -38,7 +38,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly TimeSpan scopeCacheRefreshRate;
         readonly Option<string> workloadUri;
         readonly Option<string> workloadApiVersion;
-        readonly int workloadStaleScoketErrCode;
         readonly bool persistTokens;
         readonly IList<X509Certificate2> trustBundle;
         readonly string proxy;
@@ -62,7 +61,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             string storagePath,
             Option<string> workloadUri,
             Option<string> workloadApiVersion,
-            int workloadStaleScoketErrCode,
             TimeSpan scopeCacheRefreshRate,
             bool persistTokens,
             IList<X509Certificate2> trustBundle,
@@ -87,7 +85,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.scopeCacheRefreshRate = scopeCacheRefreshRate;
             this.workloadUri = workloadUri;
             this.workloadApiVersion = workloadApiVersion;
-            this.workloadStaleScoketErrCode = workloadStaleScoketErrCode;
             this.persistTokens = persistTokens;
             this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
             this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));

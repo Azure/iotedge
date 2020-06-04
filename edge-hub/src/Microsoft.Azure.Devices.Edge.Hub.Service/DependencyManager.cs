@@ -197,8 +197,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool cacheTokens = this.configuration.GetValue("CacheTokens", false);
             Option<string> workloadUri = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadUri);
             Option<string> workloadApiVersion = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadAPiVersion);
-            // BEARWASHERE
-            int workloadStaleScoketErrCode = this.configuration.GetValue(Constants.ConfigKey.WorkloadStaleSocketExceptionKey, 111);
             Option<string> moduleGenerationId = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.ModuleGenerationId);
 
             if (!Enum.TryParse(this.configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode))
@@ -228,7 +226,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     storeAndForward.storagePath,
                     workloadUri,
                     workloadApiVersion,
-                    workloadStaleScoketErrCode,
                     scopeCacheRefreshRate,
                     cacheTokens,
                     this.trustBundle,

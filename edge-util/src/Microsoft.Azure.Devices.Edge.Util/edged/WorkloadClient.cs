@@ -8,8 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
     {
         readonly WorkloadClientVersioned inner;
 
-        // BEARWASHERE -- WorkloadClient()
-        public WorkloadClient(Uri serverUri, string serverSupportedApiVersion, string clientSupportedApiVersion, int workloadStaleSocketErrCode, string moduleId, string moduleGenerationId)
+        public WorkloadClient(Uri serverUri, string serverSupportedApiVersion, string clientSupportedApiVersion, string moduleId, string moduleGenerationId)
         {
             Preconditions.CheckNotNull(serverUri, nameof(serverUri));
             Preconditions.CheckNonWhiteSpace(serverSupportedApiVersion, nameof(serverSupportedApiVersion));
@@ -17,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
             Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             Preconditions.CheckNonWhiteSpace(moduleGenerationId, nameof(moduleGenerationId));
 
-            this.inner = this.GetVersionedWorkloadClient(serverUri, serverSupportedApiVersion, clientSupportedApiVersion, workloadStaleSocketErrCode, moduleId, moduleGenerationId);
+            this.inner = this.GetVersionedWorkloadClient(serverUri, serverSupportedApiVersion, clientSupportedApiVersion, moduleId, moduleGenerationId);
         }
 
         public Task<ServerCertificateResponse> CreateServerCertificateAsync(string hostname, DateTime expiration) => this.inner.CreateServerCertificateAsync(hostname, expiration);
@@ -30,20 +29,20 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
         public Task<string> SignAsync(string keyId, string algorithm, string data) => this.inner.SignAsync(keyId, algorithm, data);
 
-        internal WorkloadClientVersioned GetVersionedWorkloadClient(Uri workloadUri, string serverSupportedApiVersion, string clientSupportedApiVersion, int workloadStaleSocketErrCode, string moduleId, string moduleGenerationId)
+        internal WorkloadClientVersioned GetVersionedWorkloadClient(Uri workloadUri, string serverSupportedApiVersion, string clientSupportedApiVersion, string moduleId, string moduleGenerationId)
         {
             ApiVersion supportedVersion = this.GetSupportedVersion(serverSupportedApiVersion, clientSupportedApiVersion);
             if (supportedVersion == ApiVersion.Version20180628)
             {
-                return new Version_2018_06_28.WorkloadClient(workloadUri, supportedVersion, workloadStaleSocketErrCode, moduleId, moduleGenerationId);
+                return new Version_2018_06_28.WorkloadClient(workloadUri, supportedVersion, moduleId, moduleGenerationId);
             }
 
             if (supportedVersion == ApiVersion.Version20190130)
             {
-                return new Version_2019_01_30.WorkloadClient(workloadUri, supportedVersion, workloadStaleSocketErrCode, moduleId, moduleGenerationId);
+                return new Version_2019_01_30.WorkloadClient(workloadUri, supportedVersion, moduleId, moduleGenerationId);
             }
 
-            return new Version_2018_06_28.WorkloadClient(workloadUri, supportedVersion, workloadStaleSocketErrCode, moduleId, moduleGenerationId);
+            return new Version_2018_06_28.WorkloadClient(workloadUri, supportedVersion, moduleId, moduleGenerationId);
         }
 
         ApiVersion GetSupportedVersion(string serverSupportedApiVersion, string clientSupportedApiVersion)

@@ -160,7 +160,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     storageFolder,
                     Option.None<string>(),
                     Option.None<string>(),
-                    111,
                     TimeSpan.FromHours(1),
                     false,
                     this.trustBundle,

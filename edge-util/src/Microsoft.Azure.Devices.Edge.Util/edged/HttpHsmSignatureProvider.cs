@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
         readonly WorkloadClient workloadClient;
 
-        public HttpHsmSignatureProvider(string moduleId, string generationId, string providerUri, string apiVersion, string clientApiVersion, int workloadStaleSocketErrCode)
+        public HttpHsmSignatureProvider(string moduleId, string generationId, string providerUri, string apiVersion, string clientApiVersion)
         {
             Preconditions.CheckNotNull(providerUri, nameof(providerUri));
             Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
             Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             Preconditions.CheckNonWhiteSpace(generationId, nameof(generationId));
 
-            this.workloadClient = new WorkloadClient(new Uri(providerUri), apiVersion, clientApiVersion, workloadStaleSocketErrCode, moduleId, generationId);
+            this.workloadClient = new WorkloadClient(new Uri(providerUri), apiVersion, clientApiVersion, moduleId, generationId);
         }
 
         public Task<string> SignAsync(string data)

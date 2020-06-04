@@ -11,13 +11,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2019_01_30
 
     class WorkloadClient : WorkloadClientVersioned
     {
-        public WorkloadClient(Uri serverUri, ApiVersion apiVersion, int workloadStaleSocketErrCode, string moduleId, string moduleGenerationId)
-            : this(serverUri, apiVersion, workloadStaleSocketErrCode, moduleId, moduleGenerationId, Option.None<TimeSpan>())
+        public WorkloadClient(Uri serverUri, ApiVersion apiVersion, string moduleId, string moduleGenerationId)
+            : this(serverUri, apiVersion, moduleId, moduleGenerationId, Option.None<TimeSpan>())
         {
         }
 
-        internal WorkloadClient(Uri serverUri, ApiVersion apiVersion, int workloadStaleSocketErrCode, string moduleId, string moduleGenerationId, Option<TimeSpan> operationTimeout)
-            : base(serverUri, apiVersion, workloadStaleSocketErrCode, moduleId, moduleGenerationId, new ErrorDetectionStrategy(), operationTimeout)
+        internal WorkloadClient(Uri serverUri, ApiVersion apiVersion, string moduleId, string moduleGenerationId, Option<TimeSpan> operationTimeout)
+            : base(serverUri, apiVersion, moduleId, moduleGenerationId, new ErrorDetectionStrategy(), operationTimeout)
         {
         }
 
