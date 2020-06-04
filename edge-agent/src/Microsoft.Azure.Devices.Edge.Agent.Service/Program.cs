@@ -85,7 +85,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             bool enableNonPersistentStorageBackup;
             Option<string> storageBackupPath = Option.None<string>();
             string edgeDeviceHostName;
-            Option<string> parentEdgeHostname;
             string dockerLoggingDriver;
             Dictionary<string, string> dockerLoggingOptions;
             IEnumerable<global::Docker.DotNet.Models.AuthConfig> dockerAuthConfig;
@@ -116,7 +115,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 }
 
                 edgeDeviceHostName = configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
-                parentEdgeHostname = Option.Maybe(configuration.GetValue<string>(Constants.GatewayHostnameVariableName));
                 dockerLoggingDriver = configuration.GetValue<string>("DockerLoggingDriver");
                 dockerLoggingOptions = configuration.GetSection("DockerLoggingOptions").Get<Dictionary<string, string>>() ?? new Dictionary<string, string>();
                 dockerAuthConfig = configuration.GetSection("DockerRegistryAuth").Get<List<global::Docker.DotNet.Models.AuthConfig>>() ?? new List<global::Docker.DotNet.Models.AuthConfig>();
@@ -210,8 +208,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         builder.RegisterModule(
                             new EdgeletModule(
                                 iothubHostname,
-                                edgeDeviceHostName,
-                                parentEdgeHostname,
                                 deviceId,
                                 new Uri(managementUri),
                                 new Uri(workloadUri),

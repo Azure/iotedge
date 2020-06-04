@@ -32,8 +32,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     {
         readonly string deviceId;
         readonly string iotHubHostName;
-        readonly string edgeDeviceHostname;
-        readonly Option<string> parentEdgeHostname;
         readonly Uri managementUri;
         readonly Uri workloadUri;
         readonly string apiVersion;
@@ -49,8 +47,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
         public EdgeletModule(
             string iotHubHostname,
-            string edgeDeviceHostname,
-            Option<string> parentEdgeHostname,
             string deviceId,
             Uri managementUri,
             Uri workloadUri,
@@ -66,8 +62,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string backupConfigFilePath)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
-            this.edgeDeviceHostname = Preconditions.CheckNonWhiteSpace(edgeDeviceHostname, nameof(edgeDeviceHostname));
-            this.parentEdgeHostname = parentEdgeHostname;
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
@@ -135,9 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         ICommandFactory factory = new EdgeletCommandFactory<CombinedDockerConfig>(
                             moduleManager,
                             configSource,
-                            combinedDockerConfigProvider,
-                            this.edgeDeviceHostname,
-                            this.parentEdgeHostname);
+                            combinedDockerConfigProvider);
                         factory = new MetricsCommandFactory(factory, metricsProvider);
                         return new LoggingCommandFactory(factory, loggerFactory) as ICommandFactory;
                     })

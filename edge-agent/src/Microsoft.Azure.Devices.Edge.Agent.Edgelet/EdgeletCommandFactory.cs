@@ -1,11 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 {
+    using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Configuration;
 
     public class EdgeletCommandFactory<T> : ICommandFactory
     {
@@ -18,15 +20,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         public EdgeletCommandFactory(
             IModuleManager moduleManager,
             IConfigSource configSource,
-            ICombinedConfigProvider<T> combinedConfigProvider,
-            string edgeDeviceHostname,
-            Option<string> parentEdgeHostname)
+            ICombinedConfigProvider<T> combinedConfigProvider)
         {
             this.moduleManager = Preconditions.CheckNotNull(moduleManager, nameof(moduleManager));
             this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
             this.combinedConfigProvider = Preconditions.CheckNotNull(combinedConfigProvider, nameof(combinedConfigProvider));
-            this.edgeDeviceHostname = Preconditions.CheckNonWhiteSpace(edgeDeviceHostname, nameof(edgeDeviceHostname));
-            this.parentEdgeHostname = parentEdgeHostname;
+            this.edgeDeviceHostname = this.configSource.Configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
+            if (string.IsNullOrWhiteSpace(this.edgeDeviceHostname))
+            {
+                throw new ArgumentException("EdgeDeviceHostname from configuration is null, empty or whitespaces.");
+            }
+
+            this.parentEdgeHostname = Option.Maybe(this.configSource.Configuration.GetValue<string>(Constants.GatewayHostnameVariableName));
         }
 
         public Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo) =>
