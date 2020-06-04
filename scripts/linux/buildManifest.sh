@@ -42,7 +42,6 @@ usage()
     echo " -i, --image-name               Docker image name (Optional if specified in template yaml)"
     echo " -v, --image-version            Docker Image Version."
     echo " -t, --template                 Yaml file template for manifest definition."
-    echo " -w, --win-arm32-enabled        Enable the windows arm32 build manifest"
     echo "     --tags                     Additional tags to add to the docker image. Specify as a list of strings. e.g. --tags \"['1.0']\""
     echo "     --ignore-missing           Ignore missing images in manifest"
     exit 1;
@@ -97,7 +96,6 @@ process_args()
                        "--tags" ) save_next_arg=6;;
                 "-n" | "--namespace" ) save_next_arg=7;;
                 "-i" | "--image-name" ) save_next_arg=8;;
-                "-w" | "--win-arm32-enabled" ) WIN_ARM32_ENABLED=1;;
                        "--ignore-missing" ) IGNORE_MISSING="--ignore-missing";;
                 * ) usage;;
             esac
@@ -159,11 +157,11 @@ cat $manifest
 echo "Done Building And Pushing Docker Images"
 
 
-if [ $WIN_ARM32_ENABLED -eq 1 ]; then
-    curl -Lo /tmp/manifest-tool 'https://edgebuild.blob.core.windows.net/iotedge-win-arm32v7-tools/manifest-tool-linux-amd64' &&
-        chmod +x /tmp/manifest-tool &&
-        /tmp/manifest-tool --debug push from-spec $IGNORE_MISSING $manifest
-fi
+# Download and execute the manifest tool
+curl -Lo /tmp/manifest-tool 'https://edgebuild.blob.core.windows.net/iotedge-win-arm32v7-tools/manifest-tool-linux-amd64' &&
+    chmod +x /tmp/manifest-tool &&
+    /tmp/manifest-tool --debug push from-spec $IGNORE_MISSING $manifest
+
 
 [ $? -eq 0 ] || exit $?
 
