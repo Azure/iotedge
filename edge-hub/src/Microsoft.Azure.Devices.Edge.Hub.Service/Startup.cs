@@ -54,6 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 metricsApp.UseMetricServer(string.Empty);
             });
 
+            app.UseHttpsRedirection();
             app.UseWebSockets();
 
             var webSocketListenerRegistry = app.ApplicationServices.GetService(typeof(IWebSocketListenerRegistry)) as IWebSocketListenerRegistry;
