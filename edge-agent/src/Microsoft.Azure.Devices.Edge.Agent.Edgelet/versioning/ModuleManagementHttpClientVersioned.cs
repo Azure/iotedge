@@ -127,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 Events.SuccessfullyExecutedOperation(operation, this.ManagementUri.ToString());
                 return result;
             }
-            catch (SocketException ex) when (ex.ErrorCode == (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? (int)SocketError.ConnectionRefused : 111))
+            catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
             {
                 Events.StaleSocketShutdown(ex, operation, this.ManagementUri.ToString());
                 Environment.Exit(ex.ErrorCode);

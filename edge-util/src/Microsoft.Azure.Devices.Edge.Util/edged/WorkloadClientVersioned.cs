@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 {
     using System;
     using System.Net.Sockets;
-    using System.Runtime.InteropServices;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
@@ -65,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
                 Events.SuccessfullyExecutedOperation(operation, this.WorkloadUri.ToString());
                 return result;
             }
-            catch (SocketException ex) when (ex.ErrorCode == (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? (int)SocketError.ConnectionRefused : 111))
+            catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
             {
                 Events.StaleSocketShutdown(ex, operation, this.WorkloadUri.ToString());
                 Environment.Exit(ex.ErrorCode);
