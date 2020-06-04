@@ -81,21 +81,19 @@ async fn run_broker_server<Z>(broker: Broker<Z>, config: BrokerConfig) -> Result
 where
     Z: Authorizer + Send + Sync + 'static,
 {
-    // Create configured transports
-    let transports = config
-        .transports()
-        .iter()
-        .map(|transport| transport.clone().try_into())
-        .collect::<Result<Vec<_>, _>>()?;
-
     // Setup the shutdown handle
     let shutdown = shutdown::shutdown();
     pin_mut!(shutdown);
 
-    let state = Server::from_broker(broker)
-        .serve(transports, shutdown, authenticator())
-        .await?;
+    // Setup broker with previous state and with configured transports
+    let mut server = Server::from_broker(broker);
+    for config in config.transports() {
+        let new_transport = config.clone().try_into()?;
+        server.transport(new_transport, authenticator());
+    }
 
+    // Run server
+    let state = server.serve(shutdown).await?;
     Ok(state)
 }
 

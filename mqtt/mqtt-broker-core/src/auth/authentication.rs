@@ -1,4 +1,4 @@
-use std::convert::Infallible;
+use std::{error::Error as StdError, ops::Deref};
 
 use async_trait::async_trait;
 
@@ -33,7 +33,7 @@ impl From<Vec<u8>> for Certificate {
 #[async_trait]
 pub trait Authenticator {
     /// Authentication error.
-    type Error: std::error::Error + Send;
+    type Error: Deref<Target = dyn StdError>;
 
     /// Authenticates a MQTT client with given credentials.
     ///
@@ -50,18 +50,18 @@ pub trait Authenticator {
 
 /// Creates an authenticator from a function.
 /// It wraps any provided function with an interface aligned with authenticator.
-pub fn authenticate_fn_ok<F>(f: F) -> impl Authenticator
+pub fn authenticate_fn_ok<F>(f: F) -> impl Authenticator<Error = Box<dyn StdError>>
 where
     F: Fn(Option<String>, Credentials) -> Option<AuthId> + Sync + 'static,
 {
-    move |username, credentials| Ok::<_, Infallible>(f(username, credentials))
+    move |username, credentials| Ok(f(username, credentials))
 }
 
 #[async_trait]
 impl<F, E> Authenticator for F
 where
     F: Fn(Option<String>, Credentials) -> Result<Option<AuthId>, E> + Sync,
-    E: std::error::Error + Send + 'static,
+    E: Deref<Target = dyn StdError> + 'static,
 {
     type Error = E;
 
@@ -80,7 +80,7 @@ pub struct DefaultAuthenticator;
 
 #[async_trait]
 impl Authenticator for DefaultAuthenticator {
-    type Error = Infallible;
+    type Error = Box<dyn StdError>;
 
     async fn authenticate(
         &self,

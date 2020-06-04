@@ -1,29 +1,27 @@
-use std::cmp;
-use std::collections::HashMap;
-use std::fs::{self, OpenOptions};
-use std::io::{Read, Write};
-use std::iter::FromIterator;
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
 #[cfg(windows)]
 use std::os::windows::fs::symlink_file;
-use std::path::PathBuf;
+use std::{
+    cmp,
+    collections::HashMap,
+    error::Error as StdError,
+    fs::{self, OpenOptions},
+    io::{Read, Write},
+    iter::FromIterator,
+    path::PathBuf,
+};
 
 use async_trait::async_trait;
 use bytes::Bytes;
 use fail::fail_point;
-use flate2::read::GzDecoder;
-use flate2::write::GzEncoder;
-use flate2::Compression;
-use mqtt3::proto::Publication;
-use serde::ser::SerializeMap;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use flate2::{read::GzDecoder, write::GzEncoder, Compression};
+use serde::{ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
 use tracing::{debug, info, span, Level};
 
-use crate::session::SessionState;
-use crate::subscription::Subscription;
-use crate::BrokerState;
-use crate::ClientId;
+use mqtt3::proto::Publication;
+
+use crate::{session::SessionState, subscription::Subscription, BrokerState, ClientId};
 
 /// sets the number of past states to save - 2 means we save the current and the pervious
 const STATE_DEFAULT_PREVIOUS_COUNT: usize = 2;
@@ -32,7 +30,7 @@ static STATE_EXTENSION: &str = "dat";
 
 #[async_trait]
 pub trait Persist {
-    type Error: std::error::Error;
+    type Error: StdError;
 
     async fn load(&mut self) -> Result<Option<BrokerState>, Self::Error>;
 
@@ -58,7 +56,7 @@ impl Persist for NullPersistor {
 
 /// An abstraction over the broker state's file format.
 pub trait FileFormat {
-    type Error: std::error::Error;
+    type Error: StdError;
 
     /// Load `BrokerState` from a reader.
     fn load<R: Read>(&self, reader: R) -> Result<BrokerState, Self::Error>;
