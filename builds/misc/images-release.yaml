@@ -23,11 +23,9 @@ jobs:
           targetType: filePath
       - bash: "echo \"##vso[task.setvariable variable=PATH;]$HOME/.cargo/bin:$PATH\""
         displayName: "Modify path"
-      - task: DotNetCoreInstaller@0
-        displayName: "Install .NET Core 2.1 - Needed for code sign on linux"
-        inputs: 
-          version: "2.1.700"
+      - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
+      - template: ../templates/dotnet3-globaljson.yaml
       - bash: "cargo install --git https://github.com/arsing/cross.git --branch set-path"
         displayName: "Install cross (fork with docker fix)"
       - task: ShellScript@2
