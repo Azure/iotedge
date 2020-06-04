@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use std::convert::Infallible;
+use std::{convert::Infallible, error::Error as StdError};
 
 use mqtt3::proto;
 
@@ -8,7 +8,7 @@ use crate::{auth::AuthId, ClientId};
 /// A trait to check a MQTT client permissions to perform some actions.
 pub trait Authorizer {
     /// Authentication error.
-    type Error: std::error::Error + Send;
+    type Error: StdError + Send;
 
     /// Authorizes a MQTT client to perform some action.
     fn authorize(&self, activity: Activity) -> Result<bool, Self::Error>;
@@ -26,7 +26,7 @@ where
 impl<F, E> Authorizer for F
 where
     F: Fn(Activity) -> Result<bool, E> + Sync,
-    E: std::error::Error + Send,
+    E: StdError + Send,
 {
     type Error = E;
 
