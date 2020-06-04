@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string NetworkControllerModuleName = "networkController";
         const string TrcUrl = "http://" + TrcModuleName + ":5001";
         const string LoadGenTestDuration = "00:00:20";
-        const string LoadGenTestStartDelay = "00:00:20";
+        const string DefaultLoadGenTestStartDelay = "00:00:20";
 
         [Test]
         public async Task PriorityQueueModuleToModuleMessages()
@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string relayerImage = Context.Current.RelayerImage.Expect(() => new ArgumentException("relayerImage parameter is required for Priority Queues test"));
             string networkControllerImage = Context.Current.NetworkControllerImage.Expect(() => new ArgumentException("networkControllerImage parameter is required for Priority Queues test"));
             string trackingId = Guid.NewGuid().ToString();
-            TestInfo testInfo = this.InitTestInfo(5, 1000, true);
+            TestInfo testInfo = this.InitTestInfo(5, 1000, true, "00:00:40");
 
             var testResultReportingClient = new TestResultReportingClient { BaseUrl = "http://localhost:5001" };
 
@@ -82,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addNetworkControllerConfig, token);
             bool networkOn = true;
             await this.ToggleConnectivity(!networkOn, NetworkControllerModuleName, token);
-            await Task.Delay(TimeSpan.Parse(LoadGenTestDuration) + TimeSpan.Parse(LoadGenTestStartDelay) + TimeSpan.FromSeconds(10));
+            await Task.Delay(TimeSpan.Parse(LoadGenTestDuration) + TimeSpan.Parse(testInfo.LoadGenStartDelay) + TimeSpan.FromSeconds(10));
             await this.ToggleConnectivity(networkOn, NetworkControllerModuleName, token);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
             ConcurrentQueue<MessageTestResult> messages = new ConcurrentQueue<MessageTestResult>();
@@ -136,16 +136,25 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         startTime,
                         data =>
                         {
-                            int sequenceNumber = int.Parse(data.Properties["sequenceNumber"].ToString());
-                            Log.Verbose($"Received message from IoTHub with sequence number: {sequenceNumber}");
-                            messages.Enqueue(new MessageTestResult("hubtest.receive", DateTime.UtcNow)
+                            if (data.Properties.ContainsKey("trackingId") &&
+                                data.Properties.ContainsKey("batchId") &&
+                                data.Properties.ContainsKey("sequenceNumber"))
                             {
-                                TrackingId = data.Properties["trackingId"].ToString(),
-                                BatchId = data.Properties["batchId"].ToString(),
-                                SequenceNumber = data.Properties["sequenceNumber"].ToString()
-                            });
+                                int sequenceNumber = int.Parse(data.Properties["sequenceNumber"].ToString());
+                                Log.Verbose($"Received message from IoTHub with sequence number: {sequenceNumber}");
+                                messages.Enqueue(new MessageTestResult("hubtest.receive", DateTime.UtcNow)
+                                {
+                                    TrackingId = data.Properties["trackingId"].ToString(),
+                                    BatchId = data.Properties["batchId"].ToString(),
+                                    SequenceNumber = data.Properties["sequenceNumber"].ToString()
+                                });
+                                results.Add(sequenceNumber);
+                            }
+                            else
+                            {
+                                Log.Warning("Message is missing information. Needs to have trackingId, batchId, and sequenceNumber. Not enqueuing.");
+                            }
 
-                            results.Add(sequenceNumber);
                             return results.Count == loadGenTestStatus.ResultCount;
                         },
                         token);
@@ -215,15 +224,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                        .WithEnvironment(new[]
                        {
                            ("trackingId", trackingId),
-                           ("eventHubConnectionString", "Unnecessary"),
+                           ("useTestResultReportingService", "false"),
+                           ("useResultEventReceivingService", "false"),
                            ("IOT_HUB_CONNECTION_STRING", Context.Current.ConnectionString),
-                           ("logAnalyticsWorkspaceId", "Unnecessary"),
-                           ("logAnalyticsSharedKey", "Unnecessary"),
-                           ("logAnalyticsLogType", "Unnecessary"),
                            ("testStartDelay", "00:00:00"),
                            ("testDuration", "00:20:00"),
                            ("verificationDelay", "00:00:00"),
-                           ("STORAGE_ACCOUNT_CONNECTION_STRING", "Unnecessary"),
                            ("NetworkControllerRunProfile", "Online"),
                            ("TEST_INFO", "key=unnecessary")
                        })
@@ -255,7 +261,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         {
                             ("testResultCoordinatorUrl", TrcUrl),
                             ("senderType", "PriorityMessageSender"),
-                            ("testStartDelay", LoadGenTestStartDelay),
+                            ("testStartDelay", testInfo.LoadGenStartDelay),
                             ("trackingId", trackingId),
                             ("testDuration", LoadGenTestDuration),
                             ("messageFrequency", "00:00:00.5"),
@@ -365,11 +371,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
             return testStatus;
         }
 
-        private TestInfo InitTestInfo(int numOfRoutes, int ttlThreshold, bool defaultTtls = false)
+        private TestInfo InitTestInfo(int numOfRoutes, int ttlThreshold, bool defaultTtls = false, string loadGenDelay = DefaultLoadGenTestStartDelay)
         {
             List<int> ttls = defaultTtls ? new List<int>(Enumerable.Repeat(0, numOfRoutes)) : this.BuildTtls(numOfRoutes, ttlThreshold);
             List<int> priorities = this.BuildPriorities(numOfRoutes);
-            return new TestInfo() { Ttls = ttls, Priorities = priorities, TtlThreshold = ttlThreshold };
+            return new TestInfo() { Ttls = ttls, Priorities = priorities, TtlThreshold = ttlThreshold, LoadGenStartDelay = loadGenDelay };
         }
 
         struct TestInfo
@@ -377,6 +383,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             public List<int> Ttls;
             public List<int> Priorities;
             public int TtlThreshold;
+            public string LoadGenStartDelay;
         }
     }
 }

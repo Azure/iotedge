@@ -9,7 +9,6 @@ namespace TwinTester
         readonly AtomicLong edgeHubLastStarted = new AtomicLong();
         readonly AtomicLong edgeHubLastStopped = new AtomicLong();
         readonly AtomicLong lastNetworkOffline = new AtomicLong();
-        string twinETag;
 
         public TwinTestState(string twinETag)
             : this(0, 0, twinETag, DateTime.MinValue, DateTime.MinValue, DateTime.MinValue)
@@ -26,7 +25,7 @@ namespace TwinTester
         {
             this.ReportedPropertyUpdateCounter = reportedPropertyUpdateCounter;
             this.DesiredPropertyUpdateCounter = desiredPropertyUpdateCounter;
-            this.twinETag = twinETag;
+            this.TwinETag = twinETag;
             this.edgeHubLastStarted.Set(edgeHubLastStarted.Ticks);
             this.edgeHubLastStopped.Set(edgeHubLastStopped.Ticks);
             this.lastNetworkOffline.Set(lastNetworkOffline.Ticks);

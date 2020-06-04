@@ -129,10 +129,13 @@
         Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics. 
 
     .PARAMETER InitializeWithAgentArtifact
-         Boolean specifying if the iotedge installation should initialize edge agent with the official 1.0 image or the desired artifact. If false, the deployment after installation will start the desired agent artifact.
+        Boolean specifying if the iotedge installation should initialize edge agent with the official 1.0 image or the desired artifact. If false, the deployment after installation will start the desired agent artifact.
 
     .PARAMETER TestStartDelay
-         Tests start after delay for applicable modules
+        Tests start after delay for applicable modules
+
+    .PARAMETER RuntimeLogLevel
+        Optional Value of RuntimeLogLevel envivronment variable for EdgeAgent in Long Haul and Stress tests  [Default: debug] (EdgeHub RuntimeLogLevel is set implicitly set to be the same with edgeAgent)
 
     .EXAMPLE
         .\Run-E2ETest.ps1
@@ -322,6 +325,8 @@ Param (
 
     [string] $TestStartDelay = $null,
 
+    [string] $RuntimeLogLevel = "debug",
+
     [switch] $BypassEdgeInstallation
 )
 
@@ -375,6 +380,11 @@ Function GetImageArchitectureLabel
     }
 
     Throw "Can't find image architecture label for $Architecture"
+}
+
+Function GetHash
+{
+    return -join ((48..57) + (65..90) + (97..122) | Get-Random -Count $args[0] | % {[char]$_})
 }
 
 Function GetLongHaulDeploymentFilename
@@ -1017,7 +1027,7 @@ Function RunLongHaulTest
     TestSetup
 
     $testStartAt = Get-Date
-    $deviceId = "${ReleaseLabel}-Windows-${Architecture}-longHaul"
+    $deviceId = "${ReleaseLabel}-Windows-${Architecture}-longHaul-$(GetHash 8)"
     PrintHighlightedMessage "Run Long Haul test with -d ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``
@@ -1031,7 +1041,7 @@ Function RunLongHaulTest
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             --leave-running=All ``
             -l `"$DeploymentWorkingFilePath`" ``
-            --runtime-log-level `"Info`" ``
+            --runtime-log-level `"$RuntimeLogLevel`" ``
             --no-verify ``
             --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
@@ -1049,7 +1059,7 @@ Function RunStressTest
     TestSetup
 
     $testStartAt = Get-Date
-    $deviceId = "${ReleaseLabel}-Windows-${Architecture}-stress"
+    $deviceId = "${ReleaseLabel}-Windows-${Architecture}-stress-$(GetHash 8)"
     PrintHighlightedMessage "Run Stress test with -d ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``
@@ -1063,7 +1073,7 @@ Function RunStressTest
             -t `"${ArtifactImageBuildNumber}-windows-$(GetImageArchitectureLabel)`" ``
             --leave-running=All ``
             -l `"$DeploymentWorkingFilePath`" ``
-            --runtime-log-level `"Info`" ``
+            --runtime-log-level `"$RuntimeLogLevel`" ``
             --no-verify ``
             --initialize-with-agent-artifact `"$InitializeWithAgentArtifact`" ``
             $BypassInstallationFlag"
