@@ -20,6 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             public const string EdgeHubServerCertificateFile = "EdgeModuleHubServerCertificateFile";
             public const string IotHubConnectionString = "IotHubConnectionString";
             public const string IotHubHostname = "IOTEDGE_IOTHUBHOSTNAME";
+            public const string GatewayHostname = "IOTEDGE_GATEWAYHOSTNAME";
             public const string ModuleGenerationId = "IOTEDGE_MODULEGENERATIONID";
             public const string ModuleId = "IOTEDGE_MODULEID";
             public const string WorkloadUri = "IOTEDGE_WORKLOADURI";

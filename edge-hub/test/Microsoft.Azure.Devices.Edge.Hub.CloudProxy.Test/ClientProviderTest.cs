@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.WorkloadTestServer;
     using Xunit;
@@ -41,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var authenticationMethod = new DeviceAuthenticationWithToken(DeviceId, token);
 
             var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
-            IClient client = new ClientProvider().Create(identity, authenticationMethod, transportSettings);
+            IClient client = new ClientProvider(Option.None<string>()).Create(identity, authenticationMethod, transportSettings);
 
             Assert.NotNull(client);
             Assert.True(client is DeviceClientWrapper);
@@ -54,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IIdentity identity = new DeviceIdentity(IotHubHostName, DeviceId);
 
             var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
-            IClient client = new ClientProvider().Create(identity, connectionString, transportSettings);
+            IClient client = new ClientProvider(Option.None<string>()).Create(identity, connectionString, transportSettings);
 
             Assert.NotNull(client);
             Assert.True(client is DeviceClientWrapper);
@@ -67,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
 
-            await Assert.ThrowsAsync<InvalidOperationException>(() => new ClientProvider().CreateAsync(identity, transportSettings));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => new ClientProvider(Option.None<string>()).CreateAsync(identity, transportSettings));
         }
 
         [Fact]
@@ -78,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var authenticationMethod = new ModuleAuthenticationWithToken(DeviceId, ModuleId, token);
 
             var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
-            IClient client = new ClientProvider().Create(identity, authenticationMethod, transportSettings);
+            IClient client = new ClientProvider(Option.None<string>()).Create(identity, authenticationMethod, transportSettings);
 
             Assert.NotNull(client);
             Assert.True(client is ModuleClientWrapper);
@@ -91,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IIdentity identity = new ModuleIdentity(IotHubHostName, DeviceId, ModuleId);
 
             var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
-            IClient client = new ClientProvider().Create(identity, connectionString, transportSettings);
+            IClient client = new ClientProvider(Option.None<string>()).Create(identity, connectionString, transportSettings);
 
             Assert.NotNull(client);
             Assert.True(client is ModuleClientWrapper);
@@ -112,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             var transportSettings = new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
 
-            IClient client = await new ClientProvider().CreateAsync(identity, transportSettings);
+            IClient client = await new ClientProvider(Option.None<string>()).CreateAsync(identity, transportSettings);
 
             Assert.NotNull(client);
             Assert.True(client is ModuleClientWrapper);

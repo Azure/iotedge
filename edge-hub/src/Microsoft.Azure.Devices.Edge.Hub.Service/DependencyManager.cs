@@ -159,10 +159,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int configUpdateFrequencySecs = this.configuration.GetValue("ConfigRefreshFrequencySecs", 3600);
             TimeSpan configUpdateFrequency = TimeSpan.FromSeconds(configUpdateFrequencySecs);
             bool checkEntireQueueOnCleanup = this.configuration.GetValue("CheckEntireQueueOnCleanup", false);
+            Option<string> gatewayHostname = Option.Maybe(this.configuration.GetValue<string>(Constants.ConfigKey.GatewayHostname));
 
             builder.RegisterModule(
                 new RoutingModule(
                     this.iotHubHostname,
+                    gatewayHostname,
                     this.edgeDeviceId,
                     this.edgeModuleId,
                     this.connectionString,
