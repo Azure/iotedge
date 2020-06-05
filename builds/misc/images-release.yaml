@@ -5,6 +5,7 @@ jobs:
     # This job is run on a hosted linux agent, which needs dotnet 2 and 3 installed as a manual step. 
     # The code sign steps will fail unless we explicitly say to use dotnet 2 before.
     # This means we have to toggle back and forth between primary dotnet installations for the sign and build.
+    # TODO: Investigate why we have to toggle primary installs on linux, but not on windows.
     displayName: LinuxDotnet
     pool: 
       name: "Hosted Ubuntu 1604"
@@ -345,6 +346,7 @@ jobs:
             docker login $(build.registry.address) -u $(build.registry.user) -p $(build.registry.password)
             docker login $(registry.address) -u $(registry.user) -p $(registry.password)
         displayName: 'docker login'
+      - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
       - powershell: "scripts/windows/build/Publish-Branch.ps1 -Configuration:\"$(configuration)\" -PublishTests:$False -UpdateVersion"
         displayName: "Build ($(configuration))"
