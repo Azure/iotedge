@@ -273,6 +273,7 @@ where
                     Packet::PubAck(puback) => ClientEvent::PubAck(puback),
                     Packet::PubComp(pubcomp) => ClientEvent::PubComp(pubcomp),
                     Packet::Publish(publish) => {
+                        #[cfg(feature = "edgehub")]
                         let publish = translate_incoming_publish(&client_id, publish);
                         let perm = inflight_guard.clone().acquire_owned().await;
                         ClientEvent::PublishFrom(publish, Some(perm))
