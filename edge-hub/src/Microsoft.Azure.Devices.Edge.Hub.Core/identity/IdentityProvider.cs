@@ -5,11 +5,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
 
     public class IdentityProvider : IIdentityProvider
     {
-        readonly string iothubHostName;
+        readonly string iotHubHostname;
 
-        public IdentityProvider(string iothubHostName)
+        public IdentityProvider(string iothubHostname)
         {
-            this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
+            this.iotHubHostname = Preconditions.CheckNonWhiteSpace(iothubHostname, nameof(iothubHostname));
         }
 
         public IIdentity Create(string id)
@@ -17,16 +17,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity
             // If it is a module id, it will have the format "deviceId/moduleId"
             string[] parts = Preconditions.CheckNotNull(id, nameof(id)).Split('/');
             IIdentity identity = parts.Length == 2
-                ? new ModuleIdentity(this.iothubHostName, parts[0], parts[1]) as IIdentity
-                : new DeviceIdentity(this.iothubHostName, id);
+                ? new ModuleIdentity(this.iotHubHostname, parts[0], parts[1]) as IIdentity
+                : new DeviceIdentity(this.iotHubHostname, id);
             return identity;
         }
 
         public IIdentity Create(string deviceId, string moduleId)
         {
             IIdentity identity = string.IsNullOrWhiteSpace(moduleId)
-                ? new DeviceIdentity(this.iothubHostName, deviceId)
-                : new ModuleIdentity(this.iothubHostName, deviceId, moduleId) as IIdentity;
+                ? new DeviceIdentity(this.iotHubHostname, deviceId)
+                : new ModuleIdentity(this.iotHubHostname, deviceId, moduleId) as IIdentity;
             return identity;
         }
     }

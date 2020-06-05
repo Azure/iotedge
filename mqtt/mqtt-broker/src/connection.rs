@@ -1,6 +1,4 @@
-use std::net::SocketAddr;
-use std::sync::Arc;
-use std::time::Duration;
+use std::{net::SocketAddr, time::Duration};
 
 use futures_util::future::{select, Either};
 use futures_util::pin_mut;
@@ -84,11 +82,11 @@ pub async fn process<I, N>(
     io: I,
     remote_addr: SocketAddr,
     mut broker_handle: BrokerHandle,
-    authenticator: Arc<N>,
+    authenticator: &N,
 ) -> Result<(), Error>
 where
     I: AsyncRead + AsyncWrite + GetPeerCertificate<Certificate = Certificate> + Unpin,
-    N: Authenticator + Send + Sync + 'static,
+    N: Authenticator + ?Sized,
 {
     let certificate = io.peer_certificate()?;
 
@@ -148,7 +146,7 @@ where
                     Ok(Some(auth_id)) => Auth::Identity(auth_id),
                     Ok(None) => Auth::Unknown,
                     Err(e) => {
-                        warn!(message = "error authenticating client: {}", error = %e);
+                        warn!(message = "error authenticating client: {}", error = % *e);
                         Auth::Failure
                     }
                 };

@@ -252,7 +252,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.NotNull(clientCredentials);
             Assert.IsType(expectedCredentialsType, clientCredentials);
             Assert.IsType(expectedIdentityType, clientCredentials.Identity);
-            Assert.Equal(iotHubHostName, ((Identity)clientCredentials.Identity).IotHubHostName);
+            Assert.Equal(iotHubHostName, ((Identity)clientCredentials.Identity).IotHubHostname);
             Assert.Equal(ProductInfo, clientCredentials.ProductInfo);
             Assert.Equal(expected, clientCredentials.AuthenticationType);
         }
