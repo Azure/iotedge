@@ -49,7 +49,7 @@ where
                 let cn = module_id.to_string();
                 let alias = format!("{}identity", module_id);
                 let module_uri =
-                    prepare_cert_uri_module(cfg.iot_hub_name(), cfg.device_id(), module_id);
+                    prepare_cert_uri_module(cfg.upstream_hostname(), cfg.device_id(), module_id);
 
                 req.into_body().concat2().then(|body| {
                     let body =
@@ -163,7 +163,7 @@ mod tests {
     }
 
     struct TestWorkloadConfig {
-        iot_hub_name: String,
+        upstream_hostname: String,
         device_id: String,
         duration: i64,
     }
@@ -174,7 +174,7 @@ mod tests {
             assert!(MAX_DURATION_SEC < (i64::max_value() as u64));
 
             TestWorkloadConfig {
-                iot_hub_name: String::from("zaphods_hub"),
+                upstream_hostname: String::from("zaphods_hub"),
                 device_id: String::from("marvins_device"),
                 duration: MAX_DURATION_SEC as i64,
             }
@@ -195,8 +195,8 @@ mod tests {
     }
 
     impl WorkloadConfig for TestWorkloadData {
-        fn iot_hub_name(&self) -> &str {
-            self.data.iot_hub_name.as_str()
+        fn upstream_hostname(&self) -> &str {
+            self.data.upstream_hostname.as_str()
         }
 
         fn device_id(&self) -> &str {
