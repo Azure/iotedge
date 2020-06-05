@@ -104,6 +104,8 @@ deb: release
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(TARGET)/$(PACKAGE)/iotedge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/iotedge.service $(TARGET)/$(PACKAGE)/debian/iotedge.service
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/iotedge.socket $(TARGET)/$(PACKAGE)/debian/iotedge.socket
+	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/idservice.socket $(TARGET)/$(PACKAGE)/debian/idservice.socket
+	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/keyservice.socket $(TARGET)/$(PACKAGE)/debian/keyservice.socket
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/iotedge.mgmt.socket $(TARGET)/$(PACKAGE)/debian/iotedge.mgmt.socket
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(TARGET)/$(PACKAGE)/man/iotedge.1
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/iotedged.8 $(TARGET)/$(PACKAGE)/man/iotedged.8
@@ -151,6 +153,8 @@ install: release
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/log/iotedge
 	$(INSTALL) -m 0660 /dev/null $(DESTDIR)$(localstatedir)/lib/iotedge/mgmt.sock
 	$(INSTALL) -m 0666 /dev/null $(DESTDIR)$(localstatedir)/lib/iotedge/workload.sock
+	$(INSTALL) -m 0666 /dev/null $(DESTDIR)$(localstatedir)/lib/idservice/idservice.sock
+	$(INSTALL) -m 0666 /dev/null $(DESTDIR)$(localstatedir)/lib/keyservice/keyservice.sock
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/LICENSE $(DESTDIR)$(docdir)/LICENSE
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/ThirdPartyNotices $(DESTDIR)$(docdir)/ThirdPartyNotices
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/trademark $(DESTDIR)$(docdir)/trademark

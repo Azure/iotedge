@@ -1,0 +1,15 @@
+[Unit]
+Description=Azure IoT identity service socket
+Documentation=man:iotedged(8)
+PartOf=iotedge.service
+
+[Socket]
+ListenStream=/var/run/identityservice/identityservice.sock
+SocketMode=0666
+DirectoryMode=0755
+SocketUser=identityservice
+SocketGroup=identityservice
+Service=iotedge.service
+
+[Install]
+WantedBy=sockets.target
