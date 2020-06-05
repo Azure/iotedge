@@ -23,16 +23,13 @@ use mqtt_broker_core::auth::Certificate;
 use crate::configuration::Transport as TransportConfig;
 use crate::{Error, InitializeBrokerError};
 
-pub enum TransportBuilder<A> {
-    Tcp(A),
-    Tls(A, Identity),
+pub enum TransportBuilder {
+    Tcp(String),
+    Tls(String, Identity),
 }
 
-impl<A> TransportBuilder<A>
-where
-    A: ToSocketAddrs,
-{
-    pub async fn build(self) -> Result<Transport, InitializeBrokerError> {
+impl TransportBuilder {
+    pub async fn make_transport(self) -> Result<Transport, InitializeBrokerError> {
         match self {
             TransportBuilder::Tcp(addr) => Transport::new_tcp(addr).await,
             TransportBuilder::Tls(addr, identity) => Transport::new_tls(addr, identity).await,
@@ -40,7 +37,7 @@ where
     }
 }
 
-impl TryFrom<TransportConfig> for TransportBuilder<String> {
+impl TryFrom<TransportConfig> for TransportBuilder {
     type Error = InitializeBrokerError;
 
     fn try_from(transport: TransportConfig) -> Result<Self, Self::Error> {

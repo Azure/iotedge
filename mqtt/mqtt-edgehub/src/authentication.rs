@@ -1,4 +1,7 @@
-use std::convert::{TryFrom, TryInto};
+use std::{
+    convert::{TryFrom, TryInto},
+    error::Error as StdError,
+};
 
 use async_trait::async_trait;
 use reqwest::Client;
@@ -17,17 +20,12 @@ impl EdgeHubAuthenticator {
         let client = reqwest::Client::new();
         Self(client, url)
     }
-}
-
-#[async_trait]
-impl Authenticator for EdgeHubAuthenticator {
-    type Error = AuthenticateError;
 
     async fn authenticate(
         &self,
         username: Option<String>,
         credentials: Credentials,
-    ) -> Result<Option<AuthId>, Self::Error> {
+    ) -> Result<Option<AuthId>, AuthenticateError> {
         let response = self
             .0
             .post(&self.1)
@@ -50,6 +48,20 @@ impl Authenticator for EdgeHubAuthenticator {
         }
 
         response.try_into()
+    }
+}
+
+#[async_trait]
+impl Authenticator for EdgeHubAuthenticator {
+    type Error = Box<dyn StdError>;
+
+    async fn authenticate(
+        &self,
+        username: Option<String>,
+        credentials: Credentials,
+    ) -> Result<Option<AuthId>, Self::Error> {
+        let auth_id = self.authenticate(username, credentials).await?;
+        Ok(auth_id)
     }
 }
 
@@ -128,7 +140,7 @@ mod tests {
     use base64::decode;
     use mockito::{mock, Matcher};
 
-    use mqtt_broker_core::auth::{AuthId, Authenticator, Certificate, Credentials};
+    use mqtt_broker_core::auth::{AuthId, Certificate, Credentials};
 
     use crate::authentication::EdgeHubAuthenticator;
 

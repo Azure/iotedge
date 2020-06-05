@@ -1,24 +1,33 @@
-use std::future::Future;
-use std::sync::Arc;
+use std::{error::Error as StdError, future::Future, sync::Arc};
 
-use futures_util::future::{self, Either, FutureExt};
-use futures_util::pin_mut;
-use futures_util::stream::StreamExt;
-use tokio::{net::ToSocketAddrs, sync::oneshot};
+use futures_util::{
+    future::{self, Either, FutureExt},
+    pin_mut,
+    stream::StreamExt,
+};
+use tokio::sync::oneshot;
 use tracing::{debug, error, info, span, warn, Level};
 use tracing_futures::Instrument;
 
 use mqtt_broker_core::auth::{Authenticator, Authorizer};
 
-use crate::broker::{Broker, BrokerHandle, BrokerState};
-use crate::transport::TransportBuilder;
-use crate::{connection, Error, InitializeBrokerError, Message, SystemEvent};
+use crate::{
+    broker::{Broker, BrokerHandle, BrokerState},
+    connection,
+    transport::TransportBuilder,
+    Error, InitializeBrokerError, Message, SystemEvent,
+};
 
 pub struct Server<Z>
 where
     Z: Authorizer,
 {
     broker: Broker<Z>,
+    #[allow(clippy::type_complexity)]
+    transports: Vec<(
+        TransportBuilder,
+        Arc<(dyn Authenticator<Error = Box<dyn StdError>> + Send + Sync)>,
+    )>,
 }
 
 impl<Z> Server<Z>
@@ -26,39 +35,37 @@ where
     Z: Authorizer + Send + Sync + 'static,
 {
     pub fn from_broker(broker: Broker<Z>) -> Self {
-        Self { broker }
+        Self {
+            broker,
+            transports: Vec::default(),
+        }
     }
 
-    pub async fn serve<A, F, I, N>(
-        self,
-        transports: I,
-        shutdown_signal: F,
-        authenticator: N,
-    ) -> Result<BrokerState, Error>
+    pub fn transport<N>(&mut self, new_transport: TransportBuilder, authenticator: N) -> &mut Self
     where
-        A: ToSocketAddrs,
-        F: Future<Output = ()> + Unpin,
-        I: IntoIterator<Item = TransportBuilder<A>>,
-        N: Authenticator + Send + Sync + 'static,
+        N: Authenticator<Error = Box<dyn StdError>> + Send + Sync + 'static,
     {
-        let Server { broker } = self;
+        self.transports
+            .push((new_transport, Arc::new(authenticator)));
+        self
+    }
+
+    pub async fn serve<F>(self, shutdown_signal: F) -> Result<BrokerState, Error>
+    where
+        F: Future<Output = ()> + Unpin,
+    {
+        let Server { broker, transports } = self;
         let mut handle = broker.handle();
         let broker_task = tokio::spawn(broker.run());
 
-        let authenticator = Arc::new(authenticator);
-
         let mut incoming_tasks = Vec::new();
         let mut shutdown_handles = Vec::new();
-        for transport in transports {
+        for (new_transport, authenticator) in transports {
             let (itx, irx) = oneshot::channel::<()>();
             shutdown_handles.push(itx);
 
-            let incoming_task = incoming_task(
-                transport,
-                handle.clone(),
-                irx.map(drop),
-                authenticator.clone(),
-            );
+            let incoming_task =
+                incoming_task(new_transport, handle.clone(), irx.map(drop), authenticator);
 
             let incoming_task = Box::pin(incoming_task);
             incoming_tasks.push(incoming_task);
@@ -172,18 +179,17 @@ where
     }
 }
 
-async fn incoming_task<A, F, N>(
-    transport: TransportBuilder<A>,
+async fn incoming_task<F, N>(
+    new_transport: TransportBuilder,
     handle: BrokerHandle,
     mut shutdown_signal: F,
     authenticator: Arc<N>,
 ) -> Result<(), Error>
 where
-    A: ToSocketAddrs,
     F: Future<Output = ()> + Unpin,
-    N: Authenticator + Send + Sync + 'static,
+    N: Authenticator + ?Sized + Send + Sync + 'static,
 {
-    let io = transport.build().await?;
+    let io = new_transport.make_transport().await?;
     let addr = io.local_addr()?;
     let span = span!(Level::INFO, "server", listener=%addr);
     let _enter = span.enter();
@@ -203,9 +209,10 @@ where
                 let span = span.clone();
                 let authenticator = authenticator.clone();
                 tokio::spawn(async move {
-                    if let Err(e) = connection::process(stream, peer, broker_handle, authenticator)
-                        .instrument(span)
-                        .await
+                    if let Err(e) =
+                        connection::process(stream, peer, broker_handle, &*authenticator)
+                            .instrument(span)
+                            .await
                     {
                         warn!(message = "failed to process connection", error=%e);
                     }

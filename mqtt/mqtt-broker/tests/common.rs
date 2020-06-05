@@ -1,5 +1,6 @@
 use std::{
     convert::Infallible,
+    error::Error as StdError,
     sync::atomic::{AtomicU32, Ordering},
     task::{Context, Poll},
     time::{Duration, Instant},
@@ -26,7 +27,7 @@ use mqtt3::{
     Client, Event, PublishError, PublishHandle, ReceivedPublication, ShutdownHandle,
     UpdateSubscriptionHandle, PROTOCOL_LEVEL, PROTOCOL_NAME,
 };
-use mqtt_broker::{Broker, BrokerState, Error, Server};
+use mqtt_broker::{Broker, BrokerState, Error, Server, TransportBuilder};
 use mqtt_broker_core::auth::{Activity, AuthId, Authenticator, Authorizer, Credentials};
 
 /// A wrapper on the [`mqtt3::Client`] to help simplify client event loop management.
@@ -424,7 +425,7 @@ impl Drop for ServerHandle {
 /// shutdown handle, broker task and server binding.
 pub fn start_server<N, Z>(broker: Broker<Z>, authenticator: N) -> ServerHandle
 where
-    N: Authenticator + Send + Sync + 'static,
+    N: Authenticator<Error = Box<dyn StdError>> + Send + Sync + 'static,
     Z: Authorizer + Send + Sync + 'static,
 {
     lazy_static! {
@@ -432,12 +433,13 @@ where
     }
 
     let port = PORT.fetch_add(1, Ordering::SeqCst);
-    let address: String = format!("localhost:{}", port);
+    let address = format!("localhost:{}", port);
+
+    let mut server = Server::from_broker(broker);
+    server.transport(TransportBuilder::Tcp(address.clone()), authenticator);
 
     let (shutdown, rx) = oneshot::channel::<()>();
-    let transports = vec![mqtt_broker::TransportBuilder::Tcp(address.clone())];
-    let task =
-        tokio::spawn(Server::from_broker(broker).serve(transports, rx.map(drop), authenticator));
+    let task = tokio::spawn(server.serve(rx.map(drop)));
 
     ServerHandle {
         address,
@@ -456,7 +458,7 @@ impl DummyAuthenticator {
 
 #[async_trait]
 impl Authenticator for DummyAuthenticator {
-    type Error = Infallible;
+    type Error = Box<dyn StdError>;
 
     async fn authenticate(
         &self,
