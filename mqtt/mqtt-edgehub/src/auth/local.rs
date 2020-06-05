@@ -4,6 +4,9 @@ use async_trait::async_trait;
 
 use mqtt_broker_core::auth::{AuthId, AuthenticationContext, Authenticator};
 
+/// Allows to connect any MQTT client connected to locahost.
+/// It is intended to use to authenticate client for local communication
+/// inside `EdgeHub` container.
 #[derive(Debug, Default)]
 pub struct LocalAuthenticator;
 
