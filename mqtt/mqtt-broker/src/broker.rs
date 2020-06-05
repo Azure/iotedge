@@ -1976,7 +1976,7 @@ pub(crate) mod tests {
             payload: Bytes::new(),
         };
 
-        let message = Message::Client(client_id.clone(), ClientEvent::PublishFrom(publish));
+        let message = Message::Client(client_id.clone(), ClientEvent::PublishFrom(publish, None));
         broker_handle.send(message).await.unwrap();
 
         assert_matches!(
@@ -2074,7 +2074,7 @@ pub(crate) mod tests {
             payload: Bytes::new(),
         };
 
-        let message = Message::Client(pub_id.clone(), ClientEvent::PublishFrom(publish));
+        let message = Message::Client(pub_id.clone(), ClientEvent::PublishFrom(publish, None));
         broker_handle.send(message).await.unwrap();
 
         assert_matches!(

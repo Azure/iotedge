@@ -242,7 +242,10 @@ async fn incoming_task<S>(
 where
     S: Stream<Item = Result<Packet, DecodeError>> + Unpin,
 {
-    // TODO: take from config.
+    // We limit the number of incoming publications (PublishFrom) per client
+    // in order to avoid (a single) publisher to occupy whole BrokerHandle queue.
+    // This helps with QoS 0 messages throughput, due to the fact that outgoing_task
+    // also uses sends PubAck0 for QoS 0 messages to BrokerHandle queue.
     let inflight_guard = Arc::new(Semaphore::new(10));
 
     debug!("incoming_task start");
