@@ -341,7 +341,6 @@ function run_connectivity_test() {
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run connectivity test with -d '$device_id' started at $test_start_time"
-    print_highlighted_message "TEST_RUNTIME_LOG_LEVEL=$TEST_RUNTIME_LOG_LEVEL"
 
     SECONDS=0
 
