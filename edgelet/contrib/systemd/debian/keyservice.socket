@@ -7,7 +7,7 @@ PartOf=iotedge.service
 ListenStream=/var/run/keyservice/keyservice.sock
 SocketMode=0666
 DirectoryMode=0755
-SocketUser=keyservce
+SocketUser=keyservice
 SocketGroup=keyservice
 Service=iotedge.service
 
