@@ -7,4 +7,7 @@ RUN apt-get update && \
     ln -s /lib/arm-linux-gnueabihf/libc.so.6 /usr/lib/arm-linux-gnueabihf/libc.so && \
     rm -rf /var/lib/apt/lists/*
 
+ARG EDGEAGENTUSER_ID=1000	
+RUN adduser -Ds /bin/sh -u ${EDGEAGENTUSER_ID} edgeagentuser 
+
 COPY librocksdb.so /usr/lib/

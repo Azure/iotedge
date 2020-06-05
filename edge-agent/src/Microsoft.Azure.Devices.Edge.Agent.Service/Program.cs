@@ -237,6 +237,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                                 moduleOwner,
                                 runAsNonRoot));
 
+                        IEnumerable<X509Certificate2> k8sTrustBundle = await CertificateHelper.GetTrustBundleFromEdgelet(new Uri(workloadUri), apiVersion, Constants.WorkloadApiVersion, moduleId, moduleGenerationId);
+                        CertificateHelper.InstallCertificates(k8sTrustBundle, logger);
                         break;
 
                     default:

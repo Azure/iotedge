@@ -13,4 +13,7 @@ RUN apt-get update && \
     ln -s /lib/aarch64-linux-gnu/libdl.so.2 /usr/lib/aarch64-linux-gnu/libdl.so && \
     ln -s /lib/aarch64-linux-gnu/libc.so.6 /usr/lib/aarch64-linux-gnu/libc.so.6
 
+ARG EDGEAGENTUSER_ID=1000	
+RUN adduser -Ds /bin/sh -u ${EDGEAGENTUSER_ID} edgeagentuser 
+
 COPY  librocksdb.so /usr/lib
