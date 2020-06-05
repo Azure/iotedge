@@ -45,6 +45,12 @@ spec:
             mountPath: "/etc/edgecerts"
             readOnly: true
           {{- end}}
+          {{- if .trusted_ca_certs }}
+          - name: ca-edge-certs
+            mountPath: "/etc/ssl/certs/{{.trusted_ca_certs}}"
+            subPath: "{{.trusted_ca_certs}}"
+            readOnly: true
+          {{- end}}
           {{- end}}
           {{- with .Values.provisioning.authentication }}
           {{- if .identitySecret }}
@@ -142,6 +148,9 @@ spec:
             path: device_ca_pk
           - key: {{ .trusted_ca_certs | default "trusted_ca_certs" }}
             path: trusted_ca_certs
+      - name: ca-edge-certs
+        secret:
+          secretName: {{ .secret }}
       {{- end}}
       {{- else}}
       {{- /*
