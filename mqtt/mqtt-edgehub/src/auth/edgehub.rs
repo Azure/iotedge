@@ -8,7 +8,7 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_repr::Deserialize_repr;
 
-use mqtt_broker_core::auth::{AuthId, Authenticator, Credentials};
+use mqtt_broker_core::auth::{AuthId, AuthenticationContext, Authenticator};
 
 const API_VERSION: &str = "2020-04-20";
 
@@ -26,13 +26,14 @@ impl EdgeHubAuthenticator {
 
     async fn authenticate(
         &self,
-        username: Option<String>,
-        credentials: Credentials,
+        context: AuthenticationContext,
     ) -> Result<Option<AuthId>, AuthenticateError> {
+        let req = EdgeHubAuthRequest::from_auth(&context);
+
         let response = self
             .client
             .post(&self.url)
-            .json(&EdgeHubAuthRequest::new(username, credentials))
+            .json(&req)
             .send()
             .await
             .map_err(AuthenticateError::SendRequest)?;
@@ -60,35 +61,31 @@ impl Authenticator for EdgeHubAuthenticator {
 
     async fn authenticate(
         &self,
-        username: Option<String>,
-        credentials: Credentials,
+        context: AuthenticationContext,
     ) -> Result<Option<AuthId>, Self::Error> {
-        let auth_id = self.authenticate(username, credentials).await?;
+        let auth_id = self.authenticate(context).await?;
         Ok(auth_id)
     }
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "snake_case")]
-pub struct EdgeHubAuthRequest {
-    version: String,
-    username: Option<String>,
-    password: Option<String>,
+pub struct EdgeHubAuthRequest<'a> {
+    version: &'a str,
+    username: Option<&'a str>,
+    password: Option<&'a str>,
     certificate: Option<String>,
     certificate_chain: Option<Vec<String>>,
 }
 
-impl EdgeHubAuthRequest {
-    fn new(username: Option<String>, credentials: Credentials) -> Self {
-        let (password, certificate) = match credentials {
-            Credentials::Password(p) => (p, None),
-            Credentials::ClientCertificate(c) => (None, Some(base64::encode(c))),
-        };
+impl<'a> EdgeHubAuthRequest<'a> {
+    fn from_auth(context: &'a AuthenticationContext) -> Self {
+        let certificate = context.certificate().map(base64::encode);
 
-        EdgeHubAuthRequest {
-            version: API_VERSION.to_string(),
-            username,
-            password,
+        Self {
+            version: API_VERSION,
+            username: context.username(),
+            password: context.password(),
             certificate,
             certificate_chain: None,
         }
@@ -143,7 +140,7 @@ mod tests {
     use base64::decode;
     use mockito::{mock, Matcher};
 
-    use mqtt_broker_core::auth::{AuthId, Certificate, Credentials};
+    use mqtt_broker_core::auth::{AuthId, AuthenticationContext, Certificate};
 
     use crate::auth::EdgeHubAuthenticator;
 
@@ -164,15 +161,12 @@ mod tests {
             )
             .create();
 
+        let mut context = AuthenticationContext::new(":12345".parse().unwrap());
+        context.with_username("somehub/somedevice/api-version=2018-06-30");
+        context.with_password("qwerty123");
+
         let authenticator = authenticator();
-        let result = authenticator
-            .authenticate(
-                Some("somehub/somedevice/api-version=2018-06-30".to_string()),
-                password("qwerty123"),
-            )
-            .await
-            .unwrap()
-            .unwrap();
+        let result = authenticator.authenticate(context).await.unwrap().unwrap();
 
         let s = "somehub/somedevice".to_string();
         assert_eq!(result, AuthId::Identity(s));
@@ -185,13 +179,12 @@ mod tests {
             .with_body(r#"{"result": 200,"version": "2020-04-20"}"#)
             .create();
 
+        let mut context = AuthenticationContext::new(":12345".parse().unwrap());
+        context.with_username("somehub/somedevice/api-version=2018-06-30");
+        context.with_password("qwerty123");
+
         let authenticator = authenticator();
-        let result = authenticator
-            .authenticate(
-                Some("somehub/somedevice/api-version=2018-06-30".to_string()),
-                password("qwerty123"),
-            )
-            .await;
+        let result = authenticator.authenticate(context).await;
 
         assert!(result.is_err());
     }
@@ -203,14 +196,12 @@ mod tests {
             .with_body(r#"{"result": 403, "version": "2020-04-20"}"#)
             .create();
 
+        let mut context = AuthenticationContext::new(":12345".parse().unwrap());
+        context.with_username("somehub/somedevice/api-version=2018-06-30");
+        context.with_password("qwerty123");
+
         let authenticator = authenticator();
-        let result = authenticator
-            .authenticate(
-                Some("somehub/somedevice/api-version=2018-06-30".to_string()),
-                password("qwerty123"),
-            )
-            .await
-            .unwrap();
+        let result = authenticator.authenticate(context).await.unwrap();
 
         assert!(result.is_none());
     }
@@ -224,13 +215,12 @@ mod tests {
             )
             .create();
 
+        let mut context = AuthenticationContext::new(":12345".parse().unwrap());
+        context.with_username("somehub/somedevice/api-version=2018-06-30");
+        context.with_password("qwerty123");
+
         let authenticator = authenticator();
-        let result = authenticator
-            .authenticate(
-                Some("somehub/somedevice/api-version=2018-06-30".to_string()),
-                password("qwerty123"),
-            )
-            .await;
+        let result = authenticator.authenticate(context).await;
 
         assert!(result.is_err());
     }
@@ -244,13 +234,12 @@ mod tests {
             )
             .create();
 
+        let mut context = AuthenticationContext::new(":12345".parse().unwrap());
+        context.with_username("somehub/somedevice/api-version=2018-06-30");
+        context.with_password("qwerty123");
+
         let authenticator = authenticator();
-        let result = authenticator
-            .authenticate(
-                Some("somehub/somedevice/api-version=2018-06-30".to_string()),
-                password("qwerty123"),
-            )
-            .await;
+        let result = authenticator.authenticate(context).await;
 
         assert!(result.is_err());
     }
@@ -262,13 +251,12 @@ mod tests {
             .with_body(r#"{"identity":"somehub/somedevice","version": "2222-22-22"}"#)
             .create();
 
+        let mut context = AuthenticationContext::new(":12345".parse().unwrap());
+        context.with_username("somehub/somedevice/api-version=2018-06-30");
+        context.with_password("qwerty123");
+
         let authenticator = authenticator();
-        let result = authenticator
-            .authenticate(
-                Some("somehub/somedevice/api-version=2018-06-30".to_string()),
-                password("qwerty123"),
-            )
-            .await;
+        let result = authenticator.authenticate(context).await;
 
         assert!(result.is_err());
     }
@@ -283,13 +271,12 @@ mod tests {
             )
             .create();
 
+        let mut context = AuthenticationContext::new(":12345".parse().unwrap());
+        context.with_username("somehub/somedevice/api-version=2018-06-30");
+        context.with_password("qwerty123");
+
         let authenticator = authenticator();
-        let result = authenticator
-            .authenticate(
-                Some("somehub/somedevice/api-version=2018-06-30".to_string()),
-                password("qwerty123"),
-            )
-            .await;
+        let result = authenticator.authenticate(context).await;
 
         assert!(result.is_ok());
     }
@@ -304,16 +291,12 @@ mod tests {
             )
             .create();
 
-        let credentials =
-            Credentials::ClientCertificate(Certificate::from(decode(CERT.to_string()).unwrap()));
+        let mut context = AuthenticationContext::new(":12345".parse().unwrap());
+        context.with_username("somehub/somedevice/api-version=2018-06-30");
+        context.with_certificate(Certificate::from(decode(CERT.to_string()).unwrap()));
 
         let authenticator = authenticator();
-        let result = authenticator
-            .authenticate(
-                Some("somehub/somedevice/api-version=2018-06-30".to_string()),
-                credentials,
-            )
-            .await;
+        let result = authenticator.authenticate(context).await;
 
         assert!(result.is_ok());
     }
@@ -331,22 +314,17 @@ mod tests {
             )
             .create();
 
+        let mut context = AuthenticationContext::new(":12345".parse().unwrap());
+        context.with_username("somehub/somedevice/api-version=2018-06-30");
+        context.with_password("qwerty123");
+
         let authenticator = authenticator();
-        let result = authenticator
-            .authenticate(
-                Some("somehub/somedevice/api-version=2018-06-30".to_string()),
-                password("qwerty123"),
-            )
-            .await;
+        let result = authenticator.authenticate(context).await;
 
         assert!(result.is_ok());
     }
 
     fn authenticator() -> EdgeHubAuthenticator {
         EdgeHubAuthenticator::new(mockito::server_url() + "/authenticate/")
-    }
-
-    fn password(password: &str) -> Credentials {
-        Credentials::Password(Some(password.to_string()))
     }
 }

@@ -2,7 +2,7 @@ mod authentication;
 mod authorization;
 
 pub use authentication::{
-    authenticate_fn_ok, Authenticator, Certificate, Credentials, DefaultAuthenticator,
+    authenticate_fn_ok, AuthenticationContext, Authenticator, Certificate, DefaultAuthenticator,
 };
 pub use authorization::{authorize_fn_ok, Activity, Authorizer, DefaultAuthorizer, Operation};
 

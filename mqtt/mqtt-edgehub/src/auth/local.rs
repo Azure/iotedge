@@ -2,7 +2,7 @@ use std::error::Error as StdError;
 
 use async_trait::async_trait;
 
-use mqtt_broker_core::auth::{AuthId, Authenticator, Credentials};
+use mqtt_broker_core::auth::{AuthId, AuthenticationContext, Authenticator};
 
 pub struct LocalAuthenticator;
 
@@ -18,8 +18,7 @@ impl Authenticator for LocalAuthenticator {
 
     async fn authenticate(
         &self,
-        _username: Option<String>,
-        _credentials: Credentials,
+        _context: AuthenticationContext,
     ) -> Result<Option<AuthId>, Self::Error> {
         todo!()
     }

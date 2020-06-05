@@ -28,7 +28,7 @@ use mqtt3::{
     UpdateSubscriptionHandle, PROTOCOL_LEVEL, PROTOCOL_NAME,
 };
 use mqtt_broker::{Broker, BrokerState, Error, Server, TransportBuilder};
-use mqtt_broker_core::auth::{Activity, AuthId, Authenticator, Authorizer, Credentials};
+use mqtt_broker_core::auth::{Activity, AuthId, AuthenticationContext, Authenticator, Authorizer};
 
 /// A wrapper on the [`mqtt3::Client`] to help simplify client event loop management.
 #[derive(Debug)]
@@ -460,11 +460,7 @@ impl DummyAuthenticator {
 impl Authenticator for DummyAuthenticator {
     type Error = Box<dyn StdError>;
 
-    async fn authenticate(
-        &self,
-        _: Option<String>,
-        _: Credentials,
-    ) -> Result<Option<AuthId>, Self::Error> {
+    async fn authenticate(&self, _: AuthenticationContext) -> Result<Option<AuthId>, Self::Error> {
         Ok(Some(self.0.clone()))
     }
 }
