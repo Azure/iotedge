@@ -2,6 +2,9 @@ jobs:
 ################################################################################
   - job: linux_dotnet_projects
 ################################################################################
+    # This job is run on a hosted linux agent, which needs dotnet 2 and 3 installed as a manual step. 
+    # The code sign steps will fail unless we explicitly say to use dotnet 2 before.
+    # This means we have to toggle back and forth between primary dotnet installations for the sign and build.
     displayName: LinuxDotnet
     pool: 
       name: "Hosted Ubuntu 1604"
@@ -25,7 +28,7 @@ jobs:
         displayName: "Modify path"
       - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
-      - template: ../templates/dotnet3-globaljson.yaml
+      - template: ../templates/dotnet3-globaljson.yaml # use dotnet 3 as primary install for build
       - bash: "cargo install --git https://github.com/arsing/cross.git --branch set-path"
         displayName: "Install cross (fork with docker fix)"
       - task: ShellScript@2
@@ -33,7 +36,7 @@ jobs:
         inputs: 
           args: "-c Release"
           scriptPath: scripts/linux/buildBranch.sh
-      - template: ../templates/dotnet2-globaljson.yaml
+      - template: ../templates/dotnet2-globaljson.yaml # switch to dotnet 2 as primary install for code sign
       - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
         displayName: "Edge Agent Code Sign"
         inputs: 
@@ -254,7 +257,7 @@ jobs:
                 }
               ]
           signConfigType: inlineSignParams
-      - template: ../templates/dotnet3-globaljson.yaml
+      - template: ../templates/dotnet3-globaljson.yaml # switch to dotnet 3 as primary install for nuget package
       - task: DotNetCoreCLI@2
         displayName: "Functions Binding nuget package"
         inputs:
@@ -265,7 +268,7 @@ jobs:
           packagesToPack: "**/Microsoft.Azure.WebJobs.Extensions.EdgeHub.csproj"
           versionEnvVar: version
           versioningScheme: byEnvVar
-      - template: ../templates/dotnet2-globaljson.yaml
+      - template: ../templates/dotnet2-globaljson.yaml # switch to dotnet 2 as primary install for code sign
       - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
         displayName: "Functions Binding nuget package Sign"
         inputs:

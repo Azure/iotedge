@@ -1,3 +1,4 @@
+# When multiple dotnet versions are installed, determines which installation is first attempted to be used.
 steps:
   - task: Bash@3
     displayName: 'Use dotnet 3'
