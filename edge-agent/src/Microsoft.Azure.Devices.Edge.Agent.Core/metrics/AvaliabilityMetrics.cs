@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             {
                 Directory.CreateDirectory(storageDirectory);
                 this.checkpointFile = Path.Combine(storageDirectory, "avaliability.checkpoint");
-                this.updateCheckpointFile = new PeriodicTask(this.UpdateCheckpointFile, this.checkpointFrequency, this.checkpointFrequency, this.log, "Checkpoint Availability");
+                this.updateCheckpointFile = new PeriodicTask(this.UpdateCheckpointFile, this.checkpointFrequency, this.checkpointFrequency, this.log, "Checkpoint Availability", false);
             }
             catch (Exception ex)
             {

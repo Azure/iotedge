@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="..\..\..\..\netcoreappVersion.props" />
+  <Import Project="..\..\..\..\netstandardVersion.props" />
 
   <PropertyGroup>
     <AzureFunctionsVersion></AzureFunctionsVersion>
@@ -18,8 +18,8 @@
     </Content>
   </ItemGroup>
   
-  <ItemGroup Condition="'$(DotNet_Runtime)' != 'netcoreapp3.0'">
-    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="3.0.5" />
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="1.0.26" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
   </ItemGroup>
 

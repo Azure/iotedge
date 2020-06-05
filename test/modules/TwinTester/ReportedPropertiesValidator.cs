@@ -15,19 +15,19 @@ namespace TwinTester
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(ReportedPropertiesValidator));
         readonly RegistryManager registryManager;
-        readonly TwinState twinState;
+        readonly TwinTestState twinTestState;
         readonly ModuleClient moduleClient;
         readonly TwinEventStorage storage;
         readonly ITwinTestResultHandler reporter;
         HashSet<string> reportedPropertyKeysFailedToReceiveWithinThreshold = new HashSet<string>();
 
-        public ReportedPropertiesValidator(RegistryManager registryManager, ModuleClient moduleClient, TwinEventStorage storage, ITwinTestResultHandler reporter, TwinState twinState)
+        public ReportedPropertiesValidator(RegistryManager registryManager, ModuleClient moduleClient, TwinEventStorage storage, ITwinTestResultHandler reporter, TwinTestState twinTestState)
         {
             this.registryManager = registryManager;
             this.moduleClient = moduleClient;
             this.storage = storage;
             this.reporter = reporter;
-            this.twinState = twinState;
+            this.twinTestState = twinTestState;
         }
 
         public async Task ValidateAsync()
@@ -36,14 +36,13 @@ namespace TwinTester
             try
             {
                 receivedTwin = await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId);
-                this.twinState.TwinETag = receivedTwin.ETag;
+                this.twinTestState.TwinETag = receivedTwin.ETag;
             }
             catch (Exception e)
             {
                 if (e is IotHubCommunicationException || e is OperationCanceledException) // This is the transient exception case for microsoft.azure.devices.client.deviceclient version 1.21.2
                 {
                     Logger.LogError(e, "Failed call to registry manager get twin due to transient error.");
-                    this.twinState.LastTimeOffline = DateTime.UtcNow;
                 }
                 else
                 {
@@ -112,14 +111,14 @@ namespace TwinTester
                     propertiesToRemove[reportedPropertyUpdate.Key] = null; // will later be serialized as a twin update
                 }
                 else if (!this.reportedPropertyKeysFailedToReceiveWithinThreshold.Contains(reportedPropertyUpdate.Key) &&
-                        this.DoesExceedFailureThreshold(this.twinState, reportedPropertyUpdate.Key, reportedPropertyUpdate.Value))
+                        this.DoesExceedFailureThreshold(this.twinTestState, reportedPropertyUpdate.Key, reportedPropertyUpdate.Value))
                 {
                     this.reportedPropertyKeysFailedToReceiveWithinThreshold.Add(reportedPropertyUpdate.Key);
                     status = $"{(int)StatusCode.ReportedPropertyUpdateNotInCloudTwin}: Failure receiving reported property update";
                     await this.HandleReportStatusAsync(status);
                     Logger.LogInformation($"{status} for reported property update {reportedPropertyUpdate.Key}");
                 }
-                else if (this.DoesExceedCleanupThreshold(this.twinState, reportedPropertyUpdate.Key, reportedPropertyUpdate.Value))
+                else if (this.DoesExceedCleanupThreshold(this.twinTestState, reportedPropertyUpdate.Key, reportedPropertyUpdate.Value))
                 {
                     status = $"{(int)StatusCode.ReportedPropertyUpdateNotInCloudTwinAfterCleanUpThreshold}: Failure receiving reported property update after cleanup threshold";
                     await this.HandleReportStatusAsync(status);
@@ -131,32 +130,32 @@ namespace TwinTester
             return propertiesToRemove;
         }
 
-        bool DoesExceedFailureThreshold(TwinState twinState, string reportedPropertyKey, DateTime reportedPropertyUpdatedAt)
+        bool DoesExceedFailureThreshold(TwinTestState twinState, string reportedPropertyKey, DateTime reportedPropertyUpdatedAt)
         {
-            DateTime comparisonPoint = reportedPropertyUpdatedAt > twinState.LastTimeOffline ? reportedPropertyUpdatedAt : twinState.LastTimeOffline;
+            DateTime comparisonPoint = reportedPropertyUpdatedAt > twinState.LastNetworkOffline ? reportedPropertyUpdatedAt : twinState.LastNetworkOffline;
             bool exceedFailureThreshold = DateTime.UtcNow - comparisonPoint > Settings.Current.TwinUpdateFailureThreshold;
 
             if (exceedFailureThreshold)
             {
                 Logger.LogInformation(
                     $"Reported Property [{reportedPropertyKey}] exceed failure threshold: updated at={reportedPropertyUpdatedAt}, " +
-                    $"last offline={twinState.LastTimeOffline}, threshold={Settings.Current.TwinUpdateFailureThreshold}");
+                    $"last offline={twinState.LastNetworkOffline}, threshold={Settings.Current.TwinUpdateFailureThreshold}");
             }
 
             return exceedFailureThreshold;
         }
 
-        bool DoesExceedCleanupThreshold(TwinState twinState, string reportedPropertyKey, DateTime reportedPropertyUpdatedAt)
+        bool DoesExceedCleanupThreshold(TwinTestState twinState, string reportedPropertyKey, DateTime reportedPropertyUpdatedAt)
         {
             TimeSpan cleanUpThreshold = TimeSpan.FromMinutes(5);
-            DateTime comparisonPoint = reportedPropertyUpdatedAt > twinState.LastTimeOffline ? reportedPropertyUpdatedAt : twinState.LastTimeOffline;
+            DateTime comparisonPoint = reportedPropertyUpdatedAt > twinState.LastNetworkOffline ? reportedPropertyUpdatedAt : twinState.LastNetworkOffline;
             bool exceedCleanupThreshold = DateTime.UtcNow - comparisonPoint > (Settings.Current.TwinUpdateFailureThreshold + cleanUpThreshold);
 
             if (exceedCleanupThreshold)
             {
                 Logger.LogInformation(
                     $"Reported Property [{reportedPropertyKey}] exceed cleanup threshold: updated at={reportedPropertyUpdatedAt}, " +
-                    $"last offline={twinState.LastTimeOffline}, threshold={Settings.Current.TwinUpdateFailureThreshold + cleanUpThreshold}");
+                    $"last offline={twinState.LastNetworkOffline}, threshold={Settings.Current.TwinUpdateFailureThreshold + cleanUpThreshold}");
             }
 
             return exceedCleanupThreshold;

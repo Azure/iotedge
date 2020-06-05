@@ -21,12 +21,14 @@ namespace TestResultCoordinator.Services
         readonly ILogger logger = ModuleUtil.CreateLogger(nameof(TestResultReportingService));
         readonly TimeSpan delayBeforeWork;
         readonly ITestOperationResultStorage storage;
+        readonly TestResultReportingServiceSettings serviceSpecificSettings;
         Timer timer;
 
         public TestResultReportingService(ITestOperationResultStorage storage)
         {
             this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
             this.delayBeforeWork = Settings.Current.TestStartDelay + Settings.Current.TestDuration + Settings.Current.DurationBeforeVerification;
+            this.serviceSpecificSettings = Settings.Current.TestResultReportingServiceSettings.Expect(() => new ArgumentException("TestResultReportingServiceSettings must be supplied."));
         }
 
         public Task StartAsync(CancellationToken ct)
@@ -71,11 +73,11 @@ namespace TestResultCoordinator.Services
 
             string blobContainerUri = string.Empty;
 
-            if (Settings.Current.LogUploadEnabled)
+            if (this.serviceSpecificSettings.LogUploadEnabled)
             {
                 try
                 {
-                    Uri blobContainerWriteUriForLog = await TestReportUtil.GetOrCreateBlobContainerSasUriForLogAsync(Settings.Current.StorageAccountConnectionString);
+                    Uri blobContainerWriteUriForLog = await TestReportUtil.GetOrCreateBlobContainerSasUriForLogAsync(this.serviceSpecificSettings.StorageAccountConnectionString);
                     blobContainerUri = $"{blobContainerWriteUriForLog.Scheme}{Uri.SchemeDelimiter}{blobContainerWriteUriForLog.Authority}{blobContainerWriteUriForLog.AbsolutePath}";
                     await TestReportUtil.UploadLogsAsync(Settings.Current.IoTHubConnectionString, blobContainerWriteUriForLog, this.logger);
                 }
@@ -90,10 +92,10 @@ namespace TestResultCoordinator.Services
             this.logger.LogInformation($"Test summary{Environment.NewLine}{reportsContent}");
 
             await AzureLogAnalytics.Instance.PostAsync(
-                Settings.Current.LogAnalyticsWorkspaceId,
-                Settings.Current.LogAnalyticsSharedKey,
+                this.serviceSpecificSettings.LogAnalyticsWorkspaceId,
+                this.serviceSpecificSettings.LogAnalyticsSharedKey,
                 reportsContent,
-                Settings.Current.LogAnalyticsLogType);
+                this.serviceSpecificSettings.LogAnalyticsLogType);
 
             this.logger.LogInformation("Successfully send reports to LogAnalytics");
         }
