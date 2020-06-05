@@ -49,9 +49,6 @@
               "CollectMetrics": {
                 "value": "true"
               },
-              "RuntimeLogLevel": {
-                "value":  "Debug"
-              },
               "experimentalfeatures__enabled": {
                 "value": "true"
               },
