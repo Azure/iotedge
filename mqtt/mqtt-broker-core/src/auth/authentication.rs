@@ -2,7 +2,7 @@ use std::{error::Error as StdError, net::SocketAddr, ops::Deref};
 
 use async_trait::async_trait;
 
-use crate::auth::AuthId;
+use crate::{auth::AuthId, ClientId};
 
 /// Represents a client certificate.
 #[derive(Clone, Debug)]
@@ -41,19 +41,21 @@ pub trait Authenticator {
 /// A data required to authenticate connected client.
 #[derive(Debug)]
 pub struct AuthenticationContext {
+    client_id: ClientId,
+    peer_addr: SocketAddr,
     username: Option<String>,
     password: Option<String>,
     certificate: Option<Certificate>,
-    peer_addr: SocketAddr,
 }
 
 impl AuthenticationContext {
-    pub fn new(peer_addr: SocketAddr) -> Self {
+    pub fn new(client_id: ClientId, peer_addr: SocketAddr) -> Self {
         Self {
+            client_id,
+            peer_addr,
             username: None,
             password: None,
             certificate: None,
-            peer_addr,
         }
     }
 
@@ -72,6 +74,14 @@ impl AuthenticationContext {
         self
     }
 
+    pub fn client_id(&self) -> &ClientId {
+        &self.client_id
+    }
+
+    pub fn peer_addr(&self) -> SocketAddr {
+        self.peer_addr
+    }
+
     pub fn username(&self) -> Option<&str> {
         self.username.as_deref()
     }
@@ -82,10 +92,6 @@ impl AuthenticationContext {
 
     pub fn certificate(&self) -> Option<&Certificate> {
         self.certificate.as_ref()
-    }
-
-    pub fn peer_addr(&self) -> SocketAddr {
-        self.peer_addr
     }
 }
 
@@ -129,16 +135,18 @@ impl Authenticator for DefaultAuthenticator {
 
 #[cfg(test)]
 mod tests {
+    use std::net::SocketAddr;
+
     use matches::assert_matches;
 
-    use crate::auth::{
+    use super::{
         authenticate_fn_ok, AuthId, AuthenticationContext, Authenticator, DefaultAuthenticator,
     };
 
     #[tokio::test]
     async fn default_auth_always_return_unknown_client_identity() {
         let authenticator = DefaultAuthenticator;
-        let context = AuthenticationContext::new("127.0.0.1:12345".parse().unwrap());
+        let context = AuthenticationContext::new("client_1".into(), peer_addr());
 
         let auth_id = authenticator.authenticate(context).await;
 
@@ -155,11 +163,15 @@ mod tests {
             }
         });
 
-        let mut context = AuthenticationContext::new("127.0.0.1:12345".parse().unwrap());
+        let mut context = AuthenticationContext::new("client_1".into(), peer_addr());
         context.with_username("username");
 
         let auth_id = authenticator.authenticate(context).await;
 
         assert_matches!(auth_id, Ok(Some(AuthId::Identity(identity))) if identity == "username");
+    }
+
+    fn peer_addr() -> SocketAddr {
+        "127.0.0.1:12345".parse().unwrap()
     }
 }

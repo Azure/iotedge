@@ -141,7 +141,7 @@ where
                 // and authorization checks. If any of these checks fail, it SHOULD send an
                 // appropriate CONNACK response with a non-zero return code as described in
                 // section 3.2 and it MUST close the Network Connection.
-                let mut context = AuthenticationContext::new(peer_addr);
+                let mut context = AuthenticationContext::new(client_id.clone(), peer_addr);
                 if let Some(username) = &connect.username {
                     context.with_username(username);
                 }

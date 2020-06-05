@@ -143,6 +143,7 @@ mod tests {
     use mqtt_broker_core::auth::{AuthId, AuthenticationContext, Certificate};
 
     use crate::auth::EdgeHubAuthenticator;
+    use std::net::SocketAddr;
 
     const CERT: &str = "MIIBLjCB1AIJAOTg4Zxl8B7jMAoGCCqGSM49BAMCMB8xHTAbBgNVBAMMFFRodW1i\
                         cHJpbnQgVGVzdCBDZXJ0MB4XDTIwMDQyMzE3NTgwN1oXDTMzMTIzMTE3NTgwN1ow\
@@ -161,7 +162,7 @@ mod tests {
             )
             .create();
 
-        let mut context = AuthenticationContext::new("127.0.0.1:12345".parse().unwrap());
+        let mut context = AuthenticationContext::new("client_1".into(), peer_addr());
         context.with_username("somehub/somedevice/api-version=2018-06-30");
         context.with_password("qwerty123");
 
@@ -179,7 +180,7 @@ mod tests {
             .with_body(r#"{"result": 200,"version": "2020-04-20"}"#)
             .create();
 
-        let mut context = AuthenticationContext::new("127.0.0.1:12345".parse().unwrap());
+        let mut context = AuthenticationContext::new("client_1".into(), peer_addr());
         context.with_username("somehub/somedevice/api-version=2018-06-30");
         context.with_password("qwerty123");
 
@@ -196,7 +197,7 @@ mod tests {
             .with_body(r#"{"result": 403, "version": "2020-04-20"}"#)
             .create();
 
-        let mut context = AuthenticationContext::new("127.0.0.1:12345".parse().unwrap());
+        let mut context = AuthenticationContext::new("client_1".into(), peer_addr());
         context.with_username("somehub/somedevice/api-version=2018-06-30");
         context.with_password("qwerty123");
 
@@ -215,7 +216,7 @@ mod tests {
             )
             .create();
 
-        let mut context = AuthenticationContext::new("127.0.0.1:12345".parse().unwrap());
+        let mut context = AuthenticationContext::new("client_1".into(), peer_addr());
         context.with_username("somehub/somedevice/api-version=2018-06-30");
         context.with_password("qwerty123");
 
@@ -234,7 +235,7 @@ mod tests {
             )
             .create();
 
-        let mut context = AuthenticationContext::new("127.0.0.1:12345".parse().unwrap());
+        let mut context = AuthenticationContext::new("client_1".into(), peer_addr());
         context.with_username("somehub/somedevice/api-version=2018-06-30");
         context.with_password("qwerty123");
 
@@ -251,7 +252,7 @@ mod tests {
             .with_body(r#"{"identity":"somehub/somedevice","version": "2222-22-22"}"#)
             .create();
 
-        let mut context = AuthenticationContext::new("127.0.0.1:12345".parse().unwrap());
+        let mut context = AuthenticationContext::new("client_1".into(), peer_addr());
         context.with_username("somehub/somedevice/api-version=2018-06-30");
         context.with_password("qwerty123");
 
@@ -271,7 +272,7 @@ mod tests {
             )
             .create();
 
-        let mut context = AuthenticationContext::new("127.0.0.1:12345".parse().unwrap());
+        let mut context = AuthenticationContext::new("client_1".into(), peer_addr());
         context.with_username("somehub/somedevice/api-version=2018-06-30");
         context.with_password("qwerty123");
 
@@ -291,7 +292,7 @@ mod tests {
             )
             .create();
 
-        let mut context = AuthenticationContext::new("127.0.0.1:12345".parse().unwrap());
+        let mut context = AuthenticationContext::new("client_1".into(), peer_addr());
         context.with_username("somehub/somedevice/api-version=2018-06-30");
         context.with_certificate(Certificate::from(decode(CERT.to_string()).unwrap()));
 
@@ -314,7 +315,7 @@ mod tests {
             )
             .create();
 
-        let mut context = AuthenticationContext::new("127.0.0.1:12345".parse().unwrap());
+        let mut context = AuthenticationContext::new("client_1".into(), peer_addr());
         context.with_username("somehub/somedevice/api-version=2018-06-30");
         context.with_password("qwerty123");
 
@@ -326,5 +327,9 @@ mod tests {
 
     fn authenticator() -> EdgeHubAuthenticator {
         EdgeHubAuthenticator::new(mockito::server_url() + "/authenticate/")
+    }
+
+    fn peer_addr() -> SocketAddr {
+        "127.0.0.1:12345".parse().unwrap()
     }
 }
