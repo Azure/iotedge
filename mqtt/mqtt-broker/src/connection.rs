@@ -1,12 +1,16 @@
 use std::{net::SocketAddr, time::Duration};
 
-use futures_util::future::{select, Either};
-use futures_util::pin_mut;
-use futures_util::sink::{Sink, SinkExt};
-use futures_util::stream::{Stream, StreamExt};
+use futures_util::{
+    future::{select, Either},
+    pin_mut,
+    sink::{Sink, SinkExt},
+    stream::{Stream, StreamExt},
+};
 use lazy_static::lazy_static;
-use tokio::io::{AsyncRead, AsyncWrite};
-use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+use tokio::{
+    io::{AsyncRead, AsyncWrite},
+    sync::mpsc::{self, UnboundedReceiver, UnboundedSender},
+};
 use tokio_io_timeout::TimeoutStream;
 use tokio_util::codec::Framed;
 use tracing::{debug, info, span, trace, warn, Level};
@@ -26,7 +30,7 @@ use mqtt_edgehub::translation::{
 };
 
 use crate::broker::BrokerHandle;
-use crate::transport::GetPeerCertificate;
+use crate::transport::GetPeerInfo;
 use crate::{Auth, ClientEvent, ConnReq, Error, Message, Publish};
 
 lazy_static! {
@@ -85,7 +89,7 @@ pub async fn process<I, N>(
     authenticator: &N,
 ) -> Result<(), Error>
 where
-    I: AsyncRead + AsyncWrite + GetPeerCertificate<Certificate = Certificate> + Unpin,
+    I: AsyncRead + AsyncWrite + GetPeerInfo<Certificate = Certificate> + Unpin,
     N: Authenticator + ?Sized,
 {
     let certificate = io.peer_certificate()?;

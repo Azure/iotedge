@@ -52,8 +52,12 @@ pub enum Error {
     #[error("Unable to obtain peer certificate.")]
     PeerCertificate(#[source] native_tls::Error),
 
+    #[error("Unable to obtain peer address.")]
+    PeerAddr(#[source] std::io::Error),
+
     #[error("Unable to start broker.")]
     InitializeBroker(#[from] InitializeBrokerError),
+
     #[error("An error occurred when constructing state change: {0}")]
     StateChange(#[from] serde_json::Error),
 }

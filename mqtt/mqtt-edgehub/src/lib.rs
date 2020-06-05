@@ -11,5 +11,5 @@
     clippy::missing_errors_doc
 )]
 
-pub mod authentication;
+pub mod auth;
 pub mod translation;

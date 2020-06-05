@@ -92,6 +92,15 @@ where
         server.transport(new_transport, authenticator());
     }
 
+    // When in edgehub mode add additional transport for internal communication
+    #[cfg(feature = "edgehub")]
+    {
+        use mqtt_edgehub::auth::LocalAuthenticator;
+        let new_transport = TransportBuilder::Tcp("localhost:1882".to_string());
+        let authenticator = LocalAuthenticator::new();
+        server.transport(new_transport, authenticator);
+    }
+
     // Run server
     let state = server.serve(shutdown).await?;
     Ok(state)

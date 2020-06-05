@@ -1027,6 +1027,7 @@ dependencies = [
  "futures-util",
  "mqtt-broker",
  "mqtt-broker-core",
+ "mqtt-edgehub",
  "native-tls",
  "tokio",
  "tracing",

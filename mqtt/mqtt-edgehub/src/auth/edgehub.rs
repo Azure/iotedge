@@ -13,12 +13,15 @@ use mqtt_broker_core::auth::{AuthId, Authenticator, Credentials};
 const API_VERSION: &str = "2020-04-20";
 
 #[derive(Clone)]
-pub struct EdgeHubAuthenticator(Client, String);
+pub struct EdgeHubAuthenticator {
+    client: Client,
+    url: String,
+}
 
 impl EdgeHubAuthenticator {
     pub fn new(url: String) -> Self {
-        let client = reqwest::Client::new();
-        Self(client, url)
+        let client = Client::new();
+        Self { client, url }
     }
 
     async fn authenticate(
@@ -27,8 +30,8 @@ impl EdgeHubAuthenticator {
         credentials: Credentials,
     ) -> Result<Option<AuthId>, AuthenticateError> {
         let response = self
-            .0
-            .post(&self.1)
+            .client
+            .post(&self.url)
             .json(&EdgeHubAuthRequest::new(username, credentials))
             .send()
             .await
@@ -142,7 +145,7 @@ mod tests {
 
     use mqtt_broker_core::auth::{AuthId, Certificate, Credentials};
 
-    use crate::authentication::EdgeHubAuthenticator;
+    use crate::auth::EdgeHubAuthenticator;
 
     const CERT: &str = "MIIBLjCB1AIJAOTg4Zxl8B7jMAoGCCqGSM49BAMCMB8xHTAbBgNVBAMMFFRodW1i\
                         cHJpbnQgVGVzdCBDZXJ0MB4XDTIwMDQyMzE3NTgwN1oXDTMzMTIzMTE3NTgwN1ow\
