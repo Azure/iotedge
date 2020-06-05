@@ -95,6 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 case DeviceSubscription.Methods:
                     if (addSubscription)
                     {
+                        Events.Log.LogDebug($"CUSTOM: Checking cloud proxy status");
                         cloudProxy.ForEach(c => Events.Log.LogDebug($"CUSTOM: cloud proxy status {c.IsActive}"));
                         Events.Log.LogDebug($"CUSTOM: In ProcessSubscription(). Adding dm subscription for {id}");
                         cloudProxy.ForEach(c => Events.Log.LogDebug($"CUSTOM: cloud proxy status {c.IsActive}"));
@@ -166,7 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task ProcessExistingSubscriptions(string id)
         {
-            Events.Log.LogDebug($"CUSTOM: UNEXPECTED: In ProcessExistingSubscriptions for id {id}");
+            Events.Log.LogDebug($"CUSTOM: UNEXPECTED: In ProceseExistingSubscriptions() for id {id}");
             Option<ICloudProxy> cloudProxy = await this.ConnectionManager.GetCloudConnection(id);
             Option<IReadOnlyDictionary<DeviceSubscription, bool>> subscriptions = this.ConnectionManager.GetSubscriptions(id);
             await subscriptions.ForEachAsync(
