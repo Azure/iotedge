@@ -96,10 +96,14 @@ const AUTH_SCHEME: &str = "sasToken";
 /// is expected to work with.
 const HOSTNAME_KEY: &str = "IOTEDGE_IOTHUBHOSTNAME";
 
+/// This variable holds the host name for the parent edge device. This name is used
+/// by the edge agent to connect to parent edge hub for identity and twin operations.
+const GATEWAY_HOSTNAME_KEY: &str = "IOTEDGE_GATEWAYHOSTNAME";
+
 /// This variable holds the host name for the edge device. This name is used
 /// by the edge agent to provide the edge hub container an alias name in the
 /// network so that TLS cert validation works.
-const GATEWAY_HOSTNAME_KEY: &str = "EDGEDEVICEHOSTNAME";
+const EDGEDEVICE_HOSTNAME_KEY: &str = "EdgeDeviceHostName";
 
 /// This variable holds the IoT Hub device identifier.
 const DEVICEID_KEY: &str = "IOTEDGE_DEVICEID";
@@ -149,7 +153,7 @@ const EXTERNAL_PROVISIONING_ENDPOINT_KEY: &str = "IOTEDGE_EXTERNAL_PROVISIONING_
 /// This is the key for the largest API version that this edgelet supports
 const API_VERSION_KEY: &str = "IOTEDGE_APIVERSION";
 
-const IOTHUB_API_VERSION: &str = "2017-11-08-preview";
+const IOTHUB_API_VERSION: &str = "2019-10-01";
 
 /// This is the name of the provisioning backup file
 const EDGE_PROVISIONING_BACKUP_FILENAME: &str = "provisioning_backup.json";
@@ -358,7 +362,7 @@ where
                 )?;
 
                 let cfg = WorkloadData::new(
-                    $provisioning_result.hub_name().to_string(),
+                    (&settings.parent_hostname().unwrap_or($provisioning_result.hub_name())).to_string(),
                     $provisioning_result.device_id().to_string(),
                     IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                     IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
@@ -1417,10 +1421,10 @@ where
     <M::ModuleRuntime as Authenticator>::Error: Fail + Sync,
     for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
 {
-    let hub_name = workload_config.iot_hub_name().to_string();
+    let upstream_hostname = workload_config.upstream_hostname().to_string();
     let device_id = workload_config.device_id().to_string();
-    let hostname = format!("https://{}", hub_name);
-    let token_source = SasTokenSource::new(hub_name.clone(), device_id.clone(), root_key);
+    let hostname = format!("https://{}", upstream_hostname);
+    let token_source = SasTokenSource::new(upstream_hostname.clone(), device_id.clone(), root_key);
     let http_client = HttpClient::new(
         hyper_client,
         Some(token_source),
@@ -1490,7 +1494,7 @@ where
     let edge_rt = start_runtime::<_, _, M>(
         runtime.clone(),
         &id_man,
-        &hub_name,
+        &upstream_hostname,
         &device_id,
         &settings,
         runt_rx,
@@ -1996,9 +2000,17 @@ where
     let mut env = BTreeMap::new();
     env.insert(HOSTNAME_KEY.to_string(), hostname.to_string());
     env.insert(
-        GATEWAY_HOSTNAME_KEY.to_string(),
+        EDGEDEVICE_HOSTNAME_KEY.to_string(),
         settings.hostname().to_string().to_lowercase(),
     );
+
+    if let Some(parent_hostname) = settings.parent_hostname() {
+        env.insert(
+            GATEWAY_HOSTNAME_KEY.to_string(),
+            parent_hostname.to_string().to_lowercase(),
+        );
+    }
+
     env.insert(DEVICEID_KEY.to_string(), device_id.to_string());
     env.insert(MODULEID_KEY.to_string(), EDGE_RUNTIME_MODULEID.to_string());
 
@@ -2192,6 +2204,8 @@ mod tests {
     #[cfg(unix)]
     static GOOD_SETTINGS_DPS_SYMM_KEY: &str = "test/linux/sample_settings.dps.symm.key.yaml";
     #[cfg(unix)]
+    static GOOD_SETTINGS_NESTED_EDGE: &str = "test/linux/sample_settings.nested.edge.yaml";
+    #[cfg(unix)]
     static GOOD_SETTINGS_DPS_DEFAULT: &str =
         "../edgelet-docker/test/linux/sample_settings.dps.default.yaml";
     #[cfg(unix)]
@@ -2217,6 +2231,8 @@ mod tests {
     static GOOD_SETTINGS_DPS_TPM1: &str = "test/windows/sample_settings.dps.tpm.1.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_DPS_SYMM_KEY: &str = "test/windows/sample_settings.dps.symm.key.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_NESTED_EDGE: &str = "test/windows/sample_settings.nested.edge.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_DPS_DEFAULT: &str =
         "../edgelet-docker/test/windows/sample_settings.dps.default.yaml";
@@ -3025,6 +3041,14 @@ mod tests {
             diff_with_cached(&settings, &path, Some("thumbprint-2")),
             true
         );
+    }
+
+    #[test]
+    fn settings_for_nested_edge() {
+        let _guard = LOCK.lock().unwrap();
+
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_NESTED_EDGE)).unwrap();
+        assert_eq!(settings.parent_hostname(), Some("parent_iotedge_device"));
     }
 
     #[test]

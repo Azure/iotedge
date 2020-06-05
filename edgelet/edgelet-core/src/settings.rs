@@ -685,6 +685,7 @@ pub trait RuntimeSettings {
     fn agent(&self) -> &ModuleSpec<Self::Config>;
     fn agent_mut(&mut self) -> &mut ModuleSpec<Self::Config>;
     fn hostname(&self) -> &str;
+    fn parent_hostname(&self) -> Option<&str>;
     fn connect(&self) -> &Connect;
     fn listen(&self) -> &Listen;
     fn homedir(&self) -> &Path;
@@ -697,6 +698,7 @@ pub struct Settings<T> {
     provisioning: Provisioning,
     agent: ModuleSpec<T>,
     hostname: String,
+    parent_hostname: Option<String>,
     connect: Connect,
     listen: Listen,
     homedir: PathBuf,
@@ -725,6 +727,10 @@ where
 
     fn hostname(&self) -> &str {
         &self.hostname
+    }
+
+    fn parent_hostname(&self) -> Option<&str> {
+        self.parent_hostname.as_deref()
     }
 
     fn connect(&self) -> &Connect {
