@@ -28,16 +28,16 @@ case "$1" in
             # Do this for debian systems which don't support FDNAMES
             touch /var/lib/iotedge/mgmt.sock
             touch /var/lib/iotedge/workload.sock
-            touch /var/lib/idservice/idservice.sock
-            touch /var/lib/keyservice/keyservice.sock
+            touch /var/lib/iotedge/idservice.sock
+            touch /var/lib/iotedge/keyservice.sock
             chown ${USER}:${GROUP} /var/lib/iotedge/mgmt.sock
             chown ${USER}:${GROUP} /var/lib/iotedge/workload.sock
-            chown ${USER}:${GROUP} /var/lib/idservice/idservice.sock
-            chown ${USER}:${GROUP} /var/lib/keyservice/keyservice.sock
+            chown ${USER}:${GROUP} /var/lib/iotedge/idservice.sock
+            chown ${USER}:${GROUP} /var/lib/iotedge/keyservice.sock
             chmod 660 /var/lib/iotedge/mgmt.sock
             chmod 666 /var/lib/iotedge/workload.sock
-            chmod 660 /var/lib/idservice/idservice.sock
-            chmod 660 /var/lib/keyservice/keyservice.sock
+            chmod 660 /var/lib/iotedge/idservice.sock
+            chmod 660 /var/lib/iotedge/keyservice.sock
         fi
 
         # Set the hostname

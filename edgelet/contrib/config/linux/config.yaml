@@ -311,8 +311,8 @@ connect:
 listen:
   management_uri: "unix:///var/lib/iotedge/mgmt.sock"
   workload_uri: "unix:///var/lib/iotedge/workload.sock"
-  identityservice_uri: "unix:///var/lib/idservice/identity.sock"
-  keyservice_uri: "unix:///var/lib/keyservice/keyservice.sock"
+  identityservice_uri: "unix:///var/lib/iotedge/identity.sock"
+  keyservice_uri: "unix:///var/lib/iotedge/keyservice.sock"
 
 ###############################################################################
 # Home Directory

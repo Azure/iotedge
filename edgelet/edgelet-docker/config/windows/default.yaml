@@ -18,8 +18,8 @@ connect:
 listen:
   management_uri: "unix:///C:/ProgramData/iotedge/mgmt/sock"
   workload_uri: "unix:///C:/ProgramData/iotedge/workload/sock"
-  identityservice_uri: "unix:///C:/ProgramData/idservice/identity/sock"
-  keyservice_uri: "unix:///C:/ProgramData/keyservice/keyservice/sock"
+  identityservice_uri: "unix:///C:/ProgramData/iotedge/identity/sock"
+  keyservice_uri: "unix:///C:/ProgramData/iotedge/keyservice/sock"
 
 homedir: "C:\\ProgramData\\iotedge"
 
