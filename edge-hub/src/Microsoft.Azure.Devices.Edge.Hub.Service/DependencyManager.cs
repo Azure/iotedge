@@ -86,9 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             IConfiguration configuration = this.configuration.GetSection("experimentalFeatures");
             ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration, Logger.Factory.CreateLogger("EdgeHub"));
 
-            // Temporarly make metrics default to off for windows. This is only until the dotnet 3.1 work is completed
-            // This temp fix is needed to fix all e2e tests since edgehub currently crashes
-            MetricsConfig metricsConfig = new MetricsConfig(this.configuration.GetSection("metrics:listener"), !RuntimeInformation.IsOSPlatform(OSPlatform.Windows));
+            MetricsConfig metricsConfig = new MetricsConfig(this.configuration.GetSection("metrics:listener"));
 
             this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig);
             this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures);

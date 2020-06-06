@@ -75,18 +75,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 }
             };
 
-            int port = configuration.GetValue("httpSettings:port", 443);
+            int mainPort = configuration.GetValue("httpSettings:port", 443);
+            int metricsPort = configuration.GetValue("httpSettings:metrics_port", 9600);
             IWebHostBuilder webHostBuilder = new WebHostBuilder()
                 .UseKestrel(
                     options =>
                     {
                         options.Listen(
                             !Socket.OSSupportsIPv6 ? IPAddress.Any : IPAddress.IPv6Any,
-                            port,
+                            mainPort,
                             listenOptions =>
                             {
                                 listenOptions.UseHttps(connectionAdapterOptions);
                             });
+
+                        options.Listen(!Socket.OSSupportsIPv6 ? IPAddress.Any : IPAddress.IPv6Any, metricsPort);
                     })
                 .UseSockets()
                 .ConfigureServices(
