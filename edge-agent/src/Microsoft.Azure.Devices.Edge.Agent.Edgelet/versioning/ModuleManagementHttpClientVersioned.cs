@@ -6,6 +6,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
     using System.Globalization;
     using System.IO;
     using System.Net.Http;
+    using System.Net.Sockets;
+    using System.Runtime.InteropServices;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -117,10 +119,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
             try
             {
                 Events.ExecutingOperation(operation, this.ManagementUri.ToString());
-                T result = await ExecuteWithRetry(func, r => Events.RetryingOperation(operation, this.ManagementUri.ToString(), r), this.transientErrorDetectionStrategy)
+                T result = await ExecuteWithRetry(
+                    func,
+                    (r) => Events.RetryingOperation(operation, this.ManagementUri.ToString(), r),
+                    this.transientErrorDetectionStrategy)
                     .TimeoutAfter(this.operationTimeout);
                 Events.SuccessfullyExecutedOperation(operation, this.ManagementUri.ToString());
                 return result;
+            }
+            catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
+            {
+                Events.StaleSocketShutdown(ex, operation, this.ManagementUri.ToString());
+                Environment.Exit(ex.ErrorCode);
+                return default(T);
             }
             catch (Exception ex)
             {
@@ -147,7 +158,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 ExecutingOperation = IdStart,
                 SuccessfullyExecutedOperation,
                 RetryingOperation,
-                ErrorExecutingOperation
+                ErrorExecutingOperation,
+                StaleSocketShutdown
+            }
+
+            public static void StaleSocketShutdown(Exception ex, string operation, string url)
+            {
+                Log.LogError((int)EventIds.StaleSocketShutdown, ex, $"Shutting down because no response from {url} for {operation}");
             }
 
             public static void ErrorExecutingOperation(Exception ex, string operation, string url)
