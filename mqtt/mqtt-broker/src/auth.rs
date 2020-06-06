@@ -12,7 +12,7 @@ pub fn authorizer() -> impl Authorizer {
 
 #[cfg(feature = "edgehub")]
 mod imp {
-    use mqtt_edgehub::authentication::EdgeHubAuthenticator;
+    use mqtt_edgehub::auth::EdgeHubAuthenticator;
 
     pub(super) fn authenticator() -> EdgeHubAuthenticator {
         let url = "http://localhost:7120/authenticate/".into();

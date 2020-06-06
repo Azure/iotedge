@@ -20,5 +20,7 @@ mqtt3 = { path = "../mqtt3", features = ["serde1"] }
 mqtt-broker-core = { path = "../mqtt-broker-core" }
 
 [dev-dependencies]
+matches = "0.1"
 mockito = "0.25"
+test-case = "1.0"
 tokio = { version = "0.2", features = ["macros"] }

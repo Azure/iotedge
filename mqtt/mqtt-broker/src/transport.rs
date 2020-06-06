@@ -245,25 +245,27 @@ pub enum StreamSelector {
 impl StreamSelector {
     pub fn peer_addr(&self) -> std::io::Result<SocketAddr> {
         match self {
-            StreamSelector::Tcp(stream) => stream.peer_addr(),
-            StreamSelector::Tls(stream) => stream.get_ref().get_ref().get_ref().peer_addr(),
+            Self::Tcp(stream) => stream.peer_addr(),
+            Self::Tls(stream) => stream.get_ref().get_ref().get_ref().peer_addr(),
         }
     }
 }
 
-pub trait GetPeerCertificate {
+pub trait GetPeerInfo {
     type Certificate;
 
     fn peer_certificate(&self) -> Result<Option<Self::Certificate>, Error>;
+
+    fn peer_addr(&self) -> Result<SocketAddr, Error>;
 }
 
-impl GetPeerCertificate for StreamSelector {
+impl GetPeerInfo for StreamSelector {
     type Certificate = Certificate;
 
     fn peer_certificate(&self) -> Result<Option<Self::Certificate>, Error> {
         match self {
-            StreamSelector::Tcp(_) => Ok(None),
-            StreamSelector::Tls(stream) => stream
+            Self::Tcp(_) => Ok(None),
+            Self::Tls(stream) => stream
                 .get_ref()
                 .peer_certificate()
                 .and_then(|cert| {
@@ -273,14 +275,23 @@ impl GetPeerCertificate for StreamSelector {
                 .map_err(Error::PeerCertificate),
         }
     }
+
+    fn peer_addr(&self) -> Result<SocketAddr, Error> {
+        let stream = match self {
+            Self::Tcp(stream) => &stream,
+            Self::Tls(stream) => stream.get_ref().get_ref().get_ref(),
+        };
+
+        stream.peer_addr().map_err(Error::PeerAddr)
+    }
 }
 
 impl AsyncRead for StreamSelector {
     #[inline]
     unsafe fn prepare_uninitialized_buffer(&self, buf: &mut [MaybeUninit<u8>]) -> bool {
         match self {
-            StreamSelector::Tcp(stream) => stream.prepare_uninitialized_buffer(buf),
-            StreamSelector::Tls(stream) => stream.prepare_uninitialized_buffer(buf),
+            Self::Tcp(stream) => stream.prepare_uninitialized_buffer(buf),
+            Self::Tls(stream) => stream.prepare_uninitialized_buffer(buf),
         }
     }
 
@@ -291,8 +302,8 @@ impl AsyncRead for StreamSelector {
         buf: &mut B,
     ) -> Poll<std::io::Result<usize>> {
         match self.get_mut() {
-            StreamSelector::Tcp(stream) => Pin::new(stream).poll_read_buf(cx, buf),
-            StreamSelector::Tls(stream) => Pin::new(stream).poll_read_buf(cx, buf),
+            Self::Tcp(stream) => Pin::new(stream).poll_read_buf(cx, buf),
+            Self::Tls(stream) => Pin::new(stream).poll_read_buf(cx, buf),
         }
     }
 
@@ -302,8 +313,8 @@ impl AsyncRead for StreamSelector {
         buf: &mut [u8],
     ) -> Poll<std::io::Result<usize>> {
         match self.get_mut() {
-            StreamSelector::Tcp(stream) => Pin::new(stream).poll_read(cx, buf),
-            StreamSelector::Tls(stream) => Pin::new(stream).poll_read(cx, buf),
+            Self::Tcp(stream) => Pin::new(stream).poll_read(cx, buf),
+            Self::Tls(stream) => Pin::new(stream).poll_read(cx, buf),
         }
     }
 }
@@ -315,8 +326,8 @@ impl AsyncWrite for StreamSelector {
         buf: &[u8],
     ) -> Poll<std::io::Result<usize>> {
         match self.get_mut() {
-            StreamSelector::Tcp(stream) => Pin::new(stream).poll_write(cx, buf),
-            StreamSelector::Tls(stream) => Pin::new(stream).poll_write(cx, buf),
+            Self::Tcp(stream) => Pin::new(stream).poll_write(cx, buf),
+            Self::Tls(stream) => Pin::new(stream).poll_write(cx, buf),
         }
     }
 
@@ -326,23 +337,23 @@ impl AsyncWrite for StreamSelector {
         buf: &mut B,
     ) -> Poll<std::io::Result<usize>> {
         match self.get_mut() {
-            StreamSelector::Tcp(stream) => Pin::new(stream).poll_write_buf(cx, buf),
-            StreamSelector::Tls(stream) => Pin::new(stream).poll_write_buf(cx, buf),
+            Self::Tcp(stream) => Pin::new(stream).poll_write_buf(cx, buf),
+            Self::Tls(stream) => Pin::new(stream).poll_write_buf(cx, buf),
         }
     }
 
     #[inline]
     fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
         match self.get_mut() {
-            StreamSelector::Tcp(stream) => Pin::new(stream).poll_flush(cx),
-            StreamSelector::Tls(stream) => Pin::new(stream).poll_flush(cx),
+            Self::Tcp(stream) => Pin::new(stream).poll_flush(cx),
+            Self::Tls(stream) => Pin::new(stream).poll_flush(cx),
         }
     }
 
     fn poll_shutdown(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
         match self.get_mut() {
-            StreamSelector::Tcp(stream) => Pin::new(stream).poll_shutdown(cx),
-            StreamSelector::Tls(stream) => Pin::new(stream).poll_shutdown(cx),
+            Self::Tcp(stream) => Pin::new(stream).poll_shutdown(cx),
+            Self::Tls(stream) => Pin::new(stream).poll_shutdown(cx),
         }
     }
 }
