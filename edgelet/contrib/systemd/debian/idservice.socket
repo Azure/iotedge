@@ -7,8 +7,8 @@ PartOf=iotedge.service
 ListenStream=/var/run/identityservice/identityservice.sock
 SocketMode=0666
 DirectoryMode=0755
-SocketUser=identityservice
-SocketGroup=identityservice
+SocketUser=iotedge
+SocketGroup=iotedge
 Service=iotedge.service
 
 [Install]
