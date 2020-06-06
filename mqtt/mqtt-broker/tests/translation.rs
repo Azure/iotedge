@@ -15,16 +15,16 @@ use mqtt_broker::{proptest::arb_clientid, BrokerBuilder};
 #[tokio::test]
 async fn translation_twin_retrieve() {
     let broker = BrokerBuilder::default()
-        .authorizer(DummyAuthorizer::allow())
+        .with_authorizer(DummyAuthorizer::allow())
         .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut edge_hub_core = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
+        .with_client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
         .build();
     let mut device_1 = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithCleanSession("device_1".into()))
+        .with_client_id(ClientId::IdWithCleanSession("device_1".into()))
         .build();
 
     // Core subscribes
@@ -57,16 +57,16 @@ async fn translation_twin_retrieve() {
 #[tokio::test]
 async fn translation_twin_update() {
     let broker = BrokerBuilder::default()
-        .authorizer(DummyAuthorizer::allow())
+        .with_authorizer(DummyAuthorizer::allow())
         .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut edge_hub_core = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
+        .with_client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
         .build();
     let mut device_1 = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithCleanSession("device_1".into()))
+        .with_client_id(ClientId::IdWithCleanSession("device_1".into()))
         .build();
 
     // Core subscribes
@@ -103,16 +103,16 @@ async fn translation_twin_update() {
 #[tokio::test]
 async fn translation_twin_receive() {
     let broker = BrokerBuilder::default()
-        .authorizer(DummyAuthorizer::allow())
+        .with_authorizer(DummyAuthorizer::allow())
         .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut edge_hub_core = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
+        .with_client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
         .build();
     let mut device_1 = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithCleanSession("device_1".into()))
+        .with_client_id(ClientId::IdWithCleanSession("device_1".into()))
         .build();
 
     // device subscribes to twin update
@@ -140,16 +140,16 @@ async fn translation_twin_receive() {
 #[tokio::test]
 async fn translation_direct_method_response() {
     let broker = BrokerBuilder::default()
-        .authorizer(DummyAuthorizer::allow())
+        .with_authorizer(DummyAuthorizer::allow())
         .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut edge_hub_core = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
+        .with_client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
         .build();
     let mut device_1 = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithCleanSession("device_1".into()))
+        .with_client_id(ClientId::IdWithCleanSession("device_1".into()))
         .build();
 
     // Core subscribes
@@ -209,16 +209,16 @@ proptest! {
 
 async fn test_twin_with_client_id(client_id: &str) {
     let broker = BrokerBuilder::default()
-        .authorizer(DummyAuthorizer::allow())
+        .with_authorizer(DummyAuthorizer::allow())
         .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut edge_hub_core = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
+        .with_client_id(ClientId::IdWithCleanSession("edge_hub_core".into()))
         .build();
     let mut device_1 = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithCleanSession(client_id.into()))
+        .with_client_id(ClientId::IdWithCleanSession(client_id.into()))
         .build();
 
     // Core subscribes

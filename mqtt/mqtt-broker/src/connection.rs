@@ -1,12 +1,16 @@
 use std::{net::SocketAddr, time::Duration};
 
-use futures_util::future::{select, Either};
-use futures_util::pin_mut;
-use futures_util::sink::{Sink, SinkExt};
-use futures_util::stream::{Stream, StreamExt};
+use futures_util::{
+    future::{select, Either},
+    pin_mut,
+    sink::{Sink, SinkExt},
+    stream::{Stream, StreamExt},
+};
 use lazy_static::lazy_static;
-use tokio::io::{AsyncRead, AsyncWrite};
-use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+use tokio::{
+    io::{AsyncRead, AsyncWrite},
+    sync::mpsc::{self, UnboundedReceiver, UnboundedSender},
+};
 use tokio_io_timeout::TimeoutStream;
 use tokio_util::codec::Framed;
 use tracing::{debug, info, span, trace, warn, Level};
@@ -15,7 +19,7 @@ use uuid::Uuid;
 
 use mqtt3::proto::{self, DecodeError, EncodeError, Packet, PacketCodec};
 use mqtt_broker_core::{
-    auth::{Authenticator, Certificate, Credentials},
+    auth::{AuthenticationContext, Authenticator, Certificate},
     ClientId,
 };
 
@@ -26,7 +30,7 @@ use mqtt_edgehub::translation::{
 };
 
 use crate::broker::BrokerHandle;
-use crate::transport::GetPeerCertificate;
+use crate::transport::GetPeerInfo;
 use crate::{Auth, ClientEvent, ConnReq, Error, Message, Publish};
 
 lazy_static! {
@@ -78,6 +82,7 @@ impl PartialEq for ConnectionHandle {
 ///
 /// Receives a source of packets and a handle to the Broker.
 /// Starts two tasks (sending and receiving)
+#[allow(clippy::too_many_lines)]
 pub async fn process<I, N>(
     io: I,
     remote_addr: SocketAddr,
@@ -85,10 +90,11 @@ pub async fn process<I, N>(
     authenticator: &N,
 ) -> Result<(), Error>
 where
-    I: AsyncRead + AsyncWrite + GetPeerCertificate<Certificate = Certificate> + Unpin,
+    I: AsyncRead + AsyncWrite + GetPeerInfo<Certificate = Certificate> + Unpin,
     N: Authenticator + ?Sized,
 {
     let certificate = io.peer_certificate()?;
+    let peer_addr = io.peer_addr()?;
 
     let mut timeout = TimeoutStream::new(io);
     timeout.set_read_timeout(Some(*DEFAULT_TIMEOUT));
@@ -135,14 +141,18 @@ where
                 // and authorization checks. If any of these checks fail, it SHOULD send an
                 // appropriate CONNACK response with a non-zero return code as described in
                 // section 3.2 and it MUST close the Network Connection.
-                let credentials = certificate.map_or(
-                    Credentials::Password(
-                        connect.password.clone(),
-                    ),
-                    Credentials::ClientCertificate,
-                );
+                let mut context = AuthenticationContext::new(client_id.clone(), peer_addr);
+                if let Some(username) = &connect.username {
+                    context.with_username(username);
+                }
 
-                let auth = match authenticator.authenticate(connect.username.clone(), credentials).await {
+                if let Some(certificate) = certificate {
+                    context.with_certificate(certificate);
+                } else if let Some(password) = &connect.password {
+                    context.with_password(password);
+                }
+
+                let auth = match authenticator.authenticate(context).await {
                     Ok(Some(auth_id)) => Auth::Identity(auth_id),
                     Ok(None) => Auth::Unknown,
                     Err(e) => {

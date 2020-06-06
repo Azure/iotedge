@@ -39,8 +39,8 @@ async fn run() -> Result<(), Error> {
     info!("Loading state...");
     let state = persistor.load().await?.unwrap_or_else(BrokerState::default);
     let broker = BrokerBuilder::default()
-        .authorizer(authorizer())
-        .state(state)
+        .with_authorizer(authorizer())
+        .with_state(state)
         .build();
     info!("state loaded.");
 
@@ -90,6 +90,15 @@ where
     for config in config.transports() {
         let new_transport = config.clone().try_into()?;
         server.transport(new_transport, authenticator());
+    }
+
+    // When in edgehub mode add additional transport for internal communication
+    #[cfg(feature = "edgehub")]
+    {
+        use mqtt_edgehub::auth::LocalAuthenticator;
+        let new_transport = TransportBuilder::Tcp("localhost:1882".to_string());
+        let authenticator = LocalAuthenticator::new();
+        server.transport(new_transport, authenticator);
     }
 
     // Run server

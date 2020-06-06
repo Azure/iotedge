@@ -19,13 +19,13 @@ use mqtt_broker::BrokerBuilder;
 #[tokio::test]
 async fn basic_connect_clean_session() {
     let broker = BrokerBuilder::default()
-        .authorizer(DummyAuthorizer::allow())
+        .with_authorizer(DummyAuthorizer::allow())
         .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
+        .with_client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
         .build();
 
     assert_eq!(
@@ -47,13 +47,13 @@ async fn basic_connect_clean_session() {
 #[tokio::test]
 async fn basic_connect_existing_session() {
     let broker = BrokerBuilder::default()
-        .authorizer(DummyAuthorizer::allow())
+        .with_authorizer(DummyAuthorizer::allow())
         .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests".into()))
+        .with_client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests".into()))
         .build();
 
     assert_eq!(
@@ -66,7 +66,7 @@ async fn basic_connect_existing_session() {
     client.shutdown().await;
 
     let mut client = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests".into()))
+        .with_client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests".into()))
         .build();
 
     assert_eq!(
@@ -91,13 +91,13 @@ async fn basic_pub_sub() {
     let topic = "topic/A";
 
     let broker = BrokerBuilder::default()
-        .authorizer(DummyAuthorizer::allow())
+        .with_authorizer(DummyAuthorizer::allow())
         .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
+        .with_client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
         .build();
 
     client.subscribe(topic, QoS::ExactlyOnce).await;
@@ -141,13 +141,13 @@ async fn retained_messages() {
     let topic_c = "topic/C";
 
     let broker = BrokerBuilder::default()
-        .authorizer(DummyAuthorizer::allow())
+        .with_authorizer(DummyAuthorizer::allow())
         .build();
 
     let mut server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
+        .with_client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
         .build();
 
     client.publish_qos0(topic_a, "r qos 0", true).await;
@@ -211,13 +211,13 @@ async fn retained_messages_zero_payload() {
     let topic_c = "topic/C";
 
     let broker = BrokerBuilder::default()
-        .authorizer(DummyAuthorizer::allow())
+        .with_authorizer(DummyAuthorizer::allow())
         .build();
 
     let mut server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
+        .with_client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
         .build();
 
     client.publish_qos0(topic_a, "r qos 0", true).await;
@@ -264,13 +264,13 @@ async fn retained_messages_persisted_on_broker_restart() {
     let topic_c = "topic/C";
 
     let broker = BrokerBuilder::default()
-        .authorizer(DummyAuthorizer::allow())
+        .with_authorizer(DummyAuthorizer::allow())
         .build();
 
     let mut server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
+        .with_client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
         .build();
 
     client.publish_qos0(topic_a, "r qos 0", true).await;
@@ -285,14 +285,14 @@ async fn retained_messages_persisted_on_broker_restart() {
 
     // restart broker with saved state
     let broker = BrokerBuilder::default()
-        .state(state)
-        .authorizer(DummyAuthorizer::allow())
+        .with_state(state)
+        .with_authorizer(DummyAuthorizer::allow())
         .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
+        .with_client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
         .build();
 
     client.subscribe("topic/+", QoS::ExactlyOnce).await;
@@ -326,13 +326,13 @@ async fn will_message() {
     let topic = "topic/A";
 
     let broker = BrokerBuilder::default()
-        .authorizer(DummyAuthorizer::allow())
+        .with_authorizer(DummyAuthorizer::allow())
         .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client_b = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-b".into()))
+        .with_client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-b".into()))
         .build();
 
     client_b.subscribe(topic, QoS::AtLeastOnce).await;
@@ -340,8 +340,8 @@ async fn will_message() {
     client_b.subscriptions().recv().await; // wait for SubAck.
 
     let mut client_a = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-a".into()))
-        .will(Publication {
+        .with_client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-a".into()))
+        .with_will(Publication {
             topic_name: topic.into(),
             qos: QoS::AtLeastOnce,
             retain: false,
@@ -380,13 +380,13 @@ async fn offline_messages() {
     let topic_c = "topic/C";
 
     let broker = BrokerBuilder::default()
-        .authorizer(DummyAuthorizer::allow())
+        .with_authorizer(DummyAuthorizer::allow())
         .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client_a = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests-a".into()))
+        .with_client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests-a".into()))
         .build();
 
     client_a.subscribe("topic/+", QoS::ExactlyOnce).await;
@@ -394,7 +394,7 @@ async fn offline_messages() {
     client_a.shutdown().await;
 
     let mut client_b = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-b".into()))
+        .with_client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-b".into()))
         .build();
 
     client_b.publish_qos0(topic_a, "o qos 0", false).await;
@@ -402,7 +402,7 @@ async fn offline_messages() {
     client_b.publish_qos2(topic_c, "o qos 2", false).await;
 
     let mut client_a = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests-a".into()))
+        .with_client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests-a".into()))
         .build();
 
     // expects existing session.
@@ -440,13 +440,13 @@ async fn offline_messages_persisted_on_broker_restart() {
     let topic_c = "topic/C";
 
     let broker = BrokerBuilder::default()
-        .authorizer(DummyAuthorizer::allow())
+        .with_authorizer(DummyAuthorizer::allow())
         .build();
 
     let mut server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client_a = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests-a".into()))
+        .with_client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests-a".into()))
         .build();
 
     client_a.subscribe("topic/+", QoS::ExactlyOnce).await;
@@ -454,7 +454,7 @@ async fn offline_messages_persisted_on_broker_restart() {
     client_a.shutdown().await;
 
     let mut client_b = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-b".into()))
+        .with_client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-b".into()))
         .build();
 
     client_b.publish_qos0(topic_a, "o qos 0", false).await;
@@ -469,14 +469,14 @@ async fn offline_messages_persisted_on_broker_restart() {
 
     // restart broker with saved state
     let broker = BrokerBuilder::default()
-        .state(state)
-        .authorizer(DummyAuthorizer::allow())
+        .with_state(state)
+        .with_authorizer(DummyAuthorizer::allow())
         .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client_a = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests-a".into()))
+        .with_client_id(ClientId::IdWithExistingSession("mqtt-smoke-tests-a".into()))
         .build();
 
     // expects existing session.
@@ -521,13 +521,13 @@ async fn overlapping_subscriptions() {
     let topic_filter_plus = "topic/+";
 
     let broker = BrokerBuilder::default()
-        .authorizer(DummyAuthorizer::allow())
+        .with_authorizer(DummyAuthorizer::allow())
         .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
 
     let mut client_a = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-a".into()))
+        .with_client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-a".into()))
         .build();
 
     client_a.subscribe(topic, QoS::AtMostOnce).await;
@@ -539,7 +539,7 @@ async fn overlapping_subscriptions() {
         .await;
 
     let mut client_b = TestClientBuilder::new(server_handle.address())
-        .client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-b".into()))
+        .with_client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-b".into()))
         .build();
 
     client_b.publish_qos0(topic, "overlap qos 0", false).await;
@@ -572,7 +572,7 @@ async fn overlapping_subscriptions() {
 #[tokio::test]
 async fn wrong_first_packet_connection_dropped() {
     let broker = BrokerBuilder::default()
-        .authorizer(DummyAuthorizer::allow())
+        .with_authorizer(DummyAuthorizer::allow())
         .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
@@ -586,7 +586,7 @@ async fn wrong_first_packet_connection_dropped() {
 #[tokio::test]
 async fn duplicate_connect_packet_connection_dropped() {
     let broker = BrokerBuilder::default()
-        .authorizer(DummyAuthorizer::allow())
+        .with_authorizer(DummyAuthorizer::allow())
         .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
@@ -630,7 +630,7 @@ async fn duplicate_connect_packet_connection_dropped() {
 #[tokio::test]
 async fn wrong_protocol_name_connection_dropped() {
     let broker = BrokerBuilder::default()
-        .authorizer(DummyAuthorizer::allow())
+        .with_authorizer(DummyAuthorizer::allow())
         .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
@@ -654,7 +654,7 @@ async fn wrong_protocol_name_connection_dropped() {
 #[tokio::test]
 async fn wrong_protocol_version_rejected() {
     let broker = BrokerBuilder::default()
-        .authorizer(DummyAuthorizer::allow())
+        .with_authorizer(DummyAuthorizer::allow())
         .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
@@ -686,7 +686,7 @@ async fn wrong_protocol_version_rejected() {
 #[tokio::test]
 async fn qos1_puback_should_be_in_order() {
     let broker = BrokerBuilder::default()
-        .authorizer(DummyAuthorizer::allow())
+        .with_authorizer(DummyAuthorizer::allow())
         .build();
 
     let server_handle = common::start_server(broker, DummyAuthenticator::anonymous());
