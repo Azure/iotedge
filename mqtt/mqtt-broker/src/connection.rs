@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, time::Duration};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 use futures_util::{
     future::{select, Either},
@@ -7,9 +7,10 @@ use futures_util::{
     stream::{Stream, StreamExt},
 };
 use lazy_static::lazy_static;
-use tokio::{
-    io::{AsyncRead, AsyncWrite},
-    sync::mpsc::{self, UnboundedReceiver, UnboundedSender},
+use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::sync::{
+    mpsc::{self, UnboundedReceiver, UnboundedSender},
+    Semaphore,
 };
 use tokio_io_timeout::TimeoutStream;
 use tokio_util::codec::Framed;
@@ -249,6 +250,12 @@ async fn incoming_task<S>(
 where
     S: Stream<Item = Result<Packet, DecodeError>> + Unpin,
 {
+    // We limit the number of incoming publications (PublishFrom) per client
+    // in order to avoid (a single) publisher to occupy whole BrokerHandle queue.
+    // This helps with QoS 0 messages throughput, due to the fact that outgoing_task
+    // also uses sends PubAck0 for QoS 0 messages to BrokerHandle queue.
+    let incoming_pub_limit = Arc::new(Semaphore::new(10));
+
     debug!("incoming_task start");
     while let Some(maybe_packet) = incoming.next().await {
         match maybe_packet {
@@ -276,7 +283,8 @@ where
                     Packet::Publish(publish) => {
                         #[cfg(feature = "edgehub")]
                         let publish = translate_incoming_publish(&client_id, publish);
-                        ClientEvent::PublishFrom(publish)
+                        let perm = incoming_pub_limit.clone().acquire_owned().await;
+                        ClientEvent::PublishFrom(publish, Some(perm))
                     }
                     Packet::PubRec(pubrec) => ClientEvent::PubRec(pubrec),
                     Packet::PubRel(pubrel) => ClientEvent::PubRel(pubrel),

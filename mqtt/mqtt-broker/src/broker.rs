@@ -153,7 +153,7 @@ where
                 info!("broker received UNSUBACK, ignoring");
                 Ok(())
             }
-            ClientEvent::PublishFrom(publish) => self.process_publish(&client_id, publish),
+            ClientEvent::PublishFrom(publish, _) => self.process_publish(&client_id, publish),
             ClientEvent::PublishTo(_publish) => {
                 info!("broker received a PublishTo, ignoring");
                 Ok(())
@@ -1976,7 +1976,7 @@ pub(crate) mod tests {
             payload: Bytes::new(),
         };
 
-        let message = Message::Client(client_id.clone(), ClientEvent::PublishFrom(publish));
+        let message = Message::Client(client_id.clone(), ClientEvent::PublishFrom(publish, None));
         broker_handle.send(message).await.unwrap();
 
         assert_matches!(
@@ -2074,7 +2074,7 @@ pub(crate) mod tests {
             payload: Bytes::new(),
         };
 
-        let message = Message::Client(pub_id.clone(), ClientEvent::PublishFrom(publish));
+        let message = Message::Client(pub_id.clone(), ClientEvent::PublishFrom(publish, None));
         broker_handle.send(message).await.unwrap();
 
         assert_matches!(

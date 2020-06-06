@@ -11,10 +11,6 @@
     clippy::missing_errors_doc
 )]
 
-use mqtt3::proto;
-use mqtt_broker_core::{auth::AuthId, ClientId};
-use serde::{Deserialize, Serialize};
-
 mod auth;
 mod broker;
 mod configuration;
@@ -30,6 +26,12 @@ mod transport;
 
 #[cfg(any(test, feature = "proptest"))]
 pub mod proptest;
+
+use serde::{Deserialize, Serialize};
+use tokio::sync::OwnedSemaphorePermit;
+
+use mqtt3::proto;
+use mqtt_broker_core::{auth::AuthId, ClientId};
 
 pub use crate::auth::{authenticator, authorizer};
 pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle, BrokerState};
@@ -146,7 +148,9 @@ pub enum ClientEvent {
     UnsubAck(proto::UnsubAck),
 
     /// PublishFrom - publish packet from a client
-    PublishFrom(proto::Publish),
+    /// Contains optional permit for managing max number of
+    /// incoming messages per publisher.
+    PublishFrom(proto::Publish, Option<OwnedSemaphorePermit>),
 
     /// PublishTo - publish packet to a client
     PublishTo(Publish),
