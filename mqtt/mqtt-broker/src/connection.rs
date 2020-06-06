@@ -246,7 +246,7 @@ where
     // in order to avoid (a single) publisher to occupy whole BrokerHandle queue.
     // This helps with QoS 0 messages throughput, due to the fact that outgoing_task
     // also uses sends PubAck0 for QoS 0 messages to BrokerHandle queue.
-    let inflight_guard = Arc::new(Semaphore::new(10));
+    let incoming_pub_limit = Arc::new(Semaphore::new(10));
 
     debug!("incoming_task start");
     while let Some(maybe_packet) = incoming.next().await {
@@ -275,7 +275,7 @@ where
                     Packet::Publish(publish) => {
                         #[cfg(feature = "edgehub")]
                         let publish = translate_incoming_publish(&client_id, publish);
-                        let perm = inflight_guard.clone().acquire_owned().await;
+                        let perm = incoming_pub_limit.clone().acquire_owned().await;
                         ClientEvent::PublishFrom(publish, Some(perm))
                     }
                     Packet::PubRec(pubrec) => ClientEvent::PubRec(pubrec),
