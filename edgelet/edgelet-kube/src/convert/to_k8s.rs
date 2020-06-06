@@ -21,9 +21,9 @@ use crate::constants::env::{
     PROXY_TRUST_BUNDLE_PATH_KEY, PROXY_TRUST_BUNDLE_VOLUME_KEY,
 };
 use crate::constants::{
-    EDGE_DEVICE_LABEL, EDGE_EDGE_AGENT_NAME, EDGE_MODULE_LABEL,
-    EDGE_ORIGINAL_MODULEID, PROXY_CONFIG_VOLUME_NAME, PROXY_CONTAINER_NAME,
-    PROXY_TRUST_BUNDLE_FILENAME, PROXY_TRUST_BUNDLE_VOLUME_NAME,
+    EDGE_DEVICE_LABEL, EDGE_EDGE_AGENT_NAME, EDGE_MODULE_LABEL, EDGE_ORIGINAL_MODULEID,
+    PROXY_CONFIG_VOLUME_NAME, PROXY_CONTAINER_NAME, PROXY_TRUST_BUNDLE_FILENAME,
+    PROXY_TRUST_BUNDLE_VOLUME_NAME,
 };
 use crate::convert::{sanitize_dns_value, sanitize_label_value};
 use crate::error::{ErrorKind, Result};
@@ -486,7 +486,6 @@ pub fn trust_bundle_to_config_map(
     let device_label_value =
         sanitize_label_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?);
 
-
     // labels
     let mut labels = BTreeMap::new();
     labels.insert(EDGE_DEVICE_LABEL.to_string(), device_label_value);
@@ -534,9 +533,8 @@ mod tests {
         PROXY_TRUST_BUNDLE_PATH_KEY, PROXY_TRUST_BUNDLE_VOLUME_KEY,
     };
     use crate::constants::{
-        EDGE_DEVICE_LABEL, EDGE_MODULE_LABEL, EDGE_ORIGINAL_MODULEID,
-        PROXY_CONFIG_VOLUME_NAME, PROXY_CONTAINER_NAME, PROXY_TRUST_BUNDLE_FILENAME,
-        PROXY_TRUST_BUNDLE_VOLUME_NAME,
+        EDGE_DEVICE_LABEL, EDGE_MODULE_LABEL, EDGE_ORIGINAL_MODULEID, PROXY_CONFIG_VOLUME_NAME,
+        PROXY_CONTAINER_NAME, PROXY_TRUST_BUNDLE_FILENAME, PROXY_TRUST_BUNDLE_VOLUME_NAME,
     };
     use crate::convert::{
         spec_to_deployment, spec_to_role_binding, spec_to_service_account,
@@ -625,11 +623,7 @@ mod tests {
         let (name, deployment) =
             spec_to_deployment(&make_settings(None), &module_config, &module_owner).unwrap();
         assert_eq!(name, "edgeagent");
-        validate_deployment_metadata(
-            "edgeagent",
-            "device1",
-            deployment.metadata.as_ref(),
-        );
+        validate_deployment_metadata("edgeagent", "device1", deployment.metadata.as_ref());
 
         assert!(deployment.spec.is_some());
         if let Some(spec) = deployment.spec.as_ref() {
