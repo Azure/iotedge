@@ -29,6 +29,7 @@
 
 use std::{
     collections::HashSet,
+    fmt::{Display, Formatter, Result as FmtResult},
     iter::FromIterator,
     sync::{Arc, Mutex},
     time::Duration,
@@ -389,8 +390,8 @@ impl From<Size> for usize {
     }
 }
 
-impl std::fmt::Display for Size {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for Size {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
             Size::B(value) => write!(f, "{}b", value),
             Size::Kb(value) => write!(f, "{}kb", value),
@@ -424,8 +425,8 @@ impl Id {
     }
 }
 
-impl std::fmt::Display for Id {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for Id {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "{}", self.1)
     }
 }

@@ -1,5 +1,7 @@
-use std::fmt;
-use std::str::FromStr;
+use std::{
+    fmt::{Display, Formatter, Result as FmtResult},
+    str::FromStr,
+};
 
 use mqtt3::proto;
 use serde::{Deserialize, Serialize};
@@ -100,8 +102,8 @@ impl Segment {
     }
 }
 
-impl fmt::Display for TopicFilter {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Display for TopicFilter {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         let len = self.segments.len();
         for (i, segment) in self.segments.iter().enumerate() {
             match segment {

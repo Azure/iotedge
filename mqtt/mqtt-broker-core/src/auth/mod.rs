@@ -6,6 +6,8 @@ pub use authentication::{
 };
 pub use authorization::{authorize_fn_ok, Activity, Authorizer, DefaultAuthorizer, Operation};
 
+use std::fmt::{Display, Formatter, Result as FmtResult};
+
 /// Authenticated MQTT client identity.
 #[derive(Clone, Debug, PartialEq)]
 pub enum AuthId {
@@ -16,8 +18,8 @@ pub enum AuthId {
     Identity(Identity),
 }
 
-impl std::fmt::Display for AuthId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for AuthId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
             Self::Anonymous => write!(f, "*"),
             Self::Identity(identity) => write!(f, "{}", identity),
