@@ -15,7 +15,7 @@ use crate::{
     broker::{Broker, BrokerHandle, BrokerState},
     connection,
     transport::TransportBuilder,
-    Error, InitializeBrokerError, Message, SystemEvent,
+    DetailedErrorValue, Error, InitializeBrokerError, Message, SystemEvent,
 };
 
 pub struct Server<Z>
@@ -94,7 +94,7 @@ where
                         results.extend(future::join_all(unfinished_incoming_tasks).await);
 
                         for e in results.into_iter().filter_map(Result::err) {
-                            warn!(message = "failed to shutdown protocol head", error=%e);
+                            warn!(message = "failed to shutdown protocol head", error =% DetailedErrorValue(&e));
                         }
 
                         debug!("sending Shutdown message to broker");
@@ -112,7 +112,7 @@ where
                         results.extend(future::join_all(unfinished_incoming_tasks).await);
 
                         for e in results.into_iter().filter_map(Result::err) {
-                            warn!(message = "failed to shutdown protocol head", error=%e);
+                            warn!(message = "failed to shutdown protocol head", error =% DetailedErrorValue(&e));
                         }
 
                         broker_state?
@@ -121,25 +121,27 @@ where
             }
             Either::Right((either, _)) => match either {
                 Either::Right(((result, index, unfinished_incoming_tasks), broker_task)) => {
-                    debug!("sending Shutdown message to broker");
-
                     if let Err(e) = &result {
-                        error!(message = "an error occurred in the accept loop", error=%e);
+                        error!(
+                            message = "an error occurred in the accept loop",
+                            error =% DetailedErrorValue(e)
+                        );
                     }
 
                     debug!("sending stop signal for the rest of protocol heads");
                     shutdown_handles.remove(index);
+
+                    debug!("sending Shutdown message to broker");
                     send_shutdown(shutdown_handles);
 
-                    let mut results = vec![result];
-                    results.extend(future::join_all(unfinished_incoming_tasks).await);
+                    let results = future::join_all(unfinished_incoming_tasks).await;
 
                     handle.send(Message::System(SystemEvent::Shutdown)).await?;
 
                     let broker_state = broker_task.await;
 
                     for e in results.into_iter().filter_map(Result::err) {
-                        warn!(message = "failed to shutdown protocol head", error=%e);
+                        warn!(message = "failed to shutdown protocol head", error =% DetailedErrorValue(&e));
                     }
 
                     broker_state?
@@ -158,7 +160,7 @@ where
                     results.extend(future::join_all(unfinished_incoming_tasks).await);
 
                     for e in results.into_iter().filter_map(Result::err) {
-                        warn!(message = "failed to shutdown protocol head", error=%e);
+                        warn!(message = "failed to shutdown protocol head", error =% DetailedErrorValue(&e));
                     }
 
                     broker_state?
