@@ -118,6 +118,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return Option.None<string>();
         }
 
+        public async Task<IList<ServiceIdentity>> GetImmediateChildren(string id)
+        {
+            Preconditions.CheckNonWhiteSpace(id, nameof(id));
+
+            var children = new List<ServiceIdentity>();
+
+            using (await this.nodesLock.LockAsync())
+            {
+                if (this.nodes.TryGetValue(id, out ServiceIdentityTreeNode treeNode))
+                {
+                    IList<ServiceIdentityTreeNode> childNodes = treeNode.GetAllChildren();
+                    foreach (ServiceIdentityTreeNode node in childNodes)
+                    {
+                        children.Add(node.Identity);
+                    }
+                }
+            }
+
+            return children;
+        }
+
         void InsertModuleIdentity(ServiceIdentity module)
         {
             var newNode = new ServiceIdentityTreeNode(module, Option.None<string>());
@@ -162,24 +183,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 });
             }
 
-            // Check if there are any dangling child devices that can now be hooked up,
-            // this include placing the new node as the new root.
-            List<ServiceIdentityTreeNode> danglingChildren =
-                this.nodes
-                .Select(kvp => kvp.Value)
-                .Where(s => s.Identity.ParentScopes.Count() > 0 && s.Identity.ParentScopes.Contains(device.DeviceScope.OrDefault()))
-                .ToList();
-
-            // Also check for any modules that should be parented to this new device
-            danglingChildren.AddRange(this.nodes
-                .Select(kvp => kvp.Value)
-                .Where(s => s.Identity.IsModule && s.Identity.DeviceId == device.DeviceId)
-                .ToList()
-                .AsEnumerable());
-
-            foreach (ServiceIdentityTreeNode child in danglingChildren)
+            if (device.IsEdgeDevice)
             {
-                newNode.AddChild(child);
+                // Check if there are any dangling child devices that can now be hooked up,
+                // this include placing the new node as the new root.
+                List<ServiceIdentityTreeNode> danglingChildren =
+                    this.nodes
+                    .Select(kvp => kvp.Value)
+                    .Where(s => s.Identity.ParentScopes.Count() > 0 && s.Identity.ParentScopes.Contains(device.DeviceScope.OrDefault()))
+                    .ToList();
+
+                // Also check for any modules that should be parented to this new device
+                danglingChildren.AddRange(this.nodes
+                    .Select(kvp => kvp.Value)
+                    .Where(s => s.Identity.IsModule && s.Identity.DeviceId == device.DeviceId)
+                    .ToList()
+                    .AsEnumerable());
+
+                foreach (ServiceIdentityTreeNode child in danglingChildren)
+                {
+                    newNode.AddChild(child);
+                }
             }
         }
 
@@ -264,6 +288,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 var snapshot = new List<ServiceIdentityTreeNode>(this.children);
                 snapshot.ForEach(child => this.RemoveChild(child));
             }
+
+            public IList<ServiceIdentityTreeNode> GetAllChildren() => this.children;
 
             void UpdateAuthChainFromParent(ServiceIdentityTreeNode parentNode, int traveled)
             {
