@@ -28,9 +28,9 @@ impl PluginConfigLinux {
         devices: Vec<crate::models::PluginDevice>,
     ) -> Self {
         PluginConfigLinux {
-            capabilities: capabilities,
-            allow_all_devices: allow_all_devices,
-            devices: devices,
+            capabilities,
+            allow_all_devices,
+            devices,
         }
     }
 

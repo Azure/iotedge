@@ -23,7 +23,7 @@ pub struct ErrorResponse {
 impl ErrorResponse {
     /// Represents an error.
     pub fn new(message: String) -> Self {
-        ErrorResponse { message: message }
+        ErrorResponse { message }
     }
 
     pub fn set_message(&mut self, message: String) {
