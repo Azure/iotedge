@@ -25,8 +25,8 @@ impl PluginConfigInterface {
     /// The interface between Docker and the plugin
     pub fn new(types: Vec<crate::models::PluginInterfaceType>, socket: String) -> Self {
         PluginConfigInterface {
-            types: types,
-            socket: socket,
+            types,
+            socket,
         }
     }
 

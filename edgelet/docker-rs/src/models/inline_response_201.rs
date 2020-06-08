@@ -24,7 +24,7 @@ pub struct InlineResponse201 {
 impl InlineResponse201 {
     pub fn new(id: String) -> Self {
         InlineResponse201 {
-            id: id,
+            id,
             warnings: None,
         }
     }

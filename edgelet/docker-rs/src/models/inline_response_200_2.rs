@@ -24,8 +24,8 @@ pub struct InlineResponse2002 {
 impl InlineResponse2002 {
     pub fn new(path: String, kind: i32) -> Self {
         InlineResponse2002 {
-            path: path,
-            kind: kind,
+            path,
+            kind,
         }
     }
 

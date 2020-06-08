@@ -21,7 +21,7 @@ pub struct InlineResponse2004 {
 impl InlineResponse2004 {
     pub fn new(status_code: i32) -> Self {
         InlineResponse2004 {
-            status_code: status_code,
+            status_code,
         }
     }
 

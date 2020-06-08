@@ -25,7 +25,7 @@ impl GraphDriverData {
     /// Information about a container's graph driver.
     pub fn new(name: String) -> Self {
         GraphDriverData {
-            name: name,
+            name,
             data: None,
         }
     }

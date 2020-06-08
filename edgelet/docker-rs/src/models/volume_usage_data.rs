@@ -27,8 +27,8 @@ impl VolumeUsageData {
     /// Usage details about the volume. This information is used by the `GET /system/df` endpoint, and omitted in other endpoints.
     pub fn new(size: i32, ref_count: i32) -> Self {
         VolumeUsageData {
-            size: size,
-            ref_count: ref_count,
+            size,
+            ref_count,
         }
     }
 
