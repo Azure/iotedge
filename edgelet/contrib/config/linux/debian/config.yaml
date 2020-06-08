@@ -296,7 +296,7 @@ connect:
 listen:
   management_uri: "fd://iotedge.mgmt.socket"
   workload_uri: "fd://iotedge.socket"
-  identityservice_uri: "fd://identity.socket"
+  identityservice_uri: "fd://idservice.socket"
   keyservice_uri: "fd://keyservice.socket"
 
 ###############################################################################
