@@ -216,7 +216,7 @@ where
                             .instrument(span)
                             .await
                     {
-                        warn!(message = "failed to process connection", error=%e);
+                        warn!(message = "failed to process connection", error =% DetailedErrorValue(&e));
                     }
                 });
             }
@@ -228,7 +228,10 @@ where
                 break;
             }
             Either::Right((Some(Err(e)), _)) => {
-                warn!("accept loop exiting due to an error - {}", e);
+                warn!(
+                    "accept loop exiting due to an error - {}",
+                    DetailedErrorValue(&e)
+                );
                 break;
             }
             Either::Right((None, _)) => {
