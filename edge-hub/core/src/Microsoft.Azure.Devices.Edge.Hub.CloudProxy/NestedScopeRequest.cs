@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     /// This is an object to encapsulate JSON serialization of the
     /// GetDevicesAndModulesInTargetScope POST request.
     /// </summary>
-    class NestedScopeRequest
+    public class NestedScopeRequest
     {
         [JsonProperty(PropertyName = "pageSize")]
         public int PageSize { get; private set; }
