@@ -14,7 +14,10 @@
 pub mod auth;
 
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+use std::{
+    fmt::{Display, Formatter, Result as FmtResult},
+    sync::Arc,
+};
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct ClientId(Arc<String>);
@@ -31,8 +34,8 @@ impl<T: Into<String>> From<T> for ClientId {
     }
 }
 
-impl std::fmt::Display for ClientId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for ClientId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "{}", self.as_str())
     }
 }

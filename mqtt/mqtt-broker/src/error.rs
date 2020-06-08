@@ -1,4 +1,8 @@
-use std::{error::Error as StdError, path::PathBuf};
+use std::{
+    error::Error as StdError,
+    fmt::{Display, Formatter, Result as FmtResult},
+    path::PathBuf,
+};
 
 use thiserror::Error;
 
@@ -90,8 +94,8 @@ pub enum InitializeBrokerError {
 
 pub struct DetailedErrorValue<'a, E>(pub &'a E);
 
-impl<'a, E: StdError> std::fmt::Display for DetailedErrorValue<'a, E> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl<'a, E: StdError> Display for DetailedErrorValue<'a, E> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "{}", self.0)?;
         let mut current: &dyn StdError = self.0;
         while let Some(source) = current.source() {
