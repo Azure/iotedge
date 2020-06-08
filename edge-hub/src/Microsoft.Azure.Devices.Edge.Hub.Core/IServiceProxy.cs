@@ -9,8 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         IServiceIdentitiesIterator GetServiceIdentitiesIterator();
 
-        IServiceIdentitiesIterator GetNestedServiceIdentitiesIterator();
-
         Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, string moduleId);
 
         Task<Option<ServiceIdentity>> GetServiceIdentity(string id);

@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     /// to reconstruct the hierarchy of modules/devices under the current
     /// Edge device in a nested Edge environment.
     /// </summary>
-    public class ServiceIdentityTree : IServiceIdentityTree
+    public class ServiceIdentityTree : IServiceIdentityHierarchy
     {
         readonly string actorDeviceId;
         AsyncLock nodesLock = new AsyncLock();

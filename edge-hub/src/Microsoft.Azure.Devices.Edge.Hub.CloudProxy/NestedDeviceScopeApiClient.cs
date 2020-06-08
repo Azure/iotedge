@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly Option<string> continuationToken;
         readonly int batchSize;
         readonly ITokenProvider edgeHubTokenProvider;
-        readonly IServiceIdentityTree serviceIdentityTree;
+        readonly IServiceIdentityHierarchy serviceIdentityTree;
         readonly Option<IWebProxy> proxy;
 
         public string TargetEdgeDeviceId { get; }
@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Option<string> continuationToken,
             int batchSize,
             ITokenProvider edgeHubTokenProvider,
-            IServiceIdentityTree serviceIdentityTree,
+            IServiceIdentityHierarchy serviceIdentityTree,
             Option<IWebProxy> proxy,
             RetryStrategy retryStrategy = null)
             : this(iotHubHostName, deviceId, deviceId, moduleId, continuationToken, batchSize, edgeHubTokenProvider, serviceIdentityTree, proxy, retryStrategy)
@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Option<string> continuationToken,
             int batchSize,
             ITokenProvider edgeHubTokenProvider,
-            IServiceIdentityTree serviceIdentityTree,
+            IServiceIdentityHierarchy serviceIdentityTree,
             Option<IWebProxy> proxy,
             RetryStrategy retryStrategy = null)
         {
@@ -135,7 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 // Get the auth-chain for the target device
                 Option<string> maybeAuthChain = await this.serviceIdentityTree.GetAuthChain(this.TargetEdgeDeviceId);
-                string authChain = maybeAuthChain.Expect(() => new ArgumentException($"No valid authentication chain for {this.TargetEdgeDeviceId}"));
+                string authChain = maybeAuthChain.Expect(() => new InvalidOperationException($"No valid authentication chain for {this.TargetEdgeDeviceId}"));
 
                 var payload = new NestedScopeRequest(this.batchSize, continuationToken.OrDefault(), authChain);
                 string token = await this.edgeHubTokenProvider.GetTokenAsync(Option.None<TimeSpan>());

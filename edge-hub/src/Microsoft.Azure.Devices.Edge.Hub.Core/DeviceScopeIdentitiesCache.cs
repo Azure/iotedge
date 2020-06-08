@@ -18,34 +18,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         readonly IServiceProxy serviceProxy;
         readonly IKeyValueStore<string, string> encryptedStore;
-        readonly IServiceIdentityTree serviceIdentityTree;
+        readonly IServiceIdentityHierarchy serviceIdentityHierarchy;
         readonly Timer refreshCacheTimer;
         readonly TimeSpan refreshRate;
         readonly AsyncAutoResetEvent refreshCacheSignal = new AsyncAutoResetEvent();
         readonly object refreshCacheLock = new object();
-        readonly bool nestedEdgeEnabled;
 
         Task refreshCacheTask;
 
         DeviceScopeIdentitiesCache(
-            IServiceIdentityTree serviceIdentityTree,
+            IServiceIdentityHierarchy serviceIdentityHierarchy,
             IServiceProxy serviceProxy,
             IKeyValueStore<string, string> encryptedStorage,
             IDictionary<string, StoredServiceIdentity> initialCache,
-            TimeSpan refreshRate,
-            bool nestedEdgeEnabled)
+            TimeSpan refreshRate)
         {
-            this.serviceIdentityTree = serviceIdentityTree;
+            this.serviceIdentityHierarchy = serviceIdentityHierarchy;
             this.serviceProxy = serviceProxy;
             this.encryptedStore = encryptedStorage;
             this.refreshRate = refreshRate;
             this.refreshCacheTimer = new Timer(this.RefreshCache, null, TimeSpan.Zero, refreshRate);
-            this.nestedEdgeEnabled = nestedEdgeEnabled;
 
-            // Populate the ServiceIdentityTree
+            // Populate the serviceIdentityHierarchy
             foreach (KeyValuePair<string, StoredServiceIdentity> kvp in initialCache)
             {
-                kvp.Value.ServiceIdentity.ForEach(serviceIdentity => this.serviceIdentityTree.InsertOrUpdate(serviceIdentity).Wait());
+                kvp.Value.ServiceIdentity.ForEach(serviceIdentity => this.serviceIdentityHierarchy.InsertOrUpdate(serviceIdentity).Wait());
             }
         }
 
@@ -54,17 +51,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public event EventHandler<ServiceIdentity> ServiceIdentityUpdated;
 
         public static async Task<DeviceScopeIdentitiesCache> Create(
-            IServiceIdentityTree serviceIdentityTree,
+            IServiceIdentityHierarchy serviceIdentityHierarchy,
             IServiceProxy serviceProxy,
             IKeyValueStore<string, string> encryptedStorage,
-            TimeSpan refreshRate,
-            bool nestedEdgeEnabled = false)
+            TimeSpan refreshRate)
         {
             Preconditions.CheckNotNull(serviceProxy, nameof(serviceProxy));
             Preconditions.CheckNotNull(encryptedStorage, nameof(encryptedStorage));
-            Preconditions.CheckNotNull(serviceIdentityTree, nameof(serviceIdentityTree));
+            Preconditions.CheckNotNull(serviceIdentityHierarchy, nameof(serviceIdentityHierarchy));
             IDictionary<string, StoredServiceIdentity> cache = await ReadCacheFromStore(encryptedStorage);
-            var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceIdentityTree, serviceProxy, encryptedStorage, cache, refreshRate, nestedEdgeEnabled);
+            var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceIdentityHierarchy, serviceProxy, encryptedStorage, cache, refreshRate);
             Events.Created();
             return deviceScopeIdentitiesCache;
         }
@@ -107,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return await this.GetServiceIdentityInternal(id);
         }
 
-        public async Task<Option<string>> GetAuthChain(string id) => await this.serviceIdentityTree.GetAuthChain(id);
+        public async Task<Option<string>> GetAuthChain(string id) => await this.serviceIdentityHierarchy.GetAuthChain(id);
 
         public void Dispose()
         {
@@ -164,16 +160,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     Events.StartingRefreshCycle();
                     var currentCacheIds = new List<string>();
 
-                    IServiceIdentitiesIterator iterator;
-                    if (this.nestedEdgeEnabled)
-                    {
-                        iterator = this.serviceProxy.GetNestedServiceIdentitiesIterator();
-                    }
-                    else
-                    {
-                        iterator = this.serviceProxy.GetServiceIdentitiesIterator();
-                    }
-
+                    IServiceIdentitiesIterator iterator = this.serviceProxy.GetServiceIdentitiesIterator();
                     while (iterator.HasNext)
                     {
                         IEnumerable<ServiceIdentity> batch = await iterator.GetNext();
@@ -192,7 +179,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     }
 
                     // Diff and update
-                    IList<string> allIds = await this.serviceIdentityTree.GetAllIds();
+                    IList<string> allIds = await this.serviceIdentityHierarchy.GetAllIds();
                     IList<string> removedIds = allIds.Except(currentCacheIds).ToList();
                     await Task.WhenAll(removedIds.Select(id => this.HandleNoServiceIdentity(id)));
                 }
@@ -224,16 +211,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         async Task<Option<ServiceIdentity>> GetServiceIdentityInternal(string id)
         {
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
-            return await this.serviceIdentityTree.Get(id);
+            return await this.serviceIdentityHierarchy.Get(id);
         }
 
         async Task HandleNoServiceIdentity(string id)
         {
-            Option<ServiceIdentity> identity = await this.serviceIdentityTree.Get(id);
+            Option<ServiceIdentity> identity = await this.serviceIdentityHierarchy.Get(id);
             bool hasValidServiceIdentity = identity.Filter(s => s.Status == ServiceIdentityStatus.Enabled).HasValue;
 
             // Remove the target identity
-            await this.serviceIdentityTree.Remove(id);
+            await this.serviceIdentityHierarchy.Remove(id);
             await this.encryptedStore.Remove(id);
             Events.NotInScope(id);
 
@@ -246,10 +233,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task HandleNewServiceIdentity(ServiceIdentity serviceIdentity)
         {
-            Option<ServiceIdentity> existing = await this.serviceIdentityTree.Get(serviceIdentity.Id);
+            Option<ServiceIdentity> existing = await this.serviceIdentityHierarchy.Get(serviceIdentity.Id);
             bool hasUpdated = existing.HasValue && !existing.Contains(serviceIdentity);
 
-            await this.serviceIdentityTree.InsertOrUpdate(serviceIdentity);
+            await this.serviceIdentityHierarchy.InsertOrUpdate(serviceIdentity);
             await this.SaveServiceIdentityToStore(serviceIdentity.Id, new StoredServiceIdentity(serviceIdentity));
             Events.AddInScope(serviceIdentity.Id);
 

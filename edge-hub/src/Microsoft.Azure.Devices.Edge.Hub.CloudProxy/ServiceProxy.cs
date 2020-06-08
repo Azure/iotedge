@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
@@ -13,24 +14,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     public class ServiceProxy : IServiceProxy
     {
         readonly IDeviceScopeApiClientProvider securityScopesApiClientProvider;
-        readonly IDeviceScopeApiClient defaultSecurityScopesApiClient;
+        readonly bool nestedEdgeEnabled;
 
-        public ServiceProxy(IDeviceScopeApiClientProvider securityScopesApiClientProvider)
+        public ServiceProxy(IDeviceScopeApiClientProvider securityScopesApiClientProvider, bool nestedEdgeEnabled = false)
         {
             this.securityScopesApiClientProvider = Preconditions.CheckNotNull(securityScopesApiClientProvider, nameof(securityScopesApiClientProvider));
-            this.defaultSecurityScopesApiClient = this.securityScopesApiClientProvider.CreateDeviceScopeClient();
+            this.nestedEdgeEnabled = nestedEdgeEnabled;
         }
 
-        public IServiceIdentitiesIterator GetServiceIdentitiesIterator() => new ServiceIdentitiesIterator(this.defaultSecurityScopesApiClient);
-
-        public IServiceIdentitiesIterator GetNestedServiceIdentitiesIterator() => new NestedServiceIdentitiesIterator(this.securityScopesApiClientProvider);
+        public IServiceIdentitiesIterator GetServiceIdentitiesIterator()
+        {
+            if (this.nestedEdgeEnabled)
+            {
+                return new NestedServiceIdentitiesIterator(this.securityScopesApiClientProvider);
+            }
+            else
+            {
+                return new ServiceIdentitiesIterator(this.securityScopesApiClientProvider.CreateDeviceScopeClient());
+            }
+        }
 
         public async Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId)
         {
             Option<ScopeResult> scopeResult = Option.None<ScopeResult>();
             try
             {
-                ScopeResult res = await this.defaultSecurityScopesApiClient.GetIdentityAsync(deviceId, null);
+                ScopeResult res = await this.securityScopesApiClientProvider.CreateDeviceScopeClient().GetIdentityAsync(deviceId, null);
                 scopeResult = Option.Maybe(res);
                 Events.IdentityScopeResultReceived(deviceId);
             }
@@ -80,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Option<ScopeResult> scopeResult = Option.None<ScopeResult>();
             try
             {
-                ScopeResult res = await this.defaultSecurityScopesApiClient.GetIdentityAsync(deviceId, moduleId);
+                ScopeResult res = await this.securityScopesApiClientProvider.CreateDeviceScopeClient().GetIdentityAsync(deviceId, moduleId);
                 scopeResult = Option.Maybe(res);
                 Events.IdentityScopeResultReceived(id);
             }

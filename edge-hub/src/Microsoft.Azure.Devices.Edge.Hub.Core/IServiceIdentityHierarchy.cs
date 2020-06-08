@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public interface IServiceIdentityTree
+    public interface IServiceIdentityHierarchy
     {
         Task InsertOrUpdate(ServiceIdentity identity);
         Task Remove(string id);
