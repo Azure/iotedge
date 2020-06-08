@@ -179,12 +179,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
                 });
                 module.MemoryStats.ForEach(ms =>
                 {
-                    ms.Limit.ForEach(limit => this.totalMemory.Set(limit, tags));
-                    ms.Usage.ForEach(usage =>
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                     {
-                        double actualUsage = usage - ms.Stats.AndThen(s => s.Cache).GetOrElse(0);
-                        this.usedMemory.Set((long)actualUsage, tags);
-                    });
+                        ms.Limit.ForEach(limit => this.totalMemory.Set(limit, tags));
+                        ms.Usage.ForEach(usage =>
+                        {
+                            double actualUsage = usage - ms.Stats.AndThen(s => s.Cache).GetOrElse(0);
+                            this.usedMemory.Set((long)actualUsage, tags);
+                        });
+                    }
+                    else
+                    {
+                        ms.PrivateWorkingSet.ForEach(mem => this.usedMemory.Set(mem, tags));
+                    }
                 });
                 module.PidsStats.ForEach(ps => ps.Current.ForEach(current => this.createdPids.Set(current, tags)));
 
