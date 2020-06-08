@@ -38,6 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     // Update case - this is just remove + re-insert
                     this.RemoveSingleNode(identity.Id);
+                    Events.NodeRemoved(identity.Id);
                 }
 
                 // Insert case
@@ -49,6 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     this.InsertDeviceIdentity(identity);
                 }
+
+                Events.NodeAdded(identity.Id);
             }
         }
 
@@ -58,6 +61,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 this.RemoveSingleNode(id);
             }
+
+            Events.NodeRemoved(id);
         }
 
         public async Task<bool> Contains(string id)
@@ -190,8 +195,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         Option<ServiceIdentityTreeNode> FindDeviceByScopeId(string scopeId)
         {
-            Preconditions.CheckNonWhiteSpace(scopeId, nameof(scopeId));
-
             // Look for Edge devices with a matching scope ID
             List<ServiceIdentityTreeNode> devices =
                 this.nodes
@@ -214,7 +217,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         internal class ServiceIdentityTreeNode
         {
             // Only allow up to 5 Edge devices to be linked together
-            static readonly int MaxNestingDepth = 4;
+            static readonly int MaxNestingDepth = 5;
 
             public ServiceIdentity Identity { get; }
             public Option<string> AuthChain { get; private set; }
@@ -239,19 +242,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     throw new ArgumentException($"{this.Identity.Id} is not an Edge device, only Edge devices can have children");
                 }
 
-                if (this.currentDepth >= MaxNestingDepth && childNode.Identity.IsEdgeDevice)
-                {
-                    // Don't add Edge devices greater than the max depth.
-                    // If the customer configured more layers than the max,
-                    // we'll just ignore anything beyond the max and
-                    // continue working with the what we have.
-                    Events.MaxDepthExceeded(childNode.Identity.Id);
-                    return;
-                }
-
                 this.children.Add(childNode);
                 childNode.Parent = Option.Some(this);
-                childNode.UpdateAuthChainFromParent(this, this.currentDepth);
+                childNode.UpdateAuthChainFromParent(this, this.currentDepth + 1);
             }
 
             public void RemoveChild(ServiceIdentityTreeNode childNode)
@@ -269,33 +262,50 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             void UpdateAuthChainFromParent(ServiceIdentityTreeNode parentNode, int traveled)
             {
-                if (traveled > MaxNestingDepth)
+                // The max allowed depth for leaf device and modules is 5 + 1,
+                // because they don't count towards the nesting level.
+                if (traveled >= MaxNestingDepth + 1)
                 {
-                    // Something went wrong, we should never have more than max layers linked together
+                    // Something went wrong, leaf devices and modules should never exceed the maximum.
                     throw new InvalidOperationException($"Nesting depth exceeded maximum at {this.Identity.Id}, check for potential cyclic dependencies");
                 }
-
-                // Our auth chain and depth is inherited from the parent's chain
-                this.AuthChain = parentNode.AuthChain.Map(parentChain => this.MakeAuthChainFromParent(parentChain));
 
                 if (this.Identity.IsEdgeDevice)
                 {
                     this.currentDepth = parentNode.currentDepth + 1;
                 }
 
-                // Recursively update all children to re-calculate their authchains
-                this.children.ForEach(child => child.UpdateAuthChainFromParent(this, traveled + 1));
+                if (this.Identity.IsEdgeDevice && traveled >= MaxNestingDepth)
+                {
+                    // We ended up with more than the max allowed depth, this can happen if two separate
+                    // chains got stitched together. In this case, we discard everything past the maximum
+                    // by removing their auth chains. If the customer intentionally configured more layers
+                    // than the max, we'll continue to work with just the first 5 nested layers.
+                    Events.MaxDepthExceeded(this.Identity.Id);
+                    this.AuthChain = Option.None<string>();
+                    this.children.ForEach(child => child.RemoveAuthChain());
+                }
+                else
+                {
+                    // Our auth chain and depth is inherited from the parent's chain
+                    this.AuthChain = parentNode.AuthChain.Map(parentChain => this.MakeAuthChainFromParent(parentChain));
+                    this.AuthChain.ForEach(authchain => Events.AuthChainAdded(this.Identity.Id, authchain, this.currentDepth));
+
+                    // Recursively update all children to re-calculate their authchains and depth
+                    this.children.ForEach(child => child.UpdateAuthChainFromParent(this, traveled + 1));
+                }
             }
 
             void RemoveAuthChain()
             {
                 this.AuthChain = Option.None<string>();
+                Events.AuthChainRemoved(this.Identity.Id);
 
                 // Recursively remove the authchains of children
                 this.children.ForEach(child => child.RemoveAuthChain());
             }
 
-            private string MakeAuthChainFromParent(string parentAuthChain)
+            string MakeAuthChainFromParent(string parentAuthChain)
             {
                 return this.Identity.Id + ";" + parentAuthChain;
             }
@@ -311,6 +321,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             NodeAdded = IdStart,
             NodeRemoved,
+            AuthChainAdded,
+            AuthChainRemoved,
             MaxDepthExceeded
         }
 
@@ -319,6 +331,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public static void NodeRemoved(string id) =>
             Log.LogDebug((int)EventIds.NodeRemoved, $"Removed node: {id}");
+
+        public static void AuthChainAdded(string id, string authChain, int depth) =>
+            Log.LogDebug((int)EventIds.AuthChainAdded, $"Auth-chain added for: {id}, at depth: {depth}, {authChain}");
+
+        public static void AuthChainRemoved(string id) =>
+            Log.LogDebug((int)EventIds.AuthChainRemoved, $"Auth-chain removed for: {id}");
 
         public static void MaxDepthExceeded(string edgeDeviceId) =>
             Log.LogWarning((int)EventIds.MaxDepthExceeded, $"Nested hierarchy contains more than maximum allowed layers, discarding {edgeDeviceId}");

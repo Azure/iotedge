@@ -254,14 +254,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             ServiceIdentityTree tree = this.SetupTree();
 
-            // Fill up all 5 layers to reach the maximum
-            ServiceIdentity e1_L3 = CreateServiceIdentity("e1_L3", null, "e1_L3_scope", "e1_L2_scope", true);
+            // Create an orphaned chain
+            ServiceIdentity e1_L3 = CreateServiceIdentity("e1_L3", null, "e1_L3_scope", null, true);
             ServiceIdentity e1_L4 = CreateServiceIdentity("e1_L4", null, "e1_L4_scope", "e1_L3_scope", true);
+            ServiceIdentity e1_L5 = CreateServiceIdentity("e1_L5", null, "e1_L5_scope", "e1_L4_scope", true);
             tree.InsertOrUpdate(e1_L3).Wait();
             tree.InsertOrUpdate(e1_L4).Wait();
+            tree.InsertOrUpdate(e1_L5).Wait();
 
-            // Try adding yet another layer with an Edge device, this shouldn't yield a valid chain
-            ServiceIdentity e1_L5 = CreateServiceIdentity("e1_L5", null, "e1_L5_scope", "e1_L4_scope", true);
+            // Merge this chain into the main tree, this exceeds the maximum depth,
+            // and e1_L5 should have no valid auth chain
+            e1_L3 = CreateServiceIdentity("e1_L3", null, "e1_L3_scope", "e1_L2_scope", true);
+            tree.InsertOrUpdate(e1_L3).Wait();
+            Assert.False(tree.GetAuthChain(e1_L5.Id).Result.HasValue);
+
+            // Try explicitly adding yet another layer with an Edge device, this shouldn't yield a valid chain
             tree.InsertOrUpdate(e1_L5).Wait();
             Assert.False(tree.GetAuthChain(e1_L5.Id).Result.HasValue);
 
