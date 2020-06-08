@@ -139,6 +139,9 @@ pub enum ErrorKind {
         _0, _1
     )]
     UnsupportedSettingsFileUri(String, &'static str),
+
+    #[fail(display = "Signature algorithm is unsupported.")]
+    UnsupportedSignatureAlgorithm,
 }
 
 impl Fail for Error {

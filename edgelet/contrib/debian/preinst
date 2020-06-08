@@ -11,6 +11,14 @@ add_groups()
         addgroup --system iotedge
     fi
 
+    if ! getent group iotedge >/dev/null; then
+        addgroup --system idservice
+    fi
+
+    if ! getent group iotedge >/dev/null; then
+        addgroup --system keyservice
+    fi
+
     # add iotedge user to docker group so that it can talk to the docker socket
     if getent group docker >/dev/null; then
         adduser iotedge docker

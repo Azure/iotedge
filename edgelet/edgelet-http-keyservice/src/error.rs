@@ -27,6 +27,9 @@ pub enum ErrorKind {
 
     #[fail(display = "Device key not found")]
     DeviceKeyNotFound,
+
+    #[fail(display = "Invalid signature algorithm")]
+    InvalidSignatureAlgorithm,
 }
 
 impl Fail for Error {
@@ -75,7 +78,9 @@ impl IntoResponse for Error {
         }
 
         let status_code = match *self.kind() {
-            ErrorKind::MalformedRequestBody => StatusCode::BAD_REQUEST,
+            ErrorKind::MalformedRequestBody | ErrorKind::InvalidSignatureAlgorithm => {
+                StatusCode::BAD_REQUEST
+            }
             ErrorKind::DeviceKeyNotFound => StatusCode::NOT_FOUND,
             _ => {
                 error!("Internal server error: {}", message);

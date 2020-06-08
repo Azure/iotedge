@@ -44,7 +44,7 @@ impl KeyService {
         <M::AuthenticateFuture as Future>::Error: Fail,
     {
         let router = router!(
-            get   Version2020_06_01 runtime Policy::Anonymous => "/sign" => SignHandler::new(key_store.clone()),
+            post   Version2020_06_01 runtime Policy::Anonymous => "/sign" => SignHandler::new(key_store.clone()),
         );
 
         router.new_service().then(|inner| {

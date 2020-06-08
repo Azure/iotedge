@@ -11,6 +11,7 @@ use hyper::{Body, Request, Response, StatusCode};
 
 use crate::IntoResponse;
 use keyservice::models::{SignRequest, SignResponse};
+use std::str::FromStr;
 
 pub struct SignHandler<K: KeyStore> {
     key_store: K,
@@ -47,8 +48,10 @@ where
                 let device_key = key_store
                     .get(&KeyIdentity::Device, key_handle)
                     .context(ErrorKind::DeviceKeyNotFound)?;
+                let algorithm = SignatureAlgorithm::from_str(request.algorithm())
+                    .context(ErrorKind::InvalidSignatureAlgorithm)?;
                 let signature = device_key
-                    .sign(SignatureAlgorithm::HMACSHA256, &message)
+                    .sign(algorithm, &message)
                     .map(|s| base64::encode(s.as_bytes()))
                     .context(ErrorKind::GetSignature)
                     .unwrap();
@@ -189,6 +192,47 @@ mod tests {
             .and_then(|b| {
                 let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 let expected = "Device key not found\n\tcaused by: Item not found.";
+                assert_eq!(expected, error_response.message());
+                Ok(())
+            })
+            .wait()
+            .unwrap();
+    }
+
+    #[test]
+    fn invalid_signature_algorithm() {
+        // arrange
+        let key = MemoryKey::new(base64::decode("primarykey").unwrap());
+        let key_store = TestKeyStore::new(key);
+        let handler = SignHandler::new(key_store);
+
+        let sign_request = SignRequest::new(
+            "primary".to_string(),
+            "ECDSA".to_string(),
+            SignParameters::new(base64::encode("12345")),
+        );
+
+        let body = serde_json::to_string(&sign_request).unwrap();
+
+        let request = Request::post("http://localhost/sign")
+            .body(body.into())
+            .unwrap();
+
+        // act
+        let response = handler
+            .handle(request, Parameters::default())
+            .wait()
+            .unwrap();
+
+        // assert
+        assert_eq!(StatusCode::BAD_REQUEST, response.status());
+        response
+            .into_body()
+            .concat2()
+            .and_then(|b| {
+                let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();
+                let expected =
+                    "Invalid signature algorithm\n\tcaused by: Signature algorithm is unsupported.";
                 assert_eq!(expected, error_response.message());
                 Ok(())
             })
