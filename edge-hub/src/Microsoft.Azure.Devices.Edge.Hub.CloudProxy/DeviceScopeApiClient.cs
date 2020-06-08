@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         const string InScopeIdentitiesUriTemplate = "/devices/{0}/modules/{1}/devicesAndModulesInDeviceScope?deviceCount={2}&continuationToken={3}&api-version={4}";
 
-        const string InScopeTargetIdentityUriFormat = "/devices/{0}/modules/{1}/deviceAndModuleInDeviceScope?targetDeviceId={2}&targetModuleId={3}&api-version={4}";
+        const string InScopeTargetIdentityUriFormat = "/devices/{0}/modules/{1}/deviceAndModuleInDeviceScope?requestedDeviceId={2}&requestedModuleId={3}&api-version={4}";
 
         const string ApiVersion = "2018-08-30-preview";
 
@@ -62,10 +62,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         public Task<ScopeResult> GetNextAsync(string continuationToken) =>
             this.GetIdentitiesInScopeWithRetry(this.GetServiceUri(Option.Some(continuationToken)));
 
-        public Task<ScopeResult> GetIdentityAsync(string targetDeviceId, string targetModuleId)
+        public Task<ScopeResult> GetIdentityAsync(string requestedDeviceId, string requestedModuleId)
         {
-            Preconditions.CheckNonWhiteSpace(targetDeviceId, nameof(targetDeviceId));
-            return this.GetIdentitiesInScopeWithRetry(this.GetServiceUri(targetDeviceId, targetModuleId));
+            Preconditions.CheckNonWhiteSpace(requestedDeviceId, nameof(requestedDeviceId));
+            return this.GetIdentitiesInScopeWithRetry(this.GetServiceUri(requestedDeviceId, requestedModuleId));
         }
 
         internal Uri GetServiceUri(Option<string> continuationToken) =>
@@ -79,9 +79,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         return uri;
                     });
 
-        internal Uri GetServiceUri(string targetDeviceId, string targetModuleId)
+        internal Uri GetServiceUri(string requestedDeviceId, string requestedModuleId)
         {
-            string relativeUri = InScopeTargetIdentityUriFormat.FormatInvariant(this.TargetEdgeDeviceId, this.moduleId, targetDeviceId, targetModuleId, ApiVersion);
+            string relativeUri = InScopeTargetIdentityUriFormat.FormatInvariant(this.TargetEdgeDeviceId, this.moduleId, requestedDeviceId, requestedModuleId, ApiVersion);
             var uri = new Uri(this.iotHubBaseHttpUri, relativeUri);
             return uri;
         }
