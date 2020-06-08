@@ -1,4 +1,9 @@
-use std::{net::SocketAddr, sync::Arc, time::Duration};
+use std::{
+    fmt::{Display, Formatter, Result as FmtResult},
+    net::SocketAddr,
+    sync::Arc,
+    time::Duration,
+};
 
 use futures_util::{
     future::{select, Either},
@@ -67,8 +72,8 @@ impl ConnectionHandle {
     }
 }
 
-impl std::fmt::Display for ConnectionHandle {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for ConnectionHandle {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "{}", self.id)
     }
 }
