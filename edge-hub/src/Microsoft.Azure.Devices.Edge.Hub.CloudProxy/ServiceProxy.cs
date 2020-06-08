@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
@@ -12,21 +13,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
     public class ServiceProxy : IServiceProxy
     {
-        readonly IDeviceScopeApiClient securityScopesApiClient;
+        readonly IDeviceScopeApiClientProvider securityScopesApiClientProvider;
+        readonly bool nestedEdgeEnabled;
 
-        public ServiceProxy(IDeviceScopeApiClient securityScopesApiClient)
+        public ServiceProxy(IDeviceScopeApiClientProvider securityScopesApiClientProvider, bool nestedEdgeEnabled = false)
         {
-            this.securityScopesApiClient = Preconditions.CheckNotNull(securityScopesApiClient, nameof(securityScopesApiClient));
+            this.securityScopesApiClientProvider = Preconditions.CheckNotNull(securityScopesApiClientProvider, nameof(securityScopesApiClientProvider));
+            this.nestedEdgeEnabled = nestedEdgeEnabled;
         }
 
-        public IServiceIdentitiesIterator GetServiceIdentitiesIterator() => new ServiceIdentitiesIterator(this.securityScopesApiClient);
+        public IServiceIdentitiesIterator GetServiceIdentitiesIterator()
+        {
+            if (this.nestedEdgeEnabled)
+            {
+                return new NestedServiceIdentitiesIterator(this.securityScopesApiClientProvider);
+            }
+            else
+            {
+                return new ServiceIdentitiesIterator(this.securityScopesApiClientProvider.CreateDeviceScopeClient());
+            }
+        }
 
         public async Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId)
         {
             Option<ScopeResult> scopeResult = Option.None<ScopeResult>();
             try
             {
-                ScopeResult res = await this.securityScopesApiClient.GetIdentity(deviceId, null);
+                ScopeResult res = await this.securityScopesApiClientProvider.CreateDeviceScopeClient().GetIdentityAsync(deviceId, null);
                 scopeResult = Option.Maybe(res);
                 Events.IdentityScopeResultReceived(deviceId);
             }
@@ -76,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Option<ScopeResult> scopeResult = Option.None<ScopeResult>();
             try
             {
-                ScopeResult res = await this.securityScopesApiClient.GetIdentity(deviceId, moduleId);
+                ScopeResult res = await this.securityScopesApiClientProvider.CreateDeviceScopeClient().GetIdentityAsync(deviceId, moduleId);
                 scopeResult = Option.Maybe(res);
                 Events.IdentityScopeResultReceived(id);
             }
@@ -175,6 +188,86 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
+        /// <summary>
+        /// This is a helper class used to pull down the devices/modules in scope for every nested Edge Device.
+        /// It maintains a queue of IDeviceScopeApiClient, each representating a child Edge device
+        /// in the subtree, and uses them to perform breadth-first-expansion on the tree.
+        /// </summary>
+        class NestedServiceIdentitiesIterator : IServiceIdentitiesIterator
+        {
+            IDeviceScopeApiClientProvider clientProvider;
+            IDeviceScopeApiClient actorClient;
+            Queue<IDeviceScopeApiClient> remainingEdgeNodes;
+
+            public NestedServiceIdentitiesIterator(IDeviceScopeApiClientProvider securityScopesApiClientProvider)
+            {
+                this.clientProvider = Preconditions.CheckNotNull(securityScopesApiClientProvider);
+
+                // Put the first node (the actor device) into the queue
+                this.actorClient = this.clientProvider.CreateNestedDeviceScopeClient(Option.None<string>());
+                this.remainingEdgeNodes = new Queue<IDeviceScopeApiClient>();
+                this.remainingEdgeNodes.Enqueue(this.actorClient);
+            }
+
+            public bool HasNext => this.remainingEdgeNodes.Count > 0;
+
+            public async Task<IEnumerable<ServiceIdentity>> GetNext()
+            {
+                // Check for the empty-case
+                if (this.remainingEdgeNodes.Count == 0)
+                {
+                    return Enumerable.Empty<ServiceIdentity>();
+                }
+
+                // Get the next item in the queue
+                IDeviceScopeApiClient currentNode = this.remainingEdgeNodes.Dequeue();
+                var serviceIdentities = new List<ServiceIdentity>();
+
+                // Make the call to upstream and fetch the next batch of identities
+                ScopeResult scopeResult = await currentNode.GetIdentitiesInScopeAsync();
+                if (scopeResult != null)
+                {
+                    Events.ScopeResultReceived(scopeResult);
+                    if (scopeResult.Devices != null)
+                    {
+                        serviceIdentities.AddRange(scopeResult.Devices.Select(d => d.ToServiceIdentity()));
+                    }
+
+                    if (scopeResult.Modules != null)
+                    {
+                        serviceIdentities.AddRange(scopeResult.Modules.Select(m => m.ToServiceIdentity()));
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(scopeResult.ContinuationLink))
+                    {
+                        // Since there's a continuation link, we're not done enumerating
+                        // the identities under the current device scope. Enqueue another
+                        // item in the queue to handle the continuation
+                        IDeviceScopeApiClient continuationClient = this.clientProvider.CreateOnBehalfOf(currentNode.TargetEdgeDeviceId, Option.Some(scopeResult.ContinuationLink));
+                        this.remainingEdgeNodes.Enqueue(continuationClient);
+                    }
+                }
+                else
+                {
+                    Events.NullResult();
+                }
+
+                foreach (ServiceIdentity identity in serviceIdentities)
+                {
+                    // The current device itself will come back as part of the query,
+                    // make sure we don't re-enqueue it again
+                    if (identity.IsEdgeDevice && identity.DeviceId != currentNode.TargetEdgeDeviceId)
+                    {
+                        // Enqueue a new item for every child Edge in this batch.
+                        IDeviceScopeApiClient childClient = this.clientProvider.CreateOnBehalfOf(identity.DeviceId, Option.None<string>());
+                        this.remainingEdgeNodes.Enqueue(childClient);
+                    }
+                }
+
+                return serviceIdentities.AsEnumerable();
+            }
+        }
+
         class ServiceIdentitiesIterator : IServiceIdentitiesIterator
         {
             readonly IDeviceScopeApiClient securityScopesApiClient;
@@ -197,8 +290,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 }
 
                 var serviceIdentities = new List<ServiceIdentity>();
-                ScopeResult scopeResult = await this.continuationLink.Map(c => this.securityScopesApiClient.GetNext(c))
-                    .GetOrElse(() => this.securityScopesApiClient.GetIdentitiesInScope());
+                ScopeResult scopeResult = await this.continuationLink.Map(c => this.securityScopesApiClient.GetNextAsync(c))
+                    .GetOrElse(() => this.securityScopesApiClient.GetIdentitiesInScopeAsync());
                 if (scopeResult == null)
                 {
                     Events.NullResult();

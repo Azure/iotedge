@@ -13,14 +13,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Nito.AsyncEx;
-    using AsyncLock = Microsoft.Azure.Devices.Edge.Util.Concurrency.AsyncLock;
 
     public sealed class DeviceScopeIdentitiesCache : IDeviceScopeIdentitiesCache
     {
         readonly IServiceProxy serviceProxy;
         readonly IKeyValueStore<string, string> encryptedStore;
-        readonly AsyncLock cacheLock = new AsyncLock();
-        readonly IDictionary<string, StoredServiceIdentity> serviceIdentityCache;
+        readonly IServiceIdentityHierarchy serviceIdentityHierarchy;
         readonly Timer refreshCacheTimer;
         readonly TimeSpan refreshRate;
         readonly AsyncAutoResetEvent refreshCacheSignal = new AsyncAutoResetEvent();
@@ -29,16 +27,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         Task refreshCacheTask;
 
         DeviceScopeIdentitiesCache(
+            IServiceIdentityHierarchy serviceIdentityHierarchy,
             IServiceProxy serviceProxy,
             IKeyValueStore<string, string> encryptedStorage,
             IDictionary<string, StoredServiceIdentity> initialCache,
             TimeSpan refreshRate)
         {
+            this.serviceIdentityHierarchy = serviceIdentityHierarchy;
             this.serviceProxy = serviceProxy;
             this.encryptedStore = encryptedStorage;
-            this.serviceIdentityCache = initialCache;
             this.refreshRate = refreshRate;
             this.refreshCacheTimer = new Timer(this.RefreshCache, null, TimeSpan.Zero, refreshRate);
+
+            // Populate the serviceIdentityHierarchy
+            foreach (KeyValuePair<string, StoredServiceIdentity> kvp in initialCache)
+            {
+                kvp.Value.ServiceIdentity.ForEach(serviceIdentity => this.serviceIdentityHierarchy.InsertOrUpdate(serviceIdentity).Wait());
+            }
         }
 
         public event EventHandler<string> ServiceIdentityRemoved;
@@ -46,14 +51,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public event EventHandler<ServiceIdentity> ServiceIdentityUpdated;
 
         public static async Task<DeviceScopeIdentitiesCache> Create(
+            IServiceIdentityHierarchy serviceIdentityHierarchy,
             IServiceProxy serviceProxy,
             IKeyValueStore<string, string> encryptedStorage,
             TimeSpan refreshRate)
         {
             Preconditions.CheckNotNull(serviceProxy, nameof(serviceProxy));
             Preconditions.CheckNotNull(encryptedStorage, nameof(encryptedStorage));
+            Preconditions.CheckNotNull(serviceIdentityHierarchy, nameof(serviceIdentityHierarchy));
             IDictionary<string, StoredServiceIdentity> cache = await ReadCacheFromStore(encryptedStorage);
-            var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceProxy, encryptedStorage, cache, refreshRate);
+            var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceIdentityHierarchy, serviceProxy, encryptedStorage, cache, refreshRate);
             Events.Created();
             return deviceScopeIdentitiesCache;
         }
@@ -89,17 +96,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        public async Task<Option<ServiceIdentity>> GetServiceIdentity(string id, bool refreshIfNotExists = false)
+        public async Task<Option<ServiceIdentity>> GetServiceIdentity(string id)
         {
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
             Events.GettingServiceIdentity(id);
-            if (refreshIfNotExists && !this.serviceIdentityCache.ContainsKey(id))
-            {
-                await this.RefreshServiceIdentity(id);
-            }
-
             return await this.GetServiceIdentityInternal(id);
         }
+
+        public async Task<Option<string>> GetAuthChain(string id) => await this.serviceIdentityHierarchy.GetAuthChain(id);
 
         public void Dispose()
         {
@@ -155,6 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     Events.StartingRefreshCycle();
                     var currentCacheIds = new List<string>();
+
                     IServiceIdentitiesIterator iterator = this.serviceProxy.GetServiceIdentitiesIterator();
                     while (iterator.HasNext)
                     {
@@ -174,10 +179,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     }
 
                     // Diff and update
-                    List<string> removedIds = this.serviceIdentityCache
-                        .Where(kvp => kvp.Value.ServiceIdentity.HasValue)
-                        .Select(kvp => kvp.Key)
-                        .Except(currentCacheIds).ToList();
+                    IList<string> allIds = await this.serviceIdentityHierarchy.GetAllIds();
+                    IList<string> removedIds = allIds.Except(currentCacheIds).ToList();
                     await Task.WhenAll(removedIds.Select(id => this.HandleNoServiceIdentity(id)));
                 }
                 catch (Exception e)
@@ -208,50 +211,38 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         async Task<Option<ServiceIdentity>> GetServiceIdentityInternal(string id)
         {
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
-            using (await this.cacheLock.LockAsync())
-            {
-                return this.serviceIdentityCache.TryGetValue(id, out StoredServiceIdentity storedServiceIdentity)
-                    ? storedServiceIdentity.ServiceIdentity
-                    : Option.None<ServiceIdentity>();
-            }
+            return await this.serviceIdentityHierarchy.Get(id);
         }
 
         async Task HandleNoServiceIdentity(string id)
         {
-            using (await this.cacheLock.LockAsync())
-            {
-                bool hasValidServiceIdentity = this.serviceIdentityCache.TryGetValue(id, out StoredServiceIdentity existingServiceIdentity)
-                    ? existingServiceIdentity.ServiceIdentity.Filter(s => s.Status == ServiceIdentityStatus.Enabled).HasValue
-                    : false;
-                var storedServiceIdentity = new StoredServiceIdentity(id);
-                this.serviceIdentityCache[id] = storedServiceIdentity;
-                await this.SaveServiceIdentityToStore(id, storedServiceIdentity);
-                Events.NotInScope(id);
+            Option<ServiceIdentity> identity = await this.serviceIdentityHierarchy.Get(id);
+            bool hasValidServiceIdentity = identity.Filter(s => s.Status == ServiceIdentityStatus.Enabled).HasValue;
 
-                if (hasValidServiceIdentity)
-                {
-                    // Remove device if connected, if service identity existed and then was removed.
-                    this.ServiceIdentityRemoved?.Invoke(this, id);
-                }
+            // Remove the target identity
+            await this.serviceIdentityHierarchy.Remove(id);
+            await this.encryptedStore.Remove(id);
+            Events.NotInScope(id);
+
+            if (hasValidServiceIdentity)
+            {
+                // Remove device if connected, if service identity existed and then was removed.
+                this.ServiceIdentityRemoved?.Invoke(this, id);
             }
         }
 
         async Task HandleNewServiceIdentity(ServiceIdentity serviceIdentity)
         {
-            using (await this.cacheLock.LockAsync())
+            Option<ServiceIdentity> existing = await this.serviceIdentityHierarchy.Get(serviceIdentity.Id);
+            bool hasUpdated = existing.HasValue && !existing.Contains(serviceIdentity);
+
+            await this.serviceIdentityHierarchy.InsertOrUpdate(serviceIdentity);
+            await this.SaveServiceIdentityToStore(serviceIdentity.Id, new StoredServiceIdentity(serviceIdentity));
+            Events.AddInScope(serviceIdentity.Id);
+
+            if (hasUpdated)
             {
-                bool hasUpdated = this.serviceIdentityCache.TryGetValue(serviceIdentity.Id, out StoredServiceIdentity currentStoredServiceIdentity)
-                                  && currentStoredServiceIdentity.ServiceIdentity
-                                      .Map(s => !s.Equals(serviceIdentity))
-                                      .GetOrElse(false);
-                var storedServiceIdentity = new StoredServiceIdentity(serviceIdentity);
-                this.serviceIdentityCache[serviceIdentity.Id] = storedServiceIdentity;
-                await this.SaveServiceIdentityToStore(serviceIdentity.Id, storedServiceIdentity);
-                Events.AddInScope(serviceIdentity.Id);
-                if (hasUpdated)
-                {
-                    this.ServiceIdentityUpdated?.Invoke(this, serviceIdentity);
-                }
+                this.ServiceIdentityUpdated?.Invoke(this, serviceIdentity);
             }
         }
 
