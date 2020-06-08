@@ -1,5 +1,6 @@
 use std::{
     convert::TryFrom,
+    fmt::Display,
     future::Future,
     net::SocketAddr,
     pin::Pin,
@@ -69,27 +70,27 @@ pub enum Transport {
 impl Transport {
     async fn new_tcp<A>(addr: A) -> Result<Self, InitializeBrokerError>
     where
-        A: ToSocketAddrs,
+        A: ToSocketAddrs + Display,
     {
-        let tcp = TcpListener::bind(addr)
+        let tcp = TcpListener::bind(&addr)
             .await
-            .map_err(InitializeBrokerError::BindServer)?;
+            .map_err(|e| InitializeBrokerError::BindServer(addr.to_string(), e))?;
 
         Ok(Transport::Tcp(tcp))
     }
 
     async fn new_tls<A>(addr: A, identity: Identity) -> Result<Self, InitializeBrokerError>
     where
-        A: ToSocketAddrs,
+        A: ToSocketAddrs + Display,
     {
         let acceptor = TlsAcceptor::from(
             native_tls::TlsAcceptor::builder(identity)
                 .build()
                 .map_err(InitializeBrokerError::Tls)?,
         );
-        let tcp = TcpListener::bind(addr)
+        let tcp = TcpListener::bind(&addr)
             .await
-            .map_err(InitializeBrokerError::BindServer)?;
+            .map_err(|e| InitializeBrokerError::BindServer(addr.to_string(), e))?;
 
         Ok(Transport::Tls(tcp, acceptor))
     }

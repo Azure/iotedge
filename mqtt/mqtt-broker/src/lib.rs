@@ -37,7 +37,7 @@ pub use crate::auth::{authenticator, authorizer};
 pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle, BrokerState};
 pub use crate::configuration::BrokerConfig;
 pub use crate::connection::ConnectionHandle;
-pub use crate::error::{Error, InitializeBrokerError};
+pub use crate::error::{DetailedErrorValue, Error, InitializeBrokerError};
 pub use crate::persist::{
     FileFormat, FilePersistor, NullPersistor, Persist, PersistError, VersionedFileFormat,
 };

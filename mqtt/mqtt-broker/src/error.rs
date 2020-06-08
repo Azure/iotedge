@@ -1,7 +1,8 @@
-use std::path::PathBuf;
+use std::{error::Error as StdError, path::PathBuf};
+
+use thiserror::Error;
 
 use mqtt3::proto::Packet;
-use thiserror::Error;
 
 use crate::Message;
 
@@ -65,8 +66,8 @@ pub enum Error {
 /// Represents errors occurred while bootstrapping broker.
 #[derive(Debug, Error)]
 pub enum InitializeBrokerError {
-    #[error("An error occurred binding the server's listening socket.")]
-    BindServer(#[source] std::io::Error),
+    #[error("An error occurred binding the server's listening socket on {0}.")]
+    BindServer(String, #[source] std::io::Error),
 
     #[error("An error occurred getting a connection's peer address.")]
     ConnectionPeerAddress(#[source] std::io::Error),
@@ -85,4 +86,18 @@ pub enum InitializeBrokerError {
 
     #[error("An error occurred  bootstrapping TLS")]
     Tls(#[source] native_tls::Error),
+}
+
+pub struct DetailedErrorValue<'a, E>(pub &'a E);
+
+impl<'a, E: StdError> std::fmt::Display for DetailedErrorValue<'a, E> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)?;
+        let mut current: &dyn StdError = self.0;
+        while let Some(source) = current.source() {
+            write!(f, " Caused by: {}", source)?;
+            current = source;
+        }
+        Ok(())
+    }
 }
