@@ -1,17 +1,8 @@
-use std::{error::Error as StdError, ops::Deref};
+use std::{error::Error as StdError, net::SocketAddr, ops::Deref};
 
 use async_trait::async_trait;
 
-use crate::auth::AuthId;
-
-/// Describes a MQTT client credentials.
-pub enum Credentials {
-    /// Password credentials.
-    Password(Option<String>),
-
-    /// Client certificate credentials.
-    ClientCertificate(Certificate),
-}
+use crate::{auth::AuthId, ClientId};
 
 /// Represents a client certificate.
 #[derive(Clone, Debug)]
@@ -43,34 +34,89 @@ pub trait Authenticator {
     /// * `Err(e)` - an error occurred when authenticating a client.
     async fn authenticate(
         &self,
-        username: Option<String>,
-        credentials: Credentials,
+        context: AuthenticationContext,
     ) -> Result<Option<AuthId>, Self::Error>;
+}
+
+/// A data required to authenticate connected client.
+#[derive(Debug)]
+pub struct AuthenticationContext {
+    client_id: ClientId,
+    peer_addr: SocketAddr,
+    username: Option<String>,
+    password: Option<String>,
+    certificate: Option<Certificate>,
+}
+
+impl AuthenticationContext {
+    pub fn new(client_id: ClientId, peer_addr: SocketAddr) -> Self {
+        Self {
+            client_id,
+            peer_addr,
+            username: None,
+            password: None,
+            certificate: None,
+        }
+    }
+
+    pub fn with_username(&mut self, username: impl Into<String>) -> &mut Self {
+        self.username = Some(username.into());
+        self
+    }
+
+    pub fn with_password(&mut self, password: impl Into<String>) -> &mut Self {
+        self.password = Some(password.into());
+        self
+    }
+
+    pub fn with_certificate(&mut self, certificate: impl Into<Certificate>) -> &mut Self {
+        self.certificate = Some(certificate.into());
+        self
+    }
+
+    pub fn client_id(&self) -> &ClientId {
+        &self.client_id
+    }
+
+    pub fn peer_addr(&self) -> SocketAddr {
+        self.peer_addr
+    }
+
+    pub fn username(&self) -> Option<&str> {
+        self.username.as_deref()
+    }
+
+    pub fn password(&self) -> Option<&str> {
+        self.password.as_deref()
+    }
+
+    pub fn certificate(&self) -> Option<&Certificate> {
+        self.certificate.as_ref()
+    }
 }
 
 /// Creates an authenticator from a function.
 /// It wraps any provided function with an interface aligned with authenticator.
 pub fn authenticate_fn_ok<F>(f: F) -> impl Authenticator<Error = Box<dyn StdError>>
 where
-    F: Fn(Option<String>, Credentials) -> Option<AuthId> + Sync + 'static,
+    F: Fn(AuthenticationContext) -> Option<AuthId> + Sync + 'static,
 {
-    move |username, credentials| Ok(f(username, credentials))
+    move |context| Ok(f(context))
 }
 
 #[async_trait]
 impl<F, E> Authenticator for F
 where
-    F: Fn(Option<String>, Credentials) -> Result<Option<AuthId>, E> + Sync,
+    F: Fn(AuthenticationContext) -> Result<Option<AuthId>, E> + Sync,
     E: Deref<Target = dyn StdError> + 'static,
 {
     type Error = E;
 
     async fn authenticate(
         &self,
-        username: Option<String>,
-        credentials: Credentials,
+        context: AuthenticationContext,
     ) -> Result<Option<AuthId>, Self::Error> {
-        self(username, credentials)
+        self(context)
     }
 }
 
@@ -82,44 +128,50 @@ pub struct DefaultAuthenticator;
 impl Authenticator for DefaultAuthenticator {
     type Error = Box<dyn StdError>;
 
-    async fn authenticate(
-        &self,
-        _: Option<String>,
-        _: Credentials,
-    ) -> Result<Option<AuthId>, Self::Error> {
+    async fn authenticate(&self, _: AuthenticationContext) -> Result<Option<AuthId>, Self::Error> {
         Ok(None)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::net::SocketAddr;
+
     use matches::assert_matches;
 
-    use crate::auth::{
-        authenticate_fn_ok, AuthId, Authenticator, Credentials, DefaultAuthenticator,
+    use super::{
+        authenticate_fn_ok, AuthId, AuthenticationContext, Authenticator, DefaultAuthenticator,
     };
 
     #[tokio::test]
     async fn default_auth_always_return_unknown_client_identity() {
         let authenticator = DefaultAuthenticator;
-        let credentials = Credentials::Password(Some("password".into()));
+        let context = AuthenticationContext::new("client_1".into(), peer_addr());
 
-        let auth_id = authenticator
-            .authenticate(Some("username".into()), credentials)
-            .await;
+        let auth_id = authenticator.authenticate(context).await;
 
         assert_matches!(auth_id, Ok(None));
     }
 
     #[tokio::test]
     async fn authenticator_wrapper_around_function() {
-        let authenticator = authenticate_fn_ok(|_, _| Some(AuthId::Anonymous));
-        let credentials = Credentials::Password(Some("password".into()));
+        let authenticator = authenticate_fn_ok(|context| {
+            if context.username() == Some("username") {
+                Some(AuthId::Identity("username".to_string()))
+            } else {
+                None
+            }
+        });
 
-        let auth_id = authenticator
-            .authenticate(Some("username".into()), credentials)
-            .await;
+        let mut context = AuthenticationContext::new("client_1".into(), peer_addr());
+        context.with_username("username");
 
-        assert_matches!(auth_id, Ok(Some(AuthId::Anonymous)));
+        let auth_id = authenticator.authenticate(context).await;
+
+        assert_matches!(auth_id, Ok(Some(AuthId::Identity(identity))) if identity == "username");
+    }
+
+    fn peer_addr() -> SocketAddr {
+        "127.0.0.1:12345".parse().unwrap()
     }
 }

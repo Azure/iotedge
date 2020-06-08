@@ -44,9 +44,7 @@ namespace MetricsValidator.Tests
 
             if (OsPlatform.IsWindows())
             {
-                // EdgeAgent doesn't return this on windows; see bug 6078740
-                expected.Remove("edgeAgent_available_disk_space_bytes");
-                expected.Remove("edgeAgent_total_disk_space_bytes");
+                // Docker doesn't return this on windows
                 expected.Remove("edgeAgent_created_pids_total");
             }
 
