@@ -269,7 +269,7 @@ where
 
         let pull_future = match spec.image_pull_policy() {
             ImagePullPolicy::Never => Either::A(future::ok(())),
-            ImagePullPolicy::OnCreate => Either::B(runtime.registry().pull(spec.clone().config())),
+            ImagePullPolicy::OnCreate => Either::B(runtime.registry().pull(spec.config())),
         };
 
         pull_future
