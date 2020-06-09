@@ -6,9 +6,6 @@
             } 
         }
     ],
-    "inflight_messages": {
-        "max_count": 10
-    },
     "retained_messages": {
         "max_count": 1000,
         "expiration": "60d"
@@ -17,8 +14,9 @@
         "expiration": "60d",
         "messages": {
             "max_message_size": "256kb",
-            "max_count": 1000,
-            "max_total_space": "16kb",
+            "max_inflight_messages": 16,
+            "max_queued_messages": 1000,
+            "max_queued_size": "10mb",
             "when_full": "drop_new"
         }                
     }

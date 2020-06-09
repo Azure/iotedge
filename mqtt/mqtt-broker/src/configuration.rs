@@ -31,11 +31,6 @@ pub enum QueueFullAction {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct InflightMessages {
-    max_count: u32,
-}
-
-#[derive(Debug, Deserialize, Clone)]
 pub struct RetainedMessages {
     max_count: u32,
     #[serde(with = "humantime_serde")]
@@ -46,9 +41,10 @@ pub struct RetainedMessages {
 pub struct SessionMessages {
     #[serde(deserialize_with = "humansize")]
     max_message_size: u64,
-    max_count: u32,
+    max_inflight_messages: u32,
+    max_queued_messages: u32,
     #[serde(deserialize_with = "humansize")]
-    max_total_space: u64,
+    max_queued_size: u64,
     when_full: QueueFullAction,
 }
 
@@ -68,8 +64,12 @@ pub struct SessionConfig {
 }
 
 impl SessionConfig {
-    pub fn max_count(&self) -> u32 {
-        self.messages.max_count 
+    pub fn max_inflight_messages(&self) -> usize {
+        self.messages.max_inflight_messages as usize
+    }
+
+    pub fn max_queued_messages(&self) -> usize {
+        self.messages.max_queued_messages as usize
     }
 
     pub fn when_full(&self) -> &QueueFullAction {
@@ -80,7 +80,6 @@ impl SessionConfig {
 #[derive(Debug, Deserialize, Clone)]
 pub struct BrokerConfig {
     transports: Vec<Transport>,
-    inflight_messages: InflightMessages,
     retained_messages: RetainedMessages,
     session: SessionConfig,
     persistence: Option<SessionPersistence>,

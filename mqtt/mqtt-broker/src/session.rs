@@ -15,8 +15,6 @@ use crate::{
     Message, Publish, SessionConfig,
 };
 
-const MAX_INFLIGHT_MESSAGES: usize = 16;
-
 #[derive(Debug)]
 pub struct ConnectedSession {
     state: SessionState,
@@ -181,7 +179,7 @@ impl OfflineSession {
     }
 
     pub fn into_online(self) -> Result<(SessionState, Vec<ClientEvent>), Error> {
-        let mut events = Vec::with_capacity(MAX_INFLIGHT_MESSAGES);
+        let mut events = Vec::new();
         let OfflineSession { mut state } = self;
 
         // Handle the outstanding QoS 1 and QoS 2 packets
@@ -360,7 +358,7 @@ impl SessionState {
                 let event = self.prepare_to_send(&publication)?;
                 Ok(Some(event))
             } else {
-                if self.waiting_to_be_sent.len() > self.config.max_count() as usize {
+                if self.waiting_to_be_sent.len() > self.config.max_queued_messages() {
                     match self.config.when_full() {
                         QueueFullAction::DropNew => {
                             return Ok(None);
@@ -483,7 +481,7 @@ impl SessionState {
         let num_inflight = self.waiting_to_be_acked.len()
             + self.waiting_to_be_acked_qos0.len()
             + self.waiting_to_be_completed.len();
-        num_inflight < MAX_INFLIGHT_MESSAGES
+        num_inflight < self.config.max_inflight_messages()
     }
 
     fn filter(&self, mut publication: proto::Publication) -> Option<proto::Publication> {
