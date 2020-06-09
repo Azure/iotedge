@@ -159,6 +159,7 @@ function prepare_test_from_artifacts() {
                     cp "$long_haul_deployment_artifact_file" "$deployment_working_file"
                     sed -i -e "s@<DesiredModulesToRestartCSV>@$DESIRED_MODULES_TO_RESTART_CSV@g" "$deployment_working_file"
                     sed -i -e "s@<RestartIntervalInMins>@$RESTART_INTERVAL_IN_MINS@g" "$deployment_working_file"
+                    sed -i -e "s@<MaxLogSize>@$max_log_size@g" "$deployment_working_file"
                 else
                     echo "Copy deployment file from $stress_deployment_artifact_file"
                     cp "$stress_deployment_artifact_file" "$deployment_working_file"
@@ -1118,6 +1119,12 @@ if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
     TWIN_UPDATE_SIZE="${TWIN_UPDATE_SIZE:-1}"
     TWIN_UPDATE_FREQUENCY="${TWIN_UPDATE_FREQUENCY:-00:00:15}"
     TEST_START_DELAY="${TEST_START_DELAY:-00:00:00}"
+
+    # if Run log level is debug, we need ~96M for 24hr of edgeHub/edgeAgent log
+    if [[ "${RUNTIME_LOG_LEVEL,,}" == "debug" ]]; then
+        max_log_size="96m"
+    fi
+    max_log_size="${max_log_size:-4m}"
 fi
 if [[ "${TEST_NAME,,}" == "stress" ]]; then
     LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:00.03}"

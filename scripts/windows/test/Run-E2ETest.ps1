@@ -499,6 +499,7 @@ Function PrepareTestFromArtifacts
                     Copy-Item $LongHaulDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
                     (Get-Content $DeploymentWorkingFilePath).replace('<DesiredModulesToRestartCSV>',$DesiredModulesToRestartCSV) | Set-Content $DeploymentWorkingFilePath
                     (Get-Content $DeploymentWorkingFilePath).replace('<RestartIntervalInMins>',$RestartIntervalInMins) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<MaxLogSize>',$MaxLogSize) | Set-Content $DeploymentWorkingFilePath
                 }
                 Else
                 {
@@ -1608,6 +1609,7 @@ If ($TestName -eq "LongHaul")
     If ([string]::IsNullOrEmpty($TwinUpdateFrequency)) {$TwinUpdateSize = "00:00:15"}
     If ([string]::IsNullOrEmpty($TwinUpdateSize)) {$TwinUpdateSize = "1"}
     If ([string]::IsNullOrWhiteSpace($TestStartDelay)) {$TestStartDelay="00:00:00";}
+    If ($RuntimeLogLevel -like "debug") {$MaxLogSize="96m";} else {$MaxLogSize="4m";}
 }
 
 If ($TestName -eq "Stress")
