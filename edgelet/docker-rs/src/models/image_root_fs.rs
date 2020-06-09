@@ -24,7 +24,7 @@ pub struct ImageRootFs {
 impl ImageRootFs {
     pub fn new(_type: String) -> Self {
         ImageRootFs {
-            _type: _type,
+            _type,
             layers: None,
             base_layer: None,
         }

@@ -48,7 +48,7 @@ pub struct NetworkConfig {
 impl NetworkConfig {
     pub fn new(name: String) -> Self {
         NetworkConfig {
-            name: name,
+            name,
             check_duplicate: None,
             driver: None,
             internal: None,

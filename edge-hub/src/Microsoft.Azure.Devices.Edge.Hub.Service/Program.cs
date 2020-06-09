@@ -69,9 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             logger.LogInformation($"MessageAckTimeoutSecs={configuration.GetValue("MessageAckTimeoutSecs", 30)}");
             logger.LogInformation("Loaded server certificate with expiration date of {0}", certificates.ServerCertificate.NotAfter.ToString("o"));
 
-            var metricsListener = container.Resolve<IMetricsListener>();
             var metricsProvider = container.Resolve<IMetricsProvider>();
-            Metrics.Init(metricsProvider, metricsListener, logger);
+            Metrics.InitWithAspNet(metricsProvider, logger); // Note this requires App.UseMetricServer() to be called in Startup.cs
 
             // Init V0 Metrics
             MetricsV0.BuildMetricsCollector(configuration);

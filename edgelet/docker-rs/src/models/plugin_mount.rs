@@ -40,13 +40,13 @@ impl PluginMount {
         options: Vec<String>,
     ) -> Self {
         PluginMount {
-            name: name,
-            description: description,
-            settable: settable,
-            source: source,
-            destination: destination,
-            _type: _type,
-            options: options,
+            name,
+            description,
+            settable,
+            source,
+            destination,
+            _type,
+            options,
         }
     }
 
