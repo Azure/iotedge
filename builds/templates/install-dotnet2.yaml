@@ -3,4 +3,4 @@ steps:
     displayName: Install .NET Core sdk
     inputs:
       packageType: sdk
-      version: 2.1.806
+      version: 2.2.207
