@@ -35,7 +35,7 @@ use mqtt_broker_core::{auth::AuthId, ClientId};
 
 pub use crate::auth::{authenticator, authorizer};
 pub use crate::broker::{Broker, BrokerBuilder, BrokerHandle, BrokerState};
-pub use crate::configuration::BrokerConfig;
+pub use crate::configuration::{BrokerConfig, SessionConfig};
 pub use crate::connection::ConnectionHandle;
 pub use crate::error::{DetailedErrorValue, Error, InitializeBrokerError};
 pub use crate::persist::{

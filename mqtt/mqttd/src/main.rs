@@ -28,7 +28,7 @@ async fn run() -> Result<(), Error> {
     let config = create_app()
         .get_matches()
         .value_of("config")
-        .map_or(BrokerConfig::new(), BrokerConfig::from_file)
+        .map_or(Ok(BrokerConfig::default()), BrokerConfig::from_file)
         .map_err(InitializeBrokerError::LoadConfiguration)?;
 
     // Setup the snapshotter
@@ -41,6 +41,7 @@ async fn run() -> Result<(), Error> {
     let broker = BrokerBuilder::default()
         .with_authorizer(authorizer())
         .with_state(state)
+        .with_config(config.clone())
         .build();
     info!("state loaded.");
 

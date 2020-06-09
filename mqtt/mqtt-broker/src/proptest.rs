@@ -11,7 +11,7 @@ use proptest::{
 
 use crate::{
     session::{IdentifiersInUse, PacketIdentifiers},
-    BrokerState, ClientId, Publish, Segment, SessionState, Subscription, TopicFilter,
+    BrokerConfig, BrokerState, ClientId, Publish, Segment, SessionState, Subscription, TopicFilter,
 };
 
 prop_compose! {
@@ -63,6 +63,7 @@ prop_compose! {
             waiting_to_be_acked,
             waiting_to_be_acked_qos0,
             waiting_to_be_completed,
+            BrokerConfig::default().session().clone()
         )
     }
 }

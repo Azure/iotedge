@@ -10,7 +10,10 @@ use mqtt3::proto;
 use mqtt_broker_core::auth::AuthId;
 
 use crate::subscription::Subscription;
-use crate::{ClientEvent, ClientId, ConnReq, ConnectionHandle, Error, Message, Publish};
+use crate::{
+    configuration::QueueFullAction, ClientEvent, ClientId, ConnReq, ConnectionHandle, Error,
+    Message, Publish, SessionConfig,
+};
 
 const MAX_INFLIGHT_MESSAGES: usize = 16;
 
@@ -278,7 +281,7 @@ impl DisconnectingSession {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SessionState {
     client_id: ClientId,
     subscriptions: HashMap<String, Subscription>,
@@ -294,10 +297,11 @@ pub struct SessionState {
     waiting_to_be_acked: HashMap<proto::PacketIdentifier, Publish>,
     waiting_to_be_acked_qos0: HashMap<proto::PacketIdentifier, Publish>,
     waiting_to_be_completed: HashSet<proto::PacketIdentifier>,
+    config: SessionConfig,
 }
 
 impl SessionState {
-    pub fn new(client_id: ClientId) -> Self {
+    pub fn new(client_id: ClientId, config: SessionConfig) -> Self {
         Self {
             client_id,
             subscriptions: HashMap::new(),
@@ -309,6 +313,7 @@ impl SessionState {
             waiting_to_be_acked_qos0: HashMap::new(),
             waiting_to_be_released: HashMap::new(),
             waiting_to_be_completed: HashSet::new(),
+            config,
         }
     }
 
@@ -318,6 +323,11 @@ impl SessionState {
 
     pub fn subscriptions(&self) -> &HashMap<String, Subscription> {
         &self.subscriptions
+    }
+
+    pub fn set_config(mut self, config: SessionConfig) -> SessionState {
+        self.config = config;
+        self
     }
 
     pub fn update_subscription(
@@ -350,7 +360,19 @@ impl SessionState {
                 let event = self.prepare_to_send(&publication)?;
                 Ok(Some(event))
             } else {
-                self.waiting_to_be_sent.push_back(publication);
+                if self.waiting_to_be_sent.len() > self.config.max_count() as usize {
+                    match self.config.when_full() {
+                        QueueFullAction::DropNew => {
+                            return Ok(None);
+                        }
+                        QueueFullAction::DropOld => {
+                            drop(self.waiting_to_be_sent.pop_front());
+                            self.waiting_to_be_sent.push_back(publication);
+                        }
+                    }
+                } else {
+                    self.waiting_to_be_sent.push_back(publication);
+                }
                 Ok(None)
             }
         } else {
@@ -545,6 +567,7 @@ impl SessionState {
         client_id: ClientId,
         subscriptions: HashMap<String, Subscription>,
         waiting_to_be_sent: VecDeque<proto::Publication>,
+        config: SessionConfig,
     ) -> Self {
         Self {
             client_id,
@@ -557,6 +580,7 @@ impl SessionState {
             waiting_to_be_acked_qos0: HashMap::new(),
             waiting_to_be_released: HashMap::new(),
             waiting_to_be_completed: HashSet::new(),
+            config,
         }
     }
 }
@@ -574,6 +598,7 @@ impl SessionState {
         waiting_to_be_acked: HashMap<proto::PacketIdentifier, Publish>,
         waiting_to_be_acked_qos0: HashMap<proto::PacketIdentifier, Publish>,
         waiting_to_be_completed: HashSet<proto::PacketIdentifier>,
+        config: SessionConfig,
     ) -> Self {
         Self {
             client_id,
@@ -585,6 +610,7 @@ impl SessionState {
             waiting_to_be_acked_qos0,
             waiting_to_be_released,
             waiting_to_be_completed,
+            config,
         }
     }
 }
@@ -598,8 +624,7 @@ pub enum Session {
 }
 
 impl Session {
-    pub fn new_transient(auth_id: AuthId, connreq: ConnReq) -> Self {
-        let state = SessionState::new(connreq.client_id().clone());
+    pub fn new_transient(auth_id: AuthId, connreq: ConnReq, state: SessionState) -> Self {
         let (connect, handle) = connreq.into_parts();
         let connected = ConnectedSession::new(auth_id, state, connect.will, handle);
         Self::Transient(connected)
@@ -922,7 +947,7 @@ pub(crate) mod tests {
 
     use crate::{
         session::{PacketIdentifiers, Session, SessionState},
-        Auth, ClientId, ConnReq, ConnectionHandle, Error,
+        Auth, BrokerConfig, ClientId, ConnReq, ConnectionHandle, Error, SessionConfig,
     };
 
     fn connection_handle() -> ConnectionHandle {
@@ -943,15 +968,20 @@ pub(crate) mod tests {
         }
     }
 
+    fn default_config() -> SessionConfig {
+        BrokerConfig::default().session().clone()
+    }
+
     #[test]
     fn test_subscribe_to() {
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
-        let req1 = ConnReq::new(client_id, connect1, Auth::Unknown, handle1);
+        let req1 = ConnReq::new(client_id.clone(), connect1, Auth::Unknown, handle1);
         let auth_id = "auth-id1".into();
-        let mut session = Session::new_transient(auth_id, req1);
+        let state = SessionState::new(client_id, default_config());
+        let mut session = Session::new_transient(auth_id, req1, state);
         let subscribe_to = proto::SubscribeTo {
             topic_filter: "topic/new".to_string(),
             qos: proto::QoS::AtMostOnce,
@@ -999,9 +1029,10 @@ pub(crate) mod tests {
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
-        let req1 = ConnReq::new(client_id, connect1, Auth::Unknown, handle1);
+        let req1 = ConnReq::new(client_id.clone(), connect1, Auth::Unknown, handle1);
         let auth_id = "auth-id1".into();
-        let mut session = Session::new_transient(auth_id, req1);
+        let state = SessionState::new(client_id, default_config());
+        let mut session = Session::new_transient(auth_id, req1, state);
         let subscribe_to = proto::SubscribeTo {
             topic_filter: "topic/#/#".to_string(),
             qos: proto::QoS::AtMostOnce,
@@ -1019,9 +1050,10 @@ pub(crate) mod tests {
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
-        let req1 = ConnReq::new(client_id, connect1, Auth::Unknown, handle1);
+        let req1 = ConnReq::new(client_id.clone(), connect1, Auth::Unknown, handle1);
         let auth_id = AuthId::Anonymous;
-        let mut session = Session::new_transient(auth_id, req1);
+        let state = SessionState::new(client_id, default_config());
+        let mut session = Session::new_transient(auth_id, req1, state);
 
         let subscribe_to = proto::SubscribeTo {
             topic_filter: "topic/new".to_string(),
@@ -1071,7 +1103,7 @@ pub(crate) mod tests {
     fn test_offline_subscribe_to() {
         let id = "id1".to_string();
         let client_id = ClientId::from(id);
-        let mut session = Session::new_offline(SessionState::new(client_id));
+        let mut session = Session::new_offline(SessionState::new(client_id, default_config()));
 
         let subscribe_to = proto::SubscribeTo {
             topic_filter: "topic/new".to_string(),
@@ -1085,7 +1117,7 @@ pub(crate) mod tests {
     fn test_offline_unsubscribe() {
         let id = "id1".to_string();
         let client_id = ClientId::from(id);
-        let mut session = Session::new_offline(SessionState::new(client_id));
+        let mut session = Session::new_offline(SessionState::new(client_id, default_config()));
 
         let unsubscribe = proto::Unsubscribe {
             packet_identifier: proto::PacketIdentifier::new(24).unwrap(),

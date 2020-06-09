@@ -23,27 +23,26 @@ pub enum Transport {
     },
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum QueueFullAction {
     DropNew,
     DropOld,
-    Disconnect,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct InflightMessages {
     max_count: u32,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct RetainedMessages {
     max_count: u32,
     #[serde(with = "humantime_serde")]
     expiration: Duration,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone, PartialEq)]
 pub struct SessionMessages {
     #[serde(deserialize_with = "humansize")]
     max_message_size: u64,
@@ -53,7 +52,7 @@ pub struct SessionMessages {
     when_full: QueueFullAction,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct SessionPersistence {
     file_path: String,
     #[serde(with = "humantime_serde")]
@@ -61,25 +60,39 @@ pub struct SessionPersistence {
     unsaved_message_count: u32,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct Session {
+#[derive(Debug, Deserialize, Clone, PartialEq)]
+pub struct SessionConfig {
     #[serde(with = "humantime_serde")]
     expiration: Duration,
     messages: SessionMessages,
 }
 
-#[derive(Debug, Deserialize)]
+impl SessionConfig {
+    pub fn max_count(&self) -> u32 {
+        self.messages.max_count 
+    }
+
+    pub fn when_full(&self) -> &QueueFullAction {
+        &self.messages.when_full
+    }
+}
+
+#[derive(Debug, Deserialize, Clone)]
 pub struct BrokerConfig {
     transports: Vec<Transport>,
     inflight_messages: InflightMessages,
     retained_messages: RetainedMessages,
-    session: Session,
+    session: SessionConfig,
     persistence: Option<SessionPersistence>,
 }
 
 impl BrokerConfig {
     pub fn transports(&self) -> &Vec<Transport> {
         &self.transports
+    }
+
+    pub fn session(&self) -> &SessionConfig {
+        &self.session
     }
 }
 
@@ -132,13 +145,6 @@ where
 }
 
 impl BrokerConfig {
-    pub fn new() -> Result<Self, ConfigError> {
-        let mut s = Config::new();
-        s.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
-
-        s.try_into()
-    }
-
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, ConfigError> {
         let mut s = Config::new();
         s.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
@@ -149,6 +155,19 @@ impl BrokerConfig {
 
     pub fn persistence(&self) -> Option<&SessionPersistence> {
         self.persistence.as_ref()
+    }
+}
+
+impl Default for BrokerConfig {
+    fn default() -> Self {
+        let mut s = Config::new();
+
+        // Returning Self instead of Result simplifies the code significantly.
+        // It is guaranteed that next two calls must not fail,
+        // otherwise we have a bug in the code or in ../config/default.json file.
+        // It is guarded by a unit test as well.
+        s.merge(File::from_str(DEFAULTS, FileFormat::Json)).unwrap();
+        s.try_into().unwrap()
     }
 }
 
@@ -168,7 +187,7 @@ mod tests {
 
     #[test]
     fn it_loads_defaults() {
-        let settings = BrokerConfig::new().expect("should be able to create default instance");
+        let settings = BrokerConfig::default();
 
         assert_eq!(
             settings.retained_messages.expiration,

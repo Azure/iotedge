@@ -100,7 +100,7 @@ mod tests {
     use crate::session::{Session, SessionState};
     use crate::state_change::{StateChange, STATE_CHANGE_QOS};
     use crate::subscription::{Subscription, TopicFilter};
-    use crate::{Auth, AuthId, ClientId, ConnReq};
+    use crate::{Auth, AuthId, BrokerConfig, ClientId, ConnReq, SessionConfig};
 
     #[test]
     fn test_subscriptions() {
@@ -347,6 +347,10 @@ mod tests {
         );
     }
 
+    fn default_config() -> SessionConfig {
+        BrokerConfig::default().session().clone()
+    }
+
     fn make_session<I, S>(id: &str, subscriptions: I, online: bool) -> Session
     where
         I: IntoIterator<Item = S>,
@@ -362,7 +366,8 @@ mod tests {
                 )
             })
             .collect();
-        let state = SessionState::from_parts(id.into(), subscriptions, VecDeque::new());
+        let state =
+            SessionState::from_parts(id.into(), subscriptions, VecDeque::new(), default_config());
 
         if online {
             Session::new_persistent(

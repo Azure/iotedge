@@ -21,7 +21,9 @@ use tracing::{debug, info, span, Level};
 
 use mqtt3::proto::Publication;
 
-use crate::{session::SessionState, subscription::Subscription, BrokerState, ClientId};
+use crate::{
+    session::SessionState, subscription::Subscription, BrokerConfig, BrokerState, ClientId,
+};
 
 /// sets the number of past states to save - 2 means we save the current and the pervious
 const STATE_DEFAULT_PREVIOUS_COUNT: usize = 2;
@@ -231,24 +233,26 @@ impl From<ConsolidatedState> for BrokerState {
                 .clone(),
         };
 
+        let default_config = BrokerConfig::default().session().clone();
+
         let retained = retained
             .into_iter()
             .map(|(topic, publication)| (topic, expand_payload(publication)))
             .collect();
 
-        #[allow(clippy::redundant_closure)] // removing closure leads to borrow error
         let sessions = sessions
             .into_iter()
             .map(|session| {
                 let waiting_to_be_sent = session
                     .waiting_to_be_sent
                     .into_iter()
-                    .map(|publication| expand_payload(publication))
+                    .map(expand_payload)
                     .collect();
                 SessionState::from_parts(
                     session.client_id,
                     session.subscriptions,
                     waiting_to_be_sent,
+                    default_config.clone(),
                 )
             })
             .collect();

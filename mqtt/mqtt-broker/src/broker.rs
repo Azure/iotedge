@@ -2,20 +2,20 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 use std::panic;
 
+use tokio::sync::mpsc::{self, Receiver, Sender};
+use tracing::{debug, error, info, span, warn, Level};
+
 use mqtt3::proto;
 use mqtt_broker_core::{
     auth::{Activity, AuthId, Authorizer, DefaultAuthorizer, Operation},
     ClientId,
 };
-use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc::{self, Receiver, Sender};
-use tracing::{debug, error, info, span, warn, Level};
 
 use crate::{
     session::{ConnectedSession, Session, SessionState},
     state_change::StateChange,
     subscription::Subscription,
-    Auth, ClientEvent, ConnReq, Error, Message, SystemEvent,
+    Auth, BrokerConfig, ClientEvent, ConnReq, Error, Message, SystemEvent,
 };
 
 static EXPECTED_PROTOCOL_NAME: &str = mqtt3::PROTOCOL_NAME;
@@ -35,6 +35,7 @@ pub struct Broker<Z> {
     sessions: HashMap<ClientId, Session>,
     retained: HashMap<String, proto::Publication>,
     authorizer: Z,
+    config: BrokerConfig,
 
     #[cfg(feature = "__internal_broker_callbacks")]
     pub on_publish: Option<tokio::sync::mpsc::UnboundedSender<std::time::Duration>>,
@@ -651,7 +652,9 @@ where
                         }
                     } else {
                         info!("cleaning offline session for {}", client_id);
-                        let new_session = Session::new_transient(auth_id, connreq);
+                        let state =
+                            SessionState::new(client_id.clone(), self.config.session().clone());
+                        let new_session = Session::new_transient(auth_id, connreq, state);
                         (new_session, vec![], false)
                     };
 
@@ -673,11 +676,12 @@ where
                     connreq.connect().client_id
                 {
                     info!("creating new persistent session for {}", client_id);
-                    let state = SessionState::new(client_id.clone());
+                    let state = SessionState::new(client_id.clone(), self.config.session().clone());
                     Session::new_persistent(auth_id, connreq, state)
                 } else {
                     info!("creating new transient session for {}", client_id);
-                    Session::new_transient(auth_id, connreq)
+                    let state = SessionState::new(client_id.clone(), self.config.session().clone());
+                    Session::new_transient(auth_id, connreq, state)
                 };
 
                 let subscription_change =
@@ -742,7 +746,8 @@ where
                     (new_session, true)
                 } else {
                     info!("cleaning session for {}", client_id);
-                    let new_session = Session::new_transient(auth_id, connreq);
+                    let state = SessionState::new(client_id.clone(), self.config.session().clone());
+                    let new_session = Session::new_transient(auth_id, connreq, state);
                     (new_session, false)
                 };
 
@@ -942,7 +947,7 @@ where
     Ok(())
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct BrokerState {
     retained: HashMap<String, proto::Publication>,
     sessions: Vec<SessionState>,
@@ -957,10 +962,10 @@ impl BrokerState {
         (self.retained, self.sessions)
     }
 }
-
 pub struct BrokerBuilder<Z> {
     state: Option<BrokerState>,
     authorizer: Z,
+    config: Option<BrokerConfig>,
 }
 
 impl Default for BrokerBuilder<DefaultAuthorizer> {
@@ -968,6 +973,7 @@ impl Default for BrokerBuilder<DefaultAuthorizer> {
         Self {
             state: None,
             authorizer: DefaultAuthorizer,
+            config: None,
         }
     }
 }
@@ -983,6 +989,7 @@ where
         BrokerBuilder {
             state: self.state,
             authorizer,
+            config: self.config,
         }
     }
 
@@ -991,15 +998,26 @@ where
         self
     }
 
+    pub fn with_config(mut self, config: BrokerConfig) -> Self {
+        self.config = Some(config);
+        self
+    }
+
     pub fn build(self) -> Broker<Z> {
+        let config = match self.config {
+            Some(config) => config,
+            None => BrokerConfig::default(),
+        };
+
         let (retained, sessions) = match self.state {
             Some(state) => {
-                let sessions = state
-                    .sessions
+                let (retained, sessions) = state.into_parts();
+                let sessions = sessions
                     .into_iter()
+                    .map(|s| s.set_config(config.session().clone()))
                     .map(|s| (s.client_id().clone(), Session::new_offline(s)))
                     .collect::<HashMap<ClientId, Session>>();
-                (state.retained, sessions)
+                (retained, sessions)
             }
             None => (HashMap::default(), HashMap::default()),
         };
@@ -1012,6 +1030,7 @@ where
             sessions,
             retained,
             authorizer: self.authorizer,
+            config,
 
             #[cfg(feature = "__internal_broker_callbacks")]
             on_publish: None,
