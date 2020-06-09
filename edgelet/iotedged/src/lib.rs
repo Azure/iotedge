@@ -359,6 +359,7 @@ where
                     $id_cert_thumprint,
                 )?;
 
+                //let provisioning_result = $provisioning_result.clone();
                 let cfg = WorkloadData::new(
                     $provisioning_result.hub_name().to_string(),
                     $provisioning_result.device_id().to_string(),
@@ -378,6 +379,7 @@ where
                         make_shutdown_signal(),
                         &crypto,
                         &mut tokio_runtime,
+                        &$provisioning_result,
                     )?;
 
                     if should_reprovision {
@@ -1395,6 +1397,7 @@ fn start_api<HC, K, F, C, W, M>(
     shutdown_signal: F,
     crypto: &C,
     tokio_runtime: &mut tokio::runtime::Runtime,
+    provisioning_result: &ProvisioningResult,
 ) -> Result<(StartApiReturnStatus, bool), Error>
 where
     F: Future<Item = (), Error = ()> + Send + 'static,
@@ -1490,22 +1493,30 @@ where
         workload_config.clone(),
     );
 
-    let identity_svc = start_identity::<M, _, _>(
-        settings,
-        runtime,
-        workload_config.clone(),
-        ident_rx,
-        cert_manager.clone(),
-    );
+    let identity_svc = if should_start_is(settings, &provisioning_result.clone()) {
+        Either::A(start_identity::<M, _, _>(
+            settings,
+            runtime,
+            workload_config.clone(),
+            ident_rx,
+            cert_manager.clone(),
+        ))
+    } else {
+        Either::B(future::ok(()))
+    };
 
-    let key_svc = start_key_service::<M, _, _, _>(
-        settings,
-        runtime,
-        workload_config,
-        &key_store.clone(),
-        key_rx,
-        cert_manager,
-    );
+    let key_svc = if should_start_is(settings, &provisioning_result) {
+        Either::A(start_key_service::<M, _, _, _>(
+            settings,
+            runtime,
+            workload_config,
+            &key_store.clone(),
+            key_rx,
+            cert_manager,
+        ))
+    } else {
+        Either::B(future::ok(()))
+    };
 
     let (runt_tx, runt_rx) = oneshot::channel();
     let edge_rt = start_runtime::<_, _, M>(
@@ -1594,11 +1605,12 @@ where
         .join(workload.join5(
             edge_rt_with_cleanup,
             expiration_timer,
-            key_svc,
             identity_svc,
+            key_svc,
         ))
         .then(|result| match result {
-            Ok(((), ((), (restart_code, should_reprovision), (), (), ()))) => {
+            // Ok(((), ((), (restart_code, should_reprovision), ()))) => {
+            Ok(((), ((), (restart_code, should_reprovision), (), _, _))) => {
                 Ok((restart_code, should_reprovision))
             }
             Err(err) => Err(err),
@@ -2180,6 +2192,7 @@ fn start_identity<M, W, CE>(
     shutdown: Receiver<()>,
     cert_manager: Arc<CertificateManager<CE>>,
 ) -> impl Future<Item = (), Error = Error>
+// ) -> impl Future<>
 where
     CE: CreateCertificate + Clone,
     M: MakeModuleRuntime + 'static,
@@ -2193,13 +2206,14 @@ where
     W: WorkloadConfig + Clone + Send + Sync + 'static,
 {
     info!("Starting identity API...");
-
-    let label = "ident".to_string();
+    let label = "iden".to_string();
     let url = settings.listen().identityservice_uri().clone();
 
     let min_protocol_version = settings.listen().min_tls_version();
 
-    IdentityService::new(runtime, config)
+    let identity = IdentityService::new(runtime, config);
+
+    identity
         .then(move |service| -> Result<_, Error> {
             let service = service.context(ErrorKind::Initialize(
                 InitializeErrorReason::IdentityService,
@@ -2246,7 +2260,7 @@ where
 {
     info!("Starting key service API...");
 
-    let label = "key".to_string();
+    let label = "keys".to_string();
     let url = settings.listen().keyservice_uri().clone();
 
     let min_protocol_version = settings.listen().min_tls_version();
@@ -2270,6 +2284,14 @@ where
             Ok(run)
         })
         .flatten()
+}
+
+fn should_start_is<S>(settings: &S, provisioning_result: &ProvisioningResult) -> bool
+where
+    S: RuntimeSettings + 'static,
+{
+    let result = get_provisioning_auth_method(settings, Some(provisioning_result)).unwrap();
+    result == ProvisioningAuthMethod::SharedAccessKey
 }
 
 #[cfg(test)]
