@@ -342,7 +342,7 @@ impl SessionState {
 
     pub fn queue_publish(&mut self, publication: proto::Publication) -> Result<(), Error> {
         if let Some(publication) = self.filter(publication) {
-            self.waiting_to_be_sent.push_back(publication);
+            self.add_to_queue(publication);
         }
         Ok(())
     }
@@ -358,19 +358,7 @@ impl SessionState {
                 let event = self.prepare_to_send(&publication)?;
                 Ok(Some(event))
             } else {
-                if self.waiting_to_be_sent.len() > self.config.max_queued_messages() {
-                    match self.config.when_full() {
-                        QueueFullAction::DropNew => {
-                            return Ok(None);
-                        }
-                        QueueFullAction::DropOld => {
-                            drop(self.waiting_to_be_sent.pop_front());
-                            self.waiting_to_be_sent.push_back(publication);
-                        }
-                    }
-                } else {
-                    self.waiting_to_be_sent.push_back(publication);
-                }
+                self.add_to_queue(publication);
                 Ok(None)
             }
         } else {
@@ -482,6 +470,22 @@ impl SessionState {
             + self.waiting_to_be_acked_qos0.len()
             + self.waiting_to_be_completed.len();
         num_inflight < self.config.max_inflight_messages()
+    }
+
+    fn add_to_queue(&mut self, publication: proto::Publication) {
+        if self.waiting_to_be_sent.len() > self.config.max_queued_messages() {
+            match self.config.when_full() {
+                QueueFullAction::DropNew => {
+                    drop(publication);
+                }
+                QueueFullAction::DropOld => {
+                    drop(self.waiting_to_be_sent.pop_front());
+                    self.waiting_to_be_sent.push_back(publication);
+                }
+            }
+        } else {
+            self.waiting_to_be_sent.push_back(publication);
+        }
     }
 
     fn filter(&self, mut publication: proto::Publication) -> Option<proto::Publication> {
