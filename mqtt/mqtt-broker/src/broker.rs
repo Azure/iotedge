@@ -12,7 +12,7 @@ use mqtt_broker_core::{
 };
 
 use crate::{
-    session::{ConnectedSession, Session, SessionState},
+    session::{ConnectedSession, RuntimeSessionState, Session, SessionState},
     state_change::StateChange,
     subscription::Subscription,
     Auth, BrokerConfig, ClientEvent, ConnReq, Error, Message, SystemEvent,
@@ -652,8 +652,10 @@ where
                         }
                     } else {
                         info!("cleaning offline session for {}", client_id);
-                        let state =
-                            SessionState::new(client_id.clone(), self.config.session().clone());
+                        let state = RuntimeSessionState::new(
+                            client_id.clone(),
+                            self.config.session().clone(),
+                        );
                         let new_session = Session::new_transient(auth_id, connreq, state);
                         (new_session, vec![], false)
                     };
@@ -676,11 +678,13 @@ where
                     connreq.connect().client_id
                 {
                     info!("creating new persistent session for {}", client_id);
-                    let state = SessionState::new(client_id.clone(), self.config.session().clone());
+                    let state =
+                        RuntimeSessionState::new(client_id.clone(), self.config.session().clone());
                     Session::new_persistent(auth_id, connreq, state)
                 } else {
                     info!("creating new transient session for {}", client_id);
-                    let state = SessionState::new(client_id.clone(), self.config.session().clone());
+                    let state =
+                        RuntimeSessionState::new(client_id.clone(), self.config.session().clone());
                     Session::new_transient(auth_id, connreq, state)
                 };
 
@@ -746,7 +750,8 @@ where
                     (new_session, true)
                 } else {
                     info!("cleaning session for {}", client_id);
-                    let state = SessionState::new(client_id.clone(), self.config.session().clone());
+                    let state =
+                        RuntimeSessionState::new(client_id.clone(), self.config.session().clone());
                     let new_session = Session::new_transient(auth_id, connreq, state);
                     (new_session, false)
                 };
@@ -1014,7 +1019,7 @@ where
                 let (retained, sessions) = state.into_parts();
                 let sessions = sessions
                     .into_iter()
-                    .map(|s| s.set_config(config.session().clone()))
+                    .map(|s| RuntimeSessionState::from_state(s, config.session().clone()))
                     .map(|s| (s.client_id().clone(), Session::new_offline(s)))
                     .collect::<HashMap<ClientId, Session>>();
                 (retained, sessions)

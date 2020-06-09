@@ -21,9 +21,7 @@ use tracing::{debug, info, span, Level};
 
 use mqtt3::proto::Publication;
 
-use crate::{
-    session::SessionState, subscription::Subscription, BrokerConfig, BrokerState, ClientId,
-};
+use crate::{session::SessionState, subscription::Subscription, BrokerState, ClientId};
 
 /// sets the number of past states to save - 2 means we save the current and the pervious
 const STATE_DEFAULT_PREVIOUS_COUNT: usize = 2;
@@ -233,8 +231,6 @@ impl From<ConsolidatedState> for BrokerState {
                 .clone(),
         };
 
-        let default_config = BrokerConfig::default().session().clone();
-
         let retained = retained
             .into_iter()
             .map(|(topic, publication)| (topic, expand_payload(publication)))
@@ -252,7 +248,6 @@ impl From<ConsolidatedState> for BrokerState {
                     session.client_id,
                     session.subscriptions,
                     waiting_to_be_sent,
-                    default_config.clone(),
                 )
             })
             .collect();

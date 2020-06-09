@@ -17,7 +17,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct ConnectedSession {
-    state: SessionState,
+    state: RuntimeSessionState,
     auth_id: AuthId,
     will: Option<proto::Publication>,
     handle: ConnectionHandle,
@@ -26,7 +26,7 @@ pub struct ConnectedSession {
 impl ConnectedSession {
     fn new(
         auth_id: AuthId,
-        state: SessionState,
+        state: RuntimeSessionState,
         will: Option<proto::Publication>,
         handle: ConnectionHandle,
     ) -> Self {
@@ -39,7 +39,7 @@ impl ConnectedSession {
     }
 
     pub fn client_id(&self) -> &ClientId {
-        &self.state.client_id
+        &self.state.inner.client_id
     }
 
     pub fn auth_id(&self) -> &AuthId {
@@ -51,7 +51,7 @@ impl ConnectedSession {
     }
 
     pub fn state(&self) -> &SessionState {
-        &self.state
+        &self.state.inner
     }
 
     pub fn into_will(self) -> Option<proto::Publication> {
@@ -62,7 +62,7 @@ impl ConnectedSession {
         self,
     ) -> (
         AuthId,
-        SessionState,
+        RuntimeSessionState,
         Option<proto::Publication>,
         ConnectionHandle,
     ) {
@@ -147,27 +147,27 @@ impl ConnectedSession {
     }
 
     fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
-        let message = Message::Client(self.state.client_id.clone(), event);
+        let message = Message::Client(self.state.inner.client_id.clone(), event);
         self.handle.send(message)
     }
 }
 
 #[derive(Debug)]
 pub struct OfflineSession {
-    state: SessionState,
+    state: RuntimeSessionState,
 }
 
 impl OfflineSession {
-    fn new(state: SessionState) -> Self {
+    fn new(state: RuntimeSessionState) -> Self {
         Self { state }
     }
 
     pub fn client_id(&self) -> &ClientId {
-        &self.state.client_id
+        &self.state.inner.client_id
     }
 
     pub fn state(&self) -> &SessionState {
-        &self.state
+        &self.state.inner
     }
 
     pub fn publish_to(
@@ -178,12 +178,12 @@ impl OfflineSession {
         Ok(None)
     }
 
-    pub fn into_online(self) -> Result<(SessionState, Vec<ClientEvent>), Error> {
+    pub fn into_online(self) -> Result<(RuntimeSessionState, Vec<ClientEvent>), Error> {
         let mut events = Vec::new();
         let OfflineSession { mut state } = self;
 
         // Handle the outstanding QoS 1 and QoS 2 packets
-        for (id, publish) in &state.waiting_to_be_acked {
+        for (id, publish) in &state.inner.waiting_to_be_acked {
             let to_publish = match publish {
                 Publish::QoS12(id, p) => {
                     let pidq = match p.packet_identifier_dup_qos {
@@ -210,13 +210,13 @@ impl OfflineSession {
         }
 
         // Handle the outstanding QoS 0 packets
-        for (id, publish) in &state.waiting_to_be_acked_qos0 {
+        for (id, publish) in &state.inner.waiting_to_be_acked_qos0 {
             debug!("resending QoS0 packet {}", id);
             events.push(ClientEvent::PublishTo(publish.clone()));
         }
 
         // Handle the outstanding QoS 2 packets in the second stage of transmission
-        for completed in &state.waiting_to_be_completed {
+        for completed in &state.inner.waiting_to_be_completed {
             events.push(ClientEvent::PubRel(proto::PubRel {
                 packet_identifier: *completed,
             }));
@@ -224,9 +224,9 @@ impl OfflineSession {
 
         // Dequeue any queued messages - up to the max inflight count
         while state.allowed_to_send() {
-            match state.waiting_to_be_sent.pop_front() {
+            match state.inner.waiting_to_be_sent.pop_front() {
                 Some(publication) => {
-                    debug!("dequeueing a message for {}", state.client_id);
+                    debug!("dequeueing a message for {}", state.inner.client_id);
                     let event = state.prepare_to_send(&publication)?;
                     events.push(event);
                 }
@@ -295,11 +295,16 @@ pub struct SessionState {
     waiting_to_be_acked: HashMap<proto::PacketIdentifier, Publish>,
     waiting_to_be_acked_qos0: HashMap<proto::PacketIdentifier, Publish>,
     waiting_to_be_completed: HashSet<proto::PacketIdentifier>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RuntimeSessionState {
+    inner: SessionState,
     config: SessionConfig,
 }
 
 impl SessionState {
-    pub fn new(client_id: ClientId, config: SessionConfig) -> Self {
+    pub fn new(client_id: ClientId) -> Self {
         Self {
             client_id,
             subscriptions: HashMap::new(),
@@ -311,21 +316,61 @@ impl SessionState {
             waiting_to_be_acked_qos0: HashMap::new(),
             waiting_to_be_released: HashMap::new(),
             waiting_to_be_completed: HashSet::new(),
-            config,
         }
     }
 
-    pub fn client_id(&self) -> &ClientId {
-        &self.client_id
+    pub fn into_parts(
+        self,
+    ) -> (
+        ClientId,
+        HashMap<String, Subscription>,
+        VecDeque<proto::Publication>,
+    ) {
+        (self.client_id, self.subscriptions, self.waiting_to_be_sent)
+    }
+
+    pub fn from_parts(
+        client_id: ClientId,
+        subscriptions: HashMap<String, Subscription>,
+        waiting_to_be_sent: VecDeque<proto::Publication>,
+    ) -> Self {
+        Self {
+            client_id,
+            subscriptions,
+            packet_identifiers: PacketIdentifiers::default(),
+            packet_identifiers_qos0: PacketIdentifiers::default(),
+
+            waiting_to_be_sent,
+            waiting_to_be_acked: HashMap::new(),
+            waiting_to_be_acked_qos0: HashMap::new(),
+            waiting_to_be_released: HashMap::new(),
+            waiting_to_be_completed: HashSet::new(),
+        }
     }
 
     pub fn subscriptions(&self) -> &HashMap<String, Subscription> {
         &self.subscriptions
     }
+}
 
-    pub fn set_config(mut self, config: SessionConfig) -> SessionState {
-        self.config = config;
-        self
+impl RuntimeSessionState {
+    pub fn new(client_id: ClientId, config: SessionConfig) -> Self {
+        Self {
+            inner: SessionState::new(client_id),
+            config,
+        }
+    }
+
+    pub fn from_state(inner: SessionState, config: SessionConfig) -> Self {
+        Self { inner, config }
+    }
+
+    pub fn client_id(&self) -> &ClientId {
+        &self.inner.client_id
+    }
+
+    pub fn subscriptions(&self) -> &HashMap<String, Subscription> {
+        &self.inner.subscriptions
     }
 
     pub fn update_subscription(
@@ -333,11 +378,11 @@ impl SessionState {
         topic_filter: String,
         subscription: Subscription,
     ) -> Option<Subscription> {
-        self.subscriptions.insert(topic_filter, subscription)
+        self.inner.subscriptions.insert(topic_filter, subscription)
     }
 
     pub fn remove_subscription(&mut self, topic_filter: &str) -> Option<Subscription> {
-        self.subscriptions.remove(topic_filter)
+        self.inner.subscriptions.remove(topic_filter)
     }
 
     pub fn queue_publish(&mut self, publication: proto::Publication) -> Result<(), Error> {
@@ -392,7 +437,8 @@ impl SessionState {
                 (Some(publication), Some(event))
             }
             proto::PacketIdentifierDupQoS::ExactlyOnce(packet_identifier, _dup) => {
-                self.waiting_to_be_released
+                self.inner
+                    .waiting_to_be_released
                     .insert(packet_identifier, publish);
                 let pubrec = proto::PubRec { packet_identifier };
                 let event = ClientEvent::PubRec(pubrec);
@@ -403,8 +449,11 @@ impl SessionState {
     }
 
     pub fn handle_pubrec(&mut self, pubrec: &proto::PubRec) -> Result<Option<ClientEvent>, Error> {
-        self.waiting_to_be_acked.remove(&pubrec.packet_identifier);
-        self.waiting_to_be_completed
+        self.inner
+            .waiting_to_be_acked
+            .remove(&pubrec.packet_identifier);
+        self.inner
+            .waiting_to_be_completed
             .insert(pubrec.packet_identifier);
         let pubrel = proto::PubRel {
             packet_identifier: pubrec.packet_identifier,
@@ -417,6 +466,7 @@ impl SessionState {
         pubrel: &proto::PubRel,
     ) -> Result<Option<proto::Publication>, Error> {
         let publication = self
+            .inner
             .waiting_to_be_released
             .remove(&pubrel.packet_identifier)
             .map(|publish| proto::Publication {
@@ -432,16 +482,23 @@ impl SessionState {
         &mut self,
         pubcomp: &proto::PubComp,
     ) -> Result<Option<ClientEvent>, Error> {
-        self.waiting_to_be_completed
+        self.inner
+            .waiting_to_be_completed
             .remove(&pubcomp.packet_identifier);
-        self.packet_identifiers.discard(pubcomp.packet_identifier);
+        self.inner
+            .packet_identifiers
+            .discard(pubcomp.packet_identifier);
         self.try_publish()
     }
 
     pub fn handle_puback(&mut self, puback: &proto::PubAck) -> Result<Option<ClientEvent>, Error> {
         debug!("discarding packet identifier {}", puback.packet_identifier);
-        self.waiting_to_be_acked.remove(&puback.packet_identifier);
-        self.packet_identifiers.discard(puback.packet_identifier);
+        self.inner
+            .waiting_to_be_acked
+            .remove(&puback.packet_identifier);
+        self.inner
+            .packet_identifiers
+            .discard(puback.packet_identifier);
         self.try_publish()
     }
 
@@ -450,14 +507,14 @@ impl SessionState {
         id: proto::PacketIdentifier,
     ) -> Result<Option<ClientEvent>, Error> {
         debug!("discarding QoS 0 packet identifier {}", id);
-        self.waiting_to_be_acked_qos0.remove(&id);
-        self.packet_identifiers_qos0.discard(id);
+        self.inner.waiting_to_be_acked_qos0.remove(&id);
+        self.inner.packet_identifiers_qos0.discard(id);
         self.try_publish()
     }
 
     fn try_publish(&mut self) -> Result<Option<ClientEvent>, Error> {
         if self.allowed_to_send() {
-            if let Some(publication) = self.waiting_to_be_sent.pop_front() {
+            if let Some(publication) = self.inner.waiting_to_be_sent.pop_front() {
                 let event = self.prepare_to_send(&publication)?;
                 return Ok(Some(event));
             }
@@ -466,30 +523,31 @@ impl SessionState {
     }
 
     fn allowed_to_send(&self) -> bool {
-        let num_inflight = self.waiting_to_be_acked.len()
-            + self.waiting_to_be_acked_qos0.len()
-            + self.waiting_to_be_completed.len();
+        let num_inflight = self.inner.waiting_to_be_acked.len()
+            + self.inner.waiting_to_be_acked_qos0.len()
+            + self.inner.waiting_to_be_completed.len();
         num_inflight < self.config.max_inflight_messages()
     }
 
     fn add_to_queue(&mut self, publication: proto::Publication) {
-        if self.waiting_to_be_sent.len() > self.config.max_queued_messages() {
+        if self.inner.waiting_to_be_sent.len() > self.config.max_queued_messages() {
             match self.config.when_full() {
                 QueueFullAction::DropNew => {
-                    drop(publication);
+                    // do nothing
                 }
                 QueueFullAction::DropOld => {
-                    drop(self.waiting_to_be_sent.pop_front());
-                    self.waiting_to_be_sent.push_back(publication);
+                    let _ = self.inner.waiting_to_be_sent.pop_front();
+                    self.inner.waiting_to_be_sent.push_back(publication);
                 }
             }
         } else {
-            self.waiting_to_be_sent.push_back(publication);
+            self.inner.waiting_to_be_sent.push_back(publication);
         }
     }
 
     fn filter(&self, mut publication: proto::Publication) -> Option<proto::Publication> {
-        self.subscriptions
+        self.inner
+            .subscriptions
             .values()
             .filter(|sub| sub.filter().matches(&publication.topic_name))
             .fold(None, |acc, sub| {
@@ -505,7 +563,7 @@ impl SessionState {
     fn prepare_to_send(&mut self, publication: &proto::Publication) -> Result<ClientEvent, Error> {
         let publish = match publication.qos {
             proto::QoS::AtMostOnce => {
-                let id = self.packet_identifiers_qos0.reserve()?;
+                let id = self.inner.packet_identifiers_qos0.reserve()?;
                 let packet = proto::Publish {
                     packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtMostOnce,
                     retain: publication.retain,
@@ -515,7 +573,7 @@ impl SessionState {
                 Publish::QoS0(id, packet)
             }
             proto::QoS::AtLeastOnce => {
-                let id = self.packet_identifiers.reserve()?;
+                let id = self.inner.packet_identifiers.reserve()?;
                 let packet = proto::Publish {
                     packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtLeastOnce(
                         id, false,
@@ -527,7 +585,7 @@ impl SessionState {
                 Publish::QoS12(id, packet)
             }
             proto::QoS::ExactlyOnce => {
-                let id = self.packet_identifiers.reserve()?;
+                let id = self.inner.packet_identifiers.reserve()?;
                 let packet = proto::Publish {
                     packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::ExactlyOnce(
                         id, false,
@@ -542,48 +600,19 @@ impl SessionState {
 
         let event = match publish {
             Publish::QoS0(id, publish) => {
-                self.waiting_to_be_acked_qos0
+                self.inner
+                    .waiting_to_be_acked_qos0
                     .insert(id, Publish::QoS0(id, publish.clone()));
                 ClientEvent::PublishTo(Publish::QoS0(id, publish))
             }
             Publish::QoS12(id, publish) => {
-                self.waiting_to_be_acked
+                self.inner
+                    .waiting_to_be_acked
                     .insert(id, Publish::QoS12(id, publish.clone()));
                 ClientEvent::PublishTo(Publish::QoS12(id, publish))
             }
         };
         Ok(event)
-    }
-
-    pub fn into_parts(
-        self,
-    ) -> (
-        ClientId,
-        HashMap<String, Subscription>,
-        VecDeque<proto::Publication>,
-    ) {
-        (self.client_id, self.subscriptions, self.waiting_to_be_sent)
-    }
-
-    pub fn from_parts(
-        client_id: ClientId,
-        subscriptions: HashMap<String, Subscription>,
-        waiting_to_be_sent: VecDeque<proto::Publication>,
-        config: SessionConfig,
-    ) -> Self {
-        Self {
-            client_id,
-            subscriptions,
-            packet_identifiers: PacketIdentifiers::default(),
-            packet_identifiers_qos0: PacketIdentifiers::default(),
-
-            waiting_to_be_sent,
-            waiting_to_be_acked: HashMap::new(),
-            waiting_to_be_acked_qos0: HashMap::new(),
-            waiting_to_be_released: HashMap::new(),
-            waiting_to_be_completed: HashSet::new(),
-            config,
-        }
     }
 }
 
@@ -612,7 +641,6 @@ impl SessionState {
             waiting_to_be_acked_qos0,
             waiting_to_be_released,
             waiting_to_be_completed,
-            config,
         }
     }
 }
@@ -626,19 +654,19 @@ pub enum Session {
 }
 
 impl Session {
-    pub fn new_transient(auth_id: AuthId, connreq: ConnReq, state: SessionState) -> Self {
+    pub fn new_transient(auth_id: AuthId, connreq: ConnReq, state: RuntimeSessionState) -> Self {
         let (connect, handle) = connreq.into_parts();
         let connected = ConnectedSession::new(auth_id, state, connect.will, handle);
         Self::Transient(connected)
     }
 
-    pub fn new_persistent(auth_id: AuthId, connreq: ConnReq, state: SessionState) -> Self {
+    pub fn new_persistent(auth_id: AuthId, connreq: ConnReq, state: RuntimeSessionState) -> Self {
         let (connect, handle) = connreq.into_parts();
         let connected = ConnectedSession::new(auth_id, state, connect.will, handle);
         Self::Persistent(connected)
     }
 
-    pub fn new_offline(state: SessionState) -> Self {
+    pub fn new_offline(state: RuntimeSessionState) -> Self {
         let offline = OfflineSession::new(state);
         Self::Offline(offline)
     }
