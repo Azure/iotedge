@@ -8,7 +8,7 @@ use crate::{auth::AuthId, ClientId};
 /// A trait to check a MQTT client permissions to perform some actions.
 pub trait Authorizer {
     /// Authentication error.
-    type Error: StdError + Send;
+    type Error: StdError;
 
     /// Authorizes a MQTT client to perform some action.
     fn authorize(&self, activity: Activity) -> Result<bool, Self::Error>;
@@ -26,7 +26,7 @@ where
 impl<F, E> Authorizer for F
 where
     F: Fn(Activity) -> Result<bool, E> + Sync,
-    E: StdError + Send,
+    E: StdError,
 {
     type Error = E;
 

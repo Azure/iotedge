@@ -43,7 +43,7 @@ pub struct Broker<Z> {
 
 impl<Z> Broker<Z>
 where
-    Z: Authorizer + Send + 'static,
+    Z: Authorizer,
 {
     pub fn handle(&self) -> BrokerHandle {
         BrokerHandle(self.sender.clone())
