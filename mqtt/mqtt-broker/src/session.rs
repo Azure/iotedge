@@ -11,13 +11,13 @@ use mqtt_broker_core::auth::AuthId;
 
 use crate::subscription::Subscription;
 use crate::{
-    configuration::QueueFullAction, ClientEvent, ClientId, ConnReq, ConnectionHandle, Error,
-    Message, Publish, SessionConfig,
+    configuration::QueueFullAction, snapshot::SessionSnapshot, ClientEvent, ClientId, ConnReq,
+    ConnectionHandle, Error, Message, Publish, SessionConfig,
 };
 
 #[derive(Debug)]
 pub struct ConnectedSession {
-    state: RuntimeSessionState,
+    state: SessionState,
     auth_id: AuthId,
     will: Option<proto::Publication>,
     handle: ConnectionHandle,
@@ -26,7 +26,7 @@ pub struct ConnectedSession {
 impl ConnectedSession {
     fn new(
         auth_id: AuthId,
-        state: RuntimeSessionState,
+        state: SessionState,
         will: Option<proto::Publication>,
         handle: ConnectionHandle,
     ) -> Self {
@@ -39,7 +39,7 @@ impl ConnectedSession {
     }
 
     pub fn client_id(&self) -> &ClientId {
-        &self.state.inner.client_id
+        &self.state.client_id
     }
 
     pub fn auth_id(&self) -> &AuthId {
@@ -50,8 +50,12 @@ impl ConnectedSession {
         &self.handle
     }
 
-    pub fn state(&self) -> &SessionState {
-        &self.state.inner
+    pub fn snapshot(&self) -> SessionSnapshot {
+        self.state.clone().into()
+    }
+
+    pub fn subscriptions(&self) -> &HashMap<String, Subscription> {
+        &self.state.subscriptions
     }
 
     pub fn into_will(self) -> Option<proto::Publication> {
@@ -62,7 +66,7 @@ impl ConnectedSession {
         self,
     ) -> (
         AuthId,
-        RuntimeSessionState,
+        SessionState,
         Option<proto::Publication>,
         ConnectionHandle,
     ) {
@@ -147,27 +151,31 @@ impl ConnectedSession {
     }
 
     fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
-        let message = Message::Client(self.state.inner.client_id.clone(), event);
+        let message = Message::Client(self.state.client_id.clone(), event);
         self.handle.send(message)
     }
 }
 
 #[derive(Debug)]
 pub struct OfflineSession {
-    state: RuntimeSessionState,
+    state: SessionState,
 }
 
 impl OfflineSession {
-    fn new(state: RuntimeSessionState) -> Self {
+    fn new(state: SessionState) -> Self {
         Self { state }
     }
 
     pub fn client_id(&self) -> &ClientId {
-        &self.state.inner.client_id
+        &self.state.client_id
     }
 
-    pub fn state(&self) -> &SessionState {
-        &self.state.inner
+    pub fn snapshot(&self) -> SessionSnapshot {
+        self.state.clone().into()
+    }
+
+    pub fn subscriptions(&self) -> &HashMap<String, Subscription> {
+        &self.state.subscriptions
     }
 
     pub fn publish_to(
@@ -178,12 +186,12 @@ impl OfflineSession {
         Ok(None)
     }
 
-    pub fn into_online(self) -> Result<(RuntimeSessionState, Vec<ClientEvent>), Error> {
+    pub fn into_online(self) -> Result<(SessionState, Vec<ClientEvent>), Error> {
         let mut events = Vec::new();
         let OfflineSession { mut state } = self;
 
         // Handle the outstanding QoS 1 and QoS 2 packets
-        for (id, publish) in &state.inner.waiting_to_be_acked {
+        for (id, publish) in &state.waiting_to_be_acked {
             let to_publish = match publish {
                 Publish::QoS12(id, p) => {
                     let pidq = match p.packet_identifier_dup_qos {
@@ -210,13 +218,13 @@ impl OfflineSession {
         }
 
         // Handle the outstanding QoS 0 packets
-        for (id, publish) in &state.inner.waiting_to_be_acked_qos0 {
+        for (id, publish) in &state.waiting_to_be_acked_qos0 {
             debug!("resending QoS0 packet {}", id);
             events.push(ClientEvent::PublishTo(publish.clone()));
         }
 
         // Handle the outstanding QoS 2 packets in the second stage of transmission
-        for completed in &state.inner.waiting_to_be_completed {
+        for completed in &state.waiting_to_be_completed {
             events.push(ClientEvent::PubRel(proto::PubRel {
                 packet_identifier: *completed,
             }));
@@ -224,9 +232,9 @@ impl OfflineSession {
 
         // Dequeue any queued messages - up to the max inflight count
         while state.allowed_to_send() {
-            match state.inner.waiting_to_be_sent.pop_front() {
+            match state.waiting_to_be_sent.pop_front() {
                 Some(publication) => {
-                    debug!("dequeueing a message for {}", state.inner.client_id);
+                    debug!("dequeueing a message for {}", state.client_id);
                     let event = state.prepare_to_send(&publication)?;
                     events.push(event);
                 }
@@ -295,16 +303,11 @@ pub struct SessionState {
     waiting_to_be_acked: HashMap<proto::PacketIdentifier, Publish>,
     waiting_to_be_acked_qos0: HashMap<proto::PacketIdentifier, Publish>,
     waiting_to_be_completed: HashSet<proto::PacketIdentifier>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct RuntimeSessionState {
-    inner: SessionState,
     config: SessionConfig,
 }
 
 impl SessionState {
-    pub fn new(client_id: ClientId) -> Self {
+    pub fn new(client_id: ClientId, config: SessionConfig) -> Self {
         Self {
             client_id,
             subscriptions: HashMap::new(),
@@ -316,61 +319,41 @@ impl SessionState {
             waiting_to_be_acked_qos0: HashMap::new(),
             waiting_to_be_released: HashMap::new(),
             waiting_to_be_completed: HashSet::new(),
-        }
-    }
-
-    pub fn into_parts(
-        self,
-    ) -> (
-        ClientId,
-        HashMap<String, Subscription>,
-        VecDeque<proto::Publication>,
-    ) {
-        (self.client_id, self.subscriptions, self.waiting_to_be_sent)
-    }
-
-    pub fn from_parts(
-        client_id: ClientId,
-        subscriptions: HashMap<String, Subscription>,
-        waiting_to_be_sent: VecDeque<proto::Publication>,
-    ) -> Self {
-        Self {
-            client_id,
-            subscriptions,
-            packet_identifiers: PacketIdentifiers::default(),
-            packet_identifiers_qos0: PacketIdentifiers::default(),
-
-            waiting_to_be_sent,
-            waiting_to_be_acked: HashMap::new(),
-            waiting_to_be_acked_qos0: HashMap::new(),
-            waiting_to_be_released: HashMap::new(),
-            waiting_to_be_completed: HashSet::new(),
-        }
-    }
-
-    pub fn subscriptions(&self) -> &HashMap<String, Subscription> {
-        &self.subscriptions
-    }
-}
-
-impl RuntimeSessionState {
-    pub fn new(client_id: ClientId, config: SessionConfig) -> Self {
-        Self {
-            inner: SessionState::new(client_id),
             config,
         }
     }
 
-    pub fn from_state(inner: SessionState, config: SessionConfig) -> Self {
-        Self { inner, config }
+    pub fn from_snapshot(snapshot: SessionSnapshot, config: SessionConfig) -> Self {
+        let (
+            client_id,
+            subscriptions,
+            packet_identifiers,
+            waiting_to_be_sent,
+            waiting_to_be_acked,
+            waiting_to_be_released,
+            waiting_to_be_completed,
+        ) = snapshot.into_parts();
+
+        Self {
+            client_id,
+            subscriptions,
+            packet_identifiers,
+            waiting_to_be_sent,
+            waiting_to_be_acked,
+            waiting_to_be_released,
+            waiting_to_be_completed,
+            waiting_to_be_acked_qos0: HashMap::new(),
+            packet_identifiers_qos0: PacketIdentifiers::default(),
+            config,
+        }
     }
 
     pub fn client_id(&self) -> &ClientId {
-        &self.inner.client_id
+        &self.client_id
     }
 
     pub fn subscriptions(&self) -> &HashMap<String, Subscription> {
-        &self.inner.subscriptions
+        &self.subscriptions
     }
 
     pub fn update_subscription(
@@ -378,11 +361,11 @@ impl RuntimeSessionState {
         topic_filter: String,
         subscription: Subscription,
     ) -> Option<Subscription> {
-        self.inner.subscriptions.insert(topic_filter, subscription)
+        self.subscriptions.insert(topic_filter, subscription)
     }
 
     pub fn remove_subscription(&mut self, topic_filter: &str) -> Option<Subscription> {
-        self.inner.subscriptions.remove(topic_filter)
+        self.subscriptions.remove(topic_filter)
     }
 
     pub fn queue_publish(&mut self, publication: proto::Publication) -> Result<(), Error> {
@@ -437,8 +420,7 @@ impl RuntimeSessionState {
                 (Some(publication), Some(event))
             }
             proto::PacketIdentifierDupQoS::ExactlyOnce(packet_identifier, _dup) => {
-                self.inner
-                    .waiting_to_be_released
+                self.waiting_to_be_released
                     .insert(packet_identifier, publish);
                 let pubrec = proto::PubRec { packet_identifier };
                 let event = ClientEvent::PubRec(pubrec);
@@ -449,11 +431,8 @@ impl RuntimeSessionState {
     }
 
     pub fn handle_pubrec(&mut self, pubrec: &proto::PubRec) -> Result<Option<ClientEvent>, Error> {
-        self.inner
-            .waiting_to_be_acked
-            .remove(&pubrec.packet_identifier);
-        self.inner
-            .waiting_to_be_completed
+        self.waiting_to_be_acked.remove(&pubrec.packet_identifier);
+        self.waiting_to_be_completed
             .insert(pubrec.packet_identifier);
         let pubrel = proto::PubRel {
             packet_identifier: pubrec.packet_identifier,
@@ -466,7 +445,6 @@ impl RuntimeSessionState {
         pubrel: &proto::PubRel,
     ) -> Result<Option<proto::Publication>, Error> {
         let publication = self
-            .inner
             .waiting_to_be_released
             .remove(&pubrel.packet_identifier)
             .map(|publish| proto::Publication {
@@ -482,23 +460,16 @@ impl RuntimeSessionState {
         &mut self,
         pubcomp: &proto::PubComp,
     ) -> Result<Option<ClientEvent>, Error> {
-        self.inner
-            .waiting_to_be_completed
+        self.waiting_to_be_completed
             .remove(&pubcomp.packet_identifier);
-        self.inner
-            .packet_identifiers
-            .discard(pubcomp.packet_identifier);
+        self.packet_identifiers.discard(pubcomp.packet_identifier);
         self.try_publish()
     }
 
     pub fn handle_puback(&mut self, puback: &proto::PubAck) -> Result<Option<ClientEvent>, Error> {
         debug!("discarding packet identifier {}", puback.packet_identifier);
-        self.inner
-            .waiting_to_be_acked
-            .remove(&puback.packet_identifier);
-        self.inner
-            .packet_identifiers
-            .discard(puback.packet_identifier);
+        self.waiting_to_be_acked.remove(&puback.packet_identifier);
+        self.packet_identifiers.discard(puback.packet_identifier);
         self.try_publish()
     }
 
@@ -507,14 +478,14 @@ impl RuntimeSessionState {
         id: proto::PacketIdentifier,
     ) -> Result<Option<ClientEvent>, Error> {
         debug!("discarding QoS 0 packet identifier {}", id);
-        self.inner.waiting_to_be_acked_qos0.remove(&id);
-        self.inner.packet_identifiers_qos0.discard(id);
+        self.waiting_to_be_acked_qos0.remove(&id);
+        self.packet_identifiers_qos0.discard(id);
         self.try_publish()
     }
 
     fn try_publish(&mut self) -> Result<Option<ClientEvent>, Error> {
         if self.allowed_to_send() {
-            if let Some(publication) = self.inner.waiting_to_be_sent.pop_front() {
+            if let Some(publication) = self.waiting_to_be_sent.pop_front() {
                 let event = self.prepare_to_send(&publication)?;
                 return Ok(Some(event));
             }
@@ -523,31 +494,30 @@ impl RuntimeSessionState {
     }
 
     fn allowed_to_send(&self) -> bool {
-        let num_inflight = self.inner.waiting_to_be_acked.len()
-            + self.inner.waiting_to_be_acked_qos0.len()
-            + self.inner.waiting_to_be_completed.len();
+        let num_inflight = self.waiting_to_be_acked.len()
+            + self.waiting_to_be_acked_qos0.len()
+            + self.waiting_to_be_completed.len();
         num_inflight < self.config.max_inflight_messages()
     }
 
     fn add_to_queue(&mut self, publication: proto::Publication) {
-        if self.inner.waiting_to_be_sent.len() > self.config.max_queued_messages() {
+        if self.waiting_to_be_sent.len() > self.config.max_queued_messages() {
             match self.config.when_full() {
                 QueueFullAction::DropNew => {
                     // do nothing
                 }
                 QueueFullAction::DropOld => {
-                    let _ = self.inner.waiting_to_be_sent.pop_front();
-                    self.inner.waiting_to_be_sent.push_back(publication);
+                    let _ = self.waiting_to_be_sent.pop_front();
+                    self.waiting_to_be_sent.push_back(publication);
                 }
             }
         } else {
-            self.inner.waiting_to_be_sent.push_back(publication);
+            self.waiting_to_be_sent.push_back(publication);
         }
     }
 
     fn filter(&self, mut publication: proto::Publication) -> Option<proto::Publication> {
-        self.inner
-            .subscriptions
+        self.subscriptions
             .values()
             .filter(|sub| sub.filter().matches(&publication.topic_name))
             .fold(None, |acc, sub| {
@@ -563,7 +533,7 @@ impl RuntimeSessionState {
     fn prepare_to_send(&mut self, publication: &proto::Publication) -> Result<ClientEvent, Error> {
         let publish = match publication.qos {
             proto::QoS::AtMostOnce => {
-                let id = self.inner.packet_identifiers_qos0.reserve()?;
+                let id = self.packet_identifiers_qos0.reserve()?;
                 let packet = proto::Publish {
                     packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtMostOnce,
                     retain: publication.retain,
@@ -573,7 +543,7 @@ impl RuntimeSessionState {
                 Publish::QoS0(id, packet)
             }
             proto::QoS::AtLeastOnce => {
-                let id = self.inner.packet_identifiers.reserve()?;
+                let id = self.packet_identifiers.reserve()?;
                 let packet = proto::Publish {
                     packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtLeastOnce(
                         id, false,
@@ -585,7 +555,7 @@ impl RuntimeSessionState {
                 Publish::QoS12(id, packet)
             }
             proto::QoS::ExactlyOnce => {
-                let id = self.inner.packet_identifiers.reserve()?;
+                let id = self.packet_identifiers.reserve()?;
                 let packet = proto::Publish {
                     packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::ExactlyOnce(
                         id, false,
@@ -600,14 +570,12 @@ impl RuntimeSessionState {
 
         let event = match publish {
             Publish::QoS0(id, publish) => {
-                self.inner
-                    .waiting_to_be_acked_qos0
+                self.waiting_to_be_acked_qos0
                     .insert(id, Publish::QoS0(id, publish.clone()));
                 ClientEvent::PublishTo(Publish::QoS0(id, publish))
             }
             Publish::QoS12(id, publish) => {
-                self.inner
-                    .waiting_to_be_acked
+                self.waiting_to_be_acked
                     .insert(id, Publish::QoS12(id, publish.clone()));
                 ClientEvent::PublishTo(Publish::QoS12(id, publish))
             }
@@ -617,7 +585,7 @@ impl RuntimeSessionState {
 }
 
 #[cfg(any(test, feature = "proptest"))]
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, dead_code)]
 impl SessionState {
     pub(crate) fn from_state_parts(
         client_id: ClientId,
@@ -641,7 +609,22 @@ impl SessionState {
             waiting_to_be_acked_qos0,
             waiting_to_be_released,
             waiting_to_be_completed,
+            config,
         }
+    }
+}
+
+impl From<SessionState> for SessionSnapshot {
+    fn from(state: SessionState) -> Self {
+        SessionSnapshot::from_parts(
+            state.client_id,
+            state.subscriptions,
+            state.packet_identifiers,
+            state.waiting_to_be_sent,
+            state.waiting_to_be_acked,
+            state.waiting_to_be_released,
+            state.waiting_to_be_completed,
+        )
     }
 }
 
@@ -654,19 +637,19 @@ pub enum Session {
 }
 
 impl Session {
-    pub fn new_transient(auth_id: AuthId, connreq: ConnReq, state: RuntimeSessionState) -> Self {
+    pub fn new_transient(auth_id: AuthId, connreq: ConnReq, state: SessionState) -> Self {
         let (connect, handle) = connreq.into_parts();
         let connected = ConnectedSession::new(auth_id, state, connect.will, handle);
         Self::Transient(connected)
     }
 
-    pub fn new_persistent(auth_id: AuthId, connreq: ConnReq, state: RuntimeSessionState) -> Self {
+    pub fn new_persistent(auth_id: AuthId, connreq: ConnReq, state: SessionState) -> Self {
         let (connect, handle) = connreq.into_parts();
         let connected = ConnectedSession::new(auth_id, state, connect.will, handle);
         Self::Persistent(connected)
     }
 
-    pub fn new_offline(state: RuntimeSessionState) -> Self {
+    pub fn new_offline(state: SessionState) -> Self {
         let offline = OfflineSession::new(state);
         Self::Offline(offline)
     }
@@ -709,14 +692,12 @@ impl Session {
     }
 
     pub fn subscriptions(&self) -> Option<&HashMap<String, Subscription>> {
-        let state = match self {
-            Self::Transient(connected) => Some(connected.state()),
-            Self::Persistent(connected) => Some(connected.state()),
-            Self::Offline(offline) => Some(offline.state()),
+        match self {
+            Self::Transient(connected) => Some(connected.subscriptions()),
+            Self::Persistent(connected) => Some(connected.subscriptions()),
+            Self::Offline(offline) => Some(offline.subscriptions()),
             Self::Disconnecting(_) => None,
-        };
-
-        state.map(SessionState::subscriptions)
+        }
     }
 
     pub fn handle_publish(
@@ -895,7 +876,7 @@ impl<'de> Deserialize<'de> for IdentifiersInUse {
 }
 
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
-pub(crate) struct PacketIdentifiers {
+pub struct PacketIdentifiers {
     in_use: IdentifiersInUse,
     previous: proto::PacketIdentifier,
 }

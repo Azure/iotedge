@@ -11,15 +11,15 @@ use proptest::{
 
 use crate::{
     session::{IdentifiersInUse, PacketIdentifiers},
-    BrokerConfig, BrokerState, ClientId, Publish, Segment, SessionState, Subscription, TopicFilter,
+    BrokerSnapshot, ClientId, Publish, Segment, SessionSnapshot, Subscription, TopicFilter,
 };
 
 prop_compose! {
-    pub fn arb_broker_state()(
+    pub fn arb_broker_snapshot()(
         retained in hash_map(arb_topic(), arb_publication(), 0..20),
-        sessions in vec(arb_session_state(), 0..10),
-    ) -> BrokerState {
-        BrokerState::new(retained, sessions)
+        sessions in vec(arb_session_snapshot(), 0..10),
+    ) -> BrokerSnapshot {
+        BrokerSnapshot::new(retained, sessions)
     }
 }
 
@@ -42,28 +42,23 @@ pub(crate) fn arb_identifiers_in_use() -> impl Strategy<Value = IdentifiersInUse
 }
 
 prop_compose! {
-    pub fn arb_session_state()(
+    pub fn arb_session_snapshot()(
         client_id in arb_clientid(),
         subscriptions in hash_map(arb_topic(), arb_subscription(), 0..10),
         packet_identifiers in arb_packet_identifiers(),
-        packet_identifiers_qos0 in arb_packet_identifiers(),
         waiting_to_be_sent in vec_deque(arb_publication(), 0..10),
         waiting_to_be_released in hash_map(arb_packet_identifier(), arb_proto_publish(), 0..10),
         waiting_to_be_acked in hash_map(arb_packet_identifier(), arb_publish(), 0..10),
-        waiting_to_be_acked_qos0 in hash_map(arb_packet_identifier(), arb_publish(), 0..10),
         waiting_to_be_completed in hash_set(arb_packet_identifier(), 0..10),
-    ) -> SessionState {
-        SessionState::from_state_parts(
+    ) -> SessionSnapshot {
+        SessionSnapshot::from_parts(
             client_id,
             subscriptions,
             packet_identifiers,
-            packet_identifiers_qos0,
             waiting_to_be_sent,
-            waiting_to_be_released,
             waiting_to_be_acked,
-            waiting_to_be_acked_qos0,
+            waiting_to_be_released,
             waiting_to_be_completed,
-            BrokerConfig::default().session().clone()
         )
     }
 }

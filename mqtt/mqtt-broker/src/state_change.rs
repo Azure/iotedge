@@ -90,7 +90,7 @@ impl<'a> TryFrom<StateChange<'a>> for proto::Publication {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{HashMap, VecDeque};
+    use std::collections::HashMap;
     use std::convert::TryInto;
     use std::str::FromStr;
 
@@ -356,18 +356,17 @@ mod tests {
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        let subscriptions = subscriptions
-            .into_iter()
-            .map(|s| {
-                let s = s.as_ref();
-                (
-                    s.to_owned(),
-                    Subscription::new(TopicFilter::from_str(s).unwrap(), proto::QoS::AtLeastOnce),
-                )
-            })
-            .collect();
-        let state =
-            SessionState::from_parts(id.into(), subscriptions, VecDeque::new(), default_config());
+        let mut state = SessionState::new(id.into(), default_config());
+
+        for topic_filter in subscriptions {
+            state.update_subscription(
+                topic_filter.as_ref().to_owned(),
+                Subscription::new(
+                    TopicFilter::from_str(&topic_filter.as_ref()).unwrap(),
+                    proto::QoS::AtLeastOnce,
+                ),
+            );
+        }
 
         if online {
             Session::new_persistent(

@@ -12,10 +12,10 @@ use mqtt_broker_core::{
 };
 
 use crate::{
-    session::{ConnectedSession, RuntimeSessionState, Session, SessionState},
+    session::{ConnectedSession, Session, SessionState},
     state_change::StateChange,
     subscription::Subscription,
-    Auth, BrokerConfig, ClientEvent, ConnReq, Error, Message, SystemEvent,
+    Auth, BrokerConfig, BrokerSnapshot, ClientEvent, ConnReq, Error, Message, SystemEvent,
 };
 
 static EXPECTED_PROTOCOL_NAME: &str = mqtt3::PROTOCOL_NAME;
@@ -49,7 +49,7 @@ where
         BrokerHandle(self.sender.clone())
     }
 
-    pub async fn run(mut self) -> Result<BrokerState, Error> {
+    pub async fn run(mut self) -> Result<BrokerSnapshot, Error> {
         while let Some(message) = self.messages.recv().await {
             match message {
                 Message::Client(client_id, event) => {
@@ -90,36 +90,36 @@ where
         Ok(self.snapshot())
     }
 
-    fn snapshot(&self) -> BrokerState {
+    fn snapshot(&self) -> BrokerSnapshot {
         let retained = self.retained.clone();
         let sessions = self
             .sessions
             .values()
             .filter_map(|session| match session {
-                Session::Persistent(c) => Some(c.state().clone()),
-                Session::Offline(o) => Some(o.state().clone()),
-                _ => None,
-            })
-            .collect::<Vec<SessionState>>();
-
-        BrokerState { retained, sessions }
-    }
-
-    #[cfg(any(test, feature = "proptest"))]
-    pub fn clone_state(&self) -> BrokerState {
-        let retained = self.retained.clone();
-        let sessions = self
-            .sessions
-            .values()
-            .filter_map(|session| match session {
-                Session::Transient(session) => Some(session.state().clone()),
-                Session::Persistent(session) => Some(session.state().clone()),
-                Session::Offline(session) => Some(session.state().clone()),
+                Session::Persistent(c) => Some(c.snapshot()),
+                Session::Offline(o) => Some(o.snapshot()),
                 _ => None,
             })
             .collect();
 
-        BrokerState { retained, sessions }
+        BrokerSnapshot::new(retained, sessions)
+    }
+
+    #[cfg(any(test, feature = "proptest"))]
+    pub fn clone_state(&self) -> BrokerSnapshot {
+        let retained = self.retained.clone();
+        let sessions = self
+            .sessions
+            .values()
+            .filter_map(|session| match session {
+                Session::Transient(session) => Some(session.snapshot()),
+                Session::Persistent(session) => Some(session.snapshot()),
+                Session::Offline(session) => Some(session.snapshot()),
+                _ => None,
+            })
+            .collect();
+
+        BrokerSnapshot::new(retained, sessions)
     }
 
     pub fn process_message(
@@ -652,10 +652,8 @@ where
                         }
                     } else {
                         info!("cleaning offline session for {}", client_id);
-                        let state = RuntimeSessionState::new(
-                            client_id.clone(),
-                            self.config.session().clone(),
-                        );
+                        let state =
+                            SessionState::new(client_id.clone(), self.config.session().clone());
                         let new_session = Session::new_transient(auth_id, connreq, state);
                         (new_session, vec![], false)
                     };
@@ -678,13 +676,11 @@ where
                     connreq.connect().client_id
                 {
                     info!("creating new persistent session for {}", client_id);
-                    let state =
-                        RuntimeSessionState::new(client_id.clone(), self.config.session().clone());
+                    let state = SessionState::new(client_id.clone(), self.config.session().clone());
                     Session::new_persistent(auth_id, connreq, state)
                 } else {
                     info!("creating new transient session for {}", client_id);
-                    let state =
-                        RuntimeSessionState::new(client_id.clone(), self.config.session().clone());
+                    let state = SessionState::new(client_id.clone(), self.config.session().clone());
                     Session::new_transient(auth_id, connreq, state)
                 };
 
@@ -750,8 +746,7 @@ where
                     (new_session, true)
                 } else {
                     info!("cleaning session for {}", client_id);
-                    let state =
-                        RuntimeSessionState::new(client_id.clone(), self.config.session().clone());
+                    let state = SessionState::new(client_id.clone(), self.config.session().clone());
                     let new_session = Session::new_transient(auth_id, connreq, state);
                     (new_session, false)
                 };
@@ -952,23 +947,8 @@ where
     Ok(())
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct BrokerState {
-    retained: HashMap<String, proto::Publication>,
-    sessions: Vec<SessionState>,
-}
-
-impl BrokerState {
-    pub fn new(retained: HashMap<String, proto::Publication>, sessions: Vec<SessionState>) -> Self {
-        Self { retained, sessions }
-    }
-
-    pub fn into_parts(self) -> (HashMap<String, proto::Publication>, Vec<SessionState>) {
-        (self.retained, self.sessions)
-    }
-}
 pub struct BrokerBuilder<Z> {
-    state: Option<BrokerState>,
+    state: Option<BrokerSnapshot>,
     authorizer: Z,
     config: Option<BrokerConfig>,
 }
@@ -998,7 +978,7 @@ where
         }
     }
 
-    pub fn with_state(mut self, state: BrokerState) -> Self {
+    pub fn with_state(mut self, state: BrokerSnapshot) -> Self {
         self.state = Some(state);
         self
     }
@@ -1019,8 +999,8 @@ where
                 let (retained, sessions) = state.into_parts();
                 let sessions = sessions
                     .into_iter()
-                    .map(|s| RuntimeSessionState::from_state(s, config.session().clone()))
-                    .map(|s| (s.client_id().clone(), Session::new_offline(s)))
+                    .map(|snapshot| SessionState::from_snapshot(snapshot, config.session().clone()))
+                    .map(|state| (state.client_id().clone(), Session::new_offline(state)))
                     .collect::<HashMap<ClientId, Session>>();
                 (retained, sessions)
             }
