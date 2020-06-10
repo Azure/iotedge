@@ -61,3 +61,4 @@ echo "Running clippy..."
 $CARGO clippy --all
 $CARGO clippy --all --tests --all-features
 $CARGO clippy --all --examples
+$CARGO clippy --all --benches

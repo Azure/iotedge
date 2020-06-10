@@ -1,17 +1,18 @@
-use std::collections::HashMap;
-use std::iter::FromIterator;
+use std::{collections::HashMap, iter::FromIterator};
 
 use bytes::Bytes;
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
 };
 use tempfile::TempDir;
+use tokio::runtime::Runtime;
 
 use mqtt3::proto::{Publication, QoS};
 use mqtt_broker::{
-    BrokerSnapshot, ClientId, ConsolidatedStateFormat, FileFormat, FilePersistor, Persist,
-    PersistError, SessionState,
+    BrokerState, FileFormat, FilePersistor, Persist, PersistError, SessionState,
+    VersionedFileFormat,
 };
+use mqtt_broker_core::ClientId;
 
 fn test_write<F>(
     group: &mut BenchmarkGroup<WallTime>,
@@ -41,10 +42,13 @@ fn test_write<F>(
                 let tmp_dir = TempDir::new().unwrap();
                 let path = tmp_dir.path().to_owned();
                 let persistor = FilePersistor::new(path, format.clone());
+                let runtime = Runtime::new().unwrap();
 
-                (state, persistor, tmp_dir)
+                (state, persistor, runtime, tmp_dir)
             },
-            |(state, mut persistor, _tmp_dir)| persistor.store(state).expect("store"),
+            |(state, mut persistor, mut runtime, _tmp_dir)| {
+                runtime.block_on(persistor.store(state)).expect("store")
+            },
             BatchSize::SmallInput,
         );
     });
@@ -78,11 +82,15 @@ fn test_read<F>(
                 let tmp_dir = TempDir::new().unwrap();
                 let path = tmp_dir.path().to_owned();
                 let mut persistor = FilePersistor::new(path, format.clone());
-                persistor.store(state).expect("store");
 
-                (persistor, tmp_dir)
+                let mut runtime = Runtime::new().unwrap();
+                runtime.block_on(persistor.store(state)).expect("store");
+
+                (persistor, runtime, tmp_dir)
             },
-            |(mut persistor, _tmp_dir)| persistor.load().expect("load"),
+            |(mut persistor, mut runtime, _tmp_dir)| {
+                runtime.block_on(persistor.load()).expect("load")
+            },
             BatchSize::SmallInput,
         );
     });
@@ -145,7 +153,7 @@ fn write_state(c: &mut Criterion) {
             unique,
             shared,
             retained,
-            ConsolidatedStateFormat::default(),
+            VersionedFileFormat::default(),
         );
     }
     group.finish();
@@ -160,7 +168,7 @@ fn read_state(c: &mut Criterion) {
             unique,
             shared,
             retained,
-            ConsolidatedStateFormat::default(),
+            VersionedFileFormat::default(),
         );
     }
     group.finish();
