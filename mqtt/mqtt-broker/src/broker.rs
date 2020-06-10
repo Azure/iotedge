@@ -8,7 +8,7 @@ use tracing::{debug, error, info, span, warn, Level};
 use mqtt3::proto;
 use mqtt_broker_core::{
     auth::{Activity, AuthId, Authorizer, DefaultAuthorizer, Operation},
-    ClientId,
+    ClientId, ClientInfo,
 };
 
 use crate::{
@@ -269,8 +269,9 @@ where
         };
 
         // Check client permissions to connect
+        let client_info = ClientInfo::new(connreq.peer_addr(), auth_id.clone());
         let operation = Operation::new_connect(connreq.connect().clone());
-        let activity = Activity::new(auth_id.clone(), client_id.clone(), operation);
+        let activity = Activity::new(client_id.clone(), Some(client_info), operation);
         match self.authorizer.authorize(activity) {
             Ok(true) => {
                 debug!("client {} successfully authorized", client_id);
@@ -485,7 +486,8 @@ where
     ) -> Result<(), Error> {
         let operation = Operation::new_publish(publish.clone());
         if let Some(session) = self.sessions.get_mut(client_id) {
-            let activity = Activity::new(session.auth_id()?.clone(), client_id.clone(), operation);
+            let client_info = session.client_info()?.clone();
+            let activity = Activity::new(client_id.clone(), Some(client_info), operation);
             match self.authorizer.authorize(activity) {
                 Ok(true) => {
                     debug!("client {} successfully authorized", client_id);
@@ -734,8 +736,9 @@ where
             );
 
             let client_id = connreq.client_id().clone();
-            let (auth_id_, state, _will, handle) = current_connected.into_parts();
-            let old_session = Session::new_disconnecting(auth_id_, client_id.clone(), None, handle);
+            let (state, client_info_, _will, handle) = current_connected.into_parts();
+            let old_session =
+                Session::new_disconnecting(client_id.clone(), client_info_, None, handle);
             let (new_session, session_present) =
                 if let proto::ClientId::IdWithExistingSession(_) = connreq.connect().client_id {
                     debug!(
@@ -771,10 +774,10 @@ where
                     StateChange::new_subscription_change(client_id, None).try_into()?,
                 )?;
 
-                let (auth_id, _state, will, handle) = connected.into_parts();
+                let (_state, client_info, will, handle) = connected.into_parts();
                 Some(Session::new_disconnecting(
-                    auth_id,
                     client_id.clone(),
+                    client_info,
                     will,
                     handle,
                 ))
@@ -787,12 +790,12 @@ where
                 info!("moving persistent session to offline for {}", client_id);
                 self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?)?;
 
-                let (auth_id, state, will, handle) = connected.into_parts();
+                let (state, client_info, will, handle) = connected.into_parts();
                 let new_session = Session::new_offline(state);
                 self.sessions.insert(client_id.clone(), new_session);
                 Some(Session::new_disconnecting(
-                    auth_id,
                     client_id.clone(),
+                    client_info,
                     will,
                     handle,
                 ))
@@ -862,15 +865,15 @@ fn subscribe<Z>(
 where
     Z: Authorizer,
 {
-    let auth_id = session.auth_id()?.clone();
     let client_id = session.client_id().clone();
+    let client_info = session.client_info()?.clone();
 
     let mut subscriptions = Vec::with_capacity(subscribe.subscribe_to.len());
     let mut acks = Vec::with_capacity(subscribe.subscribe_to.len());
 
     let auth_results = subscribe.subscribe_to.into_iter().map(|subscribe_to| {
         let operation = Operation::new_subscribe(subscribe_to.clone());
-        let activity = Activity::new(auth_id.clone(), client_id.clone(), operation);
+        let activity = Activity::new(client_id.clone(), Some(client_info.clone()), operation);
         let auth = authorizer.authorize(activity);
         auth.map(|auth| (auth, subscribe_to))
     });
@@ -924,9 +927,10 @@ where
 {
     let operation = Operation::new_receive(publication.clone());
     let client_id = session.client_id().clone();
-    // TODO refactor auth_id logic for offline sessions
-    let auth_id = session.auth_id().unwrap_or(&AuthId::Anonymous);
-    let activity = Activity::new(auth_id.clone(), client_id, operation);
+    let client_info = session
+        .client_info()
+        .map_or(None, |info| Some(info.clone()));
+    let activity = Activity::new(client_id, client_info, operation);
 
     match authorizer.authorize(activity) {
         Ok(true) => {
@@ -1057,6 +1061,7 @@ pub(crate) mod tests {
         broker::{BrokerBuilder, BrokerHandle},
         error::Error,
         session::Session,
+        tests::peer_addr,
         Auth, AuthId, ClientEvent, ClientId, ConnReq, ConnectionHandle, Message, Publish,
     };
 
@@ -1126,12 +1131,14 @@ pub(crate) mod tests {
 
         let req1 = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect1,
             Auth::Identity(AuthId::Anonymous),
             conn1,
         );
         let req2 = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect2,
             Auth::Identity(AuthId::Anonymous),
             conn2,
@@ -1198,12 +1205,14 @@ pub(crate) mod tests {
 
         let req1 = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect1,
             Auth::Identity(AuthId::Anonymous),
             conn1,
         );
         let req2 = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect2,
             Auth::Identity(AuthId::Anonymous),
             conn2,
@@ -1263,6 +1272,7 @@ pub(crate) mod tests {
         let client_id = ClientId::from("blah".to_string());
         let req1 = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect1,
             Auth::Identity(AuthId::Anonymous),
             conn1,
@@ -1306,6 +1316,7 @@ pub(crate) mod tests {
         let client_id = ClientId::from("blah".to_string());
         let req1 = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect1,
             Auth::Identity(AuthId::Anonymous),
             conn1,
@@ -1360,6 +1371,7 @@ pub(crate) mod tests {
         let client_id = ClientId::from("blah".to_string());
         let req1 = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect1,
             Auth::Identity(AuthId::Anonymous),
             conn1,
@@ -1405,7 +1417,13 @@ pub(crate) mod tests {
         let (tx1, mut rx1) = mpsc::unbounded_channel();
         let conn1 = ConnectionHandle::from_sender(tx1);
         let client_id = ClientId::from("blah".to_string());
-        let req1 = ConnReq::new(client_id.clone(), connect1, Auth::Unknown, conn1);
+        let req1 = ConnReq::new(
+            client_id.clone(),
+            peer_addr(),
+            connect1,
+            Auth::Unknown,
+            conn1,
+        );
 
         broker_handle
             .send(Message::Client(
@@ -1454,7 +1472,13 @@ pub(crate) mod tests {
         let (tx1, mut rx1) = mpsc::unbounded_channel();
         let conn1 = ConnectionHandle::from_sender(tx1);
         let client_id = ClientId::from("blah".to_string());
-        let req1 = ConnReq::new(client_id.clone(), connect1, Auth::Failure, conn1);
+        let req1 = ConnReq::new(
+            client_id.clone(),
+            peer_addr(),
+            connect1,
+            Auth::Failure,
+            conn1,
+        );
 
         broker_handle
             .send(Message::Client(
@@ -1505,6 +1529,7 @@ pub(crate) mod tests {
         let client_id = ClientId::from("blah".to_string());
         let req1 = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect1,
             Auth::Identity(AuthId::Anonymous),
             conn1,
@@ -1559,6 +1584,7 @@ pub(crate) mod tests {
         let client_id = ClientId::from("blah".to_string());
         let req1 = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect1,
             Auth::Identity(AuthId::Anonymous),
             conn1,
@@ -1601,6 +1627,7 @@ pub(crate) mod tests {
         let handle = connection_handle();
         let req = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect,
             Auth::Identity(AuthId::Anonymous),
             handle,
@@ -1631,6 +1658,7 @@ pub(crate) mod tests {
         let handle = connection_handle();
         let req = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect,
             Auth::Identity(AuthId::Anonymous),
             handle,
@@ -1667,12 +1695,14 @@ pub(crate) mod tests {
 
         let req1 = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect1,
             Auth::Identity(AuthId::Anonymous),
             handle1,
         );
         let req2 = ConnReq::new(
             client_id,
+            peer_addr(),
             connect2,
             Auth::Identity(AuthId::Anonymous),
             handle2,
@@ -1705,12 +1735,14 @@ pub(crate) mod tests {
 
         let req1 = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect1,
             Auth::Identity(AuthId::Anonymous),
             handle1,
         );
         let req2 = ConnReq::new(
             client_id,
+            peer_addr(),
             connect2,
             Auth::Identity(AuthId::Anonymous),
             handle2,
@@ -1739,6 +1771,7 @@ pub(crate) mod tests {
         let handle2 = connection_handle();
         let req1 = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect1,
             Auth::Identity(AuthId::Anonymous),
             handle1,
@@ -1750,6 +1783,7 @@ pub(crate) mod tests {
 
         let req2 = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect2,
             Auth::Identity(AuthId::Anonymous),
             handle2,
@@ -1774,6 +1808,7 @@ pub(crate) mod tests {
         let handle2 = connection_handle();
         let req1 = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect1,
             Auth::Identity(AuthId::Anonymous),
             handle1,
@@ -1785,6 +1820,7 @@ pub(crate) mod tests {
 
         let req2 = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect2,
             Auth::Identity(AuthId::Anonymous),
             handle2,
@@ -1809,6 +1845,7 @@ pub(crate) mod tests {
         let handle2 = connection_handle();
         let req1 = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect1,
             Auth::Identity(AuthId::Anonymous),
             handle1,
@@ -1820,6 +1857,7 @@ pub(crate) mod tests {
 
         let req2 = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect2,
             Auth::Identity(AuthId::Anonymous),
             handle2,
@@ -1844,12 +1882,14 @@ pub(crate) mod tests {
         let handle2 = connection_handle();
         let req1 = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect1,
             Auth::Identity(AuthId::Anonymous),
             handle1,
         );
         let req2 = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect2,
             Auth::Identity(AuthId::Anonymous),
             handle2,
@@ -1879,12 +1919,14 @@ pub(crate) mod tests {
         let handle2 = connection_handle();
         let req1 = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect1,
             Auth::Identity(AuthId::Anonymous),
             handle1,
         );
         let req2 = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect2,
             Auth::Identity(AuthId::Anonymous),
             handle2,
@@ -1922,6 +1964,7 @@ pub(crate) mod tests {
         let handle2 = connection_handle();
         let req1 = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect1,
             Auth::Identity(AuthId::Anonymous),
             handle1,
@@ -1943,6 +1986,7 @@ pub(crate) mod tests {
         let connect2 = transient_connect(id);
         let req2 = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect2,
             Auth::Identity(AuthId::Anonymous),
             handle2,
@@ -2319,6 +2363,7 @@ pub(crate) mod tests {
         let client_id = ClientId::from(client_id);
         let req = ConnReq::new(
             client_id.clone(),
+            peer_addr(),
             connect,
             Auth::Identity(AuthId::Anonymous),
             conn,

@@ -89,6 +89,7 @@ fn into_events(
             let connection_handle = ConnectionHandle::from_sender(tx);
             let connreq = ConnReq::new(
                 client_id.clone(),
+                "127.0.0.1:12345".parse().unwrap(),
                 connect.clone(),
                 Auth::Identity(AuthId::Anonymous),
                 connection_handle,

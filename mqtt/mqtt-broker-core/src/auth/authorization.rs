@@ -3,7 +3,7 @@ use std::{convert::Infallible, error::Error as StdError};
 
 use mqtt3::proto;
 
-use crate::{auth::AuthId, ClientId};
+use crate::{ClientId, ClientInfo};
 
 /// A trait to check a MQTT client permissions to perform some actions.
 pub trait Authorizer {
@@ -49,20 +49,20 @@ impl Authorizer for DefaultAuthorizer {
 
 /// Describes a client activity to authorized.
 pub struct Activity {
-    auth_id: AuthId,
     client_id: ClientId,
+    client_info: Option<ClientInfo>,
     operation: Operation,
 }
 
 impl Activity {
     pub fn new(
-        auth_id: impl Into<AuthId>,
         client_id: impl Into<ClientId>,
+        client_info: Option<ClientInfo>,
         operation: Operation,
     ) -> Self {
         Self {
-            auth_id: auth_id.into(),
             client_id: client_id.into(),
+            client_info,
             operation,
         }
     }
@@ -192,13 +192,16 @@ impl From<proto::Publication> for Receive {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
+    use std::{net::SocketAddr, time::Duration};
 
     use matches::assert_matches;
 
     use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
 
-    use crate::auth::{authorize_fn_ok, Activity, Authorizer, DefaultAuthorizer, Operation};
+    use crate::{
+        auth::{authorize_fn_ok, Activity, Authorizer, DefaultAuthorizer, Operation},
+        ClientInfo,
+    };
 
     fn connect() -> proto::Connect {
         proto::Connect {
@@ -217,7 +220,7 @@ mod tests {
         let auth = DefaultAuthorizer;
         let activity = Activity::new(
             "client-auth-id",
-            "client-id",
+            Some(ClientInfo::new(peer_addr(), "client-id")),
             Operation::new_connect(connect()),
         );
 
@@ -231,12 +234,16 @@ mod tests {
         let auth = authorize_fn_ok(|_| true);
         let activity = Activity::new(
             "client-auth-id",
-            "client-id",
+            Some(ClientInfo::new(peer_addr(), "client-id")),
             Operation::new_connect(connect()),
         );
 
         let res = auth.authorize(activity);
 
         assert_matches!(res, Ok(true));
+    }
+
+    fn peer_addr() -> SocketAddr {
+        "127.0.0.1:12345".parse().unwrap()
     }
 }

@@ -162,12 +162,12 @@ where
                     Ok(Some(auth_id)) => Auth::Identity(auth_id),
                     Ok(None) => Auth::Unknown,
                     Err(e) => {
-                        warn!(message = "error authenticating client: {}", error = % *e);
+                        warn!(message = "error authenticating client: {}", error =% *e);
                         Auth::Failure
                     }
                 };
 
-                let req = ConnReq::new(client_id.clone(), connect, auth, connection_handle);
+                let req = ConnReq::new(client_id.clone(), peer_addr, connect, auth, connection_handle);
                 let event = ClientEvent::ConnReq(req);
                 let message = Message::Client(client_id.clone(), event);
                 broker_handle.send(message).await?;

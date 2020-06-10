@@ -13,9 +13,11 @@
 
 pub mod auth;
 
+use auth::AuthId;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{Display, Formatter, Result as FmtResult},
+    net::SocketAddr,
     sync::Arc,
 };
 
@@ -37,5 +39,28 @@ impl<T: Into<String>> From<T> for ClientId {
 impl Display for ClientId {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "{}", self.as_str())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ClientInfo {
+    peer_addr: SocketAddr,
+    auth_id: AuthId,
+}
+
+impl ClientInfo {
+    pub fn new(peer_addr: SocketAddr, auth_id: impl Into<AuthId>) -> Self {
+        Self {
+            peer_addr,
+            auth_id: auth_id.into(),
+        }
+    }
+
+    pub fn peer_addr(&self) -> SocketAddr {
+        self.peer_addr
+    }
+
+    pub fn auth_id(&self) -> &AuthId {
+        &self.auth_id
     }
 }
