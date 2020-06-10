@@ -46,6 +46,10 @@ spec:
             readOnly: true
           {{- end}}
           {{- end}}
+          {{- if .Values.iotedged.data.useHostTrust }}
+          - name: ca-edge-host-trust
+            mountPath: "/etc/ssl/certs"
+          {{- end }}
           {{- with .Values.provisioning.authentication }}
           {{- if .identitySecret }}
           - name: edge-authentication
@@ -127,6 +131,12 @@ spec:
             path: identity_pk
       {{- end}}
       {{- end}}
+      {{- if .Values.iotedged.data.useHostTrust }}
+      - name: ca-edge-host-trust
+        hostPath:
+          path: /etc/ssl/certs
+          type: Directory
+      {{- end}}
       {{- with .Values.iotedged.certificates }}
       {{- if .secret }}
       {{- /*
@@ -142,6 +152,7 @@ spec:
             path: device_ca_pk
           - key: {{ .trusted_ca_certs | default "trusted_ca_certs" }}
             path: trusted_ca_certs
+
       {{- end}}
       {{- else}}
       {{- /*

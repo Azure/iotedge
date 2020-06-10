@@ -13,4 +13,8 @@ RUN apt-get update && \
     ln -s /lib/aarch64-linux-gnu/libdl.so.2 /usr/lib/aarch64-linux-gnu/libdl.so && \
     ln -s /lib/aarch64-linux-gnu/libc.so.6 /usr/lib/aarch64-linux-gnu/libc.so.6
 
+# create a user to allow agent to optionally run as non-root
+ARG EDGEAGENTUSER_ID=1000	
+RUN useradd -ms /bin/bash -u ${EDGEAGENTUSER_ID} edgeagentuser 
+
 COPY  librocksdb.so /usr/lib
