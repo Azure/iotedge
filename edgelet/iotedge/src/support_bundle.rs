@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::env;
-use std::error::Error as StdError;
 use std::ffi::OsString;
 use std::fs::File;
 use std::path::{Path, PathBuf};
@@ -246,7 +245,7 @@ where
                 ("iotedged_err.txt", result.stderr)
             }
         } else {
-            let err_message = inspect.err().unwrap().description().to_owned();
+            let err_message = inspect.err().unwrap().to_string();
             println!("Could not find system logs for iotedge. Including error in bundle.\nError message: {}", err_message);
             ("iotedged_err.txt", err_message.as_bytes().to_vec())
         };
@@ -301,7 +300,7 @@ where
                 ("docker_err.txt", result.stderr)
             }
         } else {
-            let err_message = inspect.err().unwrap().description().to_owned();
+            let err_message = inspect.err().unwrap().to_string();
             println!("Could not find system logs for docker. Including error in bundle.\nError message: {}", err_message);
             ("docker_err.txt", err_message.as_bytes().to_vec())
         };
@@ -374,7 +373,7 @@ where
                 (format!("inspect/{}_err.json", module_name), result.stderr)
             }
         } else {
-            let err_message = inspect.err().unwrap().description().to_owned();
+            let err_message = inspect.err().unwrap().to_string();
             println!(
                 "Could not reach docker. Including error in bundle.\nError message: {}",
                 err_message
@@ -456,7 +455,7 @@ where
                 (format!("network/{}_err.json", network_name), result.stderr)
             }
         } else {
-            let err_message = inspect.err().unwrap().description().to_owned();
+            let err_message = inspect.err().unwrap().to_string();
             println!(
                 "Could not reach docker. Including error in bundle.\nError message: {}",
                 err_message
