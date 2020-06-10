@@ -37,17 +37,6 @@ pub struct RetainedMessages {
     expiration: Duration,
 }
 
-#[derive(Debug, Deserialize, Clone, PartialEq)]
-pub struct SessionMessages {
-    #[serde(deserialize_with = "humansize")]
-    max_message_size: u64,
-    max_inflight_messages: usize,
-    max_queued_messages: usize,
-    #[serde(deserialize_with = "humansize")]
-    max_queued_size: u64,
-    when_full: QueueFullAction,
-}
-
 #[derive(Debug, Deserialize, Clone)]
 pub struct SessionPersistence {
     file_path: String,
@@ -60,20 +49,44 @@ pub struct SessionPersistence {
 pub struct SessionConfig {
     #[serde(with = "humantime_serde")]
     expiration: Duration,
-    messages: SessionMessages,
+    #[serde(deserialize_with = "humansize")]
+    max_message_size: u64,
+    max_inflight_messages: usize,
+    max_queued_messages: usize,
+    #[serde(deserialize_with = "humansize")]
+    max_queued_size: u64,
+    when_full: QueueFullAction,
 }
 
 impl SessionConfig {
+    pub fn new(
+        expiration: Duration,
+        max_message_size: u64,
+        max_inflight_messages: usize,
+        max_queued_messages: usize,
+        max_queued_size: u64,
+        when_full: QueueFullAction,
+    ) -> Self {
+        Self {
+            expiration,
+            max_message_size,
+            max_inflight_messages,
+            max_queued_messages,
+            max_queued_size,
+            when_full,
+        }
+    }
+
     pub fn max_inflight_messages(&self) -> usize {
-        self.messages.max_inflight_messages
+        self.max_inflight_messages
     }
 
     pub fn max_queued_messages(&self) -> usize {
-        self.messages.max_queued_messages
+        self.max_queued_messages
     }
 
     pub fn when_full(&self) -> &QueueFullAction {
-        &self.messages.when_full
+        &self.when_full
     }
 }
 

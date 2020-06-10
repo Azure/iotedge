@@ -37,7 +37,10 @@ async fn run() -> Result<(), Error> {
         VersionedFileFormat::default(),
     );
     info!("Loading state...");
-    let state = persistor.load().await?.unwrap_or_else(BrokerSnapshot::default);
+    let state = persistor
+        .load()
+        .await?
+        .unwrap_or_else(BrokerSnapshot::default);
     let broker = BrokerBuilder::default()
         .with_authorizer(authorizer())
         .with_state(state)
@@ -78,7 +81,10 @@ async fn run() -> Result<(), Error> {
     Ok(())
 }
 
-async fn run_broker_server<Z>(broker: Broker<Z>, config: BrokerConfig) -> Result<BrokerSnapshot, Error>
+async fn run_broker_server<Z>(
+    broker: Broker<Z>,
+    config: BrokerConfig,
+) -> Result<BrokerSnapshot, Error>
 where
     Z: Authorizer + Send + Sync + 'static,
 {

@@ -9,6 +9,7 @@ use mqtt_broker_core::ClientId;
 use crate::persist::Persist;
 use crate::{Error, Subscription};
 
+/// Used for persisting/loading broker state.
 #[derive(Clone, Default, Debug, PartialEq)]
 pub struct BrokerSnapshot {
     retained: HashMap<String, Publication>,
@@ -25,6 +26,7 @@ impl BrokerSnapshot {
     }
 }
 
+/// Used for persisting/loading session state.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SessionSnapshot {
     client_id: ClientId,

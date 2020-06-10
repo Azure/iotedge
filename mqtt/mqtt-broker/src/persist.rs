@@ -106,6 +106,10 @@ impl<F> FilePersistor<F> {
     }
 }
 
+/// Root structure that is being serialized/deserialized.
+/// Used to support versioning of persisted state.
+/// 
+/// Every inner data structure must implement Into/From `BrokerSnapshot` in back-compat manner.
 #[derive(Deserialize, Serialize)]
 enum VersionedState {
     V1(ConsolidatedState),
@@ -152,6 +156,15 @@ impl FileFormat for VersionedFileFormat {
         });
         bincode::serialize_into(encoder, &state).map_err(|e| PersistError::Serialize(Some(e)))
     }
+}
+
+#[derive(Deserialize, Serialize)]
+struct ConsolidatedState {
+    #[serde(serialize_with = "serialize_payloads")]
+    #[serde(deserialize_with = "deserialize_payloads")]
+    payloads: HashMap<u64, Bytes>,
+    retained: HashMap<String, SimplifiedPublication>,
+    sessions: Vec<ConsolidatedSession>,
 }
 
 impl From<BrokerSnapshot> for ConsolidatedState {
@@ -254,15 +267,6 @@ impl From<ConsolidatedState> for BrokerSnapshot {
 
         BrokerSnapshot::new(retained, sessions)
     }
-}
-
-#[derive(Deserialize, Serialize)]
-struct ConsolidatedState {
-    #[serde(serialize_with = "serialize_payloads")]
-    #[serde(deserialize_with = "deserialize_payloads")]
-    payloads: HashMap<u64, Bytes>,
-    retained: HashMap<String, SimplifiedPublication>,
-    sessions: Vec<ConsolidatedSession>,
 }
 
 #[derive(Deserialize, Serialize)]

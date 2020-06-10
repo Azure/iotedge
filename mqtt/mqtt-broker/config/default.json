@@ -1,9 +1,9 @@
 {
     "transports": [
-        { 
+        {
             "tcp": {
-                 "address": "0.0.0.0:1883"
-            } 
+                "address": "0.0.0.0:1883"
+            }
         }
     ],
     "retained_messages": {
@@ -12,12 +12,10 @@
     },
     "session": {
         "expiration": "60d",
-        "messages": {
-            "max_message_size": "256kb",
-            "max_inflight_messages": 16,
-            "max_queued_messages": 1000,
-            "max_queued_size": "10mb",
-            "when_full": "drop_new"
-        }                
+        "max_message_size": "256kb",
+        "max_inflight_messages": 16,
+        "max_queued_messages": 1000,
+        "max_queued_size": "10mb",
+        "when_full": "drop_new"
     }
 }
