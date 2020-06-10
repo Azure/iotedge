@@ -35,7 +35,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Pvc
                     labels: new Dictionary<string, string>
                     {
                         [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue("device1"),
-                        [KubernetesConstants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue("hostname")
                     }),
                 Spec = new V1PersistentVolumeClaimSpec
                 {
@@ -50,7 +49,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Pvc
                     labels: new Dictionary<string, string>
                     {
                         [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue("device1"),
-                        [KubernetesConstants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue("hostname")
                     }),
                 Spec = new V1PersistentVolumeClaimSpec
                 {
@@ -71,7 +69,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Pvc
                     labels: new Dictionary<string, string>
                     {
                         [KubernetesConstants.K8sEdgeDeviceLabel] = "device1",
-                        [KubernetesConstants.K8sEdgeHubNameLabel] = "hostname"
                     }),
                 Spec = new V1PersistentVolumeClaimSpec
                 {
@@ -88,7 +85,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Pvc
                     labels: new Dictionary<string, string>
                     {
                         [KubernetesConstants.K8sEdgeDeviceLabel] = "device1",
-                        [KubernetesConstants.K8sEdgeHubNameLabel] = "hostname"
                     }),
                 Spec = new V1PersistentVolumeClaimSpec
                 {
@@ -164,7 +160,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Pvc
                     labels: new Dictionary<string, string>
                     {
                         [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue("device1"),
-                        [KubernetesConstants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue("hostname")
                     },
                     ownerReferences: new List<V1OwnerReference>
                     {
@@ -183,7 +178,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Pvc
                     labels: new Dictionary<string, string>
                     {
                         [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue("device1"),
-                        [KubernetesConstants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue("hostname")
                     }),
                 Spec = new V1PersistentVolumeClaimSpec
                 {
@@ -203,7 +197,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Pvc
                     labels: new Dictionary<string, string>
                     {
                         [KubernetesConstants.K8sEdgeDeviceLabel] = "device1",
-                        [KubernetesConstants.K8sEdgeHubNameLabel] = "hostname"
                     }),
                 Spec = new V1PersistentVolumeClaimSpec
                 {
@@ -219,7 +212,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Pvc
                     labels: new Dictionary<string, string>
                     {
                         [KubernetesConstants.K8sEdgeDeviceLabel] = "device1",
-                        [KubernetesConstants.K8sEdgeHubNameLabel] = "hostname"
                     }),
                 Spec = new V1PersistentVolumeClaimSpec
                 {

@@ -84,6 +84,7 @@ jobs:
             echo "testrun.network.runProfile=$(testrun.network.runProfile)"
             echo "testrun.duration=$(testrun.duration)"
             echo "deploymentFileName=$(deploymentFileName)"
+            echo "test.runtimeLogLevel=$(test.runtimeLogLevel)"
       - template: templates/set-run-flag.yaml
       - checkout: none
         condition: and(succeeded(), eq(variables['run.flag'], 1))
@@ -160,7 +161,7 @@ jobs:
           edgeRuntime.buildNumber: '$(edgeRuntime.buildNumber)'
           customEdgeAgent.image: '$(customEdgeAgent.image)'
           customEdgeHub.image: '$(customEdgeHub.image)'
-          runtimeLogLevel: '$(test.runtimeLogLevel)'
+          test.runtimeLogLevel: '$(test.runtimeLogLevel)'
 
 
 ################################################################################
@@ -242,6 +243,7 @@ jobs:
             echo "testrun.network.runProfile=$(testrun.network.runProfile)"
             echo "testrun.duration=$(testrun.duration)"
             echo "deploymentFileName=$(deploymentFileName)"
+            echo "test.runtimeLogLevel=$(test.runtimeLogLevel)"
       - template: templates/set-run-flag.yaml
       - checkout: none
         condition: and(succeeded(), eq(variables['run.flag'], 1))
@@ -318,4 +320,4 @@ jobs:
           edgeRuntime.buildNumber: '$(edgeRuntime.buildNumber)'
           customEdgeAgent.image: '$(customEdgeAgent.image)'
           customEdgeHub.image: '$(customEdgeHub.image)'
-          runtimeLogLevel: '$(test.runtimeLogLevel)'
+          test.runtimeLogLevel: '$(test.runtimeLogLevel)'
