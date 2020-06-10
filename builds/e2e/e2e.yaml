@@ -35,8 +35,9 @@ jobs:
     timeoutInMinutes: 120
 
     steps:
-    - pwsh: |
-        sudo git clean -ffdx
+    - task: CmdLine@2
+      inputs:
+        script: 'sudo find . -type f -group root -execdir rm {} + && sudo find . -type d -group root -print0 | sudo xargs -0 /bin/rm -rf' 
       displayName: Clean up files (as sudo)
 
     - template: templates/e2e-setup.yaml

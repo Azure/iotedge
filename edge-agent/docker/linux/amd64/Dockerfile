@@ -9,6 +9,10 @@ ARG EXE_DIR=.
 RUN apk update && \
     apk add --no-cache snappy
 
+# create a user to allow agent to optionally run as non-root
+ARG EDGEAGENTUSER_ID=1000	
+RUN adduser -Ds /bin/sh -u ${EDGEAGENTUSER_ID} edgeagentuser 
+
 # Install RocksDB
 COPY --from=builder publish/* /usr/local/lib/
 

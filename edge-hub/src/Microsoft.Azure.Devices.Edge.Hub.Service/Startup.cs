@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
+    using Prometheus;
 
     public class Startup : IStartup
     {
@@ -47,6 +48,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         public void Configure(IApplicationBuilder app)
         {
+            // Separate metrics endpoint from https authentication
+            app.Map("/metrics", metricsApp =>
+            {
+                metricsApp.UseMetricServer(string.Empty);
+            });
+
+            app.UseHttpsRedirection();
             app.UseWebSockets();
 
             var webSocketListenerRegistry = app.ApplicationServices.GetService(typeof(IWebSocketListenerRegistry)) as IWebSocketListenerRegistry;

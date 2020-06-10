@@ -24,10 +24,7 @@ pub struct GraphDriverData {
 impl GraphDriverData {
     /// Information about a container's graph driver.
     pub fn new(name: String) -> Self {
-        GraphDriverData {
-            name: name,
-            data: None,
-        }
+        GraphDriverData { name, data: None }
     }
 
     pub fn set_name(&mut self, name: String) {
