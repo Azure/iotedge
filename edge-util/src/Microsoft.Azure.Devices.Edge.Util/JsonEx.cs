@@ -19,7 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
             JTokenType.Null,
             JTokenType.Object,
             JTokenType.String,
-            JTokenType.Date
+            JTokenType.Date,
+            JTokenType.Array
         };
 
         static readonly string[] MetadataPropertyNames = { "$metadata", "$version" };
