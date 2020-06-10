@@ -74,7 +74,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             var deviceOnlyLabels = new Dictionary<string, string>
             {
                 [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue(this.resourceName.DeviceId),
-                [KubernetesConstants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue(this.resourceName.Hostname)
             };
 
             // Modules may share an image pull secret, so only pick unique ones to add to the dictionary.

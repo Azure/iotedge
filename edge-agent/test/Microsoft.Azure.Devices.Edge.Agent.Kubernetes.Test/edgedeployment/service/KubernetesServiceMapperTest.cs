@@ -24,10 +24,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Serv
         static readonly DockerConfig Config1 = new DockerConfig("test-image:1");
 
         static readonly Dictionary<string, DockerEmptyStruct> ExposedPorts = new Dictionary<string, DockerEmptyStruct>
-            {
-                ["80/tcp"] = default(DockerEmptyStruct),
-                ["5000/udp"] = default(DockerEmptyStruct)
-            };
+        {
+            ["80/tcp"] = default(DockerEmptyStruct),
+            ["5000/udp"] = default(DockerEmptyStruct)
+        };
 
         static readonly HostConfig HostPorts = new HostConfig
         {
@@ -47,7 +47,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Serv
         static readonly Dictionary<string, string> DefaultLabels = new Dictionary<string, string>
         {
             [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue("device1"),
-            [KubernetesConstants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue("hostname")
         };
 
         static readonly ModuleIdentity CreateIdentity = new ModuleIdentity("hostname", "gateway", "device1", "Module1", new ConnectionStringCredentials("connection string"));
