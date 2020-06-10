@@ -45,20 +45,16 @@ prop_compose! {
     pub fn arb_session_snapshot()(
         client_id in arb_clientid(),
         subscriptions in hash_map(arb_topic(), arb_subscription(), 0..10),
-        packet_identifiers in arb_packet_identifiers(),
+        _packet_identifiers in arb_packet_identifiers(),
         waiting_to_be_sent in vec_deque(arb_publication(), 0..10),
-        waiting_to_be_released in hash_map(arb_packet_identifier(), arb_proto_publish(), 0..10),
-        waiting_to_be_acked in hash_map(arb_packet_identifier(), arb_publish(), 0..10),
-        waiting_to_be_completed in hash_set(arb_packet_identifier(), 0..10),
+        _waiting_to_be_released in hash_map(arb_packet_identifier(), arb_proto_publish(), 0..10),
+        _waiting_to_be_acked in hash_map(arb_packet_identifier(), arb_publish(), 0..10),
+        _waiting_to_be_completed in hash_set(arb_packet_identifier(), 0..10),
     ) -> SessionSnapshot {
         SessionSnapshot::from_parts(
             client_id,
             subscriptions,
-            packet_identifiers,
             waiting_to_be_sent,
-            waiting_to_be_acked,
-            waiting_to_be_released,
-            waiting_to_be_completed,
         )
     }
 }

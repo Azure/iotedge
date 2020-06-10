@@ -4,7 +4,7 @@ use std::os::unix::fs::symlink;
 use std::os::windows::fs::symlink_file;
 use std::{
     cmp,
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     error::Error as StdError,
     fs::{self, OpenOptions},
     io::{Read, Write},
@@ -21,10 +21,7 @@ use tracing::{debug, info, span, Level};
 
 use mqtt3::proto::Publication;
 
-use crate::{
-    session::PacketIdentifiers, subscription::Subscription, BrokerSnapshot, ClientId,
-    SessionSnapshot,
-};
+use crate::{subscription::Subscription, BrokerSnapshot, ClientId, SessionSnapshot};
 
 /// sets the number of past states to save - 2 means we save the current and the pervious
 const STATE_DEFAULT_PREVIOUS_COUNT: usize = 2;
@@ -185,8 +182,7 @@ impl From<BrokerSnapshot> for ConsolidatedState {
         let sessions = sessions
             .into_iter()
             .map(|session| {
-                let (client_id, subscriptions, _, waiting_to_be_sent, _, _, _) =
-                    session.into_parts();
+                let (client_id, subscriptions, waiting_to_be_sent) = session.into_parts();
 
                 #[allow(clippy::redundant_closure)] // removing closure leads to borrow error
                 let waiting_to_be_sent = waiting_to_be_sent
@@ -251,11 +247,7 @@ impl From<ConsolidatedState> for BrokerSnapshot {
                 SessionSnapshot::from_parts(
                     session.client_id,
                     session.subscriptions,
-                    PacketIdentifiers::default(),
                     waiting_to_be_sent,
-                    HashMap::new(),
-                    HashMap::new(),
-                    HashSet::new(),
                 )
             })
             .collect();

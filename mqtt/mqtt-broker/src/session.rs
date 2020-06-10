@@ -324,24 +324,16 @@ impl SessionState {
     }
 
     pub fn from_snapshot(snapshot: SessionSnapshot, config: SessionConfig) -> Self {
-        let (
-            client_id,
-            subscriptions,
-            packet_identifiers,
-            waiting_to_be_sent,
-            waiting_to_be_acked,
-            waiting_to_be_released,
-            waiting_to_be_completed,
-        ) = snapshot.into_parts();
+        let (client_id, subscriptions, waiting_to_be_sent) = snapshot.into_parts();
 
         Self {
             client_id,
             subscriptions,
-            packet_identifiers,
+            packet_identifiers: PacketIdentifiers::default(),
             waiting_to_be_sent,
-            waiting_to_be_acked,
-            waiting_to_be_released,
-            waiting_to_be_completed,
+            waiting_to_be_acked: HashMap::new(),
+            waiting_to_be_released: HashMap::new(),
+            waiting_to_be_completed: HashSet::new(),
             waiting_to_be_acked_qos0: HashMap::new(),
             packet_identifiers_qos0: PacketIdentifiers::default(),
             config,
@@ -619,11 +611,7 @@ impl From<SessionState> for SessionSnapshot {
         SessionSnapshot::from_parts(
             state.client_id,
             state.subscriptions,
-            state.packet_identifiers,
             state.waiting_to_be_sent,
-            state.waiting_to_be_acked,
-            state.waiting_to_be_released,
-            state.waiting_to_be_completed,
         )
     }
 }
@@ -876,7 +864,7 @@ impl<'de> Deserialize<'de> for IdentifiersInUse {
 }
 
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
-pub struct PacketIdentifiers {
+pub(crate) struct PacketIdentifiers {
     in_use: IdentifiersInUse,
     previous: proto::PacketIdentifier,
 }
