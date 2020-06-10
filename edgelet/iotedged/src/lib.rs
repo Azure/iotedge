@@ -359,7 +359,6 @@ where
                     $id_cert_thumprint,
                 )?;
 
-                //let provisioning_result = $provisioning_result.clone();
                 let cfg = WorkloadData::new(
                     $provisioning_result.hub_name().to_string(),
                     $provisioning_result.device_id().to_string(),
@@ -1425,7 +1424,7 @@ where
     let hub_name = workload_config.iot_hub_name().to_string();
     let device_id = workload_config.device_id().to_string();
     let hostname = format!("https://{}", hub_name);
-    let token_source = SasTokenSource::new(hub_name.clone(), device_id.clone(), root_key);
+    let token_source = SasTokenSource::new(hub_name.clone(), device_id.clone(), root_key.clone());
     let http_client = HttpClient::new(
         hyper_client,
         Some(token_source),
@@ -1510,7 +1509,7 @@ where
             settings,
             runtime,
             workload_config,
-            &key_store.clone(),
+            root_key,
             key_rx,
             cert_manager,
         ))
@@ -1609,7 +1608,6 @@ where
             key_svc,
         ))
         .then(|result| match result {
-            // Ok(((), ((), (restart_code, should_reprovision), ()))) => {
             Ok(((), ((), (restart_code, should_reprovision), (), _, _))) => {
                 Ok((restart_code, should_reprovision))
             }
@@ -2192,7 +2190,6 @@ fn start_identity<M, W, CE>(
     shutdown: Receiver<()>,
     cert_manager: Arc<CertificateManager<CE>>,
 ) -> impl Future<Item = (), Error = Error>
-// ) -> impl Future<>
 where
     CE: CreateCertificate + Clone,
     M: MakeModuleRuntime + 'static,
@@ -2241,13 +2238,13 @@ fn start_key_service<M, W, K, CE>(
     settings: &M::Settings,
     runtime: &M::ModuleRuntime,
     config: W,
-    key_store: &K,
+    key: K,
     shutdown: Receiver<()>,
     cert_manager: Arc<CertificateManager<CE>>,
 ) -> impl Future<Item = (), Error = Error>
 where
     CE: CreateCertificate + Clone,
-    K: KeyStore + Clone + Send + Sync + 'static,
+    K: Sign + Clone + Send + Sync + 'static,
     M: MakeModuleRuntime + 'static,
     M::Settings: 'static,
     M::ModuleRuntime: 'static + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
@@ -2265,7 +2262,7 @@ where
 
     let min_protocol_version = settings.listen().min_tls_version();
 
-    KeyService::new(runtime, config, key_store)
+    KeyService::new(runtime, config, key)
         .then(move |service| -> Result<_, Error> {
             let service =
                 service.context(ErrorKind::Initialize(InitializeErrorReason::KeyService))?;
