@@ -41,8 +41,8 @@ pub struct RetainedMessages {
 pub struct SessionMessages {
     #[serde(deserialize_with = "humansize")]
     max_message_size: u64,
-    max_inflight_messages: u32,
-    max_queued_messages: u32,
+    max_inflight_messages: usize,
+    max_queued_messages: usize,
     #[serde(deserialize_with = "humansize")]
     max_queued_size: u64,
     when_full: QueueFullAction,
@@ -65,11 +65,11 @@ pub struct SessionConfig {
 
 impl SessionConfig {
     pub fn max_inflight_messages(&self) -> usize {
-        self.messages.max_inflight_messages as usize
+        self.messages.max_inflight_messages
     }
 
     pub fn max_queued_messages(&self) -> usize {
-        self.messages.max_queued_messages as usize
+        self.messages.max_queued_messages
     }
 
     pub fn when_full(&self) -> &QueueFullAction {
@@ -165,8 +165,10 @@ impl Default for BrokerConfig {
         // It is guaranteed that next two calls must not fail,
         // otherwise we have a bug in the code or in ../config/default.json file.
         // It is guarded by a unit test as well.
-        s.merge(File::from_str(DEFAULTS, FileFormat::Json)).unwrap();
-        s.try_into().unwrap()
+        s.merge(File::from_str(DEFAULTS, FileFormat::Json))
+            .expect("Unable to load default broker config. Check default.json file.");
+        s.try_into()
+            .expect("Unable to load default broker config. Check default.json file.")
     }
 }
 
