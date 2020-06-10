@@ -4,11 +4,11 @@ Documentation=man:iotedged(8)
 PartOf=iotedge.service
 
 [Socket]
-ListenStream=/var/run/iotedge/keyservice.sock
+ListenStream=/var/run/keyservice/keyservice.sock
 SocketMode=0660
 DirectoryMode=0755
-SocketUser=iotedge
-SocketGroup=iotedge
+SocketUser=keyservice
+SocketGroup=keyservice
 Service=iotedge.service
 
 [Install]

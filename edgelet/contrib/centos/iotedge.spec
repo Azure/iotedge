@@ -1,5 +1,9 @@
 %define iotedge_user iotedge
 %define iotedge_group %{iotedge_user}
+%define idservice_user idservice
+%define idservice_group %{idservice_user}
+%define keyservice_user keyservice
+%define keyservice_group %{keyservice_user}
 %define iotedge_home %{_localstatedir}/lib/iotedge
 %define iotedge_logdir %{_localstatedir}/log/iotedge
 %define iotedge_confdir %{_sysconfdir}/iotedge
@@ -123,8 +127,8 @@ echo "==========================================================================
 # sockets
 %attr(660, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/mgmt.sock
 %attr(666, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/workload.sock
-%attr(660, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/idservice.sock
-%attr(660, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/keyservice.sock
+%attr(660, %{idservice_user}, %{idservice_group}) %{iotedge_home}/idservice.sock
+%attr(660, %{keyservice_user}, %{keyservice_group}) %{iotedge_home}/keyservice.sock
 
 # dirs
 %attr(-, %{iotedge_user}, %{iotedge_group}) %dir %{iotedge_home}

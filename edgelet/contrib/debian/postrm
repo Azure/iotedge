@@ -9,12 +9,6 @@ case "$1" in
         if [ -d /var/lib/iotedge ]; then
             rm -rf /var/lib/iotedge
         fi
-        if [ -d /var/lib/idservice ]; then
-            rm -rf /var/lib/idservice
-        fi
-        if [ -d /var/lib/keyservice ]; then
-            rm -rf /var/lib/keyservice
-        fi
         if [ -d /var/log/iotedge ]; then
             rm -rf /var/log/iotedge
         fi

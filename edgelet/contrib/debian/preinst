@@ -7,6 +7,14 @@ add_groups()
         adduser --system iotedge --home /var/lib/iotedge --shell /bin/false
     fi
 
+    if ! getent passwd idservice >/dev/null; then
+        adduser --system idservice --home /var/lib/iotedge --shell /bin/false
+    fi
+
+    if ! getent passwd keyservice >/dev/null; then
+        adduser --system keyservice --home /var/lib/iotedge --shell /bin/false
+    fi
+
     if ! getent group iotedge >/dev/null; then
         addgroup --system iotedge
     fi
@@ -27,11 +35,17 @@ add_groups()
     # Add each admin user to the iotedge group - for systems installed before precise
     for u in $(getent group admin | sed -e "s/^.*://" -e "s/,/ /g"); do
         adduser "$u" iotedge >/dev/null || true
+        adduser "$u" idservice >/dev/null || true
+        adduser "$u" keyservice >/dev/null || true
+
     done
 
     # Add each sudo user to the iotedge group
     for u in $(getent group sudo | sed -e "s/^.*://" -e "s/,/ /g"); do
         adduser "$u" iotedge >/dev/null || true
+        adduser "$u" idservice >/dev/null || true
+        adduser "$u" keyservice >/dev/null || true
+
     done
 }
 
