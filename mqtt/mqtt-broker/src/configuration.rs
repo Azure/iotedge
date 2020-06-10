@@ -23,7 +23,7 @@ pub enum Transport {
     },
 }
 
-#[derive(Debug, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum QueueFullAction {
     DropNew,
@@ -85,8 +85,12 @@ impl SessionConfig {
         self.max_queued_messages
     }
 
-    pub fn when_full(&self) -> &QueueFullAction {
-        &self.when_full
+    pub fn max_queued_size(&self) -> u64 {
+        self.max_queued_size
+    }
+
+    pub fn when_full(&self) -> QueueFullAction {
+        self.when_full
     }
 }
 

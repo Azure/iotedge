@@ -232,7 +232,7 @@ impl OfflineSession {
 
         // Dequeue any queued messages - up to the max inflight count
         while state.allowed_to_send() {
-            match state.waiting_to_be_sent.pop_front() {
+            match state.pop_from_queue() {
                 Some(publication) => {
                     debug!("dequeueing a message for {}", state.client_id);
                     let event = state.prepare_to_send(&publication)?;
@@ -296,6 +296,7 @@ pub struct SessionState {
     packet_identifiers_qos0: PacketIdentifiers,
 
     waiting_to_be_sent: VecDeque<proto::Publication>,
+    waiting_to_be_sent_size: u64,
 
     // for incoming messages - QoS2
     waiting_to_be_released: HashMap<proto::PacketIdentifier, proto::Publish>,
@@ -316,6 +317,7 @@ impl SessionState {
             packet_identifiers_qos0: PacketIdentifiers::default(),
 
             waiting_to_be_sent: VecDeque::new(),
+            waiting_to_be_sent_size: 0,
             waiting_to_be_acked: HashMap::new(),
             waiting_to_be_acked_qos0: HashMap::new(),
             waiting_to_be_released: HashMap::new(),
@@ -327,11 +329,16 @@ impl SessionState {
     pub fn from_snapshot(snapshot: SessionSnapshot, config: SessionConfig) -> Self {
         let (client_id, subscriptions, waiting_to_be_sent) = snapshot.into_parts();
 
+        let waiting_to_be_sent_size = waiting_to_be_sent
+            .iter()
+            .fold(0, |s, item| s + item.payload.len()) as u64;
+
         Self {
             client_id,
             subscriptions,
             packet_identifiers: PacketIdentifiers::default(),
             waiting_to_be_sent,
+            waiting_to_be_sent_size,
             waiting_to_be_acked: HashMap::new(),
             waiting_to_be_released: HashMap::new(),
             waiting_to_be_completed: HashSet::new(),
@@ -478,7 +485,7 @@ impl SessionState {
 
     fn try_publish(&mut self) -> Result<Option<ClientEvent>, Error> {
         if self.allowed_to_send() {
-            if let Some(publication) = self.waiting_to_be_sent.pop_front() {
+            if let Some(publication) = self.pop_from_queue() {
                 let event = self.prepare_to_send(&publication)?;
                 return Ok(Some(event));
             }
@@ -497,22 +504,45 @@ impl SessionState {
         num_inflight < self.config.max_inflight_messages()
     }
 
+    fn pop_from_queue(&mut self) -> Option<proto::Publication> {
+        match self.waiting_to_be_sent.pop_front() {
+            Some(publication) => {
+                self.waiting_to_be_sent_size -= publication.payload.len() as u64;
+                Some(publication)
+            }
+            None => None,
+        }
+    }
+
     fn enqueue(&mut self, publication: proto::Publication) {
         if self.config.max_queued_messages() > 0
             && self.waiting_to_be_sent.len() >= self.config.max_queued_messages()
         {
-            match self.config.when_full() {
-                QueueFullAction::DropNew => {
-                    // do nothing
-                }
-                QueueFullAction::DropOld => {
-                    let _ = self.waiting_to_be_sent.pop_front();
-                    self.waiting_to_be_sent.push_back(publication);
-                }
-            }
-        } else {
-            self.waiting_to_be_sent.push_back(publication);
+            return self.handle_queue_limit(publication);
         }
+
+        if self.config.max_queued_size() > 0 {
+            let pub_len = publication.payload.len() as u64;
+            if self.waiting_to_be_sent_size + pub_len > self.config.max_queued_size() {
+                return self.handle_queue_limit(publication);
+            }
+        }
+
+        self.waiting_to_be_sent_size += publication.payload.len() as u64;
+        self.waiting_to_be_sent.push_back(publication);
+    }
+
+    fn handle_queue_limit(&mut self, publication: proto::Publication) {
+        match self.config.when_full() {
+            QueueFullAction::DropNew => {
+                // do nothing
+            }
+            QueueFullAction::DropOld => {
+                let _ = self.pop_from_queue();
+                self.waiting_to_be_sent_size += publication.payload.len() as u64;
+                self.waiting_to_be_sent.push_back(publication);
+            }
+        };
     }
 
     fn filter(&self, mut publication: proto::Publication) -> Option<proto::Publication> {
