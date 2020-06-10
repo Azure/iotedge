@@ -108,7 +108,7 @@ impl<F> FilePersistor<F> {
 
 /// Root structure that is being serialized/deserialized.
 /// Used to support versioning of persisted state.
-/// 
+///
 /// Every inner data structure must implement Into/From `BrokerSnapshot` in back-compat manner.
 #[derive(Deserialize, Serialize)]
 enum VersionedState {
