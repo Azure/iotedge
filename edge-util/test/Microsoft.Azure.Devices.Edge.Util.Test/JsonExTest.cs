@@ -280,7 +280,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 },
                 create = "yes",
                 array = new object[] { true, "boom", 3.14 },
-                arrayString = new string[] { "a" }
+                arrayString = new string[] { "a" },
+                arrayNoChange = new string[] { "a" }
             };
 
             var patch = new
@@ -301,7 +302,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                     level1 = "value1",
                 },
                 array = new object[] { new object[] { 100L, false }, new { a = 0, b = "doom" } },
-                arrayString = "a"
+                arrayString = "a",
+                // arrayNoChange = new string[] { "a" } // unchanged
             };
 
             var mergedExcludeNull = new
@@ -322,7 +324,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                     level1 = "value1",
                 },
                 array = new object[] { new object[] { 100L, false }, new { a = 0, b = "doom" } },
-                arrayString = "a"
+                arrayString = "a",
+                arrayNoChange = new string[] { "a" }
             };
 
             var removeAll = new
@@ -331,7 +334,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 overwrite = (Dictionary<string, string>)null,
                 create = (Dictionary<string, string>)null,
                 array = (int[])null,
-                arrayString = (string[])null
+                arrayString = (string[])null,
+                arrayNoChange = (string[])null,
             };
 
             var emptyBaseline = new { };
@@ -342,7 +346,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             JToken resultCollection = JsonEx.Diff(JToken.FromObject(baseline), JToken.FromObject(mergedExcludeNull));
 
             // Assert
-            Assert.True(JToken.DeepEquals(resultCollection, JToken.FromObject(patch)), resultCollection.ToString());
+            Assert.True(JToken.DeepEquals(resultCollection, JToken.FromObject(patch)), JToken.FromObject(patch).ToString());
 
             // Act
             resultCollection = JsonEx.Diff(JToken.FromObject(baseline), JToken.FromObject(baseline));
