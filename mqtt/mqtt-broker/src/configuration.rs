@@ -1,8 +1,10 @@
-use std::convert::From;
-use std::ops::Mul;
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
-use std::time::Duration;
+use std::{
+    convert::From,
+    ops::Mul,
+    path::{Path, PathBuf},
+    str::FromStr,
+    time::Duration,
+};
 
 use config::{Config, ConfigError, File, FileFormat};
 use lazy_static::lazy_static;

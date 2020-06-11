@@ -1,18 +1,22 @@
-use std::collections::{HashMap, HashSet, VecDeque};
-use std::{cmp, fmt, mem};
+use std::{
+    cmp,
+    collections::{HashMap, HashSet, VecDeque},
+    fmt, mem,
+};
 
-use serde::de::{SeqAccess, Visitor};
-use serde::ser::SerializeTuple;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{
+    de::{SeqAccess, Visitor},
+    ser::SerializeTuple,
+    Deserialize, Deserializer, Serialize, Serializer,
+};
 use tracing::{debug, warn};
 
 use mqtt3::proto;
 use mqtt_broker_core::auth::AuthId;
 
-use crate::subscription::Subscription;
 use crate::{
-    configuration::QueueFullAction, snapshot::SessionSnapshot, ClientEvent, ClientId, ConnReq,
-    ConnectionHandle, Error, Message, Publish, SessionConfig,
+    configuration::QueueFullAction, snapshot::SessionSnapshot, subscription::Subscription,
+    ClientEvent, ClientId, ConnReq, ConnectionHandle, Error, Message, Publish, SessionConfig,
 };
 
 #[derive(Debug)]
@@ -1222,7 +1226,7 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn test_publish_to_drops_new_message_when_queue_full() {
+    fn test_publish_to_drops_new_message_when_queue_count_limit_reached() {
         let client_id = ClientId::from("id1");
         let max_inflight = 2;
         let max_queued = 2;
@@ -1265,7 +1269,49 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn test_publish_to_drops_old_message_when_queue_full() {
+    fn test_publish_to_drops_new_message_when_queue_size_limit_reached() {
+        let client_id = ClientId::from("id1");
+        let max_inflight = 2;
+        let max_size = 10;
+        let topic = "topic/new";
+
+        let config = SessionConfig::new(
+            Duration::default(),
+            0,
+            max_inflight,
+            0,
+            max_size,
+            QueueFullAction::DropNew,
+        );
+
+        let mut session = SessionState::new(client_id, config);
+
+        subscribe_to(topic, &mut session);
+
+        let publication = new_publication(topic, "payload");
+
+        assert_matches!(session.publish_to(publication.clone()), Ok(Some(_)));
+        assert_matches!(session.publish_to(publication.clone()), Ok(Some(_)));
+
+        assert_matches!(session.publish_to(publication), Ok(None));
+
+        let publication = new_publication(topic, "last message");
+        assert_matches!(session.publish_to(publication), Ok(None));
+
+        assert_eq!(session.waiting_to_be_acked.len(), 2);
+        assert_eq!(session.waiting_to_be_sent.len(), 1);
+
+        assert_matches!(
+            session
+                .waiting_to_be_sent
+                .iter()
+                .find(|p| p.payload == Bytes::from("last message")),
+            None
+        );
+    }
+
+    #[test]
+    fn test_publish_to_drops_old_message_when_queue_count_limit_reached() {
         let client_id = ClientId::from("id1");
         let max_inflight = 2;
         let max_queued = 2;
@@ -1297,6 +1343,49 @@ pub(crate) mod tests {
 
         assert_eq!(session.waiting_to_be_acked.len(), 2);
         assert_eq!(session.waiting_to_be_sent.len(), 2);
+
+        assert_matches!(
+            session
+                .waiting_to_be_sent
+                .iter()
+                .find(|p| p.payload == Bytes::from("first message")),
+            None
+        );
+    }
+
+    #[test]
+    fn test_publish_to_drops_old_message_when_queue_size_limit_reached() {
+        let client_id = ClientId::from("id1");
+        let max_inflight = 2;
+        let max_size = 10;
+        let topic = "topic/new";
+
+        let config = SessionConfig::new(
+            Duration::default(),
+            0,
+            max_inflight,
+            0,
+            max_size,
+            QueueFullAction::DropOld,
+        );
+
+        let mut session = SessionState::new(client_id, config);
+
+        subscribe_to(topic, &mut session);
+
+        let publication = new_publication(topic, "payload");
+
+        assert_matches!(session.publish_to(publication.clone()), Ok(Some(_)));
+        assert_matches!(session.publish_to(publication.clone()), Ok(Some(_)));
+
+        let first_queued = new_publication(topic, "first message");
+
+        assert_matches!(session.publish_to(first_queued), Ok(None));
+        assert_matches!(session.publish_to(publication.clone()), Ok(None));
+        assert_matches!(session.publish_to(publication), Ok(None));
+
+        assert_eq!(session.waiting_to_be_acked.len(), 2);
+        assert_eq!(session.waiting_to_be_sent.len(), 1);
 
         assert_matches!(
             session
