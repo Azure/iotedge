@@ -104,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                           .ConfigureServices(s => s.TryAddSingleton(usernameParser))
                           .ConfigureServices(s => s.TryAddSingleton(clientCredentialsFactory))
                           .ConfigureServices(s => s.TryAddSingleton(config))
-                          .ConfigureServices(s => s.AddMvc())
+                          .ConfigureServices(s => s.AddControllers())
                           .ConfigureLogging(c => c.ClearProviders())
                           .Build();
         }
