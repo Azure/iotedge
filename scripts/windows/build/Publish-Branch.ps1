@@ -140,7 +140,7 @@ Write-Host "`nPublishing .NET Core apps`n"
 
 $appProjectList = New-Object 'System.Collections.Generic.List[String]'
 $appProjectList.Add("Microsoft.Azure.Devices.Edge.Agent.Service.csproj")
-$appProjectList.Add($EDGE_HUB_PROJECT_NAME)
+$appProjectList.Add("Microsoft.Azure.Devices.Edge.Hub.Service.csproj")
 $appProjectList.Add("SimulatedTemperatureSensor.csproj")
 $appProjectList.Add("TemperatureFilter.csproj")
 $appProjectList.Add("load-gen.csproj")
