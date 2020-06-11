@@ -34,6 +34,8 @@ edgelet-http = { path = "../edgelet-http" }
 edgelet-http-external-provisioning = { path = "../edgelet-http-external-provisioning" }
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-http-workload = { path = "../edgelet-http-workload" }
+edgelet-http-identity = { path = "../edgelet-http-identity" }
+edgelet-http-keyservice = { path = "../edgelet-http-keyservice" }
 edgelet-iothub = { path = "../edgelet-iothub" }
 edgelet-kube = { path = "../edgelet-kube", optional = true }
 edgelet-utils = { path = "../edgelet-utils" }

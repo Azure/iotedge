@@ -1,0 +1,88 @@
+swagger: '2.0'
+schemes:
+  - http
+info:
+  title: Key Service API
+  version: '2020-06-01'
+
+paths:
+  '/sign':
+    post:
+      tags:
+        - Key operations
+      summary: 'Sign using identity keys'
+      operationId: Sign
+      parameters:
+        - $ref: '#/parameters/api-version'
+        - in: body
+          name: signPayload
+          description: The data to be signed.
+          required: true
+          schema:
+            $ref: '#/definitions/SignRequest'
+      responses:
+        '200':
+          description: Ok
+          schema:
+            $ref: '#/definitions/SignResponse'
+        '404':
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
+definitions:
+  SignRequest:
+    type: object
+    properties:
+      keyHandle:
+        type: string
+        description: Key handle returned by Identity Service.
+      algorithm:
+        type: string
+        description: Sign algorithm to be used.
+        enum:
+          - HMAC-SHA256
+      parameters:
+        $ref: '#/definitions/SignParameters'
+    required:
+      - keyHandle
+      - algorithm
+      - parameters
+  SignResponse:
+    type: object
+    properties:
+      signature:
+        type: string
+        format: byte
+        description: Signature of the data.
+    required:
+      - signature
+  SignParameters:
+    type: object
+    properties:
+      message:
+        type: string
+        format: byte
+        description: Message that needs to be signed.
+    required:
+      - message
+  ErrorResponse:
+    type: object
+    properties:
+      message:
+        type: string
+    required:
+      - message
+
+parameters:
+  api-version:
+    name: api-version
+    in: query
+    description: The version of the API.
+    required: true
+    type: string
+    default: '2020-06-01'

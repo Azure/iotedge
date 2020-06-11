@@ -15,6 +15,7 @@ use sha2::Sha256;
 
 use crate::certificate_properties::{CertificateIssuer, CertificateProperties};
 use crate::error::{Error, ErrorKind};
+use std::str::FromStr;
 
 /// This is the issuer alias used when `CertificateIssuer::DefaultCa` is provided by the caller
 pub const IOTEDGED_CA_ALIAS: &str = "iotedged-workload-ca";
@@ -68,6 +69,19 @@ pub trait KeyStore {
 #[derive(Clone, Copy)]
 pub enum SignatureAlgorithm {
     HMACSHA256,
+}
+
+impl FromStr for SignatureAlgorithm {
+    type Err = Error;
+
+    fn from_str(algorithm: &str) -> Result<Self, Self::Err> {
+        match algorithm.to_lowercase().as_ref() {
+            "hmac-sha256" | "hmacsha256" => Ok(SignatureAlgorithm::HMACSHA256),
+            _ => Err(Error::from(ErrorKind::UnsupportedSignatureAlgorithm(
+                algorithm.to_owned(),
+            ))),
+        }
+    }
 }
 
 pub trait Signature {

@@ -278,6 +278,8 @@ connect:
 #     management_uri - used by the Edge Agent and 'iotedge' CLI to start,
 #                      stop, and manage modules
 #     workload_uri   - used by modules to retrieve tokens and certificates
+#     identityservice_uri   - used by host-level processes to retrieve identity information
+#     keyservice_uri - used by host-level processes to perform identity key operations
 #
 # The following uri schemes are supported:
 #     http - listen over TCP
@@ -294,6 +296,8 @@ connect:
 listen:
   management_uri: "fd://iotedge.mgmt.socket"
   workload_uri: "fd://iotedge.socket"
+  identityservice_uri: "fd://idservice.socket"
+  keyservice_uri: "fd://keyservice.socket"
 
 ###############################################################################
 # Home Directory
