@@ -77,7 +77,9 @@ impl FromStr for SignatureAlgorithm {
     fn from_str(algorithm: &str) -> Result<Self, Self::Err> {
         match algorithm.to_lowercase().as_ref() {
             "hmac-sha256" | "hmacsha256" => Ok(SignatureAlgorithm::HMACSHA256),
-            _ => Err(Error::from(ErrorKind::UnsupportedSignatureAlgorithm)),
+            _ => Err(Error::from(ErrorKind::UnsupportedSignatureAlgorithm(
+                algorithm.to_owned(),
+            ))),
         }
     }
 }

@@ -13,11 +13,11 @@ use crate::IntoResponse;
 use keyservice::models::{SignRequest, SignResponse};
 use std::str::FromStr;
 
-pub struct SignHandler<K: Sign> {
+pub struct SignHandler<K> {
     key: K,
 }
 
-impl<K: Sign> SignHandler<K> {
+impl<K> SignHandler<K> {
     pub fn new(key: K) -> Self {
         SignHandler { key }
     }
@@ -48,14 +48,12 @@ where
                 let signature = key
                     .sign(algorithm, &message)
                     .map(|s| base64::encode(s.as_bytes()))
-                    .context(ErrorKind::GetSignature)
-                    .unwrap();
+                    .context(ErrorKind::GetSignature)?;
 
                 let sign_response = SignResponse::new(signature);
 
-                let body = serde_json::to_string(&sign_response)
-                    .context(ErrorKind::GetSignature)
-                    .unwrap();
+                let body =
+                    serde_json::to_string(&sign_response).context(ErrorKind::GetSignature)?;
 
                 let resp = Response::builder()
                     .status(StatusCode::OK)
@@ -148,7 +146,7 @@ mod tests {
             .and_then(|b| {
                 let error_response: ErrorResponse = serde_json::from_slice(&b).unwrap();
                 let expected =
-                    "Invalid signature algorithm\n\tcaused by: Signature algorithm is unsupported.";
+                    "Invalid signature algorithm\n\tcaused by: Signature algorithm \"ECDSA\" is unsupported.";
                 assert_eq!(expected, error_response.message());
                 Ok(())
             })

@@ -42,8 +42,8 @@ where
             .concat2()
             .then(move |_| {
                 let identity_auth = identity::models::Credentials::new(
-                    DEVICE_IDENTITY_AUTH_TYPE.parse().unwrap(),
-                    DEVICE_IDENTITY_KEY_HANDLE.parse().unwrap(),
+                    DEVICE_IDENTITY_AUTH_TYPE.to_owned(),
+                    DEVICE_IDENTITY_KEY_HANDLE.to_owned(),
                 );
                 let identity_spec = IdentitySpec::new(
                     config.iot_hub_name().to_string(),
@@ -51,11 +51,10 @@ where
                     identity_auth,
                 );
                 let identity_result =
-                    IdentityResult::new(DEVICE_IDENTITY_TYPE.parse().unwrap(), identity_spec);
+                    IdentityResult::new(DEVICE_IDENTITY_TYPE.to_owned(), identity_spec);
 
-                let body = serde_json::to_string(&identity_result)
-                    .context(ErrorKind::GetIdentity)
-                    .unwrap();
+                let body =
+                    serde_json::to_string(&identity_result).context(ErrorKind::GetIdentity)?;
 
                 let response = Response::builder()
                     .status(StatusCode::OK)
