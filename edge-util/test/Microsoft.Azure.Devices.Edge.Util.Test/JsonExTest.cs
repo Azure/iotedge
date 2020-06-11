@@ -98,8 +98,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                     level1 = "value1"
                 },
                 create = "yes",
-                array = new object[] { new object[] { 100L, false }},
-                arrayString = new string[] {"a"}
+                array = new object[] { new object[] { 100L, false } },
+                arrayString = new string[] { "a" }
             };
 
             var patch = new
@@ -279,8 +279,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                     level1 = "value1"
                 },
                 create = "yes",
-                array = new object[] { new object[] { 100L, false }},
-                arrayString = new string[] { "a" },
+                arrayWithObjects = new object[] { new object[] { 100L, false } },
+                arrayWithValue = new string[] { "a" },
+                arrayChangeType = new string[] { "a" },
                 arrayNoChange = new string[] { "a" }
             };
 
@@ -301,8 +302,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 {
                     level1 = "value1",
                 },
-                array = new object[] { new object[] { 100L, true }, new { a = 0, b = "doom" } },
-                arrayString = "a",
+                arrayWithObjects = new object[] { new object[] { 100L, true }, new { a = 0, b = "doom" } },
+                arrayWithValue = new string[] { "b" },
+                arrayChangeType = "a",
                 // arrayNoChange = new string[] { "a" } // unchanged
             };
 
@@ -323,8 +325,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 {
                     level1 = "value1",
                 },
-                array = new object[] { new object[] { 100L, true }, new { a = 0, b = "doom" } },
-                arrayString = "a",
+                arrayWithObjects = new object[] { new object[] { 100L, true }, new { a = 0, b = "doom" } },
+                arrayWithValue = new string[] { "b" },
+                arrayChangeType = "a",
                 arrayNoChange = new string[] { "a" }
             };
 
@@ -333,8 +336,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 name = (Dictionary<string, string>)null,
                 overwrite = (Dictionary<string, string>)null,
                 create = (Dictionary<string, string>)null,
-                array = (int[])null,
-                arrayString = (string[])null,
+                arrayWithObjects = (int[])null,
+                arrayWithValue = (string[])null,
+                arrayChangeType = (string[])null,
                 arrayNoChange = (string[])null,
             };
 
