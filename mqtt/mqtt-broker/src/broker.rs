@@ -950,7 +950,7 @@ where
 pub struct BrokerBuilder<Z> {
     state: Option<BrokerSnapshot>,
     authorizer: Z,
-    config: Option<BrokerConfig>,
+    config: BrokerConfig,
 }
 
 impl Default for BrokerBuilder<DefaultAuthorizer> {
@@ -958,7 +958,7 @@ impl Default for BrokerBuilder<DefaultAuthorizer> {
         Self {
             state: None,
             authorizer: DefaultAuthorizer,
-            config: None,
+            config: BrokerConfig::default(),
         }
     }
 }
@@ -984,16 +984,12 @@ where
     }
 
     pub fn with_config(mut self, config: BrokerConfig) -> Self {
-        self.config = Some(config);
+        self.config = config;
         self
     }
 
     pub fn build(self) -> Broker<Z> {
-        let config = match self.config {
-            Some(config) => config,
-            None => BrokerConfig::default(),
-        };
-
+        let config = self.config;
         let (retained, sessions) = match self.state {
             Some(state) => {
                 let (retained, sessions) = state.into_parts();
