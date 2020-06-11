@@ -196,7 +196,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             yield return new object[]
             {
-                new TwinCollection("{ \"ok\": [\"good\"], \"level1\": [{ \"field1\": null }] }"),
+                new TwinCollection("{ \"ok\": [\"good\"], \"ok2\": [], \"level1\": [{ \"field1\": null }] }"),
                 null,
                 string.Empty
             };
