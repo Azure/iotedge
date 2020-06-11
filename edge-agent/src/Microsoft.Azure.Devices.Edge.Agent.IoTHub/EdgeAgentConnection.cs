@@ -3,8 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
     using System;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Amqp;
-    using Microsoft.Azure.Amqp.Encoding;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
@@ -213,7 +211,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             {
                 Events.ErrorGettingTwin(e);
 
-                if (!forceNewModuleClient && this.NeedsRecreateModuleClient(e))
+                if (!forceNewModuleClient && this.RetryWithNewModuleClient(e))
                 {
                     return await this.GetTwinFromIoTHub(true);
                 }
@@ -222,7 +220,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        bool NeedsRecreateModuleClient(Exception e)
+        bool RetryWithNewModuleClient(Exception e)
         {
             return !(e is TimeoutException);
         }
