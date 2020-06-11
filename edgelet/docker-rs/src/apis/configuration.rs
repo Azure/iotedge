@@ -24,7 +24,7 @@ impl<C: Connect> Configuration<C> {
         Configuration {
             base_path: "http://localhost/v1.34".to_owned(),
             user_agent: Some("edgelet/0.1.0".to_owned()),
-            client: client,
+            client,
             uri_composer: Box::new(|base_path, path| {
                 format!("{}{}", base_path, path)
                     .parse()

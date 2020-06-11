@@ -130,13 +130,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
     public class MemoryStats
     {
         [JsonConstructor]
-        public MemoryStats(double? limit, double? max_usage, double? usage, MemoryStatsExtended stats)
+        public MemoryStats(double? privateworkingset, double? limit, double? max_usage, double? usage, MemoryStatsExtended stats)
         {
+            this.PrivateWorkingSet = Option.Maybe(privateworkingset);
             this.Limit = Option.Maybe(limit);
             this.MaxUsage = Option.Maybe(max_usage);
             this.Usage = Option.Maybe(usage);
             this.Stats = Option.Maybe(stats);
         }
+
+        [JsonProperty("privateworkingset", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public Option<double> PrivateWorkingSet { get; }
 
         [JsonProperty("limit", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public Option<double> Limit { get; }

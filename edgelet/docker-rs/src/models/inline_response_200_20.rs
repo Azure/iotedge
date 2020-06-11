@@ -26,8 +26,8 @@ impl InlineResponse20020 {
         platforms: Vec<crate::models::InlineResponse20020Platforms>,
     ) -> Self {
         InlineResponse20020 {
-            descriptor: descriptor,
-            platforms: platforms,
+            descriptor,
+            platforms,
         }
     }
 
