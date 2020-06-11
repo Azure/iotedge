@@ -57,6 +57,12 @@ namespace DirectMethodSender
                 logger.LogInformation(e, $"Transient exception caught with count {this.directMethodCount}");
                 return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.NotFound, this.directMethodCount);
             }
+            catch (IotHubCommunicationException e) when (e.Message.Contains("operation timed out"))
+            {
+                logger.LogInformation(e, $"Transient IotHubCommunicationException caught with count {this.directMethodCount}. Retry.");
+                this.directMethodCount--;
+                return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.RequestTimeout, this.directMethodCount + 1);
+            }
             catch (Exception e)
             {
                 logger.LogError(e, $"Exception caught with count {this.directMethodCount}");
