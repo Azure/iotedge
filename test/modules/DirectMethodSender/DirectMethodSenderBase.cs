@@ -75,7 +75,7 @@ namespace DirectMethodSender
             int resultStatus = (int)HttpStatusCode.InternalServerError;
             int transientRetryCount = 0;
 
-            while (transientRetryCount <= maxRetry)
+            while (transientRetryCount < maxRetry)
             {
                 try
                 {
@@ -84,15 +84,8 @@ namespace DirectMethodSender
                 }
                 catch (IotHubCommunicationException e) when (e.IsTransient)
                 {
-                    if (transientRetryCount < maxRetry)
-                    {
-                        logger.LogInformation(e, $"Transient IotHubCommunicationException caught with count {this.directMethodCount}.");
-                    }
-                    else
-                    {
-                        logger.LogInformation(e, $"Transient IotHubCommunicationException caught with count {this.directMethodCount}. Retry Exceeded.");
-                        resultStatus = (int)HttpStatusCode.RequestTimeout;
-                    }
+                    logger.LogInformation(e, $"Transient IotHubCommunicationException caught with count {this.directMethodCount}. Retry: {transientRetryCount}");
+                    resultStatus = (int)HttpStatusCode.RequestTimeout;
                 }
             }
 
