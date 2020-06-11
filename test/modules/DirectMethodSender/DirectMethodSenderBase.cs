@@ -37,7 +37,30 @@ namespace DirectMethodSender
             logger.LogInformation($"{this.GetType().ToString()} : Calling Direct Method on device {this.deviceId} targeting module [{this.targetModuleId}] with count {this.directMethodCount}.");
             try
             {
-                int resultStatus = await this.InvokeDeviceMethodAsync(this.deviceId, this.targetModuleId, methodName, this.directMethodCount, CancellationToken.None);
+                const int maxRetry = 3;
+                int resultStatus = (int)HttpStatusCode.InternalServerError;
+                int transientRetryCount = 0;
+
+                while (transientRetryCount <= maxRetry)
+                {
+                    try
+                    {
+                        transientRetryCount++;
+                        resultStatus = await this.InvokeDeviceMethodAsync(this.deviceId, this.targetModuleId, methodName, this.directMethodCount, CancellationToken.None);
+                    }
+                    catch (IotHubCommunicationException e) when (e.IsTransient)
+                    {
+                        if (transientRetryCount < maxRetry)
+                        {
+                            logger.LogInformation(e, $"Transient IotHubCommunicationException caught with count {this.directMethodCount}.");
+                        }
+                        else
+                        {
+                            logger.LogInformation(e, $"Transient IotHubCommunicationException caught with count {this.directMethodCount}. Retry Exceeded.");
+                            return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.RequestTimeout, this.directMethodCount);
+                        }
+                    }
+                }
 
                 string statusMessage = $"Calling Direct Method with count {this.directMethodCount} returned with status code {resultStatus}";
                 if (resultStatus == (int)HttpStatusCode.OK)
@@ -56,12 +79,6 @@ namespace DirectMethodSender
             {
                 logger.LogInformation(e, $"Transient exception caught with count {this.directMethodCount}");
                 return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.NotFound, this.directMethodCount);
-            }
-            catch (IotHubCommunicationException e) when (e.Message.Contains("operation timed out"))
-            {
-                logger.LogInformation(e, $"Transient IotHubCommunicationException caught with count {this.directMethodCount}. Retry.");
-                this.directMethodCount--;
-                return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.RequestTimeout, this.directMethodCount + 1);
             }
             catch (Exception e)
             {

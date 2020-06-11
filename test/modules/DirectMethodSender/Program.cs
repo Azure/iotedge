@@ -140,8 +140,7 @@ namespace DirectMethodSender
 
         static bool ShouldReportResults(DirectMethodResultType resultType, HttpStatusCode statusCode)
         {
-            return !(resultType == DirectMethodResultType.LegacyDirectMethodTestResult && statusCode == HttpStatusCode.NotFound) &&
-                   !(resultType == DirectMethodResultType.DirectMethodTestResult && statusCode == HttpStatusCode.RequestTimeout);
+            return !(resultType == DirectMethodResultType.LegacyDirectMethodTestResult && statusCode == HttpStatusCode.NotFound);
         }
     }
 }
