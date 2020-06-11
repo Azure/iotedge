@@ -1180,7 +1180,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 receivedDeploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
 
                 // Assert
-                moduleClient.Verify(m => m.GetTwinAsync(), Times.Exactly(5));
+                moduleClient.Verify(m => m.GetTwinAsync(), Times.Exactly(7));
                 Assert.True(receivedDeploymentConfigInfo.HasValue);
                 Assert.False(receivedDeploymentConfigInfo.OrDefault().Exception.HasValue);
                 Assert.Equal(deploymentConfig, receivedDeploymentConfigInfo.OrDefault().DeploymentConfig);
