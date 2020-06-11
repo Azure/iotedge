@@ -25,6 +25,12 @@
               "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
             },
             "env": {
+              "Logging:LogLevel:Default": {
+                "value": "Debug"
+              },
+              "Logging:LogLevel:Microsoft": {
+                "value": "Debug"
+              }
             }
           },
           "edgeHub": {
@@ -36,6 +42,12 @@
             "env": {
               "CollectMetrics": {
                 "value": "true"
+              },
+              "Logging:LogLevel:Default": {
+                "value": "Debug"
+              },
+              "Logging:LogLevel:Microsoft": {
+                "value": "Debug"
               }
             },
             "status": "running",
