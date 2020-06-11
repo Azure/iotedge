@@ -120,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 {
                     level1 = "value1",
                 },
-                array = new object[] { new { a = 0, b = "doom" } },
+                array = new object[] { new object[] { 100L, true }, new { a = 0, b = "doom" } },
                 arrayString = "a"
             };
 
@@ -171,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 {
                     level1 = "value1",
                 },
-                array = new object[] { new { a = 0, b = "doom" } },
+                array = new object[] { new object[] { 100L, true }, new { a = 0, b = "doom" } },
                 arrayString = "a"
             };
 
@@ -194,7 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 {
                     level1 = "value1",
                 },
-                array = new object[] { new { a = 0, b = "doom" } },
+                array = new object[] { new object[] { 100L, true }, new { a = 0, b = "doom" } },
                 arrayString = "a"
             };
 
@@ -279,7 +279,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                     level1 = "value1"
                 },
                 create = "yes",
-                array = new object[] { true, "boom", 3.14 },
+                array = new object[] { new object[] { 100L, false }},
                 arrayString = new string[] { "a" },
                 arrayNoChange = new string[] { "a" }
             };
@@ -301,7 +301,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 {
                     level1 = "value1",
                 },
-                array = new object[] { new object[] { 100L, false }, new { a = 0, b = "doom" } },
+                array = new object[] { new object[] { 100L, true }, new { a = 0, b = "doom" } },
                 arrayString = "a",
                 // arrayNoChange = new string[] { "a" } // unchanged
             };
@@ -323,7 +323,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 {
                     level1 = "value1",
                 },
-                array = new object[] { new object[] { 100L, false }, new { a = 0, b = "doom" } },
+                array = new object[] { new object[] { 100L, true }, new { a = 0, b = "doom" } },
                 arrayString = "a",
                 arrayNoChange = new string[] { "a" }
             };
