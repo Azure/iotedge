@@ -80,7 +80,6 @@ if (Test-Path $DOTNET_PATH -PathType Leaf) {
 
 $PUBLISH_FOLDER = Join-Path $BuildBinariesDirectory "publish"
 $VERSIONINFO_FILE_PATH = Join-Path $BuildRepositoryLocalPath "versionInfo.json"
-$EDGE_HUB_PROJECT_NAME = "Microsoft.Azure.Devices.Edge.Hub.Service"
 
 $SRC_SCRIPTS_DIR = Join-Path $BuildRepositoryLocalPath "scripts"
 $PUB_SCRIPTS_DIR = Join-Path $PUBLISH_FOLDER "scripts"
@@ -92,9 +91,9 @@ $PUB_E2E_TEST_FILES_DIR = Join-Path $PUBLISH_FOLDER "e2e_test_files"
 $SRC_CERT_TOOLS_DIR = Join-Path $BuildRepositoryLocalPath "tools/CACertificates"
 $PUB_CERT_TOOLS_DIR = Join-Path $PUBLISH_FOLDER "CACertificates"
 $SRC_MQTT_DIR=Join-Path $BuildRepositoryLocalPath "edge-hub/mqtt"
-$PUB_MQTT_DIR=Join-Path $PUBLISH_FOLDER "${EDGE_HUB_PROJECT_NAME}/mqtt"
+$PUB_MQTT_DIR=Join-Path $PUBLISH_FOLDER "mqtt"
 $SRC_WATCHDOG_DIR=Join-Path $BuildRepositoryLocalPath "edge-hub/watchdog"
-$PUB_WATCHDOG_DIR=Join-Path $PUBLISH_FOLDER "${EDGE_HUB_PROJECT_NAME}/watchdog"
+$PUB_WATCHDOG_DIR=Join-Path $PUBLISH_FOLDER "Microsoft.Azure.Devices.Edge.Hub.Service/watchdog"
 
 if (Test-Path $BuildBinariesDirectory -PathType Container) {
     Remove-Item $BuildBinariesDirectory -Force -Recurse
