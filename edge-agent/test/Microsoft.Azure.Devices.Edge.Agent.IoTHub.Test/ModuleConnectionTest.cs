@@ -204,5 +204,48 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Assert
             Assert.True(optionResultModuleClient.HasValue);
         }
+
+        [Fact]
+        public async Task ForceToRecreateModuleClientTest()
+        {
+            // Arrange
+            ConnectionStatusChangesHandler connectionStatusChangesHandler = (status, reason) => { };
+            DesiredPropertyUpdateCallback desiredPropertyUpdateCallback = (properties, context) => Task.CompletedTask;
+
+            Task<IModuleClient> GetModuleClient() => Task.FromResult(Mock.Of<IModuleClient>(m => m.IsActive));
+            var moduleClientProvider = new Mock<IModuleClientProvider>();
+            moduleClientProvider.Setup(m => m.Create(connectionStatusChangesHandler))
+                .Returns(GetModuleClient);
+
+            var requestManager = new Mock<IRequestManager>();
+            bool enableSubscriptions = true;
+
+            // Act
+            var moduleConnection = new ModuleConnection(moduleClientProvider.Object, requestManager.Object, connectionStatusChangesHandler, desiredPropertyUpdateCallback, enableSubscriptions);
+            IModuleClient resultModuleClient = await moduleConnection.GetOrCreateModuleClient();
+            Option<IModuleClient> optionResultModuleClient = moduleConnection.GetModuleClient();
+
+            // Assert
+            Assert.NotNull(resultModuleClient);
+            Assert.True(optionResultModuleClient.HasValue);
+            moduleClientProvider.Verify(m => m.Create(connectionStatusChangesHandler), Times.Once);
+            Mock<IModuleClient> moduleClient = Mock.Get(resultModuleClient);
+            moduleClient.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<MethodCallback>()), Times.Once);
+            moduleClient.Verify(m => m.SetDesiredPropertyUpdateCallbackAsync(desiredPropertyUpdateCallback), Times.Once);
+
+            // Act - Force to create a new instance of module client
+            moduleClient.Setup(m => m.IsActive).Returns(false);
+            resultModuleClient = await moduleConnection.GetOrCreateModuleClient(true);
+            optionResultModuleClient = moduleConnection.GetModuleClient();
+
+            // Assert
+            Assert.NotNull(resultModuleClient);
+            Assert.True(optionResultModuleClient.HasValue);
+            moduleClient.Verify(m => m.CloseAsync(), Times.Once);
+            Mock<IModuleClient> moduleClient2 = Mock.Get(resultModuleClient);
+            moduleClientProvider.Verify(m => m.Create(connectionStatusChangesHandler), Times.Exactly(2));
+            moduleClient2.Verify(m => m.SetDefaultMethodHandlerAsync(It.IsAny<MethodCallback>()), Times.Once);
+            moduleClient2.Verify(m => m.SetDesiredPropertyUpdateCallbackAsync(desiredPropertyUpdateCallback), Times.Once);
+        }
     }
 }

@@ -3,6 +3,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
     using System;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Amqp;
+    using Microsoft.Azure.Amqp.Encoding;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
@@ -24,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         static readonly ITransientErrorDetectionStrategy AllButFatalErrorDetectionStrategy = new DelegateErrorDetectionStrategy(ex => ex.IsFatal() == false);
 
         static readonly RetryStrategy TransientRetryStrategy =
-            new ExponentialBackoff(5, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
+            new ExponentialBackoff(3, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
 
         readonly AsyncLock twinLock = new AsyncLock();
         readonly ISerde<DeploymentConfig> desiredPropertiesSerDe;
@@ -184,14 +186,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 });
         }
 
-        async Task<Option<Twin>> GetTwinFromIoTHub()
+        async Task<Option<Twin>> GetTwinFromIoTHub(bool forceNewModuleClient = false)
         {
             try
             {
                 async Task<Twin> GetTwinFunc()
                 {
-                    Events.GettingModuleClient();
-                    IModuleClient moduleClient = await this.moduleConnection.GetOrCreateModuleClient();
+                    Events.GettingModuleClient(forceNewModuleClient);
+                    IModuleClient moduleClient = await this.moduleConnection.GetOrCreateModuleClient(forceNewModuleClient);
                     Events.GotModuleClient();
                     return await moduleClient.GetTwinAsync();
                 }
@@ -210,8 +212,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             catch (Exception e)
             {
                 Events.ErrorGettingTwin(e);
+
+                if (!forceNewModuleClient && this.NeedsRecreateModuleClient(e))
+                {
+                    return await this.GetTwinFromIoTHub(true);
+                }
+
                 return Option.None<Twin>();
             }
+        }
+
+        bool NeedsRecreateModuleClient(Exception e)
+        {
+            return !(e is TimeoutException);
         }
 
         // This method updates local state and should be called only after acquiring twinLock
@@ -354,9 +367,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 Log.LogDebug((int)EventIds.ErrorUpdatingReportedProperties, ex, "Error updating reported properties in IoT Hub");
             }
 
-            public static void GettingModuleClient()
+            public static void GettingModuleClient(bool forceRenew)
             {
-                Log.LogDebug((int)EventIds.GettingModuleClient, "Getting module client to refresh the twin");
+                Log.LogDebug((int)EventIds.GettingModuleClient, $"Getting module client to refresh the twin with forceRenew set to {forceRenew}");
             }
 
             public static void GotModuleClient()
