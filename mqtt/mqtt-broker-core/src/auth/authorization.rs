@@ -48,27 +48,46 @@ impl Authorizer for DefaultAuthorizer {
 }
 
 /// Describes a client activity to authorized.
-pub struct Activity {
-    client_id: ClientId,
-    client_info: Option<ClientInfo>,
-    operation: Operation,
+pub enum Activity {
+    /// Describes a client activity for active session.
+    Active {
+        client_id: ClientId,
+        client_info: ClientInfo,
+        operation: Operation,
+    },
+
+    /// Describes a client activity for offline session.
+    Offline {
+        client_id: ClientId,
+        operation: Operation,
+    },
 }
 
 impl Activity {
-    pub fn new(
+    pub fn new_active(
         client_id: impl Into<ClientId>,
-        client_info: Option<ClientInfo>,
+        client_info: ClientInfo,
         operation: Operation,
     ) -> Self {
-        Self {
+        Self::Active {
             client_id: client_id.into(),
             client_info,
             operation,
         }
     }
 
+    pub fn new_offline(client_id: impl Into<ClientId>, operation: Operation) -> Self {
+        Self::Offline {
+            client_id: client_id.into(),
+            operation,
+        }
+    }
+
     pub fn operation(&self) -> &Operation {
-        &self.operation
+        match self {
+            Activity::Active { operation, .. } => operation,
+            Activity::Offline { operation, .. } => operation,
+        }
     }
 }
 
@@ -218,9 +237,9 @@ mod tests {
     #[test]
     fn default_auth_always_deny_any_action() {
         let auth = DefaultAuthorizer;
-        let activity = Activity::new(
+        let activity = Activity::new_active(
             "client-auth-id",
-            Some(ClientInfo::new(peer_addr(), "client-id")),
+            ClientInfo::new(peer_addr(), "client-id"),
             Operation::new_connect(connect()),
         );
 
@@ -232,9 +251,9 @@ mod tests {
     #[test]
     fn authorizer_wrapper_around_function() {
         let auth = authorize_fn_ok(|_| true);
-        let activity = Activity::new(
+        let activity = Activity::new_active(
             "client-auth-id",
-            Some(ClientInfo::new(peer_addr(), "client-id")),
+            ClientInfo::new(peer_addr(), "client-id"),
             Operation::new_connect(connect()),
         );
 

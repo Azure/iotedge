@@ -271,7 +271,7 @@ where
         // Check client permissions to connect
         let client_info = ClientInfo::new(connreq.peer_addr(), auth_id.clone());
         let operation = Operation::new_connect(connreq.connect().clone());
-        let activity = Activity::new(client_id.clone(), Some(client_info), operation);
+        let activity = Activity::new_active(client_id.clone(), client_info, operation);
         match self.authorizer.authorize(activity) {
             Ok(true) => {
                 debug!("client {} successfully authorized", client_id);
@@ -487,7 +487,7 @@ where
         let operation = Operation::new_publish(publish.clone());
         if let Some(session) = self.sessions.get_mut(client_id) {
             let client_info = session.client_info()?.clone();
-            let activity = Activity::new(client_id.clone(), Some(client_info), operation);
+            let activity = Activity::new_active(client_id.clone(), client_info, operation);
             match self.authorizer.authorize(activity) {
                 Ok(true) => {
                     debug!("client {} successfully authorized", client_id);
@@ -873,7 +873,7 @@ where
 
     let auth_results = subscribe.subscribe_to.into_iter().map(|subscribe_to| {
         let operation = Operation::new_subscribe(subscribe_to.clone());
-        let activity = Activity::new(client_id.clone(), Some(client_info.clone()), operation);
+        let activity = Activity::new_active(client_id.clone(), client_info.clone(), operation);
         let auth = authorizer.authorize(activity);
         auth.map(|auth| (auth, subscribe_to))
     });
@@ -927,10 +927,11 @@ where
 {
     let operation = Operation::new_receive(publication.clone());
     let client_id = session.client_id().clone();
-    let client_info = session
-        .client_info()
-        .map_or(None, |info| Some(info.clone()));
-    let activity = Activity::new(client_id, client_info, operation);
+    let activity = if let Ok(client_info) = session.client_info() {
+        Activity::new_active(client_id, client_info.clone(), operation)
+    } else {
+        Activity::new_offline(client_id, operation)
+    };
 
     match authorizer.authorize(activity) {
         Ok(true) => {
