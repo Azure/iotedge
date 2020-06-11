@@ -178,10 +178,11 @@ impl Default for BrokerConfig {
         // It is guaranteed that next two calls must not fail,
         // otherwise we have a bug in the code or in ../config/default.json file.
         // It is guarded by a unit test as well.
-        s.merge(File::from_str(DEFAULTS, FileFormat::Json))
-            .expect("Unable to load default broker config. Check default.json file.");
+        s.merge(File::from_str(DEFAULTS, FileFormat::Json)).expect(
+            "Unable to load default broker config. Check default.json has invalid json format.",
+        );
         s.try_into()
-            .expect("Unable to load default broker config. Check default.json file.")
+            .expect("Unable to load default broker config. Check default.json to match BrokerConfig structure.")
     }
 }
 

@@ -363,7 +363,7 @@ impl SessionState {
 
     pub fn queue_publish(&mut self, publication: proto::Publication) -> Result<(), Error> {
         if let Some(publication) = self.filter(publication) {
-            self.add_to_queue(publication);
+            self.enqueue(publication);
         }
         Ok(())
     }
@@ -379,7 +379,7 @@ impl SessionState {
                 let event = self.prepare_to_send(&publication)?;
                 Ok(Some(event))
             } else {
-                self.add_to_queue(publication);
+                self.enqueue(publication);
                 Ok(None)
             }
         } else {
@@ -497,7 +497,7 @@ impl SessionState {
         num_inflight < self.config.max_inflight_messages()
     }
 
-    fn add_to_queue(&mut self, publication: proto::Publication) {
+    fn enqueue(&mut self, publication: proto::Publication) {
         if self.config.max_queued_messages() > 0
             && self.waiting_to_be_sent.len() >= self.config.max_queued_messages()
         {
@@ -580,36 +580,6 @@ impl SessionState {
             }
         };
         Ok(event)
-    }
-}
-
-#[cfg(any(test, feature = "proptest"))]
-#[allow(clippy::too_many_arguments, dead_code)]
-impl SessionState {
-    pub(crate) fn from_state_parts(
-        client_id: ClientId,
-        subscriptions: HashMap<String, Subscription>,
-        packet_identifiers: PacketIdentifiers,
-        packet_identifiers_qos0: PacketIdentifiers,
-        waiting_to_be_sent: VecDeque<proto::Publication>,
-        waiting_to_be_released: HashMap<proto::PacketIdentifier, proto::Publish>,
-        waiting_to_be_acked: HashMap<proto::PacketIdentifier, Publish>,
-        waiting_to_be_acked_qos0: HashMap<proto::PacketIdentifier, Publish>,
-        waiting_to_be_completed: HashSet<proto::PacketIdentifier>,
-        config: SessionConfig,
-    ) -> Self {
-        Self {
-            client_id,
-            subscriptions,
-            packet_identifiers,
-            packet_identifiers_qos0,
-            waiting_to_be_sent,
-            waiting_to_be_acked,
-            waiting_to_be_acked_qos0,
-            waiting_to_be_released,
-            waiting_to_be_completed,
-            config,
-        }
     }
 }
 
