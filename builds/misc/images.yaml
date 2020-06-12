@@ -209,7 +209,7 @@ jobs:
       - script: echo $(registry.password)|docker login "edgebuilds.azurecr.io" -u "$(registry.user)" --password-stdin
         displayName: Docker Login
 
-      - powershell: ../../mqtt/build/windows/build.ps1 -Configuration:"$(Build.Configuration)"
+      - powershell: ../../mqtt/build/windows/build.ps1 -Release
         displayName: Build mqtt broker
 
       - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:"$(Build.Configuration)" -PublishTests:$False -UpdateVersion
