@@ -325,7 +325,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 ErrorUpdatingReportedProperties,
                 GotModuleClient,
                 GettingModuleClient,
-                ClosingModuleClient,
+                ErrorClosingModuleClient,
             }
 
             public static void DesiredPropertiesPatchFailed(Exception exception)
@@ -444,7 +444,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
             public static void ErrorClosingModuleClientForRetry(Exception e)
             {
-                Log.LogWarning((int)EventIds.ClosingModuleClient, e, "Error closing module client for retry");
+                Log.LogWarning((int)EventIds.ErrorClosingModuleClient, e, "Error closing module client for retry");
             }
         }
     }
