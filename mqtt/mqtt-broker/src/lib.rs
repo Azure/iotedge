@@ -12,6 +12,7 @@
 )]
 
 mod auth;
+mod bounded_queue;
 mod broker;
 mod configuration;
 mod connection;
