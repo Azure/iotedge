@@ -1,5 +1,6 @@
 use std::{
     convert::From,
+    num::{NonZeroU64, NonZeroUsize},
     ops::Mul,
     path::{Path, PathBuf},
     str::FromStr,
@@ -79,16 +80,16 @@ impl SessionConfig {
         }
     }
 
-    pub fn max_inflight_messages(&self) -> usize {
-        self.max_inflight_messages
+    pub fn max_inflight_messages(&self) -> Option<NonZeroUsize> {
+        NonZeroUsize::new(self.max_inflight_messages)
     }
 
-    pub fn max_queued_messages(&self) -> usize {
-        self.max_queued_messages
+    pub fn max_queued_messages(&self) -> Option<NonZeroUsize> {
+        NonZeroUsize::new(self.max_queued_messages)
     }
 
-    pub fn max_queued_size(&self) -> u64 {
-        self.max_queued_size
+    pub fn max_queued_size(&self) -> Option<NonZeroU64> {
+        NonZeroU64::new(self.max_queued_size)
     }
 
     pub fn when_full(&self) -> QueueFullAction {

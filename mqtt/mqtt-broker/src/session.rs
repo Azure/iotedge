@@ -498,14 +498,15 @@ impl SessionState {
     }
 
     fn allowed_to_send(&self) -> bool {
-        if self.config.max_inflight_messages() == 0 {
-            return true;
+        match self.config.max_inflight_messages() {
+            Some(limit) => {
+                let num_inflight = self.waiting_to_be_acked.len()
+                    + self.waiting_to_be_acked_qos0.len()
+                    + self.waiting_to_be_completed.len();
+                num_inflight < limit.get()
+            }
+            None => true,
         }
-
-        let num_inflight = self.waiting_to_be_acked.len()
-            + self.waiting_to_be_acked_qos0.len()
-            + self.waiting_to_be_completed.len();
-        num_inflight < self.config.max_inflight_messages()
     }
 
     fn pop_from_queue(&mut self) -> Option<proto::Publication> {
@@ -519,15 +520,15 @@ impl SessionState {
     }
 
     fn enqueue(&mut self, publication: proto::Publication) {
-        if self.config.max_queued_messages() > 0
-            && self.waiting_to_be_sent.len() >= self.config.max_queued_messages()
-        {
-            return self.handle_queue_limit(publication);
+        if let Some(count_limit) = self.config.max_queued_messages() {
+            if self.waiting_to_be_sent.len() >= count_limit.get() {
+                return self.handle_queue_limit(publication);
+            }
         }
 
-        if self.config.max_queued_size() > 0 {
+        if let Some(size_limit) = self.config.max_queued_size() {
             let pub_len = publication.payload.len() as u64;
-            if self.waiting_to_be_sent_size + pub_len > self.config.max_queued_size() {
+            if self.waiting_to_be_sent_size + pub_len > size_limit.get() {
                 return self.handle_queue_limit(publication);
             }
         }
