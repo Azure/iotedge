@@ -10,9 +10,10 @@ use mqtt3::proto;
 use mqtt_broker_core::auth::AuthId;
 
 use crate::subscription::Subscription;
-use crate::{ClientEvent, ClientId, ConnReq, ConnectionHandle, Error, Message, Publish};
-
-const MAX_INFLIGHT_MESSAGES: usize = 16;
+use crate::{
+    configuration::QueueFullAction, snapshot::SessionSnapshot, ClientEvent, ClientId, ConnReq,
+    ConnectionHandle, Error, Message, Publish, SessionConfig,
+};
 
 #[derive(Debug)]
 pub struct ConnectedSession {
@@ -49,8 +50,12 @@ impl ConnectedSession {
         &self.handle
     }
 
-    pub fn state(&self) -> &SessionState {
-        &self.state
+    pub fn snapshot(&self) -> SessionSnapshot {
+        self.state.clone().into()
+    }
+
+    pub fn subscriptions(&self) -> &HashMap<String, Subscription> {
+        &self.state.subscriptions
     }
 
     pub fn into_will(self) -> Option<proto::Publication> {
@@ -165,8 +170,12 @@ impl OfflineSession {
         &self.state.client_id
     }
 
-    pub fn state(&self) -> &SessionState {
-        &self.state
+    pub fn snapshot(&self) -> SessionSnapshot {
+        self.state.clone().into()
+    }
+
+    pub fn subscriptions(&self) -> &HashMap<String, Subscription> {
+        &self.state.subscriptions
     }
 
     pub fn publish_to(
@@ -178,7 +187,7 @@ impl OfflineSession {
     }
 
     pub fn into_online(self) -> Result<(SessionState, Vec<ClientEvent>), Error> {
-        let mut events = Vec::with_capacity(MAX_INFLIGHT_MESSAGES);
+        let mut events = Vec::new();
         let OfflineSession { mut state } = self;
 
         // Handle the outstanding QoS 1 and QoS 2 packets
@@ -278,7 +287,8 @@ impl DisconnectingSession {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// Common data and functions for broker sessions.
+#[derive(Clone, Debug, PartialEq)]
 pub struct SessionState {
     client_id: ClientId,
     subscriptions: HashMap<String, Subscription>,
@@ -294,10 +304,11 @@ pub struct SessionState {
     waiting_to_be_acked: HashMap<proto::PacketIdentifier, Publish>,
     waiting_to_be_acked_qos0: HashMap<proto::PacketIdentifier, Publish>,
     waiting_to_be_completed: HashSet<proto::PacketIdentifier>,
+    config: SessionConfig,
 }
 
 impl SessionState {
-    pub fn new(client_id: ClientId) -> Self {
+    pub fn new(client_id: ClientId, config: SessionConfig) -> Self {
         Self {
             client_id,
             subscriptions: HashMap::new(),
@@ -309,6 +320,24 @@ impl SessionState {
             waiting_to_be_acked_qos0: HashMap::new(),
             waiting_to_be_released: HashMap::new(),
             waiting_to_be_completed: HashSet::new(),
+            config,
+        }
+    }
+
+    pub fn from_snapshot(snapshot: SessionSnapshot, config: SessionConfig) -> Self {
+        let (client_id, subscriptions, waiting_to_be_sent) = snapshot.into_parts();
+
+        Self {
+            client_id,
+            subscriptions,
+            packet_identifiers: PacketIdentifiers::default(),
+            waiting_to_be_sent,
+            waiting_to_be_acked: HashMap::new(),
+            waiting_to_be_released: HashMap::new(),
+            waiting_to_be_completed: HashSet::new(),
+            waiting_to_be_acked_qos0: HashMap::new(),
+            packet_identifiers_qos0: PacketIdentifiers::default(),
+            config,
         }
     }
 
@@ -334,7 +363,7 @@ impl SessionState {
 
     pub fn queue_publish(&mut self, publication: proto::Publication) -> Result<(), Error> {
         if let Some(publication) = self.filter(publication) {
-            self.waiting_to_be_sent.push_back(publication);
+            self.enqueue(publication);
         }
         Ok(())
     }
@@ -350,7 +379,7 @@ impl SessionState {
                 let event = self.prepare_to_send(&publication)?;
                 Ok(Some(event))
             } else {
-                self.waiting_to_be_sent.push_back(publication);
+                self.enqueue(publication);
                 Ok(None)
             }
         } else {
@@ -458,10 +487,32 @@ impl SessionState {
     }
 
     fn allowed_to_send(&self) -> bool {
+        if self.config.max_inflight_messages() == 0 {
+            return true;
+        }
+
         let num_inflight = self.waiting_to_be_acked.len()
             + self.waiting_to_be_acked_qos0.len()
             + self.waiting_to_be_completed.len();
-        num_inflight < MAX_INFLIGHT_MESSAGES
+        num_inflight < self.config.max_inflight_messages()
+    }
+
+    fn enqueue(&mut self, publication: proto::Publication) {
+        if self.config.max_queued_messages() > 0
+            && self.waiting_to_be_sent.len() >= self.config.max_queued_messages()
+        {
+            match self.config.when_full() {
+                QueueFullAction::DropNew => {
+                    // do nothing
+                }
+                QueueFullAction::DropOld => {
+                    let _ = self.waiting_to_be_sent.pop_front();
+                    self.waiting_to_be_sent.push_back(publication);
+                }
+            }
+        } else {
+            self.waiting_to_be_sent.push_back(publication);
+        }
     }
 
     fn filter(&self, mut publication: proto::Publication) -> Option<proto::Publication> {
@@ -530,62 +581,15 @@ impl SessionState {
         };
         Ok(event)
     }
-
-    pub fn into_parts(
-        self,
-    ) -> (
-        ClientId,
-        HashMap<String, Subscription>,
-        VecDeque<proto::Publication>,
-    ) {
-        (self.client_id, self.subscriptions, self.waiting_to_be_sent)
-    }
-
-    pub fn from_parts(
-        client_id: ClientId,
-        subscriptions: HashMap<String, Subscription>,
-        waiting_to_be_sent: VecDeque<proto::Publication>,
-    ) -> Self {
-        Self {
-            client_id,
-            subscriptions,
-            packet_identifiers: PacketIdentifiers::default(),
-            packet_identifiers_qos0: PacketIdentifiers::default(),
-
-            waiting_to_be_sent,
-            waiting_to_be_acked: HashMap::new(),
-            waiting_to_be_acked_qos0: HashMap::new(),
-            waiting_to_be_released: HashMap::new(),
-            waiting_to_be_completed: HashSet::new(),
-        }
-    }
 }
 
-#[cfg(any(test, feature = "proptest"))]
-#[allow(clippy::too_many_arguments)]
-impl SessionState {
-    pub(crate) fn from_state_parts(
-        client_id: ClientId,
-        subscriptions: HashMap<String, Subscription>,
-        packet_identifiers: PacketIdentifiers,
-        packet_identifiers_qos0: PacketIdentifiers,
-        waiting_to_be_sent: VecDeque<proto::Publication>,
-        waiting_to_be_released: HashMap<proto::PacketIdentifier, proto::Publish>,
-        waiting_to_be_acked: HashMap<proto::PacketIdentifier, Publish>,
-        waiting_to_be_acked_qos0: HashMap<proto::PacketIdentifier, Publish>,
-        waiting_to_be_completed: HashSet<proto::PacketIdentifier>,
-    ) -> Self {
-        Self {
-            client_id,
-            subscriptions,
-            packet_identifiers,
-            packet_identifiers_qos0,
-            waiting_to_be_sent,
-            waiting_to_be_acked,
-            waiting_to_be_acked_qos0,
-            waiting_to_be_released,
-            waiting_to_be_completed,
-        }
+impl From<SessionState> for SessionSnapshot {
+    fn from(state: SessionState) -> Self {
+        SessionSnapshot::from_parts(
+            state.client_id,
+            state.subscriptions,
+            state.waiting_to_be_sent,
+        )
     }
 }
 
@@ -598,8 +602,7 @@ pub enum Session {
 }
 
 impl Session {
-    pub fn new_transient(auth_id: AuthId, connreq: ConnReq) -> Self {
-        let state = SessionState::new(connreq.client_id().clone());
+    pub fn new_transient(auth_id: AuthId, connreq: ConnReq, state: SessionState) -> Self {
         let (connect, handle) = connreq.into_parts();
         let connected = ConnectedSession::new(auth_id, state, connect.will, handle);
         Self::Transient(connected)
@@ -654,14 +657,12 @@ impl Session {
     }
 
     pub fn subscriptions(&self) -> Option<&HashMap<String, Subscription>> {
-        let state = match self {
-            Self::Transient(connected) => Some(connected.state()),
-            Self::Persistent(connected) => Some(connected.state()),
-            Self::Offline(offline) => Some(offline.state()),
+        match self {
+            Self::Transient(connected) => Some(connected.subscriptions()),
+            Self::Persistent(connected) => Some(connected.subscriptions()),
+            Self::Offline(offline) => Some(offline.subscriptions()),
             Self::Disconnecting(_) => None,
-        };
-
-        state.map(SessionState::subscriptions)
+        }
     }
 
     pub fn handle_publish(
@@ -913,6 +914,7 @@ impl Default for PacketIdentifiers {
 pub(crate) mod tests {
     use std::time::Duration;
 
+    use bytes::Bytes;
     use matches::assert_matches;
     use tokio::sync::mpsc;
     use uuid::Uuid;
@@ -921,8 +923,9 @@ pub(crate) mod tests {
     use mqtt_broker_core::auth::AuthId;
 
     use crate::{
+        configuration::QueueFullAction,
         session::{PacketIdentifiers, Session, SessionState},
-        Auth, ClientId, ConnReq, ConnectionHandle, Error,
+        Auth, ClientId, ConnReq, ConnectionHandle, Error, SessionConfig, Subscription,
     };
 
     fn connection_handle() -> ConnectionHandle {
@@ -943,15 +946,46 @@ pub(crate) mod tests {
         }
     }
 
+    fn subscribe_to(topic: &str, session: &mut SessionState) {
+        session.update_subscription(
+            topic.into(),
+            Subscription::new(
+                topic.parse().expect("unable to parse topic filter"),
+                proto::QoS::AtLeastOnce,
+            ),
+        );
+    }
+
+    fn new_publication(topic: impl Into<String>, payload: impl Into<Bytes>) -> proto::Publication {
+        proto::Publication {
+            topic_name: topic.into(),
+            qos: proto::QoS::AtLeastOnce,
+            retain: false,
+            payload: payload.into(),
+        }
+    }
+
+    fn default_config() -> SessionConfig {
+        SessionConfig::new(
+            Duration::default(),
+            0,
+            16,
+            1000,
+            0,
+            QueueFullAction::DropNew,
+        )
+    }
+
     #[test]
     fn test_subscribe_to() {
         let id = "id1".to_string();
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
-        let req1 = ConnReq::new(client_id, connect1, Auth::Unknown, handle1);
+        let req1 = ConnReq::new(client_id.clone(), connect1, Auth::Unknown, handle1);
         let auth_id = "auth-id1".into();
-        let mut session = Session::new_transient(auth_id, req1);
+        let state = SessionState::new(client_id, default_config());
+        let mut session = Session::new_transient(auth_id, req1, state);
         let subscribe_to = proto::SubscribeTo {
             topic_filter: "topic/new".to_string(),
             qos: proto::QoS::AtMostOnce,
@@ -999,9 +1033,10 @@ pub(crate) mod tests {
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
-        let req1 = ConnReq::new(client_id, connect1, Auth::Unknown, handle1);
+        let req1 = ConnReq::new(client_id.clone(), connect1, Auth::Unknown, handle1);
         let auth_id = "auth-id1".into();
-        let mut session = Session::new_transient(auth_id, req1);
+        let state = SessionState::new(client_id, default_config());
+        let mut session = Session::new_transient(auth_id, req1, state);
         let subscribe_to = proto::SubscribeTo {
             topic_filter: "topic/#/#".to_string(),
             qos: proto::QoS::AtMostOnce,
@@ -1019,9 +1054,10 @@ pub(crate) mod tests {
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
-        let req1 = ConnReq::new(client_id, connect1, Auth::Unknown, handle1);
+        let req1 = ConnReq::new(client_id.clone(), connect1, Auth::Unknown, handle1);
         let auth_id = AuthId::Anonymous;
-        let mut session = Session::new_transient(auth_id, req1);
+        let state = SessionState::new(client_id, default_config());
+        let mut session = Session::new_transient(auth_id, req1, state);
 
         let subscribe_to = proto::SubscribeTo {
             topic_filter: "topic/new".to_string(),
@@ -1071,7 +1107,7 @@ pub(crate) mod tests {
     fn test_offline_subscribe_to() {
         let id = "id1".to_string();
         let client_id = ClientId::from(id);
-        let mut session = Session::new_offline(SessionState::new(client_id));
+        let mut session = Session::new_offline(SessionState::new(client_id, default_config()));
 
         let subscribe_to = proto::SubscribeTo {
             topic_filter: "topic/new".to_string(),
@@ -1085,7 +1121,7 @@ pub(crate) mod tests {
     fn test_offline_unsubscribe() {
         let id = "id1".to_string();
         let client_id = ClientId::from(id);
-        let mut session = Session::new_offline(SessionState::new(client_id));
+        let mut session = Session::new_offline(SessionState::new(client_id, default_config()));
 
         let unsubscribe = proto::Unsubscribe {
             packet_identifier: proto::PacketIdentifier::new(24).unwrap(),
@@ -1093,6 +1129,214 @@ pub(crate) mod tests {
         };
         let result = session.unsubscribe(&unsubscribe);
         assert_matches!(result, Err(Error::SessionOffline));
+    }
+
+    #[test]
+    fn test_publish_to_inflight() {
+        let client_id = ClientId::from("id1");
+        let max_inflight = 3;
+        let max_queued = 10;
+        let topic = "topic/new";
+
+        let config = SessionConfig::new(
+            Duration::default(),
+            0,
+            max_inflight,
+            max_queued,
+            0,
+            QueueFullAction::DropNew,
+        );
+
+        let mut session = SessionState::new(client_id, config);
+
+        subscribe_to(topic, &mut session);
+
+        let publication = new_publication(topic, "payload");
+
+        assert_matches!(session.publish_to(publication.clone()), Ok(Some(_)));
+        assert_matches!(session.publish_to(publication.clone()), Ok(Some(_)));
+        assert_matches!(session.publish_to(publication), Ok(Some(_)));
+
+        assert_eq!(session.waiting_to_be_acked.len(), 3);
+    }
+
+    #[test]
+    fn test_publish_to_queues_when_inflight_full() {
+        let client_id = ClientId::from("id1");
+        let max_inflight = 2;
+        let max_queued = 10;
+        let topic = "topic/new";
+
+        let config = SessionConfig::new(
+            Duration::default(),
+            0,
+            max_inflight,
+            max_queued,
+            0,
+            QueueFullAction::DropNew,
+        );
+
+        let mut session = SessionState::new(client_id, config);
+
+        subscribe_to(topic, &mut session);
+
+        let publication = new_publication(topic, "payload");
+
+        assert_matches!(session.publish_to(publication.clone()), Ok(Some(_)));
+        assert_matches!(session.publish_to(publication.clone()), Ok(Some(_)));
+
+        assert_matches!(session.publish_to(publication), Ok(None)); //inflight is full.
+
+        assert_eq!(session.waiting_to_be_acked.len(), 2);
+        assert_eq!(session.waiting_to_be_sent.len(), 1);
+    }
+
+    #[test]
+    fn test_publish_to_drops_new_message_when_queue_full() {
+        let client_id = ClientId::from("id1");
+        let max_inflight = 2;
+        let max_queued = 2;
+        let topic = "topic/new";
+
+        let config = SessionConfig::new(
+            Duration::default(),
+            0,
+            max_inflight,
+            max_queued,
+            0,
+            QueueFullAction::DropNew,
+        );
+
+        let mut session = SessionState::new(client_id, config);
+
+        subscribe_to(topic, &mut session);
+
+        let publication = new_publication(topic, "payload");
+
+        assert_matches!(session.publish_to(publication.clone()), Ok(Some(_)));
+        assert_matches!(session.publish_to(publication.clone()), Ok(Some(_)));
+
+        assert_matches!(session.publish_to(publication.clone()), Ok(None));
+        assert_matches!(session.publish_to(publication), Ok(None));
+
+        let publication = new_publication(topic, "last message");
+        assert_matches!(session.publish_to(publication), Ok(None));
+
+        assert_eq!(session.waiting_to_be_acked.len(), 2);
+        assert_eq!(session.waiting_to_be_sent.len(), 2);
+
+        assert_matches!(
+            session
+                .waiting_to_be_sent
+                .iter()
+                .find(|p| p.payload == Bytes::from("last message")),
+            None
+        );
+    }
+
+    #[test]
+    fn test_publish_to_drops_old_message_when_queue_full() {
+        let client_id = ClientId::from("id1");
+        let max_inflight = 2;
+        let max_queued = 2;
+        let topic = "topic/new";
+
+        let config = SessionConfig::new(
+            Duration::default(),
+            0,
+            max_inflight,
+            max_queued,
+            0,
+            QueueFullAction::DropOld,
+        );
+
+        let mut session = SessionState::new(client_id, config);
+
+        subscribe_to(topic, &mut session);
+
+        let publication = new_publication(topic, "payload");
+
+        assert_matches!(session.publish_to(publication.clone()), Ok(Some(_)));
+        assert_matches!(session.publish_to(publication.clone()), Ok(Some(_)));
+
+        let first_queued = new_publication(topic, "first message");
+
+        assert_matches!(session.publish_to(first_queued), Ok(None));
+        assert_matches!(session.publish_to(publication.clone()), Ok(None));
+        assert_matches!(session.publish_to(publication), Ok(None));
+
+        assert_eq!(session.waiting_to_be_acked.len(), 2);
+        assert_eq!(session.waiting_to_be_sent.len(), 2);
+
+        assert_matches!(
+            session
+                .waiting_to_be_sent
+                .iter()
+                .find(|p| p.payload == Bytes::from("first message")),
+            None
+        );
+    }
+
+    #[test]
+    fn test_publish_to_ignores_zero_max_inflight_messages() {
+        let client_id = ClientId::from("id1");
+        let max_inflight = 0;
+        let max_queued = 0;
+        let topic = "topic/new";
+
+        let config = SessionConfig::new(
+            Duration::default(),
+            0,
+            max_inflight,
+            max_queued,
+            0,
+            QueueFullAction::DropNew,
+        );
+
+        let mut session = SessionState::new(client_id, config);
+
+        subscribe_to(topic, &mut session);
+
+        let publication = new_publication(topic, "payload");
+
+        assert_matches!(session.publish_to(publication.clone()), Ok(Some(_)));
+        assert_matches!(session.publish_to(publication.clone()), Ok(Some(_)));
+        assert_matches!(session.publish_to(publication), Ok(Some(_)));
+
+        assert_eq!(session.waiting_to_be_acked.len(), 3);
+        assert_eq!(session.waiting_to_be_sent.len(), 0);
+    }
+
+    #[test]
+    fn test_publish_to_ignores_zero_max_queued_messages() {
+        let client_id = ClientId::from("id1");
+        let max_inflight = 2;
+        let max_queued = 0;
+        let topic = "topic/new";
+
+        let config = SessionConfig::new(
+            Duration::default(),
+            0,
+            max_inflight,
+            max_queued,
+            0,
+            QueueFullAction::DropNew,
+        );
+
+        let mut session = SessionState::new(client_id, config);
+
+        subscribe_to(topic, &mut session);
+
+        let publication = new_publication(topic, "payload");
+
+        assert_matches!(session.publish_to(publication.clone()), Ok(Some(_)));
+        assert_matches!(session.publish_to(publication.clone()), Ok(Some(_)));
+
+        assert_matches!(session.publish_to(publication.clone()), Ok(None));
+        assert_matches!(session.publish_to(publication), Ok(None));
+
+        assert_eq!(session.waiting_to_be_acked.len(), 2);
+        assert_eq!(session.waiting_to_be_sent.len(), 2);
     }
 
     #[test]

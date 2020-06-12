@@ -12,10 +12,10 @@ use tracing_futures::Instrument;
 use mqtt_broker_core::auth::{Authenticator, Authorizer};
 
 use crate::{
-    broker::{Broker, BrokerHandle, BrokerState},
+    broker::{Broker, BrokerHandle},
     connection,
     transport::TransportBuilder,
-    DetailedErrorValue, Error, InitializeBrokerError, Message, SystemEvent,
+    BrokerSnapshot, DetailedErrorValue, Error, InitializeBrokerError, Message, SystemEvent,
 };
 
 pub struct Server<Z>
@@ -50,7 +50,7 @@ where
         self
     }
 
-    pub async fn serve<F>(self, shutdown_signal: F) -> Result<BrokerState, Error>
+    pub async fn serve<F>(self, shutdown_signal: F) -> Result<BrokerSnapshot, Error>
     where
         F: Future<Output = ()> + Unpin,
     {
