@@ -48,46 +48,35 @@ impl Authorizer for DefaultAuthorizer {
 }
 
 /// Describes a client activity to authorized.
-pub enum Activity {
-    /// Describes a client activity for active session.
-    Active {
-        client_id: ClientId,
-        client_info: ClientInfo,
-        operation: Operation,
-    },
-
-    /// Describes a client activity for offline session.
-    Offline {
-        client_id: ClientId,
-        operation: Operation,
-    },
+pub struct Activity {
+    client_id: ClientId,
+    client_info: ClientInfo,
+    operation: Operation,
 }
 
 impl Activity {
-    pub fn new_active(
+    pub fn new(
         client_id: impl Into<ClientId>,
         client_info: ClientInfo,
         operation: Operation,
     ) -> Self {
-        Self::Active {
+        Self {
             client_id: client_id.into(),
             client_info,
             operation,
         }
     }
 
-    pub fn new_offline(client_id: impl Into<ClientId>, operation: Operation) -> Self {
-        Self::Offline {
-            client_id: client_id.into(),
-            operation,
-        }
+    pub fn client_info(&self) -> &ClientInfo {
+        &self.client_info
     }
 
     pub fn operation(&self) -> &Operation {
-        match self {
-            Activity::Active { operation, .. } => operation,
-            Activity::Offline { operation, .. } => operation,
-        }
+        &self.operation
+    }
+
+    pub fn into_parts(self) -> (ClientId, ClientInfo, Operation) {
+        (self.client_id, self.client_info, self.operation)
     }
 }
 
@@ -96,7 +85,6 @@ pub enum Operation {
     Connect(Connect),
     Publish(Publish),
     Subscribe(Subscribe),
-    Receive(Receive),
 }
 
 impl Operation {
@@ -113,14 +101,6 @@ impl Operation {
     /// Creates a new operation context for SUBSCRIBE request.
     pub fn new_subscribe(subscribe_to: proto::SubscribeTo) -> Self {
         Self::Subscribe(subscribe_to.into())
-    }
-
-    /// Creates a new operation context for RECEIVE request.
-    ///
-    /// RECEIVE request happens when broker decides to publish a message to a certain
-    /// topic client subscribed to.
-    pub fn new_receive(publication: proto::Publication) -> Self {
-        Self::Receive(publication.into())
     }
 }
 
@@ -139,9 +119,9 @@ impl From<proto::Connect> for Connect {
 
 /// Represents a publication description without payload to be used for authorization.
 pub struct Publication {
-    topic_name: String,
-    qos: proto::QoS,
-    retain: bool,
+    pub topic_name: String,
+    pub qos: proto::QoS,
+    pub retain: bool,
 }
 
 impl From<proto::Publication> for Publication {
@@ -156,7 +136,7 @@ impl From<proto::Publication> for Publication {
 
 /// Represents a client attempt to publish a new message on a specified MQTT topic.
 pub struct Publish {
-    publication: Publication,
+    pub publication: Publication,
 }
 
 impl From<proto::Publish> for Publish {
@@ -196,19 +176,6 @@ impl From<proto::SubscribeTo> for Subscribe {
     }
 }
 
-/// Represents a client to received a message from a specified MQTT topic.
-pub struct Receive {
-    publication: Publication,
-}
-
-impl From<proto::Publication> for Receive {
-    fn from(publication: proto::Publication) -> Self {
-        Self {
-            publication: publication.into(),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::{net::SocketAddr, time::Duration};
@@ -237,7 +204,7 @@ mod tests {
     #[test]
     fn default_auth_always_deny_any_action() {
         let auth = DefaultAuthorizer;
-        let activity = Activity::new_active(
+        let activity = Activity::new(
             "client-auth-id",
             ClientInfo::new(peer_addr(), "client-id"),
             Operation::new_connect(connect()),
@@ -251,7 +218,7 @@ mod tests {
     #[test]
     fn authorizer_wrapper_around_function() {
         let auth = authorize_fn_ok(|_| true);
-        let activity = Activity::new_active(
+        let activity = Activity::new(
             "client-auth-id",
             ClientInfo::new(peer_addr(), "client-id"),
             Operation::new_connect(connect()),

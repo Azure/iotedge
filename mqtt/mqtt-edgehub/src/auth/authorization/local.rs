@@ -21,8 +21,7 @@ where
     type Error = E;
 
     fn authorize(&self, activity: Activity) -> Result<bool, Self::Error> {
-        if matches!(&activity, Activity::Active { client_info, .. } if client_info.peer_addr().ip().is_loopback())
-        {
+        if activity.client_info().peer_addr().ip().is_loopback() {
             return Ok(true);
         }
 
@@ -37,7 +36,7 @@ mod tests {
     use matches::assert_matches;
     use test_case::test_case;
 
-    use mqtt3::proto::{self, Publication};
+    use mqtt3::proto;
     use mqtt_broker_core::{
         auth::{authorize_fn_ok, Activity, AuthId, Authorizer, Operation},
         ClientInfo,
@@ -48,7 +47,6 @@ mod tests {
     #[test_case(connect_activity("127.0.0.1:12345"); "connect")]
     #[test_case(publish_activity("127.0.0.1:12345"); "publish")]
     #[test_case(subscribe_activity("127.0.0.1:12345"); "subscribe")]
-    #[test_case(receive_activity("127.0.0.1:12345"); "receive")]
     fn it_authorizes_client_from_localhost(activity: Activity) {
         let inner = authorize_fn_ok(|_| false);
         let authorizer = LocalAuthorizer::new(inner);
@@ -61,29 +59,9 @@ mod tests {
     #[test_case(connect_activity("192.168.0.1:12345"); "connect")]
     #[test_case(publish_activity("192.168.0.1:12345"); "publish")]
     #[test_case(subscribe_activity("192.168.0.1:12345"); "subscribe")]
-    #[test_case(receive_activity("192.168.0.1:12345"); "receive")]
     fn it_calls_inner_authorizer_when_client_not_from_localhost(activity: Activity) {
         let inner = authorize_fn_ok(|_| false);
         let authorizer = LocalAuthorizer::new(inner);
-
-        let auth = authorizer.authorize(activity);
-
-        assert_matches!(auth, Ok(false));
-    }
-
-    #[test]
-    fn it_calls_inner_authorizer_for_offline_action_available() {
-        let inner = authorize_fn_ok(|_| false);
-        let authorizer = LocalAuthorizer::new(inner);
-
-        let publication = Publication {
-            topic_name: "topic".into(),
-            qos: proto::QoS::AtLeastOnce,
-            retain: false,
-            payload: "data".into(),
-        };
-        let operation = Operation::new_receive(publication);
-        let activity = Activity::new_offline("local-client", operation);
 
         let auth = authorizer.authorize(activity);
 
@@ -127,23 +105,11 @@ mod tests {
         activity(operation, peer_addr)
     }
 
-    fn receive_activity(peer_addr: &str) -> Activity {
-        let publication = Publication {
-            topic_name: "topic".into(),
-            qos: proto::QoS::AtLeastOnce,
-            retain: false,
-            payload: "data".into(),
-        };
-
-        let operation = Operation::new_receive(publication);
-        activity(operation, peer_addr)
-    }
-
     fn activity(operation: Operation, peer_addr: &str) -> Activity {
         let client_info = ClientInfo::new(
             peer_addr.parse().expect("peer_addr"),
             AuthId::Identity("local-client".into()),
         );
-        Activity::new_active("client-1", client_info, operation)
+        Activity::new("client-1", client_info, operation)
     }
 }

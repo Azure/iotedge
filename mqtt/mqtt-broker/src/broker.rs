@@ -271,7 +271,7 @@ where
         // Check client permissions to connect
         let client_info = ClientInfo::new(connreq.peer_addr(), auth_id.clone());
         let operation = Operation::new_connect(connreq.connect().clone());
-        let activity = Activity::new_active(client_id.clone(), client_info, operation);
+        let activity = Activity::new(client_id.clone(), client_info, operation);
         match self.authorizer.authorize(activity) {
             Ok(true) => {
                 debug!("client {} successfully authorized", client_id);
@@ -419,7 +419,7 @@ where
         if let Some(session) = self.sessions.get_mut(client_id) {
             for mut publication in publications {
                 publication.retain = true;
-                publish_to(&self.authorizer, session, &publication)?;
+                publish_to(session, &publication)?;
             }
 
             let change =
@@ -487,7 +487,7 @@ where
         let operation = Operation::new_publish(publish.clone());
         if let Some(session) = self.sessions.get_mut(client_id) {
             let client_info = session.client_info()?.clone();
-            let activity = Activity::new_active(client_id.clone(), client_info, operation);
+            let activity = Activity::new(client_id.clone(), client_info, operation);
             match self.authorizer.authorize(activity) {
                 Ok(true) => {
                     debug!("client {} successfully authorized", client_id);
@@ -848,7 +848,7 @@ where
         publication.retain = false;
 
         for session in self.sessions.values_mut() {
-            if let Err(e) = publish_to(&self.authorizer, session, &publication) {
+            if let Err(e) = publish_to(session, &publication) {
                 warn!(message = "error processing message", error = %e);
             }
         }
@@ -873,7 +873,7 @@ where
 
     let auth_results = subscribe.subscribe_to.into_iter().map(|subscribe_to| {
         let operation = Operation::new_subscribe(subscribe_to.clone());
-        let activity = Activity::new_active(client_id.clone(), client_info.clone(), operation);
+        let activity = Activity::new(client_id.clone(), client_info.clone(), operation);
         let auth = authorizer.authorize(activity);
         auth.map(|auth| (auth, subscribe_to))
     });
@@ -917,38 +917,11 @@ where
     Ok((suback, subscriptions))
 }
 
-fn publish_to<Z>(
-    authorizer: &Z,
-    session: &mut Session,
-    publication: &proto::Publication,
-) -> Result<(), Error>
-where
-    Z: Authorizer,
-{
-    let operation = Operation::new_receive(publication.clone());
-    let client_id = session.client_id().clone();
-    let activity = if let Ok(client_info) = session.client_info() {
-        Activity::new_active(client_id, client_info.clone(), operation)
-    } else {
-        Activity::new_offline(client_id, operation)
-    };
-
-    match authorizer.authorize(activity) {
-        Ok(true) => {
-            if let Some(event) = session.publish_to(&publication)? {
-                session.send(event)?
-            }
-        }
-        Ok(false) => {
-            debug!(
-                "client {} not allowed to receive messages",
-                session.client_id()
-            );
-        }
-        Err(e) => {
-            warn!(message="error authorizing client: {}", error = %e);
-        }
+fn publish_to(session: &mut Session, publication: &proto::Publication) -> Result<(), Error> {
+    if let Some(event) = session.publish_to(&publication)? {
+        session.send(event)?
     }
+
     Ok(())
 }
 
@@ -1051,7 +1024,7 @@ pub(crate) mod tests {
     use bytes::Bytes;
     use futures_util::future::FutureExt;
     use matches::assert_matches;
-    use tokio::sync::mpsc::{self, error::TryRecvError, UnboundedReceiver};
+    use tokio::sync::mpsc::{self, UnboundedReceiver};
     use uuid::Uuid;
 
     use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
@@ -2079,59 +2052,6 @@ pub(crate) mod tests {
             rx1.recv().await,
             Some(Message::Client(_, ClientEvent::SubAck(suback))) if suback.qos == expected_qos
         );
-    }
-
-    #[tokio::test]
-    async fn test_receive_client_has_no_permissions() {
-        let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|activity| {
-                matches!( activity.operation(),
-                    Operation::Connect(_) | Operation::Publish(_) | Operation::Subscribe(_)
-                )
-            }))
-            .build();
-
-        let mut broker_handle = broker.handle();
-        tokio::spawn(broker.run().map(drop));
-
-        let (sub_id, mut sub_rx) = connect_client("sub", &mut broker_handle).await.unwrap();
-
-        let subscribe = proto::Subscribe {
-            packet_identifier: proto::PacketIdentifier::new(1).unwrap(),
-            subscribe_to: vec![proto::SubscribeTo {
-                topic_filter: "/foo/bar".to_string(),
-                qos: proto::QoS::AtLeastOnce,
-            }],
-        };
-
-        let message = Message::Client(sub_id.clone(), ClientEvent::Subscribe(subscribe));
-        broker_handle.send(message).await.unwrap();
-
-        let (pub_id, mut pub_rx) = connect_client("pub", &mut broker_handle).await.unwrap();
-
-        let publish = proto::Publish {
-            packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtLeastOnce(
-                proto::PacketIdentifier::new(1).unwrap(),
-                false,
-            ),
-            retain: true,
-            topic_name: "/foo/bar".to_string(),
-            payload: Bytes::new(),
-        };
-
-        let message = Message::Client(pub_id.clone(), ClientEvent::PublishFrom(publish, None));
-        broker_handle.send(message).await.unwrap();
-
-        assert_matches!(
-            pub_rx.recv().await,
-            Some(Message::Client(_, ClientEvent::PubAck(_)))
-        );
-
-        assert_matches!(
-            sub_rx.recv().await,
-            Some(Message::Client(_, ClientEvent::SubAck(_)))
-        );
-        assert_matches!(sub_rx.try_recv(), Err(TryRecvError::Empty))
     }
 
     #[tokio::test]

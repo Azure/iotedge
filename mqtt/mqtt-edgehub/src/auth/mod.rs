@@ -2,4 +2,4 @@ mod authentication;
 mod authorization;
 
 pub use authentication::{EdgeHubAuthenticator, LocalAuthenticator};
-pub use authorization::LocalAuthorizer;
+pub use authorization::{EdgeHubAuthorizer, LocalAuthorizer};
