@@ -229,8 +229,8 @@ update_version_info
 
 build_solution
 
+publish_app "Microsoft.Azure.Devices.Edge.Agent.Service"
 publish_app $EDGE_HUB_PROJECT_NAME
-publish_app "Microsoft.Azure.Devices.Edge.Hub.Service"
 publish_app "SimulatedTemperatureSensor"
 publish_app "TemperatureFilter"
 publish_app "load-gen"
