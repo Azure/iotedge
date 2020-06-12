@@ -72,7 +72,7 @@ namespace DirectMethodSender
             ulong directMethodCount)
         {
             const int maxRetry = 3;
-            int resultStatus = (int)HttpStatusCode.InternalServerError;
+            int resultStatus = 0;
             int transientRetryCount = 0;
 
             while (transientRetryCount < maxRetry)
@@ -82,7 +82,7 @@ namespace DirectMethodSender
                     logger.LogDebug($"InvokeDirectMethodWithRetryAsync with count {directMethodCount}; Retry {transientRetryCount}");
                     transientRetryCount++;
                     resultStatus = await this.InvokeDeviceMethodAsync(deviceId, targetModuleId, methodName, directMethodCount, CancellationToken.None);
-                    return resultStatus;
+                    break;
                 }
                 catch (IotHubCommunicationException e) when (e.IsTransient)
                 {
