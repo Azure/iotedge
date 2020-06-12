@@ -26,7 +26,7 @@ if ($Arm) {
 cd (Get-MqttFolder)
 
 Write-Host "$cargo build --all $(if ($Arm) { '--target thumbv7a-pc-windows-msvc' }) $(if ($Release) { '--release' })"
-Invoke-Expression "$cargo build --all $(if ($Arm) { '--target thumbv7a-pc-windows-msvc' }) $(if ($Release) { '--release' })"
+Invoke-Expression "$cargo build --all $(if ($Arm) { '--target thumbv7a-pc-windows-msvc' }) $(if ($Release) { '--release --no-default-features' })"
 
 if ($LastExitCode -ne 0) {
     Throw "cargo build failed with exit code $LastExitCode"
