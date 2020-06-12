@@ -40,20 +40,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             Task.Run(this.InitModuleClient);
         }
 
-        public async Task<IModuleClient> GetOrCreateModuleClient(bool forceNew = false)
+        public async Task<IModuleClient> GetOrCreateModuleClient()
         {
-            if (forceNew)
-            {
-                using (await this.stateLock.LockAsync())
-                {
-                    await this.moduleClient.ForEachAsync(mc =>
-                    {
-                        Events.ForceCloseModuleClient();
-                        return mc.CloseAsync();
-                    });
-                }
-            }
-
             IModuleClient moduleClient = await this.moduleClient
                 .Filter(m => m.IsActive)
                 .Map(Task.FromResult)
@@ -147,7 +135,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 DisposingModuleConnection,
                 DisposedModuleConnection,
                 ErrorDisposingModuleConnection,
-                ForceCloseModuleClient,
             }
 
             public static void ErrorHandlingModuleClosedEvent(Exception ex)
@@ -187,11 +174,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             public static void ErrorDisposingModuleConnection(Exception ex)
             {
                 Log.LogInformation((int)EventIds.ErrorDisposingModuleConnection, ex, "Error disposing module connection object");
-            }
-
-            public static void ForceCloseModuleClient()
-            {
-                Log.LogInformation((int)EventIds.ForceCloseModuleClient, "Force to close module client");
             }
         }
     }

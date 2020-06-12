@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
     public interface IModuleConnection : IDisposable
     {
-        Task<IModuleClient> GetOrCreateModuleClient(bool forceNew = false);
+        Task<IModuleClient> GetOrCreateModuleClient();
 
         Option<IModuleClient> GetModuleClient();
     }

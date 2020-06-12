@@ -184,14 +184,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 });
         }
 
-        async Task<Option<Twin>> GetTwinFromIoTHub(bool forceNewModuleClient = false)
+        async Task<Option<Twin>> GetTwinFromIoTHub(bool retry = false)
         {
+            IModuleClient moduleClient = null;
+
             try
             {
                 async Task<Twin> GetTwinFunc()
                 {
-                    Events.GettingModuleClient(forceNewModuleClient);
-                    IModuleClient moduleClient = await this.moduleConnection.GetOrCreateModuleClient(forceNewModuleClient);
+                    Events.GettingModuleClient(retry);
+                    moduleClient = await this.moduleConnection.GetOrCreateModuleClient();
                     Events.GotModuleClient();
                     return await moduleClient.GetTwinAsync();
                 }
@@ -211,8 +213,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             {
                 Events.ErrorGettingTwin(e);
 
-                if (!forceNewModuleClient && this.RetryWithNewModuleClient(e))
+                if (!retry && !(e is TimeoutException))
                 {
+                    await moduleClient?.CloseAsync();
                     return await this.GetTwinFromIoTHub(true);
                 }
 
@@ -365,9 +368,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 Log.LogDebug((int)EventIds.ErrorUpdatingReportedProperties, ex, "Error updating reported properties in IoT Hub");
             }
 
-            public static void GettingModuleClient(bool forceRenew)
+            public static void GettingModuleClient(bool retry)
             {
-                Log.LogDebug((int)EventIds.GettingModuleClient, $"Getting module client to refresh the twin with forceRenew set to {forceRenew}");
+                Log.LogDebug((int)EventIds.GettingModuleClient, $"Getting module client to refresh the twin with retry set to {retry}");
             }
 
             public static void GotModuleClient()
