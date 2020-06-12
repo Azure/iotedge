@@ -79,12 +79,14 @@ namespace DirectMethodSender
             {
                 try
                 {
+                    logger.LogDebug($"InvokeDirectMethodWithRetryAsync with count {directMethodCount}; Retry {transientRetryCount}");
                     transientRetryCount++;
                     resultStatus = await this.InvokeDeviceMethodAsync(deviceId, targetModuleId, methodName, directMethodCount, CancellationToken.None);
+                    return resultStatus;
                 }
                 catch (IotHubCommunicationException e) when (e.IsTransient)
                 {
-                    logger.LogInformation(e, $"Transient IotHubCommunicationException caught with count {this.directMethodCount}. Retry: {transientRetryCount}");
+                    logger.LogInformation(e, $"Transient IotHubCommunicationException caught with count {directMethodCount}. Retry: {transientRetryCount}");
                     resultStatus = (int)HttpStatusCode.RequestTimeout;
                 }
             }
