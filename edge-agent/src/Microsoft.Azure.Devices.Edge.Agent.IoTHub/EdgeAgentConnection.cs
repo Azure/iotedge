@@ -231,11 +231,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        bool RetryWithNewModuleClient(Exception e)
-        {
-            return !(e is TimeoutException);
-        }
-
         // This method updates local state and should be called only after acquiring twinLock
         async Task ApplyPatchAsync(TwinCollection desiredProperties, TwinCollection patch)
         {
