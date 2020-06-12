@@ -2,6 +2,7 @@ use std::{
     cmp,
     collections::{HashMap, HashSet, VecDeque},
     fmt, mem,
+    num::{NonZeroU64, NonZeroUsize},
 };
 
 use serde::{
@@ -236,7 +237,7 @@ impl OfflineSession {
 
         // Dequeue any queued messages - up to the max inflight count
         while state.allowed_to_send() {
-            match state.pop_from_queue() {
+            match state.waiting_to_be_sent.pop_front() {
                 Some(publication) => {
                     debug!("dequeueing a message for {}", state.client_id);
                     let event = state.prepare_to_send(&publication)?;
@@ -299,8 +300,7 @@ pub struct SessionState {
     packet_identifiers: PacketIdentifiers,
     packet_identifiers_qos0: PacketIdentifiers,
 
-    waiting_to_be_sent: VecDeque<proto::Publication>,
-    waiting_to_be_sent_size: u64,
+    waiting_to_be_sent: BoundedQueue,
 
     // for incoming messages - QoS2
     waiting_to_be_released: HashMap<proto::PacketIdentifier, proto::Publish>,
@@ -320,8 +320,11 @@ impl SessionState {
             packet_identifiers: PacketIdentifiers::default(),
             packet_identifiers_qos0: PacketIdentifiers::default(),
 
-            waiting_to_be_sent: VecDeque::new(),
-            waiting_to_be_sent_size: 0,
+            waiting_to_be_sent: BoundedQueue::new(
+                config.max_queued_messages(),
+                config.max_queued_size(),
+                config.when_full(),
+            ),
             waiting_to_be_acked: HashMap::new(),
             waiting_to_be_acked_qos0: HashMap::new(),
             waiting_to_be_released: HashMap::new(),
@@ -333,16 +336,16 @@ impl SessionState {
     pub fn from_snapshot(snapshot: SessionSnapshot, config: SessionConfig) -> Self {
         let (client_id, subscriptions, waiting_to_be_sent) = snapshot.into_parts();
 
-        let waiting_to_be_sent_size = waiting_to_be_sent
-            .iter()
-            .fold(0, |s, item| s + item.payload.len()) as u64;
-
         Self {
             client_id,
             subscriptions,
             packet_identifiers: PacketIdentifiers::default(),
-            waiting_to_be_sent,
-            waiting_to_be_sent_size,
+            waiting_to_be_sent: BoundedQueue::from_iter(
+                waiting_to_be_sent,
+                config.max_queued_messages(),
+                config.max_queued_size(),
+                config.when_full(),
+            ),
             waiting_to_be_acked: HashMap::new(),
             waiting_to_be_released: HashMap::new(),
             waiting_to_be_completed: HashSet::new(),
@@ -374,7 +377,7 @@ impl SessionState {
 
     pub fn queue_publish(&mut self, publication: proto::Publication) -> Result<(), Error> {
         if let Some(publication) = self.filter(publication) {
-            self.enqueue(publication);
+            self.waiting_to_be_sent.push_back(publication);
         }
         Ok(())
     }
@@ -390,7 +393,7 @@ impl SessionState {
                 let event = self.prepare_to_send(&publication)?;
                 Ok(Some(event))
             } else {
-                self.enqueue(publication);
+                self.waiting_to_be_sent.push_back(publication);
                 Ok(None)
             }
         } else {
@@ -489,7 +492,7 @@ impl SessionState {
 
     fn try_publish(&mut self) -> Result<Option<ClientEvent>, Error> {
         if self.allowed_to_send() {
-            if let Some(publication) = self.pop_from_queue() {
+            if let Some(publication) = self.waiting_to_be_sent.pop_front() {
                 let event = self.prepare_to_send(&publication)?;
                 return Ok(Some(event));
             }
@@ -507,47 +510,6 @@ impl SessionState {
             }
             None => true,
         }
-    }
-
-    fn pop_from_queue(&mut self) -> Option<proto::Publication> {
-        match self.waiting_to_be_sent.pop_front() {
-            Some(publication) => {
-                self.waiting_to_be_sent_size -= publication.payload.len() as u64;
-                Some(publication)
-            }
-            None => None,
-        }
-    }
-
-    fn enqueue(&mut self, publication: proto::Publication) {
-        if let Some(count_limit) = self.config.max_queued_messages() {
-            if self.waiting_to_be_sent.len() >= count_limit.get() {
-                return self.handle_queue_limit(publication);
-            }
-        }
-
-        if let Some(size_limit) = self.config.max_queued_size() {
-            let pub_len = publication.payload.len() as u64;
-            if self.waiting_to_be_sent_size + pub_len > size_limit.get() {
-                return self.handle_queue_limit(publication);
-            }
-        }
-
-        self.waiting_to_be_sent_size += publication.payload.len() as u64;
-        self.waiting_to_be_sent.push_back(publication);
-    }
-
-    fn handle_queue_limit(&mut self, publication: proto::Publication) {
-        match self.config.when_full() {
-            QueueFullAction::DropNew => {
-                // do nothing
-            }
-            QueueFullAction::DropOld => {
-                let _ = self.pop_from_queue();
-                self.waiting_to_be_sent_size += publication.payload.len() as u64;
-                self.waiting_to_be_sent.push_back(publication);
-            }
-        };
     }
 
     fn filter(&self, mut publication: proto::Publication) -> Option<proto::Publication> {
@@ -623,7 +585,7 @@ impl From<SessionState> for SessionSnapshot {
         SessionSnapshot::from_parts(
             state.client_id,
             state.subscriptions,
-            state.waiting_to_be_sent,
+            state.waiting_to_be_sent.into_vec_dequeue(),
         )
     }
 }
@@ -942,6 +904,103 @@ impl Default for PacketIdentifiers {
             in_use: IdentifiersInUse(Box::new([0; PacketIdentifiers::SIZE])),
             previous: proto::PacketIdentifier::max_value(),
         }
+    }
+}
+
+/// `BoundedQueue` is a queue of publications with bounds by count and total payload size in bytes.
+///
+/// Packets will be queued until either of `max_len` or `max_size` limits is reached, and
+/// then `when_full` strategy is applied.
+///
+/// None for `max_len` or `max_size` means "unbounded".
+#[derive(Clone, Debug, PartialEq)]
+struct BoundedQueue {
+    inner: VecDeque<proto::Publication>,
+    max_len: Option<NonZeroUsize>,
+    max_size: Option<NonZeroU64>,
+    when_full: QueueFullAction,
+    cur_size: u64,
+}
+
+impl BoundedQueue {
+    pub fn new(
+        max_len: Option<NonZeroUsize>,
+        max_size: Option<NonZeroU64>,
+        when_full: QueueFullAction,
+    ) -> Self {
+        BoundedQueue {
+            inner: VecDeque::new(),
+            max_len,
+            max_size,
+            when_full,
+            cur_size: 0,
+        }
+    }
+
+    pub fn from_iter(
+        iterable: impl IntoIterator<Item = proto::Publication>,
+        max_len: Option<NonZeroUsize>,
+        max_size: Option<NonZeroU64>,
+        when_full: QueueFullAction,
+    ) -> Self {
+        let mut queue = BoundedQueue::new(max_len, max_size, when_full);
+        iterable.into_iter().for_each(|item| queue.push_back(item));
+        queue
+    }
+
+    pub fn into_vec_dequeue(self) -> VecDeque<proto::Publication> {
+        self.inner
+    }
+
+    pub fn pop_front(&mut self) -> Option<proto::Publication> {
+        match self.inner.pop_front() {
+            Some(publication) => {
+                self.cur_size -= publication.payload.len() as u64;
+                Some(publication)
+            }
+            None => None,
+        }
+    }
+
+    pub fn push_back(&mut self, publication: proto::Publication) {
+        if let Some(max_len) = self.max_len {
+            if self.inner.len() >= max_len.get() {
+                return self.handle_queue_limit(publication);
+            }
+        }
+
+        if let Some(max_size) = self.max_size {
+            let pub_len = publication.payload.len() as u64;
+            if self.cur_size + pub_len > max_size.get() {
+                return self.handle_queue_limit(publication);
+            }
+        }
+
+        self.cur_size += publication.payload.len() as u64;
+        self.inner.push_back(publication);
+    }
+
+    #[cfg(test)]
+    pub fn len(&self) -> usize {
+        self.inner.len()
+    }
+
+    #[cfg(test)]
+    pub fn iter(&self) -> std::collections::vec_deque::Iter<'_, proto::Publication> {
+        self.inner.iter()
+    }
+
+    fn handle_queue_limit(&mut self, publication: proto::Publication) {
+        match self.when_full {
+            QueueFullAction::DropNew => {
+                // do nothing
+            }
+            QueueFullAction::DropOld => {
+                let _ = self.pop_front();
+                self.cur_size += publication.payload.len() as u64;
+                self.inner.push_back(publication);
+            }
+        };
     }
 }
 
