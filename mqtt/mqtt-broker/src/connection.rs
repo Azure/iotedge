@@ -30,7 +30,7 @@ use mqtt_broker_core::{
 };
 
 #[cfg(feature = "edgehub")]
-use mqtt_edgehub::translation::{
+use mqtt_edgehub::topic::translation::{
     translate_incoming_publish, translate_incoming_subscribe, translate_incoming_unsubscribe,
     translate_outgoing_publish,
 };
