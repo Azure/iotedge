@@ -1,6 +1,6 @@
 use std::error::Error as StdError;
 
-use mqtt_broker_core::auth::{Activity, Authorizer};
+use mqtt_broker_core::auth::{Activity, Authorization, Authorizer};
 
 pub struct LocalAuthorizer<Z>(Z);
 
@@ -20,9 +20,9 @@ where
 {
     type Error = E;
 
-    fn authorize(&self, activity: Activity) -> Result<bool, Self::Error> {
+    fn authorize(&self, activity: Activity) -> Result<Authorization, Self::Error> {
         if activity.client_info().peer_addr().ip().is_loopback() {
-            return Ok(true);
+            return Ok(Authorization::Allowed);
         }
 
         self.0.authorize(activity)
@@ -38,7 +38,7 @@ mod tests {
 
     use mqtt3::proto;
     use mqtt_broker_core::{
-        auth::{authorize_fn_ok, Activity, AuthId, Authorizer, Operation},
+        auth::{authorize_fn_ok, Activity, AuthId, Authorization, Authorizer, Operation},
         ClientInfo,
     };
 
@@ -48,24 +48,24 @@ mod tests {
     #[test_case(publish_activity("127.0.0.1:12345"); "publish")]
     #[test_case(subscribe_activity("127.0.0.1:12345"); "subscribe")]
     fn it_authorizes_client_from_localhost(activity: Activity) {
-        let inner = authorize_fn_ok(|_| false);
+        let inner = authorize_fn_ok(|_| Authorization::Forbidden("forbid everything".to_string()));
         let authorizer = LocalAuthorizer::new(inner);
 
         let auth = authorizer.authorize(activity);
 
-        assert_matches!(auth, Ok(true));
+        assert_matches!(auth, Ok(Authorization::Allowed));
     }
 
     #[test_case(connect_activity("192.168.0.1:12345"); "connect")]
     #[test_case(publish_activity("192.168.0.1:12345"); "publish")]
     #[test_case(subscribe_activity("192.168.0.1:12345"); "subscribe")]
     fn it_calls_inner_authorizer_when_client_not_from_localhost(activity: Activity) {
-        let inner = authorize_fn_ok(|_| false);
+        let inner = authorize_fn_ok(|_| Authorization::Forbidden("not allowed".to_string()));
         let authorizer = LocalAuthorizer::new(inner);
 
         let auth = authorizer.authorize(activity);
 
-        assert_matches!(auth, Ok(false));
+        assert_matches!(auth, Ok(auth) if auth == Authorization::Forbidden("not allowed".to_string()));
     }
 
     fn connect_activity(peer_addr: &str) -> Activity {

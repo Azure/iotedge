@@ -7,7 +7,7 @@ use tracing::{debug, error, info, span, warn, Level};
 
 use mqtt3::proto;
 use mqtt_broker_core::{
-    auth::{Activity, AuthId, Authorizer, DefaultAuthorizer, Operation},
+    auth::{Activity, AuthId, Authorization, Authorizer, DefaultAuthorizer, Operation},
     ClientId, ClientInfo,
 };
 
@@ -273,11 +273,11 @@ where
         let operation = Operation::new_connect(connreq.connect().clone());
         let activity = Activity::new(client_id.clone(), client_info, operation);
         match self.authorizer.authorize(activity) {
-            Ok(true) => {
+            Ok(Authorization::Allowed) => {
                 debug!("client {} successfully authorized", client_id);
             }
-            Ok(false) => {
-                warn!("client {} not allowed to connect", client_id);
+            Ok(Authorization::Forbidden(reason)) => {
+                warn!("client {} not allowed to connect. {}", client_id, reason);
                 refuse_connection!(proto::ConnectionRefusedReason::NotAuthorized);
                 return Ok(());
             }
@@ -489,7 +489,7 @@ where
             let client_info = session.client_info()?.clone();
             let activity = Activity::new(client_id.clone(), client_info, operation);
             match self.authorizer.authorize(activity) {
-                Ok(true) => {
+                Ok(Authorization::Allowed) => {
                     debug!("client {} successfully authorized", client_id);
                     let (maybe_publication, maybe_event) = session.handle_publish(publish)?;
 
@@ -501,10 +501,10 @@ where
                         self.publish_all(publication)?
                     }
                 }
-                Ok(false) => {
+                Ok(Authorization::Forbidden(reason)) => {
                     warn!(
-                        "client {} not allowed to publish to topic {}",
-                        client_id, publish.topic_name,
+                        "client {} not allowed to publish to topic {}. {}",
+                        client_id, publish.topic_name, reason
                     );
                     self.drop_connection(&client_id)?;
                 }
@@ -880,24 +880,27 @@ where
 
     for auth in auth_results {
         let ack_qos = match auth {
-            Ok((true, subscribe_to)) => match session.subscribe_to(subscribe_to) {
-                Ok((qos, subscription)) => {
-                    if let Some(subscription) = subscription {
-                        subscriptions.push(subscription);
+            Ok((Authorization::Allowed, subscribe_to)) => {
+                match session.subscribe_to(subscribe_to) {
+                    Ok((qos, subscription)) => {
+                        if let Some(subscription) = subscription {
+                            subscriptions.push(subscription);
+                        }
+                        qos
                     }
-                    qos
+                    Err(e) => {
+                        warn!(message="error subscribing to a topic: {}", error = %e);
+                        proto::SubAckQos::Failure
+                    }
                 }
-                Err(e) => {
-                    warn!(message="error subscribing to a topic: {}", error = %e);
-                    proto::SubAckQos::Failure
-                }
-            },
-            Ok((false, subscribe_to)) => {
+            }
+            Ok((Authorization::Forbidden(reason), subscribe_to)) => {
                 debug!(
-                    "client {} not allowed to subscribe to topic {} qos {}",
+                    "client {} not allowed to subscribe to topic {} qos {}. {}",
                     client_id,
                     subscribe_to.topic_filter,
-                    u8::from(subscribe_to.qos)
+                    u8::from(subscribe_to.qos),
+                    reason
                 );
                 proto::SubAckQos::Failure
             }
@@ -1028,7 +1031,7 @@ pub(crate) mod tests {
     use uuid::Uuid;
 
     use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
-    use mqtt_broker_core::auth::{authorize_fn_ok, Operation};
+    use mqtt_broker_core::auth::{authorize_fn_ok, Authorization, Operation};
 
     use super::OpenSession;
     use crate::{
@@ -1073,7 +1076,7 @@ pub(crate) mod tests {
     #[should_panic]
     async fn test_double_connect_protocol_violation() {
         let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| true))
+            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
             .build();
 
         let mut broker_handle = broker.handle();
@@ -1147,7 +1150,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_double_connect_drop_first_transient() {
         let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| true))
+            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
             .build();
 
         let mut broker_handle = broker.handle();
@@ -1226,7 +1229,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_invalid_protocol_name() {
         let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| true))
+            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
             .build();
 
         let mut broker_handle = broker.handle();
@@ -1270,7 +1273,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_invalid_protocol_level() {
         let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| true))
+            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
             .build();
 
         let mut broker_handle = broker.handle();
@@ -1324,7 +1327,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_connect_auth_succeeded() {
         let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| true))
+            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
             .build();
 
         let mut broker_handle = broker.handle();
@@ -1372,7 +1375,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_connect_unknown_client() {
         let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| true))
+            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
             .build();
 
         let mut broker_handle = broker.handle();
@@ -1427,7 +1430,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_connect_authentication_failed() {
         let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| true))
+            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
             .build();
 
         let mut broker_handle = broker.handle();
@@ -1482,7 +1485,9 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_connect_client_has_no_permissions() {
         let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| false))
+            .with_authorizer(authorize_fn_ok(|_| {
+                Authorization::Forbidden("not allowed".to_string())
+            }))
             .build();
 
         let mut broker_handle = broker.handle();
@@ -1592,7 +1597,7 @@ pub(crate) mod tests {
     #[test]
     fn test_add_session_empty_transient() {
         let mut broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| true))
+            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
             .build();
 
         let id = "id1".to_string();
@@ -1623,7 +1628,7 @@ pub(crate) mod tests {
     #[test]
     fn test_add_session_empty_persistent() {
         let mut broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| true))
+            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
             .build();
 
         let id = "id1".to_string();
@@ -1655,7 +1660,7 @@ pub(crate) mod tests {
     #[should_panic]
     fn test_add_session_same_connection_transient() {
         let mut broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| true))
+            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
             .build();
 
         let id = "id1".to_string();
@@ -1695,7 +1700,7 @@ pub(crate) mod tests {
     #[should_panic]
     fn test_add_session_same_connection_persistent() {
         let mut broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| true))
+            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
             .build();
 
         let id = "id1".to_string();
@@ -1734,7 +1739,7 @@ pub(crate) mod tests {
     #[test]
     fn test_add_session_different_connection_transient_then_transient() {
         let mut broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| true))
+            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
             .build();
 
         let id = "id1".to_string();
@@ -1771,7 +1776,7 @@ pub(crate) mod tests {
     #[test]
     fn test_add_session_different_connection_transient_then_persistent() {
         let mut broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| true))
+            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
             .build();
 
         let id = "id1".to_string();
@@ -1808,7 +1813,7 @@ pub(crate) mod tests {
     #[test]
     fn test_add_session_different_connection_persistent_then_transient() {
         let mut broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| true))
+            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
             .build();
 
         let id = "id1".to_string();
@@ -1845,7 +1850,7 @@ pub(crate) mod tests {
     #[test]
     fn test_add_session_different_connection_persistent_then_persistent() {
         let mut broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| true))
+            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
             .build();
 
         let id = "id1".to_string();
@@ -1882,7 +1887,7 @@ pub(crate) mod tests {
     #[test]
     fn test_add_session_offline_persistent() {
         let mut broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| true))
+            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
             .build();
 
         let id = "id1".to_string();
@@ -1928,7 +1933,7 @@ pub(crate) mod tests {
     #[test]
     fn test_add_session_offline_transient() {
         let mut broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| true))
+            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
             .build();
 
         let id = "id1".to_string();
@@ -1975,7 +1980,11 @@ pub(crate) mod tests {
     async fn test_publish_client_has_no_permissions() {
         let broker = BrokerBuilder::default()
             .with_authorizer(authorize_fn_ok(|activity| {
-                matches!(activity.operation(), Operation::Connect(_))
+                if matches!(activity.operation(), Operation::Connect(_)) {
+                    Authorization::Allowed
+                } else {
+                    Authorization::Forbidden("not allowed".to_string())
+                }
             }))
             .build();
 
@@ -2008,12 +2017,12 @@ pub(crate) mod tests {
     async fn test_subscribe_client_has_no_permissions() {
         let broker = BrokerBuilder::default()
             .with_authorizer(authorize_fn_ok(|activity| match activity.operation() {
-                Operation::Connect(_) => true,
+                Operation::Connect(_) => Authorization::Allowed,
                 Operation::Subscribe(subscribe) => match subscribe.topic_filter() {
-                    "/topic/denied" => false,
-                    _ => true,
+                    "/topic/denied" => Authorization::Forbidden("denied".to_string()),
+                    _ => Authorization::Allowed,
                 },
-                _ => false,
+                _ => Authorization::Forbidden("not allowed".to_string()),
             }))
             .build();
 
@@ -2057,7 +2066,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_notify_state_change_single_connection() {
         let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| true))
+            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
             .build();
 
         let mut broker_handle = broker.handle();
@@ -2098,7 +2107,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_notify_state_change_multiple_connection() {
         let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| true))
+            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
             .build();
 
         let mut broker_handle = broker.handle();
@@ -2129,7 +2138,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_notify_state_change_add_remove_connection() {
         let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| true))
+            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
             .build();
 
         let mut broker_handle = broker.handle();
@@ -2167,7 +2176,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_notify_state_change_add_remove_subscription() {
         let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| true))
+            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
             .build();
 
         let mut broker_handle = broker.handle();
@@ -2203,7 +2212,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_notify_state_change_add_remove_multiple_subscriptions() {
         let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| true))
+            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
             .build();
 
         let mut broker_handle = broker.handle();
@@ -2242,7 +2251,7 @@ pub(crate) mod tests {
     #[tokio::test]
     async fn test_notify_state_change_existing_subscriptions() {
         let broker = BrokerBuilder::default()
-            .with_authorizer(authorize_fn_ok(|_| true))
+            .with_authorizer(authorize_fn_ok(|_| Authorization::Allowed))
             .build();
 
         let mut broker_handle = broker.handle();

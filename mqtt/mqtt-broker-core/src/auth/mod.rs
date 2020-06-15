@@ -6,7 +6,7 @@ pub use authentication::{
 };
 pub use authorization::{
     authorize_fn_ok, Activity, Authorizer, Connect, DefaultAuthorizer, Operation, Publication,
-    Publish, Subscribe,
+    Publish, Subscribe, Authorization,
 };
 
 use std::fmt::{Display, Formatter, Result as FmtResult};

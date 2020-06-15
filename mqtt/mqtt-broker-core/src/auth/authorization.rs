@@ -11,26 +11,33 @@ pub trait Authorizer {
     type Error: StdError;
 
     /// Authorizes a MQTT client to perform some action.
-    fn authorize(&self, activity: Activity) -> Result<bool, Self::Error>;
+    fn authorize(&self, activity: Activity) -> Result<Authorization, Self::Error>;
+}
+
+/// Authorization result.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Authorization {
+    Allowed,
+    Forbidden(String),
 }
 
 /// Creates an authorizer from a function.
 /// It wraps any provided function with an interface aligned with authorizer.
 pub fn authorize_fn_ok<F>(f: F) -> impl Authorizer
 where
-    F: Fn(Activity) -> bool + Sync + 'static,
+    F: Fn(Activity) -> Authorization + Sync + 'static,
 {
     move |activity| Ok::<_, Infallible>(f(activity))
 }
 
 impl<F, E> Authorizer for F
 where
-    F: Fn(Activity) -> Result<bool, E> + Sync,
+    F: Fn(Activity) -> Result<Authorization, E> + Sync,
     E: StdError,
 {
     type Error = E;
 
-    fn authorize(&self, activity: Activity) -> Result<bool, Self::Error> {
+    fn authorize(&self, activity: Activity) -> Result<Authorization, Self::Error> {
         self(activity)
     }
 }
@@ -42,8 +49,10 @@ pub struct DefaultAuthorizer;
 impl Authorizer for DefaultAuthorizer {
     type Error = Infallible;
 
-    fn authorize(&self, _: Activity) -> Result<bool, Self::Error> {
-        Ok(false)
+    fn authorize(&self, _: Activity) -> Result<Authorization, Self::Error> {
+        Ok(Authorization::Forbidden(
+            "not allowed by default".to_string(),
+        ))
     }
 }
 
@@ -184,10 +193,10 @@ mod tests {
 
     use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
 
-    use crate::{
-        auth::{authorize_fn_ok, Activity, Authorizer, DefaultAuthorizer, Operation},
-        ClientInfo,
+    use super::{
+        authorize_fn_ok, Activity, Authorization, Authorizer, DefaultAuthorizer, Operation,
     };
+    use crate::ClientInfo;
 
     fn connect() -> proto::Connect {
         proto::Connect {
@@ -212,12 +221,12 @@ mod tests {
 
         let res = auth.authorize(activity);
 
-        assert_matches!(res, Ok(false));
+        assert_matches!(res, Ok(Authorization::Forbidden(_)));
     }
 
     #[test]
     fn authorizer_wrapper_around_function() {
-        let auth = authorize_fn_ok(|_| true);
+        let auth = authorize_fn_ok(|_| Authorization::Allowed);
         let activity = Activity::new(
             "client-auth-id",
             ClientInfo::new(peer_addr(), "client-id"),
@@ -226,7 +235,7 @@ mod tests {
 
         let res = auth.authorize(activity);
 
-        assert_matches!(res, Ok(true));
+        assert_matches!(res, Ok(Authorization::Allowed));
     }
 
     fn peer_addr() -> SocketAddr {
