@@ -911,8 +911,9 @@ impl Default for PacketIdentifiers {
 
 /// `BoundedQueue` is a queue of publications with bounds by count and total payload size in bytes.
 ///
-/// Packets will be queued until either of `max_len` or `max_size` limits is reached, and
-/// then `when_full` strategy is applied.
+/// Packets will be queued until either `max_len` (max number of publications) 
+/// or `max_size` (max total payload size of publications)
+/// is reached, and then `when_full` strategy is applied.
 ///
 /// None for `max_len` or `max_size` means "unbounded".
 #[derive(Clone, Debug, PartialEq)]
