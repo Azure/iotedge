@@ -75,6 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 ServiceIdentityStatus.Enabled);
             var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, UnderlyingAuthenticator, trustBundle, true);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId))).ReturnsAsync(Option.Some(serviceIdentity));
+            deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceId))).ReturnsAsync(Option.Some(deviceId));
 
             // Assert
             Assert.True(await authenticator.AuthenticateAsync(primaryCredentials));
@@ -112,6 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 ServiceIdentityStatus.Enabled);
             var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, UnderlyingAuthenticator, trustBundle, true);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId))).ReturnsAsync(Option.Some(serviceIdentity));
+            deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceId))).ReturnsAsync(Option.Some(deviceId));
 
             // Assert
             Assert.True(await authenticator.AuthenticateAsync(primaryCredentials));
@@ -257,6 +259,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 ServiceIdentityStatus.Enabled);
             var authenticator = new DeviceScopeCertificateAuthenticator(deviceScopeIdentitiesCache.Object, UnderlyingAuthenticator, trustBundle, true);
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceId))).ReturnsAsync(Option.Some(serviceIdentity));
+            deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceId))).ReturnsAsync(Option.Some(deviceId));
 
             Assert.True(await authenticator.AuthenticateAsync(clientCredentials));
         }

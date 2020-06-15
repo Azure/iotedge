@@ -101,6 +101,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task<(bool isAuthenticated, bool serviceIdentityFound)> AuthenticateWithServiceIdentity(T credentials, string serviceIdentityId, bool syncServiceIdentity)
         {
+            Option<string> authChain = await this.deviceScopeIdentitiesCache.GetAuthChain(serviceIdentityId);
+
+            if (!authChain.HasValue)
+            {
+                // The identity is not within our nested hierarchy
+                return (false, false);
+            }
+
             Option<ServiceIdentity> serviceIdentity = await this.deviceScopeIdentitiesCache.GetServiceIdentity(serviceIdentityId);
             (bool isAuthenticated, bool serviceIdentityFound) = serviceIdentity.Map(s => (this.ValidateWithServiceIdentity(s, credentials), true)).GetOrElse((false, false));
 
