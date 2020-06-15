@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public Task RemoveDeviceConnection(string id)
         {
             return this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device)
-                ? this.RemoveDeviceConnection(device, false)
+                ? this.RemoveDeviceConnection(device, true)
                 : Task.CompletedTask;
         }
 
@@ -250,7 +250,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                                 }
                                 else
                                 {
-                                    await this.RemoveDeviceConnection(device, false);
+                                    await this.RemoveDeviceConnection(device, true);
                                 }
                             });
                     }
