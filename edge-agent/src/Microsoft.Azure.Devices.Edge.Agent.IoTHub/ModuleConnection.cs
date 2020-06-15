@@ -134,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 ReceivedMethodCallback,
                 DisposingModuleConnection,
                 DisposedModuleConnection,
-                ErrorDisposingModuleConnection,
+                ErrorDisposingModuleConnection
             }
 
             public static void ErrorHandlingModuleClosedEvent(Exception ex)
