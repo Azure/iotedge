@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public Task RemoveDeviceConnection(string id)
         {
             return this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device)
-                ? this.RemoveDeviceConnection(device, true)
+                ? this.RemoveDeviceConnection(device, false)
                 : Task.CompletedTask;
         }
 
