@@ -27,7 +27,7 @@ use mqtt3::{
     Client, Event, PublishError, PublishHandle, ReceivedPublication, ShutdownHandle,
     UpdateSubscriptionHandle, PROTOCOL_LEVEL, PROTOCOL_NAME,
 };
-use mqtt_broker::{Broker, BrokerState, Error, Server, TransportBuilder};
+use mqtt_broker::{Broker, BrokerSnapshot, Error, Server, TransportBuilder};
 use mqtt_broker_core::auth::{Activity, AuthId, AuthenticationContext, Authenticator, Authorizer};
 
 /// A wrapper on the [`mqtt3::Client`] to help simplify client event loop management.
@@ -388,7 +388,7 @@ impl Stream for PacketStream {
 pub struct ServerHandle {
     address: String,
     shutdown: Option<Sender<()>>,
-    task: Option<JoinHandle<Result<BrokerState, Error>>>,
+    task: Option<JoinHandle<Result<BrokerSnapshot, Error>>>,
 }
 
 #[allow(dead_code)]
@@ -397,7 +397,7 @@ impl ServerHandle {
         self.address.clone()
     }
 
-    pub async fn shutdown(&mut self) -> BrokerState {
+    pub async fn shutdown(&mut self) -> BrokerSnapshot {
         self.shutdown
             .take()
             .unwrap()

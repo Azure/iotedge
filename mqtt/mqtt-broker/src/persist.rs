@@ -21,7 +21,7 @@ use tracing::{debug, info, span, Level};
 
 use mqtt3::proto::Publication;
 
-use crate::{session::SessionState, subscription::Subscription, BrokerState, ClientId};
+use crate::{subscription::Subscription, BrokerSnapshot, ClientId, SessionSnapshot};
 
 /// sets the number of past states to save - 2 means we save the current and the pervious
 const STATE_DEFAULT_PREVIOUS_COUNT: usize = 2;
@@ -32,9 +32,9 @@ static STATE_EXTENSION: &str = "dat";
 pub trait Persist {
     type Error: StdError;
 
-    async fn load(&mut self) -> Result<Option<BrokerState>, Self::Error>;
+    async fn load(&mut self) -> Result<Option<BrokerSnapshot>, Self::Error>;
 
-    async fn store(&mut self, state: BrokerState) -> Result<(), Self::Error>;
+    async fn store(&mut self, state: BrokerSnapshot) -> Result<(), Self::Error>;
 }
 
 /// A persistor that does nothing.
@@ -45,11 +45,11 @@ pub struct NullPersistor;
 impl Persist for NullPersistor {
     type Error = PersistError;
 
-    async fn load(&mut self) -> Result<Option<BrokerState>, Self::Error> {
+    async fn load(&mut self) -> Result<Option<BrokerSnapshot>, Self::Error> {
         Ok(None)
     }
 
-    async fn store(&mut self, _: BrokerState) -> Result<(), Self::Error> {
+    async fn store(&mut self, _: BrokerSnapshot) -> Result<(), Self::Error> {
         Ok(())
     }
 }
@@ -59,10 +59,10 @@ pub trait FileFormat {
     type Error: StdError;
 
     /// Load `BrokerState` from a reader.
-    fn load<R: Read>(&self, reader: R) -> Result<BrokerState, Self::Error>;
+    fn load<R: Read>(&self, reader: R) -> Result<BrokerSnapshot, Self::Error>;
 
     /// Store `BrokerState` to a writer.
-    fn store<W: Write>(&self, writer: W, state: BrokerState) -> Result<(), Self::Error>;
+    fn store<W: Write>(&self, writer: W, state: BrokerSnapshot) -> Result<(), Self::Error>;
 }
 
 /// Loads/stores the broker state to a file defined by `FileFormat`.
@@ -106,18 +106,22 @@ impl<F> FilePersistor<F> {
     }
 }
 
+/// Root structure that is being serialized/deserialized.
+/// Used to support versioning of persisted state.
+///
+/// Every inner data structure must implement Into/From `BrokerSnapshot` in back-compat manner.
 #[derive(Deserialize, Serialize)]
 enum VersionedState {
     V1(ConsolidatedState),
 }
 
-impl From<BrokerState> for VersionedState {
-    fn from(state: BrokerState) -> Self {
+impl From<BrokerSnapshot> for VersionedState {
+    fn from(state: BrokerSnapshot) -> Self {
         VersionedState::V1(state.into())
     }
 }
 
-impl From<VersionedState> for BrokerState {
+impl From<VersionedState> for BrokerSnapshot {
     fn from(state: VersionedState) -> Self {
         match state {
             VersionedState::V1(state) => state.into(),
@@ -131,7 +135,7 @@ pub struct VersionedFileFormat;
 impl FileFormat for VersionedFileFormat {
     type Error = PersistError;
 
-    fn load<R: Read>(&self, reader: R) -> Result<BrokerState, Self::Error> {
+    fn load<R: Read>(&self, reader: R) -> Result<BrokerSnapshot, Self::Error> {
         let decoder = GzDecoder::new(reader);
         fail_point!("bincodeformat.load.deserialize_from", |_| {
             Err(PersistError::Deserialize(None))
@@ -143,7 +147,7 @@ impl FileFormat for VersionedFileFormat {
         Ok(state.into())
     }
 
-    fn store<W: Write>(&self, writer: W, state: BrokerState) -> Result<(), Self::Error> {
+    fn store<W: Write>(&self, writer: W, state: BrokerSnapshot) -> Result<(), Self::Error> {
         let state: VersionedState = state.into();
 
         let encoder = GzEncoder::new(writer, Compression::default());
@@ -154,8 +158,17 @@ impl FileFormat for VersionedFileFormat {
     }
 }
 
-impl From<BrokerState> for ConsolidatedState {
-    fn from(state: BrokerState) -> Self {
+#[derive(Deserialize, Serialize)]
+struct ConsolidatedState {
+    #[serde(serialize_with = "serialize_payloads")]
+    #[serde(deserialize_with = "deserialize_payloads")]
+    payloads: HashMap<u64, Bytes>,
+    retained: HashMap<String, SimplifiedPublication>,
+    sessions: Vec<ConsolidatedSession>,
+}
+
+impl From<BrokerSnapshot> for ConsolidatedState {
+    fn from(state: BrokerSnapshot) -> Self {
         let (retained, sessions) = state.into_parts();
 
         #[allow(clippy::mutable_key_type)]
@@ -213,7 +226,7 @@ impl From<BrokerState> for ConsolidatedState {
     }
 }
 
-impl From<ConsolidatedState> for BrokerState {
+impl From<ConsolidatedState> for BrokerSnapshot {
     fn from(state: ConsolidatedState) -> Self {
         let ConsolidatedState {
             payloads,
@@ -236,16 +249,15 @@ impl From<ConsolidatedState> for BrokerState {
             .map(|(topic, publication)| (topic, expand_payload(publication)))
             .collect();
 
-        #[allow(clippy::redundant_closure)] // removing closure leads to borrow error
         let sessions = sessions
             .into_iter()
             .map(|session| {
                 let waiting_to_be_sent = session
                     .waiting_to_be_sent
                     .into_iter()
-                    .map(|publication| expand_payload(publication))
+                    .map(expand_payload)
                     .collect();
-                SessionState::from_parts(
+                SessionSnapshot::from_parts(
                     session.client_id,
                     session.subscriptions,
                     waiting_to_be_sent,
@@ -253,17 +265,8 @@ impl From<ConsolidatedState> for BrokerState {
             })
             .collect();
 
-        BrokerState::new(retained, sessions)
+        BrokerSnapshot::new(retained, sessions)
     }
-}
-
-#[derive(Deserialize, Serialize)]
-struct ConsolidatedState {
-    #[serde(serialize_with = "serialize_payloads")]
-    #[serde(deserialize_with = "deserialize_payloads")]
-    payloads: HashMap<u64, Bytes>,
-    retained: HashMap<String, SimplifiedPublication>,
-    sessions: Vec<ConsolidatedSession>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -311,7 +314,7 @@ where
 {
     type Error = PersistError;
 
-    async fn load(&mut self) -> Result<Option<BrokerState>, Self::Error> {
+    async fn load(&mut self) -> Result<Option<BrokerSnapshot>, Self::Error> {
         let dir = self.dir.clone();
         let format = self.format.clone();
 
@@ -347,7 +350,7 @@ where
     }
 
     #[allow(clippy::too_many_lines)]
-    async fn store(&mut self, state: BrokerState) -> Result<(), Self::Error> {
+    async fn store(&mut self, state: BrokerSnapshot) -> Result<(), Self::Error> {
         let dir = self.dir.clone();
         let format = self.format.clone();
         let previous_count = self.previous_count;
@@ -542,20 +545,20 @@ pub(crate) mod tests {
 
     use crate::{
         persist::{ConsolidatedState, FileFormat, FilePersistor, Persist, VersionedFileFormat},
-        proptest::arb_broker_state,
-        BrokerState,
+        proptest::arb_broker_snapshot,
+        BrokerSnapshot,
     };
 
     proptest! {
         #[test]
-        fn consolidate_simple(state in arb_broker_state()) {
+        fn consolidate_simple(state in arb_broker_snapshot()) {
             let (expected_retained, expected_sessions) = state.clone().into_parts();
 
             let consolidated: ConsolidatedState = state.into();
             prop_assert_eq!(expected_retained.len(), consolidated.retained.len());
             prop_assert_eq!(expected_sessions.len(), consolidated.sessions.len());
 
-            let state: BrokerState = consolidated.into();
+            let state: BrokerSnapshot = consolidated.into();
             let (result_retained, result_sessions) = state.into_parts();
 
             prop_assert_eq!(expected_retained, result_retained);
@@ -566,7 +569,7 @@ pub(crate) mod tests {
         }
 
         #[test]
-        fn consolidate_roundtrip(state in arb_broker_state()) {
+        fn consolidate_roundtrip(state in arb_broker_snapshot()) {
             let (expected_retained, expected_sessions) = state.clone().into_parts();
             let format = VersionedFileFormat;
             let mut buffer = vec![0_u8; 10 * 1024 * 1024];
@@ -591,8 +594,8 @@ pub(crate) mod tests {
         let path = tmp_dir.path().to_owned();
         let mut persistor = FilePersistor::new(path, VersionedFileFormat::default());
 
-        persistor.store(BrokerState::default()).await.unwrap();
+        persistor.store(BrokerSnapshot::default()).await.unwrap();
         let state = persistor.load().await.unwrap().unwrap();
-        assert_eq!(BrokerState::default(), state);
+        assert_eq!(BrokerSnapshot::default(), state);
     }
 }

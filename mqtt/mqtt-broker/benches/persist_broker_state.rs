@@ -9,7 +9,7 @@ use tempfile::TempDir;
 
 use mqtt3::proto::{Publication, QoS};
 use mqtt_broker::{
-    BrokerState, ClientId, ConsolidatedStateFormat, FileFormat, FilePersistor, Persist,
+    BrokerSnapshot, ClientId, ConsolidatedStateFormat, FileFormat, FilePersistor, Persist,
     PersistError, SessionState,
 };
 
@@ -93,7 +93,7 @@ fn make_fake_state(
     num_unique_messages: u32,
     num_shared_messages: u32,
     num_retained: u32,
-) -> BrokerState {
+) -> BrokerSnapshot {
     let retained = HashMap::from_iter((0..num_retained).map(|i| {
         (
             format!("Retained {}", i),
@@ -120,7 +120,7 @@ fn make_fake_state(
         })
         .collect();
 
-    BrokerState::new(retained, sessions)
+    BrokerSnapshot::new(retained, sessions)
 }
 
 fn make_fake_publish(topic_name: String) -> Publication {

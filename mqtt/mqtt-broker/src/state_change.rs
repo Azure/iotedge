@@ -90,7 +90,7 @@ impl<'a> TryFrom<StateChange<'a>> for proto::Publication {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{HashMap, VecDeque};
+    use std::collections::HashMap;
     use std::convert::TryInto;
     use std::str::FromStr;
 
@@ -100,7 +100,7 @@ mod tests {
     use crate::session::{Session, SessionState};
     use crate::state_change::{StateChange, STATE_CHANGE_QOS};
     use crate::subscription::{Subscription, TopicFilter};
-    use crate::{Auth, AuthId, ClientId, ConnReq};
+    use crate::{Auth, AuthId, BrokerConfig, ClientId, ConnReq, SessionConfig};
 
     #[test]
     fn test_subscriptions() {
@@ -347,22 +347,26 @@ mod tests {
         );
     }
 
+    fn default_config() -> SessionConfig {
+        BrokerConfig::default().session().clone()
+    }
+
     fn make_session<I, S>(id: &str, subscriptions: I, online: bool) -> Session
     where
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        let subscriptions = subscriptions
-            .into_iter()
-            .map(|s| {
-                let s = s.as_ref();
-                (
-                    s.to_owned(),
-                    Subscription::new(TopicFilter::from_str(s).unwrap(), proto::QoS::AtLeastOnce),
-                )
-            })
-            .collect();
-        let state = SessionState::from_parts(id.into(), subscriptions, VecDeque::new());
+        let mut state = SessionState::new(id.into(), default_config());
+
+        for topic_filter in subscriptions {
+            state.update_subscription(
+                topic_filter.as_ref().to_owned(),
+                Subscription::new(
+                    TopicFilter::from_str(&topic_filter.as_ref()).unwrap(),
+                    proto::QoS::AtLeastOnce,
+                ),
+            );
+        }
 
         if online {
             Session::new_persistent(
