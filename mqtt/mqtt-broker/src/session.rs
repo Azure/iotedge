@@ -237,7 +237,7 @@ impl OfflineSession {
 
         // Dequeue any queued messages - up to the max inflight count
         while state.allowed_to_send() {
-            match state.waiting_to_be_sent.pop_front() {
+            match state.waiting_to_be_sent.dequeue() {
                 Some(publication) => {
                     debug!("dequeueing a message for {}", state.client_id);
                     let event = state.prepare_to_send(&publication)?;
@@ -334,18 +334,20 @@ impl SessionState {
     }
 
     pub fn from_snapshot(snapshot: SessionSnapshot, config: SessionConfig) -> Self {
-        let (client_id, subscriptions, waiting_to_be_sent) = snapshot.into_parts();
+        let (client_id, subscriptions, queued_publications) = snapshot.into_parts();
+
+        let mut waiting_to_be_sent = BoundedQueue::new(
+            config.max_queued_messages(),
+            config.max_queued_size(),
+            config.when_full(),
+        );
+        waiting_to_be_sent.extend(queued_publications);
 
         Self {
             client_id,
             subscriptions,
             packet_identifiers: PacketIdentifiers::default(),
-            waiting_to_be_sent: BoundedQueue::from_iter(
-                waiting_to_be_sent,
-                config.max_queued_messages(),
-                config.max_queued_size(),
-                config.when_full(),
-            ),
+            waiting_to_be_sent,
             waiting_to_be_acked: HashMap::new(),
             waiting_to_be_released: HashMap::new(),
             waiting_to_be_completed: HashSet::new(),
@@ -377,7 +379,7 @@ impl SessionState {
 
     pub fn queue_publish(&mut self, publication: proto::Publication) -> Result<(), Error> {
         if let Some(publication) = self.filter(publication) {
-            self.waiting_to_be_sent.push_back(publication);
+            self.waiting_to_be_sent.enqueue(publication);
         }
         Ok(())
     }
@@ -393,7 +395,7 @@ impl SessionState {
                 let event = self.prepare_to_send(&publication)?;
                 Ok(Some(event))
             } else {
-                self.waiting_to_be_sent.push_back(publication);
+                self.waiting_to_be_sent.enqueue(publication);
                 Ok(None)
             }
         } else {
@@ -492,7 +494,7 @@ impl SessionState {
 
     fn try_publish(&mut self) -> Result<Option<ClientEvent>, Error> {
         if self.allowed_to_send() {
-            if let Some(publication) = self.waiting_to_be_sent.pop_front() {
+            if let Some(publication) = self.waiting_to_be_sent.dequeue() {
                 let event = self.prepare_to_send(&publication)?;
                 return Ok(Some(event));
             }
@@ -585,7 +587,7 @@ impl From<SessionState> for SessionSnapshot {
         SessionSnapshot::from_parts(
             state.client_id,
             state.subscriptions,
-            state.waiting_to_be_sent.into_vec_dequeue(),
+            state.waiting_to_be_sent.into_inner(),
         )
     }
 }
@@ -919,7 +921,7 @@ struct BoundedQueue {
     max_len: Option<NonZeroUsize>,
     max_size: Option<NonZeroU64>,
     when_full: QueueFullAction,
-    cur_size: u64,
+    current_size: u64,
 }
 
 impl BoundedQueue {
@@ -933,36 +935,25 @@ impl BoundedQueue {
             max_len,
             max_size,
             when_full,
-            cur_size: 0,
+            current_size: 0,
         }
     }
 
-    pub fn from_iter(
-        iterable: impl IntoIterator<Item = proto::Publication>,
-        max_len: Option<NonZeroUsize>,
-        max_size: Option<NonZeroU64>,
-        when_full: QueueFullAction,
-    ) -> Self {
-        let mut queue = BoundedQueue::new(max_len, max_size, when_full);
-        iterable.into_iter().for_each(|item| queue.push_back(item));
-        queue
-    }
-
-    pub fn into_vec_dequeue(self) -> VecDeque<proto::Publication> {
+    pub fn into_inner(self) -> VecDeque<proto::Publication> {
         self.inner
     }
 
-    pub fn pop_front(&mut self) -> Option<proto::Publication> {
+    pub fn dequeue(&mut self) -> Option<proto::Publication> {
         match self.inner.pop_front() {
             Some(publication) => {
-                self.cur_size -= publication.payload.len() as u64;
+                self.current_size -= publication.payload.len() as u64;
                 Some(publication)
             }
             None => None,
         }
     }
 
-    pub fn push_back(&mut self, publication: proto::Publication) {
+    pub fn enqueue(&mut self, publication: proto::Publication) {
         if let Some(max_len) = self.max_len {
             if self.inner.len() >= max_len.get() {
                 return self.handle_queue_limit(publication);
@@ -971,12 +962,12 @@ impl BoundedQueue {
 
         if let Some(max_size) = self.max_size {
             let pub_len = publication.payload.len() as u64;
-            if self.cur_size + pub_len > max_size.get() {
+            if self.current_size + pub_len > max_size.get() {
                 return self.handle_queue_limit(publication);
             }
         }
 
-        self.cur_size += publication.payload.len() as u64;
+        self.current_size += publication.payload.len() as u64;
         self.inner.push_back(publication);
     }
 
@@ -996,11 +987,17 @@ impl BoundedQueue {
                 // do nothing
             }
             QueueFullAction::DropOld => {
-                let _ = self.pop_front();
-                self.cur_size += publication.payload.len() as u64;
+                let _ = self.dequeue();
+                self.current_size += publication.payload.len() as u64;
                 self.inner.push_back(publication);
             }
         };
+    }
+}
+
+impl Extend<proto::Publication> for BoundedQueue {
+    fn extend<T: IntoIterator<Item = proto::Publication>>(&mut self, iter: T) {
+        iter.into_iter().for_each(|item| self.enqueue(item));
     }
 }
 
