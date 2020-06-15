@@ -151,7 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool encryptTwinStore = this.configuration.GetValue("EncryptTwinStore", false);
             int configUpdateFrequencySecs = this.configuration.GetValue("ConfigRefreshFrequencySecs", 3600);
             TimeSpan configUpdateFrequency = TimeSpan.FromSeconds(configUpdateFrequencySecs);
-            bool closeCloudConnectionWhenCloseDeviceConnection = this.configuration.GetValue("closeCloudConnectionWhenCloseDeviceConnection", true);
+            bool closeCloudConnectionWhenCloseDeviceConnection = this.configuration.GetValue("CloseCloudConnectionWhenCloseDeviceConnection", true);
 
             builder.RegisterModule(
                 new RoutingModule(
