@@ -53,6 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool encryptTwinStore;
         readonly TimeSpan configUpdateFrequency;
         readonly ExperimentalFeatures experimentalFeatures;
+        readonly bool closeCloudConnectionWhenCloseDeviceConnection;
 
         public RoutingModule(
             string iotHubName,
@@ -80,7 +81,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             int upstreamFanOutFactor,
             bool encryptTwinStore,
             TimeSpan configUpdateFrequency,
-            ExperimentalFeatures experimentalFeatures)
+            ExperimentalFeatures experimentalFeatures,
+            bool closeCloudConnectionWhenCloseDeviceConnection)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -108,6 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.encryptTwinStore = encryptTwinStore;
             this.configUpdateFrequency = configUpdateFrequency;
             this.experimentalFeatures = experimentalFeatures;
+            this.closeCloudConnectionWhenCloseDeviceConnection = closeCloudConnectionWhenCloseDeviceConnection;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -255,7 +258,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             credentialsCache,
                             identityProvider,
                             deviceConnectivityManager,
-                            this.maxConnectedClients);
+                            this.maxConnectedClients,
+                            this.closeCloudConnectionWhenCloseDeviceConnection);
                         return connectionManager;
                     })
                 .As<Task<IConnectionManager>>()

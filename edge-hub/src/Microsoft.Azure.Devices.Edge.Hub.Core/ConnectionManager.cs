@@ -29,13 +29,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly ICredentialsCache credentialsCache;
         readonly IIdentityProvider identityProvider;
         readonly IDeviceConnectivityManager connectivityManager;
+        readonly bool closeCloudConnectionWhenCloseDeviceConnection;
 
         public ConnectionManager(
             ICloudConnectionProvider cloudConnectionProvider,
             ICredentialsCache credentialsCache,
             IIdentityProvider identityProvider,
             IDeviceConnectivityManager connectivityManager,
-            int maxClients = DefaultMaxClients)
+            int maxClients = DefaultMaxClients,
+            bool closeCloudConnectionWhenCloseDeviceConnection = true)
         {
             this.cloudConnectionProvider = Preconditions.CheckNotNull(cloudConnectionProvider, nameof(cloudConnectionProvider));
             this.maxClients = Preconditions.CheckRange(maxClients, 1, nameof(maxClients));
@@ -44,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.connectivityManager = Preconditions.CheckNotNull(connectivityManager, nameof(connectivityManager));
             this.connectivityManager.DeviceDisconnected += (o, args) => this.HandleDeviceCloudConnectionDisconnected();
             Util.Metrics.MetricsV0.RegisterGaugeCallback(() => MetricsV0.SetConnectedClientCountGauge(this));
+            this.closeCloudConnectionWhenCloseDeviceConnection = closeCloudConnectionWhenCloseDeviceConnection;
         }
 
         public event EventHandler<IIdentity> CloudConnectionEstablished;
@@ -75,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public Task RemoveDeviceConnection(string id)
         {
             return this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device)
-                ? this.RemoveDeviceConnection(device, true)
+                ? this.RemoveDeviceConnection(device, this.closeCloudConnectionWhenCloseDeviceConnection)
                 : Task.CompletedTask;
         }
 
@@ -250,7 +253,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                                 }
                                 else
                                 {
-                                    await this.RemoveDeviceConnection(device, true);
+                                    await this.RemoveDeviceConnection(device, this.closeCloudConnectionWhenCloseDeviceConnection);
                                 }
                             });
                     }

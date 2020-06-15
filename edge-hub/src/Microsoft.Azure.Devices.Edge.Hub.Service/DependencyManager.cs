@@ -151,6 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool encryptTwinStore = this.configuration.GetValue("EncryptTwinStore", false);
             int configUpdateFrequencySecs = this.configuration.GetValue("ConfigRefreshFrequencySecs", 3600);
             TimeSpan configUpdateFrequency = TimeSpan.FromSeconds(configUpdateFrequencySecs);
+            bool closeCloudConnectionWhenCloseDeviceConnection = this.configuration.GetValue("closeCloudConnectionWhenCloseDeviceConnection", true);
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -179,7 +180,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     upstreamFanOutFactor,
                     encryptTwinStore,
                     configUpdateFrequency,
-                    experimentalFeatures));
+                    experimentalFeatures,
+                    closeCloudConnectionWhenCloseDeviceConnection));
         }
 
         void RegisterCommonModule(
