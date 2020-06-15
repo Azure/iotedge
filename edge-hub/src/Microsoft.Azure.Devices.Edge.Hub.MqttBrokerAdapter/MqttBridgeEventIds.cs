@@ -12,5 +12,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public const int TelemetryHandler = EventIdStart + 250;
         public const int Cloud2DeviceMessageHandler = EventIdStart + 300;
         public const int DirectMethodHandler = EventIdStart + 350;
+        public const int ModuleToModuleMessageHandler = EventIdStart + 400;
+        public const int SubscriptionChangeHandler = EventIdStart + 450;
+        public const int MessageConfirmingHandler = EventIdStart + 500;
     }
 }

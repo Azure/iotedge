@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 {
     using System;
     using System.Collections.Generic;
-    using System.Text;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -11,7 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using Newtonsoft.Json;
 
     public class TwinHandler : ITwinHandler, ISubscriber, IMessageConsumer, IMessageProducer
     {
@@ -21,8 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         const string TwinUpdateModule = "$edgehub/+/+/twin/reported/#";
 
         const string TwinGetPublishPattern = @"^\$edgehub/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/get/\?\$rid=(?<rid>.+)";
-        const string TwinUpdatePublishPattern = @"^\$edgehub/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/reported/\?\$rid=(?<rid>.+)"; // FIXME make a single pattern combined the one above, capturing the "verb"? ('get' vs 'reported'?)
-        const string SubscriptionChangePattern = @"^\$edgehub/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/subscriptions$";
+        const string TwinUpdatePublishPattern = @"^\$edgehub/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/reported/\?\$rid=(?<rid>.+)";
 
         const string TwinSubscriptionForResultsPattern = @"^\$edgehub/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/res/\#$";
         const string TwinSubscriptionForPatchPattern = @"^\$edgehub/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/desired/\#$";
@@ -33,8 +30,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         const string DesiredUpdateDevice = "$edgehub/{0}/twin/desired/?$version={1}";
         const string DesiredUpdateModule = "$edgehub/{0}/{1}/twin/desired/?$version={2}";
 
-        static readonly char[] identitySegmentSeparator = new[] { '/' };
         static readonly string[] subscriptions = new[] { TwinGetDevice, TwinGetModule, TwinUpdateDevice, TwinUpdateModule };
+
+        static readonly SubscriptionPattern[] subscriptionPatterns = new SubscriptionPattern[]
+                                                                         {
+                                                                            new SubscriptionPattern(TwinSubscriptionForResultsPattern, DeviceSubscription.TwinResponse),
+                                                                            new SubscriptionPattern(TwinSubscriptionForPatchPattern, DeviceSubscription.DesiredPropertyUpdates)
+                                                                         };
 
         readonly IConnectionRegistry connectionRegistry;
         IMqttBridgeConnector connector;
@@ -42,6 +44,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public IReadOnlyCollection<string> Subscriptions => subscriptions;
 
         public TwinHandler(IConnectionRegistry connectionRegistry) => this.connectionRegistry = connectionRegistry;
+
+        public IReadOnlyCollection<SubscriptionPattern> WatchedSubscriptions => subscriptionPatterns;
 
         public Task<bool> HandleAsync(MqttPublishInfo publishInfo)
         {
@@ -55,12 +59,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             if (match.Success)
             {
                 return this.HandleUpdateReported(match, publishInfo);
-            }
-
-            match = Regex.Match(publishInfo.Topic, SubscriptionChangePattern);
-            if (match.Success)
-            {
-                return this.HandleSubscriptionChanged(match, publishInfo);
             }
 
             return Task.FromResult(false);
@@ -168,14 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             var id2 = match.Groups["id2"];
             var rid = match.Groups["rid"];
 
-            // id1 and rid is mandatory, id2 is present only for modules
-            if (!id1.Success || !rid.Success)
-            {
-                Events.UnexpectedTwinTopic(publishInfo.Topic);
-                return false;
-            }
-
-            var identity = GetIdentityFromIdParts(id1, id2);
+            var identity = HandlerUtils.GetIdentityFromMatch(id1, id2);
             var proxy = await this.connectionRegistry.GetUpstreamProxyAsync(identity);
 
             try
@@ -192,99 +183,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return true;
         }
 
-        async Task<bool> HandleSubscriptionChanged(Match match, MqttPublishInfo publishInfo)
-        {
-            var id1 = match.Groups["id1"];
-            var id2 = match.Groups["id2"];
-
-            var identity = GetIdentityFromIdParts(id1, id2);
-
-            var subscriptionList = default(List<string>);
-            try
-            {
-                var payloadAsString = Encoding.UTF8.GetString(publishInfo.Payload);
-                subscriptionList = JsonConvert.DeserializeObject<List<string>>(payloadAsString);
-            }
-            catch (Exception e)
-            {
-                Events.BadPayloadFormat(e);
-                return false;
-            }
-
-            var subscribesTwinRes = false;
-            var subscribesTwinPatch = false;
-
-            foreach (var subscription in subscriptionList)
-            {
-                var subscriptionMatch = Regex.Match(subscription, TwinSubscriptionForResultsPattern);
-                subscribesTwinRes = subscribesTwinRes || IsMatchWithIds(subscriptionMatch, id1, id2);
-
-                subscriptionMatch = Regex.Match(subscription, TwinSubscriptionForPatchPattern);
-                subscribesTwinPatch = subscribesTwinPatch || IsMatchWithIds(subscriptionMatch, id1, id2);
-            }
-
-            var proxy = default(IDeviceListener);
-            try
-            {
-                proxy = (await this.connectionRegistry.GetUpstreamProxyAsync(identity)).Expect(() => new Exception($"No upstream proxy found for {identity.Id}"));
-            }
-            catch (Exception)
-            {
-                Events.MissingProxy(identity.Id);
-                return false;
-            }
-
-            await AddOrRemove(proxy, subscribesTwinRes, DeviceSubscription.TwinResponse);
-            await AddOrRemove(proxy, subscribesTwinPatch, DeviceSubscription.DesiredPropertyUpdates);
-
-            return true;
-        }
-
-        static Task AddOrRemove(IDeviceListener proxy, bool add, DeviceSubscription subscription)
-        {
-            if (add)
-            {
-                return proxy.AddSubscription(subscription);
-            }
-            else
-            {
-                return proxy.RemoveSubscription(subscription);
-            }
-        }
-
-        static bool IsMatchWithIds(Match match, Group id1, Group id2)
-        {
-            if (match.Success)
-            {
-                var subscriptionId1 = match.Groups["id1"];
-                var subscriptionId2 = match.Groups["id2"];
-
-                var id1Match = id1.Success && subscriptionId1.Success && id1.Value == subscriptionId1.Value;
-                var id2Match = (id2.Success && subscriptionId2.Success && id2.Value == subscriptionId2.Value) || (!id2.Success && !subscriptionId2.Success);
-
-                return id1Match && id2Match;
-            }
-
-            return false;
-        }
-
-        static IIdentity GetIdentityFromIdParts(Group id1, Group id2)
-        {
-            if (id2.Success)
-            {
-                // FIXME the iothub name should come from somewhere
-                return new ModuleIdentity("vikauthtest.azure-devices.net", id1.Value, id2.Value);
-            }
-            else
-            {
-                // FIXME the iothub name should come from somewhere
-                return new DeviceIdentity("vikauthtest.azure-devices.net", id1.Value);
-            }
-        }
-
         static string GetTwinResultTopic(IIdentity identity, string statusCode, string correlationId)
         {
-            var identityComponents = identity.Id.Split(identitySegmentSeparator, StringSplitOptions.RemoveEmptyEntries);
+            var identityComponents = identity.Id.Split(HandlerUtils.IdentitySegmentSeparator, StringSplitOptions.RemoveEmptyEntries);
 
             switch (identityComponents.Length)
             {
@@ -299,7 +200,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         static string GetDesiredPropertiesUpdateTopic(IIdentity identity, string version)
         {
-            var identityComponents = identity.Id.Split(identitySegmentSeparator, StringSplitOptions.RemoveEmptyEntries);
+            var identityComponents = identity.Id.Split(HandlerUtils.IdentitySegmentSeparator, StringSplitOptions.RemoveEmptyEntries);
 
             switch (identityComponents.Length)
             {

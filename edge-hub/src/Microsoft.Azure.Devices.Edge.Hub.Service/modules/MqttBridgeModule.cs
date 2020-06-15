@@ -30,7 +30,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             // 1) by its own type - that is because the connector is going to
             //    request an instance by the type name as it finds ISubscriber, etc
             //    derived types.
-            // 2) by every interface name that is not IMessageConsumer/Producer/ISubscriber.
+            // 2) by every interface name that is not the following:
+            //      IMessageConsumer/IProducer/ISubscriber/ISubscriptionWatcher.
             //    That is because some of the producers/consumers are also special services
             //    and components will need those injected by custom interfaces.
             builder.RegisterTypes(componentTypes)
@@ -41,6 +42,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.RegisterType<DeviceProxy>()
                    .AsSelf();
 
+            builder.RegisterType<SubscriptionChangeHandler>()
+                   .AsImplementedInterfaces()
+                   .SingleInstance();
+
             builder.Register(
                         c =>
                         {
@@ -50,7 +55,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var discovery = new MqttBridgeComponentDiscovery(logger);
                             discovery.Discover(c);
 
-                            var connector = new MqttBridgeConnector(discovery);
+                            return discovery;
+                        })
+                .As<IComponentDiscovery>()
+                .SingleInstance();
+
+            builder.RegisterType<MqttBridgeConnector>()
+                   .AsImplementedInterfaces()
+                   .SingleInstance();
+
+            builder.Register(
+                        c =>
+                        {
+                            var connector = c.Resolve<IMqttBridgeConnector>();
 
                             var port = this.config.GetValue("port", defaultPort);
                             var baseUrl = this.config.GetValue("url", defaultUrl);

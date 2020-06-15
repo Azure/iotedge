@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 {
     using System;
-    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
@@ -19,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         const int ReconnectDelayMs = 2000;
 
         readonly IComponentDiscovery components;
+        readonly ISubscriptionChangeHandler subscriptionChangeHandler;
         readonly Dictionary<ushort, TaskCompletionSource<bool>> pendingAcks = new Dictionary<ushort, TaskCompletionSource<bool>>();
 
         readonly object guard = new object();
@@ -27,9 +27,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         Option<Task> forwardingLoop;
         Option<MqttClient> mqttClient;
 
-        public MqttBridgeConnector(IComponentDiscovery components)
+        public MqttBridgeConnector(IComponentDiscovery components, ISubscriptionChangeHandler subscriptionChangeHandler)
         {
             this.components = components;
+            this.subscriptionChangeHandler = subscriptionChangeHandler;
 
             // because of the circular dependency between MqttBridgeConnector and the producers,
             // in this loop the producers get the IMqttBridgeConnector reference:
@@ -259,18 +260,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                             continue;
                                         }
 
-                                        foreach (var consumer in this.components.Consumers)
-                                        {
-                                            try
-                                            {
-                                                var accepted = await consumer.HandleAsync(publishInfo);
-                                                Events.MessageForwarded(consumer.GetType().Name, accepted, publishInfo.Topic, publishInfo.Payload.Length);
-                                            }
-                                            catch (Exception e)
-                                            {
-                                                Events.FailedToForward(e);
+                                        var handledAsSubscriptionChange = false;
 
-                                                // keep going with other consumers...
+                                        try
+                                        {
+                                            handledAsSubscriptionChange = await this.subscriptionChangeHandler.HandleSubscriptionChangeAsync(publishInfo);
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            Events.FailedToForward(e);
+                                            // let it flow to the consumers - at this point it is not known if it was a subscription change,
+                                            // but consumers will skip those anyway.
+                                        }
+
+                                        if (!handledAsSubscriptionChange)
+                                        {
+                                            foreach (var consumer in this.components.Consumers)
+                                            {
+                                                try
+                                                {
+                                                    var accepted = await consumer.HandleAsync(publishInfo);
+                                                    Events.MessageForwarded(consumer.GetType().Name, accepted, publishInfo.Topic, publishInfo.Payload.Length);
+                                                }
+                                                catch (Exception e)
+                                                {
+                                                    Events.FailedToForward(e);
+                                                    // Keep going with other consumers...
+                                                }
                                             }
                                         }
                                     }

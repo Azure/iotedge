@@ -7,10 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client.Common;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using Org.BouncyCastle.Math.EC;
 
     public class TelemetryHandler : ISubscriber, IMessageConsumer
     {
@@ -22,14 +20,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         static readonly string[] subscriptions = new[] { TelemetryDevice, TelemetryModule };
 
         readonly IConnectionRegistry connectionRegistry;
+        readonly Regex telemetryPublishRegex = new Regex(TelemetryPublishPattern, RegexOptions.Compiled);
 
         public IReadOnlyCollection<string> Subscriptions => subscriptions;
-
         public TelemetryHandler(IConnectionRegistry connectionRegistry) => this.connectionRegistry = connectionRegistry;
 
         public Task<bool> HandleAsync(MqttPublishInfo publishInfo)
         {
-            var match = Regex.Match(publishInfo.Topic, TelemetryPublishPattern);
+            var match = this.telemetryPublishRegex.Match(publishInfo.Topic);
             if (match.Success)
             {
                 return this.HandleTelemetry(match, publishInfo);
@@ -44,14 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             var id2 = match.Groups["id2"];
             var bag = match.Groups["bag"];
 
-            // id1 and bag is mandatory, id2 is present only for modules
-            if (!id1.Success || !bag.Success)
-            {
-                Events.UnexpectedTelemetryTopic(publishInfo.Topic);
-                return false;
-            }
-
-            var identity = GetIdentityFromIdParts(id1, id2);
+            var identity = HandlerUtils.GetIdentityFromMatch(id1, id2);
             var proxy = await this.connectionRegistry.GetUpstreamProxyAsync(identity);
 
             var message = default(IMessage);
@@ -112,20 +103,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 .Build();
 
             return hubMessage;
-        }
-
-        static IIdentity GetIdentityFromIdParts(Group id1, Group id2)
-        {
-            if (id2.Success)
-            {
-                // FIXME the iothub name should come from somewhere
-                return new ModuleIdentity("vikauthtest.azure-devices.net", id1.Value, id2.Value);
-            }
-            else
-            {
-                // FIXME the iothub name should come from somewhere
-                return new DeviceIdentity("vikauthtest.azure-devices.net", id1.Value);
-            }
         }
 
         static class Events

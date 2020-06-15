@@ -152,7 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         (_, old) =>
                         {
                             hasChanged = old != false;
-                            return true;
+                            return false;
                         });
                 });
 

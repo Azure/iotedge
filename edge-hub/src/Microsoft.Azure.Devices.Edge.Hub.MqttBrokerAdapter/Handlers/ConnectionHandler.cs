@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System.Collections.Generic;
     using System.Text;
     using System.Threading.Tasks;
-
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -19,7 +18,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     {
         const string TopicDeviceConnected = "$edgehub/connected";
 
-        static readonly char[] identitySegmentSeparator = new[] { '/' };
         static readonly string[] subscriptions = new[] { TopicDeviceConnected };
 
         readonly IConnectionProvider connectionProvider;
@@ -185,7 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             foreach (var id in identityList)
             {
-                var identityComponents = id.Split(identitySegmentSeparator, StringSplitOptions.RemoveEmptyEntries);
+                var identityComponents = id.Split(HandlerUtils.IdentitySegmentSeparator, StringSplitOptions.RemoveEmptyEntries);
 
                 switch (identityComponents.Length)
                 {

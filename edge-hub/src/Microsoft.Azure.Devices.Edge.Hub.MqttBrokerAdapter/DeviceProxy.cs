@@ -3,28 +3,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 {
     using System;
     using System.Threading.Tasks;
-    using Microsoft.AspNetCore.Server.IIS.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
-    using Org.BouncyCastle.Ocsp;
 
     public class DeviceProxy : IDeviceProxy
     {
         readonly AtomicBoolean isActive;
         readonly ITwinHandler twinHandler;
+        readonly IModuleToModuleMessageHandler moduleToModuleMessageHandler;
         readonly ICloud2DeviceMessageHandler cloud2DeviceMessageHandler;
         readonly IDirectMethodHandler directMethodHandler;
 
         public delegate DeviceProxy Factory(IIdentity identity);
 
-        public DeviceProxy(IIdentity identity, ITwinHandler twinHandler, ICloud2DeviceMessageHandler cloud2DeviceMessageHandler, IDirectMethodHandler directMethodHandler)
+        public DeviceProxy(
+                    IIdentity identity,
+                    ITwinHandler twinHandler,
+                    IModuleToModuleMessageHandler moduleToModuleMessageHandler,
+                    ICloud2DeviceMessageHandler cloud2DeviceMessageHandler,
+                    IDirectMethodHandler directMethodHandler)
         {
             this.Identity = identity;
             this.twinHandler = twinHandler;
+            this.moduleToModuleMessageHandler = moduleToModuleMessageHandler;
             this.cloud2DeviceMessageHandler = cloud2DeviceMessageHandler;
             this.directMethodHandler = directMethodHandler;
             this.isActive = new AtomicBoolean(true);
@@ -72,7 +77,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public Task SendMessageAsync(IMessage message, string input)
         {
-            throw new NotImplementedException();
+            Events.SendingModuleToModuleMessage(this.Identity);
+            return this.moduleToModuleMessageHandler.SendModuleToModuleMessageAsync(message, input, this.Identity);
         }
 
         public Task SendTwinUpdate(IMessage twin)
@@ -100,7 +106,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 SendingTwinUpdate,
                 SendingDesiredPropertyUpdate,
                 SendingC2DMessage,
-                SendingDirectMethod
+                SendingDirectMethod,
+                SendingModuleToModuleMessage
             }
 
             public static void Created(IIdentity identity) => Log.LogInformation((int)EventIds.Created, $"Created device proxy for {identity.IotHubHostName}/{identity.Id}");
@@ -110,6 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             public static void SendingDesiredPropertyUpdate(IIdentity identity) => Log.LogDebug((int)EventIds.SendingDesiredPropertyUpdate, $"Sending desired property update to {identity.Id}");
             public static void SendingC2DMessage(IIdentity identity) => Log.LogDebug((int)EventIds.SendingC2DMessage, $"Sending C2D message to {identity.Id}");
             public static void SendingDirectMethod(IIdentity identity) => Log.LogDebug((int)EventIds.SendingDirectMethod, $"Sending direct method message to {identity.Id}");
+            public static void SendingModuleToModuleMessage(IIdentity identity) => Log.LogDebug((int)EventIds.SendingModuleToModuleMessage, $"Sending module to module message to {identity.Id}");
         }
     }
 }
