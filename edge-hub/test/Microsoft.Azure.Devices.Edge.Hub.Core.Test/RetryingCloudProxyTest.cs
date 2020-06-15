@@ -55,6 +55,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                             new List<string>(),
                             new ServiceAuthentication(new SymmetricKeyAuthentication("foo", "bar")),
                             ServiceIdentityStatus.Enabled)));
+            deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == Id)))
+                .ReturnsAsync(Option.Some(Id));
 
             var edgeHubIdentity = Mock.Of<IIdentity>();
 
@@ -155,6 +157,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                             new List<string>(),
                             new ServiceAuthentication(new SymmetricKeyAuthentication("foo", "bar")),
                             ServiceIdentityStatus.Enabled)));
+            deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == Id)))
+                .ReturnsAsync(Option.Some(Id));
 
             var edgeHubIdentity = Mock.Of<IIdentity>();
 
@@ -239,6 +243,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                             new List<string>(),
                             new ServiceAuthentication(new SymmetricKeyAuthentication("foo", "bar")),
                             ServiceIdentityStatus.Enabled)));
+            deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == Id)))
+                .ReturnsAsync(Option.Some(Id));
 
             var edgeHubIdentity = Mock.Of<IIdentity>();
 

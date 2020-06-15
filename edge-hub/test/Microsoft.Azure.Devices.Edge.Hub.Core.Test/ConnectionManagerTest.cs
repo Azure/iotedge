@@ -94,15 +94,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var productInfoStore = Mock.Of<IProductInfoStore>();
             ICredentialsCache credentialsCache = new CredentialsCache(new NullCredentialsCache());
 
+            var edgeHubIdentity = new ModuleIdentity(IotHubHostName, edgeDeviceId, "$edgeHub");
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
+            deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceCredentials1.Identity.Id))).ReturnsAsync(Option.Some(deviceCredentials1.Identity.Id));
+            deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceCredentials2.Identity.Id))).ReturnsAsync(Option.Some(deviceCredentials2.Identity.Id));
+
             var cloudConnectionProvider = new CloudConnectionProvider(
                 messageConverterProvider,
                 1,
                 deviceClientProvider.Object,
                 Option.None<UpstreamProtocol>(),
                 Mock.Of<ITokenProvider>(),
-                Mock.Of<IDeviceScopeIdentitiesCache>(),
+                deviceScopeIdentitiesCache.Object,
                 credentialsCache,
-                new ModuleIdentity(IotHubHostName, edgeDeviceId, "$edgeHub"),
+                edgeHubIdentity,
                 TimeSpan.FromMinutes(60),
                 true,
                 TimeSpan.FromSeconds(20),
@@ -233,6 +238,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(Task.FromResult(true));
 
             var deviceCredentials = new TokenCredentials(new DeviceIdentity("iotHub", deviceId), "token", "abc", false);
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
+            deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceId))).ReturnsAsync(Option.Some(deviceId));
 
             var edgeHub = new Mock<IEdgeHub>();
 
@@ -251,7 +258,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 deviceClientProvider.Object,
                 Option.None<UpstreamProtocol>(),
                 Mock.Of<ITokenProvider>(),
-                Mock.Of<IDeviceScopeIdentitiesCache>(),
+                deviceScopeIdentitiesCache.Object,
                 credentialsManager,
                 edgeHubIdentity,
                 TimeSpan.FromMinutes(60),
@@ -357,13 +364,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var productInfoStore = Mock.Of<IProductInfoStore>();
             var credentialsCache = Mock.Of<ICredentialsCache>();
             var edgeHubIdentity = Mock.Of<IIdentity>(i => i.Id == "edgeDevice/$edgeHub");
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
+            deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == module1Credentials.Identity.Id))).ReturnsAsync(Option.Some(module1Credentials.Identity.Id));
+
             var cloudConnectionProvider = new CloudConnectionProvider(
                 messageConverterProvider,
                 1,
                 deviceClientProvider.Object,
                 Option.None<UpstreamProtocol>(),
                 Mock.Of<ITokenProvider>(),
-                Mock.Of<IDeviceScopeIdentitiesCache>(),
+                deviceScopeIdentitiesCache.Object,
                 credentialsCache,
                 edgeHubIdentity,
                 TimeSpan.FromMinutes(60),
@@ -491,13 +501,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var productInfoStore = Mock.Of<IProductInfoStore>();
             var credentialsCache = Mock.Of<ICredentialsCache>();
             var edgeHubIdentity = Mock.Of<IIdentity>(i => i.Id == "edgeDevice/$edgeHub");
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
+
             var cloudConnectionProvider = new CloudConnectionProvider(
                 messageConverterProvider,
                 1,
                 deviceClientProvider.Object,
                 Option.None<UpstreamProtocol>(),
                 Mock.Of<ITokenProvider>(),
-                Mock.Of<IDeviceScopeIdentitiesCache>(),
+                deviceScopeIdentitiesCache.Object,
                 credentialsCache,
                 edgeHubIdentity,
                 TimeSpan.FromMinutes(60),
@@ -513,6 +525,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             string token1 = TokenHelper.CreateSasToken("foo.azure-devices.net", DateTime.UtcNow.AddHours(2));
             var deviceCredentials = new TokenCredentials(new DeviceIdentity("iotHub", "Device1"), token1, DummyProductInfo, true);
             var deviceProxy = Mock.Of<IDeviceProxy>(d => d.IsActive);
+            deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceCredentials.Identity.Id))).ReturnsAsync(Option.Some(deviceCredentials.Identity.Id));
 
             Try<ICloudProxy> receivedCloudProxy1 = await connectionManager.CreateCloudConnectionAsync(deviceCredentials);
             await connectionManager.AddDeviceConnection(deviceCredentials.Identity, deviceProxy);
@@ -551,13 +564,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var productInfoStore = Mock.Of<IProductInfoStore>();
             var credentialsCache = Mock.Of<ICredentialsCache>();
             var edgeHubIdentity = Mock.Of<IIdentity>(i => i.Id == "edgeDevice/$edgeHub");
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
+
             var cloudConnectionProvider = new CloudConnectionProvider(
                 messageConverterProvider,
                 1,
                 deviceClientProvider.Object,
                 Option.None<UpstreamProtocol>(),
                 Mock.Of<ITokenProvider>(),
-                Mock.Of<IDeviceScopeIdentitiesCache>(),
+                deviceScopeIdentitiesCache.Object,
                 credentialsCache,
                 edgeHubIdentity,
                 TimeSpan.FromMinutes(60),
@@ -573,6 +588,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             string token1 = TokenHelper.CreateSasToken("foo.azure-devices.net", DateTime.UtcNow.AddHours(2));
             var deviceCredentials1 = new TokenCredentials(new DeviceIdentity("iotHub", "Device1"), token1, DummyProductInfo, true);
             var deviceProxy = Mock.Of<IDeviceProxy>(d => d.IsActive);
+            deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceCredentials1.Identity.Id))).ReturnsAsync(Option.Some(deviceCredentials1.Identity.Id));
 
             Try<ICloudProxy> receivedCloudProxy1 = await connectionManager.CreateCloudConnectionAsync(deviceCredentials1);
             await connectionManager.AddDeviceConnection(deviceCredentials1.Identity, deviceProxy);
@@ -829,6 +845,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(client1)
                 .Returns(client2);
 
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
+            deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == module1Credentials.Identity.Id))).ReturnsAsync(Option.Some(module1Credentials.Identity.Id));
+
             ICredentialsCache credentialsCache = new CredentialsCache(new NullCredentialsCache());
             await credentialsCache.Add(module1Credentials);
             var productInfoStore = Mock.Of<IProductInfoStore>();
@@ -838,7 +857,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 deviceClientProvider.Object,
                 Option.None<UpstreamProtocol>(),
                 Mock.Of<ITokenProvider>(),
-                Mock.Of<IDeviceScopeIdentitiesCache>(),
+                deviceScopeIdentitiesCache.Object,
                 credentialsCache,
                 new ModuleIdentity(iotHub, edgeDeviceId, "$edgeHub"),
                 TimeSpan.FromMinutes(60),
@@ -887,6 +906,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(client1)
                 .Returns(client2);
 
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
+            deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == module1Credentials.Identity.Id))).ReturnsAsync(Option.Some(module1Credentials.Identity.Id));
+
             ICredentialsCache credentialsCache = new CredentialsCache(new NullCredentialsCache());
             await credentialsCache.Add(module1Credentials);
             var productInfoStore = Mock.Of<IProductInfoStore>();
@@ -896,7 +918,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 deviceClientProvider.Object,
                 Option.None<UpstreamProtocol>(),
                 Mock.Of<ITokenProvider>(),
-                Mock.Of<IDeviceScopeIdentitiesCache>(),
+                deviceScopeIdentitiesCache.Object,
                 credentialsCache,
                 new ModuleIdentity(IotHubHostName, edgeDeviceId, "$edgeHub"),
                 TimeSpan.FromMinutes(60),

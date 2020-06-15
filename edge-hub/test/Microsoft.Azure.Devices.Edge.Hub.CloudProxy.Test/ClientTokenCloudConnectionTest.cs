@@ -23,7 +23,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     {
         const string DummyProductInfo = "IoTEdge 1.0.6 1.20.0-RC2";
         static readonly ITokenProvider TokenProvider = Mock.Of<ITokenProvider>();
-        static readonly IDeviceScopeIdentitiesCache DeviceScopeIdentitiesCache = Mock.Of<IDeviceScopeIdentitiesCache>();
 
         [Unit]
         [Fact]
@@ -422,6 +421,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var productInfoStore = Mock.Of<IProductInfoStore>();
             var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
 
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
+            deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceId))).ReturnsAsync(Option.Some(deviceId));
+
             var credentialsCache = Mock.Of<ICredentialsCache>();
             ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
                 messageConverterProvider,
@@ -429,7 +431,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 deviceClientProvider.Object,
                 Option.None<UpstreamProtocol>(),
                 TokenProvider,
-                DeviceScopeIdentitiesCache,
+                deviceScopeIdentitiesCache.Object,
                 credentialsCache,
                 Mock.Of<IIdentity>(i => i.Id == $"{deviceId}/$edgeHub"),
                 TimeSpan.FromMinutes(60),

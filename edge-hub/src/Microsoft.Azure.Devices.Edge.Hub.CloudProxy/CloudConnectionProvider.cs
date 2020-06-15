@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using System;
     using System.ComponentModel;
     using System.Net;
+    using System.Reflection;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
@@ -18,7 +19,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     {
         static readonly TimeSpan HeartbeatTimeout = TimeSpan.FromSeconds(60);
 
-        readonly ITransportSettings[] transportSettings;
+        readonly Option<UpstreamProtocol> upstreamProtocol;
+        readonly int connectionPoolSize;
+        readonly Option<IWebProxy> proxy;
         readonly IMessageConverterProvider messageConverterProvider;
         readonly IClientProvider clientProvider;
         readonly TimeSpan idleTimeout;
@@ -48,10 +51,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             Option<IWebProxy> proxy,
             IProductInfoStore productInfoStore)
         {
-            Preconditions.CheckRange(connectionPoolSize, 1, nameof(connectionPoolSize));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
             this.clientProvider = Preconditions.CheckNotNull(clientProvider, nameof(clientProvider));
-            this.transportSettings = GetTransportSettings(upstreamProtocol, connectionPoolSize, proxy, useServerHeartbeat);
+            this.upstreamProtocol = upstreamProtocol;
+            this.connectionPoolSize = Preconditions.CheckRange(connectionPoolSize, 1, nameof(connectionPoolSize));
+            this.proxy = proxy;
             this.edgeHub = Option.None<IEdgeHub>();
             this.idleTimeout = idleTimeout;
             this.closeOnIdleTimeout = closeOnIdleTimeout;
@@ -78,12 +82,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Events.CreatingCloudConnectionUsingClientCredentials(clientCredentials);
                 var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), clientCredentials.Identity.Id);
                 string productInfo = await this.productInfoStore.GetEdgeProductInfo(clientCredentials.Identity.Id);
+
+                // Get the transport settings
+                Option<string> authChain = await this.deviceScopeIdentitiesCache.GetAuthChain(clientCredentials.Identity.Id);
+                ITransportSettings[] transportSettings = GetTransportSettings(
+                    this.upstreamProtocol,
+                    this.connectionPoolSize,
+                    this.proxy,
+                    this.useServerHeartbeat,
+                    authChain.Expect(() => new InvalidOperationException($"No auth chain for the client identity: {clientCredentials.Identity.Id}")));
+
                 if (this.edgeHubIdentity.Id.Equals(clientCredentials.Identity.Id))
                 {
                     ICloudConnection cc = await CloudConnection.Create(
                         clientCredentials.Identity,
                         connectionStatusChangedHandler,
-                        this.transportSettings,
+                        transportSettings,
                         this.messageConverterProvider,
                         this.clientProvider,
                         cloudListener,
@@ -100,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     ICloudConnection cc = await ClientTokenCloudConnection.Create(
                         clientTokenCredentails,
                         connectionStatusChangedHandler,
-                        this.transportSettings,
+                        transportSettings,
                         this.messageConverterProvider,
                         this.clientProvider,
                         cloudListener,
@@ -132,6 +146,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), identity.Id);
                 Option<ServiceIdentity> serviceIdentity = (await this.deviceScopeIdentitiesCache.GetServiceIdentity(identity.Id))
                     .Filter(s => s.Status == ServiceIdentityStatus.Enabled);
+
+                // Get the transport settings
+                Option<string> authChain = await this.deviceScopeIdentitiesCache.GetAuthChain(identity.Id);
+                ITransportSettings[] transportSettings = GetTransportSettings(
+                    this.upstreamProtocol,
+                    this.connectionPoolSize,
+                    this.proxy,
+                    this.useServerHeartbeat,
+                    authChain.Expect(() => new InvalidOperationException($"No auth chain for the client identity: {identity.Id}")));
+
                 return await serviceIdentity
                     .Map(
                         async si =>
@@ -141,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                             ICloudConnection cc = await CloudConnection.Create(
                                 identity,
                                 connectionStatusChangedHandler,
-                                this.transportSettings,
+                                transportSettings,
                                 this.messageConverterProvider,
                                 this.clientProvider,
                                 cloudListener,
@@ -170,7 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        static ITransportSettings[] GetAmqpTransportSettings(TransportType type, int connectionPoolSize, Option<IWebProxy> proxy, bool useServerHeartbeat)
+        static ITransportSettings[] GetAmqpTransportSettings(TransportType type, int connectionPoolSize, Option<IWebProxy> proxy, bool useServerHeartbeat, string authChain)
         {
             var settings = new AmqpTransportSettings(type)
             {
@@ -187,17 +211,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
 
             proxy.ForEach(p => settings.Proxy = p);
+
+            // Set the auth chain via Reflection
+            settings.GetType()
+                    .GetProperty("AuthenticationChain", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .SetValue(settings, authChain);
+
             return new ITransportSettings[] { settings };
         }
 
-        static ITransportSettings[] GetMqttTransportSettings(TransportType type, Option<IWebProxy> proxy)
+        static ITransportSettings[] GetMqttTransportSettings(TransportType type, Option<IWebProxy> proxy, string authChain)
         {
             var settings = new MqttTransportSettings(type);
             proxy.ForEach(p => settings.Proxy = p);
+
+            // Set the auth chain via Reflection
+            settings.GetType()
+                    .GetProperty("AuthenticationChain", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .SetValue(settings, authChain);
+
             return new ITransportSettings[] { settings };
         }
 
-        internal static ITransportSettings[] GetTransportSettings(Option<UpstreamProtocol> upstreamProtocol, int connectionPoolSize, Option<IWebProxy> proxy, bool useServerHeartbeat)
+        internal static ITransportSettings[] GetTransportSettings(Option<UpstreamProtocol> upstreamProtocol, int connectionPoolSize, Option<IWebProxy> proxy, bool useServerHeartbeat, string authChain)
         {
             return upstreamProtocol
                 .Map(
@@ -206,23 +242,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         switch (up)
                         {
                             case UpstreamProtocol.Amqp:
-                                return GetAmqpTransportSettings(TransportType.Amqp_Tcp_Only, connectionPoolSize, proxy, useServerHeartbeat);
+                                return GetAmqpTransportSettings(TransportType.Amqp_Tcp_Only, connectionPoolSize, proxy, useServerHeartbeat, authChain);
 
                             case UpstreamProtocol.AmqpWs:
-                                return GetAmqpTransportSettings(TransportType.Amqp_WebSocket_Only, connectionPoolSize, proxy, useServerHeartbeat);
+                                return GetAmqpTransportSettings(TransportType.Amqp_WebSocket_Only, connectionPoolSize, proxy, useServerHeartbeat, authChain);
 
                             case UpstreamProtocol.Mqtt:
-                                return GetMqttTransportSettings(TransportType.Mqtt_Tcp_Only, proxy);
+                                return GetMqttTransportSettings(TransportType.Mqtt_Tcp_Only, proxy, authChain);
 
                             case UpstreamProtocol.MqttWs:
-                                return GetMqttTransportSettings(TransportType.Mqtt_WebSocket_Only, proxy);
+                                return GetMqttTransportSettings(TransportType.Mqtt_WebSocket_Only, proxy, authChain);
 
                             default:
                                 throw new InvalidEnumArgumentException($"Unsupported transport type {up}");
                         }
                     })
                 .GetOrElse(
-                    () => GetAmqpTransportSettings(TransportType.Amqp_Tcp_Only, connectionPoolSize, proxy, useServerHeartbeat));
+                    () => GetAmqpTransportSettings(TransportType.Amqp_Tcp_Only, connectionPoolSize, proxy, useServerHeartbeat, authChain));
         }
 
         static class Events
