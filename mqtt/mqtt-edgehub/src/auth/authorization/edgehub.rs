@@ -5,6 +5,10 @@ use mqtt_broker_core::{
     ClientId, ClientInfo,
 };
 
+const FORBIDDEN_TOPIC_FILTERS: [&str; 3] = ["#", "$upstream/", "$downstream/"];
+
+const FORBIDDEN_TOPIC_PREFIXES: [&str; 3] = ["$SYS/", "$upstream/", "$downstream/"];
+
 #[derive(Debug, Default)]
 pub struct EdgeHubAuthorizer;
 
@@ -40,9 +44,13 @@ impl EdgeHubAuthorizer {
         client_info: &ClientInfo,
         publish: &Publish,
     ) -> Authorization {
-        if is_iothub_topic(&publish.publication.topic_name) {
+        let topic = &publish.publication.topic_name;
+
+        if is_forbidden_topic(topic) {
+            Authorization::Forbidden(format!("{} is forbidden topic filter", topic))
+        } else if is_iothub_topic(topic) {
             // run authorization rules for publication to IoTHub topic
-            self.authorize_iothub_topic(client_id, client_info, &publish.publication.topic_name)
+            self.authorize_iothub_topic(client_id, client_info, topic)
         } else {
             // allow any client to publish to any non-iothub topics
             Authorization::Allowed
@@ -55,11 +63,13 @@ impl EdgeHubAuthorizer {
         client_info: &ClientInfo,
         subscribe: &Subscribe,
     ) -> Authorization {
-        if subscribe.topic_filter() == "#" {
-            Authorization::Forbidden("# is forbidden topic filter".to_string())
-        } else if is_iothub_topic(subscribe.topic_filter()) {
+        let topic = subscribe.topic_filter();
+
+        if is_forbidden_topic_filter(topic) {
+            Authorization::Forbidden(format!("{} is forbidden topic filter", topic))
+        } else if is_iothub_topic(topic) {
             // run authorization rules for subscription to IoTHub topic
-            self.authorize_iothub_topic(client_id, client_info, subscribe.topic_filter())
+            self.authorize_iothub_topic(client_id, client_info, topic)
         } else {
             // allow any client to subscribe to any non-iothub topics
             Authorization::Allowed
@@ -98,6 +108,18 @@ impl EdgeHubAuthorizer {
             )),
         }
     }
+}
+
+fn is_forbidden_topic_filter(topic_filter: &str) -> bool {
+    FORBIDDEN_TOPIC_FILTERS
+        .iter()
+        .any(|forbidden_topic| topic_filter.starts_with(forbidden_topic))
+}
+
+fn is_forbidden_topic(topic_filter: &str) -> bool {
+    FORBIDDEN_TOPIC_PREFIXES
+        .iter()
+        .any(|forbidden_topic| topic_filter.starts_with(forbidden_topic))
 }
 
 fn is_iothub_topic(topic: &str) -> bool {
@@ -217,6 +239,8 @@ mod tests {
     #[test_case(subscribe_activity("device-1", AuthId::Identity("device-1".to_string()), "#"); "everything")]
     #[test_case(subscribe_activity("device-1", AuthId::Identity("device-1".to_string()), "$edgehub/#"); "everything with edgehub prefixed")]
     #[test_case(subscribe_activity("device-1", AuthId::Identity("device-1".to_string()), "$iothub/#"); "everything with iothub prefixed")]
+    #[test_case(subscribe_activity("device-1", AuthId::Identity("device-1".to_string()), "$upstream/#"); "everything with upstream prefixed")]
+    #[test_case(subscribe_activity("device-1", AuthId::Identity("device-1".to_string()), "$downstream/#"); "everything with downstream prefixed")]
     #[test_case(subscribe_activity("device-1", AuthId::Identity("device-2".to_string()), "$edgehub/clients/device-1/twin/get"); "twin request for another client")]
     #[test_case(subscribe_activity("device-1", AuthId::Identity("device-1".to_string()), "$edgehub/clients/+/twin/get"); "twin request for any device")]
     #[test_case(subscribe_activity("device-1", AuthId::Anonymous, "$edgehub/clients/device-1/twin/get"); "twin request by anonymous client")]
@@ -230,7 +254,6 @@ mod tests {
     }
 
     #[test_case(publish_activity("device-1", AuthId::Identity("device-1".to_string()), "topic"); "generic MQTT topic")]
-    #[test_case(publish_activity("device-1", AuthId::Identity("device-1".to_string()), "$SYS/connected"); "SYS topics")]
     #[test_case(publish_activity("device-1", AuthId::Identity("device-1".to_string()), "$edgehub/clients/device-1/messages/events"); "old client events")]
     #[test_case(publish_activity("device-1", AuthId::Identity("device-1".to_string()), "$iothub/clients/device-1/messages/events"); "new client events")]
     #[test_case(publish_activity("device-1", AuthId::Identity("device-1".to_string()), "$edgehub/clients/device-1/messages/c2d/post"); "old client C2D messages")]
@@ -253,8 +276,11 @@ mod tests {
 
     #[test_case(publish_activity("device-1", AuthId::Identity("device-1".to_string()), "$edgehub/some/topic"); "any edgehub prefixed topic")]
     #[test_case(publish_activity("device-1", AuthId::Identity("device-1".to_string()), "$iothub/some/topic"); "any iothub prefixed topic")]
+    #[test_case(publish_activity("device-1", AuthId::Identity("device-1".to_string()), "$downstream/some/topic"); "any downstream prefixed topics")]
+    #[test_case(publish_activity("device-1", AuthId::Identity("device-1".to_string()), "$upstream/some/topic"); "any upstream prefixed topics")]
     #[test_case(publish_activity("device-1", AuthId::Identity("device-2".to_string()), "$edgehub/clients/device-1/twin/get"); "twin request for another client")]
     #[test_case(publish_activity("device-1", AuthId::Anonymous, "$edgehub/clients/device-1/twin/get"); "twin request by anonymous client")]
+    #[test_case(publish_activity("device-1", AuthId::Identity("device-1".to_string()), "$SYS/foo"); "system topics")]
     fn it_forbids_to_publish_to(activity: Activity) {
         let authorizer = EdgeHubAuthorizer::new();
 
