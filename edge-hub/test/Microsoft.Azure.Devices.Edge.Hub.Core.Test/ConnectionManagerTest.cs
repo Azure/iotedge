@@ -133,6 +133,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             returnedValue = await connectionManager.GetCloudConnection(deviceCredentials2.Identity.Id);
             Assert.False(returnedValue.HasValue);
+
+            returnedValue = await connectionManager.GetCloudConnection(deviceCredentials1.Identity.Id);
+            Assert.True(returnedValue.HasValue);
+            Assert.True(returnedValue.OrDefault().IsActive);
         }
 
         [Fact]
