@@ -90,17 +90,18 @@ impl<'a> TryFrom<StateChange<'a>> for proto::Publication {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    use std::convert::TryInto;
-    use std::str::FromStr;
+    use std::{collections::HashMap, convert::TryInto, str::FromStr};
 
     use mqtt3::proto;
 
-    use crate::broker::tests::{connection_handle, is_notify_equal, persistent_connect};
-    use crate::session::{Session, SessionState};
-    use crate::state_change::{StateChange, STATE_CHANGE_QOS};
-    use crate::subscription::{Subscription, TopicFilter};
-    use crate::{Auth, AuthId, BrokerConfig, ClientId, ConnReq, SessionConfig};
+    use crate::{
+        broker::tests::{connection_handle, is_notify_equal, persistent_connect},
+        session::{Session, SessionState},
+        state_change::{StateChange, STATE_CHANGE_QOS},
+        subscription::{Subscription, TopicFilter},
+        tests::peer_addr,
+        Auth, AuthId, BrokerConfig, ClientId, ConnReq, SessionConfig,
+    };
 
     #[test]
     fn test_subscriptions() {
@@ -373,6 +374,7 @@ mod tests {
                 AuthId::Anonymous,
                 ConnReq::new(
                     id.into(),
+                    peer_addr(),
                     persistent_connect(id.to_owned()),
                     Auth::Identity(AuthId::Anonymous),
                     connection_handle(),

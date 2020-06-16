@@ -3,34 +3,41 @@ use std::{convert::Infallible, error::Error as StdError};
 
 use mqtt3::proto;
 
-use crate::{auth::AuthId, ClientId};
+use crate::{ClientId, ClientInfo};
 
 /// A trait to check a MQTT client permissions to perform some actions.
 pub trait Authorizer {
     /// Authentication error.
-    type Error: StdError + Send;
+    type Error: StdError;
 
     /// Authorizes a MQTT client to perform some action.
-    fn authorize(&self, activity: Activity) -> Result<bool, Self::Error>;
+    fn authorize(&self, activity: Activity) -> Result<Authorization, Self::Error>;
+}
+
+/// Authorization result.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Authorization {
+    Allowed,
+    Forbidden(String),
 }
 
 /// Creates an authorizer from a function.
 /// It wraps any provided function with an interface aligned with authorizer.
 pub fn authorize_fn_ok<F>(f: F) -> impl Authorizer
 where
-    F: Fn(Activity) -> bool + Sync + 'static,
+    F: Fn(Activity) -> Authorization + Sync + 'static,
 {
     move |activity| Ok::<_, Infallible>(f(activity))
 }
 
 impl<F, E> Authorizer for F
 where
-    F: Fn(Activity) -> Result<bool, E> + Sync,
-    E: StdError + Send,
+    F: Fn(Activity) -> Result<Authorization, E> + Sync,
+    E: StdError,
 {
     type Error = E;
 
-    fn authorize(&self, activity: Activity) -> Result<bool, Self::Error> {
+    fn authorize(&self, activity: Activity) -> Result<Authorization, Self::Error> {
         self(activity)
     }
 }
@@ -42,33 +49,43 @@ pub struct DefaultAuthorizer;
 impl Authorizer for DefaultAuthorizer {
     type Error = Infallible;
 
-    fn authorize(&self, _: Activity) -> Result<bool, Self::Error> {
-        Ok(false)
+    fn authorize(&self, _: Activity) -> Result<Authorization, Self::Error> {
+        Ok(Authorization::Forbidden(
+            "not allowed by default".to_string(),
+        ))
     }
 }
 
 /// Describes a client activity to authorized.
 pub struct Activity {
-    auth_id: AuthId,
     client_id: ClientId,
+    client_info: ClientInfo,
     operation: Operation,
 }
 
 impl Activity {
     pub fn new(
-        auth_id: impl Into<AuthId>,
         client_id: impl Into<ClientId>,
+        client_info: ClientInfo,
         operation: Operation,
     ) -> Self {
         Self {
-            auth_id: auth_id.into(),
             client_id: client_id.into(),
+            client_info,
             operation,
         }
     }
 
+    pub fn client_info(&self) -> &ClientInfo {
+        &self.client_info
+    }
+
     pub fn operation(&self) -> &Operation {
         &self.operation
+    }
+
+    pub fn into_parts(self) -> (ClientId, ClientInfo, Operation) {
+        (self.client_id, self.client_info, self.operation)
     }
 }
 
@@ -77,7 +94,6 @@ pub enum Operation {
     Connect(Connect),
     Publish(Publish),
     Subscribe(Subscribe),
-    Receive(Receive),
 }
 
 impl Operation {
@@ -94,14 +110,6 @@ impl Operation {
     /// Creates a new operation context for SUBSCRIBE request.
     pub fn new_subscribe(subscribe_to: proto::SubscribeTo) -> Self {
         Self::Subscribe(subscribe_to.into())
-    }
-
-    /// Creates a new operation context for RECEIVE request.
-    ///
-    /// RECEIVE request happens when broker decides to publish a message to a certain
-    /// topic client subscribed to.
-    pub fn new_receive(publication: proto::Publication) -> Self {
-        Self::Receive(publication.into())
     }
 }
 
@@ -120,9 +128,9 @@ impl From<proto::Connect> for Connect {
 
 /// Represents a publication description without payload to be used for authorization.
 pub struct Publication {
-    topic_name: String,
-    qos: proto::QoS,
-    retain: bool,
+    pub topic_name: String,
+    pub qos: proto::QoS,
+    pub retain: bool,
 }
 
 impl From<proto::Publication> for Publication {
@@ -137,7 +145,7 @@ impl From<proto::Publication> for Publication {
 
 /// Represents a client attempt to publish a new message on a specified MQTT topic.
 pub struct Publish {
-    publication: Publication,
+    pub publication: Publication,
 }
 
 impl From<proto::Publish> for Publish {
@@ -177,28 +185,18 @@ impl From<proto::SubscribeTo> for Subscribe {
     }
 }
 
-/// Represents a client to received a message from a specified MQTT topic.
-pub struct Receive {
-    publication: Publication,
-}
-
-impl From<proto::Publication> for Receive {
-    fn from(publication: proto::Publication) -> Self {
-        Self {
-            publication: publication.into(),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
+    use std::{net::SocketAddr, time::Duration};
 
     use matches::assert_matches;
 
     use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
 
-    use crate::auth::{authorize_fn_ok, Activity, Authorizer, DefaultAuthorizer, Operation};
+    use super::{
+        authorize_fn_ok, Activity, Authorization, Authorizer, DefaultAuthorizer, Operation,
+    };
+    use crate::ClientInfo;
 
     fn connect() -> proto::Connect {
         proto::Connect {
@@ -217,26 +215,30 @@ mod tests {
         let auth = DefaultAuthorizer;
         let activity = Activity::new(
             "client-auth-id",
-            "client-id",
+            ClientInfo::new(peer_addr(), "client-id"),
             Operation::new_connect(connect()),
         );
 
         let res = auth.authorize(activity);
 
-        assert_matches!(res, Ok(false));
+        assert_matches!(res, Ok(Authorization::Forbidden(_)));
     }
 
     #[test]
     fn authorizer_wrapper_around_function() {
-        let auth = authorize_fn_ok(|_| true);
+        let auth = authorize_fn_ok(|_| Authorization::Allowed);
         let activity = Activity::new(
             "client-auth-id",
-            "client-id",
+            ClientInfo::new(peer_addr(), "client-id"),
             Operation::new_connect(connect()),
         );
 
         let res = auth.authorize(activity);
 
-        assert_matches!(res, Ok(true));
+        assert_matches!(res, Ok(Authorization::Allowed));
+    }
+
+    fn peer_addr() -> SocketAddr {
+        "127.0.0.1:12345".parse().unwrap()
     }
 }

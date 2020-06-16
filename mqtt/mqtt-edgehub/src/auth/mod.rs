@@ -1,5 +1,5 @@
-mod edgehub;
-mod local;
+mod authentication;
+mod authorization;
 
-pub use edgehub::EdgeHubAuthenticator;
-pub use local::LocalAuthenticator;
+pub use authentication::{EdgeHubAuthenticator, LocalAuthenticator};
+pub use authorization::{EdgeHubAuthorizer, LocalAuthorizer};

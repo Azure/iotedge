@@ -28,7 +28,9 @@ use mqtt3::{
     UpdateSubscriptionHandle, PROTOCOL_LEVEL, PROTOCOL_NAME,
 };
 use mqtt_broker::{Broker, BrokerSnapshot, Error, Server, TransportBuilder};
-use mqtt_broker_core::auth::{Activity, AuthId, AuthenticationContext, Authenticator, Authorizer};
+use mqtt_broker_core::auth::{
+    Activity, AuthId, AuthenticationContext, Authenticator, Authorization, Authorizer,
+};
 
 /// A wrapper on the [`mqtt3::Client`] to help simplify client event loop management.
 #[derive(Debug)]
@@ -465,18 +467,18 @@ impl Authenticator for DummyAuthenticator {
     }
 }
 
-pub struct DummyAuthorizer(bool);
+pub struct DummyAuthorizer(Authorization);
 
 impl DummyAuthorizer {
     pub fn allow() -> Self {
-        Self(true)
+        Self(Authorization::Allowed)
     }
 }
 
 impl Authorizer for DummyAuthorizer {
     type Error = Infallible;
 
-    fn authorize(&self, _: Activity) -> Result<bool, Self::Error> {
-        Ok(self.0)
+    fn authorize(&self, _: Activity) -> Result<Authorization, Self::Error> {
+        Ok(self.0.clone())
     }
 }

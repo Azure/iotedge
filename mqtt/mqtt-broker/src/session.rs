@@ -13,7 +13,7 @@ use serde::{
 use tracing::{debug, warn};
 
 use mqtt3::proto;
-use mqtt_broker_core::auth::AuthId;
+use mqtt_broker_core::{auth::AuthId, ClientInfo};
 
 use crate::{
     configuration::QueueFullAction, snapshot::SessionSnapshot, subscription::Subscription,
@@ -23,21 +23,21 @@ use crate::{
 #[derive(Debug)]
 pub struct ConnectedSession {
     state: SessionState,
-    auth_id: AuthId,
+    client_info: ClientInfo,
     will: Option<proto::Publication>,
     handle: ConnectionHandle,
 }
 
 impl ConnectedSession {
     fn new(
-        auth_id: AuthId,
         state: SessionState,
+        client_info: ClientInfo,
         will: Option<proto::Publication>,
         handle: ConnectionHandle,
     ) -> Self {
         Self {
-            auth_id,
             state,
+            client_info,
             will,
             handle,
         }
@@ -47,8 +47,8 @@ impl ConnectedSession {
         &self.state.client_id
     }
 
-    pub fn auth_id(&self) -> &AuthId {
-        &self.auth_id
+    pub fn client_info(&self) -> &ClientInfo {
+        &self.client_info
     }
 
     pub fn handle(&self) -> &ConnectionHandle {
@@ -70,12 +70,12 @@ impl ConnectedSession {
     pub fn into_parts(
         self,
     ) -> (
-        AuthId,
         SessionState,
+        ClientInfo,
         Option<proto::Publication>,
         ConnectionHandle,
     ) {
-        (self.auth_id, self.state, self.will, self.handle)
+        (self.state, self.client_info, self.will, self.handle)
     }
 
     pub fn handle_publish(
@@ -253,7 +253,7 @@ impl OfflineSession {
 
 #[derive(Debug)]
 pub struct DisconnectingSession {
-    auth_id: AuthId,
+    client_info: ClientInfo,
     client_id: ClientId,
     will: Option<proto::Publication>,
     handle: ConnectionHandle,
@@ -261,14 +261,14 @@ pub struct DisconnectingSession {
 
 impl DisconnectingSession {
     fn new(
-        auth_id: AuthId,
         client_id: ClientId,
+        client_info: ClientInfo,
         will: Option<proto::Publication>,
         handle: ConnectionHandle,
     ) -> Self {
         Self {
-            auth_id,
             client_id,
+            client_info,
             will,
             handle,
         }
@@ -278,8 +278,8 @@ impl DisconnectingSession {
         &self.client_id
     }
 
-    pub fn auth_id(&self) -> &AuthId {
-        &self.auth_id
+    pub fn client_info(&self) -> &ClientInfo {
+        &self.client_info
     }
 
     pub fn into_will(self) -> Option<proto::Publication> {
@@ -602,14 +602,16 @@ pub enum Session {
 
 impl Session {
     pub fn new_transient(auth_id: AuthId, connreq: ConnReq, state: SessionState) -> Self {
-        let (connect, handle) = connreq.into_parts();
-        let connected = ConnectedSession::new(auth_id, state, connect.will, handle);
+        let (peer_addr, connect, handle) = connreq.into_parts();
+        let client_info = ClientInfo::new(peer_addr, auth_id);
+        let connected = ConnectedSession::new(state, client_info, connect.will, handle);
         Self::Transient(connected)
     }
 
     pub fn new_persistent(auth_id: AuthId, connreq: ConnReq, state: SessionState) -> Self {
-        let (connect, handle) = connreq.into_parts();
-        let connected = ConnectedSession::new(auth_id, state, connect.will, handle);
+        let (peer_addr, connect, handle) = connreq.into_parts();
+        let client_info = ClientInfo::new(peer_addr, auth_id);
+        let connected = ConnectedSession::new(state, client_info, connect.will, handle);
         Self::Persistent(connected)
     }
 
@@ -619,12 +621,12 @@ impl Session {
     }
 
     pub fn new_disconnecting(
-        auth_id: AuthId,
         client_id: ClientId,
+        client_info: ClientInfo,
         will: Option<proto::Publication>,
         handle: ConnectionHandle,
     ) -> Self {
-        let disconnecting = DisconnectingSession::new(auth_id, client_id, will, handle);
+        let disconnecting = DisconnectingSession::new(client_id, client_info, will, handle);
         Self::Disconnecting(disconnecting)
     }
 
@@ -637,12 +639,12 @@ impl Session {
         }
     }
 
-    pub fn auth_id(&self) -> Result<&AuthId, Error> {
+    pub fn client_info(&self) -> Result<&ClientInfo, Error> {
         match self {
-            Self::Transient(connected) => Ok(connected.auth_id()),
-            Self::Persistent(connected) => Ok(connected.auth_id()),
+            Self::Transient(connected) => Ok(connected.client_info()),
+            Self::Persistent(connected) => Ok(connected.client_info()),
             Self::Offline(_offline) => Err(Error::SessionOffline),
-            Self::Disconnecting(disconnecting) => Ok(disconnecting.auth_id()),
+            Self::Disconnecting(disconnecting) => Ok(disconnecting.client_info()),
         }
     }
 
@@ -1003,7 +1005,7 @@ impl Extend<proto::Publication> for BoundedQueue {
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+mod tests {
     use std::time::Duration;
 
     use bytes::Bytes;
@@ -1017,6 +1019,7 @@ pub(crate) mod tests {
     use crate::{
         configuration::QueueFullAction,
         session::{PacketIdentifiers, Session, SessionState},
+        tests::peer_addr,
         Auth, ClientId, ConnReq, ConnectionHandle, Error, SessionConfig, Subscription,
     };
 
@@ -1074,7 +1077,13 @@ pub(crate) mod tests {
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
-        let req1 = ConnReq::new(client_id.clone(), connect1, Auth::Unknown, handle1);
+        let req1 = ConnReq::new(
+            client_id.clone(),
+            peer_addr(),
+            connect1,
+            Auth::Unknown,
+            handle1,
+        );
         let auth_id = "auth-id1".into();
         let state = SessionState::new(client_id, default_config());
         let mut session = Session::new_transient(auth_id, req1, state);
@@ -1125,7 +1134,13 @@ pub(crate) mod tests {
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
-        let req1 = ConnReq::new(client_id.clone(), connect1, Auth::Unknown, handle1);
+        let req1 = ConnReq::new(
+            client_id.clone(),
+            peer_addr(),
+            connect1,
+            Auth::Unknown,
+            handle1,
+        );
         let auth_id = "auth-id1".into();
         let state = SessionState::new(client_id, default_config());
         let mut session = Session::new_transient(auth_id, req1, state);
@@ -1146,7 +1161,13 @@ pub(crate) mod tests {
         let client_id = ClientId::from(id.clone());
         let connect1 = transient_connect(id);
         let handle1 = connection_handle();
-        let req1 = ConnReq::new(client_id.clone(), connect1, Auth::Unknown, handle1);
+        let req1 = ConnReq::new(
+            client_id.clone(),
+            peer_addr(),
+            connect1,
+            Auth::Unknown,
+            handle1,
+        );
         let auth_id = AuthId::Anonymous;
         let state = SessionState::new(client_id, default_config());
         let mut session = Session::new_transient(auth_id, req1, state);
