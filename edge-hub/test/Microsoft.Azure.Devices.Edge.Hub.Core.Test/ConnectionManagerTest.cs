@@ -132,7 +132,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await connectionManager.RemoveDeviceConnection(deviceCredentials2.Identity.Id);
 
             returnedValue = await connectionManager.GetCloudConnection(deviceCredentials2.Identity.Id);
+            Assert.False(returnedValue.HasValue);
+
+            returnedValue = await connectionManager.GetCloudConnection(deviceCredentials1.Identity.Id);
             Assert.True(returnedValue.HasValue);
+            Assert.True(returnedValue.OrDefault().IsActive);
         }
 
         [Fact]
@@ -291,8 +295,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.False(deviceProxyMock1.Object.IsActive);
 
             cloudProxy = await connectionManager.GetCloudConnection(deviceId);
-            Assert.True(cloudProxy.HasValue);
-            Assert.True(client.IsActive);
+            Assert.False(cloudProxy.HasValue);
         }
 
         [Fact]
@@ -939,7 +942,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
-        public async Task TestCloseDeviceAndCloudConnection(bool closeCloudConnectionWhenCloseDeviceConnection)
+        public async Task TestCloseDeviceAndCloudConnection(bool closeCloudConnectionOnDeviceDisconnect)
         {
             // Arrange
             string edgeDeviceId = "edgeDevice";
@@ -981,7 +984,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 credentialsCache,
                 GetIdentityProvider(),
                 deviceConnectivityManager,
-                closeCloudConnectionWhenCloseDeviceConnection: closeCloudConnectionWhenCloseDeviceConnection);
+                closeCloudConnectionOnDeviceDisconnect: closeCloudConnectionOnDeviceDisconnect);
             await connectionManager.AddDeviceConnection(module1Identity, moduleProxy1);
 
             // Act
@@ -995,7 +998,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await connectionManager.RemoveDeviceConnection(module1Credentials.Identity.Id);
 
             // Assert
-            if (closeCloudConnectionWhenCloseDeviceConnection)
+            if (closeCloudConnectionOnDeviceDisconnect)
             {
                 Assert.False(getCloudProxyTask.OrDefault().IsActive);
                 Mock.Get(client1).Verify(cp => cp.CloseAsync(), Times.Once);
