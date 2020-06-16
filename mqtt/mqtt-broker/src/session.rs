@@ -1,18 +1,23 @@
-use std::collections::{HashMap, HashSet, VecDeque};
-use std::{cmp, fmt, mem};
+use std::{
+    cmp,
+    collections::{HashMap, HashSet, VecDeque},
+    fmt, mem,
+    num::{NonZeroU64, NonZeroUsize},
+};
 
-use serde::de::{SeqAccess, Visitor};
-use serde::ser::SerializeTuple;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{
+    de::{SeqAccess, Visitor},
+    ser::SerializeTuple,
+    Deserialize, Deserializer, Serialize, Serializer,
+};
 use tracing::{debug, warn};
 
 use mqtt3::proto;
 use mqtt_broker_core::{auth::AuthId, ClientInfo};
 
-use crate::subscription::Subscription;
 use crate::{
-    configuration::QueueFullAction, snapshot::SessionSnapshot, ClientEvent, ClientId, ConnReq,
-    ConnectionHandle, Error, Message, Publish, SessionConfig,
+    configuration::QueueFullAction, snapshot::SessionSnapshot, subscription::Subscription,
+    ClientEvent, ClientId, ConnReq, ConnectionHandle, Error, Message, Publish, SessionConfig,
 };
 
 #[derive(Debug)]
@@ -232,7 +237,7 @@ impl OfflineSession {
 
         // Dequeue any queued messages - up to the max inflight count
         while state.allowed_to_send() {
-            match state.waiting_to_be_sent.pop_front() {
+            match state.waiting_to_be_sent.dequeue() {
                 Some(publication) => {
                     debug!("dequeueing a message for {}", state.client_id);
                     let event = state.prepare_to_send(&publication)?;
@@ -295,7 +300,7 @@ pub struct SessionState {
     packet_identifiers: PacketIdentifiers,
     packet_identifiers_qos0: PacketIdentifiers,
 
-    waiting_to_be_sent: VecDeque<proto::Publication>,
+    waiting_to_be_sent: BoundedQueue,
 
     // for incoming messages - QoS2
     waiting_to_be_released: HashMap<proto::PacketIdentifier, proto::Publish>,
@@ -315,7 +320,11 @@ impl SessionState {
             packet_identifiers: PacketIdentifiers::default(),
             packet_identifiers_qos0: PacketIdentifiers::default(),
 
-            waiting_to_be_sent: VecDeque::new(),
+            waiting_to_be_sent: BoundedQueue::new(
+                config.max_queued_messages(),
+                config.max_queued_size(),
+                config.when_full(),
+            ),
             waiting_to_be_acked: HashMap::new(),
             waiting_to_be_acked_qos0: HashMap::new(),
             waiting_to_be_released: HashMap::new(),
@@ -325,7 +334,14 @@ impl SessionState {
     }
 
     pub fn from_snapshot(snapshot: SessionSnapshot, config: SessionConfig) -> Self {
-        let (client_id, subscriptions, waiting_to_be_sent) = snapshot.into_parts();
+        let (client_id, subscriptions, queued_publications) = snapshot.into_parts();
+
+        let mut waiting_to_be_sent = BoundedQueue::new(
+            config.max_queued_messages(),
+            config.max_queued_size(),
+            config.when_full(),
+        );
+        waiting_to_be_sent.extend(queued_publications);
 
         Self {
             client_id,
@@ -363,7 +379,7 @@ impl SessionState {
 
     pub fn queue_publish(&mut self, publication: proto::Publication) -> Result<(), Error> {
         if let Some(publication) = self.filter(publication) {
-            self.enqueue(publication);
+            self.waiting_to_be_sent.enqueue(publication);
         }
         Ok(())
     }
@@ -379,7 +395,7 @@ impl SessionState {
                 let event = self.prepare_to_send(&publication)?;
                 Ok(Some(event))
             } else {
-                self.enqueue(publication);
+                self.waiting_to_be_sent.enqueue(publication);
                 Ok(None)
             }
         } else {
@@ -478,7 +494,7 @@ impl SessionState {
 
     fn try_publish(&mut self) -> Result<Option<ClientEvent>, Error> {
         if self.allowed_to_send() {
-            if let Some(publication) = self.waiting_to_be_sent.pop_front() {
+            if let Some(publication) = self.waiting_to_be_sent.dequeue() {
                 let event = self.prepare_to_send(&publication)?;
                 return Ok(Some(event));
             }
@@ -487,31 +503,14 @@ impl SessionState {
     }
 
     fn allowed_to_send(&self) -> bool {
-        if self.config.max_inflight_messages() == 0 {
-            return true;
-        }
-
-        let num_inflight = self.waiting_to_be_acked.len()
-            + self.waiting_to_be_acked_qos0.len()
-            + self.waiting_to_be_completed.len();
-        num_inflight < self.config.max_inflight_messages()
-    }
-
-    fn enqueue(&mut self, publication: proto::Publication) {
-        if self.config.max_queued_messages() > 0
-            && self.waiting_to_be_sent.len() >= self.config.max_queued_messages()
-        {
-            match self.config.when_full() {
-                QueueFullAction::DropNew => {
-                    // do nothing
-                }
-                QueueFullAction::DropOld => {
-                    let _ = self.waiting_to_be_sent.pop_front();
-                    self.waiting_to_be_sent.push_back(publication);
-                }
+        match self.config.max_inflight_messages() {
+            Some(limit) => {
+                let num_inflight = self.waiting_to_be_acked.len()
+                    + self.waiting_to_be_acked_qos0.len()
+                    + self.waiting_to_be_completed.len();
+                num_inflight < limit.get()
             }
-        } else {
-            self.waiting_to_be_sent.push_back(publication);
+            None => true,
         }
     }
 
@@ -588,7 +587,7 @@ impl From<SessionState> for SessionSnapshot {
         SessionSnapshot::from_parts(
             state.client_id,
             state.subscriptions,
-            state.waiting_to_be_sent,
+            state.waiting_to_be_sent.into_inner(),
         )
     }
 }
@@ -912,6 +911,99 @@ impl Default for PacketIdentifiers {
     }
 }
 
+/// `BoundedQueue` is a queue of publications with bounds by count and total payload size in bytes.
+///
+/// Packets will be queued until either `max_len` (max number of publications)
+/// or `max_size` (max total payload size of publications)
+/// is reached, and then `when_full` strategy is applied.
+///
+/// None for `max_len` or `max_size` means "unbounded".
+#[derive(Clone, Debug, PartialEq)]
+struct BoundedQueue {
+    inner: VecDeque<proto::Publication>,
+    max_len: Option<NonZeroUsize>,
+    max_size: Option<NonZeroU64>,
+    when_full: QueueFullAction,
+    current_size: u64,
+}
+
+impl BoundedQueue {
+    pub fn new(
+        max_len: Option<NonZeroUsize>,
+        max_size: Option<NonZeroU64>,
+        when_full: QueueFullAction,
+    ) -> Self {
+        BoundedQueue {
+            inner: VecDeque::new(),
+            max_len,
+            max_size,
+            when_full,
+            current_size: 0,
+        }
+    }
+
+    pub fn into_inner(self) -> VecDeque<proto::Publication> {
+        self.inner
+    }
+
+    pub fn dequeue(&mut self) -> Option<proto::Publication> {
+        match self.inner.pop_front() {
+            Some(publication) => {
+                self.current_size -= publication.payload.len() as u64;
+                Some(publication)
+            }
+            None => None,
+        }
+    }
+
+    pub fn enqueue(&mut self, publication: proto::Publication) {
+        if let Some(max_len) = self.max_len {
+            if self.inner.len() >= max_len.get() {
+                return self.handle_queue_limit(publication);
+            }
+        }
+
+        if let Some(max_size) = self.max_size {
+            let pub_len = publication.payload.len() as u64;
+            if self.current_size + pub_len > max_size.get() {
+                return self.handle_queue_limit(publication);
+            }
+        }
+
+        self.current_size += publication.payload.len() as u64;
+        self.inner.push_back(publication);
+    }
+
+    #[cfg(test)]
+    pub fn len(&self) -> usize {
+        self.inner.len()
+    }
+
+    #[cfg(test)]
+    pub fn iter(&self) -> std::collections::vec_deque::Iter<'_, proto::Publication> {
+        self.inner.iter()
+    }
+
+    fn handle_queue_limit(&mut self, publication: proto::Publication) {
+        match self.when_full {
+            QueueFullAction::DropNew => {
+                // do nothing
+            }
+            QueueFullAction::DropOld => {
+                let _ = self.dequeue();
+                self.current_size += publication.payload.len() as u64;
+                self.inner.push_back(publication);
+            }
+        };
+    }
+}
+
+impl Extend<proto::Publication> for BoundedQueue {
+    fn extend<T: IntoIterator<Item = proto::Publication>>(&mut self, iter: T) {
+        iter.into_iter().for_each(|item| self.enqueue(item));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::time::Duration;
@@ -1213,7 +1305,7 @@ mod tests {
     }
 
     #[test]
-    fn test_publish_to_drops_new_message_when_queue_full() {
+    fn test_publish_to_drops_new_message_when_queue_count_limit_reached() {
         let client_id = ClientId::from("id1");
         let max_inflight = 2;
         let max_queued = 2;
@@ -1256,7 +1348,49 @@ mod tests {
     }
 
     #[test]
-    fn test_publish_to_drops_old_message_when_queue_full() {
+    fn test_publish_to_drops_new_message_when_queue_size_limit_reached() {
+        let client_id = ClientId::from("id1");
+        let max_inflight = 2;
+        let max_size = 10;
+        let topic = "topic/new";
+
+        let config = SessionConfig::new(
+            Duration::default(),
+            0,
+            max_inflight,
+            0,
+            max_size,
+            QueueFullAction::DropNew,
+        );
+
+        let mut session = SessionState::new(client_id, config);
+
+        subscribe_to(topic, &mut session);
+
+        let publication = new_publication(topic, "payload");
+
+        assert_matches!(session.publish_to(publication.clone()), Ok(Some(_)));
+        assert_matches!(session.publish_to(publication.clone()), Ok(Some(_)));
+
+        assert_matches!(session.publish_to(publication), Ok(None));
+
+        let publication = new_publication(topic, "last message");
+        assert_matches!(session.publish_to(publication), Ok(None));
+
+        assert_eq!(session.waiting_to_be_acked.len(), 2);
+        assert_eq!(session.waiting_to_be_sent.len(), 1);
+
+        assert_matches!(
+            session
+                .waiting_to_be_sent
+                .iter()
+                .find(|p| p.payload == Bytes::from("last message")),
+            None
+        );
+    }
+
+    #[test]
+    fn test_publish_to_drops_old_message_when_queue_count_limit_reached() {
         let client_id = ClientId::from("id1");
         let max_inflight = 2;
         let max_queued = 2;
@@ -1288,6 +1422,49 @@ mod tests {
 
         assert_eq!(session.waiting_to_be_acked.len(), 2);
         assert_eq!(session.waiting_to_be_sent.len(), 2);
+
+        assert_matches!(
+            session
+                .waiting_to_be_sent
+                .iter()
+                .find(|p| p.payload == Bytes::from("first message")),
+            None
+        );
+    }
+
+    #[test]
+    fn test_publish_to_drops_old_message_when_queue_size_limit_reached() {
+        let client_id = ClientId::from("id1");
+        let max_inflight = 2;
+        let max_size = 10;
+        let topic = "topic/new";
+
+        let config = SessionConfig::new(
+            Duration::default(),
+            0,
+            max_inflight,
+            0,
+            max_size,
+            QueueFullAction::DropOld,
+        );
+
+        let mut session = SessionState::new(client_id, config);
+
+        subscribe_to(topic, &mut session);
+
+        let publication = new_publication(topic, "payload");
+
+        assert_matches!(session.publish_to(publication.clone()), Ok(Some(_)));
+        assert_matches!(session.publish_to(publication.clone()), Ok(Some(_)));
+
+        let first_queued = new_publication(topic, "first message");
+
+        assert_matches!(session.publish_to(first_queued), Ok(None));
+        assert_matches!(session.publish_to(publication.clone()), Ok(None));
+        assert_matches!(session.publish_to(publication), Ok(None));
+
+        assert_eq!(session.waiting_to_be_acked.len(), 2);
+        assert_eq!(session.waiting_to_be_sent.len(), 1);
 
         assert_matches!(
             session
