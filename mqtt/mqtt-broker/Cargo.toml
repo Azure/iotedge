@@ -67,12 +67,12 @@ required-features = ["proptest"]
 [[bench]]
 name = "persist_broker_state"
 harness = false
-required-features = ["tokio/rt-threaded"]
+required-features = ["criterion", "tokio/rt-threaded"]
 
 [[bench]]
 name = "dispatch_messages"
 harness = false
-required-features = ["__internal_broker_callbacks", "tokio/rt-threaded"]
+required-features = ["rand", "criterion", "__internal_broker_callbacks", "tokio/rt-threaded"]
 
 [features]
 default = ["edgehub"]

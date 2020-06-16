@@ -537,7 +537,7 @@ pub enum PersistError {
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+mod tests {
     use std::io::Cursor;
 
     use proptest::prelude::*;

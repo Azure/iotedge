@@ -27,6 +27,8 @@ mod transport;
 #[cfg(any(test, feature = "proptest"))]
 pub mod proptest;
 
+use std::net::SocketAddr;
+
 use serde::{Deserialize, Serialize};
 use tokio::sync::OwnedSemaphorePermit;
 
@@ -50,6 +52,7 @@ pub use crate::transport::TransportBuilder;
 #[derive(Debug)]
 pub struct ConnReq {
     client_id: ClientId,
+    peer_addr: SocketAddr,
     connect: proto::Connect,
     auth: Auth,
     handle: ConnectionHandle,
@@ -58,12 +61,14 @@ pub struct ConnReq {
 impl ConnReq {
     pub fn new(
         client_id: ClientId,
+        peer_addr: SocketAddr,
         connect: proto::Connect,
         auth: Auth,
         handle: ConnectionHandle,
     ) -> Self {
         Self {
             client_id,
+            peer_addr,
             connect,
             auth,
             handle,
@@ -72,6 +77,10 @@ impl ConnReq {
 
     pub fn client_id(&self) -> &ClientId {
         &self.client_id
+    }
+
+    pub fn peer_addr(&self) -> SocketAddr {
+        self.peer_addr
     }
 
     pub fn connect(&self) -> &proto::Connect {
@@ -94,8 +103,8 @@ impl ConnReq {
         self.handle
     }
 
-    pub fn into_parts(self) -> (proto::Connect, ConnectionHandle) {
-        (self.connect, self.handle)
+    pub fn into_parts(self) -> (SocketAddr, proto::Connect, ConnectionHandle) {
+        (self.peer_addr, self.connect, self.handle)
     }
 }
 
@@ -182,4 +191,13 @@ pub enum SystemEvent {
 pub enum Message {
     Client(ClientId, ClientEvent),
     System(SystemEvent),
+}
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use std::net::SocketAddr;
+
+    pub fn peer_addr() -> SocketAddr {
+        "127.0.0.1:12345".parse().unwrap()
+    }
 }

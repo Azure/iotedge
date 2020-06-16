@@ -256,7 +256,7 @@ translate_c2d! {
 
 #[cfg(test)]
 mod tests {
-    use crate::translation::{TranslateC2D, TranslateD2C};
+    use super::{TranslateC2D, TranslateD2C};
 
     #[test]
     fn test_translater() {
