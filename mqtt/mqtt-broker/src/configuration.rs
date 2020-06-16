@@ -1,8 +1,11 @@
-use std::convert::From;
-use std::ops::Mul;
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
-use std::time::Duration;
+use std::{
+    convert::From,
+    num::{NonZeroU64, NonZeroUsize},
+    ops::Mul,
+    path::{Path, PathBuf},
+    str::FromStr,
+    time::Duration,
+};
 
 use config::{Config, ConfigError, File, FileFormat};
 use lazy_static::lazy_static;
@@ -23,7 +26,7 @@ pub enum Transport {
     },
 }
 
-#[derive(Debug, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum QueueFullAction {
     DropNew,
@@ -77,16 +80,20 @@ impl SessionConfig {
         }
     }
 
-    pub fn max_inflight_messages(&self) -> usize {
-        self.max_inflight_messages
+    pub fn max_inflight_messages(&self) -> Option<NonZeroUsize> {
+        NonZeroUsize::new(self.max_inflight_messages)
     }
 
-    pub fn max_queued_messages(&self) -> usize {
-        self.max_queued_messages
+    pub fn max_queued_messages(&self) -> Option<NonZeroUsize> {
+        NonZeroUsize::new(self.max_queued_messages)
     }
 
-    pub fn when_full(&self) -> &QueueFullAction {
-        &self.when_full
+    pub fn max_queued_size(&self) -> Option<NonZeroU64> {
+        NonZeroU64::new(self.max_queued_size)
+    }
+
+    pub fn when_full(&self) -> QueueFullAction {
+        self.when_full
     }
 }
 
