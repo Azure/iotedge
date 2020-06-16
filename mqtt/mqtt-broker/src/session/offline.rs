@@ -85,7 +85,7 @@ impl OfflineSession {
 
         // Dequeue any queued messages - up to the max inflight count
         while state.allowed_to_send() {
-            match state.waiting_to_be_sent_mut().pop_front() {
+            match state.waiting_to_be_sent_mut().dequeue() {
                 Some(publication) => {
                     debug!("dequeueing a message for {}", state.client_id());
                     let event = state.prepare_to_send(&publication)?;
