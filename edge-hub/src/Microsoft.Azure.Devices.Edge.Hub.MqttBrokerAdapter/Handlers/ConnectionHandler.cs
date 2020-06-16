@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Text;
+    using System.Threading.Channels;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -22,6 +23,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         readonly IConnectionProvider connectionProvider;
         readonly DeviceProxy.Factory deviceProxyFactory;
+
+        readonly Channel<MqttPublishInfo> notifications;
+        readonly Task processingLoop;
 
         AsyncLock guard = new AsyncLock();
 
@@ -41,6 +45,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             this.connectionProvider = connectionProvider.Result;
             this.deviceProxyFactory = deviceProxyFactory;
+
+            this.notifications = Channel.CreateUnbounded<MqttPublishInfo>(
+                                    new UnboundedChannelOptions
+                                    {
+                                        SingleReader = true,
+                                        SingleWriter = true
+                                    });
+
+            this.processingLoop = this.StartProcessingLoop();
         }
 
         public IReadOnlyCollection<string> Subscriptions => subscriptions;
@@ -81,18 +94,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             switch (publishInfo.Topic)
             {
                 case TopicDeviceConnected:
-                    // FIXME: a bit worried about that letting it fire and forget,
-                    // events can pass each other. this means that in theory it is possible
-                    // that an earlier event gets processed later, setting the actual connection
-                    // state obsolete.
-                    // Maybe the solution would be adding a counter to the package here, as at
-                    // this point we are still ordered.
-                    _ = this.HandleDeviceConnectedAsync(publishInfo);
+                    if (!this.notifications.Writer.TryWrite(publishInfo))
+                    {
+                        Events.ErrorEnqueueingNotification();
+                    }
+
                     return Task.FromResult(true);
 
                 default:
                     return Task.FromResult(false);
             }
+        }
+
+        public void ProducerStopped()
+        {
+            this.notifications.Writer.Complete();
+            this.processingLoop.Wait();
         }
 
         async Task HandleDeviceConnectedAsync(MqttPublishInfo mqttPublishInfo)
@@ -205,6 +222,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return Option.Some(result);
         }
 
+        Task StartProcessingLoop()
+        {
+            var loopTask = Task.Run(
+                                async () =>
+                                {
+                                    Events.ProcessingLoopStarted();
+
+                                    while (await this.notifications.Reader.WaitToReadAsync())
+                                    {
+                                        var publishInfo = await this.notifications.Reader.ReadAsync();
+
+                                        try
+                                        {
+                                            await this.HandleDeviceConnectedAsync(publishInfo);
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            Events.ErrorProcessingNotification(e);
+                                        }
+                                    }
+
+                                    Events.ProcessingLoopStopped();
+                                });
+
+            return loopTask;
+        }
+
         static class Events
         {
             const int IdStart = MqttBridgeEventIds.ConnectionHandler;
@@ -216,7 +260,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 BadIdentityFormat,
                 UnknownClientDisconnected,
                 ExistingClientAdded,
-                BlockingDependencyInjection
+                BlockingDependencyInjection,
+                ProcessingLoopStarted,
+                ProcessingLoopStopped,
+                ErrorEnqueueingNotification,
+                ErrorProcessingNotification
             }
 
             public static void BadPayloadFormat(Exception e) => Log.LogError((int)EventIds.BadPayloadFormat, e, "Bad payload format: cannot deserialize connection update");
@@ -224,6 +272,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             public static void UnknownClientDisconnected(string identity) => Log.LogWarning((int)EventIds.UnknownClientDisconnected, $"Received disconnect notification about a not-connected client {identity}");
             public static void ExistingClientAdded(string identity) => Log.LogWarning((int)EventIds.ExistingClientAdded, $"Received connect notification about a already-connected client {identity}");
             public static void BlockingDependencyInjection() => Log.LogWarning((int)EventIds.BlockingDependencyInjection, $"Blocking dependency injection as IConnectionProvider is not available at the time");
+            public static void ProcessingLoopStarted() => Log.LogInformation((int)EventIds.ProcessingLoopStarted, "Processing loop started");
+            public static void ProcessingLoopStopped() => Log.LogInformation((int)EventIds.ProcessingLoopStopped, "Processing loop stopped");
+            public static void ErrorEnqueueingNotification() => Log.LogError((int)EventIds.ErrorEnqueueingNotification, "Error enqueueing notification");
+            public static void ErrorProcessingNotification(Exception e) => Log.LogError((int)EventIds.ErrorProcessingNotification, e, "Error processing [Connect] notification");
         }
     }
 }

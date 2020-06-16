@@ -7,5 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     public interface IMessageConsumer
     {
         Task<bool> HandleAsync(MqttPublishInfo publishInfo);
+        void ProducerStopped();
     }
 }

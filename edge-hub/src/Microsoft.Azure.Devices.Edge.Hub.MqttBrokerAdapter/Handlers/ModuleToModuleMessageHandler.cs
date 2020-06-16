@@ -20,7 +20,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         IMqttBridgeConnector connector;
 
-        public ModuleToModuleMessageHandler(IConnectionRegistry connectionRegistry) : base(connectionRegistry) { }
+        public ModuleToModuleMessageHandler(IConnectionRegistry connectionRegistry)
+            : base(connectionRegistry)
+        {
+        }
+
         public void SetConnector(IMqttBridgeConnector connector) => this.connector = connector;
         public IReadOnlyCollection<SubscriptionPattern> WatchedSubscriptions => subscriptionPatterns;
 
@@ -88,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 BadIdentityFormat,
                 CannotSendM2MToDevice,
             }
-            
+
             public static void BadPayloadFormat(Exception e) => Log.LogError((int)EventIds.BadPayloadFormat, e, "Bad payload format: cannot deserialize subscription update");
             public static void FailedToSendModuleToModuleMessage(Exception e) => Log.LogError((int)EventIds.FailedToSendModuleToModuleMessage, e, "Failed to send Module to Module message");
             public static void ModuleToModuleMessage(string id, int messageLen) => Log.LogDebug((int)EventIds.ModuleToModuleMessage, $"Module to Module message sent to client: [{id}], msg len: [{messageLen}]");

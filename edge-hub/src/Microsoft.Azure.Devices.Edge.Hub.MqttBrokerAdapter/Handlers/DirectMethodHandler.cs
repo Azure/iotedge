@@ -46,6 +46,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return Task.FromResult(false);
         }
 
+        public void ProducerStopped()
+        {
+        }
+
         public void SetConnector(IMqttBridgeConnector connector) => this.connector = connector;
 
         public async Task<DirectMethodResponse> CallDirectMethodAsync(DirectMethodRequest request, IIdentity identity)
@@ -77,21 +81,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             var res = match.Groups["res"];
 
             var identity = HandlerUtils.GetIdentityFromMatch(id1, id2);
-            var proxy = await this.connectionRegistry.GetUpstreamProxyAsync(identity);
+            var maybeProxy = await this.connectionRegistry.GetUpstreamProxyAsync(identity);
+            var proxy = default(IDeviceListener);
 
             try
             {
-                var message = new EdgeMessage.Builder(publishInfo.Payload).Build();
-                message.Properties[SystemProperties.CorrelationId] = rid.Value;
-                message.Properties[SystemProperties.StatusCode] = res.Value;
-
-                _ = proxy.Expect(() => new Exception($"No upstream proxy found for {identity.Id}")).ProcessMethodResponseAsync(message);
+                proxy = maybeProxy.Expect(() => new Exception($"No upstream proxy found for {identity.Id}"));
             }
             catch (Exception)
             {
                 Events.MissingProxy(identity.Id);
                 return false;
             }
+
+            var message = new EdgeMessage.Builder(publishInfo.Payload).Build();
+            message.Properties[SystemProperties.CorrelationId] = rid.Value;
+            message.Properties[SystemProperties.StatusCode] = res.Value;
+
+            await proxy.ProcessMethodResponseAsync(message);
 
             return true;
         }

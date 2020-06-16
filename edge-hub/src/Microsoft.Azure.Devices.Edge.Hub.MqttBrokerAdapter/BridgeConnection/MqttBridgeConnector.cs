@@ -291,6 +291,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                         }
                                     }
 
+                                    foreach (var consumer in this.components.Consumers)
+                                    {
+                                        consumer.ProducerStopped();
+                                    }
+
                                     Events.ForwardingLoopStopped();
                                 });
 

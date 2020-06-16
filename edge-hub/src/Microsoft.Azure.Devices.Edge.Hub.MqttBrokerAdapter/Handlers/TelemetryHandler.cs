@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client.Common;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -36,6 +37,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return Task.FromResult(false);
         }
 
+        public void ProducerStopped()
+        {
+        }
+
         async Task<bool> HandleTelemetry(Match match, MqttPublishInfo publishInfo)
         {
             var id1 = match.Groups["id1"];
@@ -43,7 +48,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             var bag = match.Groups["bag"];
 
             var identity = HandlerUtils.GetIdentityFromMatch(id1, id2);
-            var proxy = await this.connectionRegistry.GetUpstreamProxyAsync(identity);
+            var maybeProxy = await this.connectionRegistry.GetUpstreamProxyAsync(identity);
+            var proxy = default(IDeviceListener);
+
+            try
+            {
+                proxy = maybeProxy.Expect(() => new Exception($"No upstream proxy found for {identity.Id}"));
+            }
+            catch (Exception)
+            {
+                Events.MissingProxy(identity.Id);
+                return false;
+            }
 
             var message = default(IMessage);
             try
@@ -56,15 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 return false;
             }
 
-            try
-            {
-                _ = proxy.Expect(() => new Exception($"No upstream proxy found for {identity.Id}")).ProcessDeviceMessageAsync(message);
-            }
-            catch (Exception)
-            {
-                Events.MissingProxy(identity.Id);
-                return false;
-            }
+            await proxy.ProcessDeviceMessageAsync(message);
 
             Events.TelemetryMessage(identity.Id, publishInfo.Payload.Length);
 

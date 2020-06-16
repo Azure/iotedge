@@ -19,7 +19,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         IMqttBridgeConnector connector;
 
-        public Cloud2DeviceMessageHandler(IConnectionRegistry connectionRegistry) : base(connectionRegistry) { }
+        public Cloud2DeviceMessageHandler(IConnectionRegistry connectionRegistry)
+            : base(connectionRegistry)
+        {
+        }
+
         public IReadOnlyCollection<SubscriptionPattern> WatchedSubscriptions => subscriptionPatterns;
         public void SetConnector(IMqttBridgeConnector connector) => this.connector = connector;
 
@@ -28,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             bool result;
             try
             {
-                var propertyBag = HandlerUtils.GetPropertyBag(message);                
+                var propertyBag = HandlerUtils.GetPropertyBag(message);
                 result = await this.connector.SendAsync(
                                                 GetCloudToDeviceTopic(identity, propertyBag),
                                                 message.Body);
@@ -87,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 BadIdentityFormat,
                 CannotSendC2DToModule,
             }
-            
+
             public static void BadPayloadFormat(Exception e) => Log.LogError((int)EventIds.BadPayloadFormat, e, "Bad payload format: cannot deserialize subscription update");
             public static void FailedToSendCloudToDeviceMessage(Exception e) => Log.LogError((int)EventIds.FailedToSendCloudToDeviceMessage, e, "Failed to send Cloud to Device message");
             public static void CouldToDeviceMessage(string id, int messageLen) => Log.LogDebug((int)EventIds.CouldToDeviceMessage, $"Cloud to Device message sent to client: [{id}], msg len: [{messageLen}]");
