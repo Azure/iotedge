@@ -47,7 +47,7 @@ function install_rust()
     # We could check if the toolchain file contains "stable" and conditionally issue a `rustup update stable`,
     # but it's simpler to just always `update` whatever toolchain it is. `update` installs the toolchain
     # if it hasn't already been installed, so this also works for pinned versions.
-    rustup update "$(< "$PROJECT_ROOT/rust-toolchain")"
+    $RUSTUP update "$(< "$PROJECT_ROOT/rust-toolchain")"
 }
 
 ###############################################################################
