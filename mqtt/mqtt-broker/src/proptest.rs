@@ -10,7 +10,7 @@ use proptest::{
 };
 
 use crate::{
-    session::{IdentifiersInUse, PacketIdentifiers},
+    session::identifiers::{IdentifiersInUse, PacketIdentifiers},
     BrokerSnapshot, ClientId, Publish, Segment, SessionSnapshot, Subscription, TopicFilter,
 };
 
