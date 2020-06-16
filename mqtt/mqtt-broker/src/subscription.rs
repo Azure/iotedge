@@ -162,7 +162,7 @@ impl FromStr for TopicFilter {
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+mod tests {
     use std::str::FromStr;
 
     use proptest::prelude::*;

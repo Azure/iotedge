@@ -20,7 +20,7 @@ mod imp {
     }
 
     pub(super) fn authorizer() -> LocalAuthorizer<EdgeHubAuthorizer> {
-        LocalAuthorizer::new(EdgeHubAuthorizer::new())
+        LocalAuthorizer::new(EdgeHubAuthorizer::default())
     }
 }
 

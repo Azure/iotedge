@@ -913,7 +913,7 @@ impl Default for PacketIdentifiers {
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+mod tests {
     use std::time::Duration;
 
     use bytes::Bytes;

@@ -14,10 +14,6 @@ pub struct EdgeHubAuthorizer;
 
 #[allow(clippy::unused_self)]
 impl EdgeHubAuthorizer {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     fn authorize_connect(
         &self,
         client_id: &ClientId,
@@ -26,13 +22,18 @@ impl EdgeHubAuthorizer {
     ) -> Authorization {
         match client_info.auth_id() {
             // forbid anonymous clients to connect to the broker
-            AuthId::Anonymous => Authorization::Forbidden("anonymous client".to_string()),
+            AuthId::Anonymous => {
+                Authorization::Forbidden("Anonymous clients cannot connect to broker".to_string())
+            }
             // allow only those clients whose auth_id and client_id identical
             AuthId::Identity(identity) => {
                 if identity == client_id.as_str() {
                     Authorization::Allowed
                 } else {
-                    Authorization::Forbidden(format!("unknown client: {}", client_id))
+                    Authorization::Forbidden(format!(
+                        "client_id {} does not match registered iothub identity id.",
+                        client_id
+                    ))
                 }
             }
         }
@@ -84,9 +85,9 @@ impl EdgeHubAuthorizer {
     ) -> Authorization {
         match client_info.auth_id() {
             // forbid anonymous clients to subscribe to restricted topics
-            AuthId::Anonymous => {
-                Authorization::Forbidden("IoTHub topic: anonymous client".to_string())
-            }
+            AuthId::Anonymous => Authorization::Forbidden(
+                "Anonymous clients do not have access to IoTHub topics".to_string(),
+            ),
             // allow authenticated clients with client_id == auth_id and accessing its own IoTHub topic
             AuthId::Identity(identity) if identity == client_id.as_str() => {
                 let allowed_topics = allowed_iothub_topic(client_id);
@@ -97,14 +98,14 @@ impl EdgeHubAuthorizer {
                     Authorization::Allowed
                 } else {
                     Authorization::Forbidden(
-                        "IoTHub topic: client must connect to its own topic".to_string(),
+                        "Client must connect to its own IoTHub topic".to_string(),
                     )
                 }
             }
             // forbid access otherwise
-            AuthId::Identity(identity) => Authorization::Forbidden(format!(
-                "IoTHub topic: client_id {} doesn't match auth_id {}",
-                client_id, identity
+            AuthId::Identity(_) => Authorization::Forbidden(format!(
+                "client_id {} must match registered iothub identity id to access IoTHub topic",
+                client_id
             )),
         }
     }
@@ -197,7 +198,7 @@ mod tests {
 
     #[test_case(connect_activity("device-1", AuthId::Identity("device-1".to_string())); "identical auth_id and client_id")]
     fn it_allows_to_connect(activity: Activity) {
-        let authorizer = EdgeHubAuthorizer::new();
+        let authorizer = authorizer();
 
         let auth = authorizer.authorize(activity);
 
@@ -207,7 +208,7 @@ mod tests {
     #[test_case(connect_activity("device-1", AuthId::Anonymous); "anonymous clients")]
     #[test_case(connect_activity("device-1", AuthId::Identity("device-2".to_string())); "different auth_id and client_id")]
     fn it_forbids_to_connect(activity: Activity) {
-        let authorizer = EdgeHubAuthorizer::new();
+        let authorizer = authorizer();
 
         let auth = authorizer.authorize(activity);
 
@@ -229,7 +230,7 @@ mod tests {
     #[test_case(subscribe_activity("device-1", AuthId::Identity("device-1".to_string()), "$edgehub/clients/device-1/twin/res"); "old client twin response")]
     #[test_case(subscribe_activity("device-1", AuthId::Identity("device-1".to_string()), "$iothub/clients/device-1/twin/res"); "new client twin response")]
     fn it_allows_to_subscribe_to(activity: Activity) {
-        let authorizer = EdgeHubAuthorizer::new();
+        let authorizer = authorizer();
 
         let auth = authorizer.authorize(activity);
 
@@ -246,7 +247,7 @@ mod tests {
     #[test_case(subscribe_activity("device-1", AuthId::Anonymous, "$edgehub/clients/device-1/twin/get"); "twin request by anonymous client")]
     #[test_case(subscribe_activity("device-1", AuthId::Identity("device-1".to_string()), "$edgehub/clients/device-1/twin/+"); "both twin operations")]
     fn it_forbids_to_subscribe_to(activity: Activity) {
-        let authorizer = EdgeHubAuthorizer::new();
+        let authorizer = authorizer();
 
         let auth = authorizer.authorize(activity);
 
@@ -267,7 +268,7 @@ mod tests {
     #[test_case(publish_activity("device-1", AuthId::Identity("device-1".to_string()), "$edgehub/clients/device-1/twin/res"); "old client twin response")]
     #[test_case(publish_activity("device-1", AuthId::Identity("device-1".to_string()), "$iothub/clients/device-1/twin/res"); "new client twin response")]
     fn it_allows_to_publish_to(activity: Activity) {
-        let authorizer = EdgeHubAuthorizer::new();
+        let authorizer = authorizer();
 
         let auth = authorizer.authorize(activity);
 
@@ -282,11 +283,15 @@ mod tests {
     #[test_case(publish_activity("device-1", AuthId::Anonymous, "$edgehub/clients/device-1/twin/get"); "twin request by anonymous client")]
     #[test_case(publish_activity("device-1", AuthId::Identity("device-1".to_string()), "$SYS/foo"); "system topics")]
     fn it_forbids_to_publish_to(activity: Activity) {
-        let authorizer = EdgeHubAuthorizer::new();
+        let authorizer = authorizer();
 
         let auth = authorizer.authorize(activity);
 
         assert_matches!(auth, Ok(Authorization::Forbidden(_)));
+    }
+
+    fn authorizer() -> EdgeHubAuthorizer {
+        EdgeHubAuthorizer::default()
     }
 
     fn connect_activity(client_id: &str, auth_id: AuthId) -> Activity {
