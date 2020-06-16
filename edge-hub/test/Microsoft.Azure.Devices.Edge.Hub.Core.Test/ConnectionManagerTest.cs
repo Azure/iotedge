@@ -942,7 +942,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
-        public async Task TestCloseDeviceAndCloudConnection(bool closeCloudConnectionWhenCloseDeviceConnection)
+        public async Task TestCloseDeviceAndCloudConnection(bool closeCloudConnectionOnDeviceDisconnect)
         {
             // Arrange
             string edgeDeviceId = "edgeDevice";
@@ -984,7 +984,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 credentialsCache,
                 GetIdentityProvider(),
                 deviceConnectivityManager,
-                closeCloudConnectionWhenCloseDeviceConnection: closeCloudConnectionWhenCloseDeviceConnection);
+                closeCloudConnectionOnDeviceDisconnect: closeCloudConnectionOnDeviceDisconnect);
             await connectionManager.AddDeviceConnection(module1Identity, moduleProxy1);
 
             // Act
@@ -998,7 +998,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await connectionManager.RemoveDeviceConnection(module1Credentials.Identity.Id);
 
             // Assert
-            if (closeCloudConnectionWhenCloseDeviceConnection)
+            if (closeCloudConnectionOnDeviceDisconnect)
             {
                 Assert.False(getCloudProxyTask.OrDefault().IsActive);
                 Mock.Get(client1).Verify(cp => cp.CloseAsync(), Times.Once);
