@@ -14,7 +14,6 @@ DIR=$(cd "$(dirname "$0")" && pwd)
 AGENT_WORKFOLDER=${AGENT_WORKFOLDER:-/usr/share}
 BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..}
 BUILD_BINARIESDIRECTORY=${BUILD_BINARIESDIRECTORY:-$BUILD_REPOSITORY_LOCALPATH/target}
-EDGE_HUB_PROJECT_NAME="Microsoft.Azure.Devices.Edge.Hub.Service"
 PUBLISH_FOLDER=$BUILD_BINARIESDIRECTORY/publish
 ROOT_FOLDER=$BUILD_REPOSITORY_LOCALPATH
 SRC_SCRIPTS_DIR=$ROOT_FOLDER/scripts
@@ -24,8 +23,6 @@ SRC_CERT_TOOLS_DIR=$ROOT_FOLDER/tools/CACertificates
 FUNCTIONS_SAMPLE_DIR=$ROOT_FOLDER/edge-modules/functions/samples
 VERSIONINFO_FILE_PATH=$BUILD_REPOSITORY_LOCALPATH/versionInfo.json
 CONNECTIVITY_TEST_SCRIPT_DIR=$ROOT_FOLDER/test/connectivity/scripts
-MQTT_DIR=$ROOT_FOLDER/mqtt
-WATCHDOG_DIR=$ROOT_FOLDER/edge-hub/watchdog
 DOTNET_RUNTIME=netcoreapp3.1
 
 usage()
@@ -230,7 +227,7 @@ update_version_info
 build_solution
 
 publish_app "Microsoft.Azure.Devices.Edge.Agent.Service"
-publish_app $EDGE_HUB_PROJECT_NAME
+publish_app "Microsoft.Azure.Devices.Edge.Hub.Service"
 publish_app "SimulatedTemperatureSensor"
 publish_app "TemperatureFilter"
 publish_app "load-gen"
@@ -256,8 +253,6 @@ publish_files $SRC_E2E_TEMPLATES_DIR $PUBLISH_FOLDER
 publish_files $SRC_E2E_TEST_FILES_DIR $PUBLISH_FOLDER
 publish_files $SRC_CERT_TOOLS_DIR $PUBLISH_FOLDER
 publish_files $CONNECTIVITY_TEST_SCRIPT_DIR $PUBLISH_FOLDER
-publish_files $MQTT_DIR "$PUBLISH_FOLDER/$EDGE_HUB_PROJECT_NAME"
-publish_files $WATCHDOG_DIR "$PUBLISH_FOLDER/$EDGE_HUB_PROJECT_NAME"
 
 publish_quickstart linux-arm
 publish_quickstart linux-x64

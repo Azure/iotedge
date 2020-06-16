@@ -21,8 +21,17 @@ jobs:
         displayName: 'Docker Login'
 
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
-        name: build
+        name: Build C# artifacts
         displayName: Build ($(Build.Configuration))
+
+      - bash: mqtt/build/linux/install.sh
+        displayName: Install rust dependencies
+
+      - script: "cargo install --git https://github.com/arsing/cross.git --branch set-path"
+        displayName: "Install cross (fork with docker fix)"
+
+      - bash: mqtt/build/linux/build.sh -r
+        displayName: Build mqtt broker artifacts
 
       - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.BinariesDirectory)/publish' --build-number $(Build.BuildNumber)
         displayName: 'Create Artifact Info File'

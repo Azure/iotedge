@@ -12,7 +12,7 @@ set -e
 SCRIPT_NAME=$(basename "$0")
 RUSTUP="${CARGO_HOME:-"$HOME/.cargo"}/bin/rustup"
 ARM_PACKAGE=
-BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
+BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR../../..}
 PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/mqtt
 
 ###############################################################################
@@ -47,6 +47,8 @@ function install_rust()
     # We could check if the toolchain file contains "stable" and conditionally issue a `rustup update stable`,
     # but it's simpler to just always `update` whatever toolchain it is. `update` installs the toolchain
     # if it hasn't already been installed, so this also works for pinned versions.
+    pwd
+    echo $PROJECT_ROOT
     rustup update "$(< "$PROJECT_ROOT/rust-toolchain")"
 }
 
@@ -82,7 +84,8 @@ sudo apt-get install -y \
     dh-systemd \
     valgrind
 sudo apt-get remove --yes libssl-dev
-sudo apt-get install --yes --target-release xenial-updates libssl-dev
+# sudo apt-get install --yes --target-release xenial-updates libssl-dev
+sudo apt-get install --yes libssl-dev # TODO: figure out if really not required
 
 if [[ -n "$ARM_PACKAGE" ]]; then
     # armhf cross tools for packaging
@@ -104,7 +107,8 @@ if [[ -n "$ARM_PACKAGE" ]]; then
         gcc-4.8-multilib-arm-linux-gnueabihf=4.8.2-16ubuntu4cross0.11 \
         libc6-armhf-cross=2.19-0ubuntu2cross1.104 \
         gcc-arm-linux-gnueabihf=4:4.8.2-1 \
-        binutils-aarch64-linux-gnu
+        binutils-aarch64-linux-gnu \
+        gcc-aarch64-linux-gnu # TODO: confirm that this is what we want
 
     # For future reference:
     # ubuntu systems (host) sets openssl library version to 1.0.0,

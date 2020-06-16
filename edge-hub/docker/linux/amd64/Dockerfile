@@ -1,29 +1,14 @@
-# -*- mode: dockerfile -*-
-
-# You can override this `--build-arg BASE_IMAGE=...` to use different
-# version of Rust or OpenSSL.
-ARG BASE_IMAGE=ekidd/rust-musl-builder:stable
-
-# Our first FROM statement declares the build environment.
-FROM ${BASE_IMAGE} AS broker-builder
-
-# Add source code for mqtt broker and watchdog.
-ADD ./mqtt ./mqtt
-ADD ./watchdog ./watchdog
-
-RUN sudo chown -R rust:rust ../src
-
-#Build mqtt broker and watchdog.
-RUN cargo build --release --manifest-path ./mqtt/mqttd/Cargo.toml --no-default-features \
-    && strip /home/rust/src/mqtt/target/x86_64-unknown-linux-musl/release/mqttd
-
-RUN cargo build --release --manifest-path ./watchdog/linux/Cargo.toml --no-default-features \
-    && strip /home/rust/src/watchdog/linux/target/x86_64-unknown-linux-musl/release/watchdog
-
 FROM azureiotedge/azureiotedge-runtime-base:1.2-linux-amd64 as hub-builder
 
 # TODO: figure out why we cannot use arg directly
 FROM mcr.microsoft.com/dotnet/core/aspnet:3.1.4-alpine3.11
+
+ENV RUST_LOG=info
+EXPOSE 1883/tcp
+EXPOSE 8883/tcp
+
+ADD ./watchdog/release/watchdog /usr/bin/local/watchdog
+ADD ./mqtt/mqttd/release/mqttd /usr/local/bin/mqttd
 
 ARG EXE_DIR=.	
 
@@ -34,18 +19,6 @@ RUN apk update && \
 # Add an unprivileged user account for running Edge Hub	
 ARG EDGEHUBUSER_ID=1000	
 RUN adduser -Ds /bin/sh -u ${EDGEHUBUSER_ID} edgehubuser 	
-
-ENV RUST_LOG=info
-EXPOSE 1883/tcp
-EXPOSE 8883/tcp
-
-COPY --from=broker-builder \
-    /home/rust/src/mqtt/target/x86_64-unknown-linux-musl/release/mqttd \
-    /usr/local/bin/
-
-COPY --from=broker-builder \
-    /home/rust/src/watchdog/linux/target/x86_64-unknown-linux-musl/release/watchdog \
-    /usr/local/bin/
 
 # Add the CAP_NET_BIND_SERVICE capability to the dotnet binary because	
 # we are starting Edge Hub as a non-root user	
