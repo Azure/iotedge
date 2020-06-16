@@ -132,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await connectionManager.RemoveDeviceConnection(deviceCredentials2.Identity.Id);
 
             returnedValue = await connectionManager.GetCloudConnection(deviceCredentials2.Identity.Id);
-            Assert.True(returnedValue.HasValue);
+            Assert.False(returnedValue.HasValue);
         }
 
         [Fact]
@@ -291,8 +291,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.False(deviceProxyMock1.Object.IsActive);
 
             cloudProxy = await connectionManager.GetCloudConnection(deviceId);
-            Assert.True(cloudProxy.HasValue);
-            Assert.True(client.IsActive);
+            Assert.False(cloudProxy.HasValue);
         }
 
         [Fact]
