@@ -89,7 +89,7 @@ if [[ -z ${RELEASE} ]]; then
 else
     EDGE_HUB_ARTIFACTS_PATH="target/publish/Microsoft.Azure.Devices.Edge.Hub.Service"
     MQTT_MANIFEST_PATH="./mqttd/Cargo.toml"
-    TMP_TARGET_DIR_PATH="${PROJECT_ROOT}/target"
+    LOCAL_TARGET_DIR_PATH="${PROJECT_ROOT}/target"
     TARGET_DIR_PATH="${BUILD_REPOSITORY_LOCALPATH}/${EDGE_HUB_ARTIFACTS_PATH}/mqtt/mqttd"
     mkdir -p "${TARGET_DIR_PATH}"
 
@@ -100,20 +100,21 @@ else
     echo "Building for linux amd64"
     echo "${BUILD_COMMAND}"
     eval "${BUILD_COMMAND}"
-    strip "${TMP_TARGET_DIR_PATH}/release/mqttd"
+    OUTPUT_BINARY="${LOCAL_TARGET_DIR_PATH}/release/mqttd"
+    strip "${OUTPUT_BINARY}"
+    cp ${OUTPUT_BINARY} ${TARGET_DIR_PATH} # needed because target-dir won't work with cross
 
     # Build for linux arm32 and linux arm64
     TARGET_PLATFORMS=("armv7-unknown-linux-gnueabihf" "aarch64-unknown-linux-gnu")
     for platform in "${TARGET_PLATFORMS[@]}"
     do
         BUILD_COMMAND_WITH_PLATFORM="${BUILD_COMMAND} --target $platform"
-
         echo "Building for $platform"
         echo "${BUILD_COMMAND_WITH_PLATFORM}"
-
         eval "${BUILD_COMMAND_WITH_PLATFORM}"
-        strip "${TMP_TARGET_DIR_PATH}/${platform}/release/mqttd"
-    done
 
-    cp -r ${TMP_TARGET_DIR_PATH}/* ${TARGET_DIR_PATH}
+        OUTPUT_BINARY="${LOCAL_TARGET_DIR_PATH}/${platform}/release/mqttd"
+        strip ${OUTPUT_BINARY}
+        mkdir ${TARGET_DIR_PATH}/$platform && cp ${OUTPUT_BINARY} ${TARGET_DIR_PATH}/$platform # needed because target-dir won't work with cross
+    done
 fi
