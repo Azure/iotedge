@@ -19,7 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
             JTokenType.Null,
             JTokenType.Object,
             JTokenType.String,
-            JTokenType.Date
+            JTokenType.Date,
+            JTokenType.Array
         };
 
         static readonly string[] MetadataPropertyNames = { "$metadata", "$version" };
@@ -131,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
                         // if this property exists in 'to' but has a different value
                         // then add the prop from 'to' to 'patch'
-                        else if (fromProp.Value.Type != toProp.Value.Type || fromProp.Value.Equals(toProp.Value) == false)
+                        else if (fromProp.Value.Type != toProp.Value.Type || !JToken.DeepEquals(fromProp.Value, toProp.Value))
                         {
                             patch.Add(fromProp.Name, toProp.Value);
                         }

@@ -158,6 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             TimeSpan configUpdateFrequency = TimeSpan.FromSeconds(configUpdateFrequencySecs);
             bool checkEntireQueueOnCleanup = this.configuration.GetValue("CheckEntireQueueOnCleanup", false);
             Option<string> gatewayHostname = Option.Maybe(this.configuration.GetValue<string>(Constants.ConfigKey.GatewayHostname));
+            bool closeCloudConnectionOnDeviceDisconnect = this.configuration.GetValue("CloseCloudConnectionOnDeviceDisconnect", true);
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -188,7 +189,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     encryptTwinStore,
                     configUpdateFrequency,
                     checkEntireQueueOnCleanup,
-                    experimentalFeatures));
+                    experimentalFeatures,
+                    closeCloudConnectionOnDeviceDisconnect));
         }
 
         void RegisterCommonModule(
