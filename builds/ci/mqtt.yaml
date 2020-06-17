@@ -36,10 +36,12 @@ jobs:
         displayName: Install Rust
         inputs:
           filePath: mqtt/build/linux/install.sh
+          arguments: --target armv7-unknown-linux-gnueabihf
       - task: Bash@3
         displayName: Build
         inputs:
           filePath: mqtt/build/linux/build.sh
+          arguments: --target armv7-unknown-linux-gnueabihf
       - task: Bash@3
         displayName: Test
         inputs:
@@ -69,13 +71,13 @@ jobs:
       - task: Bash@3
         displayName: Build
         inputs:
-          filePath: mqtt/build/linux/cross.sh
-          arguments: --target armv7-unknown-linux-gnueabihf --release true
+          filePath: mqtt/build/linux/build.sh
+          arguments: --target armv7-unknown-linux-gnueabihf --cargo cross
       - task: Bash@3
         displayName: Test
         inputs:
-          filePath: mqtt/build/linux/cross-test.sh
-          arguments: --target armv7-unknown-linux-gnueabihf --release true
+          filePath: mqtt/build/linux/test.sh
+          arguments: --target armv7-unknown-linux-gnueabihf --cargo cross
 
 ################################################################################
   - job: windows_amd64
@@ -92,7 +94,7 @@ jobs:
         inputs:
           filePath: mqtt/build/windows/install.ps1
       - task: PowerShell@2
-        displayName: Clippy for windows
+        displayName: Clippy for Windows
         inputs:
           filePath: mqtt/build/windows/clippy.ps1
       - task: PowerShell@2
