@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # TODO: remove amd64 steps as they are not for alpine
+# TODO: remove ubuntu 18
 
 set -e
 
@@ -18,16 +19,20 @@ CMAKE_ARGS="$CMAKE_ARGS -DBUILD_SHARED=On -Drun_unittests=Off -Duse_default_uuid
 
 DOCKER_VOLUME_MOUNTS=''
 
-PACKAGE_OS='ubuntu16.04'
-PACKAGE_ARCH='aarch64'
+PACKAGE_OS='alpine'
+PACKAGE_ARCH='amd64'
 
 case "$PACKAGE_OS" in
+    'alpine')
+        DOCKER_IMAGE='ubuntu:18.04'
+        ;;
+
     'ubuntu16.04')
         DOCKER_IMAGE='ubuntu:16.04'
 
-        CMAKE_ARGS="$CMAKE_ARGS -DCPACK_GENERATOR=DEB"
         # TODO: Do we need?
         # The cmake in this image doesn't understand CPACK_DEBIAN_PACKAGE_RELEASE, so include the REVISION in CPACK_PACKAGE_VERSION
+        CMAKE_ARGS="$CMAKE_ARGS -DCPACK_GENERATOR=DEB"
         CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_PACKAGE_VERSION=$VERSION-$REVISION'"
         CMAKE_ARGS="$CMAKE_ARGS '-DOPENSSL_DEPENDS_SPEC=libssl1.0.0'"
         ;;
@@ -48,6 +53,7 @@ if [ -z "$DOCKER_IMAGE" ]; then
 fi
 
 case "$PACKAGE_ARCH" in
+    # TODO: Does this apply / work for alpine?
     'amd64')
         MAKE_FLAGS="DPKGFLAGS='-b -us -uc -i'"
         ;;
@@ -73,6 +79,85 @@ fi
 
 
 case "$PACKAGE_OS.$PACKAGE_ARCH" in
+    # TODO: elevate arg versions and dependency link comment
+    # TODO: remove musl keywords
+    alpine.amd64)
+        # Versions for other dependencies. Here are the places to check for new
+        # releases:
+        #
+        # - https://github.com/rust-lang/mdBook/releases
+        # - https://github.com/EmbarkStudios/cargo-about/releases
+        # - https://github.com/EmbarkStudios/cargo-deny/releases
+        # - http://zlib.net/
+        # - https://ftp.postgresql.org/pub/source/
+        SETUP_COMMAND=$'
+            MDBOOK_VERSION=0.3.7
+            CARGO_ABOUT_VERSION=0.2.2
+            CARGO_DENY_VERSION=0.6.7
+            apt-get update && \
+            apt-get install -y \
+                build-essential \
+                cmake \
+                curl \
+                file \
+                git \
+                graphviz \
+                musl-dev \
+                musl-tools \
+                libpq-dev \
+                libsqlite-dev \
+                libssl-dev \
+                linux-libc-dev \
+                pkgconf \
+                sudo \
+                xutils-dev \
+                gcc-multilib-arm-linux-gnueabihf \
+                && \
+            apt-get clean && rm -rf /var/lib/apt/lists/* && \
+            useradd rust --user-group --create-home --shell /bin/bash --groups sudo && \
+            curl -fLO https://github.com/rust-lang-nursery/mdBook/releases/download/v$MDBOOK_VERSION/mdbook-v$MDBOOK_VERSION-x86_64-unknown-linux-gnu.tar.gz && \
+            tar xf mdbook-v$MDBOOK_VERSION-x86_64-unknown-linux-gnu.tar.gz && \
+            mv mdbook /usr/local/bin/ && \
+            rm -f mdbook-v$MDBOOK_VERSION-x86_64-unknown-linux-gnu.tar.gz && \
+            curl -fLO https://github.com/EmbarkStudios/cargo-about/releases/download/$CARGO_ABOUT_VERSION/cargo-about-$CARGO_ABOUT_VERSION-x86_64-unknown-linux-musl.tar.gz && \
+            tar xf cargo-about-$CARGO_ABOUT_VERSION-x86_64-unknown-linux-musl.tar.gz && \
+            mv cargo-about-$CARGO_ABOUT_VERSION-x86_64-unknown-linux-musl/cargo-about /usr/local/bin/ && \
+            rm -rf cargo-about-$CARGO_ABOUT_VERSION-x86_64-unknown-linux-musl.tar.gz cargo-about-$CARGO_ABOUT_VERSION-x86_64-unknown-linux-musl && \
+            curl -fLO https://github.com/EmbarkStudios/cargo-deny/releases/download/$CARGO_DENY_VERSION/cargo-deny-$CARGO_DENY_VERSION-x86_64-unknown-linux-musl.tar.gz && \
+            tar xf cargo-deny-$CARGO_DENY_VERSION-x86_64-unknown-linux-musl.tar.gz && \
+            mv cargo-deny-$CARGO_DENY_VERSION-x86_64-unknown-linux-musl/cargo-deny /usr/local/bin/ && \
+            rm -rf cargo-deny-$CARGO_DENY_VERSION-x86_64-unknown-linux-musl cargo-deny-$CARGO_DENY_VERSION-x86_64-unknown-linux-musl.tar.gz 
+            echo "Building OpenSSL" && \
+            ls /usr/include/linux && \
+            sudo mkdir -p /usr/local/musl/include && \
+            sudo ln -s /usr/include/linux /usr/local/musl/include/linux && \
+            sudo ln -s /usr/include/x86_64-linux-gnu/asm /usr/local/musl/include/asm && \
+            sudo ln -s /usr/include/asm-generic /usr/local/musl/include/asm-generic && \
+            cd /tmp && \
+            short_version="$(echo "$OPENSSL_VERSION" | sed s'/[a-z]$//' )" && \
+            curl -fLO "https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz" || \
+                curl -fLO "https://www.openssl.org/source/old/$short_version/openssl-$OPENSSL_VERSION.tar.gz" && \
+            tar xvzf "openssl-$OPENSSL_VERSION.tar.gz" && cd "openssl-$OPENSSL_VERSION" && \
+            env CC=musl-gcc ./Configure no-shared no-zlib -fPIC --prefix=/usr/local/musl -DOPENSSL_NO_SECURE_MEMORY linux-x86_64 && \
+            env C_INCLUDE_PATH=/usr/local/musl/include/ make depend && \
+            env C_INCLUDE_PATH=/usr/local/musl/include/ make && \
+            sudo make install && \
+            sudo rm /usr/local/musl/include/linux /usr/local/musl/include/asm /usr/local/musl/include/asm-generic && \
+            rm -r /tmp/*
+            OPENSSL_DIR=/usr/local/musl/ \
+            OPENSSL_INCLUDE_DIR=/usr/local/musl/include/ \
+            DEP_OPENSSL_INCLUDE=/usr/local/musl/include/ \
+            OPENSSL_LIB_DIR=/usr/local/musl/lib/ \
+            OPENSSL_STATIC=1 \
+            PQ_LIB_STATIC_X86_64_UNKNOWN_LINUX_MUSL=1 \
+            PG_CONFIG_X86_64_UNKNOWN_LINUX_GNU=/usr/bin/pg_config \
+            PKG_CONFIG_ALLOW_CROSS=true \
+            PKG_CONFIG_ALL_STATIC=true \
+            LIBZ_SYS_STATIC=1 \
+            TARGET=musl
+        '
+        ;;
+
     ubuntu16.04.amd64|ubuntu18.04.amd64)
         SETUP_COMMAND=$'
             apt-get update &&
