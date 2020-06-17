@@ -36,12 +36,10 @@ jobs:
         displayName: Install Rust
         inputs:
           filePath: mqtt/build/linux/install.sh
-          arguments: --target armv7-unknown-linux-gnueabihf
       - task: Bash@3
         displayName: Build
         inputs:
           filePath: mqtt/build/linux/build.sh
-          arguments: --target armv7-unknown-linux-gnueabihf
       - task: Bash@3
         displayName: Test
         inputs:
