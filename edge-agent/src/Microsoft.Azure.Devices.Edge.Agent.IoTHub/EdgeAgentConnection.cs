@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         static readonly ITransientErrorDetectionStrategy AllButFatalErrorDetectionStrategy = new DelegateErrorDetectionStrategy(ex => ex.IsFatal() == false);
 
         static readonly RetryStrategy TransientRetryStrategy =
-            new ExponentialBackoff(5, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
+            new ExponentialBackoff(3, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
 
         readonly AsyncLock twinLock = new AsyncLock();
         readonly ISerde<DeploymentConfig> desiredPropertiesSerDe;
@@ -235,14 +235,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 });
         }
 
-        async Task<Option<Twin>> GetTwinFromIoTHub()
+        async Task<Option<Twin>> GetTwinFromIoTHub(bool retrying = false)
         {
+            IModuleClient moduleClient = null;
+
             try
             {
                 async Task<Twin> GetTwinFunc()
                 {
-                    Events.GettingModuleClient();
-                    IModuleClient moduleClient = await this.moduleConnection.GetOrCreateModuleClient();
+                    Events.GettingModuleClient(retrying);
+                    moduleClient = await this.moduleConnection.GetOrCreateModuleClient();
                     Events.GotModuleClient();
                     return await moduleClient.GetTwinAsync();
                 }
@@ -261,6 +263,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             catch (Exception e)
             {
                 Events.ErrorGettingTwin(e);
+
+                if (!retrying && moduleClient != null && !(e is TimeoutException))
+                {
+                    try
+                    {
+                        await moduleClient.CloseAsync();
+                    }
+                    catch (Exception e2)
+                    {
+                        Events.ErrorClosingModuleClientForRetry(e2);
+                    }
+
+                    return await this.GetTwinFromIoTHub(true);
+                }
+
                 return Option.None<Twin>();
             }
         }
@@ -362,6 +379,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 SendEvent,
                 SendEventClientEmpty,
                 ErrorSendingEvent,
+                ErrorClosingModuleClient,
             }
 
             public static void DesiredPropertiesPatchFailed(Exception exception)
@@ -408,9 +426,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 Log.LogDebug((int)EventIds.ErrorUpdatingReportedProperties, ex, "Error updating reported properties in IoT Hub");
             }
 
-            public static void GettingModuleClient()
+            public static void GettingModuleClient(bool retrying)
             {
-                Log.LogDebug((int)EventIds.GettingModuleClient, "Getting module client to refresh the twin");
+                Log.LogDebug((int)EventIds.GettingModuleClient, $"Getting module client to refresh the twin with retrying set to {retrying}");
             }
 
             public static void GotModuleClient()
@@ -491,6 +509,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             public static void ErrorSendingEvent(Exception ex)
             {
                 Log.LogDebug((int)EventIds.ErrorSendingEvent, ex, "Error sending event");
+            }
+
+            public static void ErrorClosingModuleClientForRetry(Exception e)
+            {
+                Log.LogWarning((int)EventIds.ErrorClosingModuleClient, e, "Error closing module client for retry");
             }
         }
     }
