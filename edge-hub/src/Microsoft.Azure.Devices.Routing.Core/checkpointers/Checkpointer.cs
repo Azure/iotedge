@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
         readonly AtomicBoolean closed;
         readonly ICheckpointStore store;
 
-        Checkpointer(string id, ICheckpointStore store, CheckpointData checkpointData)
+        Checkpointer(string id, ICheckpointStore store, CheckpointData checkpointData, string endpointId, uint priority)
         {
             this.Id = Preconditions.CheckNotNull(id);
             this.store = Preconditions.CheckNotNull(store);
@@ -32,32 +32,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
             this.UnhealthySince = checkpointData.UnhealthySince;
             this.Proposed = checkpointData.Offset;
             this.closed = new AtomicBoolean(false);
-
-            // The endpoint ID and priority is encoded into the checkpointer ID
-            // using the following format:
-            //   {endpointId}_Pri{priority}
-            // We use "_Pri" as a delimiter to parse the endpoint ID and priority
-            // back out for metrics reporting
-            string[] tokens = id.Split(new string[] { "_Pri" }, System.StringSplitOptions.RemoveEmptyEntries);
-
-            switch (tokens.Length)
-            {
-                case 1:
-                    // There's no priority value, which means this is
-                    // the checkpointer for the default priority
-                    this.EndpointId = tokens[0];
-                    this.Priority = RouteFactory.DefaultPriority.ToString();
-                    break;
-                case 2:
-                    this.EndpointId = tokens[0];
-                    this.Priority = tokens[1];
-                    break;
-                default:
-                    // Bad format (maybe due to testcase or some other such)
-                    this.EndpointId = string.Empty;
-                    this.Priority = string.Empty;
-                    break;
-            }
+            this.EndpointId = endpointId;
+            this.Priority = priority.ToString();
         }
 
         public string Id { get; }
@@ -76,7 +52,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
 
         public bool HasOutstanding => this.Offset < this.Proposed;
 
-        public static async Task<Checkpointer> CreateAsync(string id, ICheckpointStore store)
+        public static Task<Checkpointer> CreateAsync(string id, ICheckpointStore store) => CreateAsync(id, store, string.Empty, RouteFactory.DefaultPriority);
+
+        public static async Task<Checkpointer> CreateAsync(string id, ICheckpointStore store, string endpointId, uint priority)
         {
             Preconditions.CheckNotNull(id);
             Preconditions.CheckNotNull(store);
@@ -84,7 +62,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
             Events.CreateStart(id);
             CheckpointData checkpointData = await store.GetCheckpointDataAsync(id, CancellationToken.None);
 
-            var checkpointer = new Checkpointer(id, store, checkpointData);
+            var checkpointer = new Checkpointer(id, store, checkpointData, endpointId, priority);
 
             Events.CreateFinished(checkpointer);
             return checkpointer;

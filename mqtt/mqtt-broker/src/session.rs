@@ -143,9 +143,9 @@ impl ConnectedSession {
         Ok(unsuback)
     }
 
-    async fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
+    fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
         let message = Message::Client(self.state.client_id.clone(), event);
-        self.handle.send(message).await
+        self.handle.send(message)
     }
 }
 
@@ -270,9 +270,9 @@ impl DisconnectingSession {
         self.will
     }
 
-    async fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
+    fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
         let message = Message::Client(self.client_id.clone(), event);
-        self.handle.send(message).await
+        self.handle.send(message)
     }
 }
 
@@ -312,6 +312,10 @@ impl SessionState {
 
     pub fn client_id(&self) -> &ClientId {
         &self.client_id
+    }
+
+    pub fn subscriptions(&self) -> &HashMap<String, Subscription> {
+        &self.subscriptions
     }
 
     pub fn update_subscription(
@@ -555,6 +559,34 @@ impl SessionState {
     }
 }
 
+#[cfg(any(test, feature = "proptest"))]
+#[allow(clippy::too_many_arguments)]
+impl SessionState {
+    pub(crate) fn from_state_parts(
+        client_id: ClientId,
+        subscriptions: HashMap<String, Subscription>,
+        packet_identifiers: PacketIdentifiers,
+        packet_identifiers_qos0: PacketIdentifiers,
+        waiting_to_be_sent: VecDeque<proto::Publication>,
+        waiting_to_be_released: HashMap<proto::PacketIdentifier, proto::Publish>,
+        waiting_to_be_acked: HashMap<proto::PacketIdentifier, Publish>,
+        waiting_to_be_acked_qos0: HashMap<proto::PacketIdentifier, Publish>,
+        waiting_to_be_completed: HashSet<proto::PacketIdentifier>,
+    ) -> Self {
+        Self {
+            client_id,
+            subscriptions,
+            packet_identifiers,
+            packet_identifiers_qos0,
+            waiting_to_be_sent,
+            waiting_to_be_acked,
+            waiting_to_be_acked_qos0,
+            waiting_to_be_released,
+            waiting_to_be_completed,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum Session {
     Transient(ConnectedSession),
@@ -617,6 +649,17 @@ impl Session {
             Self::Offline(_offline) => None,
             Self::Disconnecting(disconnecting) => disconnecting.into_will(),
         }
+    }
+
+    pub fn subscriptions(&self) -> Option<&HashMap<String, Subscription>> {
+        let state = match self {
+            Self::Transient(connected) => Some(connected.state()),
+            Self::Persistent(connected) => Some(connected.state()),
+            Self::Offline(offline) => Some(offline.state()),
+            Self::Disconnecting(_) => None,
+        };
+
+        state.map(SessionState::subscriptions)
     }
 
     pub fn handle_publish(
@@ -721,18 +764,18 @@ impl Session {
         }
     }
 
-    pub async fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
+    pub fn send(&mut self, event: ClientEvent) -> Result<(), Error> {
         match self {
-            Self::Transient(ref mut connected) => connected.send(event).await,
-            Self::Persistent(ref mut connected) => connected.send(event).await,
-            Self::Disconnecting(ref mut disconnecting) => disconnecting.send(event).await,
+            Self::Transient(ref mut connected) => connected.send(event),
+            Self::Persistent(ref mut connected) => connected.send(event),
+            Self::Disconnecting(ref mut disconnecting) => disconnecting.send(event),
             _ => Err(Error::SessionOffline),
         }
     }
 }
 
 #[derive(Clone)]
-struct IdentifiersInUse(Box<[usize; PacketIdentifiers::SIZE]>);
+pub(crate) struct IdentifiersInUse(pub(crate) Box<[usize; PacketIdentifiers::SIZE]>);
 
 impl fmt::Debug for IdentifiersInUse {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -795,7 +838,7 @@ impl<'de> Deserialize<'de> for IdentifiersInUse {
 }
 
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
-struct PacketIdentifiers {
+pub(crate) struct PacketIdentifiers {
     in_use: IdentifiersInUse,
     previous: proto::PacketIdentifier,
 }
@@ -809,7 +852,12 @@ impl PacketIdentifiers {
     /// = pow(2, 16) / (`size_of::<usize>()` * 8)
     ///
     /// We use a bitshift instead of `usize::pow` because the latter is not a const fn
-    const SIZE: usize = (1 << 16) / (mem::size_of::<usize>() * 8);
+    pub(crate) const SIZE: usize = (1 << 16) / (mem::size_of::<usize>() * 8);
+
+    #[cfg(any(test, feature = "proptest"))]
+    pub(crate) fn new(in_use: IdentifiersInUse, previous: proto::PacketIdentifier) -> Self {
+        Self { in_use, previous }
+    }
 
     fn reserve(&mut self) -> Result<proto::PacketIdentifier, Error> {
         let start = self.previous;
@@ -864,75 +912,20 @@ pub(crate) mod tests {
     use std::time::Duration;
 
     use matches::assert_matches;
-    use proptest::collection::{hash_map, hash_set, vec, vec_deque};
-    use proptest::num;
-    use proptest::prelude::*;
     use tokio::sync::mpsc;
     use uuid::Uuid;
 
     use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
 
-    use crate::subscription::tests::arb_subscription;
-    use crate::tests::{
-        arb_clientid, arb_packet_identifier, arb_proto_publish, arb_publication, arb_publish,
-        arb_topic,
-    };
-    use crate::{auth::AuthId, ConnectionHandle};
     use crate::{
-        session::{IdentifiersInUse, PacketIdentifiers, Session, SessionState},
-        ClientId, ConnReq, Error,
+        auth::AuthId,
+        session::{PacketIdentifiers, Session, SessionState},
+        ClientId, ConnReq, ConnectionHandle, Error,
     };
-
-    fn arb_identifiers_in_use() -> impl Strategy<Value = IdentifiersInUse> {
-        vec(num::usize::ANY, PacketIdentifiers::SIZE).prop_map(|v| {
-            let mut array = [0; PacketIdentifiers::SIZE];
-            let nums = &v[..array.len()];
-            array.copy_from_slice(nums);
-            IdentifiersInUse(Box::new(array))
-        })
-    }
-
-    prop_compose! {
-        fn arb_packet_identifiers()(
-            in_use in arb_identifiers_in_use(),
-            previous in arb_packet_identifier(),
-        ) -> PacketIdentifiers {
-            PacketIdentifiers {
-                in_use,
-                previous,
-            }
-        }
-    }
-
-    prop_compose! {
-        pub fn arb_session_state()(
-            client_id in arb_clientid(),
-            subscriptions in hash_map(arb_topic(), arb_subscription(), 0..10),
-            packet_identifiers in arb_packet_identifiers(),
-            packet_identifiers_qos0 in arb_packet_identifiers(),
-            waiting_to_be_sent in vec_deque(arb_publication(), 0..10),
-            waiting_to_be_released in hash_map(arb_packet_identifier(), arb_proto_publish(), 0..10),
-            waiting_to_be_acked in hash_map(arb_packet_identifier(), arb_publish(), 0..10),
-            waiting_to_be_acked_qos0 in hash_map(arb_packet_identifier(), arb_publish(), 0..10),
-            waiting_to_be_completed in hash_set(arb_packet_identifier(), 0..10),
-        ) -> SessionState {
-            SessionState {
-                client_id,
-                subscriptions,
-                packet_identifiers,
-                packet_identifiers_qos0,
-                waiting_to_be_sent,
-                waiting_to_be_released,
-                waiting_to_be_acked,
-                waiting_to_be_acked_qos0,
-                waiting_to_be_completed,
-            }
-        }
-    }
 
     fn connection_handle() -> ConnectionHandle {
         let id = Uuid::new_v4();
-        let (tx1, _rx1) = mpsc::channel(128);
+        let (tx1, _rx1) = mpsc::unbounded_channel();
         ConnectionHandle::new(id, tx1)
     }
 
@@ -966,8 +959,8 @@ pub(crate) mod tests {
 
         assert_eq!(ack, proto::SubAckQos::Success(proto::QoS::AtMostOnce));
         assert_matches!(subscription, Some(_));
-        match session {
-            Session::Transient(ref connected) => {
+        match &session {
+            Session::Transient(connected) => {
                 assert_eq!(1, connected.state.subscriptions.len());
                 assert_eq!(
                     proto::QoS::AtMostOnce,
@@ -986,8 +979,8 @@ pub(crate) mod tests {
 
         assert_eq!(ack, proto::SubAckQos::Success(proto::QoS::AtLeastOnce));
         assert_matches!(subscription, Some(_));
-        match session {
-            Session::Transient(ref connected) => {
+        match &session {
+            Session::Transient(connected) => {
                 assert_eq!(1, connected.state.subscriptions.len());
                 assert_eq!(
                     proto::QoS::AtLeastOnce,
@@ -1043,8 +1036,8 @@ pub(crate) mod tests {
         };
         session.unsubscribe(&unsubscribe).unwrap();
 
-        match session {
-            Session::Transient(ref connected) => {
+        match &session {
+            Session::Transient(connected) => {
                 assert_eq!(1, connected.state.subscriptions.len());
                 assert_eq!(
                     proto::QoS::AtMostOnce,
@@ -1064,8 +1057,8 @@ pub(crate) mod tests {
             unsuback.packet_identifier
         );
 
-        match session {
-            Session::Transient(ref connected) => {
+        match &session {
+            Session::Transient(connected) => {
                 assert_eq!(0, connected.state.subscriptions.len());
             }
             _ => panic!("not transient"),

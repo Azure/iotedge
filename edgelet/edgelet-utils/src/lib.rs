@@ -23,7 +23,7 @@ use std::collections::HashMap;
 pub use crate::error::{Error, ErrorKind};
 pub use crate::logging::log_failure;
 pub use crate::macros::ensure_not_empty_with_context;
-pub use crate::ser_de::{serde_clone, serialize_ordered, string_or_struct};
+pub use crate::ser_de::{serde_clone, string_or_struct};
 pub use crate::yaml_file_source::YamlFileSource;
 
 pub fn parse_query(query: &str) -> HashMap<&str, &str> {
@@ -105,7 +105,10 @@ pub fn append_dns_san_entries(sans: &str, names: &[&str]) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{
+        append_dns_san_entries, parse_query, prepare_cert_uri_module, prepare_dns_san_entries,
+        sanitize_dns_label, DNS_MAX_SIZE,
+    };
 
     #[test]
     fn parse_query_empty_input() {

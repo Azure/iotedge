@@ -1,15 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <Import Project="..\..\..\netstandardVersion.props" />
+
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <Configurations>Debug;Release;CheckInBuild</Configurations>
     <HighEntropyVA>true</HighEntropyVA>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Devices" Version="1.19.0" />
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.23.1" />
+    <PackageReference Include="Microsoft.Azure.Devices" Version="1.21.0" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.26.0" />
   </ItemGroup>
 
   <ItemGroup>

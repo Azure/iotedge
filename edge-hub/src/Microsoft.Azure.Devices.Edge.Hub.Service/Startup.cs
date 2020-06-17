@@ -9,11 +9,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
-    using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Middleware;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
+    using Prometheus;
 
     public class Startup : IStartup
     {
@@ -35,8 +35,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
             services.AddMemoryCache();
-            services.AddMvc(options => options.Filters.Add(typeof(ExceptionFilter)));
-            services.Configure<MvcOptions>(options => { options.Filters.Add(new RequireHttpsAttribute()); });
+            services.AddControllers().AddNewtonsoftJson();
+            services.Configure<MvcOptions>(options =>
+            {
+                options.Filters.Add(new RequireHttpsAttribute());
+            });
+
             this.Container = this.BuildContainer(services);
 
             return new AutofacServiceProvider(this.Container);
@@ -44,6 +48,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         public void Configure(IApplicationBuilder app)
         {
+            // Separate metrics endpoint from https authentication
+            app.Map("/metrics", metricsApp =>
+            {
+                metricsApp.UseMetricServer(string.Empty);
+            });
+
+            app.UseHttpsRedirection();
             app.UseWebSockets();
 
             var webSocketListenerRegistry = app.ApplicationServices.GetService(typeof(IWebSocketListenerRegistry)) as IWebSocketListenerRegistry;
@@ -74,7 +85,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     await next();
                 });
 
-            app.UseMvc();
+            app.UseRouting();
+
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+            });
         }
 
         IContainer BuildContainer(IServiceCollection services)

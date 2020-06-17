@@ -43,6 +43,9 @@ pub enum Error {
     #[error("An error occurred joining a task.")]
     TaskJoin(#[from] tokio::task::JoinError),
 
+    #[error("An error occurred signaling the event loop of a thread shutdown.")]
+    ThreadShutdown(#[from] tokio::sync::oneshot::error::RecvError),
+
     #[error("An error occurred persisting state")]
     Persist(#[from] crate::persist::PersistError),
 
@@ -51,6 +54,9 @@ pub enum Error {
 
     #[error("Unable to start broker.")]
     InitializeBroker(#[from] InitializeBrokerError),
+
+    #[error("An error occurred when constructing state change: {0}")]
+    StateChange(#[from] serde_json::Error),
 }
 
 /// Represents errors occurred while bootstrapping broker.

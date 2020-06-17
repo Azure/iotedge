@@ -13,8 +13,18 @@ use k8s_openapi::api::rbac::v1 as api_rbac;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
 use log::warn;
 
-use crate::constants::env::*;
-use crate::constants::*;
+use crate::constants::env::{
+    EDGE_NETWORK_ID_KEY, EDGE_OBJECT_OWNER_API_VERSION_KEY, EDGE_OBJECT_OWNER_KIND_KEY,
+    EDGE_OBJECT_OWNER_NAME_KEY, EDGE_OBJECT_OWNER_UID_KEY, NAMESPACE_KEY,
+    PROXY_CONFIG_MAP_NAME_KEY, PROXY_CONFIG_PATH_KEY, PROXY_CONFIG_VOLUME_KEY, PROXY_IMAGE_KEY,
+    PROXY_IMAGE_PULL_SECRET_NAME_KEY, PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY,
+    PROXY_TRUST_BUNDLE_PATH_KEY, PROXY_TRUST_BUNDLE_VOLUME_KEY,
+};
+use crate::constants::{
+    EDGE_DEVICE_LABEL, EDGE_EDGE_AGENT_NAME, EDGE_MODULE_LABEL, EDGE_ORIGINAL_MODULEID,
+    PROXY_CONFIG_VOLUME_NAME, PROXY_CONTAINER_NAME, PROXY_TRUST_BUNDLE_FILENAME,
+    PROXY_TRUST_BUNDLE_VOLUME_NAME,
+};
 use crate::convert::{sanitize_dns_value, sanitize_label_value};
 use crate::error::{ErrorKind, Result};
 use crate::registry::ImagePullSecret;
@@ -329,11 +339,6 @@ pub fn spec_to_deployment(
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value =
         sanitize_label_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?);
-    let hubname_label = sanitize_label_value(
-        settings
-            .iot_hub_hostname()
-            .ok_or(ErrorKind::MissingHubName)?,
-    );
     let deployment_name = module_label_value.clone();
     let module_image = spec.config().image().to_string();
 
@@ -341,7 +346,6 @@ pub fn spec_to_deployment(
     let mut pod_labels = BTreeMap::new();
     pod_labels.insert(EDGE_MODULE_LABEL.to_string(), module_label_value.clone());
     pod_labels.insert(EDGE_DEVICE_LABEL.to_string(), device_label_value);
-    pod_labels.insert(EDGE_HUBNAME_LABEL.to_string(), hubname_label);
 
     let deployment_labels = pod_labels.clone();
     let selector_labels = pod_labels.clone();
@@ -401,11 +405,6 @@ pub fn spec_to_service_account(
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value =
         sanitize_label_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?);
-    let hubname_label = sanitize_label_value(
-        settings
-            .iot_hub_hostname()
-            .ok_or(ErrorKind::MissingHubName)?,
-    );
 
     let service_account_name = module_label_value.clone();
 
@@ -413,7 +412,6 @@ pub fn spec_to_service_account(
     let mut labels = BTreeMap::new();
     labels.insert(EDGE_MODULE_LABEL.to_string(), module_label_value);
     labels.insert(EDGE_DEVICE_LABEL.to_string(), device_label_value);
-    labels.insert(EDGE_HUBNAME_LABEL.to_string(), hubname_label);
 
     // annotations
     let mut annotations = BTreeMap::new();
@@ -443,11 +441,6 @@ pub fn spec_to_role_binding(
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value =
         sanitize_label_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?);
-    let hubname_label = sanitize_label_value(
-        settings
-            .iot_hub_hostname()
-            .ok_or(ErrorKind::MissingHubName)?,
-    );
 
     let role_binding_name = module_label_value.clone();
 
@@ -455,7 +448,6 @@ pub fn spec_to_role_binding(
     let mut labels = BTreeMap::new();
     labels.insert(EDGE_MODULE_LABEL.to_string(), module_label_value.clone());
     labels.insert(EDGE_DEVICE_LABEL.to_string(), device_label_value);
-    labels.insert(EDGE_HUBNAME_LABEL.to_string(), hubname_label);
 
     // annotations
     let mut annotations = BTreeMap::new();
@@ -493,16 +485,10 @@ pub fn trust_bundle_to_config_map(
 ) -> Result<(String, api_core::ConfigMap)> {
     let device_label_value =
         sanitize_label_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?);
-    let hubname_label = sanitize_label_value(
-        settings
-            .iot_hub_hostname()
-            .ok_or(ErrorKind::MissingHubName)?,
-    );
 
     // labels
     let mut labels = BTreeMap::new();
     labels.insert(EDGE_DEVICE_LABEL.to_string(), device_label_value);
-    labels.insert(EDGE_HUBNAME_LABEL.to_string(), hubname_label);
 
     let cert = cert.pem().context(ErrorKind::IdentityCertificate)?;
     let cert = str::from_utf8(cert.as_ref()).context(ErrorKind::IdentityCertificate)?;
@@ -526,7 +512,7 @@ pub fn trust_bundle_to_config_map(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::collections::BTreeMap;
     use std::str;
 
     use k8s_openapi::api::core::v1 as api_core;
@@ -540,8 +526,16 @@ mod tests {
     use edgelet_docker::DockerConfig;
     use edgelet_test_utils::cert::TestCert;
 
-    use crate::constants::env::*;
-    use crate::constants::*;
+    use crate::constants::env::{
+        EDGE_OBJECT_OWNER_API_VERSION_KEY, EDGE_OBJECT_OWNER_KIND_KEY, EDGE_OBJECT_OWNER_NAME_KEY,
+        EDGE_OBJECT_OWNER_UID_KEY, NAMESPACE_KEY, PROXY_CONFIG_MAP_NAME_KEY, PROXY_CONFIG_PATH_KEY,
+        PROXY_CONFIG_VOLUME_KEY, PROXY_IMAGE_KEY, PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY,
+        PROXY_TRUST_BUNDLE_PATH_KEY, PROXY_TRUST_BUNDLE_VOLUME_KEY,
+    };
+    use crate::constants::{
+        EDGE_DEVICE_LABEL, EDGE_MODULE_LABEL, EDGE_ORIGINAL_MODULEID, PROXY_CONFIG_VOLUME_NAME,
+        PROXY_CONTAINER_NAME, PROXY_TRUST_BUNDLE_FILENAME, PROXY_TRUST_BUNDLE_VOLUME_NAME,
+    };
     use crate::convert::{
         spec_to_deployment, spec_to_role_binding, spec_to_service_account,
         trust_bundle_to_config_map,
@@ -580,7 +574,7 @@ mod tests {
                     ]),
             )
             .with_labels({
-                let mut labels = HashMap::<String, String>::new();
+                let mut labels = BTreeMap::<String, String>::new();
                 labels.insert(String::from("label1"), String::from("value1"));
                 labels.insert(String::from("label2"), String::from("value2"));
                 labels
@@ -594,7 +588,7 @@ mod tests {
             "docker".to_string(),
             DockerConfig::new("my-image:v1.0".to_string(), create_body, Some(auth_config)).unwrap(),
             {
-                let mut env = HashMap::new();
+                let mut env = BTreeMap::new();
                 env.insert(String::from("a"), String::from("b"));
                 env.insert(String::from("C"), String::from("D"));
                 env
@@ -607,7 +601,6 @@ mod tests {
     fn validate_deployment_metadata(
         module: &str,
         device: &str,
-        iothub: &str,
         meta: Option<&api_meta::ObjectMeta>,
     ) {
         assert!(meta.is_some());
@@ -617,7 +610,6 @@ mod tests {
             if let Some(labels) = meta.labels.as_ref() {
                 assert_eq!(labels.get(EDGE_MODULE_LABEL).unwrap(), "edgeagent");
                 assert_eq!(labels.get(EDGE_DEVICE_LABEL).unwrap(), device);
-                assert_eq!(labels.get(EDGE_HUBNAME_LABEL).unwrap(), iothub);
             }
         }
     }
@@ -631,12 +623,7 @@ mod tests {
         let (name, deployment) =
             spec_to_deployment(&make_settings(None), &module_config, &module_owner).unwrap();
         assert_eq!(name, "edgeagent");
-        validate_deployment_metadata(
-            "edgeagent",
-            "device1",
-            "iothub",
-            deployment.metadata.as_ref(),
-        );
+        validate_deployment_metadata("edgeagent", "device1", deployment.metadata.as_ref());
 
         assert!(deployment.spec.is_some());
         if let Some(spec) = deployment.spec.as_ref() {
@@ -645,7 +632,6 @@ mod tests {
             if let Some(match_labels) = spec.selector.match_labels.as_ref() {
                 assert_eq!(match_labels.get(EDGE_MODULE_LABEL).unwrap(), "edgeagent");
                 assert_eq!(match_labels.get(EDGE_DEVICE_LABEL).unwrap(), "device1");
-                assert_eq!(match_labels.get(EDGE_HUBNAME_LABEL).unwrap(), "iothub");
             }
             assert!(spec.template.spec.is_some());
             if let Some(podspec) = spec.template.spec.as_ref() {
@@ -741,9 +727,8 @@ mod tests {
 
             assert!(metadata.labels.is_some());
             if let Some(labels) = metadata.labels {
-                assert_eq!(labels.len(), 3);
+                assert_eq!(labels.len(), 2);
                 assert_eq!(labels[EDGE_DEVICE_LABEL], "device1");
-                assert_eq!(labels[EDGE_HUBNAME_LABEL], "iothub");
                 assert_eq!(labels[EDGE_MODULE_LABEL], "edgeagent");
             }
         }
@@ -771,9 +756,8 @@ mod tests {
 
             assert!(metadata.labels.is_some());
             if let Some(labels) = metadata.labels {
-                assert_eq!(labels.len(), 3);
+                assert_eq!(labels.len(), 2);
                 assert_eq!(labels[EDGE_DEVICE_LABEL], "device1");
-                assert_eq!(labels[EDGE_HUBNAME_LABEL], "iothub");
                 assert_eq!(labels[EDGE_MODULE_LABEL], "edgeagent");
             }
         }
@@ -839,9 +823,8 @@ mod tests {
 
             assert!(metadata.labels.is_some());
             if let Some(labels) = metadata.labels {
-                assert_eq!(labels.len(), 2);
+                assert_eq!(labels.len(), 1);
                 assert_eq!(labels[EDGE_DEVICE_LABEL], "device1");
-                assert_eq!(labels[EDGE_HUBNAME_LABEL], "iothub");
             }
         }
 

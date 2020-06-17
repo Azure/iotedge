@@ -17,11 +17,11 @@
 trigger: none
 pr: none
 schedules:
-  - cron: "0 23 * * *"
-    displayName: Daily at 11 PM
+  - cron: "0 6 * * *"
+    displayName: Pacific Time (UTC-7) Nightly Build
     branches:
       include:
-      - master
+      - iiot
     always: true
 
 # github repo for our fork of mqtt-benchmark tool.

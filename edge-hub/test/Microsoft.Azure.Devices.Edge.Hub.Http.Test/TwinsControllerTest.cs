@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
-    using Microsoft.AspNetCore.Http.Internal;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Mvc.Abstractions;
     using Microsoft.AspNetCore.Mvc.Filters;
@@ -205,10 +204,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var httpContext = new DefaultHttpContext();
             var httpResponse = new DefaultHttpResponse(httpContext);
             httpResponse.Body = new MemoryStream();
-            var controllerContex = new ControllerContext();
-            controllerContex.HttpContext = httpContext;
+            var controllerContext = new ControllerContext();
+            controllerContext.HttpContext = httpContext;
 
-            controller.ControllerContext = controllerContex;
+            controller.ControllerContext = controllerContext;
         }
 
         private static Task<IEdgeHub> CreateEdgeHubGetter(string id, DirectMethodResponse directMethodResponse)

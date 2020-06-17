@@ -7,11 +7,11 @@ namespace TestAnalyzer
     using System.Runtime.Loader;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.AspNetCore;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.EventHubs;
+    using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
 
     class Program
@@ -31,7 +31,7 @@ namespace TestAnalyzer
             var tcs = new TaskCompletionSource<bool>();
             cts.Token.Register(s => ((TaskCompletionSource<bool>)s).SetResult(true), tcs);
 
-            await CreateWebHostBuilder(args).Build().RunAsync(cts.Token);
+            await CreateHostBuilder(args).Build().RunAsync(cts.Token);
         }
 
         static async Task<DateTime> LoadStartupTimeFromStorageAsync()
@@ -53,10 +53,14 @@ namespace TestAnalyzer
             return lastReceivedAt;
         }
 
-        static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
-            WebHost.CreateDefaultBuilder(args)
-                .UseUrls($"http://*:{Settings.Current.WebhostPort}")
-                .UseStartup<Startup>();
+        static IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder
+                        .UseUrls($"http://*:{Settings.Current.WebhostPort}")
+                        .UseStartup<Startup>();
+                });
 
         static async Task ReceiveMessagesAsync(DateTime lastReceivedMesssage)
         {

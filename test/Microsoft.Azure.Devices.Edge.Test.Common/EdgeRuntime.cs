@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Registries = System.Collections.Generic.IEnumerable<(string address, string username, string password)>;
 
     public class EdgeRuntime
     {
@@ -17,11 +16,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         readonly IotHub iotHub;
         readonly bool optimizeForPerformance;
         readonly Option<Uri> proxy;
-        readonly Registries registries;
+        readonly IEnumerable<Registry> registries;
 
         public string DeviceId { get; }
 
-        public EdgeRuntime(string deviceId, Option<string> agentImage, Option<string> hubImage, Option<Uri> proxy, Registries registries, bool optimizeForPerformance, IotHub iotHub)
+        public EdgeRuntime(string deviceId, Option<string> agentImage, Option<string> hubImage, Option<Uri> proxy, IEnumerable<Registry> registries, bool optimizeForPerformance, IotHub iotHub)
         {
             this.agentImage = agentImage;
             this.hubImage = hubImage;
@@ -42,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             bool stageSystemModules = true)
         {
             var builder = new EdgeConfigBuilder(this.DeviceId);
-            builder.AddRegistryCredentials(this.registries);
+            builder.AddRegistries(this.registries);
             builder.AddEdgeAgent(this.agentImage.OrDefault())
                 .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
                 .WithProxy(this.proxy);

@@ -1623,8 +1623,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 array = new[] { 0, 1, 2 }
             };
 
-            InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => TwinManager.ValidateTwinProperties(JToken.FromObject(reported)));
-            Assert.Equal("Property array has a value of unsupported type. Valid types are integer, float, string, bool, null and nested object", ex.Message);
+            string reportedJson = "{ \"ok\": [\"good\"], \"level1\": { \"field1\": [ {\"something\": \"ok\"} ] } }";
+
+            TwinManager.ValidateTwinProperties(JToken.FromObject(reported));
+            TwinManager.ValidateTwinProperties(JToken.Parse(reportedJson));
         }
 
         [Fact]

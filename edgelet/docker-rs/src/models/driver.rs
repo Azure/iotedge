@@ -27,7 +27,7 @@ impl Driver {
     /// Driver represents a driver (network, logging, secrets).
     pub fn new(name: String) -> Self {
         Driver {
-            name: name,
+            name,
             options: None,
         }
     }

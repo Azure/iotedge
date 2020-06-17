@@ -7,14 +7,19 @@ use futures_util::pin_mut;
 use futures_util::sink::{Sink, SinkExt};
 use futures_util::stream::{Stream, StreamExt};
 use lazy_static::lazy_static;
-use mqtt3::proto::{self, DecodeError, EncodeError, Packet, PacketCodec};
 use tokio::io::{AsyncRead, AsyncWrite};
-use tokio::sync::mpsc::{self, Receiver, Sender};
+use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tokio_io_timeout::TimeoutStream;
 use tokio_util::codec::Framed;
 use tracing::{debug, info, span, trace, warn, Level};
 use tracing_futures::Instrument;
 use uuid::Uuid;
+
+use mqtt3::proto::{self, DecodeError, EncodeError, Packet, PacketCodec};
+use mqtt_edgehub::{
+    translate_incoming_publish, translate_incoming_subscribe, translate_incoming_unsubscribe,
+    translate_outgoing_publish,
+};
 
 use crate::broker::BrokerHandle;
 use crate::transport::GetPeerCertificate;
@@ -34,22 +39,21 @@ const KEEPALIVE_MULT: f32 = 1.5;
 #[derive(Debug)]
 pub struct ConnectionHandle {
     id: Uuid,
-    sender: Sender<Message>,
+    sender: UnboundedSender<Message>,
 }
 
 impl ConnectionHandle {
-    pub(crate) fn new(id: Uuid, sender: Sender<Message>) -> Self {
+    pub(crate) fn new(id: Uuid, sender: UnboundedSender<Message>) -> Self {
         Self { id, sender }
     }
 
-    pub fn from_sender(sender: Sender<Message>) -> Self {
+    pub fn from_sender(sender: UnboundedSender<Message>) -> Self {
         Self::new(Uuid::new_v4(), sender)
     }
 
-    pub async fn send(&mut self, message: Message) -> Result<(), Error> {
+    pub fn send(&mut self, message: Message) -> Result<(), Error> {
         self.sender
             .send(message)
-            .await
             .map_err(Error::SendConnectionMessage)
     }
 }
@@ -97,7 +101,7 @@ where
     match codec.next().await {
         Some(Ok(Packet::Connect(connect))) => {
             let client_id = client_id(&connect.client_id);
-            let (sender, events) = mpsc::channel(128);
+            let (sender, events) = mpsc::unbounded_channel();
             let connection_handle = ConnectionHandle::from_sender(sender);
             let span = span!(Level::INFO, "connection", client_id=%client_id, remote_addr=%remote_addr, connection=%connection_handle);
 
@@ -232,12 +236,21 @@ where
                     Packet::PingResp(pingresp) => ClientEvent::PingResp(pingresp),
                     Packet::PubAck(puback) => ClientEvent::PubAck(puback),
                     Packet::PubComp(pubcomp) => ClientEvent::PubComp(pubcomp),
-                    Packet::Publish(publish) => ClientEvent::PublishFrom(publish),
+                    Packet::Publish(publish) => {
+                        let publish = translate_incoming_publish(&client_id.0, publish);
+                        ClientEvent::PublishFrom(publish)
+                    }
                     Packet::PubRec(pubrec) => ClientEvent::PubRec(pubrec),
                     Packet::PubRel(pubrel) => ClientEvent::PubRel(pubrel),
-                    Packet::Subscribe(subscribe) => ClientEvent::Subscribe(subscribe),
+                    Packet::Subscribe(subscribe) => {
+                        let subscribe = translate_incoming_subscribe(&client_id.0, subscribe);
+                        ClientEvent::Subscribe(subscribe)
+                    }
                     Packet::SubAck(suback) => ClientEvent::SubAck(suback),
-                    Packet::Unsubscribe(unsubscribe) => ClientEvent::Unsubscribe(unsubscribe),
+                    Packet::Unsubscribe(unsubscribe) => {
+                        let unsubscribe = translate_incoming_unsubscribe(&client_id.0, unsubscribe);
+                        ClientEvent::Unsubscribe(unsubscribe)
+                    }
                     Packet::UnsubAck(unsuback) => ClientEvent::UnsubAck(unsuback),
                 };
 
@@ -260,10 +273,10 @@ where
 
 async fn outgoing_task<S>(
     client_id: ClientId,
-    mut messages: Receiver<Message>,
+    mut messages: UnboundedReceiver<Message>,
     mut outgoing: S,
     mut broker: BrokerHandle,
-) -> Result<(), (Receiver<Message>, Error)>
+) -> Result<(), (UnboundedReceiver<Message>, Error)>
 where
     S: Sink<Packet, Error = EncodeError> + Unpin,
 {
@@ -289,9 +302,11 @@ where
                 ClientEvent::Unsubscribe(unsub) => Some(Packet::Unsubscribe(unsub)),
                 ClientEvent::UnsubAck(unsuback) => Some(Packet::UnsubAck(unsuback)),
                 ClientEvent::PublishTo(Publish::QoS12(_id, publish)) => {
+                    let publish = translate_outgoing_publish(publish);
                     Some(Packet::Publish(publish))
                 }
                 ClientEvent::PublishTo(Publish::QoS0(id, publish)) => {
+                    let publish = translate_outgoing_publish(publish);
                     let result = outgoing.send(Packet::Publish(publish)).await;
 
                     if let Err(e) = result {

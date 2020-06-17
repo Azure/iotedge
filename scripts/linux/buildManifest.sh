@@ -35,15 +35,15 @@ usage()
     echo "Note: Depending on the options you might have to run this as root or sudo."
     echo ""
     echo "options"
-    echo " -r, --registry       Docker registry required to build, tag and run the module"
-    echo " -u, --username       Docker Registry Username"
-    echo " -p, --password       Docker Username's password"
-    echo " -n, --namespace      Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
-    echo " -i, --image-name     Docker image name (Optional if specified in template yaml)"
-    echo " -v, --image-version  Docker Image Version."
-    echo " -t, --template       Yaml file template for manifest definition."
-    echo "     --tags           Additional tags to add to the docker image. Specify as a list of strings. e.g. --tags \"['1.0']\""
-    echo "     --ignore-missing Ignore missing images in manifest"
+    echo " -r, --registry                 Docker registry required to build, tag and run the module"
+    echo " -u, --username                 Docker Registry Username"
+    echo " -p, --password                 Docker Username's password"
+    echo " -n, --namespace                Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
+    echo " -i, --image-name               Docker image name (Optional if specified in template yaml)"
+    echo " -v, --image-version            Docker Image Version."
+    echo " -t, --template                 Yaml file template for manifest definition."
+    echo "     --tags                     Additional tags to add to the docker image. Specify as a list of strings. e.g. --tags \"['1.0']\""
+    echo "     --ignore-missing           Ignore missing images in manifest"
     exit 1;
 }
 
@@ -154,11 +154,14 @@ sed "s/__REGISTRY__/${DOCKER_REGISTRY}/g; s/__VERSION__/${DOCKER_IMAGEVERSION}/g
 echo "Build image with following manifest:"
 cat $manifest
 
-echo "Done Building And Pushing Docker Images"
-
+# Download and execute the manifest tool
 curl -Lo /tmp/manifest-tool 'https://edgebuild.blob.core.windows.net/iotedge-win-arm32v7-tools/manifest-tool-linux-amd64' &&
     chmod +x /tmp/manifest-tool &&
     /tmp/manifest-tool --debug push from-spec $IGNORE_MISSING $manifest
+
+echo "Done Building And Pushing Docker Images"
+
+
 [ $? -eq 0 ] || exit $?
 
 # Remove the temp file

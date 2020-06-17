@@ -52,7 +52,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly int upstreamFanOutFactor;
         readonly bool encryptTwinStore;
         readonly TimeSpan configUpdateFrequency;
+        readonly bool checkEntireQueueOnCleanup;
         readonly ExperimentalFeatures experimentalFeatures;
+        readonly bool closeCloudConnectionOnDeviceDisconnect;
 
         public RoutingModule(
             string iotHubName,
@@ -80,7 +82,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             int upstreamFanOutFactor,
             bool encryptTwinStore,
             TimeSpan configUpdateFrequency,
-            ExperimentalFeatures experimentalFeatures)
+            bool checkEntireQueueOnCleanup,
+            ExperimentalFeatures experimentalFeatures,
+            bool closeCloudConnectionOnDeviceDisconnect)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -107,7 +111,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.upstreamFanOutFactor = upstreamFanOutFactor;
             this.encryptTwinStore = encryptTwinStore;
             this.configUpdateFrequency = configUpdateFrequency;
+            this.checkEntireQueueOnCleanup = checkEntireQueueOnCleanup;
             this.experimentalFeatures = experimentalFeatures;
+            this.closeCloudConnectionOnDeviceDisconnect = closeCloudConnectionOnDeviceDisconnect;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -255,7 +261,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             credentialsCache,
                             identityProvider,
                             deviceConnectivityManager,
-                            this.maxConnectedClients);
+                            this.maxConnectedClients,
+                            this.closeCloudConnectionOnDeviceDisconnect);
                         return connectionManager;
                     })
                 .As<Task<IConnectionManager>>()
@@ -379,7 +386,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var checkpointStore = await c.Resolve<Task<ICheckpointStore>>();
                             var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
                             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-                            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, this.storeAndForwardConfiguration.TimeToLive);
+                            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, this.storeAndForwardConfiguration.TimeToLive, this.checkEntireQueueOnCleanup);
                             return messageStore;
                         })
                     .As<Task<IMessageStore>>()

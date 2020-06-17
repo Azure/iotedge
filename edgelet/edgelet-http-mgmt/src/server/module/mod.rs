@@ -1,16 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use failure::Fail;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use serde_json;
 
 use edgelet_core::{
     ImagePullPolicy, Module, ModuleRuntime, ModuleSpec as CoreModuleSpec, ModuleStatus,
 };
-use management::models::*;
+use management::models::{Config, EnvVar, ModuleDetails, ModuleSpec, RuntimeStatus, Status};
 
 use crate::error::{Error, ErrorKind};
 
@@ -46,7 +45,7 @@ where
 {
     let name = spec.name().to_string();
     let type_ = spec.type_().to_string();
-    let env = spec.config().env().map_or_else(HashMap::new, |vars| {
+    let env = spec.config().env().map_or_else(BTreeMap::new, |vars| {
         vars.iter()
             .map(|var| (var.key().clone(), var.value().clone()))
             .collect()
@@ -98,7 +97,6 @@ pub mod tests {
     use failure::Fail;
     use futures::{Future, Stream};
     use hyper::{Body, Response, StatusCode};
-    use serde_json;
 
     use edgelet_core::RuntimeOperation;
     use edgelet_docker::{Error as DockerError, ErrorKind as DockerErrorKind};

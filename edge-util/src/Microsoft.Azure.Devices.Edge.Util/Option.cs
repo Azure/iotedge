@@ -140,6 +140,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
+        public void ForEach(Action action)
+        {
+            if (this.HasValue)
+            {
+                action();
+            }
+        }
+
         public void ForEach(Action<T> action, Action none)
         {
             if (this.HasValue)
@@ -154,6 +162,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public Task ForEachAsync(Func<T, Task> action) => this.HasValue ? action(this.Value) : Task.CompletedTask;
 
+        public Task ForEachAsync(Func<Task> action) => this.HasValue ? action() : Task.CompletedTask;
+
         public Task ForEachAsync(Func<T, Task> action, Func<Task> none) => this.HasValue ? action(this.Value) : none();
 
         /// <summary>
@@ -166,6 +176,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
         {
             return this.HasValue
                 ? Option.Some(mapping(this.Value))
+                : Option.None<TResult>();
+        }
+
+        [Pure]
+        public Option<TResult> AndThen<TResult>(Func<T, Option<TResult>> mapping)
+        {
+            return this.HasValue
+                ? mapping(this.Value)
                 : Option.None<TResult>();
         }
 
@@ -241,6 +259,11 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     yield return item.OrDefault();
                 }
             }
+        }
+
+        public static Option<TV> GetOption<TK, TV>(this IDictionary<TK, TV> dict, TK key)
+        {
+            return dict.TryGetValue(key, out TV o) ? Some(o) : None<TV>();
         }
 
         /// <summary>

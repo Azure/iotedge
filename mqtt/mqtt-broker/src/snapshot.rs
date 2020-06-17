@@ -13,10 +13,9 @@ enum Event {
 pub struct StateSnapshotHandle(Sender<Event>);
 
 impl StateSnapshotHandle {
-    pub async fn send(&mut self, state: BrokerState) -> Result<(), Error> {
+    pub fn try_send(&mut self, state: BrokerState) -> Result<(), Error> {
         self.0
-            .send(Event::State(state))
-            .await
+            .try_send(Event::State(state))
             .map_err(|_| Error::SendSnapshotMessage)?;
         Ok(())
     }
@@ -43,7 +42,7 @@ pub struct Snapshotter<P> {
 
 impl<P> Snapshotter<P> {
     pub fn new(persistor: P) -> Self {
-        let (sender, events) = mpsc::channel(1024);
+        let (sender, events) = mpsc::channel(5);
         Snapshotter {
             persistor,
             sender,
