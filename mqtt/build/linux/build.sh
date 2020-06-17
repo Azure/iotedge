@@ -41,14 +41,19 @@ usage()
 ###############################################################################
 process_args()
 {
-
+    save_next_arg=0
     for arg in "$@"
     do
-        case "$arg" in
-            "-h" | "--help" ) usage;;
-            "-r" | "--release" ) RELEASE="true";;
-            * ) usage;;
-        esac
+        if [ $save_next_arg -eq 1 ]; then
+            RELEASE="true"
+            save_next_arg=0
+        else
+            case "$arg" in
+                "-h" | "--help" ) usage;;
+                "-r" | "--release" ) save_next_arg=1;;
+                * ) usage;;
+            esac
+        fi
     done
 }
 
@@ -78,43 +83,8 @@ do
     PACKAGES="${PACKAGES} -p ${p}"
 done
 
-# TODO: cd into directory (avoiding manifest path) then cp the files (avoiding target dir)
-echo "Release build: $RELEASE"
-
-# cd "$PROJECT_ROOT/mqttd"
-cd "$PROJECT_ROOT"
 if [[ -z ${RELEASE} ]]; then
-    echo "Building artifacts"
     cd "$PROJECT_ROOT" && $CARGO build ${PACKAGES}
 else
-    EDGE_HUB_ARTIFACTS_PATH="target/publish/Microsoft.Azure.Devices.Edge.Hub.Service"
-    MQTT_MANIFEST_PATH="./mqttd/Cargo.toml"
-    LOCAL_TARGET_DIR_PATH="${PROJECT_ROOT}/target"
-    TARGET_DIR_PATH="${BUILD_REPOSITORY_LOCALPATH}/${EDGE_HUB_ARTIFACTS_PATH}/mqtt/mqttd"
-    mkdir -p "${TARGET_DIR_PATH}"
-
-    echo "Building artifacts to ${TARGET_DIR_PATH}"
-
-    # Build for linux amd64
-    BUILD_COMMAND="cross build ${PACKAGES} --release --manifest-path ${MQTT_MANIFEST_PATH}"
-    echo "Building for linux amd64"
-    echo "${BUILD_COMMAND}"
-    eval "${BUILD_COMMAND}"
-    OUTPUT_BINARY="${LOCAL_TARGET_DIR_PATH}/release/mqttd"
-    strip "${OUTPUT_BINARY}"
-    cp ${OUTPUT_BINARY} ${TARGET_DIR_PATH} # needed because target-dir won't work with cross
-
-    # Build for linux arm32 and linux arm64
-    TARGET_PLATFORMS=("armv7-unknown-linux-gnueabihf" "aarch64-unknown-linux-gnu")
-    for platform in "${TARGET_PLATFORMS[@]}"
-    do
-        BUILD_COMMAND_WITH_PLATFORM="${BUILD_COMMAND} --target $platform"
-        echo "Building for $platform"
-        echo "${BUILD_COMMAND_WITH_PLATFORM}"
-        eval "${BUILD_COMMAND_WITH_PLATFORM}"
-
-        OUTPUT_BINARY="${LOCAL_TARGET_DIR_PATH}/${platform}/release/mqttd"
-        strip ${OUTPUT_BINARY}
-        mkdir ${TARGET_DIR_PATH}/$platform && cp ${OUTPUT_BINARY} ${TARGET_DIR_PATH}/$platform # needed because target-dir won't work with cross
-    done
+    cd "$PROJECT_ROOT" && $CARGO build ${PACKAGES} --release
 fi
