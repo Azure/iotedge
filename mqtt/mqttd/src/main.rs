@@ -86,7 +86,7 @@ async fn run_broker_server<Z>(
     config: BrokerConfig,
 ) -> Result<BrokerSnapshot, Error>
 where
-    Z: Authorizer + Send + Sync + 'static,
+    Z: Authorizer + Send + 'static,
 {
     // Setup the shutdown handle
     let shutdown = shutdown::shutdown();

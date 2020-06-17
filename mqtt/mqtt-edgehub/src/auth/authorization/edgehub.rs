@@ -1,7 +1,7 @@
 use std::{
+    cell::RefCell,
     collections::{HashMap, HashSet},
     convert::Infallible,
-    sync::Mutex,
 };
 
 use mqtt_broker_core::{
@@ -11,7 +11,7 @@ use mqtt_broker_core::{
 
 #[derive(Debug, Default)]
 pub struct EdgeHubAuthorizer {
-    iothub_allowed_topics: Mutex<HashMap<ClientId, HashSet<String>>>,
+    iothub_allowed_topics: RefCell<HashMap<ClientId, HashSet<String>>>,
 }
 
 impl EdgeHubAuthorizer {
@@ -111,12 +111,8 @@ impl EdgeHubAuthorizer {
     }
 
     fn is_iothub_topic_allowed(&self, client_id: &ClientId, topic: &str) -> bool {
-        let mut cache = self
-            .iothub_allowed_topics
-            .lock()
-            .expect("iothub_allowed_topics");
-
-        let allowed_topics = cache
+        let mut iothub_allowed_topics = self.iothub_allowed_topics.borrow_mut();
+        let allowed_topics = iothub_allowed_topics
             .entry(client_id.clone())
             .or_insert_with(|| allowed_iothub_topic(client_id));
 
