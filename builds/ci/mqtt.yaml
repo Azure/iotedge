@@ -26,7 +26,6 @@ jobs:
   - job: linux_amd64
 ################################################################################
     displayName: Linux amd64
-    timeoutInMinutes: 30
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
@@ -49,7 +48,6 @@ jobs:
   - job: linux_arm32v7
 ################################################################################
     displayName: Linux arm32v7
-    timeoutInMinutes: 30
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
@@ -81,7 +79,6 @@ jobs:
   - job: windows_amd64
 ################################################################################
     displayName: Windows amd64
-    timeoutInMinutes: 30
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
