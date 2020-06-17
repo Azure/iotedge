@@ -123,15 +123,19 @@ const FORBIDDEN_TOPIC_FILTER_PREFIXES: [&str; 2] = ["#", "$"];
 fn is_forbidden_topic_filter(topic_filter: &str) -> bool {
     FORBIDDEN_TOPIC_FILTER_PREFIXES
         .iter()
-        .any(|forbidden_topic| topic_filter.starts_with(forbidden_topic))
+        .any(|prefix| topic_filter.starts_with(prefix))
 }
 
 fn is_forbidden_topic(topic_filter: &str) -> bool {
     topic_filter.starts_with('$')
 }
 
+const IOTHUB_TOPICS_PREFIX: [&str; 2] = ["$edgehub/", "$iothub/"];
+
 fn is_iothub_topic(topic: &str) -> bool {
-    topic.starts_with("$edgehub/") || topic.starts_with("$iothub/")
+    IOTHUB_TOPICS_PREFIX
+        .iter()
+        .any(|prefix| topic.starts_with(prefix))
 }
 
 fn allowed_iothub_topic(client_id: &ClientId) -> Vec<String> {
