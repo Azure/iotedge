@@ -1,17 +1,21 @@
-use std::convert::Infallible;
+use std::{
+    collections::{HashMap, HashSet},
+    convert::Infallible,
+    sync::Mutex,
+};
 
 use mqtt_broker_core::{
     auth::{Activity, AuthId, Authorization, Authorizer, Connect, Operation, Publish, Subscribe},
     ClientId, ClientInfo,
 };
 
-const FORBIDDEN_TOPIC_FILTER_PREFIXES: [&str; 2] = ["#", "$"];
-
 #[derive(Debug, Default)]
-pub struct EdgeHubAuthorizer;
+pub struct EdgeHubAuthorizer {
+    iothub_allowed_topics: Mutex<HashMap<ClientId, HashSet<String>>>,
+}
 
-#[allow(clippy::unused_self)]
 impl EdgeHubAuthorizer {
+    #[allow(clippy::unused_self)]
     fn authorize_connect(
         &self,
         client_id: &ClientId,
@@ -49,6 +53,7 @@ impl EdgeHubAuthorizer {
             // run authorization rules for publication to IoTHub topic
             self.authorize_iothub_topic(client_id, client_info, topic)
         } else if is_forbidden_topic(topic) {
+            // forbid any clients to access restricted topics
             Authorization::Forbidden(format!("{} is forbidden topic filter", topic))
         } else {
             // allow any client to publish to any non-iothub topics
@@ -68,6 +73,7 @@ impl EdgeHubAuthorizer {
             // run authorization rules for subscription to IoTHub topic
             self.authorize_iothub_topic(client_id, client_info, topic)
         } else if is_forbidden_topic_filter(topic) {
+            // forbid any clients to access restricted topics
             Authorization::Forbidden(format!("{} is forbidden topic filter", topic))
         } else {
             // allow any client to subscribe to any non-iothub topics
@@ -88,11 +94,7 @@ impl EdgeHubAuthorizer {
             ),
             // allow authenticated clients with client_id == auth_id and accessing its own IoTHub topic
             AuthId::Identity(identity) if identity == client_id.as_str() => {
-                let allowed_topics = allowed_iothub_topic(client_id);
-                if allowed_topics
-                    .iter()
-                    .any(|allowed_topic| topic.starts_with(allowed_topic))
-                {
+                if self.is_iothub_topic_allowed(client_id, topic) {
                     Authorization::Allowed
                 } else {
                     Authorization::Forbidden(
@@ -107,7 +109,24 @@ impl EdgeHubAuthorizer {
             )),
         }
     }
+
+    fn is_iothub_topic_allowed(&self, client_id: &ClientId, topic: &str) -> bool {
+        let mut cache = self
+            .iothub_allowed_topics
+            .lock()
+            .expect("iothub_allowed_topics");
+
+        let allowed_topics = cache
+            .entry(client_id.clone())
+            .or_insert_with(|| allowed_iothub_topic(client_id));
+
+        allowed_topics
+            .iter()
+            .any(|allowed_topic| topic.starts_with(allowed_topic))
+    }
 }
+
+const FORBIDDEN_TOPIC_FILTER_PREFIXES: [&str; 2] = ["#", "$"];
 
 fn is_forbidden_topic_filter(topic_filter: &str) -> bool {
     FORBIDDEN_TOPIC_FILTER_PREFIXES
@@ -123,37 +142,37 @@ fn is_iothub_topic(topic: &str) -> bool {
     topic.starts_with("$edgehub/") || topic.starts_with("$iothub/")
 }
 
-fn allowed_iothub_topic(client_id: &ClientId) -> Vec<String> {
-    vec![
-        format!("$edgehub/clients/{}/messages/events", client_id),
-        format!("$iothub/clients/{}/messages/events", client_id),
-        format!("$edgehub/clients/{}/messages/c2d/post", client_id),
-        format!("$iothub/clients/{}/messages/c2d/post", client_id),
-        format!(
-            "$iothub/clients/{}/twin/patch/properties/desired",
-            client_id
-        ),
-        format!(
-            "$edgehub/clients/{}/twin/patch/properties/desired",
-            client_id
-        ),
-        format!(
-            "$iothub/clients/{}/twin/patch/properties/reported",
-            client_id
-        ),
-        format!(
-            "$edgehub/clients/{}/twin/patch/properties/reported",
-            client_id
-        ),
-        format!("$edgehub/clients/{}/twin/get", client_id),
-        format!("$iothub/clients/{}/twin/get", client_id),
-        format!("$edgehub/clients/{}/twin/res", client_id),
-        format!("$iothub/clients/{}/twin/res", client_id),
-        format!("$edgehub/clients/{}/methods/post", client_id),
-        format!("$iothub/clients/{}/methods/post", client_id),
-        format!("$edgehub/clients/{}/methods/res", client_id),
-        format!("$iothub/clients/{}/methods/res", client_id),
-    ]
+fn allowed_iothub_topic(client_id: &ClientId) -> HashSet<String> {
+    let mut topic = HashSet::new();
+    topic.insert(format!("$edgehub/clients/{}/messages/events", client_id));
+    topic.insert(format!("$iothub/clients/{}/messages/events", client_id));
+    topic.insert(format!("$edgehub/clients/{}/messages/c2d/post", client_id));
+    topic.insert(format!("$iothub/clients/{}/messages/c2d/post", client_id));
+    topic.insert(format!(
+        "$iothub/clients/{}/twin/patch/properties/desired",
+        client_id
+    ));
+    topic.insert(format!(
+        "$edgehub/clients/{}/twin/patch/properties/desired",
+        client_id
+    ));
+    topic.insert(format!(
+        "$iothub/clients/{}/twin/patch/properties/reported",
+        client_id
+    ));
+    topic.insert(format!(
+        "$edgehub/clients/{}/twin/patch/properties/reported",
+        client_id
+    ));
+    topic.insert(format!("$edgehub/clients/{}/twin/get", client_id));
+    topic.insert(format!("$iothub/clients/{}/twin/get", client_id));
+    topic.insert(format!("$edgehub/clients/{}/twin/res", client_id));
+    topic.insert(format!("$iothub/clients/{}/twin/res", client_id));
+    topic.insert(format!("$edgehub/clients/{}/methods/post", client_id));
+    topic.insert(format!("$iothub/clients/{}/methods/post", client_id));
+    topic.insert(format!("$edgehub/clients/{}/methods/res", client_id));
+    topic.insert(format!("$iothub/clients/{}/methods/res", client_id));
+    topic
 }
 
 impl Authorizer for EdgeHubAuthorizer {
