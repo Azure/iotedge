@@ -1,16 +1,16 @@
 #!/bin/bash
 
+# TODO: remove amd64 steps as they are not for alpine
+
 set -e
 
 # Get directory of running script
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
 BUILD_REPOSITORY_LOCALPATH="$(realpath "${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}")"
-PROJECT_ROOT="${BUILD_REPOSITORY_LOCALPATH}/edgelet"
-LIBIOTHSM_BUILD_DIR="$PROJECT_ROOT/target/hsm"
 
 REVISION="${REVISION:-1}"
-DEFAULT_VERSION="$(cat "$PROJECT_ROOT/version.txt")"
+DEFAULT_VERSION="1.0.0"
 VERSION="${VERSION:-$DEFAULT_VERSION}"
 
 CMAKE_ARGS='-DCMAKE_BUILD_TYPE=Release'
@@ -18,11 +18,15 @@ CMAKE_ARGS="$CMAKE_ARGS -DBUILD_SHARED=On -Drun_unittests=Off -Duse_default_uuid
 
 DOCKER_VOLUME_MOUNTS=''
 
+PACKAGE_OS='ubuntu16.04'
+PACKAGE_ARCH='aarch64'
+
 case "$PACKAGE_OS" in
     'ubuntu16.04')
         DOCKER_IMAGE='ubuntu:16.04'
 
         CMAKE_ARGS="$CMAKE_ARGS -DCPACK_GENERATOR=DEB"
+        # TODO: Do we need?
         # The cmake in this image doesn't understand CPACK_DEBIAN_PACKAGE_RELEASE, so include the REVISION in CPACK_PACKAGE_VERSION
         CMAKE_ARGS="$CMAKE_ARGS '-DCPACK_PACKAGE_VERSION=$VERSION-$REVISION'"
         CMAKE_ARGS="$CMAKE_ARGS '-DOPENSSL_DEPENDS_SPEC=libssl1.0.0'"
@@ -69,6 +73,17 @@ fi
 
 
 case "$PACKAGE_OS.$PACKAGE_ARCH" in
+    ubuntu16.04.amd64|ubuntu18.04.amd64)
+        SETUP_COMMAND=$'
+            apt-get update &&
+            apt-get upgrade -y &&
+            apt-get install -y --no-install-recommends \
+                binutils build-essential ca-certificates cmake curl debhelper dh-systemd file git make \
+                gcc g++ pkg-config \
+                libcurl4-openssl-dev libssl-dev uuid-dev &&
+        '
+        ;;
+
     ubuntu16.04.arm32v7|ubuntu18.04.arm32v7)
         SETUP_COMMAND=$'
             sources="$(cat /etc/apt/sources.list | grep -E \'^[^#]\')" &&
@@ -175,15 +190,6 @@ fi
 
 case "$PACKAGE_OS" in
     *)
-        case "$PACKAGE_OS" in
-            debian8)
-                MAKE_TARGET='deb8'
-                ;;
-            *)
-                MAKE_TARGET='deb'
-                ;;
-        esac
-
         case "$PACKAGE_ARCH" in
             amd64)
                 ;;
@@ -199,12 +205,9 @@ case "$PACKAGE_OS" in
                 ;;
         esac
 
-        MAKE_COMMAND="make $MAKE_TARGET 'VERSION=$VERSION' 'REVISION=$REVISION' $MAKE_FLAGS"
+        MAKE_COMMAND="make release 'VERSION=$VERSION' 'REVISION=$REVISION' $MAKE_FLAGS"
         ;;
 esac
-
-
-mkdir -p "$LIBIOTHSM_BUILD_DIR"
 
 docker run --rm \
     --user root \
@@ -224,17 +227,8 @@ docker run --rm \
         curl -sSLf https://sh.rustup.rs | sh -s -- -y &&
         . ~/.cargo/env &&
 
-        # libiothsm
-        cd /project/edgelet/target/hsm &&
-        cmake $CMAKE_ARGS /project/edgelet/hsm-sys/azure-iot-hsm-c/ &&
-        make -j package &&
-
-        # iotedged
-        cd /project/edgelet &&
+        # mqttd
+        cd /project/mqtt/mqttd &&
         $RUST_TARGET_COMMAND
         $MAKE_COMMAND
     "
-
-find "$PROJECT_ROOT" -name '*.deb'
-find "$PROJECT_ROOT" -name '*.rpm'
-
