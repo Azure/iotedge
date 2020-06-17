@@ -189,10 +189,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public Task ProcessDeviceMessageBatchAsync(IEnumerable<IMessage> messages)
         {
-            foreach (IMessage message in messages)
+            this.modelId.ForEach(modelId =>
             {
-                this.modelId.ForEach(modelId => message.SystemProperties[SystemProperties.ModelId] = modelId);
-            }
+                foreach (IMessage message in messages)
+                {
+                    message.SystemProperties[SystemProperties.ModelId] = modelId;
+                }
+            });
 
             return this.edgeHub.ProcessDeviceMessageBatch(this.Identity, messages);
         }
