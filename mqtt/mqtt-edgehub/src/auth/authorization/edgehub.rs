@@ -1,8 +1,4 @@
-use std::{
-    cell::RefCell,
-    collections::{HashMap, HashSet},
-    convert::Infallible,
-};
+use std::{cell::RefCell, collections::HashMap, convert::Infallible};
 
 use mqtt_broker_core::{
     auth::{Activity, AuthId, Authorization, Authorizer, Connect, Operation, Publish, Subscribe},
@@ -11,7 +7,7 @@ use mqtt_broker_core::{
 
 #[derive(Debug, Default)]
 pub struct EdgeHubAuthorizer {
-    iothub_allowed_topics: RefCell<HashMap<ClientId, HashSet<String>>>,
+    iothub_allowed_topics: RefCell<HashMap<ClientId, Vec<String>>>,
 }
 
 impl EdgeHubAuthorizer {
@@ -138,37 +134,37 @@ fn is_iothub_topic(topic: &str) -> bool {
     topic.starts_with("$edgehub/") || topic.starts_with("$iothub/")
 }
 
-fn allowed_iothub_topic(client_id: &ClientId) -> HashSet<String> {
-    let mut topic = HashSet::new();
-    topic.insert(format!("$edgehub/clients/{}/messages/events", client_id));
-    topic.insert(format!("$iothub/clients/{}/messages/events", client_id));
-    topic.insert(format!("$edgehub/clients/{}/messages/c2d/post", client_id));
-    topic.insert(format!("$iothub/clients/{}/messages/c2d/post", client_id));
-    topic.insert(format!(
-        "$iothub/clients/{}/twin/patch/properties/desired",
-        client_id
-    ));
-    topic.insert(format!(
-        "$edgehub/clients/{}/twin/patch/properties/desired",
-        client_id
-    ));
-    topic.insert(format!(
-        "$iothub/clients/{}/twin/patch/properties/reported",
-        client_id
-    ));
-    topic.insert(format!(
-        "$edgehub/clients/{}/twin/patch/properties/reported",
-        client_id
-    ));
-    topic.insert(format!("$edgehub/clients/{}/twin/get", client_id));
-    topic.insert(format!("$iothub/clients/{}/twin/get", client_id));
-    topic.insert(format!("$edgehub/clients/{}/twin/res", client_id));
-    topic.insert(format!("$iothub/clients/{}/twin/res", client_id));
-    topic.insert(format!("$edgehub/clients/{}/methods/post", client_id));
-    topic.insert(format!("$iothub/clients/{}/methods/post", client_id));
-    topic.insert(format!("$edgehub/clients/{}/methods/res", client_id));
-    topic.insert(format!("$iothub/clients/{}/methods/res", client_id));
-    topic
+fn allowed_iothub_topic(client_id: &ClientId) -> Vec<String> {
+    vec![
+        format!("$edgehub/clients/{}/messages/events", client_id),
+        format!("$iothub/clients/{}/messages/events", client_id),
+        format!("$edgehub/clients/{}/messages/c2d/post", client_id),
+        format!("$iothub/clients/{}/messages/c2d/post", client_id),
+        format!(
+            "$iothub/clients/{}/twin/patch/properties/desired",
+            client_id
+        ),
+        format!(
+            "$edgehub/clients/{}/twin/patch/properties/desired",
+            client_id
+        ),
+        format!(
+            "$iothub/clients/{}/twin/patch/properties/reported",
+            client_id
+        ),
+        format!(
+            "$edgehub/clients/{}/twin/patch/properties/reported",
+            client_id
+        ),
+        format!("$edgehub/clients/{}/twin/get", client_id),
+        format!("$iothub/clients/{}/twin/get", client_id),
+        format!("$edgehub/clients/{}/twin/res", client_id),
+        format!("$iothub/clients/{}/twin/res", client_id),
+        format!("$edgehub/clients/{}/methods/post", client_id),
+        format!("$iothub/clients/{}/methods/post", client_id),
+        format!("$edgehub/clients/{}/methods/res", client_id),
+        format!("$iothub/clients/{}/methods/res", client_id),
+    ]
 }
 
 impl Authorizer for EdgeHubAuthorizer {
