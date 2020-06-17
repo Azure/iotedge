@@ -1,17 +1,17 @@
-use std::convert::Infallible;
+use std::{cell::RefCell, collections::HashMap, convert::Infallible};
 
 use mqtt_broker_core::{
     auth::{Activity, AuthId, Authorization, Authorizer, Connect, Operation, Publish, Subscribe},
     ClientId, ClientInfo,
 };
 
-const FORBIDDEN_TOPIC_FILTER_PREFIXES: [&str; 2] = ["#", "$"];
-
 #[derive(Debug, Default)]
-pub struct EdgeHubAuthorizer;
+pub struct EdgeHubAuthorizer {
+    iothub_allowed_topics: RefCell<HashMap<ClientId, Vec<String>>>,
+}
 
-#[allow(clippy::unused_self)]
 impl EdgeHubAuthorizer {
+    #[allow(clippy::unused_self)]
     fn authorize_connect(
         &self,
         client_id: &ClientId,
@@ -49,6 +49,7 @@ impl EdgeHubAuthorizer {
             // run authorization rules for publication to IoTHub topic
             self.authorize_iothub_topic(client_id, client_info, topic)
         } else if is_forbidden_topic(topic) {
+            // forbid any clients to access restricted topics
             Authorization::Forbidden(format!("{} is forbidden topic filter", topic))
         } else {
             // allow any client to publish to any non-iothub topics
@@ -68,6 +69,7 @@ impl EdgeHubAuthorizer {
             // run authorization rules for subscription to IoTHub topic
             self.authorize_iothub_topic(client_id, client_info, topic)
         } else if is_forbidden_topic_filter(topic) {
+            // forbid any clients to access restricted topics
             Authorization::Forbidden(format!("{} is forbidden topic filter", topic))
         } else {
             // allow any client to subscribe to any non-iothub topics
@@ -88,11 +90,7 @@ impl EdgeHubAuthorizer {
             ),
             // allow authenticated clients with client_id == auth_id and accessing its own IoTHub topic
             AuthId::Identity(identity) if identity == client_id.as_str() => {
-                let allowed_topics = allowed_iothub_topic(client_id);
-                if allowed_topics
-                    .iter()
-                    .any(|allowed_topic| topic.starts_with(allowed_topic))
-                {
+                if self.is_iothub_topic_allowed(client_id, topic) {
                     Authorization::Allowed
                 } else {
                     Authorization::Forbidden(
@@ -107,20 +105,37 @@ impl EdgeHubAuthorizer {
             )),
         }
     }
+
+    fn is_iothub_topic_allowed(&self, client_id: &ClientId, topic: &str) -> bool {
+        let mut iothub_allowed_topics = self.iothub_allowed_topics.borrow_mut();
+        let allowed_topics = iothub_allowed_topics
+            .entry(client_id.clone())
+            .or_insert_with(|| allowed_iothub_topic(client_id));
+
+        allowed_topics
+            .iter()
+            .any(|allowed_topic| topic.starts_with(allowed_topic))
+    }
 }
+
+const FORBIDDEN_TOPIC_FILTER_PREFIXES: [&str; 2] = ["#", "$"];
 
 fn is_forbidden_topic_filter(topic_filter: &str) -> bool {
     FORBIDDEN_TOPIC_FILTER_PREFIXES
         .iter()
-        .any(|forbidden_topic| topic_filter.starts_with(forbidden_topic))
+        .any(|prefix| topic_filter.starts_with(prefix))
 }
 
 fn is_forbidden_topic(topic_filter: &str) -> bool {
     topic_filter.starts_with('$')
 }
 
+const IOTHUB_TOPICS_PREFIX: [&str; 2] = ["$edgehub/", "$iothub/"];
+
 fn is_iothub_topic(topic: &str) -> bool {
-    topic.starts_with("$edgehub/") || topic.starts_with("$iothub/")
+    IOTHUB_TOPICS_PREFIX
+        .iter()
+        .any(|prefix| topic.starts_with(prefix))
 }
 
 fn allowed_iothub_topic(client_id: &ClientId) -> Vec<String> {

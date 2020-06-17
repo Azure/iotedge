@@ -32,7 +32,7 @@ where
 
 impl<Z> Server<Z>
 where
-    Z: Authorizer + Send + Sync + 'static,
+    Z: Authorizer + Send + 'static,
 {
     pub fn from_broker(broker: Broker<Z>) -> Self {
         Self {
