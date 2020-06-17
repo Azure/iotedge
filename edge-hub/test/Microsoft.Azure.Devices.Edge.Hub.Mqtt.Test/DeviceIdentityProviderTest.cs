@@ -7,8 +7,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.ProtocolGateway.Identity;
+    using Microsoft.Azure.Devices.Routing.Core.Query.Builtins;
     using Moq;
     using Xunit;
 
@@ -95,23 +97,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
         public static IEnumerable<object[]> GetUsernames()
         {
-            yield return new object[] { "iotHub1/device1/api-version=2010-01-01&DeviceClientType=customDeviceClient1", "device1", string.Empty, "customDeviceClient1" };
+            yield return new object[] { "iotHub1/device1/api-version=2010-01-01&DeviceClientType=customDeviceClient1", "device1", string.Empty, "customDeviceClient1", string.Empty };
 
-            yield return new object[] { "iotHub1/device1/module1/api-version=2010-01-01&DeviceClientType=customDeviceClient2", "device1", "module1", "customDeviceClient2" };
+            yield return new object[] { "iotHub1/device1/module1/api-version=2010-01-01&DeviceClientType=customDeviceClient2", "device1", "module1", "customDeviceClient2", string.Empty };
 
-            yield return new object[] { "iotHub1/device1/module1/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003", "device1", "module1", "Microsoft.Azure.Devices.Client/1.5.1-preview-003" };
+            yield return new object[] { "iotHub1/device1/module1/api-version=2017-06-30/DeviceClientType=Microsoft.Azure.Devices.Client/1.5.1-preview-003", "device1", "module1", "Microsoft.Azure.Devices.Client/1.5.1-preview-003", string.Empty };
 
-            yield return new object[] { "iotHub1/device1/?api-version=2010-01-01&DeviceClientType=customDeviceClient1", "device1", string.Empty, "customDeviceClient1" };
+            yield return new object[] { "iotHub1/device1/?api-version=2010-01-01&DeviceClientType=customDeviceClient1", "device1", string.Empty, "customDeviceClient1", string.Empty };
 
-            yield return new object[] { "iotHub1/device1/module1/?api-version=2010-01-01&DeviceClientType=customDeviceClient1", "device1", "module1", "customDeviceClient1" };
+            yield return new object[] { "iotHub1/device1/?api-version=2010-01-01&DeviceClientType=customDeviceClient1&digital-twin-model-id=testModelId", "device1", string.Empty, "customDeviceClient1", "testModelId" };
 
-            yield return new object[] { "iotHub1/device1/api-version=2010-01-01&DeviceClientType1=customDeviceClient1", "device1", string.Empty, string.Empty };
+            yield return new object[] { "iotHub1/device1/module1/?api-version=2010-01-01&DeviceClientType=customDeviceClient1", "device1", "module1", "customDeviceClient1", string.Empty };
 
-            yield return new object[] { "iotHub1/device1/module1/api-version=2010-01-01&", "device1", "module1", string.Empty };
+            yield return new object[] { "iotHub1/device1/module1/?api-version=2010-01-01&DeviceClientType=customDeviceClient1&digital-twin-model-id=testModelId", "device1", "module1", "customDeviceClient1", "testModelId" };
 
-            yield return new object[] { "iotHub1/device1/?api-version=2010-01-01", "device1", string.Empty, string.Empty };
+            yield return new object[] { "iotHub1/device1/api-version=2010-01-01&DeviceClientType1=customDeviceClient1", "device1", string.Empty, string.Empty, string.Empty };
 
-            yield return new object[] { "iotHub1/device1/module1/?api-version=2010-01-01&Foo=customDeviceClient1", "device1", "module1", string.Empty };
+            yield return new object[] { "iotHub1/device1/api-version=2010-01-01&DeviceClientType1=customDeviceClient1&digital-twin-model-id=testModelId", "device1", string.Empty, string.Empty, "testModelId" };
+
+            yield return new object[] { "iotHub1/device1/module1/api-version=2010-01-01&", "device1", "module1", string.Empty, string.Empty };
+
+            yield return new object[] { "iotHub1/device1/module1/api-version=2010-01-01&digital-twin-model-id=testModelId", "device1", "module1", string.Empty, "testModelId" };
+
+            yield return new object[] { "iotHub1/device1/?api-version=2010-01-01", "device1", string.Empty, string.Empty, string.Empty };
+
+            yield return new object[] { "iotHub1/device1/?api-version=2010-01-01&digital-twin-model-id=testModelId", "device1", string.Empty, string.Empty, "testModelId" };
+
+            yield return new object[] { "iotHub1/device1/module1/?api-version=2010-01-01&Foo=customDeviceClient1", "device1", "module1", string.Empty, string.Empty };
         }
 
         [Theory]
@@ -143,12 +155,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
         [Theory]
         [MemberData(nameof(GetUsernames))]
         [Unit]
-        public void ParseUsernameTest(string username, string expectedDeviceId, string expectedModuleId, string expectedDeviceClientType)
+        public void ParseUsernameTest(string username, string expectedDeviceId, string expectedModuleId, string expectedDeviceClientType, string expectedModelId)
         {
-            (string deviceId, string moduleId, string deviceClientType) = DeviceIdentityProvider.ParseUserName(username);
+            (string deviceId, string moduleId, string deviceClientType, Option<string> modelId) = DeviceIdentityProvider.ParseUserName(username);
             Assert.Equal(expectedDeviceId, deviceId);
             Assert.Equal(expectedModuleId, moduleId);
             Assert.Equal(expectedDeviceClientType, deviceClientType);
+            modelId.ForEach(mId => Assert.Equal(expectedModelId, mId));
         }
 
         [Theory]
