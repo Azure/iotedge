@@ -34,21 +34,28 @@ Write-Host "$cargo clippy --all"
 Invoke-Expression "$cargo clippy --all"
 
 if ($LastExitCode -ne 0) {
-    Throw "cargo clippy --all failed with exit code $LastExitCode"
+    Throw "cargo clippy --workspace failed with exit code $LastExitCode"
 }
 
-Write-Host "$cargo clippy --all --tests --all-features"
-Invoke-Expression "$cargo clippy --all --tests --all-features"
+Write-Host "$cargo clippy --workspace --tests --all-features"
+Invoke-Expression "$cargo clippy --workspace--tests --all-features"
 
 if ($LastExitCode -ne 0) {
-    Throw "cargo clippy --all --tests failed with exit code $LastExitCode"
+    Throw "cargo clippy --workspace --tests failed with exit code $LastExitCode"
 }
 
-Write-Host "$cargo clippy --all --examples"
-Invoke-Expression "$cargo clippy --all --examples"
+Write-Host "$cargo clippy --workspace --examples"
+Invoke-Expression "$cargo clippy --workspace --examples"
 
 if ($LastExitCode -ne 0) {
-    Throw "cargo clippy --all --examples failed with exit code $LastExitCode"
+    Throw "cargo clippy --workspace --examples failed with exit code $LastExitCode"
+}
+
+Write-Host "$cargo clippy --workspace --benches"
+Invoke-Expression "$cargo clippy --workspace --benches"
+
+if ($LastExitCode -ne 0) {
+    Throw "cargo clippy --workspace --benches failed with exit code $LastExitCode"
 }
 
 $ErrorActionPreference = 'Stop'
