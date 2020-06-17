@@ -14,11 +14,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
     public class MqttBridgeConnector : IMqttBridgeConnector
     {
-        const string BridgeClientId = "EH-BRIDGE";
         const int ReconnectDelayMs = 2000;
 
         readonly IComponentDiscovery components;
         readonly ISubscriptionChangeHandler subscriptionChangeHandler;
+        readonly ISystemComponentIdProvider systemComponentIdProvider;
         readonly Dictionary<ushort, TaskCompletionSource<bool>> pendingAcks = new Dictionary<ushort, TaskCompletionSource<bool>>();
 
         readonly object guard = new object();
@@ -27,10 +27,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         Option<Task> forwardingLoop;
         Option<MqttClient> mqttClient;
 
-        public MqttBridgeConnector(IComponentDiscovery components, ISubscriptionChangeHandler subscriptionChangeHandler)
+        public MqttBridgeConnector(IComponentDiscovery components, ISubscriptionChangeHandler subscriptionChangeHandler, ISystemComponentIdProvider systemComponentIdProvider)
         {
             this.components = components;
             this.subscriptionChangeHandler = subscriptionChangeHandler;
+            this.systemComponentIdProvider = systemComponentIdProvider;
 
             // because of the circular dependency between MqttBridgeConnector and the producers,
             // in this loop the producers get the IMqttBridgeConnector reference:
@@ -75,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             // if ConnectAsync is supposed to manage starting it with broker down,
             // put a loop here to keep trying - see 'TriggerReconnect' below
-            var isConnected = await TryConnectAsync(client, this.components.Subscribers);
+            var isConnected = await TryConnectAsync(client, this.components.Subscribers, this.systemComponentIdProvider.EdgeHubBridgeId);
 
             if (!isConnected)
             {
@@ -233,7 +234,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                         client = this.mqttClient.Expect(() => new Exception("No mqtt-bridge connector instance found to use"));
                     }
 
-                    isConnected = await TryConnectAsync(client, this.components.Subscribers);
+                    isConnected = await TryConnectAsync(client, this.components.Subscribers, this.systemComponentIdProvider.EdgeHubBridgeId);
                 }
 
                 client.ConnectionClosed += this.TriggerReconnect;
@@ -319,11 +320,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         // these are statics, so they don't use the state to acquire 'client' - making easier to handle parallel
         // Reconnect/Disconnect cases
-        static async Task<bool> TryConnectAsync(MqttClient client, IReadOnlyCollection<ISubscriber> subscribers)
+        static async Task<bool> TryConnectAsync(MqttClient client, IReadOnlyCollection<ISubscriber> subscribers, string id)
         {
             try
             {
-                var result = client.Connect(BridgeClientId);
+                var result = client.Connect(id, id, string.Empty);
 
                 if (result != MqttMsgConnack.CONN_ACCEPTED)
                 {

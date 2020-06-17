@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -17,11 +18,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         readonly IConnectionRegistry connectionRegistry;
         readonly IComponentDiscovery components;
+        readonly IIdentityProvider identityProvider;
 
-        public SubscriptionChangeHandler(IConnectionRegistry connectionRegistry, IComponentDiscovery components)
+        public SubscriptionChangeHandler(IConnectionRegistry connectionRegistry, IComponentDiscovery components, IIdentityProvider identityProvider)
         {
             this.connectionRegistry = connectionRegistry;
             this.components = components;
+            this.identityProvider = identityProvider;
         }
 
         public async Task<bool> HandleSubscriptionChangeAsync(MqttPublishInfo publishInfo)
@@ -54,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 var id1 = match.Groups["id1"];
                 var id2 = match.Groups["id2"];
 
-                var identity = HandlerUtils.GetIdentityFromMatch(id1, id2);
+                var identity = HandlerUtils.GetIdentityFromMatch(id1, id2, this.identityProvider);
 
                 var proxy = default(IDeviceListener);
                 try

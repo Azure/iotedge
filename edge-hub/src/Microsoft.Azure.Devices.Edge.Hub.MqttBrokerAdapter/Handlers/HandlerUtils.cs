@@ -42,17 +42,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return false;
         }
 
-        public static IIdentity GetIdentityFromMatch(Group id1, Group id2)
+        public static IIdentity GetIdentityFromMatch(Group id1, Group id2, IIdentityProvider identityProvider)
         {
             if (id2.Success)
             {
-                // FIXME the iothub name should come from somewhere
-                return new ModuleIdentity("vikauthtest.azure-devices.net", id1.Value, id2.Value);
+                return identityProvider.Create(id1.Value, id2.Value);
             }
             else
             {
-                // FIXME the iothub name should come from somewhere
-                return new DeviceIdentity("vikauthtest.azure-devices.net", id1.Value);
+                return identityProvider.Create(id1.Value);
             }
         }
 

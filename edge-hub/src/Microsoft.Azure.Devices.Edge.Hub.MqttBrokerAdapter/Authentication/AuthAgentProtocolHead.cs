@@ -20,6 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         readonly IAuthenticator authenticator;
         readonly IUsernameParser usernameParser;
         readonly IClientCredentialsFactory clientCredentialsFactory;
+        readonly ISystemComponentIdProvider systemComponentIdProvider;
         readonly AuthAgentProtocolHeadConfig config;
         readonly object guard = new object();
 
@@ -31,11 +32,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     IAuthenticator authenticator,
                     IUsernameParser usernameParser,
                     IClientCredentialsFactory clientCredentialsFactory,
+                    ISystemComponentIdProvider systemComponentIdProvider,
                     AuthAgentProtocolHeadConfig config)
         {
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             this.usernameParser = Preconditions.CheckNotNull(usernameParser, nameof(usernameParser));
             this.clientCredentialsFactory = Preconditions.CheckNotNull(clientCredentialsFactory, nameof(clientCredentialsFactory));
+            this.systemComponentIdProvider = Preconditions.CheckNotNull(systemComponentIdProvider);
             this.config = Preconditions.CheckNotNull(config);
         }
 
@@ -57,6 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                         this.authenticator,
                                         this.usernameParser,
                                         this.clientCredentialsFactory,
+                                        this.systemComponentIdProvider,
                                         this.config));
                 }
             }
@@ -95,6 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                             IAuthenticator authenticator,
                             IUsernameParser usernameParser,
                             IClientCredentialsFactory clientCredentialsFactory,
+                            ISystemComponentIdProvider systemComponentIdProvider,
                             AuthAgentProtocolHeadConfig config)
         {
             return WebHost.CreateDefaultBuilder()
@@ -104,6 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                           .ConfigureServices(s => s.TryAddSingleton(authenticator))
                           .ConfigureServices(s => s.TryAddSingleton(usernameParser))
                           .ConfigureServices(s => s.TryAddSingleton(clientCredentialsFactory))
+                          .ConfigureServices(s => s.TryAddSingleton(systemComponentIdProvider))
                           .ConfigureServices(s => s.TryAddSingleton(config))
                           .ConfigureServices(s => s.AddControllers().AddNewtonsoftJson())
                           .ConfigureLogging(c => c.ClearProviders())

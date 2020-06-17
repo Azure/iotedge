@@ -22,6 +22,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         static readonly string[] subscriptions = new[] { TopicDeviceConnected };
 
         readonly IConnectionProvider connectionProvider;
+        readonly IIdentityProvider identityProvider;
+        readonly ISystemComponentIdProvider systemComponentIdProvider;
         readonly DeviceProxy.Factory deviceProxyFactory;
 
         readonly Channel<MqttPublishInfo> notifications;
@@ -35,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         // this class is auto-registered so no way to implement an async activator.
         // hence this one needs to get a Task<T> which is suboptimal, but that is the way
         // IConnectionProvider is registered
-        public ConnectionHandler(Task<IConnectionProvider> connectionProvider, DeviceProxy.Factory deviceProxyFactory)
+        public ConnectionHandler(Task<IConnectionProvider> connectionProvider, IIdentityProvider identityProvider, ISystemComponentIdProvider systemComponentIdProvider, DeviceProxy.Factory deviceProxyFactory)
         {
             if (!connectionProvider.IsCompleted)
             {
@@ -44,6 +46,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             this.connectionProvider = connectionProvider.Result;
+            this.identityProvider = identityProvider;
+            this.systemComponentIdProvider = systemComponentIdProvider;
             this.deviceProxyFactory = deviceProxyFactory;
 
             this.notifications = Channel.CreateUnbounded<MqttPublishInfo>(
@@ -181,7 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
         }
 
-        Option<List<Identity>> GetIdentitiesFromUpdateMessage(MqttPublishInfo mqttPublishInfo)
+        Option<List<IIdentity>> GetIdentitiesFromUpdateMessage(MqttPublishInfo mqttPublishInfo)
         {
             var identityList = default(List<string>);
 
@@ -193,24 +197,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             catch (Exception e)
             {
                 Events.BadPayloadFormat(e);
-                return Option.None<List<Identity>>();
+                return Option.None<List<IIdentity>>();
             }
 
-            var result = new List<Identity>();
+            var result = new List<IIdentity>();
 
             foreach (var id in identityList)
             {
+                if (this.IsSystemComponent(id))
+                {
+                    continue;
+                }
+
                 var identityComponents = id.Split(HandlerUtils.IdentitySegmentSeparator, StringSplitOptions.RemoveEmptyEntries);
 
                 switch (identityComponents.Length)
                 {
                     case 1:
-                        // FIXME get hubname from somewhere
-                        result.Add(new DeviceIdentity("vikauthtest.azure-devices.net", identityComponents[0]));
+                        result.Add(this.identityProvider.Create(identityComponents[0]));
                         break;
 
                     case 2:
-                        result.Add(new ModuleIdentity("vikauthtest.azure-devices.net", identityComponents[0], identityComponents[1]));
+                        result.Add(this.identityProvider.Create(identityComponents[0], identityComponents[1]));
                         break;
 
                     default:
@@ -220,6 +228,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             return Option.Some(result);
+        }
+
+        bool IsSystemComponent(string id)
+        {
+            return string.Equals(id, systemComponentIdProvider.EdgeHubBridgeId);
         }
 
         Task StartProcessingLoop()

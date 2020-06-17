@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using System.Collections.Generic;
     using System.Linq;
     using Autofac;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
@@ -45,6 +46,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.RegisterType<SubscriptionChangeHandler>()
                    .AsImplementedInterfaces()
                    .SingleInstance();
+
+            builder.Register(c => new SystemComponentIdProvider(c.ResolveNamed<IClientCredentials>("EdgeHubCredentials")))
+                    .As<ISystemComponentIdProvider>()
+                    .SingleInstance();
 
             builder.Register(
                         c =>

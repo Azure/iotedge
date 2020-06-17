@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Azure.Devices.Client.Common;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -21,10 +22,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         static readonly string[] subscriptions = new[] { TelemetryDevice, TelemetryModule };
 
         readonly IConnectionRegistry connectionRegistry;
+        readonly IIdentityProvider identityProvider;
+
         readonly Regex telemetryPublishRegex = new Regex(TelemetryPublishPattern, RegexOptions.Compiled);
 
         public IReadOnlyCollection<string> Subscriptions => subscriptions;
-        public TelemetryHandler(IConnectionRegistry connectionRegistry) => this.connectionRegistry = connectionRegistry;
+
+        public TelemetryHandler(IConnectionRegistry connectionRegistry, IIdentityProvider identityProvider)
+        {
+            this.connectionRegistry = connectionRegistry;
+            this.identityProvider = identityProvider;
+        }
 
         public Task<bool> HandleAsync(MqttPublishInfo publishInfo)
         {
@@ -47,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             var id2 = match.Groups["id2"];
             var bag = match.Groups["bag"];
 
-            var identity = HandlerUtils.GetIdentityFromMatch(id1, id2);
+            var identity = HandlerUtils.GetIdentityFromMatch(id1, id2, this.identityProvider);
             var maybeProxy = await this.connectionRegistry.GetUpstreamProxyAsync(identity);
             var proxy = default(IDeviceListener);
 

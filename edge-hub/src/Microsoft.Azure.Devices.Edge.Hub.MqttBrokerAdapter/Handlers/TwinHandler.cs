@@ -43,13 +43,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         readonly Task processingLoop;
 
         readonly IConnectionRegistry connectionRegistry;
+        readonly IIdentityProvider identityProvider;
+
         IMqttBridgeConnector connector;
 
         public IReadOnlyCollection<string> Subscriptions => subscriptions;
 
-        public TwinHandler(IConnectionRegistry connectionRegistry)
+        public TwinHandler(IConnectionRegistry connectionRegistry, IIdentityProvider identityProvider)
         {
             this.connectionRegistry = connectionRegistry;
+            this.identityProvider = identityProvider;
 
             this.notifications = Channel.CreateUnbounded<ProcessingInfo>(
                                     new UnboundedChannelOptions
@@ -197,7 +200,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             var id2 = match.Groups["id2"];
             var rid = match.Groups["rid"];
 
-            var identity = HandlerUtils.GetIdentityFromMatch(id1, id2);
+            var identity = HandlerUtils.GetIdentityFromMatch(id1, id2, this.identityProvider);
             var maybeProxy = await this.connectionRegistry.GetUpstreamProxyAsync(identity);
             var proxy = default(IDeviceListener);
 

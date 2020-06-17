@@ -27,11 +27,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         static readonly SubscriptionPattern[] subscriptionPatterns = new SubscriptionPattern[] { new SubscriptionPattern(MethodSubscriptionForPostPattern, DeviceSubscription.Methods) };
 
         readonly IConnectionRegistry connectionRegistry;
+        readonly IIdentityProvider identityProvider;
+
         IMqttBridgeConnector connector;
 
         public IReadOnlyCollection<string> Subscriptions => subscriptions;
 
-        public DirectMethodHandler(IConnectionRegistry connectionRegistry) => this.connectionRegistry = connectionRegistry;
+        public DirectMethodHandler(IConnectionRegistry connectionRegistry, IIdentityProvider identityProvider)
+        {
+            this.connectionRegistry = connectionRegistry;
+            this.identityProvider = identityProvider;
+        }
 
         public IReadOnlyCollection<SubscriptionPattern> WatchedSubscriptions => subscriptionPatterns;
 
@@ -80,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             var rid = match.Groups["rid"];
             var res = match.Groups["res"];
 
-            var identity = HandlerUtils.GetIdentityFromMatch(id1, id2);
+            var identity = HandlerUtils.GetIdentityFromMatch(id1, id2, this.identityProvider);
             var maybeProxy = await this.connectionRegistry.GetUpstreamProxyAsync(identity);
             var proxy = default(IDeviceListener);
 
