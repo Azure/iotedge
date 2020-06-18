@@ -3,12 +3,60 @@
 # TODO: remove amd64 steps as they are not for alpine
 # TODO: remove ubuntu 18
 
+###############################################################################
+# Print usage information pertaining to this script and exit
+###############################################################################
+usage()
+{
+    echo "$SCRIPT_NAME [options]"
+    echo ""
+    echo "options"
+    echo " --os                Desired os for build"
+    echo " --arch              Desired arch for build"
+    echo " -h, --help          Print this help and exit."
+    exit 1;
+}
+
+###############################################################################
+# Obtain and validate the options supported by this script
+###############################################################################
+process_args()
+{
+    save_next_arg=0
+    for arg in "$@"
+    do
+        if [ $save_next_arg -eq 1 ]; then
+            PACKAGE_OS="$arg"
+            save_next_arg=0
+        elif [ $save_next_arg -eq 2 ]; then
+            PACKAGE_ARCH="$arg"
+            save_next_arg=0
+        elif [ $save_next_arg -eq 3 ]; then
+            BUILD_PATH="$arg"
+            save_next_arg=0
+        else
+            case "$arg" in
+                "--os" ) save_next_arg=1;;
+                "--arch" ) save_next_arg=2;;
+                "--build-path" ) save_next_arg=3;;
+                "-h" | "--help" ) usage;;
+                * ) usage;;
+            esac
+        fi
+    done
+}
+
+process_args "$@"
+
+[[ -z "$PACKAGE_OS" ]] && { print_error 'OS is a required parameter'; exit 1; }
+[[ -z "$PACKAGE_ARCH" ]] && { print_error 'Arch is a required parameter'; exit 1; }
+
 set -e
 
 # Get directory of running script
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
-BUILD_REPOSITORY_LOCALPATH="$(realpath "${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}")"
+BUILD_REPOSITORY_LOCALPATH="$(realpath "${BUILD_REPOSITORY_LOCALPATH:-$DIR/../..}")"
 
 REVISION="${REVISION:-1}"
 DEFAULT_VERSION="1.0.0"
@@ -18,9 +66,6 @@ CMAKE_ARGS='-DCMAKE_BUILD_TYPE=Release'
 CMAKE_ARGS="$CMAKE_ARGS -DBUILD_SHARED=On -Drun_unittests=Off -Duse_default_uuid=On -Duse_emulator=Off -Duse_http=Off"
 
 DOCKER_VOLUME_MOUNTS=''
-
-PACKAGE_OS='alpine'
-PACKAGE_ARCH='amd64'
 
 case "$PACKAGE_OS" in
     'alpine')
@@ -79,17 +124,14 @@ fi
 
 
 case "$PACKAGE_OS.$PACKAGE_ARCH" in
-    # TODO: elevate arg versions and dependency link comment
-    # TODO: remove musl keywords
     alpine.amd64)
-        # Versions for other dependencies. Here are the places to check for new
-        # releases:
+        # The below SETUP was copied from https://github.com/emk/rust-musl-builder/blob/master/Dockerfile.
+        # The beginning of the below setup specifies versions for other dependencies.
+        # Here are the places to check for new releases:
         #
         # - https://github.com/rust-lang/mdBook/releases
         # - https://github.com/EmbarkStudios/cargo-about/releases
         # - https://github.com/EmbarkStudios/cargo-deny/releases
-        # - http://zlib.net/
-        # - https://ftp.postgresql.org/pub/source/
         SETUP_COMMAND=$'
             MDBOOK_VERSION=0.3.7
             CARGO_ABOUT_VERSION=0.2.2
@@ -312,8 +354,8 @@ docker run --rm \
         curl -sSLf https://sh.rustup.rs | sh -s -- -y &&
         . ~/.cargo/env &&
 
-        # mqttd
-        cd /project/mqtt/mqttd &&
+        # build artifacts
+        cd /project/$BUILD_PATH &&
         $RUST_TARGET_COMMAND
         $MAKE_COMMAND
     "

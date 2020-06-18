@@ -1,0 +1,24 @@
+# This template will move the mqtt and watchdog artifacts into the EdgeHub dotnet publish folder
+# EdgeHub's dotnet target folder will serve as a minimal build context for the image
+steps:
+  - bash: 'mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/amd64'
+  - bash: 'mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/arm32'
+  - bash: 'mkdir -p target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/arm64'
+
+  - task: Bash@3
+    displayName: Copy broker artifact - amd64
+    inputs:
+      filePath: scripts/linux/strip-and-copy-binary.sh
+      arguments: --src mqtt/target/release/mqttd --dest target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/amd64
+
+  - task: Bash@3
+    displayName: Copy broker artifact - arm32
+    inputs:
+      filePath: scripts/linux/strip-and-copy-binary.sh
+      arguments: --src mqtt/target/armv7-unknown-linux-gnueabihf/release/mqttd --dest target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/arm32
+
+  - task: Bash@3
+    displayName: Copy broker artifact - arm64
+    inputs:
+      filePath: scripts/linux/strip-and-copy-binary.sh
+      arguments: --src mqtt/target/aarch64-unknown-linux-gnu/release/mqttd --dest target/publish/Microsoft.Azure.Devices.Edge.Hub.Service/mqtt/arm64
