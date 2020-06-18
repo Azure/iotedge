@@ -25,10 +25,10 @@ jobs:
         displayName: Build ($(Build.Configuration))
 
       - template: templates/build-broker-watchdog.yaml
-        displayName: 'Cross compile broker for all platforms'
+        displayName: 'Cross compile broker and watchdog for all platforms'
 
       - template: templates/copy-broker-watchdog-artifacts.yaml
-        displayName: 'Copy broker artifacts to edgehub publish folder'
+        displayName: 'Copy broker and watchdog artifacts to edgehub publish folder'
 
       - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.BinariesDirectory)/publish' --build-number $(Build.BuildNumber)
         displayName: 'Create Artifact Info File'
